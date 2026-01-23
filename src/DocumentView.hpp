@@ -43,7 +43,7 @@ extern "C"
 #define ZVALUE_TEXT_SELECTION 30
 
 #define MIN_ZOOM_FACTOR 0.1
-#define MAX_ZOOM_FACTOR 5.0
+#define MAX_ZOOM_FACTOR 1.0
 
 #define CSTR(x) x.toStdString().c_str()
 
@@ -394,7 +394,7 @@ private:
     FitMode m_fit_mode{FitMode::None};
     int m_pageno{-1};
     float m_spacing{10.0f}, m_page_stride{0.0f}, m_page_x_offset{0.0f};
-    double m_target_zoom{1.0}, m_current_zoom{1.0};
+    double m_target_zoom{MIN_ZOOM_FACTOR}, m_current_zoom{MIN_ZOOM_FACTOR};
     bool m_auto_resize{false}, m_auto_reload{false};
     ScrollBar *m_hscroll{nullptr};
     ScrollBar *m_vscroll{nullptr};

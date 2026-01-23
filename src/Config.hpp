@@ -12,6 +12,23 @@ struct Config
 
     struct ui
     {
+        struct colors
+        {
+            uint32_t accent{0x3daee9FF};
+            uint32_t background{0x00000000};
+            uint32_t page_background{0xFFFFFFFF};
+            uint32_t page_foreground{0x000000FF};
+            uint32_t search_match{0x55500033};
+            uint32_t search_index{0x55FF0055};
+            uint32_t link_hint_bg{0x000000FF};
+            uint32_t link_hint_fg{0xea3ee9FF};
+            uint32_t selection{0x0000FF55};
+            uint32_t highlight{0x55FF0055};
+            uint32_t jump_marker{0xFF0000FF};
+            uint32_t annot_rect{0x55FF5588};
+            uint32_t annot_popup{0xFFFFFFAA};
+        } colors{};
+
         struct window
         {
             bool fullscreen{false};
@@ -42,7 +59,7 @@ struct Config
 
         struct zoom
         {
-            float level{1.0f};
+            float level{0.5f};
             float factor{1.25f};
         } zoom{};
 
@@ -84,12 +101,12 @@ struct Config
             bool auto_hide{false};
             bool closable{true};
             bool movable{true};
+            QString elide_mode{"right"};
+            QString location{"top"};
             bool full_path{false};
             bool lazy_load{true};
             bool suspend_inactive{true};
             int suspend_timeout{300}; // in seconds
-            QString elide_mode{"right"};
-            QString bar_position{"top"};
         } tabs{};
 
         struct outline
@@ -131,33 +148,16 @@ struct Config
                 int opacity{120};
             } shadow{};
         } overlays{};
+    };
 
 #ifdef ENABLE_LLM_SUPPORT
-        struct llm_widget
-        {
-            bool visible{false};
-            QString panel_position{"right"};
-            int panel_width{400};
-        } llm_widget{};
+    struct llm_widget
+    {
+        bool visible{false};
+        QString panel_position{"right"};
+        int panel_width{400};
+    } llm_widget{};
 #endif
-
-        struct colors
-        {
-            uint32_t accent{0x3daee9FF};
-            uint32_t background{0x00000000};
-            uint32_t page_background{0xFFFFFFFF};
-            uint32_t page_foreground{0x000000FF};
-            uint32_t search_match{0x55500033};
-            uint32_t search_index{0x55FF0055};
-            uint32_t link_hint_bg{0x000000FF};
-            uint32_t link_hint_fg{0xea3ee9FF};
-            uint32_t selection{0x33000055};
-            uint32_t highlight{0x55FF0055};
-            uint32_t jump_marker{0xFF0000FF};
-            uint32_t annot_rect{0x55FF5588};
-            uint32_t annot_popup{0xFFFFFFAA};
-        } colors{};
-    };
 
     struct rendering
     {
@@ -182,7 +182,7 @@ struct Config
         int page_history_limit{5};
         int num_recent_files{10};
         int startpage_override{-1};
-        GraphicsView::Mode initial_mode{GraphicsView::Mode::RegionSelection};
+        GraphicsView::Mode initial_mode{GraphicsView::Mode::TextSelection};
 #ifdef HAS_SYNCTEX
         QString synctex_editor_command{QString()};
 #endif

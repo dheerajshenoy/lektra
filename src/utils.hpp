@@ -136,3 +136,5 @@ clean_join_pdf_text(const std::string &input);
 
 void
 clean_pdf_text(std::string &s);
+
+

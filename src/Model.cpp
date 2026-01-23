@@ -126,32 +126,34 @@ Model::openAsync(const QString &filePath, const QString &password) noexcept
             return;
         }
 
-        const char *extension = extensions[0];
+        const QString extension = extensions[0];
 
-        if (strcmp(extension, "pdf"))
+        if (extension == "pdf")
         {
             m_filetype = FileType::PDF;
         }
-        else if (strcmp(extension, "cbt"))
+        else if (extension == "cbt")
         {
             m_filetype = FileType::CBZ;
         }
-        else if (strcmp(extension, "mobi"))
+        else if (extension == "mobi")
         {
             m_filetype = FileType::MOBI;
         }
-        else if (strcmp(extension, "fb2"))
+        else if (extension == "fb2")
         {
             m_filetype = FileType::FB2;
         }
-        else if (strcmp(extension, "svg"))
+        else if (extension == "svg")
         {
             m_filetype = FileType::SVG;
         }
-        else if (strcmp(extension, "epub"))
+        else if (extension == "epub")
         {
             m_filetype = FileType::EPUB;
         }
+
+                                        qDebug() << "FileType: " << (int) m_filetype;
 
         m_doc = fz_open_document(m_ctx, CSTR(filePath));
 

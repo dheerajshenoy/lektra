@@ -115,7 +115,7 @@ init_args(argparse::ArgumentParser &program)
 int
 main(int argc, char *argv[])
 {
-    argparse::ArgumentParser program("dodo", APP_VERSION,
+    argparse::ArgumentParser program("lektra", APP_VERSION,
                                      argparse::default_arguments::all);
     init_args(program);
     try
