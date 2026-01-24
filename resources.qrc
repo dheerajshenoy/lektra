@@ -4,7 +4,7 @@
     <qresource prefix="/">
         <file>resources/png/banner.png</file>
         <file>resources/png/logo.png</file>
-        <file>resources/hicolor/512x512/apps/logo.png</file>
+        <file>resources/hicolor/512x512/apps/lektra.png</file>
         <file>resources/fonts/Outfit-Bold.ttf</file>
         <file>resources/fonts/Major-Mono-Display.ttf</file>
         <file>LICENSE</file>

@@ -142,7 +142,7 @@ main(int argc, char *argv[])
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     QApplication app(argc, argv);
-    app.setWindowIcon(QIcon(":/resources/png/logo.png"));
+    app.setWindowIcon(QIcon(":/resources/png/lektra.png"));
     lektra d;
     d.ReadArgsParser(program);
     app.exec();
