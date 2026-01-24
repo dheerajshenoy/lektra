@@ -1,5 +1,9 @@
 <p align="center">
-    <b>lektra</b> is a high-performance PDF reader that prioritizes screen space and control.
+<img src="resources/png/logo-text-only.png" width="400px">
+</p>
+
+<p align="center">
+    <h2>High-performance PDF reader that prioritizes screen space and control.</h2>  
 </p>
 
 <p align="center">
@@ -11,10 +15,11 @@
 <p align="center">
 <a href="https://isocpp.org"><img src="https://img.shields.io/badge/LANGUAGE-C%2B%2B-blue?style=for-the-badge"></a>
 <a href="https://codeberg.org/lektra/lektra/src/branch/main/LICENSE"><img alt="Static Badge" src="https://img.shields.io/badge/LICENSE-AGPL--3.0-darkgreen?style=for-the-badge"></a>
-</p>
-
+  
 > [!WARNING]
 > **lektra** is still in alpha, bugs and crashes expected.
+</p>
+
 
 ## Screenshots
 
