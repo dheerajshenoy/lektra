@@ -90,6 +90,11 @@ init_args(argparse::ArgumentParser &program)
         .nargs(1)
         .metavar("CONFIG_PATH");
 
+    program.add_argument("--about")
+        .help("Show about dialog")
+        .default_value(false)
+        .implicit_value(true);
+
     program.add_argument("-s", "--session")
         .help("Load a session")
         .nargs(1)

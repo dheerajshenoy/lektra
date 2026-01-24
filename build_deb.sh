@@ -7,8 +7,8 @@ STAGE_DIR="$ROOT_DIR/_deb_stage"
 PKG_DIR="$ROOT_DIR/_deb_pkg"
 OUT_DIR="$ROOT_DIR/dist"
 
-APP_NAME="dodo"
-APP_VERSION=${APP_VERSION:-$(sed -n 's/^[[:space:]]*project(dodo VERSION \([0-9.]*\).*/\1/p' "$ROOT_DIR/CMakeLists.txt" | head -n 1)}
+APP_NAME="lektra"
+APP_VERSION=${APP_VERSION:-$(sed -n 's/^[[:space:]]*project(lektra VERSION \([0-9.]*\).*/\1/p' "$ROOT_DIR/CMakeLists.txt" | head -n 1)}
 if [ -z "$APP_VERSION" ]; then
     APP_VERSION="dev"
 fi
@@ -67,7 +67,7 @@ Section: utils
 Priority: optional
 Architecture: $ARCH
 Maintainer: Dheeraj Vittal Shenoy <dheerajshenoy22@gmail.com>
-Homepage: https://github.com/dheerajshenoy/dodo
+Homepage: https://codeberg.org/lektra/lektra
 Installed-Size: ${INSTALLED_SIZE:-0}
 Build-Depends: cmake ninja-build
 Depends: qt6-base-dev, curl, libsynctex-dev

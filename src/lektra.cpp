@@ -1191,8 +1191,6 @@ void
 lektra::ShowAbout() noexcept
 {
     AboutDialog *abw = new AboutDialog(this);
-    abw->setAppInfo(APP_VERSION,
-                    "A fast, configurable PDF reader built using MuPDF and Qt");
     abw->show();
 }
 
@@ -1201,6 +1199,7 @@ lektra::ShowAbout() noexcept
 void
 lektra::ReadArgsParser(argparse::ArgumentParser &argparser) noexcept
 {
+
     if (argparser.is_used("version"))
     {
         qInfo() << "lektra version: " << APP_VERSION;
@@ -1214,6 +1213,13 @@ lektra::ReadArgsParser(argparse::ArgumentParser &argparser) noexcept
     }
 
     this->construct();
+
+    if (argparser.is_used("about"))
+    {
+        ShowAbout();
+    }
+
+
 
     if (argparser.is_used("session"))
     {

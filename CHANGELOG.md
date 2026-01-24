@@ -10,10 +10,11 @@
 - History navigation improvements
     - Forward/next-location history navigation with `next_location`
     - Preserve link source/target locations so jump markers land correctly
+- Add `--about` command line argument to show about dialog
 
 ### Bug Fixes
 - Disable access to annotation mode when not in PDF file (for other file formats)
-- Remove PDF word from the file properties window title 
+- Remove PDF word from the file properties window title
 - Fix text selection context menu takes precedence over annotation highlights when both apply
 - Fix scrollbar auto-hide timer ignoring configured hide timeout after mouse leave
 - Fix recent files page restore to open the stored page without adding history entries
@@ -23,7 +24,7 @@
 - Remove `close_file` command as it was redundant with `tab_close` (which does the same thing)
 - Rename `bar_position` to `location` in `[ui.tabs]`
 
-## 0.6.0 
+## 0.6.0
 
 ### Features
 
@@ -43,7 +44,7 @@
 
 ### Config options
 - Page foreground and background color config option
-    - `[colors]` 
+    - `[colors]`
         - `page_foreground` (RGBA hex value)
         - `page_background` (RGBA hex value)
 - Tab close commands `[keybindings]`
@@ -65,7 +66,7 @@
 
 ### Optimizations
 
-- Set optimization flag and CacheMode for QGraphicsView 
+- Set optimization flag and CacheMode for QGraphicsView
 - Colors are now stored as packed RGBA ints and parsed from hex config values
 
 ### Breaking Changes

@@ -15,8 +15,6 @@ class AboutDialog : public QDialog
 
 public:
     explicit AboutDialog(QWidget *parent = nullptr);
-    void setAppInfo(const QString &version,
-                    const QString &description) noexcept;
 
 private:
     QWidget *softwaresUsedSection() noexcept;

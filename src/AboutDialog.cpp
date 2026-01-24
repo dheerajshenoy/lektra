@@ -26,33 +26,31 @@ AboutDialog::AboutDialog(QWidget *parent)
 
     setMinimumSize(600, 400);
 
-    QImage *icon = new QImage();
-
-    QLabel *logoText = new QLabel("lektra");
-
-
     // Setup logo font - load from resources
     int fontId = QFontDatabase::addApplicationFont(
-        ":/resources/fonts/Outfit-Bold.ttf");
+        ":/resources/fonts/Major-Mono-Display.ttf");
     QString fontFamily
-        = QFontDatabase::applicationFontFamilies(fontId).value(
-            0, QString());
+        = QFontDatabase::applicationFontFamilies(fontId).value(0, QString());
     QFont logoFont;
     if (!fontFamily.isEmpty())
         logoFont.setFamily(fontFamily);
-    logoFont.setPointSize(50);
+    logoFont.setPointSize(35);
     logoFont.setBold(true);
 
-    logoText->setFont(logoFont);
+    QLabel *bannerText = new QLabel("lektra");
+    bannerText->setContentsMargins(0, 0, 0, 0);
 
-    infoLabel->setWordWrap(true);
+    bannerText->setAutoFillBackground(true);
+    bannerText->setStyleSheet(
+        "QLabel { background-color : black; color : pink; }");
+
+    bannerText->setFont(logoFont);
+    bannerText->setContentsMargins(10, 50, 50, 10);
 
     m_tabWidget = new QTabWidget(this);
 
-    QHBoxLayout *otherLayout = new QHBoxLayout();
-
-    otherLayout->addWidget(logoText);
-    otherLayout->addWidget(infoLabel);
+    QVBoxLayout *otherLayout = new QVBoxLayout();
+    otherLayout->addWidget(bannerText);
 
     QTextEdit *licenseTextEdit = new QTextEdit();
     licenseTextEdit->setReadOnly(true);
@@ -71,9 +69,6 @@ AboutDialog::AboutDialog(QWidget *parent)
         licenseTextEdit->setPlainText("Could not load license text.");
     }
 
-    otherLayout->setContentsMargins(10, 10, 10, 10);
-
-    m_tabWidget->addTab(licenseTextEdit, "License");
     auto *layout = new QVBoxLayout();
     layout->addLayout(otherLayout);
     layout->addWidget(m_tabWidget);
@@ -84,22 +79,12 @@ AboutDialog::AboutDialog(QWidget *parent)
     connect(closeButton, &QPushButton::clicked, this, &QDialog::accept);
 
     QWidget *authorWidget = authorsSection();
-    m_tabWidget->addTab(authorWidget, "Author");
+    m_tabWidget->addTab(authorWidget, "About");
 
     QWidget *softwaresUsed = softwaresUsedSection();
     m_tabWidget->addTab(softwaresUsed, "Libraries Used");
+    m_tabWidget->addTab(licenseTextEdit, "License");
     setWindowModality(Qt::NonModal);
-}
-
-void
-AboutDialog::setAppInfo(const QString &version,
-                        const QString &description) noexcept
-{
-    const char *link
-        = "<a href='https://github.com/dheerajshenoy/lektra'>github</a>";
-    infoLabel->setText(
-        QString("%1<br>Build Type: %2<br>Version: %3<br>Project homepage: %4")
-            .arg(description, APP_BUILD_TYPE, version, link));
 }
 
 QWidget *
@@ -129,11 +114,10 @@ AboutDialog::authorsSection() noexcept
     QWidget *widget = new QWidget(this);
 
     QFormLayout *layout = new QFormLayout(widget);
+    layout->addRow("Version", new QLabel(APP_VERSION));
     layout->addRow("Created by", new QLabel("Dheeraj Vittal Shenoy"));
     layout->addRow("Github",
-                   new QLabel("<a "
-                              "href='https://github.com/dheerajshenoy'>https://"
-                              "github.com/dheerajshenoy</a>"));
+                   new QLabel("<a href='https://codeberg.org/lektra/lektra'>https://codeberg.org/lektra/lektra</a>"));
     widget->setLayout(layout);
 
     return widget;

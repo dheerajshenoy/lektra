@@ -3,7 +3,7 @@ set -eu
 
 ROOT_DIR=$(cd "$(dirname "$0")" && pwd)
 OUT_DIR="$ROOT_DIR/dist"
-APP_VERSION=${APP_VERSION:-$(sed -n 's/^[[:space:]]*project(dodo VERSION \([0-9.]*\).*/\1/p' "$ROOT_DIR/CMakeLists.txt" | head -n 1)}
+APP_VERSION=${APP_VERSION:-$(sed -n 's/^[[:space:]]*project(lektra VERSION \([0-9.]*\).*/\1/p' "$ROOT_DIR/CMakeLists.txt" | head -n 1)}
 
 if [ -z "$APP_VERSION" ]; then
     APP_VERSION="dev"

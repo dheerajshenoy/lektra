@@ -2,9 +2,10 @@
 
 <RCC>
     <qresource prefix="/">
-        <file>resources/dodo.png</file>
+        <file>resources/png/banner.png</file>
         <file>resources/hicolor/512x512/apps/dodo.png</file>
         <file>resources/fonts/Outfit-Bold.ttf</file>
+        <file>resources/fonts/Major-Mono-Display.ttf</file>
         <file>LICENSE</file>
     </qresource>
 </RCC>
