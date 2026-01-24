@@ -14,7 +14,7 @@ PREFIX=${PREFIX:-/usr/local}
 # ---------------------------------------------------------
 # Confirm uninstall
 # ---------------------------------------------------------
-printf "Are you sure you want to uninstall 'dodo' and all associated files? [y/N]: "
+printf "Are you sure you want to uninstall 'lektra' and all associated files? [y/N]: "
 read confirm
 
 # default to "n"
@@ -29,27 +29,27 @@ if [ "$confirm" != "y" ]; then
 fi
 
 # ---------------------------------------------------------
-# Check if dodo is installed
+# Check if lektra is installed
 # ---------------------------------------------------------
-if ! command -v dodo >/dev/null 2>&1; then
-    echo "dodo is not installed (not found in PATH)."
+if ! command -v lektra >/dev/null 2>&1; then
+    echo "lektra is not installed (not found in PATH)."
 else
-    echo "dodo binary found in PATH: $(command -v dodo)"
+    echo "lektra binary found in PATH: $(command -v lektra)"
 fi
 
 # ---------------------------------------------------------
 # File list (POSIX array = space-separated variable)
 # ---------------------------------------------------------
 FILES="
-bin/dodo
-share/applications/dodo.desktop
-share/icons/hicolor/16x16/apps/dodo.png
-share/icons/hicolor/32x32/apps/dodo.png
-share/icons/hicolor/48x48/apps/dodo.png
-share/icons/hicolor/64x64/apps/dodo.png
-share/icons/hicolor/128x128/apps/dodo.png
-share/icons/hicolor/256x256/apps/dodo.png
-share/icons/hicolor/512x512/apps/dodo.png
+bin/lektra
+share/applications/lektra.desktop
+share/icons/hicolor/16x16/apps/lektra.png
+share/icons/hicolor/32x32/apps/lektra.png
+share/icons/hicolor/48x48/apps/lektra.png
+share/icons/hicolor/64x64/apps/lektra.png
+share/icons/hicolor/128x128/apps/lektra.png
+share/icons/hicolor/256x256/apps/lektra.png
+share/icons/hicolor/512x512/apps/lektra.png
 "
 
 # ---------------------------------------------------------

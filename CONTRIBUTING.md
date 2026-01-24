@@ -48,8 +48,8 @@ Feature requests should explain:
 Clone the repository:
 
 ```bash
-git clone https://github.com/dheerajshenoy/dodo.git
-cd dodo
+git clone https://codeberg.org/lektra/lektra.git
+cd lektra
 ```
 
 ### Building
@@ -57,5 +57,5 @@ cd dodo
 ```bash
 mkdir build && cd build
 cmake .. -G Ninja -DCMAKE_INSTALL_TYPE=Debug
-ninja && ./dodo
+ninja && ./lektra
 ```

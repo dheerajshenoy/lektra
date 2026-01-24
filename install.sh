@@ -116,7 +116,7 @@ else
     MUPDF_BUILD="release"
 fi
 
-echo "dodo installer"
+echo "Lektra installer"
 echo "  prefix:      $PREFIX"
 echo "  build type:  $BUILD_TYPE"
 echo "  llm:         $ENABLE_LLM_SUPPORT"
@@ -168,8 +168,8 @@ mupdf_built() {
     [ -f "$MUPDF_BUILD_DIR/build/$MUPDF_BUILD/libmupdf-third.a" ]
 }
 
-configure_build_dodo() {
-    echo "Building dodo..."
+configure_build_lektra() {
+    echo "Building lektra..."
     if [ "$FORCE_RECONFIGURE" -eq 1 ]; then
         rm -rf "$BUILD_DIR"
     fi
@@ -228,8 +228,8 @@ else
     build_mupdf
 fi
 
-echo "[2/3] dodo"
-configure_build_dodo
+echo "[2/3] lektra"
+configure_build_lektra
 
 echo "[3/3] stage/install"
 final_install

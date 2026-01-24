@@ -1,5 +1,4 @@
 <p align="center">
-    <!-- <img src="./resources/dodo.png" height="200px" width="200px"/><br><br> -->
     <b>lektra</b> is a high-performance PDF reader that prioritizes screen space and control.
 </p>
 
