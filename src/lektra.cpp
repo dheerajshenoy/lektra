@@ -540,10 +540,6 @@ lektra::initConfig() noexcept
     set_qstring_if_present(ui_tabs["location"], m_config.ui.tabs.location);
     set_if_present(ui_tabs["full_path"], m_config.ui.tabs.full_path);
     set_if_present(ui_tabs["lazy_load"], m_config.ui.tabs.lazy_load);
-    set_if_present(ui_tabs["suspend_inactive"],
-                   m_config.ui.tabs.suspend_inactive);
-    set_if_present(ui_tabs["suspend_timeout"],
-                   m_config.ui.tabs.suspend_timeout);
 
     /* ui.window */
     auto ui_window = ui["window"];
@@ -679,14 +675,6 @@ lektra::initConfig() noexcept
                    m_config.ui.highlight_search.panel_position);
     set_if_present(ui_highlight_search["panel_width"],
                    m_config.ui.highlight_search.panel_width);
-
-    // if (m_config.ui.tabs.suspend_inactive)
-    // {
-    //     m_idle_clock.start();
-    //     m_suspend_timer.setSingleShot(true);
-    //     connect(&m_suspend_timer, &QTimer::timeout, this,
-    //             &lektra::suspendExpiredTabs);
-    // }
 
 #ifdef ENABLE_LLM_SUPPORT
     auto llm_widget = ui["llm_widget"];
@@ -2226,16 +2214,6 @@ lektra::handleFileNameChanged(const QString &name) noexcept
 void
 lektra::handleCurrentTabChanged(int index) noexcept
 {
-    // const qint64 now = m_idle_clock.elapsed();
-
-    // if (m_previous_tab && m_previous_tab !=
-    // m_tab_widget->currentWidget())
-    // {
-    //     auto &s = m_tab_idle_hash[m_previous_tab];
-    //     if (!s.suspended)
-    //         s.hidden_ms = now;
-    // }
-
     if (index == -1)
     {
         m_statusbar->hidePageInfo(true);

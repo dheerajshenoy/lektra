@@ -105,8 +105,6 @@ struct Config
             QString location{"top"};
             bool full_path{false};
             bool lazy_load{true};
-            bool suspend_inactive{true};
-            int suspend_timeout{300}; // in seconds
         } tabs{};
 
         struct outline

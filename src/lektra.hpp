@@ -231,22 +231,6 @@ private:
     bool handleTabContextMenu(QObject *object, QEvent *event) noexcept;
     // bool handleGetInputEvent(QEvent *event) noexcept;
 
-    // Start of tab suspension related code */
-
-    struct TabIdleState
-    {
-        qint64 hidden_ms{0};
-        bool suspended{false};
-    };
-
-    void suspendExpiredTabs() noexcept;
-    void armNextSuspendDeadline() noexcept;
-
-    QElapsedTimer m_idle_clock;
-    QTimer m_suspend_timer;
-    QWidget *m_previous_tab{nullptr}; // Tab that was previously in focus
-    QHash<QWidget *, TabIdleState> m_tab_idle_hash;
-
     // End of tab suspension related code
 
     QDir m_config_dir, m_session_dir;
