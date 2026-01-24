@@ -21,44 +21,48 @@
 > **lektra** is still in alpha, bugs and crashes expected.
 </p>
 
-
 ## Screenshots
 
 <p align="center">
-
-| ![Scrolling](./images/Scrolling.gif) |
-|:------------------------------------:|
-| **Scrolling**                        |
-
-| ![Layouts](./images/Layouts.gif) |
-|:--------------------------------:|
-| **Layouts**                      |
-
-| ![Outline Overlay](./images/Outline.png) |
-|:----------------------------------------:|
-| **Outline Overlay**                      |
-
-| ![Search](./images/Search-Hits-Scrollbar.gif) |
-|:---------------------------------------------:|
-| **Search + Hits in Scrollbar**                |
-
-| ![Jump Marker](./images/Jump-Marker.gif) |
-|:----------------------------------------:|
-| **Jump Markers**                         |
-
-| ![Link Hints](./images/link_hint.png) |
-|:-------------------------------------:|
-| **Link Hints**                        |
-
-| ![Command Palette](./images/command_palette.png) |
-|:------------------------------------------------:|
-| **Command Palette**                              |
-
-| ![SyncTeX integration](./images/synctex.gif) |
-|:--------------------------------------------:|
-| **SyncTeX integration**                      |
-
+  <img src="./images/Scrolling.gif" alt="Scrolling" width="800"><br>
+  <strong>Scrolling</strong>
 </p>
+
+<p align="center">
+  <img src="./images/Layouts.gif" alt="Layouts" width="800"><br>
+  <strong>Layouts</strong>
+</p>
+
+<p align="center">
+  <img src="./images/Outline.png" alt="Outline Overlay" width="800"><br>
+  <strong>Outline Overlay</strong>
+</p>
+
+<p align="center">
+  <img src="./images/Search-Hits-Scrollbar.gif" alt="Search and hits in scrollbar" width="800"><br>
+  <strong>Search + Hits in Scrollbar</strong>
+</p>
+
+<p align="center">
+  <img src="./images/Jump-Marker.gif" alt="Jump Markers" width="800"><br>
+  <strong>Jump Markers</strong>
+</p>
+
+<p align="center">
+  <img src="./images/link_hint.png" alt="Link Hints" width="800"><br>
+  <strong>Link Hints</strong>
+</p>
+
+<p align="center">
+  <img src="./images/command_palette.png" alt="Command Palette" width="800"><br>
+  <strong>Command Palette</strong>
+</p>
+
+<p align="center">
+  <img src="./images/synctex.gif" alt="SyncTeX integration" width="800"><br>
+  <strong>SyncTeX integration</strong>
+</p>
+
 
 # Contributing
 
