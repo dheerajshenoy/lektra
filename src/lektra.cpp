@@ -1113,6 +1113,7 @@ lektra::updateUiEnabledState() noexcept
     m_actionCloseFile->setEnabled(hasOpenedFile);
     m_fitMenu->setEnabled(hasOpenedFile);
     // m_actionToggleOutline->setEnabled(hasOpenedFile);
+    m_modeMenu->setEnabled(hasOpenedFile);
     m_actionInvertColor->setEnabled(hasOpenedFile);
     m_actionSaveFile->setEnabled(hasOpenedFile);
     m_actionSaveAsFile->setEnabled(hasOpenedFile);
