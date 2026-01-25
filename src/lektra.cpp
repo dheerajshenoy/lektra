@@ -724,7 +724,10 @@ lektra::initConfig() noexcept
         if (rendering["dpr"].is_value())
         {
             if (auto v = rendering["dpr"].value<float>())
+            {
                 m_config.rendering.dpr = *v;
+                m_screen_dpr_map[QGuiApplication::primaryScreen()->name()] = *v;
+            }
         }
         else if (rendering["dpr"].is_table())
         {
@@ -758,12 +761,8 @@ lektra::initConfig() noexcept
                 m_config.rendering.dpr = m_screen_dpr_map;
             }
         }
-        else
-        {
-            m_config.rendering.dpr
-                = m_screen_dpr_map.value(QApplication::primaryScreen()->name(),
-                                         this->devicePixelRatioF());
-        }
+    } else {
+        m_screen_dpr_map[QGuiApplication::primaryScreen()->name()] = 1.0f;
     }
 
     auto behavior = toml["behavior"];
@@ -1703,6 +1702,7 @@ lektra::OpenFile(const QString &filePath,
                 [this, callback, index](DocumentView *doc)
         {
             const QString filePath = doc->filePath();
+
             doc->setDPR(m_dpr);
             initTabConnections(doc);
             auto outline = doc->model()->getOutline();
@@ -2106,8 +2106,7 @@ lektra::initConnections() noexcept
 
     QWindow *win = window()->windowHandle();
 
-    m_dpr = m_screen_dpr_map.value(QGuiApplication::primaryScreen()->name(),
-                                   1.0f);
+    m_dpr = m_screen_dpr_map.value(QGuiApplication::primaryScreen()->name());
 
     connect(win, &QWindow::screenChanged, this, [&](QScreen *screen)
     {
@@ -2121,7 +2120,8 @@ lektra::initConnections() noexcept
         else if (std::holds_alternative<float>(m_config.rendering.dpr))
         {
             m_dpr = std::get<float>(m_config.rendering.dpr);
-        }
+        if (m_doc)
+            m_doc->setDPR(m_dpr);
     });
 
     connect(m_search_bar, &SearchBar::searchRequested, this,
