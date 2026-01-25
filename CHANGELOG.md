@@ -6,6 +6,8 @@
 
 ### Bug Fixes
 - Hide scrollbars when the entire document is visible in the viewport
+- Fix not using config zoom factor
+- Fit incorrect zoom on file open
 
 ## 0.6.1 [Lektra Update]
 #### Renamed project name from `dodo` to `lektra`
