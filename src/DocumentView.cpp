@@ -300,13 +300,15 @@ DocumentView::handleOpenFileFinished() noexcept
 
     initConnections();
 
-    FitMode initialFit = FitMode::None;
+    FitMode initialFit;
     if (m_config.ui.layout.initial_fit == "height")
         initialFit = FitMode::Height;
     else if (m_config.ui.layout.initial_fit == "width")
         initialFit = FitMode::Width;
     else if (m_config.ui.layout.initial_fit == "window")
         initialFit = FitMode::Window;
+    else
+        initialFit = FitMode::Height;
 
     m_fit_mode = initialFit;
     if (isVisible())
