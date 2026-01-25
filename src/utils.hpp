@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <string_view>
 #include <vector>
+#include <QDebug>
 
 extern "C"
 {
@@ -137,4 +138,9 @@ clean_join_pdf_text(const std::string &input);
 void
 clean_pdf_text(std::string &s);
 
-
+template <typename ...Types>
+inline void pprint(Types&&... args) {
+    qDebug() << "--------------------------------";
+    (qDebug() << ... << args);
+    qDebug() << "--------------------------------";
+}
