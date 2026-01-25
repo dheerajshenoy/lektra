@@ -27,7 +27,7 @@ private:
     QTextEdit *m_chat_edit{nullptr};
     QTextEdit *m_input_edit{nullptr};
     QPushButton *m_send_btn{nullptr};
-    Config m_config;
+    const Config &m_config;
 
     LLM::Provider *m_provider{nullptr};
     bool m_stream_in_progress{false};

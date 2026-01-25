@@ -390,7 +390,7 @@ private:
     Model *m_model{nullptr};
     GraphicsView *m_gview{nullptr};
     GraphicsScene *m_gscene{nullptr};
-    Config m_config;
+    const Config &m_config;
     FitMode m_fit_mode{FitMode::None};
     int m_pageno{-1};
     float m_spacing{10.0f}, m_page_stride{0.0f}, m_page_x_offset{0.0f};

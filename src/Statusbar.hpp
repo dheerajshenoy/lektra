@@ -35,7 +35,7 @@ signals:
     void pageChangeRequested(int pageno);
 
 private:
-    Config m_config;
+    const Config &m_config;
     void initGui() noexcept;
     void initConnections() noexcept;
     void labelBG(QLabel *label, const QColor &color) noexcept;

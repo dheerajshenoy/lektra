@@ -53,7 +53,7 @@ signals:
                          const QStringList &args = {});
 
 private:
-    Config m_config;
+    const Config &m_config;
     void initGui() noexcept;
     void initConnections() noexcept;
     QLineEdit *m_input_line{nullptr};
