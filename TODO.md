@@ -20,6 +20,8 @@
     - [ ] Table exporter to CSV/Excel/Numpy
     - [ ] Semantic search
     - [ ] Finding citation from folder
+    - [ ] Explain selection
+    - [ ] Convert to notes
 - [ ] read from stdin
 - [ ] password protected files
 - [ ] add tabs feature to website
@@ -33,3 +35,5 @@
 - [ ] Separate dark and light mode colors ability
 - [ ] Copy text on highlight annotation problem
 - [ ] Don't refresh highlights search each time
+- [ ] Search engine configuration
+- [ ] Smart jump under cursor (eg. jump to citation if on citation)

@@ -1,0 +1,179 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[margin=0.5in]{geometry}
+\usepackage{graphicx}
+\usepackage{fontspec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+
+\onehalfspacing
+
+\newfontfamily\majormono{Major Mono Display}
+\setmainfont{Outfit}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue
+}
+
+\newtcolorbox{ghnote}{
+    colback=gray!5,
+    colframe=gray!40,
+    boxrule=0.4pt,
+    arc=4pt,
+    left=6pt, right=6pt, top=6pt, bottom=6pt
+}
+
+\newtcbox{\keys}{
+    on line,
+    boxsep=2pt,
+    left=2pt,
+    right=2pt,
+    top=1pt,
+    bottom=1pt,
+    colback=gray!10,
+    colframe=gray!40,
+    boxrule=0.4pt,
+    arc=3pt,
+    fontupper=\ttfamily\small
+}
+
+\begin{document}
+
+\hspace{-0.25em}{\majormono\fontsize{30pt}{36pt}\selectfont lektra}
+
+High-performance PDF reader that prioritizes screen space and control.
+
+\vspace{1em}
+\hrule
+\vspace{1em}
+
+\section*{Important Links}
+
+\begin{description}[labelwidth=2.2cm, labelsep=0.8em, align=right, leftmargin=0pt]
+    \item[\textbf{Homepage}] \url{https://dheerajshenoy.github.io/lektra}
+    \item[\textbf{Code}]   \url{https://codeberg.org/lektra/lektra}
+\end{description}
+
+\begin{ghnote}
+    \textbf{Note:} This guide assumes you have installed the \textbf{lektra} and have not changed the default keybindings.
+\end{ghnote}
+
+\section{Getting Started}
+This guide will help you get started with using \textbf{lektra}.
+
+\subsection{Opening a file}
+You can open a PDF in multiple ways:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Command line:} \keys{lektra <path-to-pdf>}
+    \item \textbf{File explorer:} Right-click a PDF and choose \textit{Open with lektra}
+\end{itemize}
+
+These are not the only ways to open files, but they are the most common.
+
+\subsection{Keyboard Navigation and Keybindings}
+
+The core philosophy of \textbf{lektra} is keyboard-driven navigation (but don't worry, mouse support is available too). The default keybindings are very close to the text editor VIM's keybindings. Here are the essential keybindings to get you started:
+
+\subsubsection{Scrolling and Movement}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Vertical} \keys{j} scrolls down,\; \keys{k} scrolls up
+    \item \textbf{Horizontal} \keys{h} scrolls left,\; \keys{l} scrolls right
+\end{itemize}
+
+\subsubsection{Page Navigation}
+
+\begin{itemize}[leftmargin=*]
+    \item \keys{Shift+j} moves to the next page
+    \item \keys{Shift+k} moves to the previous page
+    \item \keys{g,g} jumps to the first page
+    \item \keys{Shift+g} jumps to the last page
+    \item \keys{Ctrl+g} goto a specific page (prompts for page number)
+\end{itemize}
+
+\subsubsection{Search Navigation}
+\begin{itemize}[leftmargin=*]
+    \item \keys{/} opens or focuses the search bar
+    \item \keys{n} jumps to the next search result
+    \item \keys{Shift+n} jumps to the previous search result
+\end{itemize}
+
+\subsubsection{Zoom and View Control}
+\begin{itemize}[leftmargin=*]
+    \item \keys{=} zooms in
+    \item \keys{-} zooms out
+    \item \keys{0} resets zoom
+\end{itemize}
+
+Fit modes:
+\begin{itemize}[leftmargin=*]
+    \item \keys{Ctrl+Shift+W} fit to width
+    \item \keys{Ctrl+Shift+H} fit to height
+    \item \keys{Ctrl+Shift+=} fit to window
+    \item \keys{Ctrl+Shift+R} toggle auto-resize
+\end{itemize}
+
+\subsubsection{Outline and History}
+\begin{itemize}[leftmargin=*]
+    \item \keys{t} opens the document outline (table of contents) overlay
+    \item \keys{Alt+Shift+H} opens the text highlight annotation search overlay
+    \item \keys{Ctrl+o} goes back to the previous location in history
+\end{itemize}
+
+\subsubsection{Annotations and Interaction Modes}
+\begin{ghnote}
+    \textbf{Note:} These keys toggle modes. Some modes require clicking or dragging on the page to take effect.
+\end{ghnote}
+
+\begin{itemize}[leftmargin=*]
+    \item \keys{1} toggle text selection mode
+    \item \keys{2} toggle text highlight mode
+    \item \keys{3} toggle rectangle annotation mode
+    \item \keys{4} toggle region selection mode
+    \item \keys{5} toggle annotation popups
+\end{itemize}
+
+\subsubsection{Links and Actions}
+\begin{itemize}[leftmargin=*]
+    \item \keys{f} link-hint visit (keyboard link navigation)
+    \item \keys{o} open file
+    \item \keys{Ctrl+s} save current document
+\end{itemize}
+
+\subsubsection{Editing and UI}
+\begin{itemize}[leftmargin=*]
+    \item \keys{u} undo
+    \item \keys{Ctrl+r} redo
+    \item \keys{i} invert colors
+    \item \keys{Ctrl+Shift+m} toggle menubar
+    \item \keys{:} open command palette
+\end{itemize}
+
+\subsubsection{Rotation}
+
+\begin{itemize}[leftmargin=*]
+    \item \keys{<} rotate counter-clockwise
+    \item \keys{>} rotate clockwise
+\end{itemize}
+
+\section{Configuration}
+
+\textbf{lektra} can be configured using a configuration file located at \keys{\$HOME/.config/lektra/config.toml}. You can change keybindings, appearance settings, and other preferences in this file. For detailed information on configuration options, please refer to \href{https://dheerajshenoy.github.io/lektra-configuration.html}{configuration} page on the lektra's homepage.
+
+% \section{Getting Help}
+%
+% If you need assistance or want to report issues, you can visit the GitHub repository's Issues section or check the FAQ on the homepage.
+%
+% ashdaskdjh
+
+\end{document}
+
