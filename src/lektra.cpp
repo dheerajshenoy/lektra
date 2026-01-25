@@ -508,9 +508,7 @@ lektra::initConfig() noexcept
     m_session_dir = QDir(m_config_dir.filePath("sessions"));
 
     if (!QFile::exists(m_config_file_path))
-    {
         return;
-    }
 
     toml::table toml;
 
