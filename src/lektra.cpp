@@ -505,6 +505,10 @@ lektra::initConfig() noexcept
     // if (!m_config_watcher->files().contains(m_config_file_path))
     //     m_config_watcher->addPath(m_config_file_path);
 
+
+    auto primaryScreen = QGuiApplication::primaryScreen();
+    m_screen_dpr_map[primaryScreen->name()] = primaryScreen->devicePixelRatio();
+
     m_session_dir = QDir(m_config_dir.filePath("sessions"));
 
     if (!QFile::exists(m_config_file_path))
