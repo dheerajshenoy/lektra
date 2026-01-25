@@ -762,8 +762,9 @@ lektra::initConfig() noexcept
         }
         else
         {
-            m_config.rendering.dpr = m_screen_dpr_map.value(
-                QApplication::primaryScreen()->name(), 1.0f);
+            m_config.rendering.dpr
+                = m_screen_dpr_map.value(QApplication::primaryScreen()->name(),
+                                         this->devicePixelRatioF());
         }
     }
 
