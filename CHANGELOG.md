@@ -5,6 +5,7 @@
 ### Features
 
 ### Bug Fixes
+- Hide scrollbars when the entire document is visible in the viewport
 
 ## 0.6.1 [Lektra Update]
 #### Renamed project name from `dodo` to `lektra`

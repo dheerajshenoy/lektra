@@ -685,11 +685,17 @@ GraphicsView::leaveEvent(QEvent *event)
 void
 GraphicsView::updateScrollbars()
 {
-    const bool showV = m_scrollbarsVisible && m_vbarEnabled;
-    const bool showH = m_scrollbarsVisible && m_hbarEnabled;
+    QScrollBar *vbar   = verticalScrollBar();
+    QScrollBar *hbar   = horizontalScrollBar();
+    const bool vNeeded = vbar && vbar->maximum() > vbar->minimum();
+    const bool hNeeded = hbar && hbar->maximum() > hbar->minimum();
+    const bool showV   = m_scrollbarsVisible && m_vbarEnabled && vNeeded;
+    const bool showH   = m_scrollbarsVisible && m_hbarEnabled && hNeeded;
 
-    verticalScrollBar()->setVisible(showV);
-    horizontalScrollBar()->setVisible(showH);
+    if (vbar)
+        vbar->setVisible(showV);
+    if (hbar)
+        hbar->setVisible(showH);
 
     if (showV || showH)
         layoutScrollbars();
