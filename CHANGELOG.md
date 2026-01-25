@@ -1,5 +1,11 @@
 # dodo
 
+## 0.6.2
+
+### Features
+
+### Bug Fixes
+
 ## 0.6.1 [Lektra Update]
 #### Renamed project name from `dodo` to `lektra`
 
