@@ -160,7 +160,7 @@ struct Config
     struct rendering
     {
         float dpi{300};
-        std::variant<float, QMap<QString, float>> dpr{};
+        std::variant<float, QMap<QString, float>> dpr{1.0f};
         float inv_dpr{1.0f};
         bool icc_color_profile{true};
         int antialiasing_bits{8};
