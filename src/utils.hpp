@@ -138,9 +138,21 @@ clean_join_pdf_text(const std::string &input);
 void
 clean_pdf_text(std::string &s);
 
-template <typename ...Types>
-inline void pprint(Types&&... args) {
-    qDebug() << "--------------------------------";
-    (qDebug() << ... << args);
-    qDebug() << "--------------------------------";
+
+/* NOTE: Do not call this function, call PPRINT macro instead */
+template <typename ...Ts>
+inline void __pprint(Ts&&... args) {
+    QDebug dbg = qDebug();
+    dbg.nospace();
+    dbg.noquote();
+
+    dbg << "--------------------------------";
+    ((dbg << std::forward<Ts>(args) << ' '), ...); // cheap separator
+    dbg << "--------------------------------";
 }
+
+#ifndef NDEBUG
+    #define PPRINT(...) __print(__VA_ARGS__)
+#else
+    #define PPRINT(...) do {} while (0)
+#endif
