@@ -581,9 +581,10 @@ lektra::initConfig() noexcept
 
     /* ui.layout */
     auto ui_layout = ui["layout"];
-    set_qstring_if_present(ui_layout["mode"], m_config.ui.layout.mode); // string
+    set_qstring_if_present(ui_layout["mode"],
+                           m_config.ui.layout.mode); // string
     set_qstring_if_present(ui_layout["initial_fit"],
-                   m_config.ui.layout.initial_fit); // string
+                           m_config.ui.layout.initial_fit); // string
     set_if_present(ui_layout["auto_resize"], m_config.ui.layout.auto_resize);
     set_if_present(ui_layout["spacing"], m_config.ui.layout.spacing);
 
@@ -660,7 +661,7 @@ lektra::initConfig() noexcept
     // You hard-set this; keeping that behavior:
     m_config.ui.outline.type = "overlay";
     set_qstring_if_present(ui_outline["panel_position"],
-                   m_config.ui.outline.panel_position);
+                           m_config.ui.outline.panel_position);
     set_if_present(ui_outline["panel_width"], m_config.ui.outline.panel_width);
 
     /* ui.highlight_search */
@@ -668,9 +669,9 @@ lektra::initConfig() noexcept
     set_if_present(ui_highlight_search["visible"],
                    m_config.ui.highlight_search.visible);
     set_qstring_if_present(ui_highlight_search["type"],
-                   m_config.ui.highlight_search.type);
+                           m_config.ui.highlight_search.type);
     set_qstring_if_present(ui_highlight_search["panel_position"],
-                   m_config.ui.highlight_search.panel_position);
+                           m_config.ui.highlight_search.panel_position);
     set_if_present(ui_highlight_search["panel_width"],
                    m_config.ui.highlight_search.panel_width);
 
@@ -725,7 +726,7 @@ lektra::initConfig() noexcept
         {
             if (auto v = rendering["dpr"].value<float>())
             {
-                m_config.rendering.dpr = *v;
+                m_config.rendering.dpr                                     = *v;
                 m_screen_dpr_map[QGuiApplication::primaryScreen()->name()] = *v;
             }
         }
@@ -761,7 +762,9 @@ lektra::initConfig() noexcept
                 m_config.rendering.dpr = m_screen_dpr_map;
             }
         }
-    } else {
+    }
+    else
+    {
         m_screen_dpr_map[QGuiApplication::primaryScreen()->name()] = 1.0f;
     }
 
@@ -1205,8 +1208,6 @@ lektra::ReadArgsParser(argparse::ArgumentParser &argparser) noexcept
     {
         ShowAbout();
     }
-
-
 
     if (argparser.is_used("session"))
     {
@@ -2120,8 +2121,9 @@ lektra::initConnections() noexcept
         else if (std::holds_alternative<float>(m_config.rendering.dpr))
         {
             m_dpr = std::get<float>(m_config.rendering.dpr);
-        if (m_doc)
-            m_doc->setDPR(m_dpr);
+            if (m_doc)
+                m_doc->setDPR(m_dpr);
+        }
     });
 
     connect(m_search_bar, &SearchBar::searchRequested, this,
@@ -3793,7 +3795,6 @@ lektra::handleEscapeKeyPressed() noexcept
 void
 lektra::ToggleCommandPalette() noexcept
 {
-
     if (!m_command_palette_widget)
     {
 
