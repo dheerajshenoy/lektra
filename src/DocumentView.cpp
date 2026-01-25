@@ -1198,8 +1198,8 @@ DocumentView::ZoomIn() noexcept
     if (m_target_zoom >= MAX_ZOOM_FACTOR)
         return;
 
-    m_target_zoom
-        = std::clamp(m_target_zoom * 1.2, MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
+    m_target_zoom = std::clamp(m_target_zoom * m_config.ui.zoom.factor,
+                               MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
     zoomHelper();
 }
 
@@ -1210,8 +1210,8 @@ DocumentView::ZoomOut() noexcept
     if (m_target_zoom <= MIN_ZOOM_FACTOR)
         return;
 
-    m_target_zoom
-        = std::clamp(m_current_zoom / 1.2, MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
+    m_target_zoom = std::clamp(m_current_zoom / m_config.ui.zoom.factor,
+                               MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
     zoomHelper();
 }
 
