@@ -97,12 +97,12 @@ FloatingOverlayWidget::FrameStyle
 makeOverlayFrameStyle(const Config &config)
 {
     FloatingOverlayWidget::FrameStyle style;
-    style.border             = config.ui.overlays.border;
-    style.shadow             = config.ui.overlays.shadow.enabled;
-    style.shadow_blur_radius = config.ui.overlays.shadow.blur_radius;
-    style.shadow_offset_x    = config.ui.overlays.shadow.offset_x;
-    style.shadow_offset_y    = config.ui.overlays.shadow.offset_y;
-    style.shadow_opacity     = config.ui.overlays.shadow.opacity;
+    style.border             = config.overlays.border;
+    style.shadow             = config.overlays.shadow.enabled;
+    style.shadow_blur_radius = config.overlays.shadow.blur_radius;
+    style.shadow_offset_x    = config.overlays.shadow.offset_x;
+    style.shadow_offset_y    = config.overlays.shadow.offset_y;
+    style.shadow_opacity     = config.overlays.shadow.opacity;
     return style;
 }
 } // namespace
@@ -222,7 +222,7 @@ lektra::initMenubar() noexcept
         QString("Fullscreen\t%1").arg(m_config.shortcuts["fullscreen"]), this,
         &lektra::ToggleFullscreen);
     m_actionFullscreen->setCheckable(true);
-    m_actionFullscreen->setChecked(m_config.ui.window.fullscreen);
+    m_actionFullscreen->setChecked(m_config.window.fullscreen);
 
     m_actionZoomIn = m_viewMenu->addAction(
         QString("Zoom In\t%1").arg(m_config.shortcuts["zoom_in"]), this,
@@ -258,7 +258,7 @@ lektra::initMenubar() noexcept
         &lektra::ToggleAutoResize);
     m_actionAutoresize->setCheckable(true);
     m_actionAutoresize->setChecked(
-        m_config.ui.layout.auto_resize); // default on or off
+        m_config.layout.auto_resize); // default on or off
 
     // --- Layout Menu ---
 
@@ -291,11 +291,11 @@ lektra::initMenubar() noexcept
     m_actionLayoutLeftToRight->setCheckable(true);
     m_actionLayoutTopToBottom->setCheckable(true);
     m_actionLayoutSingle->setChecked(
-        m_config.ui.layout.mode == "single" ? true : false);
+        m_config.layout.mode == "single" ? true : false);
     m_actionLayoutLeftToRight->setChecked(
-        m_config.ui.layout.mode == "left_to_right" ? true : false);
+        m_config.layout.mode == "left_to_right" ? true : false);
     m_actionLayoutTopToBottom->setChecked(
-        m_config.ui.layout.mode == "top_to_bottom" ? true : false);
+        m_config.layout.mode == "top_to_bottom" ? true : false);
 
     // --- Toggle Menu ---
 
@@ -307,7 +307,7 @@ lektra::initMenubar() noexcept
         QString("LLM Widget\t%1").arg(m_config.shortcuts["toggle_llm_widget"]),
         this, &lektra::ToggleLLMWidget);
     m_actionToggleLLMWidget->setCheckable(true);
-    m_actionToggleLLMWidget->setChecked(m_config.ui.llm_widget.visible);
+    m_actionToggleLLMWidget->setChecked(m_config.llm_widget.visible);
 #endif
 
     m_actionToggleOutline = m_toggleMenu->addAction(
@@ -532,33 +532,33 @@ lektra::initConfig() noexcept
 
     auto ui = toml["ui"];
 
-    /* ui.tabs */
+    /* tabs */
     auto ui_tabs = ui["tabs"];
-    set_if_present(ui_tabs["visible"], m_config.ui.tabs.visible);
-    set_if_present(ui_tabs["auto_hide"], m_config.ui.tabs.auto_hide);
-    set_if_present(ui_tabs["closable"], m_config.ui.tabs.closable);
-    set_if_present(ui_tabs["movable"], m_config.ui.tabs.movable);
-    set_qstring_if_present(ui_tabs["elide_mode"], m_config.ui.tabs.elide_mode);
-    set_qstring_if_present(ui_tabs["location"], m_config.ui.tabs.location);
-    set_if_present(ui_tabs["full_path"], m_config.ui.tabs.full_path);
-    set_if_present(ui_tabs["lazy_load"], m_config.ui.tabs.lazy_load);
+    set_if_present(ui_tabs["visible"], m_config.tabs.visible);
+    set_if_present(ui_tabs["auto_hide"], m_config.tabs.auto_hide);
+    set_if_present(ui_tabs["closable"], m_config.tabs.closable);
+    set_if_present(ui_tabs["movable"], m_config.tabs.movable);
+    set_qstring_if_present(ui_tabs["elide_mode"], m_config.tabs.elide_mode);
+    set_qstring_if_present(ui_tabs["location"], m_config.tabs.location);
+    set_if_present(ui_tabs["full_path"], m_config.tabs.full_path);
+    set_if_present(ui_tabs["lazy_load"], m_config.tabs.lazy_load);
 
-    /* ui.window */
+    /* window */
     auto ui_window = ui["window"];
-    set_if_present(ui_window["startup_tab"], m_config.ui.window.startup_tab);
-    set_if_present(ui_window["menubar"], m_config.ui.window.menubar);
-    set_if_present(ui_window["fullscreen"], m_config.ui.window.fullscreen);
+    set_if_present(ui_window["startup_tab"], m_config.window.startup_tab);
+    set_if_present(ui_window["menubar"], m_config.window.menubar);
+    set_if_present(ui_window["fullscreen"], m_config.window.fullscreen);
 
-    if (m_config.ui.window.fullscreen)
+    if (m_config.window.fullscreen)
         this->showFullScreen();
 
     // Only override title format if key exists
     set_title_format_if_present(ui_window["window_title"],
-                                m_config.ui.window.title_format);
+                                m_config.window.title_format);
 
-    /* ui.statusbar */
+    /* statusbar */
     auto ui_statusbar = ui["statusbar"];
-    set_if_present(ui_statusbar["visible"], m_config.ui.statusbar.visible);
+    set_if_present(ui_statusbar["visible"], m_config.statusbar.visible);
 
     if (auto padding_array = ui_statusbar["padding"].as_array();
         padding_array && padding_array->size() >= 4)
@@ -567,125 +567,125 @@ lektra::initConfig() noexcept
         {
             if (auto v
                 = padding_array->get(static_cast<size_t>(i))->value<int>())
-                m_config.ui.statusbar.padding[i] = *v;
+                m_config.statusbar.padding[i] = *v;
         }
     }
 
     set_if_present(ui_statusbar["show_progress"],
-                   m_config.ui.statusbar.show_progress);
+                   m_config.statusbar.show_progress);
     set_if_present(ui_statusbar["file_name_only"],
-                   m_config.ui.statusbar.file_name_only);
+                   m_config.statusbar.file_name_only);
     set_if_present(ui_statusbar["show_file_info"],
-                   m_config.ui.statusbar.show_file_info);
+                   m_config.statusbar.show_file_info);
     set_if_present(ui_statusbar["show_page_number"],
-                   m_config.ui.statusbar.show_page_number);
-    set_if_present(ui_statusbar["show_mode"], m_config.ui.statusbar.show_mode);
+                   m_config.statusbar.show_page_number);
+    set_if_present(ui_statusbar["show_mode"], m_config.statusbar.show_mode);
     set_if_present(ui_statusbar["show_session_name"],
-                   m_config.ui.statusbar.show_session_name);
+                   m_config.statusbar.show_session_name);
 
-    /* ui.layout */
+    /* layout */
     auto ui_layout = ui["layout"];
     set_qstring_if_present(ui_layout["mode"],
-                           m_config.ui.layout.mode); // string
+                           m_config.layout.mode); // string
     set_qstring_if_present(ui_layout["initial_fit"],
-                           m_config.ui.layout.initial_fit); // string
-    set_if_present(ui_layout["auto_resize"], m_config.ui.layout.auto_resize);
-    set_if_present(ui_layout["spacing"], m_config.ui.layout.spacing);
+                           m_config.layout.initial_fit); // string
+    set_if_present(ui_layout["auto_resize"], m_config.layout.auto_resize);
+    set_if_present(ui_layout["spacing"], m_config.layout.spacing);
 
-    /* ui.zoom */
+    /* zoom */
     auto ui_zoom = ui["zoom"];
-    set_if_present(ui_zoom["level"], m_config.ui.zoom.level);
-    set_if_present(ui_zoom["factor"], m_config.ui.zoom.factor);
+    set_if_present(ui_zoom["level"], m_config.zoom.level);
+    set_if_present(ui_zoom["factor"], m_config.zoom.factor);
 
-    /* ui.selection */
+    /* selection */
     auto ui_selection = ui["selection"];
     set_if_present(ui_selection["drag_threshold"],
-                   m_config.ui.selection.drag_threshold);
+                   m_config.selection.drag_threshold);
 
-    /* ui.scrollbars */
+    /* scrollbars */
     auto ui_scrollbars = ui["scrollbars"];
-    set_if_present(ui_scrollbars["vertical"], m_config.ui.scrollbars.vertical);
+    set_if_present(ui_scrollbars["vertical"], m_config.scrollbars.vertical);
     set_if_present(ui_scrollbars["horizontal"],
-                   m_config.ui.scrollbars.horizontal);
+                   m_config.scrollbars.horizontal);
     set_if_present(ui_scrollbars["search_hits"],
-                   m_config.ui.scrollbars.search_hits);
+                   m_config.scrollbars.search_hits);
     set_if_present(ui_scrollbars["auto_hide"],
-                   m_config.ui.scrollbars.auto_hide);
-    set_if_present(ui_scrollbars["size"], m_config.ui.scrollbars.size);
+                   m_config.scrollbars.auto_hide);
+    set_if_present(ui_scrollbars["size"], m_config.scrollbars.size);
     set_if_present(ui_scrollbars["hide_timeout"],
-                   m_config.ui.scrollbars.hide_timeout);
+                   m_config.scrollbars.hide_timeout);
 
-    /* ui.command_palette */
+    /* command_palette */
     auto command_palette = ui["command_palette"];
     set_if_present(command_palette["height"],
-                   m_config.ui.command_palette.height);
-    set_if_present(command_palette["width"], m_config.ui.command_palette.width);
+                   m_config.command_palette.height);
+    set_if_present(command_palette["width"], m_config.command_palette.width);
     set_if_present(command_palette["vscrollbar"],
-                   m_config.ui.command_palette.vscrollbar);
+                   m_config.command_palette.vscrollbar);
     set_if_present(command_palette["show_grid"],
-                   m_config.ui.command_palette.show_grid);
+                   m_config.command_palette.show_grid);
     set_if_present(command_palette["show_shortcuts"],
-                   m_config.ui.command_palette.show_shortcuts);
+                   m_config.command_palette.show_shortcuts);
 
     set_qstring_if_present(command_palette["placeholder_text"],
-                           m_config.ui.command_palette.placeholder_text);
+                           m_config.command_palette.placeholder_text);
 
-    /* ui.overlays */
+    /* overlays */
     auto ui_overlays = ui["overlays"];
-    set_if_present(ui_overlays["border"], m_config.ui.overlays.border);
+    set_if_present(ui_overlays["border"], m_config.overlays.border);
 
     auto overlay_shadow = ui_overlays["shadow"];
     set_if_present(overlay_shadow["enabled"],
-                   m_config.ui.overlays.shadow.enabled);
+                   m_config.overlays.shadow.enabled);
     set_if_present(overlay_shadow["blur_radius"],
-                   m_config.ui.overlays.shadow.blur_radius);
+                   m_config.overlays.shadow.blur_radius);
     set_if_present(overlay_shadow["offset_x"],
-                   m_config.ui.overlays.shadow.offset_x);
+                   m_config.overlays.shadow.offset_x);
     set_if_present(overlay_shadow["offset_y"],
-                   m_config.ui.overlays.shadow.offset_y);
+                   m_config.overlays.shadow.offset_y);
     set_if_present(overlay_shadow["opacity"],
-                   m_config.ui.overlays.shadow.opacity);
+                   m_config.overlays.shadow.opacity);
 
-    /* ui.markers */
+    /* markers */
     auto ui_markers = ui["markers"];
-    set_if_present(ui_markers["jump_marker"], m_config.ui.markers.jump_marker);
+    set_if_present(ui_markers["jump_marker"], m_config.markers.jump_marker);
 
-    /* ui.links + ui.link_hints */
+    /* links + link_hints */
     auto ui_links      = ui["links"];
     auto ui_link_hints = ui["link_hints"];
 
-    set_if_present(ui_links["boundary"], m_config.ui.links.boundary);
-    set_if_present(ui_links["detect_urls"], m_config.ui.links.detect_urls);
-    set_qstring_if_present(ui_links["url_regex"], m_config.ui.links.url_regex);
-    set_if_present(ui_link_hints["size"], m_config.ui.link_hints.size);
+    set_if_present(ui_links["boundary"], m_config.links.boundary);
+    set_if_present(ui_links["detect_urls"], m_config.links.detect_urls);
+    set_qstring_if_present(ui_links["url_regex"], m_config.links.url_regex);
+    set_if_present(ui_link_hints["size"], m_config.link_hints.size);
 
-    /* ui.outline */
+    /* outline */
     auto ui_outline = ui["outline"];
-    set_if_present(ui_outline["visible"], m_config.ui.outline.visible);
+    set_if_present(ui_outline["visible"], m_config.outline.visible);
     // You hard-set this; keeping that behavior:
-    m_config.ui.outline.type = "overlay";
+    m_config.outline.type = "overlay";
     set_qstring_if_present(ui_outline["panel_position"],
-                           m_config.ui.outline.panel_position);
-    set_if_present(ui_outline["panel_width"], m_config.ui.outline.panel_width);
+                           m_config.outline.panel_position);
+    set_if_present(ui_outline["panel_width"], m_config.outline.panel_width);
 
-    /* ui.highlight_search */
+    /* highlight_search */
     auto ui_highlight_search = ui["highlight_search"];
     set_if_present(ui_highlight_search["visible"],
-                   m_config.ui.highlight_search.visible);
+                   m_config.highlight_search.visible);
     set_qstring_if_present(ui_highlight_search["type"],
-                           m_config.ui.highlight_search.type);
+                           m_config.highlight_search.type);
     set_qstring_if_present(ui_highlight_search["panel_position"],
-                           m_config.ui.highlight_search.panel_position);
+                           m_config.highlight_search.panel_position);
     set_if_present(ui_highlight_search["panel_width"],
-                   m_config.ui.highlight_search.panel_width);
+                   m_config.highlight_search.panel_width);
 
 #ifdef ENABLE_LLM_SUPPORT
     auto llm_widget = ui["llm_widget"];
     set_if_present(llm_widget["panel_position"],
-                   m_config.ui.llm_widget.panel_position);
+                   m_config.llm_widget.panel_position);
     set_if_present(llm_widget["panel_width"],
-                   m_config.ui.llm_widget.panel_width);
-    set_if_present(llm_widget["visible"], m_config.ui.llm_widget.visible);
+                   m_config.llm_widget.panel_width);
+    set_if_present(llm_widget["visible"], m_config.llm_widget.visible);
 
     auto llm = toml["llm"];
     set_if_present(llm["provider"], m_config.llm.provider);
@@ -695,25 +695,25 @@ lektra::initConfig() noexcept
 
     /* colors */
     auto colors = toml["colors"];
-    set_color_if_present(colors["accent"], m_config.ui.colors.accent);
-    set_color_if_present(colors["background"], m_config.ui.colors.background);
+    set_color_if_present(colors["accent"], m_config.colors.accent);
+    set_color_if_present(colors["background"], m_config.colors.background);
     set_color_if_present(colors["search_match"],
-                         m_config.ui.colors.search_match);
+                         m_config.colors.search_match);
     set_color_if_present(colors["search_index"],
-                         m_config.ui.colors.search_index);
+                         m_config.colors.search_index);
     set_color_if_present(colors["link_hint_bg"],
-                         m_config.ui.colors.link_hint_bg);
+                         m_config.colors.link_hint_bg);
     set_color_if_present(colors["link_hint_fg"],
-                         m_config.ui.colors.link_hint_fg);
-    set_color_if_present(colors["selection"], m_config.ui.colors.selection);
-    set_color_if_present(colors["highlight"], m_config.ui.colors.highlight);
-    set_color_if_present(colors["jump_marker"], m_config.ui.colors.jump_marker);
-    set_color_if_present(colors["annot_rect"], m_config.ui.colors.annot_rect);
-    set_color_if_present(colors["annot_popup"], m_config.ui.colors.annot_popup);
+                         m_config.colors.link_hint_fg);
+    set_color_if_present(colors["selection"], m_config.colors.selection);
+    set_color_if_present(colors["highlight"], m_config.colors.highlight);
+    set_color_if_present(colors["jump_marker"], m_config.colors.jump_marker);
+    set_color_if_present(colors["annot_rect"], m_config.colors.annot_rect);
+    set_color_if_present(colors["annot_popup"], m_config.colors.annot_popup);
     set_color_if_present(colors["page_background"],
-                         m_config.ui.colors.page_background);
+                         m_config.colors.page_background);
     set_color_if_present(colors["page_foreground"],
-                         m_config.ui.colors.page_foreground);
+                         m_config.colors.page_foreground);
 
     /* rendering */
     auto rendering = toml["rendering"];
@@ -961,9 +961,9 @@ lektra::initGui() noexcept
     m_menuBar = this->menuBar(); // initialize here so that the config
                                  // visibility works
 
-    const bool outlineSide = (m_config.ui.outline.type == "side_panel");
+    const bool outlineSide = (m_config.outline.type == "side_panel");
     const bool highlightSide
-        = (m_config.ui.highlight_search.type == "side_panel");
+        = (m_config.highlight_search.type == "side_panel");
     QWidget *mainContent = nullptr;
     if (outlineSide || highlightSide)
     {
@@ -978,20 +978,20 @@ lektra::initGui() noexcept
             m_side_panel_tabs->addTab(m_outline_widget, "Outline");
             m_side_panel_tabs->addTab(m_highlight_search_widget, "Highlights");
             sidePanel  = m_side_panel_tabs;
-            panelLeft  = m_config.ui.outline.panel_position != "right";
-            panelWidth = m_config.ui.outline.panel_width;
+            panelLeft  = m_config.outline.panel_position != "right";
+            panelWidth = m_config.outline.panel_width;
         }
         else if (outlineSide)
         {
             sidePanel  = m_outline_widget;
-            panelLeft  = m_config.ui.outline.panel_position != "right";
-            panelWidth = m_config.ui.outline.panel_width;
+            panelLeft  = m_config.outline.panel_position != "right";
+            panelWidth = m_config.outline.panel_width;
         }
         else
         {
             sidePanel  = m_highlight_search_widget;
-            panelLeft  = m_config.ui.highlight_search.panel_position != "right";
-            panelWidth = m_config.ui.highlight_search.panel_width;
+            panelLeft  = m_config.highlight_search.panel_position != "right";
+            panelWidth = m_config.highlight_search.panel_width;
         }
 
         if (panelLeft)
@@ -1027,7 +1027,7 @@ lektra::initGui() noexcept
 
 #ifdef ENABLE_LLM_SUPPORT
     m_llm_widget = new LLMWidget(m_config, this);
-    m_llm_widget->setVisible(m_config.ui.llm_widget.visible);
+    m_llm_widget->setVisible(m_config.llm_widget.visible);
     connect(m_llm_widget, &LLMWidget::actionRequested, this,
             [this](const QString &action, const QStringList &args)
     {
@@ -1047,7 +1047,7 @@ lektra::initGui() noexcept
     llm_splitter->addWidget(m_llm_widget);
     llm_splitter->setStretchFactor(0, 1);
     llm_splitter->setStretchFactor(1, 0);
-    const int llmWidth = m_config.ui.llm_widget.panel_width;
+    const int llmWidth = m_config.llm_widget.panel_width;
     llm_splitter->setSizes({this->width() - llmWidth, llmWidth});
     llm_splitter->setFrameShape(QFrame::NoFrame);
     llm_splitter->setFrameShadow(QFrame::Plain);
@@ -1059,7 +1059,7 @@ lektra::initGui() noexcept
     m_layout->addWidget(mainContent, 1);
 #endif
 
-    if (!outlineSide && m_config.ui.outline.type == "overlay")
+    if (!outlineSide && m_config.outline.type == "overlay")
     {
         m_outline_overlay = new FloatingOverlayWidget(m_tab_widget);
         m_outline_overlay->setFrameStyle(makeOverlayFrameStyle(m_config));
@@ -1078,7 +1078,7 @@ lektra::initGui() noexcept
         m_outline_widget->setWindowModality(Qt::NonModal);
     }
 
-    if (!highlightSide && m_config.ui.highlight_search.type == "overlay")
+    if (!highlightSide && m_config.highlight_search.type == "overlay")
     {
         m_highlight_overlay = new FloatingOverlayWidget(m_tab_widget);
         m_highlight_overlay->setFrameStyle(makeOverlayFrameStyle(m_config));
@@ -1273,7 +1273,7 @@ lektra::ReadArgsParser(argparse::ArgumentParser &argparser) noexcept
             openLastVisitedFile();
     }
 
-    if (m_tab_widget->count() == 0 && m_config.ui.window.startup_tab)
+    if (m_tab_widget->count() == 0 && m_config.window.startup_tab)
         showStartupWidget();
     m_config.behavior.startpage_override = -1;
 }
@@ -1580,7 +1580,7 @@ lektra::OpenFiles(const QStringList &files) noexcept
 //     view->setDPR(m_dpr);
 
 //     const QString title
-//         = m_config.ui.tabs.full_path ? m_doc->filePath() :
+//         = m_config.tabs.full_path ? m_doc->filePath() :
 //         m_doc->fileName();
 //     m_tab_widget->addTab(view, title);
 
@@ -1686,9 +1686,9 @@ lektra::OpenFile(const QString &filePath,
 
     const QString path = QFileInfo(fp).filePath();
     const QString tabTitle
-        = m_config.ui.tabs.full_path ? path : QFileInfo(fp).fileName();
+        = m_config.tabs.full_path ? path : QFileInfo(fp).fileName();
 
-    if (m_config.ui.tabs.lazy_load)
+    if (m_config.tabs.lazy_load)
     {
         QWidget *placeholderWidget = new QWidget(this);
         placeholderWidget->setProperty("tabRole", "lazy");
@@ -1714,7 +1714,7 @@ lektra::OpenFile(const QString &filePath,
             if (outline)
             {
                 m_outline_widget->setOutline(outline);
-                if (m_config.ui.outline.visible)
+                if (m_config.outline.visible)
                 {
                     m_outline_widget->show();
                 }
@@ -1892,7 +1892,7 @@ lektra::ShowOutline() noexcept
     }
     QWidget *target = m_outline_widget;
 
-    if (m_config.ui.outline.type == "overlay" && m_outline_overlay)
+    if (m_config.outline.type == "overlay" && m_outline_overlay)
         target = m_outline_overlay;
 
     if (target->isVisible())
@@ -1917,11 +1917,11 @@ lektra::ShowHighlightSearch() noexcept
         return;
 
     m_highlight_search_widget->setModel(m_doc->model());
-    if (m_config.ui.highlight_search.type == "side_panel" && m_side_panel_tabs)
+    if (m_config.highlight_search.type == "side_panel" && m_side_panel_tabs)
         m_side_panel_tabs->setCurrentWidget(m_highlight_search_widget);
 
     QWidget *target = m_highlight_search_widget;
-    if (m_config.ui.highlight_search.type == "overlay" && m_highlight_overlay)
+    if (m_config.highlight_search.type == "overlay" && m_highlight_overlay)
         target = m_highlight_overlay;
 
     if (target->isVisible())
@@ -2267,7 +2267,7 @@ lektra::handleCurrentTabChanged(int index) noexcept
             if (outline)
             {
                 m_outline_widget->setOutline(outline);
-                if (m_config.ui.outline.visible)
+                if (m_config.outline.visible)
                 {
                     m_outline_widget->show();
                 }
@@ -2342,18 +2342,18 @@ lektra::handleCurrentTabChanged(int index) noexcept
         if (m_doc)
         {
             m_highlight_search_widget->setModel(m_doc->model());
-            if (m_config.ui.highlight_search.type == "overlay"
+            if (m_config.highlight_search.type == "overlay"
                 && m_highlight_overlay)
             {
                 m_highlight_overlay->setVisible(
-                    m_config.ui.highlight_search.visible);
+                    m_config.highlight_search.visible);
                 if (m_highlight_overlay->isVisible())
                     m_highlight_search_widget->refresh();
             }
             else
             {
                 m_highlight_search_widget->setVisible(
-                    m_config.ui.highlight_search.visible);
+                    m_config.highlight_search.visible);
                 if (m_highlight_search_widget->isVisible())
                     m_highlight_search_widget->refresh();
             }
@@ -2938,7 +2938,7 @@ lektra::updatePanel() noexcept
         if (!model)
             return;
 
-        if (m_config.ui.statusbar.file_name_only)
+        if (m_config.statusbar.file_name_only)
             m_statusbar->setFileName(m_doc->fileName());
         else
             m_statusbar->setFileName(m_doc->filePath());
@@ -3606,45 +3606,45 @@ lektra::updateSelectionModeActions() noexcept
 void
 lektra::updateGUIFromConfig() noexcept
 {
-    m_tab_widget->setTabsClosable(m_config.ui.tabs.closable);
-    m_tab_widget->setMovable(m_config.ui.tabs.movable);
+    m_tab_widget->setTabsClosable(m_config.tabs.closable);
+    m_tab_widget->setMovable(m_config.tabs.movable);
 
-    if (m_config.ui.tabs.location == "top")
+    if (m_config.tabs.location == "top")
         m_tab_widget->setTabPosition(QTabWidget::North);
-    else if (m_config.ui.tabs.location == "bottom")
+    else if (m_config.tabs.location == "bottom")
         m_tab_widget->setTabPosition(QTabWidget::South);
-    else if (m_config.ui.tabs.location == "left")
+    else if (m_config.tabs.location == "left")
         m_tab_widget->setTabPosition(QTabWidget::West);
-    else if (m_config.ui.tabs.location == "right")
+    else if (m_config.tabs.location == "right")
         m_tab_widget->setTabPosition(QTabWidget::East);
 
-    if (m_config.ui.outline.type == "overlay" && m_outline_overlay)
+    if (m_config.outline.type == "overlay" && m_outline_overlay)
     {
-        m_outline_overlay->setVisible(m_config.ui.outline.visible);
+        m_outline_overlay->setVisible(m_config.outline.visible);
     }
     else
     {
-        m_outline_widget->setVisible(m_config.ui.outline.visible);
+        m_outline_widget->setVisible(m_config.outline.visible);
     }
 
-    if (m_config.ui.highlight_search.type == "overlay" && m_highlight_overlay)
+    if (m_config.highlight_search.type == "overlay" && m_highlight_overlay)
     {
-        m_highlight_overlay->setVisible(m_config.ui.highlight_search.visible);
+        m_highlight_overlay->setVisible(m_config.highlight_search.visible);
     }
     else
     {
         m_highlight_search_widget->setVisible(
-            m_config.ui.highlight_search.visible);
+            m_config.highlight_search.visible);
     }
 
     m_layout->addWidget(m_search_bar);
     m_layout->addWidget(m_message_bar);
     m_layout->addWidget(m_statusbar);
 
-    m_tab_widget->setTabBarAutoHide(m_config.ui.tabs.auto_hide);
-    m_statusbar->setVisible(m_config.ui.statusbar.visible);
-    m_menuBar->setVisible(m_config.ui.window.menubar);
-    m_tab_widget->tabBar()->setVisible(m_config.ui.tabs.visible);
+    m_tab_widget->setTabBarAutoHide(m_config.tabs.auto_hide);
+    m_statusbar->setVisible(m_config.statusbar.visible);
+    m_menuBar->setVisible(m_config.window.menubar);
+    m_tab_widget->tabBar()->setVisible(m_config.tabs.visible);
 }
 
 void
@@ -3669,8 +3669,8 @@ lektra::setFocusMode(bool enable) noexcept
     }
     else
     {
-        m_menuBar->setVisible(m_config.ui.window.menubar);
-        m_statusbar->setVisible(m_config.ui.statusbar.visible);
+        m_menuBar->setVisible(m_config.window.menubar);
+        m_statusbar->setVisible(m_config.statusbar.visible);
         updateTabbarVisibility();
     }
 }

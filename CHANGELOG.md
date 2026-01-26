@@ -11,6 +11,17 @@
 - Fix rendering bug when there's no value for DPR set in the config
 - Fix TabWidget logo font
 
+### Breaking Changes
+- Removed `ui` table in config and moved all options to their respective sections
+    - `[ui.command_palette]` -> `[command_palette]`
+    - `[ui.scrollbars]` -> `[scrollbars]`
+    - `[ui.statusbar]` -> `[statusbar]`
+    - `[ui.tabs]` -> `[tabs]`
+    - `[ui.outline]` -> `[outline]`
+    - `[ui.search_highlight]` -> `[search_highlight]`
+    - `[ui.llm_widget]` -> `[llm_widget]`
+    - `[ui.overlays]` -> `[overlays]`
+
 ## 0.6.1 [Lektra Update]
 #### Renamed project name from `dodo` to `lektra`
 

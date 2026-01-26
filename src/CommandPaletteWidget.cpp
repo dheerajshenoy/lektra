@@ -10,7 +10,6 @@
 #include <QShortcut>
 #include <QStyledItemDelegate>
 #include <QVBoxLayout>
-#include <algorithm>
 
 class CommandItemDelegate final : public QStyledItemDelegate
 {
@@ -167,21 +166,21 @@ CommandPaletteWidget::initGui() noexcept
     m_command_table->horizontalHeader()->setVisible(false);
     m_command_table->verticalHeader()->setVisible(false);
 
-    if (m_config.ui.command_palette.show_grid)
+    if (m_config.command_palette.show_grid)
         m_command_table->setShowGrid(true);
     else
         m_command_table->setGridStyle(Qt::NoPen);
     m_command_table->setContentsMargins(0, 0, 0, 0);
     m_command_table->setFrameStyle(QFrame::NoFrame);
     m_command_table->setItemDelegate(new CommandItemDelegate(
-        m_command_table, m_config.ui.command_palette.show_shortcuts));
+        m_command_table, m_config.command_palette.show_shortcuts));
 
-    this->setMinimumSize(m_config.ui.command_palette.width,
-                         m_config.ui.command_palette.height);
+    this->setMinimumSize(m_config.command_palette.width,
+                         m_config.command_palette.height);
 
     m_input_line = new QLineEdit(this);
     m_input_line->setPlaceholderText(
-        m_config.ui.command_palette.placeholder_text);
+        m_config.command_palette.placeholder_text);
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);

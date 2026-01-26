@@ -24,7 +24,7 @@ Statusbar::initConnections() noexcept
 void
 Statusbar::initGui() noexcept
 {
-    const auto padding = m_config.ui.statusbar.padding;
+    const auto padding = m_config.statusbar.padding;
     setContentsMargins(padding[0], padding[1], padding[2], padding[3]);
     m_layout->setContentsMargins(0, 0, 0, 0);
 
@@ -63,15 +63,15 @@ Statusbar::initGui() noexcept
     connect(m_mode_label, &QPushButton::clicked,
             [&]() { emit modeChangeRequested(); });
 
-    m_filename_label->setVisible(m_config.ui.statusbar.show_file_info);
+    m_filename_label->setVisible(m_config.statusbar.show_file_info);
 
-    m_pageno_label->setVisible(m_config.ui.statusbar.show_page_number);
-    m_pageno_separator->setVisible(m_config.ui.statusbar.show_page_number);
-    m_totalpage_label->setVisible(m_config.ui.statusbar.show_page_number);
+    m_pageno_label->setVisible(m_config.statusbar.show_page_number);
+    m_pageno_separator->setVisible(m_config.statusbar.show_page_number);
+    m_totalpage_label->setVisible(m_config.statusbar.show_page_number);
 
-    m_mode_color_label->setVisible(m_config.ui.statusbar.show_mode);
-    m_mode_label->setVisible(m_config.ui.statusbar.show_mode);
-    m_progress_label->setVisible(m_config.ui.statusbar.show_progress);
+    m_mode_color_label->setVisible(m_config.statusbar.show_mode);
+    m_mode_label->setVisible(m_config.statusbar.show_mode);
+    m_progress_label->setVisible(m_config.statusbar.show_progress);
 }
 
 void
@@ -160,8 +160,7 @@ Statusbar::setMode(GraphicsView::Mode mode) noexcept
     }
 
     // Respect config setting for mode visibility
-    m_mode_color_label->setVisible(m_config.ui.statusbar.show_mode
-                                   && show_color);
+    m_mode_color_label->setVisible(m_config.statusbar.show_mode && show_color);
     m_current_mode = mode;
 }
 
@@ -174,8 +173,8 @@ Statusbar::setHighlightColor(const QColor &color) noexcept
 void
 Statusbar::hidePageInfo(bool state) noexcept
 {
-    bool show_page = !state && m_config.ui.statusbar.show_page_number;
-    bool show_mode = !state && m_config.ui.statusbar.show_mode;
+    bool show_page = !state && m_config.statusbar.show_page_number;
+    bool show_mode = !state && m_config.statusbar.show_mode;
 
     m_pageno_label->setVisible(show_page);
     m_pageno_separator->setVisible(show_page);
@@ -190,7 +189,7 @@ Statusbar::setSessionName(const QString &name) noexcept
         m_session_label->hide();
     else
     {
-        if (m_config.ui.statusbar.show_session_name)
+        if (m_config.statusbar.show_session_name)
         {
             m_session_label->setText(name);
             m_session_label->show();

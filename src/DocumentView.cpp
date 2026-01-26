@@ -90,17 +90,17 @@ DocumentView::initGui() noexcept
     m_spinner->setInnerRadius(5.0);
     m_spinner->setColor(palette().color(QPalette::Text));
 
-    m_spacing             = m_config.ui.layout.spacing;
+    m_spacing             = m_config.layout.spacing;
     m_selection_path_item = m_gscene->addPath(QPainterPath());
 
     m_selection_path_item->setBrush(
-        QBrush(rgbaToQColor(m_config.ui.colors.selection)));
+        QBrush(rgbaToQColor(m_config.colors.selection)));
     m_selection_path_item->setPen(Qt::NoPen);
     m_selection_path_item->setZValue(ZVALUE_TEXT_SELECTION);
 
     m_current_search_hit_item = m_gscene->addPath(QPainterPath());
     m_current_search_hit_item->setBrush(
-        rgbaToQColor(m_config.ui.colors.search_index));
+        rgbaToQColor(m_config.colors.search_index));
     m_current_search_hit_item->setPen(Qt::NoPen);
     m_current_search_hit_item->setZValue(ZVALUE_SEARCH_HITS + 1);
 
@@ -119,31 +119,31 @@ DocumentView::initGui() noexcept
             &DocumentView::handleDeferredResize);
 
     m_jump_marker
-        = new JumpMarker(rgbaToQColor(m_config.ui.colors.jump_marker));
+        = new JumpMarker(rgbaToQColor(m_config.colors.jump_marker));
     m_jump_marker->setZValue(ZVALUE_JUMP_MARKER);
     m_gscene->addItem(m_jump_marker);
 
     m_gview->setAlignment(Qt::AlignCenter);
     m_gview->setDefaultMode(m_config.behavior.initial_mode);
     m_gview->setMode(m_config.behavior.initial_mode);
-    m_gview->setBackgroundBrush(rgbaToQColor(m_config.ui.colors.background));
+    m_gview->setBackgroundBrush(rgbaToQColor(m_config.colors.background));
     m_model->setDPI(m_config.rendering.dpi);
     m_model->setAnnotRectColor(
-        rgbaToQColor(m_config.ui.colors.annot_rect).toRgb());
-    m_model->setSelectionColor(rgbaToQColor(m_config.ui.colors.selection));
-    m_model->setHighlightColor(rgbaToQColor(m_config.ui.colors.highlight));
+        rgbaToQColor(m_config.colors.annot_rect).toRgb());
+    m_model->setSelectionColor(rgbaToQColor(m_config.colors.selection));
+    m_model->setHighlightColor(rgbaToQColor(m_config.colors.highlight));
     // m_model->setAntialiasingBits(m_config.rendering.antialiasing_bits);
     m_model->undoStack()->setUndoLimit(m_config.behavior.undo_limit);
 
     m_model->setInvertColor(m_config.behavior.invert_mode);
-    m_model->setLinkBoundary(m_config.ui.links.boundary);
-    m_model->setDetectUrlLinks(m_config.ui.links.detect_urls);
-    m_model->setUrlLinkRegex(m_config.ui.links.url_regex);
+    m_model->setLinkBoundary(m_config.links.boundary);
+    m_model->setDetectUrlLinks(m_config.links.detect_urls);
+    m_model->setUrlLinkRegex(m_config.links.url_regex);
     // if (m_config.rendering.icc_color_profile)
     //     m_model->enableICC();
     m_model->setCacheCapacity(m_config.behavior.cache_pages);
-    m_model->setBackgroundColor(m_config.ui.colors.page_background);
-    m_model->setForegroundColor(m_config.ui.colors.page_foreground);
+    m_model->setBackgroundColor(m_config.colors.page_background);
+    m_model->setForegroundColor(m_config.colors.page_foreground);
 
     m_hscroll = new ScrollBar(Qt::Horizontal, this);
     m_vscroll = new ScrollBar(Qt::Vertical, this);
@@ -162,18 +162,18 @@ DocumentView::initGui() noexcept
     m_hscroll->setParent(m_gview->viewport());
 
     // Apply scrollbar size from config
-    m_vscroll->setSize(m_config.ui.scrollbars.size);
-    m_hscroll->setSize(m_config.ui.scrollbars.size);
-    m_gview->setScrollbarSize(m_config.ui.scrollbars.size);
-    m_gview->setScrollbarIdleTimeout(m_config.ui.scrollbars.hide_timeout);
+    m_vscroll->setSize(m_config.scrollbars.size);
+    m_hscroll->setSize(m_config.scrollbars.size);
+    m_gview->setScrollbarSize(m_config.scrollbars.size);
+    m_gview->setScrollbarIdleTimeout(m_config.scrollbars.hide_timeout);
 
     // Enable/disable each scrollbar based on config
     // auto_hide controls whether they fade after inactivity
-    m_gview->setVerticalScrollbarEnabled(m_config.ui.scrollbars.vertical);
-    m_gview->setHorizontalScrollbarEnabled(m_config.ui.scrollbars.horizontal);
-    m_gview->setAutoHideScrollbars(m_config.ui.scrollbars.auto_hide);
+    m_gview->setVerticalScrollbarEnabled(m_config.scrollbars.vertical);
+    m_gview->setHorizontalScrollbarEnabled(m_config.scrollbars.horizontal);
+    m_gview->setAutoHideScrollbars(m_config.scrollbars.auto_hide);
 
-    m_auto_resize       = m_config.ui.layout.auto_resize;
+    m_auto_resize       = m_config.layout.auto_resize;
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setAlignment(Qt::AlignCenter);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -291,9 +291,9 @@ DocumentView::handleOpenFileFinished() noexcept
 
     m_pageno = 0;
 
-    if (m_config.ui.layout.mode == "single")
+    if (m_config.layout.mode == "single")
         setLayoutMode(LayoutMode::SINGLE);
-    else if (m_config.ui.layout.mode == "left_to_right")
+    else if (m_config.layout.mode == "left_to_right")
         setLayoutMode(LayoutMode::LEFT_TO_RIGHT);
     else
         setLayoutMode(LayoutMode::TOP_TO_BOTTOM);
@@ -301,11 +301,11 @@ DocumentView::handleOpenFileFinished() noexcept
     initConnections();
 
     FitMode initialFit;
-    if (m_config.ui.layout.initial_fit == "height")
+    if (m_config.layout.initial_fit == "height")
         initialFit = FitMode::Height;
-    else if (m_config.ui.layout.initial_fit == "width")
+    else if (m_config.layout.initial_fit == "width")
         initialFit = FitMode::Width;
-    else if (m_config.ui.layout.initial_fit == "window")
+    else if (m_config.layout.initial_fit == "window")
         initialFit = FitMode::Window;
     else
         initialFit = FitMode::Height;
@@ -515,7 +515,7 @@ DocumentView::handleSearchResults(
     renderVisiblePages();
     updateCurrentHitHighlight();
 
-    if (m_config.ui.scrollbars.search_hits)
+    if (m_config.scrollbars.search_hits)
         renderSearchHitsInScrollbar();
     emit searchCountChanged(m_model->searchMatchesCount());
 
@@ -1198,7 +1198,7 @@ DocumentView::ZoomIn() noexcept
     if (m_target_zoom >= MAX_ZOOM_FACTOR)
         return;
 
-    m_target_zoom = std::clamp(m_target_zoom * m_config.ui.zoom.factor,
+    m_target_zoom = std::clamp(m_target_zoom * m_config.zoom.factor,
                                MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
     zoomHelper();
 }
@@ -1210,7 +1210,7 @@ DocumentView::ZoomOut() noexcept
     if (m_target_zoom <= MIN_ZOOM_FACTOR)
         return;
 
-    m_target_zoom = std::clamp(m_current_zoom / m_config.ui.zoom.factor,
+    m_target_zoom = std::clamp(m_current_zoom / m_config.zoom.factor,
                                MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
     zoomHelper();
 }
@@ -1336,7 +1336,7 @@ DocumentView::LinkKB() noexcept
             hint *= 10;
     }
 
-    float fontSize = m_config.ui.link_hints.size;
+    float fontSize = m_config.link_hints.size;
     if (fontSize < 1.0f)
         fontSize = std::max(8.0f, fontSize * 32.0f);
 
@@ -1344,8 +1344,8 @@ DocumentView::LinkKB() noexcept
     font.setPointSizeF(fontSize);
     QFontMetricsF metrics(font);
 
-    const QColor bg = rgbaToQColor(m_config.ui.colors.link_hint_bg);
-    const QColor fg = rgbaToQColor(m_config.ui.colors.link_hint_fg);
+    const QColor bg = rgbaToQColor(m_config.colors.link_hint_bg);
+    const QColor fg = rgbaToQColor(m_config.colors.link_hint_fg);
 
     for (const auto &entry : visibleLinks)
     {
@@ -2795,9 +2795,9 @@ DocumentView::setModified(bool modified) noexcept
         return;
 
     m_is_modified = modified;
-    QString title = m_config.ui.window.title_format;
+    QString title = m_config.window.title_format;
     QString fileName;
-    if (!m_config.ui.statusbar.file_name_only)
+    if (!m_config.statusbar.file_name_only)
         fileName = filePath();
     else
         fileName = this->fileName();
@@ -2913,7 +2913,7 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
 
     // Set colors
     item->setPath(allPath);
-    item->setBrush(rgbaToQColor(m_config.ui.colors.search_match));
+    item->setBrush(rgbaToQColor(m_config.colors.search_match));
 }
 
 // Render search hits in the scrollbar

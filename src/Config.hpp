@@ -10,143 +10,140 @@ struct Config
 {
     QHash<QString, QString> shortcuts{};
 
-    struct ui
+    struct colors
     {
-        struct colors
-        {
-            uint32_t accent{0x3daee9FF};
-            uint32_t background{0x00000000};
-            uint32_t page_background{0xFFFFFFFF};
-            uint32_t page_foreground{0x000000FF};
-            uint32_t search_match{0x55500033};
-            uint32_t search_index{0x55FF0055};
-            uint32_t link_hint_bg{0x000000FF};
-            uint32_t link_hint_fg{0xea3ee9FF};
-            uint32_t selection{0x0000FF55};
-            uint32_t highlight{0x55FF0055};
-            uint32_t jump_marker{0xFF0000FF};
-            uint32_t annot_rect{0x55FF5588};
-            uint32_t annot_popup{0xFFFFFFAA};
-        } colors{};
+        uint32_t accent{0x3daee9FF};
+        uint32_t background{0x00000000};
+        uint32_t page_background{0xFFFFFFFF};
+        uint32_t page_foreground{0x000000FF};
+        uint32_t search_match{0x55500033};
+        uint32_t search_index{0x55FF0055};
+        uint32_t link_hint_bg{0x000000FF};
+        uint32_t link_hint_fg{0xea3ee9FF};
+        uint32_t selection{0x0000FF55};
+        uint32_t highlight{0x55FF0055};
+        uint32_t jump_marker{0xFF0000FF};
+        uint32_t annot_rect{0x55FF5588};
+        uint32_t annot_popup{0xFFFFFFAA};
+    } colors{};
 
-        struct window
-        {
-            bool fullscreen{false};
-            bool menubar{true};
-            bool startup_tab{true};
-            QString title_format{"{} - lektra"};
-        } window{};
+    struct window
+    {
+        bool fullscreen{false};
+        bool menubar{true};
+        bool startup_tab{true};
+        QString title_format{"{} - lektra"};
+    } window{};
 
-        struct layout
-        {
-            QString mode{"top_to_bottom"};
-            QString initial_fit{"none"};
-            bool auto_resize{false};
-            int spacing{10};
-        } layout{};
+    struct layout
+    {
+        QString mode{"top_to_bottom"};
+        QString initial_fit{"none"};
+        bool auto_resize{false};
+        int spacing{10};
+    } layout{};
 
-        struct statusbar
-        {
-            bool visible{true};
-            std::array<int, 4> padding{5, 5, 5, 5}; // top, right, bottom, left
-            bool show_session_name{false};
-            bool file_name_only{false};
-            bool show_file_info{true};
-            bool show_page_number{true};
-            bool show_mode{true};
-            bool show_progress{true};
-        } statusbar{};
+    struct statusbar
+    {
+        bool visible{true};
+        std::array<int, 4> padding{5, 5, 5, 5}; // top, right, bottom, left
+        bool show_session_name{false};
+        bool file_name_only{false};
+        bool show_file_info{true};
+        bool show_page_number{true};
+        bool show_mode{true};
+        bool show_progress{true};
+    } statusbar{};
 
-        struct zoom
-        {
-            float level{0.5f};
-            float factor{1.25f};
-        } zoom{};
+    struct zoom
+    {
+        float level{0.5f};
+        float factor{1.25f};
+    } zoom{};
 
-        struct selection
-        {
-            int drag_threshold{50};
-        } selection{};
+    struct selection
+    {
+        int drag_threshold{50};
+    } selection{};
 
-        struct scrollbars
-        {
-            bool horizontal{true};
-            bool vertical{true};
-            bool search_hits{true};
-            bool auto_hide{true};
-            int size{12};
-            int hide_timeout{1500};
-        } scrollbars{};
+    struct scrollbars
+    {
+        bool horizontal{true};
+        bool vertical{true};
+        bool search_hits{true};
+        bool auto_hide{true};
+        int size{12};
+        int hide_timeout{1500};
+    } scrollbars{};
 
-        struct markers
-        {
-            bool jump_marker{true};
-        } markers{};
+    struct markers
+    {
+        bool jump_marker{true};
+    } markers{};
 
-        struct links
-        {
-            bool boundary{false};
-            bool detect_urls{false};
-            QString url_regex{R"((https?://|www\.)[^\s<>()\"']+)"};
-        } links{};
+    struct links
+    {
+        bool boundary{false};
+        bool detect_urls{false};
+        QString url_regex{R"((https?://|www\.)[^\s<>()\"']+)"};
+    } links{};
 
-        struct link_hints
-        {
-            float size{0.5f};
-        } link_hints{};
+    struct link_hints
+    {
+        float size{0.5f};
+    } link_hints{};
 
-        struct tabs
-        {
-            bool visible{true};
-            bool auto_hide{false};
-            bool closable{true};
-            bool movable{true};
-            QString elide_mode{"right"};
-            QString location{"top"};
-            bool full_path{false};
-            bool lazy_load{true};
-        } tabs{};
+    struct tabs
+    {
+        bool visible{true};
+        bool auto_hide{false};
+        bool closable{true};
+        bool movable{true};
+        QString elide_mode{"right"};
+        QString location{"top"};
+        bool full_path{false};
+        bool lazy_load{true};
+    } tabs{};
 
-        struct outline
-        {
-            bool visible{false};
-            bool as_side_panel{true};
-            QString type{"overlay"};
-            QString panel_position{"left"};
-            int panel_width{300};
-        } outline{};
+    struct outline
+    {
+        bool visible{false};
+        bool as_side_panel{true};
+        QString type{"overlay"};
+        QString panel_position{"left"};
+        int panel_width{300};
+    } outline{};
 
-        struct highlight_search
-        {
-            bool visible{false};
-            QString type{"overlay"};
-            QString panel_position{"right"};
-            int panel_width{300};
-        } highlight_search{};
+    struct highlight_search
+    {
+        bool visible{false};
+        QString type{"overlay"};
+        QString panel_position{"right"};
+        int panel_width{300};
+    } highlight_search{};
 
-        struct command_palette
-        {
-            int width{500};
-            int height{300};
-            QString placeholder_text{"Type a command..."};
-            bool vscrollbar{true};
-            bool show_shortcuts{true};
-            bool show_grid{false};
-        } command_palette{};
+    struct command_palette
+    {
+        int width{500};
+        int height{300};
+        QString placeholder_text{"Type a command..."};
+        bool vscrollbar{true};
+        bool show_shortcuts{true};
+        bool show_grid{false};
+    } command_palette{};
 
-        struct overlays
+    struct overlays
+    {
+        bool border{true};
+        struct shadow
         {
-            bool border{true};
-            struct shadow
-            {
-                bool enabled{true};
-                int blur_radius{18};
-                int offset_x{0};
-                int offset_y{6};
-                int opacity{120};
-            } shadow{};
-        } overlays{};
-    };
+            bool enabled{true};
+            int blur_radius{18};
+            int offset_x{0};
+            int offset_y{6};
+            int opacity{120};
+        } shadow{};
+    } overlays{};
 
 #ifdef ENABLE_LLM_SUPPORT
     struct llm_widget
@@ -164,7 +161,7 @@ struct Config
         float inv_dpr{1.0f};
         bool icc_color_profile{true};
         int antialiasing_bits{8};
-    };
+    } rendering{};
 
     struct behavior
     {
@@ -185,7 +182,7 @@ struct Config
         QString synctex_editor_command{QString()};
 #endif
         bool confirm_on_quit{true};
-    };
+    } behavior{};
 
 #ifdef ENABLE_LLM_SUPPORT
     struct llm
@@ -196,8 +193,4 @@ struct Config
         // float temperature{0.7f}; //
     } llm{};
 #endif
-
-    ui ui{};
-    rendering rendering{};
-    behavior behavior{};
 };
