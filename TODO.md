@@ -37,3 +37,4 @@
 - [ ] Don't refresh highlights search each time
 - [ ] Search engine configuration
 - [ ] Smart jump under cursor (eg. jump to citation if on citation)
+- [ ] Use OpenGL for rendering using GPU for performance boost instead of QGraphicsView
