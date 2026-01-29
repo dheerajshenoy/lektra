@@ -91,16 +91,6 @@ SearchBar::showEvent(QShowEvent *event)
 }
 
 void
-SearchBar::keyReleaseEvent(QKeyEvent *event)
-{
-    if (event->key() == Qt::Key_Escape)
-    {
-        m_searchInput->clearFocus();
-        this->hide();
-    }
-}
-
-void
 SearchBar::setSearchCount(int count) noexcept
 {
     if (count > 0)
