@@ -34,6 +34,7 @@ extern "C"
 #include <qevent.h>
 #include <set>
 
+// Z-values for various overlay items
 #define ZVALUE_PAGE 0
 #define ZVALUE_ANNOTATION 5
 #define ZVALUE_LINK 10
@@ -42,8 +43,9 @@ extern "C"
 #define ZVALUE_KB_LINK_OVERLAY 25
 #define ZVALUE_TEXT_SELECTION 30
 
-#define MIN_ZOOM_FACTOR 0.1
-#define MAX_ZOOM_FACTOR 1.0
+// Zoom factor limits
+#define MIN_ZOOM_FACTOR 0.01
+#define MAX_ZOOM_FACTOR 100.0
 
 #define CSTR(x) x.toStdString().c_str()
 
@@ -227,6 +229,7 @@ public:
     void GotoLastPage() noexcept;
     void setZoom(double factor) noexcept;
     void Search(const QString &term) noexcept;
+    void SearchInPage(int pageno, const QString &term) noexcept;
     void ZoomIn() noexcept;
     void ZoomOut() noexcept;
     void ZoomReset() noexcept;
@@ -246,6 +249,7 @@ public:
     void SaveFile() noexcept;
     void SaveAsFile() noexcept;
     void CloseFile() noexcept;
+    void ToggleKeyboardCursorMode() noexcept;
     void ToggleAutoResize() noexcept;
     void ToggleTextHighlight() noexcept;
     void ToggleRegionSelect() noexcept;
