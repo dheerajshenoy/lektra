@@ -118,8 +118,7 @@ DocumentView::initGui() noexcept
     connect(m_resize_timer, &QTimer::timeout, this,
             &DocumentView::handleDeferredResize);
 
-    m_jump_marker
-        = new JumpMarker(rgbaToQColor(m_config.colors.jump_marker));
+    m_jump_marker = new JumpMarker(rgbaToQColor(m_config.colors.jump_marker));
     m_jump_marker->setZValue(ZVALUE_JUMP_MARKER);
     m_gscene->addItem(m_jump_marker);
 
@@ -1062,6 +1061,30 @@ DocumentView::Search(const QString &term) noexcept
     m_model->search(term, caseSensitive);
 }
 
+void
+DocumentView::SearchInPage(const int pageno, const QString &term) noexcept
+{
+#ifndef NDEBUG
+    qDebug() << "DocumentView::SearchInPage(): Searching page: " << pageno
+             << " for term: " << term;
+#endif
+
+    clearSearchHits();
+    if (term.isEmpty())
+    {
+        m_current_search_hit_item->setPath(QPainterPath());
+        return;
+    }
+
+    emit searchBarSpinnerShow(true);
+    // Check if term has atleast one uppercase letter
+    bool caseSensitive = std::any_of(term.cbegin(), term.cend(),
+                                     [](QChar c) { return c.isUpper(); });
+
+    // m_search_hits = m_model->search(term);
+    m_model->searchInPage(pageno, term, caseSensitive);
+}
+
 // Function that is common to zoom-in and zoom-out
 void
 DocumentView::zoomHelper() noexcept
@@ -1265,28 +1288,52 @@ DocumentView::GotoHit(int index) noexcept
 void
 DocumentView::ScrollLeft() noexcept
 {
-    m_hscroll->setValue(m_hscroll->value() - 50);
+    if (m_gview->mode() == GraphicsView::Mode::KeyboardCursor)
+    {
+    }
+    else
+    {
+        m_hscroll->setValue(m_hscroll->value() - 50);
+    }
 }
 
 // Scroll right by a fixed amount
 void
 DocumentView::ScrollRight() noexcept
 {
-    m_hscroll->setValue(m_hscroll->value() + 50);
+    if (m_gview->mode() == GraphicsView::Mode::KeyboardCursor)
+    {
+    }
+    else
+    {
+        m_hscroll->setValue(m_hscroll->value() + 50);
+    }
 }
 
 // Scroll up by a fixed amount
 void
 DocumentView::ScrollUp() noexcept
 {
-    m_vscroll->setValue(m_vscroll->value() - 50);
+    if (m_gview->mode() == GraphicsView::Mode::KeyboardCursor)
+    {
+    }
+    else
+    {
+        m_vscroll->setValue(m_vscroll->value() - 50);
+    }
 }
 
 // Scroll down by a fixed amount
 void
 DocumentView::ScrollDown() noexcept
 {
-    m_vscroll->setValue(m_vscroll->value() + 50);
+    if (m_gview->mode() == GraphicsView::Mode::KeyboardCursor)
+    {
+    }
+    else
+    {
+        m_vscroll->setValue(m_vscroll->value() + 50);
+    }
 }
 
 // Get the link KB for the current document
@@ -1533,6 +1580,33 @@ DocumentView::ToggleTextHighlight() noexcept
     const auto newMode = (m_gview->mode() == GraphicsView::Mode::TextHighlight)
                              ? m_gview->getDefaultMode()
                              : GraphicsView::Mode::TextHighlight;
+
+    m_gview->setMode(newMode);
+    emit selectionModeChanged(newMode);
+}
+
+void
+DocumentView::ToggleKeyboardCursorMode() noexcept
+{
+    QMessageBox::critical(this, "Not implemented",
+                          "Keyboard cursor mode is not yet implemented.");
+    return;
+    const auto newMode = (m_gview->mode() == GraphicsView::Mode::KeyboardCursor)
+                             ? m_gview->getDefaultMode()
+                             : GraphicsView::Mode::KeyboardCursor;
+    // m_selection_start  = QPointF();
+
+    // // Put square cursor at the first character of the page
+    // int pageno                   = -1;
+    // GraphicsPixmapItem *pageItem = nullptr;
+    //
+    // if
+    // (pageAtScenePos(m_gview->mapToScene(m_gview->viewport()->rect().topLeft()),
+    //                    pageno, pageItem))
+    // {
+    //     const QPointF pagePos = m_model->toPixelSpace(pageno, {0.0, 0.0});
+    //     const QPointF scenePos = pageItem->mapToScene(pagePos);
+    // }
 
     m_gview->setMode(newMode);
     emit selectionModeChanged(newMode);
