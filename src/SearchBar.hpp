@@ -51,7 +51,6 @@ private:
 
 protected:
     void showEvent(QShowEvent *event) override;
-    void keyReleaseEvent(QKeyEvent *event) override;
 
 signals:
     void searchRequested(const QString &term);

@@ -4,12 +4,17 @@
 
 ### Features
 
+- Keyboard cursor mode for text selection with keyboard (like vim)
+    - Command: `keyboard_cursor_mode`
+
+
 ### Bug Fixes
 - Hide scrollbars when the entire document is visible in the viewport
 - Fix not using config zoom factor
 - Fit incorrect zoom on file open
 - Fix rendering bug when there's no value for DPR set in the config
 - Fix TabWidget logo font
+- Fix zoom clamp range
 
 ### Breaking Changes
 - Removed `ui` table in config and moved all options to their respective sections

@@ -1,11 +1,11 @@
-# ===== UI =====
-[ui.window]
+# ===== =====
+[window]
 fullscreen = false
 menubar = false
 startup_tab = false
 window_title = "{} - lektra" # '{}' replaced with base file name
 
-[ui.statusbar]
+[statusbar]
 visible = true
 padding = [ 5, 5, 5, 5 ] # top, right, bottom, left
 show_session_name = true # show current session name in statusbar (if in session)
@@ -14,33 +14,33 @@ show_mode = true # show current interaction mode in statusbar
 show_page_number = true # show current page number in statusbar
 show_progress = true # show reading progress in statusbar
 
-[ui.command_palette]
+[command_palette]
 show_shortcuts = false
 height = 400
 width = 600
 
-[ui.overlays]
+[overlays]
 border = true
 shadow = { enabled = true, blur_radius = 18, offset_x = 0, offset_y = 6, opacity = 120 }
 
-[ui.llm_widget]
+[llm_widget]
 visible = false
 panel_width = 400
 
-[ui.layout]
+[layout]
 mode = "top_to_bottom" # "single", "top_to_bottom", "left_to_right"
 initial_fit = "width" # "none", "width", "height", "window"
 auto_resize = false # fit document to window
 spacing = 10
 
-[ui.zoom]
+[zoom]
 level = 1.0 # default zoom factor
 factor = 1.25 # factor for zoom in/out
 
-[ui.selection]
+[selection]
 drag_threshold = 100
 
-[ui.scrollbars]
+[scrollbars]
 horizontal = true
 vertical = true
 auto_hide = true
@@ -48,18 +48,18 @@ search_hits = true # show/hide search hits on scrollbar
 size = 12 # scrollbar thickness in pixels
 hide_timeout = 4000 # time in ms to hide scrollbars when auto_hide is true
 
-[ui.markers]
+[markers]
 jump_marker = true
 
-[ui.links]
+[links]
 boundary = false # show link boundary box
 detect_urls = true # detect and create links for URLs in text that are not PDF link objects (http, https, mailto etc.)
 url_regex = "(https?://|www\\.)[^\\s<>()\\\"']+" # regex for URL detection (if detect_urls is true)
 
-[ui.link_hints]
+[link_hints]
 size = 0.25 # relative scale for link hint labels
 
-[ui.tabs]
+[tabs]
 visible = true
 auto_hide = true
 closable = true
@@ -69,13 +69,13 @@ bar_position = "top" # "top", "bottom", "left", "right"
 full_path = false # show full file path in tab title
 lazy_load = true # load tab content only when activated
 
-[ui.outline]
+[outline]
 visible = false
 panel_position = "left" # "left", "right"
 type = "overlay" # "overlay", "dialog", "side_panel"
 panel_width = 300
 
-[ui.highlight_search]
+[highlight_search]
 visible = false
 panel_position = "right" # or "left"
 type = "overlay" # or "overlay", "dialog", "side_panel"
@@ -112,7 +112,7 @@ initial_mode = "text_select_mode" # { "region_select_mode", "annot_rect_mode", "
 always_open_in_new_window = false
 remember_last_visited = true
 page_history = 100
-confirm_on_quit = false
+confirm_on_q = false
 invert_mode = false
 auto_reload = true
 recent_files = true

@@ -290,8 +290,8 @@ lektra::initMenubar() noexcept
     m_actionLayoutSingle->setCheckable(true);
     m_actionLayoutLeftToRight->setCheckable(true);
     m_actionLayoutTopToBottom->setCheckable(true);
-    m_actionLayoutSingle->setChecked(
-        m_config.layout.mode == "single" ? true : false);
+    m_actionLayoutSingle->setChecked(m_config.layout.mode == "single" ? true
+                                                                      : false);
     m_actionLayoutLeftToRight->setChecked(
         m_config.layout.mode == "left_to_right" ? true : false);
     m_actionLayoutTopToBottom->setChecked(
@@ -505,8 +505,7 @@ lektra::initConfig() noexcept
     // if (!m_config_watcher->files().contains(m_config_file_path))
     //     m_config_watcher->addPath(m_config_file_path);
 
-
-    auto primaryScreen = QGuiApplication::primaryScreen();
+    auto primaryScreen                      = QGuiApplication::primaryScreen();
     m_screen_dpr_map[primaryScreen->name()] = primaryScreen->devicePixelRatio();
 
     m_session_dir = QDir(m_config_dir.filePath("sessions"));
@@ -605,20 +604,17 @@ lektra::initConfig() noexcept
     /* scrollbars */
     auto ui_scrollbars = ui["scrollbars"];
     set_if_present(ui_scrollbars["vertical"], m_config.scrollbars.vertical);
-    set_if_present(ui_scrollbars["horizontal"],
-                   m_config.scrollbars.horizontal);
+    set_if_present(ui_scrollbars["horizontal"], m_config.scrollbars.horizontal);
     set_if_present(ui_scrollbars["search_hits"],
                    m_config.scrollbars.search_hits);
-    set_if_present(ui_scrollbars["auto_hide"],
-                   m_config.scrollbars.auto_hide);
+    set_if_present(ui_scrollbars["auto_hide"], m_config.scrollbars.auto_hide);
     set_if_present(ui_scrollbars["size"], m_config.scrollbars.size);
     set_if_present(ui_scrollbars["hide_timeout"],
                    m_config.scrollbars.hide_timeout);
 
     /* command_palette */
     auto command_palette = ui["command_palette"];
-    set_if_present(command_palette["height"],
-                   m_config.command_palette.height);
+    set_if_present(command_palette["height"], m_config.command_palette.height);
     set_if_present(command_palette["width"], m_config.command_palette.width);
     set_if_present(command_palette["vscrollbar"],
                    m_config.command_palette.vscrollbar);
@@ -635,16 +631,14 @@ lektra::initConfig() noexcept
     set_if_present(ui_overlays["border"], m_config.overlays.border);
 
     auto overlay_shadow = ui_overlays["shadow"];
-    set_if_present(overlay_shadow["enabled"],
-                   m_config.overlays.shadow.enabled);
+    set_if_present(overlay_shadow["enabled"], m_config.overlays.shadow.enabled);
     set_if_present(overlay_shadow["blur_radius"],
                    m_config.overlays.shadow.blur_radius);
     set_if_present(overlay_shadow["offset_x"],
                    m_config.overlays.shadow.offset_x);
     set_if_present(overlay_shadow["offset_y"],
                    m_config.overlays.shadow.offset_y);
-    set_if_present(overlay_shadow["opacity"],
-                   m_config.overlays.shadow.opacity);
+    set_if_present(overlay_shadow["opacity"], m_config.overlays.shadow.opacity);
 
     /* markers */
     auto ui_markers = ui["markers"];
@@ -681,10 +675,9 @@ lektra::initConfig() noexcept
 
 #ifdef ENABLE_LLM_SUPPORT
     auto llm_widget = ui["llm_widget"];
-    set_if_present(llm_widget["panel_position"],
-                   m_config.llm_widget.panel_position);
-    set_if_present(llm_widget["panel_width"],
-                   m_config.llm_widget.panel_width);
+    set_qstring_if_present(llm_widget["panel_position"],
+                           m_config.llm_widget.panel_position);
+    set_if_present(llm_widget["panel_width"], m_config.llm_widget.panel_width);
     set_if_present(llm_widget["visible"], m_config.llm_widget.visible);
 
     auto llm = toml["llm"];
@@ -697,14 +690,10 @@ lektra::initConfig() noexcept
     auto colors = toml["colors"];
     set_color_if_present(colors["accent"], m_config.colors.accent);
     set_color_if_present(colors["background"], m_config.colors.background);
-    set_color_if_present(colors["search_match"],
-                         m_config.colors.search_match);
-    set_color_if_present(colors["search_index"],
-                         m_config.colors.search_index);
-    set_color_if_present(colors["link_hint_bg"],
-                         m_config.colors.link_hint_bg);
-    set_color_if_present(colors["link_hint_fg"],
-                         m_config.colors.link_hint_fg);
+    set_color_if_present(colors["search_match"], m_config.colors.search_match);
+    set_color_if_present(colors["search_index"], m_config.colors.search_index);
+    set_color_if_present(colors["link_hint_bg"], m_config.colors.link_hint_bg);
+    set_color_if_present(colors["link_hint_fg"], m_config.colors.link_hint_fg);
     set_color_if_present(colors["selection"], m_config.colors.selection);
     set_color_if_present(colors["highlight"], m_config.colors.highlight);
     set_color_if_present(colors["jump_marker"], m_config.colors.jump_marker);
@@ -944,7 +933,12 @@ lektra::initGui() noexcept
     m_statusbar->setSessionName("");
 
     m_search_bar = new SearchBar(this);
-    m_search_bar->setVisible(false);
+
+    m_search_bar_overlay = new FloatingOverlayWidget(this);
+
+    m_search_bar_overlay->setFrameStyle(makeOverlayFrameStyle(m_config));
+    m_search_bar_overlay->setContentWidget(m_outline_widget);
+    m_search_bar_overlay->setContentWidget(m_search_bar);
 
     m_message_bar = new MessageBar(this);
     m_message_bar->setVisible(false);
@@ -961,10 +955,9 @@ lektra::initGui() noexcept
     m_menuBar = this->menuBar(); // initialize here so that the config
                                  // visibility works
 
-    const bool outlineSide = (m_config.outline.type == "side_panel");
-    const bool highlightSide
-        = (m_config.highlight_search.type == "side_panel");
-    QWidget *mainContent = nullptr;
+    const bool outlineSide   = (m_config.outline.type == "side_panel");
+    const bool highlightSide = (m_config.highlight_search.type == "side_panel");
+    QWidget *mainContent     = nullptr;
     if (outlineSide || highlightSide)
     {
         QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
@@ -1031,7 +1024,7 @@ lektra::initGui() noexcept
     connect(m_llm_widget, &LLMWidget::actionRequested, this,
             [this](const QString &action, const QStringList &args)
     {
-        if (action == QStringLiteral("noop"))
+        if (action.isEmpty() || action == QStringLiteral("noop"))
             return;
         const auto it = m_actionMap.find(action);
         if (it == m_actionMap.end())
@@ -1962,6 +1955,13 @@ lektra::ToggleTextHighlight() noexcept
             QMessageBox::information(this, "Toggle Text Highlight",
                                      "Not a PDF file to annotate");
     }
+}
+
+void
+lektra::ToggleKeyboardCursorMode() noexcept
+{
+    if (m_doc)
+        m_doc->ToggleKeyboardCursorMode();
 }
 
 // Toggle text selection mode
@@ -3262,10 +3262,10 @@ lektra::Redo() noexcept
 void
 lektra::initActionMap() noexcept
 {
-    m_actionMap = {
-        // Actions with arguments
-        {"tabgoto",
-         [this](const QStringList &args)
+    m_actionMap
+        = {// Actions with arguments
+           {"tabgoto",
+            [this](const QStringList &args)
     {
         if (args.isEmpty())
             return;
@@ -3279,102 +3279,126 @@ lektra::initActionMap() noexcept
 
     // Actions without arguments
 #ifdef ENABLE_LLM_SUPPORT
-        ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
+           ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
 #endif
 
-        ACTION_NO_ARGS("set_dpr", SetDPR),
-        ACTION_NO_ARGS("command_palette", ToggleCommandPalette),
-        ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
-        ACTION_NO_ARGS("encrypt", EncryptDocument),
-        ACTION_NO_ARGS("reload", reloadDocument),
-        ACTION_NO_ARGS("undo", Undo),
-        ACTION_NO_ARGS("redo", Redo),
-        ACTION_NO_ARGS("text_highlight_current_selection",
-                       TextHighlightCurrentSelection),
-        ACTION_NO_ARGS("toggle_tabs", ToggleTabBar),
-        ACTION_NO_ARGS("save", SaveFile),
-        ACTION_NO_ARGS("save_as", SaveAsFile),
-        ACTION_NO_ARGS("yank", YankSelection),
-        ACTION_NO_ARGS("cancel_selection", ClearTextSelection),
-        ACTION_NO_ARGS("about", ShowAbout),
-        ACTION_NO_ARGS("link_hint_visit", VisitLinkKB),
-        ACTION_NO_ARGS("link_hint_copy", CopyLinkKB),
-        ACTION_NO_ARGS("outline", ShowOutline),
-        ACTION_NO_ARGS("highlight_annot_search", ShowHighlightSearch),
-        ACTION_NO_ARGS("rotate_clock", RotateClock),
-        ACTION_NO_ARGS("rotate_anticlock", RotateAnticlock),
-        ACTION_NO_ARGS("prev_location", GoBackHistory),
-        ACTION_NO_ARGS("next_location", GoForwardHistory),
-        ACTION_NO_ARGS("scroll_down", ScrollDown),
-        ACTION_NO_ARGS("scroll_up", ScrollUp),
-        ACTION_NO_ARGS("scroll_left", ScrollLeft),
-        ACTION_NO_ARGS("scroll_right", ScrollRight),
-        ACTION_NO_ARGS("invert_color", InvertColor),
-        ACTION_NO_ARGS("search_next", NextHit),
-        ACTION_NO_ARGS("search_prev", PrevHit),
-        ACTION_NO_ARGS("next_page", NextPage),
-        ACTION_NO_ARGS("prev_page", PrevPage),
-        ACTION_NO_ARGS("goto_page", GotoPage),
-        ACTION_NO_ARGS("first_page", FirstPage),
-        ACTION_NO_ARGS("last_page", LastPage),
-        ACTION_NO_ARGS("zoom_in", ZoomIn),
-        ACTION_NO_ARGS("zoom_out", ZoomOut),
-        ACTION_NO_ARGS("zoom_reset", ZoomReset),
-        ACTION_NO_ARGS("region_select_mode", ToggleRegionSelect),
+           ACTION_NO_ARGS("set_dpr", SetDPR),
+           ACTION_NO_ARGS("command_palette", ToggleCommandPalette),
+           ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
+           ACTION_NO_ARGS("encrypt", EncryptDocument),
+           ACTION_NO_ARGS("reload", reloadDocument),
+           ACTION_NO_ARGS("undo", Undo),
+           ACTION_NO_ARGS("redo", Redo),
+           ACTION_NO_ARGS("text_highlight_current_selection",
+                          TextHighlightCurrentSelection),
+           ACTION_NO_ARGS("toggle_tabs", ToggleTabBar),
+           ACTION_NO_ARGS("save", SaveFile),
+           ACTION_NO_ARGS("save_as", SaveAsFile),
+           ACTION_NO_ARGS("yank", YankSelection),
+           ACTION_NO_ARGS("cancel_selection", ClearTextSelection),
+           ACTION_NO_ARGS("about", ShowAbout),
+           ACTION_NO_ARGS("link_hint_visit", VisitLinkKB),
+           ACTION_NO_ARGS("link_hint_copy", CopyLinkKB),
+           ACTION_NO_ARGS("outline", ShowOutline),
+           ACTION_NO_ARGS("highlight_annot_search", ShowHighlightSearch),
+           ACTION_NO_ARGS("rotate_clock", RotateClock),
+           ACTION_NO_ARGS("rotate_anticlock", RotateAnticlock),
+           ACTION_NO_ARGS("prev_location", GoBackHistory),
+           ACTION_NO_ARGS("next_location", GoForwardHistory),
+           ACTION_NO_ARGS("scroll_down", ScrollDown),
+           ACTION_NO_ARGS("scroll_up", ScrollUp),
+           ACTION_NO_ARGS("scroll_left", ScrollLeft),
+           ACTION_NO_ARGS("scroll_right", ScrollRight),
+           ACTION_NO_ARGS("invert_color", InvertColor),
+           ACTION_NO_ARGS("search_next", NextHit),
+           ACTION_NO_ARGS("search_prev", PrevHit),
+           ACTION_NO_ARGS("next_page", NextPage),
+           ACTION_NO_ARGS("prev_page", PrevPage),
+           ACTION_NO_ARGS("first_page", FirstPage),
+           ACTION_NO_ARGS("last_page", LastPage),
+           ACTION_NO_ARGS("zoom_in", ZoomIn),
+           ACTION_NO_ARGS("zoom_out", ZoomOut),
+           ACTION_NO_ARGS("zoom_reset", ZoomReset),
+           ACTION_NO_ARGS("region_select_mode", ToggleRegionSelect),
 
-        ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
-        ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
-        ACTION_NO_ARGS("annot_rect_mode", ToggleAnnotRect),
+           ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
+           ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
+           ACTION_NO_ARGS("annot_rect_mode", ToggleAnnotRect),
+           ACTION_NO_ARGS("keyboard_cursor_mode", ToggleKeyboardCursorMode),
 
-        ACTION_NO_ARGS("text_select_mode", ToggleTextSelection),
-        ACTION_NO_ARGS("text_highlight_mode", ToggleTextHighlight),
-        ACTION_NO_ARGS("fullscreen", ToggleFullscreen),
-        ACTION_NO_ARGS("file_properties", FileProperties),
-        ACTION_NO_ARGS("open_file", OpenFile),
-        ACTION_NO_ARGS("fit_width", FitWidth),
-        ACTION_NO_ARGS("fit_height", FitHeight),
-        ACTION_NO_ARGS("fit_window", FitWindow),
-        ACTION_NO_ARGS("auto_resize", ToggleAutoResize),
-        ACTION_NO_ARGS("toggle_menubar", ToggleMenubar),
-        ACTION_NO_ARGS("toggle_statusbar", TogglePanel),
-        ACTION_NO_ARGS("toggle_focus_mode", ToggleFocusMode),
-        ACTION_NO_ARGS("save_session", SaveSession),
-        ACTION_NO_ARGS("save_as_session", SaveAsSession),
-        ACTION_NO_ARGS("load_session", LoadSession),
-        ACTION_NO_ARGS("show_startup", showStartupWidget),
+           ACTION_NO_ARGS("text_select_mode", ToggleTextSelection),
+           ACTION_NO_ARGS("text_highlight_mode", ToggleTextHighlight),
+           ACTION_NO_ARGS("fullscreen", ToggleFullscreen),
+           ACTION_NO_ARGS("file_properties", FileProperties),
+           ACTION_NO_ARGS("open_file", OpenFile),
+           ACTION_NO_ARGS("fit_width", FitWidth),
+           ACTION_NO_ARGS("fit_height", FitHeight),
+           ACTION_NO_ARGS("fit_window", FitWindow),
+           ACTION_NO_ARGS("auto_resize", ToggleAutoResize),
+           ACTION_NO_ARGS("toggle_menubar", ToggleMenubar),
+           ACTION_NO_ARGS("toggle_statusbar", TogglePanel),
+           ACTION_NO_ARGS("toggle_focus_mode", ToggleFocusMode),
+           ACTION_NO_ARGS("save_session", SaveSession),
+           ACTION_NO_ARGS("save_as_session", SaveAsSession),
+           ACTION_NO_ARGS("load_session", LoadSession),
+           ACTION_NO_ARGS("show_startup", showStartupWidget),
 
-        ACTION_NO_ARGS("tabs_close_left", TabsCloseLeft),
-        ACTION_NO_ARGS("tabs_close_right", TabsCloseRight),
-        ACTION_NO_ARGS("tabs_close_others", TabsCloseOthers),
-        ACTION_NO_ARGS("tab_move_right", TabMoveRight),
-        ACTION_NO_ARGS("tab_move_left", TabMoveLeft),
-        ACTION_NO_ARGS("tab_first", TabFirst),
-        ACTION_NO_ARGS("tab_last", TabLast),
-        ACTION_NO_ARGS("tab_next", TabNext),
-        ACTION_NO_ARGS("tab_prev", TabPrev),
-        ACTION_NO_ARGS("tab_close", TabClose),
+           ACTION_NO_ARGS("tabs_close_left", TabsCloseLeft),
+           ACTION_NO_ARGS("tabs_close_right", TabsCloseRight),
+           ACTION_NO_ARGS("tabs_close_others", TabsCloseOthers),
+           ACTION_NO_ARGS("tab_move_right", TabMoveRight),
+           ACTION_NO_ARGS("tab_move_left", TabMoveLeft),
+           ACTION_NO_ARGS("tab_first", TabFirst),
+           ACTION_NO_ARGS("tab_last", TabLast),
+           ACTION_NO_ARGS("tab_next", TabNext),
+           ACTION_NO_ARGS("tab_prev", TabPrev),
+           ACTION_NO_ARGS("tab_close", TabClose),
 
-        ACTION_NO_ARGS("tutorial_file", showTutorialFile),
-        ACTION_NO_ARGS("reselect_last_selection", ReselectLastTextSelection),
-        ACTION_NO_ARGS("search", Search),
+           ACTION_NO_ARGS("tutorial_file", showTutorialFile),
+           ACTION_NO_ARGS("reselect_last_selection", ReselectLastTextSelection),
+           ACTION_NO_ARGS("search", Search),
 
-        {"layout_single", [this](const QStringList &)
+           {"layout_single", [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::SINGLE); }},
-        {"layout_left_to_right", [this](const QStringList &)
+           {"layout_left_to_right", [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::LEFT_TO_RIGHT); }},
-        {"layout_top_to_bottom", [this](const QStringList &)
+           {"layout_top_to_bottom", [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::TOP_TO_BOTTOM); }},
 
-        {"tab1", [this](const QStringList &) { TabGoto(1); }},
-        {"tab2", [this](const QStringList &) { TabGoto(2); }},
-        {"tab3", [this](const QStringList &) { TabGoto(3); }},
-        {"tab4", [this](const QStringList &) { TabGoto(4); }},
-        {"tab5", [this](const QStringList &) { TabGoto(5); }},
-        {"tab6", [this](const QStringList &) { TabGoto(6); }},
-        {"tab7", [this](const QStringList &) { TabGoto(7); }},
-        {"tab8", [this](const QStringList &) { TabGoto(8); }},
-        {"tab9", [this](const QStringList &) { TabGoto(9); }},
-    };
+           {"tab1", [this](const QStringList &) { TabGoto(1); }},
+           {"tab2", [this](const QStringList &) { TabGoto(2); }},
+           {"tab3", [this](const QStringList &) { TabGoto(3); }},
+           {"tab4", [this](const QStringList &) { TabGoto(4); }},
+           {"tab5", [this](const QStringList &) { TabGoto(5); }},
+           {"tab6", [this](const QStringList &) { TabGoto(6); }},
+           {"tab7", [this](const QStringList &) { TabGoto(7); }},
+           {"tab8", [this](const QStringList &) { TabGoto(8); }},
+           {"tab9", [this](const QStringList &) { TabGoto(9); }},
+
+           {"goto_page",
+            [this](const QStringList &args)
+    {
+        if (args.isEmpty())
+        {
+            GotoPage();
+            return;
+        }
+
+        auto _args = args.join(" ");
+        if (!_args.isEmpty())
+        {
+            bool ok;
+            int pageno = _args.toInt(&ok);
+            if (ok)
+                gotoPage(pageno);
+            else
+                m_message_bar->showMessage("Invalid page number");
+        }
+    }},
+           // {"search_in_page",
+            // [this](const QStringList &args) { SearchInPage(args.join(" ")); }},
+           {"search_args",
+            [this](const QStringList &args) { search(args.join(" ")); }}};
 }
 
 #undef ACTION_NO_ARGS
@@ -3637,7 +3661,7 @@ lektra::updateGUIFromConfig() noexcept
             m_config.highlight_search.visible);
     }
 
-    m_layout->addWidget(m_search_bar);
+    // m_layout->addWidget(m_search_bar);
     m_layout->addWidget(m_message_bar);
     m_layout->addWidget(m_statusbar);
 
@@ -3692,11 +3716,21 @@ lektra::search(const QString &term) noexcept
 }
 
 void
+lektra::searchInPage(const int pageno, const QString &term) noexcept
+{
+    if (m_doc)
+        m_doc->SearchInPage(pageno, term);
+}
+
+void
 lektra::Search() noexcept
 {
     if (m_doc)
     {
-        m_search_bar->setVisible(true);
+        m_search_bar_overlay->show();
+        m_search_bar_overlay->raise();
+        m_search_bar_overlay->activateWindow();
+        m_search_bar_overlay->setVisible(true);
         m_search_bar->focusSearchInput();
     }
 }

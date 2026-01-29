@@ -64,7 +64,9 @@ public:
     void ReadArgsParser(argparse::ArgumentParser &argparser) noexcept;
     // bool OpenFile(DocumentView *view) noexcept;
     void Search() noexcept;
+    void SearchInPage() noexcept;
     void ShowHighlightSearch() noexcept;
+    void ToggleKeyboardCursorMode() noexcept;
     void ToggleAutoResize() noexcept;
     void ToggleCommandPalette() noexcept;
     void ToggleFocusMode() noexcept;
@@ -198,6 +200,7 @@ private:
     void gotoPage(int pageno) noexcept;
     void setFocusMode(bool state) noexcept;
     void search(const QString &term = {}) noexcept;
+    void searchInPage(const int pageno, const QString &term = {}) noexcept;
     void writeSessionToFile(const QString &sessionName) noexcept;
 
     // private helpers
@@ -336,6 +339,7 @@ private:
     QHash<QString, QWidget *> m_path_tab_hash;
     MessageBar *m_message_bar{nullptr};
     SearchBar *m_search_bar{nullptr};
+    FloatingOverlayWidget *m_search_bar_overlay{nullptr};
     HighlightSearchWidget *m_highlight_search_widget{nullptr};
     CommandPaletteWidget *m_command_palette_widget{nullptr};
     FloatingOverlayWidget *m_command_palette_overlay{nullptr};

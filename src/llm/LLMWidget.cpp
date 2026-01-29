@@ -32,8 +32,9 @@ LLMWidget::initProvider() noexcept
         std::string promptText;
 
 #if defined(__linux__)
-        const QString rolePath
-            = QDir(APP_INSTALL_PREFIX).filePath("share/lektra/role.txt");
+        // const QString rolePath
+        //     = QDir(APP_INSTALL_PREFIX).filePath("share/lektra/role.txt");
+        const QString rolePath = "/home/dheeraj/Gits/lektra/src/llm/role.txt";
 #endif
 
         QFile roleFile(rolePath);
