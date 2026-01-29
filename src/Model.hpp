@@ -370,6 +370,7 @@ public:
                                 const QPointF &end) noexcept;
     void invalidatePageCache(int pageno) noexcept;
     void search(const QString &term, bool caseSensitive = false) noexcept;
+    void searchInPage(const int pageno, const QString &term, bool caseSensitive = false) noexcept;
     std::vector<Model::SearchHit> searchHelper(int pageno, const QString &term,
                                                bool caseSensitive) noexcept;
     std::vector<HighlightText> collectHighlightTexts(bool groupByLine
@@ -490,6 +491,7 @@ private:
 
     void populatePDFProperties(
         std::vector<std::pair<QString, QString>> &props) noexcept;
+    fz_point getFirstCharPos(const int pageno) noexcept;
 
     // std::optional<std::wstring>
     // get_paper_name_at_position(const int pageno, const fz_point) noexcept;
