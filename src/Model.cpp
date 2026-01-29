@@ -671,10 +671,9 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &devStart,
     m_selection_end   = b;
 
     // --- Get (or build) stext page and compute highlight quads in PAGE space
-    // ---
-    fz_stext_page *stext_page = nullptr;
-    fz_page *page             = nullptr;
-    int count                 = 0;
+    fz_stext_page *stext_page{nullptr};
+    fz_page *page{nullptr};
+    int count{0};
 
     fz_try(m_ctx)
     {
@@ -1911,6 +1910,31 @@ Model::search(const QString &term, bool caseSensitive) noexcept
     });
 }
 
+void
+Model::searchInPage(const int pageno, const QString &term,
+                    bool caseSensitive) noexcept
+{
+    QFuture<void> result = QtConcurrent::run([this, pageno, term, caseSensitive]()
+    {
+        QMap<int, std::vector<Model::SearchHit>> results;
+        m_search_match_count = 0;
+
+        if (term.isEmpty() || pageno < 0 || pageno >= m_page_count)
+        {
+            emit searchResultsReady(results);
+            return;
+        }
+
+        auto hits = searchHelper(pageno, term, caseSensitive);
+        if (!hits.empty())
+        {
+            m_search_match_count += hits.size();
+            results.insert(pageno, std::move(hits));
+        }
+        emit searchResultsReady(results);
+    });
+}
+
 std::vector<Model::SearchHit>
 Model::searchHelper(int pageno, const QString &term,
                     bool caseSensitive) noexcept
@@ -2476,3 +2500,51 @@ Model::getTextInArea(const int pageno, const QPointF &start,
 
 //     return out;
 // }
+
+// Logic for Model.cpp to get the first character's position
+fz_point
+Model::getFirstCharPos(const int pageno) noexcept
+{
+    fz_stext_page *stext_page{nullptr};
+    fz_page *page{nullptr};
+
+    fz_try(m_ctx)
+    {
+        page       = fz_load_page(m_ctx, m_doc, pageno);
+        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+        if (!stext_page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to build text page");
+
+        for (fz_stext_block *block = stext_page->first_block; block;
+             block                 = block->next)
+        {
+            if (block->type != FZ_STEXT_BLOCK_TEXT)
+                continue;
+            for (fz_stext_line *line = block->u.t.first_line; line;
+                 line                = line->next)
+            {
+                for (fz_stext_char *span = line->first_char; span;
+                     span                = span->next)
+                {
+                    if (span->size > 0)
+                    {
+                        // Return the origin of the first character in the first
+                        // span
+                        return span->origin;
+                    }
+                }
+            }
+        }
+    }
+    fz_always(m_ctx)
+    {
+        fz_drop_page(m_ctx, page);
+        fz_drop_stext_page(m_ctx, stext_page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "getFirstCharPos failed:" << fz_caught_message(m_ctx);
+    }
+
+    return {0, 0};
+}
