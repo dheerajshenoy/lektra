@@ -1773,12 +1773,14 @@ void
 DocumentView::GotoFirstPage() noexcept
 {
     GotoPageWithHistory(0);
+    m_vscroll->setValue(0);
 }
 // Go to the last page
 void
 DocumentView::GotoLastPage() noexcept
 {
     GotoPageWithHistory(m_model->numPages() - 1);
+    m_vscroll->setValue(m_vscroll->maximum());
 }
 
 // Go back in history
