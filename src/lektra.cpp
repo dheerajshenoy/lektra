@@ -794,6 +794,10 @@ lektra::initConfig() noexcept
                     QString::fromStdString(value.value_or<std::string>("")));
         }
     }
+
+#ifndef NDEBUG
+    qDebug() << "Finished reading config file:" << m_config_file_path;
+#endif
 }
 
 // Initialize the keybindings related stuff
