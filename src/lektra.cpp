@@ -526,10 +526,8 @@ lektra::initConfig() noexcept
         return;
     }
 
-    auto ui = toml["ui"];
-
     /* tabs */
-    auto ui_tabs = ui["tabs"];
+    auto ui_tabs = toml["tabs"];
     set_if_present(ui_tabs["visible"], m_config.tabs.visible);
     set_if_present(ui_tabs["auto_hide"], m_config.tabs.auto_hide);
     set_if_present(ui_tabs["closable"], m_config.tabs.closable);
@@ -540,7 +538,7 @@ lektra::initConfig() noexcept
     set_if_present(ui_tabs["lazy_load"], m_config.tabs.lazy_load);
 
     /* window */
-    auto ui_window = ui["window"];
+    auto ui_window = toml["window"];
     set_if_present(ui_window["startup_tab"], m_config.window.startup_tab);
     set_if_present(ui_window["menubar"], m_config.window.menubar);
     set_if_present(ui_window["fullscreen"], m_config.window.fullscreen);
@@ -553,7 +551,7 @@ lektra::initConfig() noexcept
                                 m_config.window.title_format);
 
     /* statusbar */
-    auto ui_statusbar = ui["statusbar"];
+    auto ui_statusbar = toml["statusbar"];
     set_if_present(ui_statusbar["visible"], m_config.statusbar.visible);
 
     if (auto padding_array = ui_statusbar["padding"].as_array();
@@ -580,7 +578,7 @@ lektra::initConfig() noexcept
                    m_config.statusbar.show_session_name);
 
     /* layout */
-    auto ui_layout = ui["layout"];
+    auto ui_layout = toml["layout"];
     set_qstring_if_present(ui_layout["mode"],
                            m_config.layout.mode); // string
     set_qstring_if_present(ui_layout["initial_fit"],
@@ -589,17 +587,17 @@ lektra::initConfig() noexcept
     set_if_present(ui_layout["spacing"], m_config.layout.spacing);
 
     /* zoom */
-    auto ui_zoom = ui["zoom"];
+    auto ui_zoom = toml["zoom"];
     set_if_present(ui_zoom["level"], m_config.zoom.level);
     set_if_present(ui_zoom["factor"], m_config.zoom.factor);
 
     /* selection */
-    auto ui_selection = ui["selection"];
+    auto ui_selection = toml["selection"];
     set_if_present(ui_selection["drag_threshold"],
                    m_config.selection.drag_threshold);
 
     /* scrollbars */
-    auto ui_scrollbars = ui["scrollbars"];
+    auto ui_scrollbars = toml["scrollbars"];
     set_if_present(ui_scrollbars["vertical"], m_config.scrollbars.vertical);
     set_if_present(ui_scrollbars["horizontal"], m_config.scrollbars.horizontal);
     set_if_present(ui_scrollbars["search_hits"],
@@ -610,7 +608,7 @@ lektra::initConfig() noexcept
                    m_config.scrollbars.hide_timeout);
 
     /* command_palette */
-    auto command_palette = ui["command_palette"];
+    auto command_palette = toml["command_palette"];
     set_if_present(command_palette["height"], m_config.command_palette.height);
     set_if_present(command_palette["width"], m_config.command_palette.width);
     set_if_present(command_palette["vscrollbar"],
@@ -624,7 +622,7 @@ lektra::initConfig() noexcept
                            m_config.command_palette.placeholder_text);
 
     /* overlays */
-    auto ui_overlays = ui["overlays"];
+    auto ui_overlays = toml["overlays"];
     set_if_present(ui_overlays["border"], m_config.overlays.border);
 
     auto overlay_shadow = ui_overlays["shadow"];
@@ -638,12 +636,12 @@ lektra::initConfig() noexcept
     set_if_present(overlay_shadow["opacity"], m_config.overlays.shadow.opacity);
 
     /* markers */
-    auto ui_markers = ui["markers"];
+    auto ui_markers = toml["markers"];
     set_if_present(ui_markers["jump_marker"], m_config.markers.jump_marker);
 
     /* links + link_hints */
-    auto ui_links      = ui["links"];
-    auto ui_link_hints = ui["link_hints"];
+    auto ui_links      = toml["links"];
+    auto ui_link_hints = toml["link_hints"];
 
     set_if_present(ui_links["boundary"], m_config.links.boundary);
     set_if_present(ui_links["detect_urls"], m_config.links.detect_urls);
@@ -651,7 +649,7 @@ lektra::initConfig() noexcept
     set_if_present(ui_link_hints["size"], m_config.link_hints.size);
 
     /* outline */
-    auto ui_outline = ui["outline"];
+    auto ui_outline = toml["outline"];
     set_if_present(ui_outline["visible"], m_config.outline.visible);
     // You hard-set this; keeping that behavior:
     m_config.outline.type = "overlay";
@@ -660,7 +658,7 @@ lektra::initConfig() noexcept
     set_if_present(ui_outline["panel_width"], m_config.outline.panel_width);
 
     /* highlight_search */
-    auto ui_highlight_search = ui["highlight_search"];
+    auto ui_highlight_search = toml["highlight_search"];
     set_if_present(ui_highlight_search["visible"],
                    m_config.highlight_search.visible);
     set_qstring_if_present(ui_highlight_search["type"],
@@ -671,7 +669,7 @@ lektra::initConfig() noexcept
                    m_config.highlight_search.panel_width);
 
 #ifdef ENABLE_LLM_SUPPORT
-    auto llm_widget = ui["llm_widget"];
+    auto llm_widget = toml["llm_widget"];
     set_qstring_if_present(llm_widget["panel_position"],
                            m_config.llm_widget.panel_position);
     set_if_present(llm_widget["panel_width"], m_config.llm_widget.panel_width);
