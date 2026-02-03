@@ -502,9 +502,6 @@ lektra::initConfig() noexcept
     if (m_config_file_path.isEmpty())
         m_config_file_path = m_config_dir.filePath("config.toml");
 
-    // if (!m_config_watcher->files().contains(m_config_file_path))
-    //     m_config_watcher->addPath(m_config_file_path);
-
     auto primaryScreen                      = QGuiApplication::primaryScreen();
     m_screen_dpr_map[primaryScreen->name()] = primaryScreen->devicePixelRatio();
 
