@@ -3,6 +3,7 @@
 ## 0.6.2
 
 ### Features
+- Ability to move tabs with mouse drag and drop within the tab bar and detach to new window if dropped outside
 
 ### Bug Fixes
 - Hide scrollbars when the entire document is visible in the viewport
