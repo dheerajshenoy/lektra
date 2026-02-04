@@ -52,6 +52,15 @@ private:
 protected:
     void showEvent(QShowEvent *event) override;
 
+    void keyPressEvent(QKeyEvent *event) override {
+        if (event->key() == Qt::Key_Escape)
+        {
+            m_searchInput->clearFocus();
+            this->hide();
+        }
+        QWidget::keyPressEvent(event);
+    }
+
 signals:
     void searchRequested(const QString &term);
     void searchIndexChangeRequested(int index);
