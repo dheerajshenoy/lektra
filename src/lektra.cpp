@@ -2206,6 +2206,11 @@ lektra::initConnections() noexcept
             [this](int page, const QPointF &pos) // page returned is 0-based
     {
         m_doc->GotoLocationWithHistory({page, (float)pos.x(), (float)pos.y()});
+        if (m_config.highlight_search.type == "overlay"
+            && m_highlight_overlay)
+        {
+            m_highlight_overlay->hide();
+        }
     });
 }
 
