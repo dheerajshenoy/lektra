@@ -3,7 +3,7 @@
 #include "CommandPaletteWidget.hpp"
 #include "Config.hpp"
 #include "DocumentView.hpp"
-#include "DraggableTabBar.hpp"
+#include "TabBar.hpp"
 #include "FloatingOverlayWidget.hpp"
 #include "HighlightSearchWidget.hpp"
 // #include "MarkManager.hpp"
@@ -189,12 +189,12 @@ private:
     void trimRecentFilesDatabase() noexcept;
     void reloadDocument() noexcept;
     void handleTabDataRequested(int index,
-                                DraggableTabBar::TabData *outData) noexcept;
-    void handleTabDropReceived(const DraggableTabBar::TabData &data) noexcept;
+                                TabBar::TabData *outData) noexcept;
+    void handleTabDropReceived(const TabBar::TabData &data) noexcept;
     void handleTabDetached(int index, const QPoint &globalPos) noexcept;
     void
     handleTabDetachedToNewWindow(int index,
-                                 const DraggableTabBar::TabData &data) noexcept;
+                                 const TabBar::TabData &data) noexcept;
 
     void gotoPage(int pageno) noexcept;
     void setFocusMode(bool state) noexcept;

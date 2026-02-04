@@ -931,7 +931,7 @@ lektra::initGui() noexcept
     m_statusbar->setMode(GraphicsView::Mode::TextSelection);
     m_statusbar->setSessionName("");
 
-    m_search_bar         = new SearchBar(this);
+    m_search_bar = new SearchBar(this);
     // m_search_bar_overlay = new FloatingOverlayWidget(this);
 
     m_search_bar->setVisible(false);
@@ -2090,7 +2090,7 @@ lektra::initConnections() noexcept
     connect(m_config_watcher, &QFileSystemWatcher::fileChanged, this,
             &lektra::updateGUIFromConfig);
     QList<QScreen *> outputs = QGuiApplication::screens();
-    connect(m_tab_widget, &QTabWidget::currentChanged, this,
+    connect(m_tab_widget, &TabWidget::currentChanged, this,
             &lektra::handleCurrentTabChanged);
 
     // Tab drag and drop connections for cross-window tab transfer
@@ -2136,7 +2136,7 @@ lektra::initConnections() noexcept
     connect(m_search_bar, &SearchBar::nextHitRequested, this, &lektra::NextHit);
     connect(m_search_bar, &SearchBar::prevHitRequested, this, &lektra::PrevHit);
 
-    connect(m_tab_widget, &QTabWidget::tabCloseRequested, this,
+    connect(m_tab_widget, &TabWidget::tabCloseRequested, this,
             [this](const int index)
     {
         QWidget *widget = m_tab_widget->widget(index);
@@ -2199,8 +2199,7 @@ lektra::initConnections() noexcept
             [this](int page, const QPointF &pos) // page returned is 0-based
     {
         m_doc->GotoLocationWithHistory({page, (float)pos.x(), (float)pos.y()});
-        if (m_config.highlight_search.type == "overlay"
-            && m_highlight_overlay)
+        if (m_config.highlight_search.type == "overlay" && m_highlight_overlay)
         {
             m_highlight_overlay->hide();
         }
@@ -2370,8 +2369,7 @@ lektra::handleCurrentTabChanged(int index) noexcept
 }
 
 void
-lektra::handleTabDataRequested(int index,
-                               DraggableTabBar::TabData *outData) noexcept
+lektra::handleTabDataRequested(int index, TabBar::TabData *outData) noexcept
 {
     if (!validTabIndex(index))
         return;
@@ -2393,7 +2391,7 @@ lektra::handleTabDataRequested(int index,
 }
 
 void
-lektra::handleTabDropReceived(const DraggableTabBar::TabData &data) noexcept
+lektra::handleTabDropReceived(const TabBar::TabData &data) noexcept
 {
     if (data.filePath.isEmpty())
         return;
@@ -2437,8 +2435,8 @@ lektra::handleTabDetached(int index, const QPoint &globalPos) noexcept
 }
 
 void
-lektra::handleTabDetachedToNewWindow(
-    int index, const DraggableTabBar::TabData &data) noexcept
+lektra::handleTabDetachedToNewWindow(int index,
+                                     const TabBar::TabData &data) noexcept
 {
     if (!validTabIndex(index))
         return;
@@ -2612,7 +2610,7 @@ lektra::handleTabContextMenu(QObject *object, QEvent *event) noexcept
     menu.addSeparator();
     menu.addAction("Move Tab to New Window", this, [this, index]()
     {
-        DraggableTabBar::TabData data;
+        TabBar::TabData data;
         handleTabDataRequested(index, &data);
         if (!data.filePath.isEmpty())
             handleTabDetachedToNewWindow(index, data);

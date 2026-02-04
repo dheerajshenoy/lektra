@@ -12,18 +12,19 @@
 #include <QStyleOptionTab>
 #include <QTabBar>
 
-class DraggableTabBar : public QTabBar
+class TabBar : public QTabBar
 {
     Q_OBJECT
 
 public:
     static constexpr const char *MIME_TYPE = "application/lektra-tab";
 
-    explicit DraggableTabBar(QWidget *parent = nullptr) : QTabBar(parent)
+    explicit TabBar(QWidget *parent = nullptr) : QTabBar(parent)
     {
         setAcceptDrops(true);
         setElideMode(Qt::TextElideMode::ElideRight);
         setDrawBase(false);
+        setMovable(true);
     }
 
     struct TabData
@@ -35,7 +36,7 @@ public:
         int rotation{0};
         int fitMode{0};
 
-        QByteArray serialize() const
+        QByteArray serialize() const noexcept
         {
             QJsonObject obj;
             obj["file_path"]    = filePath;
@@ -47,20 +48,20 @@ public:
             return QJsonDocument(obj).toJson(QJsonDocument::Compact);
         }
 
-        static TabData deserialize(const QByteArray &data)
+        static TabData deserialize(const QByteArray &data) noexcept
         {
             TabData result;
             QJsonDocument doc = QJsonDocument::fromJson(data);
             if (!doc.isObject())
                 return result;
 
-            QJsonObject obj     = doc.object();
-            result.filePath     = obj["file_path"].toString();
-            result.currentPage  = obj["current_page"].toInt(1);
-            result.zoom         = obj["zoom"].toDouble(1.0);
-            result.invertColor  = obj["invert_color"].toBool(false);
-            result.rotation     = obj["rotation"].toInt(0);
-            result.fitMode      = obj["fit_mode"].toInt(0);
+            QJsonObject obj    = doc.object();
+            result.filePath    = obj["file_path"].toString();
+            result.currentPage = obj["current_page"].toInt(1);
+            result.zoom        = obj["zoom"].toDouble(1.0);
+            result.invertColor = obj["invert_color"].toBool(false);
+            result.rotation    = obj["rotation"].toInt(0);
+            result.fitMode     = obj["fit_mode"].toInt(0);
             return result;
         }
     };
@@ -84,13 +85,7 @@ protected:
 
     void mouseMoveEvent(QMouseEvent *event) override
     {
-        if (!(event->buttons() & Qt::LeftButton))
-        {
-            QTabBar::mouseMoveEvent(event);
-            return;
-        }
-
-        if (m_drag_tab_index < 0)
+        if (!(event->buttons() & Qt::LeftButton) || m_drag_tab_index < 0)
         {
             QTabBar::mouseMoveEvent(event);
             return;
@@ -107,25 +102,21 @@ protected:
         // Request tab data from the parent widget
         TabData tabData;
         emit tabDataRequested(m_drag_tab_index, &tabData);
-
         if (tabData.filePath.isEmpty())
-        {
-            QTabBar::mouseMoveEvent(event);
             return;
-        }
+
+        m_drop_received  = false;
+        int draggedIndex = m_drag_tab_index;
 
         // Create drag object
         QDrag *drag     = new QDrag(this);
         QMimeData *mime = new QMimeData();
         mime->setData(MIME_TYPE, tabData.serialize());
-
-        // Also set URL for dropping into file managers
         mime->setUrls({QUrl::fromLocalFile(tabData.filePath)});
-
         drag->setMimeData(mime);
 
         // Create a pixmap of the tab for visual feedback
-        QRect tabRect = this->tabRect(m_drag_tab_index);
+        QRect tabRect = this->tabRect(draggedIndex);
         QPixmap tabPixmap(tabRect.size());
         tabPixmap.fill(Qt::transparent);
         QPainter painter(&tabPixmap);
@@ -133,7 +124,7 @@ protected:
 
         // Render the tab
         QStyleOptionTab opt;
-        initStyleOption(&opt, m_drag_tab_index);
+        initStyleOption(&opt, draggedIndex);
         opt.rect = QRect(QPoint(0, 0), tabRect.size());
         style()->drawControl(QStyle::CE_TabBarTab, &opt, &painter, this);
         painter.end();
@@ -141,18 +132,18 @@ protected:
         drag->setPixmap(tabPixmap);
         drag->setHotSpot(event->pos() - tabRect.topLeft());
 
-        int draggedIndex      = m_drag_tab_index;
-        m_drag_tab_index      = -1;
         Qt::DropAction result = drag->exec(Qt::MoveAction | Qt::CopyAction);
+        m_drag_tab_index      = -1;
 
         // If the drag was accepted by another window, close this tab
-        if (result == Qt::MoveAction)
+        if (result == Qt::MoveAction && !m_drop_received)
         {
             emit tabDetached(draggedIndex, QCursor::pos());
         }
         else if (result == Qt::IgnoreAction)
         {
-            // Tab was dropped outside any accepting window - detach to new window
+            // Tab was dropped outside any accepting window - detach to new
+            // window
             emit tabDetachedToNewWindow(draggedIndex, tabData);
         }
     }
@@ -167,12 +158,6 @@ protected:
     {
         if (event->mimeData()->hasFormat(MIME_TYPE))
         {
-            // Check if this drag originated from this tab bar
-            if (event->source() == this)
-            {
-                event->ignore();
-                return;
-            }
             event->setDropAction(Qt::MoveAction);
             event->accept();
         }
@@ -195,11 +180,6 @@ protected:
     {
         if (event->mimeData()->hasFormat(MIME_TYPE))
         {
-            if (event->source() == this)
-            {
-                event->ignore();
-                return;
-            }
             event->setDropAction(Qt::MoveAction);
             event->accept();
         }
@@ -213,14 +193,32 @@ protected:
     {
         if (event->mimeData()->hasFormat(MIME_TYPE))
         {
+            m_drop_received = true;
+
+            // Handle Internal Move
             if (event->source() == this)
             {
-                event->ignore();
+                int toIndex   = tabAt(event->position().toPoint());
+                int fromIndex = m_drag_tab_index; // This is valid because we
+                                                  // haven't cleared it yet
+
+                if (toIndex != -1 && fromIndex != -1 && fromIndex != toIndex)
+                {
+                    moveTab(fromIndex, toIndex);
+                    setCurrentIndex(
+                        toIndex); // Optional: keep the moved tab active
+                    event->setDropAction(Qt::MoveAction);
+                    event->accept();
+                    return;
+                }
+
+                // If it was dropped on itself, still accept to prevent detachment
+                event->acceptProposedAction();
                 return;
             }
 
-            QByteArray data = event->mimeData()->data(MIME_TYPE);
-            TabData tabData = TabData::deserialize(data);
+            TabData tabData
+                = TabData::deserialize(event->mimeData()->data(MIME_TYPE));
 
             if (!tabData.filePath.isEmpty())
             {
@@ -234,4 +232,5 @@ protected:
 private:
     QPoint m_drag_start_pos;
     int m_drag_tab_index{-1};
+    bool m_drop_received{false};
 };

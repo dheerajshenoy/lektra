@@ -1,132 +1,126 @@
 #pragma once
 
-#include "DraggableTabBar.hpp"
+#include "TabBar.hpp"
 
 #include <QContextMenuEvent>
 #include <QFontDatabase>
 #include <QMenu>
 #include <QPainter>
+#include <QStackedWidget>
 #include <QTabBar>
-#include <QTabWidget>
 
-namespace
-{
-using TabId = uint32_t;
-
-static TabId nextTabId{0};
-
-inline TabId
-newTabId() noexcept
-{
-    return nextTabId++;
-}
-
-} // namespace
-
-class TabWidget : public QTabWidget
+class TabWidget : public QWidget
 {
     Q_OBJECT
-    TabId m_id{0};
 
 public:
-    TabWidget(QWidget *parent = nullptr) : QTabWidget(parent), m_id(newTabId())
-    {
-        m_tab_bar = new DraggableTabBar(this);
-        setTabBar(m_tab_bar);
-
-        setElideMode(Qt::TextElideMode::ElideRight);
-        setDocumentMode(true);
-        setMovable(true);
-        setTabsClosable(true);
-        setAcceptDrops(true);
-        setStyleSheet("border: 0");
-        setTabPosition(QTabWidget::TabPosition::North);
-
-        // Forward signals from the draggable tab bar
-        connect(m_tab_bar, &DraggableTabBar::tabDataRequested, this,
-                &TabWidget::tabDataRequested);
-        connect(m_tab_bar, &DraggableTabBar::tabDropReceived, this,
-                &TabWidget::tabDropReceived);
-        connect(m_tab_bar, &DraggableTabBar::tabDetached, this,
-                &TabWidget::tabDetached);
-        connect(m_tab_bar, &DraggableTabBar::tabDetachedToNewWindow, this,
-                &TabWidget::tabDetachedToNewWindow);
-    }
-
-    DraggableTabBar *draggableTabBar() const noexcept
-    {
-        return m_tab_bar;
-    }
-
-    inline int addTab(QWidget *page, const QString &title) noexcept
-    {
-        int result = QTabWidget::addTab(page, title);
-        emit tabAdded(result);
-        return result;
-    }
-
+    using TabId = uint32_t;
+    TabWidget(QWidget *parent = nullptr);
+    TabBar *tabBar() const noexcept;
+    int addTab(QWidget *page, const QString &title) noexcept;
+    int insertTab(const int index, QWidget *page,
+                  const QString &title) noexcept;
     inline uint32_t id() const noexcept
     {
         return m_id;
     }
 
-    inline int insertTab(const int index, QWidget *page,
-                         const QString &title) noexcept
+    inline int count() const noexcept
     {
-        const int result = QTabWidget::insertTab(index, page, title);
-        emit tabAdded(result);
-        return result;
+        return m_tab_bar->count();
     }
 
-protected:
-    void paintEvent(QPaintEvent *event) override
+    inline bool tabBarAutoHide() const noexcept
     {
-        QTabWidget::paintEvent(event);
+        return m_tab_bar->autoHide();
+    }
 
-        if (count() == 0)
+    inline int indexOf(QWidget *page) const noexcept
+    {
+        return m_stacked_widget->indexOf(page);
+    }
+
+    inline QWidget *widget(int index) const noexcept
+    {
+        if (index < 0 || index >= count())
+            return nullptr;
+        return m_stacked_widget->widget(index);
+    }
+
+    inline QWidget *currentWidget() const noexcept
+    {
+        return m_stacked_widget->currentWidget();
+    }
+
+    inline int currentIndex() const noexcept
+    {
+        return m_tab_bar->currentIndex();
+    }
+
+    inline void setMovable(bool movable) noexcept
+    {
+        m_tab_bar->setMovable(movable);
+    }
+
+    inline void setTabPosition(QTabWidget::TabPosition position) noexcept
+    {
+        if (position == QTabWidget::TabPosition::North
+            || position == QTabWidget::TabPosition::South)
         {
-            QPainter painter(this);
-            painter.fillRect(rect(), palette().color(QPalette::Window));
-            painter.setPen(palette().color(QPalette::Disabled, QPalette::Text));
-
-            QString logoText = "lektra";
-
-            // Setup logo font - load from resources
-            int fontId = QFontDatabase::addApplicationFont(
-                ":/resources/fonts/Major-Mono-Display.ttf");
-            QString fontFamily
-                = QFontDatabase::applicationFontFamilies(fontId).value(
-                    0, QString());
-            QFont logoFont;
-            if (!fontFamily.isEmpty())
-                logoFont.setFamily(fontFamily);
-            logoFont.setPointSize(50);
-            logoFont.setBold(true);
-            QFontMetrics logoFm(logoFont);
-            int logoHeight = logoFm.height();
-
-            // Calculate total height and starting Y position
-            int spacing = 20;
-
-            // Draw logo text
-            painter.setFont(logoFont);
-            QRect logoRect(0, rect().height() / 2.0f, rect().width(),
-                           logoHeight);
-            painter.drawText(logoRect, Qt::AlignHCenter | Qt::AlignTop,
-                             logoText);
+            m_tab_bar->setShape(position == QTabWidget::TabPosition::North
+                                    ? TabBar::Shape::RoundedNorth
+                                    : TabBar::Shape::RoundedSouth);
+        }
+        else
+        {
+            m_tab_bar->setShape(position == QTabWidget::TabPosition::West
+                                    ? TabBar::Shape::RoundedWest
+                                    : TabBar::Shape::RoundedEast);
         }
     }
 
+    inline void setTabsClosable(bool closable) noexcept
+    {
+        m_tab_bar->setTabsClosable(closable);
+    }
+
+    inline void setCurrentIndex(int index) noexcept
+    {
+        if (index < 0 || index >= count())
+            return;
+        m_stacked_widget->setCurrentIndex(index);
+        m_tab_bar->setCurrentIndex(index);
+    }
+
+    inline void setTabBarAutoHide(bool hide) noexcept
+    {
+        m_tab_bar->setAutoHide(hide);
+    }
+
+    inline const QString tabText(const int index) const noexcept
+    {
+        return m_tab_bar->tabText(index);
+    }
+
+    void removeTab(const int index) noexcept;
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+
 signals:
     void tabAdded(int index);
+    void tabRemoved(int index);
     void openInExplorerRequested(int index);
     void filePropertiesRequested(int index);
-    void tabDataRequested(int index, DraggableTabBar::TabData *outData);
-    void tabDropReceived(const DraggableTabBar::TabData &data);
+    void tabDataRequested(int index, TabBar::TabData *outData);
+    void tabDropReceived(const TabBar::TabData &data);
     void tabDetached(int index, const QPoint &globalPos);
-    void tabDetachedToNewWindow(int index,
-                                const DraggableTabBar::TabData &data);
+    void tabDetachedToNewWindow(int index, const TabBar::TabData &data);
+    void currentChanged(const int index);
+    void tabCloseRequested(const int index);
 
 private:
-    DraggableTabBar *m_tab_bar{nullptr};
+    TabId m_id{0};
+    QStackedWidget *m_stacked_widget{nullptr};
+    TabBar *m_tab_bar{nullptr};
 };
