@@ -249,7 +249,6 @@ public:
     void SaveFile() noexcept;
     void SaveAsFile() noexcept;
     void CloseFile() noexcept;
-    void ToggleKeyboardCursorMode() noexcept;
     void ToggleAutoResize() noexcept;
     void ToggleTextHighlight() noexcept;
     void ToggleRegionSelect() noexcept;

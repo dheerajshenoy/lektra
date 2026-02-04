@@ -22,7 +22,6 @@ public:
         AnnotRect,
         AnnotPopup,
         AnnotPen,
-        KeyboardCursor,
         None,
         COUNT
     };

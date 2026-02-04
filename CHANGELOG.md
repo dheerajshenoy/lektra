@@ -4,10 +4,6 @@
 
 ### Features
 
-- Keyboard cursor mode for text selection with keyboard (like vim)
-    - Command: `keyboard_cursor_mode`
-
-
 ### Bug Fixes
 - Hide scrollbars when the entire document is visible in the viewport
 - Fix not using config zoom factor

@@ -66,7 +66,6 @@ public:
     void Search() noexcept;
     void SearchInPage() noexcept;
     void ShowHighlightSearch() noexcept;
-    void ToggleKeyboardCursorMode() noexcept;
     void ToggleAutoResize() noexcept;
     void ToggleCommandPalette() noexcept;
     void ToggleFocusMode() noexcept;

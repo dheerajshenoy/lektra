@@ -1958,13 +1958,6 @@ lektra::ToggleTextHighlight() noexcept
     }
 }
 
-void
-lektra::ToggleKeyboardCursorMode() noexcept
-{
-    if (m_doc)
-        m_doc->ToggleKeyboardCursorMode();
-}
-
 // Toggle text selection mode
 void
 lektra::ToggleTextSelection() noexcept
@@ -3330,7 +3323,6 @@ lektra::initActionMap() noexcept
         ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
         ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
         ACTION_NO_ARGS("annot_rect_mode", ToggleAnnotRect),
-        ACTION_NO_ARGS("keyboard_cursor_mode", ToggleKeyboardCursorMode),
 
         ACTION_NO_ARGS("text_select_mode", ToggleTextSelection),
         ACTION_NO_ARGS("text_highlight_mode", ToggleTextHighlight),

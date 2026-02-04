@@ -1288,52 +1288,28 @@ DocumentView::GotoHit(int index) noexcept
 void
 DocumentView::ScrollLeft() noexcept
 {
-    if (m_gview->mode() == GraphicsView::Mode::KeyboardCursor)
-    {
-    }
-    else
-    {
-        m_hscroll->setValue(m_hscroll->value() - 50);
-    }
+    m_hscroll->setValue(m_hscroll->value() - 50);
 }
 
 // Scroll right by a fixed amount
 void
 DocumentView::ScrollRight() noexcept
 {
-    if (m_gview->mode() == GraphicsView::Mode::KeyboardCursor)
-    {
-    }
-    else
-    {
-        m_hscroll->setValue(m_hscroll->value() + 50);
-    }
+    m_hscroll->setValue(m_hscroll->value() + 50);
 }
 
 // Scroll up by a fixed amount
 void
 DocumentView::ScrollUp() noexcept
 {
-    if (m_gview->mode() == GraphicsView::Mode::KeyboardCursor)
-    {
-    }
-    else
-    {
-        m_vscroll->setValue(m_vscroll->value() - 50);
-    }
+    m_vscroll->setValue(m_vscroll->value() - 50);
 }
 
 // Scroll down by a fixed amount
 void
 DocumentView::ScrollDown() noexcept
 {
-    if (m_gview->mode() == GraphicsView::Mode::KeyboardCursor)
-    {
-    }
-    else
-    {
-        m_vscroll->setValue(m_vscroll->value() + 50);
-    }
+    m_vscroll->setValue(m_vscroll->value() + 50);
 }
 
 // Get the link KB for the current document
@@ -1580,33 +1556,6 @@ DocumentView::ToggleTextHighlight() noexcept
     const auto newMode = (m_gview->mode() == GraphicsView::Mode::TextHighlight)
                              ? m_gview->getDefaultMode()
                              : GraphicsView::Mode::TextHighlight;
-
-    m_gview->setMode(newMode);
-    emit selectionModeChanged(newMode);
-}
-
-void
-DocumentView::ToggleKeyboardCursorMode() noexcept
-{
-    QMessageBox::critical(this, "Not implemented",
-                          "Keyboard cursor mode is not yet implemented.");
-    return;
-    const auto newMode = (m_gview->mode() == GraphicsView::Mode::KeyboardCursor)
-                             ? m_gview->getDefaultMode()
-                             : GraphicsView::Mode::KeyboardCursor;
-    // m_selection_start  = QPointF();
-
-    // // Put square cursor at the first character of the page
-    // int pageno                   = -1;
-    // GraphicsPixmapItem *pageItem = nullptr;
-    //
-    // if
-    // (pageAtScenePos(m_gview->mapToScene(m_gview->viewport()->rect().topLeft()),
-    //                    pageno, pageItem))
-    // {
-    //     const QPointF pagePos = m_model->toPixelSpace(pageno, {0.0, 0.0});
-    //     const QPointF scenePos = pageItem->mapToScene(pagePos);
-    // }
 
     m_gview->setMode(newMode);
     emit selectionModeChanged(newMode);
