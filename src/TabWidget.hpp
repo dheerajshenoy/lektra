@@ -106,11 +106,12 @@ protected:
             int logoHeight = logoFm.height();
 
             // Calculate total height and starting Y position
-            int spacing     = 20;
+            int spacing = 20;
 
             // Draw logo text
             painter.setFont(logoFont);
-            QRect logoRect(0, rect().height() / 2.0f, rect().width(), logoHeight);
+            QRect logoRect(0, rect().height() / 2.0f, rect().width(),
+                           logoHeight);
             painter.drawText(logoRect, Qt::AlignHCenter | Qt::AlignTop,
                              logoText);
         }
