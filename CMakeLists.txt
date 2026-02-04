@@ -73,6 +73,8 @@ add_executable(${PROJECT_NAME}
     src/WaitingSpinnerWidget.cpp
     src/CommandPaletteWidget.cpp
     # src/MarkManager.cpp
+    src/TabWidget.cpp
+    src/TabContainer.cpp
 
     src/Annotations/RectAnnotation.hpp
     src/Annotations/TextAnnotation.hpp
@@ -90,8 +92,7 @@ add_executable(${PROJECT_NAME}
     src/LinkHint.hpp
     src/JumpMarker.hpp
     src/CircleLabel.hpp
-    src/TabWidget.hpp
-    src/DraggableTabBar.hpp
+    src/TabBar.hpp
     src/commands/RectAnnotationCommand.hpp
     src/commands/TextAnnotationCommand.hpp
     src/commands/TextHighlightAnnotationCommand.hpp
