@@ -931,13 +931,15 @@ lektra::initGui() noexcept
     m_statusbar->setMode(GraphicsView::Mode::TextSelection);
     m_statusbar->setSessionName("");
 
-    m_search_bar = new SearchBar(this);
+    m_search_bar         = new SearchBar(this);
+    // m_search_bar_overlay = new FloatingOverlayWidget(this);
 
-    m_search_bar_overlay = new FloatingOverlayWidget(this);
+    m_search_bar->setVisible(false);
 
-    m_search_bar_overlay->setFrameStyle(makeOverlayFrameStyle(m_config));
-    m_search_bar_overlay->setContentWidget(m_outline_widget);
-    m_search_bar_overlay->setContentWidget(m_search_bar);
+    // m_search_bar_overlay->setFrameStyle(makeOverlayFrameStyle(m_config));
+    // m_search_bar_overlay->setContentWidget(m_outline_widget);
+    // m_search_bar_overlay->setContentWidget(m_search_bar);
+    // m_search_bar_overlay->setVisible(false);
 
     m_message_bar = new MessageBar(this);
     m_message_bar->setVisible(false);
@@ -3660,7 +3662,7 @@ lektra::updateGUIFromConfig() noexcept
             m_config.highlight_search.visible);
     }
 
-    // m_layout->addWidget(m_search_bar);
+    m_layout->addWidget(m_search_bar);
     m_layout->addWidget(m_message_bar);
     m_layout->addWidget(m_statusbar);
 
@@ -3726,10 +3728,11 @@ lektra::Search() noexcept
 {
     if (m_doc)
     {
-        m_search_bar_overlay->show();
-        m_search_bar_overlay->raise();
-        m_search_bar_overlay->activateWindow();
-        m_search_bar_overlay->setVisible(true);
+        // m_search_bar_overlay->show();
+        // m_search_bar_overlay->raise();
+        // m_search_bar_overlay->activateWindow();
+        // m_search_bar_overlay->setVisible(true);
+        m_search_bar->setVisible(true);
         m_search_bar->focusSearchInput();
     }
 }
