@@ -273,12 +273,12 @@ public:
     void UpdateKBHintsOverlay(const QString &input) noexcept;
     void NextSelectionMode() noexcept;
     void NextFitMode() noexcept;
-    void resizeEvent(QResizeEvent *event) override;
     void setLayoutMode(const LayoutMode &mode) noexcept;
     void addToHistory(const PageLocation &location) noexcept;
     PageLocation CurrentLocation() noexcept;
 
 signals:
+    void requestFocus(DocumentView *view);
     void openFileFailed(DocumentView *doc);
     void openFileFinished(DocumentView *doc);
     void searchBarSpinnerShow(bool state);
@@ -319,6 +319,8 @@ protected:
     void handleContextMenuRequested(const QPoint &globalPos,
                                     bool *handled) noexcept;
     void showEvent(QShowEvent *event) override;
+    void enterEvent(QEnterEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
     struct HitRef
