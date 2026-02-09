@@ -757,6 +757,14 @@ lektra::initConfig() noexcept
         m_screen_dpr_map[QGuiApplication::primaryScreen()->name()] = 1.0f;
     }
 
+    auto split = toml["split"];
+
+    set_if_present(split["focus_follows_mouse"],
+                   m_config.split.focus_follows_mouse);
+    set_if_present(split["dim_inactive"], m_config.split.dim_inactive);
+    set_if_present(split["dim_inactive_opacity"],
+                   m_config.split.dim_inactive_opacity);
+
     auto behavior = toml["behavior"];
 
 #ifdef HAS_SYNCTEX
@@ -1643,12 +1651,9 @@ lektra::OpenFile(const QString &filename,
         // Update m_doc if this is in the current tab
         int currentTabIndex = m_tab_widget->currentIndex();
         DocumentContainer *currentContainer
-            = m_tab_containers.value(currentTabIndex, nullptr);
+            = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
         if (currentContainer && currentContainer->getCurrentView() == newView)
-        {
-            m_doc = newView;
-            updateUiEnabledState();
-        }
+            setCurrentDocumentView(newView);
     });
 
     connect(container, &DocumentContainer::viewClosed, this,
@@ -1659,12 +1664,10 @@ lektra::OpenFile(const QString &filename,
         {
             int currentTabIndex = m_tab_widget->currentIndex();
             DocumentContainer *currentContainer
-                = m_tab_containers.value(currentTabIndex, nullptr);
+                = m_tab_widget->splitContainers().value(currentTabIndex,
+                                                        nullptr);
             if (currentContainer)
-            {
-                m_doc = currentContainer->getCurrentView();
-                updateUiEnabledState();
-            }
+                setCurrentDocumentView(currentContainer->getCurrentView());
         }
     });
 
@@ -1674,16 +1677,12 @@ lektra::OpenFile(const QString &filename,
         // Update m_doc to point to the current view in current tab
         int currentTabIndex = m_tab_widget->currentIndex();
         DocumentContainer *currentContainer
-            = m_tab_containers.value(currentTabIndex, nullptr);
+            = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
         if (currentContainer
             && currentContainer
                    == qobject_cast<DocumentContainer *>(
                        m_tab_widget->currentWidget()))
-        {
-            m_doc = newView;
-            updateUiEnabledState();
-            updatePageNavigationActions();
-        }
+            setCurrentDocumentView(newView);
     });
 
     // Initialize connections for the initial view
@@ -1697,14 +1696,14 @@ lektra::OpenFile(const QString &filename,
     int tabIndex     = m_tab_widget->addTab(container, tabTitle);
 
     // Store the container mapping
-    m_tab_containers[tabIndex] = container;
-    m_path_tab_hash[filename]  = container;
+    m_tab_widget->splitContainers()[tabIndex] = container;
+    m_path_tab_hash[filename]                 = container;
 
     // Set as current tab
     m_tab_widget->setCurrentIndex(tabIndex);
 
     // Update current view reference
-    m_doc = view;
+    setCurrentDocumentView(view);
 
     // Add to recent files
     insertFileToDB(filename, 1);
@@ -2144,8 +2143,7 @@ lektra::initConnections() noexcept
         m_tab_widget->removeTab(index);
         if (m_tab_widget->count() == 0)
         {
-            m_doc = nullptr;
-            updatePanel();
+            setCurrentDocumentView(nullptr);
         }
     });
 
@@ -2188,21 +2186,20 @@ lektra::handleCurrentTabChanged(int index) noexcept
 {
     if (!validTabIndex(index))
     {
-        m_doc = nullptr;
-        updateUiEnabledState();
+        setCurrentDocumentView(nullptr);
         return;
     }
 
-    DocumentContainer *container = m_tab_containers.value(index, nullptr);
+    DocumentContainer *container
+        = m_tab_widget->splitContainers().value(index, nullptr);
     if (!container)
     {
-        m_doc = nullptr;
-        updateUiEnabledState();
+        setCurrentDocumentView(nullptr);
         return;
     }
 
     // Update m_doc to current view in the container
-    m_doc = container->getCurrentView();
+    setCurrentDocumentView(container->getCurrentView());
 
     if (m_doc)
     {
@@ -2652,6 +2649,17 @@ lektra::initTabConnections(DocumentView *docwidget) noexcept
 
     connect(docwidget, &DocumentView::searchBarSpinnerShow, m_search_bar,
             &SearchBar::showSpinner);
+
+    connect(docwidget, &DocumentView::requestFocus, this,
+            [this](DocumentView *view)
+    {
+#ifndef NDEBUG
+        qDebug()
+            << "DocumentView requested focus, setting current document view"
+            << view;
+#endif
+        setCurrentDocumentView(view);
+    });
 
     // Connect undo stack signals to update undo/redo menu actions
     QUndoStack *undoStack = docwidget->model()->undoStack();
@@ -3365,7 +3373,7 @@ lektra::TabClose(int tabno) noexcept
 
     // Get the container
     DocumentContainer *container
-        = m_tab_containers.value(indexToClose, nullptr);
+        = m_tab_widget->splitContainers().value(indexToClose, nullptr);
     if (!container)
         return;
 
@@ -3381,7 +3389,7 @@ lektra::TabClose(int tabno) noexcept
     }
 
     // Remove from mapping
-    m_tab_containers.remove(indexToClose);
+    m_tab_widget->splitContainers().remove(indexToClose);
 
     // Close the tab (this will delete the container and all views)
     m_tab_widget->removeTab(indexToClose);
@@ -3391,15 +3399,15 @@ lektra::TabClose(int tabno) noexcept
     {
         int currentIndex = m_tab_widget->currentIndex();
         DocumentContainer *currentContainer
-            = m_tab_containers.value(currentIndex, nullptr);
+            = m_tab_widget->splitContainers().value(currentIndex, nullptr);
         if (currentContainer)
         {
-            m_doc = currentContainer->getCurrentView();
+            setCurrentDocumentView(currentContainer->getCurrentView());
         }
     }
     else
     {
-        m_doc = nullptr;
+        setCurrentDocumentView(nullptr);
         showStartupWidget();
     }
 
@@ -3854,7 +3862,7 @@ lektra::VSplit() noexcept
 
     // Get the container for this tab
     DocumentContainer *container
-        = m_tab_containers.value(currentTabIndex, nullptr);
+        = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
     if (!container)
         return;
 
@@ -3875,7 +3883,7 @@ lektra::HSplit() noexcept
 
     // Get the container for this tab
     DocumentContainer *container
-        = m_tab_containers.value(currentTabIndex, nullptr);
+        = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
     if (!container)
         return;
 
@@ -3895,9 +3903,20 @@ lektra::FocusNextSplit() noexcept
         return;
 
     DocumentContainer *container
-        = m_tab_containers.value(currentTabIndex, nullptr);
-    if (container)
-        container->focusNextView();
+        = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
+
+    if (!container)
+        return;
+
+    container->focusNextView();
+
+    if (m_config.split.focus_follows_mouse)
+    {
+        if (auto *currentView = container->getCurrentView())
+        {
+            centerMouseInDocumentView(currentView);
+        }
+    }
 }
 
 void
@@ -3908,9 +3927,18 @@ lektra::FocusPrevSplit() noexcept
         return;
 
     DocumentContainer *container
-        = m_tab_containers.value(currentTabIndex, nullptr);
-    if (container)
-        container->focusPrevView();
+        = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
+
+    if (!container)
+        return;
+
+    container->focusPrevView();
+
+    if (m_config.split.focus_follows_mouse)
+    {
+        if (auto *currentView = container->getCurrentView())
+            centerMouseInDocumentView(currentView);
+    }
 }
 
 void
@@ -3921,7 +3949,7 @@ lektra::CloseSplit() noexcept
         return;
 
     DocumentContainer *container
-        = m_tab_containers.value(currentTabIndex, nullptr);
+        = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
     if (!container)
         return;
 
@@ -3932,4 +3960,42 @@ lektra::CloseSplit() noexcept
     DocumentView *currentView = container->getCurrentView();
     if (currentView)
         container->closeView(currentView);
+}
+
+void
+lektra::setCurrentDocumentView(DocumentView *view) noexcept
+{
+    if (m_doc == view)
+        return;
+
+    m_doc = view;
+
+    if (m_doc)
+    {
+        m_doc->raise();
+        m_doc->setFocus(Qt::OtherFocusReason);
+    }
+
+    updateUiEnabledState();
+    updatePageNavigationActions();
+    updatePanel();
+}
+
+void
+lektra::centerMouseInDocumentView(DocumentView *view) noexcept
+{
+    if (!view)
+        return;
+
+    DocumentView *safeView = view;
+
+    QTimer::singleShot(0, view, [safeView]()
+    {
+        if (!safeView)
+            return;
+
+        const QPoint center = safeView->mapToGlobal(safeView->rect().center());
+
+        QCursor::setPos(center);
+    });
 }
