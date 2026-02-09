@@ -29,6 +29,7 @@ class DocumentContainer : public QWidget
     Q_OBJECT
 
 public:
+    using Id = uint32_t;
     /**
      * Create a container with an initial DocumentView.
      *
@@ -39,6 +40,11 @@ public:
                                QWidget *parent = nullptr);
 
     ~DocumentContainer();
+
+    inline Id id() const noexcept
+    {
+        return m_id;
+    }
 
     /**
      * Split the container at the given view with the specified orientation.
@@ -181,4 +187,5 @@ private:
 
     QVBoxLayout *m_layout{nullptr};
     DocumentView *m_current_view{nullptr};
+    Id m_id{0};
 };
