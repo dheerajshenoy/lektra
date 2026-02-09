@@ -79,6 +79,11 @@ public:
         float x, y;
     };
 
+    inline const Config &config() const noexcept
+    {
+        return m_config;
+    }
+
     inline void setSpacing(int spacing) noexcept
     {
         m_spacing = spacing;
@@ -205,6 +210,11 @@ public:
     inline bool isModified() const noexcept
     {
         return m_is_modified;
+    }
+
+    inline LayoutMode layoutMode() const noexcept
+    {
+        return m_layout_mode;
     }
 
     void FollowLink(const Model::LinkInfo &info) noexcept;

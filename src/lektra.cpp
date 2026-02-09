@@ -2,6 +2,7 @@
 
 #include "AboutDialog.hpp"
 #include "CommandPaletteWidget.hpp"
+#include "DocumentContainer.hpp"
 #include "DocumentView.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "FloatingOverlayWidget.hpp"
@@ -1593,156 +1594,123 @@ lektra::OpenFiles(const QStringList &files) noexcept
 //     return false;
 // }
 
-// Opens a file given the file path
 bool
-lektra::OpenFile(const QString &filePath,
+lektra::OpenFile(const QString &filename,
                  const std::function<void()> &callback) noexcept
 {
-    if (filePath.isEmpty())
+    if (filename.isEmpty())
     {
-        QStringList files;
-        files = QFileDialog::getOpenFileNames(
-            this, "Open File", "",
-            "PDF Files (*.pdf);; EPUB Files (*.epub);; XPS Files (*.xps);; "
-            "CBZ "
-            "Files (*.cbz);; MOBI Files (*.mobi);; FB2 Files (*.fb2);; SVG "
-            "Files (*.svg);; All Files (*)");
-        if (files.empty())
-            return false;
-        else if (files.size() > 1)
+        // Show file picker
+        QFileDialog dialog(this);
+        dialog.setFileMode(QFileDialog::ExistingFile);
+        dialog.setNameFilter(tr("PDF Files (*.pdf);;All Files (*)"));
+
+        if (dialog.exec())
         {
-            OpenFiles(files);
-            return true;
+            QStringList selected = dialog.selectedFiles();
+            if (!selected.isEmpty())
+                return OpenFile(selected.first(), callback);
         }
-        else
-        {
-            return OpenFile(files.first(), callback);
-        }
-    }
-
-    QString fp = filePath;
-
-    // expand ~
-    if (fp == "~")
-        fp = QDir::homePath();
-    else if (fp.startsWith("~/"))
-        fp = QDir(QDir::homePath()).filePath(fp.mid(2));
-
-    // make absolute + clean
-    fp = QDir::cleanPath(QFileInfo(fp).absoluteFilePath());
-
-    // make absolute
-    if (QDir::isRelativePath(fp))
-        fp = QDir::current().absoluteFilePath(fp);
-
-    // Switch to already opened filepath, if it's open.
-    auto it = m_path_tab_hash.find(fp);
-    if (it != m_path_tab_hash.end())
-    {
-        int existingIndex = m_tab_widget->indexOf(it.value());
-        if (existingIndex != -1)
-        {
-            m_tab_widget->setCurrentIndex(existingIndex);
-            return true;
-        }
-    }
-
-    if (!QFile::exists(fp))
-    {
-        QMessageBox::warning(this, "Open File",
-                             QString("Unable to find %1").arg(fp));
         return false;
     }
 
-    if (m_config.behavior.always_open_in_new_window)
+    // Check if file is already open
+    if (m_path_tab_hash.contains(filename))
     {
-        bool has_document_tab = false;
-        for (int i = 0; i < m_tab_widget->count(); ++i)
+        int existingTab = m_tab_widget->indexOf(m_path_tab_hash[filename]);
+        if (existingTab != -1)
         {
-            if (qobject_cast<DocumentView *>(m_tab_widget->widget(i)))
-            {
-                has_document_tab = true;
-                break;
-            }
-        }
-
-        if (has_document_tab)
-        {
-            QStringList args;
-            args << fp;
-            bool started = QProcess::startDetached(
-                QCoreApplication::applicationFilePath(), args);
-            if (!started)
-                m_message_bar->showMessage("Failed to open file in new window");
-            return started;
-        }
-    }
-
-    const QString path = QFileInfo(fp).filePath();
-    const QString tabTitle
-        = m_config.tabs.full_path ? path : QFileInfo(fp).fileName();
-
-    if (m_config.tabs.lazy_load)
-    {
-        QWidget *placeholderWidget = new QWidget(this);
-        placeholderWidget->setProperty("tabRole", "lazy");
-        placeholderWidget->setProperty("filePath", path);
-        int index = m_tab_widget->addTab(placeholderWidget, tabTitle);
-        m_path_tab_hash[path] = placeholderWidget;
-        if (!m_batch_opening)
-            m_tab_widget->setCurrentIndex(index);
-    }
-    else
-    {
-        DocumentView *docwidget = new DocumentView(m_config, m_tab_widget);
-        int index               = m_tab_widget->addTab(docwidget, tabTitle);
-
-        connect(docwidget, &DocumentView::openFileFinished, this,
-                [this, callback, index](DocumentView *doc)
-        {
-            const QString filePath = doc->filePath();
-
-            doc->setDPR(m_dpr);
-            initTabConnections(doc);
-            auto outline = doc->model()->getOutline();
-            if (outline)
-            {
-                m_outline_widget->setOutline(outline);
-                if (m_config.outline.visible)
-                {
-                    m_outline_widget->show();
-                }
-            }
-
-            m_path_tab_hash[filePath] = doc;
-
-            // Record in history
-            // const int page = doc->pageNo() + 1;
-            // insertFileToDB(filePath, page > 0 ? page : 1);
-
-            m_tab_widget->setCurrentIndex(index);
-
-            updatePanel();
+            m_tab_widget->setCurrentIndex(existingTab);
             if (callback)
                 callback();
-
-            const int pageno = m_recent_files_store.pageNumber(doc->filePath());
-            if (pageno > 0)
-                gotoPage(pageno);
-        });
-
-        connect(docwidget, &DocumentView::openFileFailed, this,
-                [this](DocumentView *doc)
-        {
-            // Only use deleteLater() for async cleanup
-            doc->deleteLater();
-            QMessageBox::warning(
-                this, "Open File",
-                QString("Failed to open %1").arg(doc->filePath()));
-        });
-
-        docwidget->openAsync(fp);
+            return true;
+        }
     }
+
+    // Create a new DocumentView
+    DocumentView *view = new DocumentView(m_config, this);
+
+    // Create a DocumentContainer with this view
+    DocumentContainer *container = new DocumentContainer(view, this);
+
+    // Connect container signals
+    connect(container, &DocumentContainer::viewCreated, this,
+            [this](DocumentView *newView)
+    {
+        // Initialize the new view with connections
+        initTabConnections(newView);
+
+        // Update m_doc if this is in the current tab
+        int currentTabIndex = m_tab_widget->currentIndex();
+        DocumentContainer *currentContainer
+            = m_tab_containers.value(currentTabIndex, nullptr);
+        if (currentContainer && currentContainer->getCurrentView() == newView)
+        {
+            m_doc = newView;
+            updateUiEnabledState();
+        }
+    });
+
+    connect(container, &DocumentContainer::viewClosed, this,
+            [this](DocumentView *closedView)
+    {
+        // If the closed view was m_doc, update to current view
+        if (m_doc == closedView)
+        {
+            int currentTabIndex = m_tab_widget->currentIndex();
+            DocumentContainer *currentContainer
+                = m_tab_containers.value(currentTabIndex, nullptr);
+            if (currentContainer)
+            {
+                m_doc = currentContainer->getCurrentView();
+                updateUiEnabledState();
+            }
+        }
+    });
+
+    connect(container, &DocumentContainer::currentViewChanged, this,
+            [this](DocumentView *newView)
+    {
+        // Update m_doc to point to the current view in current tab
+        int currentTabIndex = m_tab_widget->currentIndex();
+        DocumentContainer *currentContainer
+            = m_tab_containers.value(currentTabIndex, nullptr);
+        if (currentContainer
+            && currentContainer
+                   == qobject_cast<DocumentContainer *>(
+                       m_tab_widget->currentWidget()))
+        {
+            m_doc = newView;
+            updateUiEnabledState();
+            updatePageNavigationActions();
+        }
+    });
+
+    // Initialize connections for the initial view
+    initTabConnections(view);
+
+    // Open the file asynchronously
+    view->openAsync(filename);
+
+    // Add the container as a tab
+    QString tabTitle = QFileInfo(filename).fileName();
+    int tabIndex     = m_tab_widget->addTab(container, tabTitle);
+
+    // Store the container mapping
+    m_tab_containers[tabIndex] = container;
+    m_path_tab_hash[filename]  = container;
+
+    // Set as current tab
+    m_tab_widget->setCurrentIndex(tabIndex);
+
+    // Update current view reference
+    m_doc = view;
+
+    // Add to recent files
+    insertFileToDB(filename, 1);
+
+    if (callback)
+        callback();
 
     return true;
 }
@@ -2218,154 +2186,35 @@ lektra::handleFileNameChanged(const QString &name) noexcept
 void
 lektra::handleCurrentTabChanged(int index) noexcept
 {
-    if (index == -1)
+    if (!validTabIndex(index))
     {
-        m_statusbar->hidePageInfo(true);
-        updateMenuActions();
+        m_doc = nullptr;
         updateUiEnabledState();
+        return;
+    }
+
+    DocumentContainer *container = m_tab_containers.value(index, nullptr);
+    if (!container)
+    {
+        m_doc = nullptr;
+        updateUiEnabledState();
+        return;
+    }
+
+    // Update m_doc to current view in the container
+    m_doc = container->getCurrentView();
+
+    if (m_doc)
+    {
+        // Update UI
+        emit m_doc->fileNameChanged(m_doc->fileName());
+        updateUiEnabledState();
+        updatePageNavigationActions();
+        updateSelectionModeActions();
+
+        // Update panel if needed
         updatePanel();
-        this->setWindowTitle("");
-        if (m_highlight_overlay)
-            m_highlight_overlay->hide();
-        if (m_highlight_search_widget)
-            m_highlight_search_widget->hide();
-        return;
     }
-
-    QWidget *widget       = m_tab_widget->widget(index);
-    const QString tabRole = widget->property("tabRole").toString();
-
-    if (tabRole == "lazy")
-    {
-        const QString filePath = widget->property("filePath").toString();
-        if (filePath.isEmpty())
-            return;
-
-        DocumentView *docwidget = new DocumentView(m_config, m_tab_widget);
-        const QString tabTitle  = m_tab_widget->tabText(index);
-
-        m_tab_widget->blockSignals(true);
-        int newIndex = m_tab_widget->insertTab(index, docwidget, tabTitle);
-        const int placeholderIndex = m_tab_widget->indexOf(widget);
-        if (placeholderIndex != -1)
-            m_tab_widget->removeTab(placeholderIndex);
-        m_tab_widget->setCurrentIndex(newIndex);
-        m_tab_widget->blockSignals(false);
-        widget->deleteLater();
-
-        m_path_tab_hash[filePath] = docwidget;
-
-        connect(docwidget, &DocumentView::openFileFinished, this,
-                [this, newIndex](DocumentView *doc)
-        {
-            const QString loadedPath = doc->filePath();
-            doc->setDPR(m_dpr);
-            initTabConnections(doc);
-            auto outline = doc->model()->getOutline();
-            if (outline)
-            {
-                m_outline_widget->setOutline(outline);
-                if (m_config.outline.visible)
-                {
-                    m_outline_widget->show();
-                }
-            }
-
-            m_path_tab_hash[loadedPath] = doc;
-
-            // Record in history
-            // const int page = doc->pageNo() + 1;
-            // insertFileToDB(loadedPath, page > 0 ? page : 1);
-
-            m_tab_widget->setCurrentIndex(newIndex);
-
-            handleCurrentTabChanged(
-                newIndex); // Otherwise when opening only one file, the
-                           // statusbar is not updated
-
-            const int pageno = m_recent_files_store.pageNumber(loadedPath);
-            if (pageno > 0)
-                gotoPage(pageno);
-        });
-
-        connect(docwidget, &DocumentView::openFileFailed, this,
-                [this](DocumentView *doc)
-        {
-            m_path_tab_hash.remove(doc->filePath());
-            doc->deleteLater();
-            QMessageBox::warning(
-                this, "Open File",
-                QString("Failed to open %1").arg(doc->filePath()));
-        });
-
-        docwidget->openAsync(filePath);
-        return;
-    }
-
-    if (tabRole == "startup")
-    {
-        m_doc = nullptr;
-        updateActionsAndStuffForSystemTabs();
-        this->setWindowTitle("Start Page");
-        if (m_highlight_overlay)
-            m_highlight_overlay->hide();
-        if (m_highlight_search_widget)
-            m_highlight_search_widget->hide();
-        return;
-    }
-
-    if (tabRole == "empty")
-    {
-        m_doc = nullptr;
-        updateActionsAndStuffForSystemTabs();
-        this->setWindowTitle("Welcome");
-        if (m_highlight_overlay)
-            m_highlight_overlay->hide();
-        if (m_highlight_search_widget)
-            m_highlight_search_widget->hide();
-        return;
-    }
-
-    m_doc = qobject_cast<DocumentView *>(widget);
-
-    updateMenuActions();
-    updateUiEnabledState();
-    updatePanel();
-
-    m_outline_widget->setOutline(m_doc ? m_doc->model()->getOutline()
-                                       : nullptr);
-
-    if (m_highlight_search_widget)
-    {
-        if (m_doc)
-        {
-            m_highlight_search_widget->setModel(m_doc->model());
-            if (m_config.highlight_search.type == "overlay"
-                && m_highlight_overlay)
-            {
-                m_highlight_overlay->setVisible(
-                    m_config.highlight_search.visible);
-                if (m_highlight_overlay->isVisible())
-                    m_highlight_search_widget->refresh();
-            }
-            else
-            {
-                m_highlight_search_widget->setVisible(
-                    m_config.highlight_search.visible);
-                if (m_highlight_search_widget->isVisible())
-                    m_highlight_search_widget->refresh();
-            }
-        }
-        else
-        {
-            if (m_highlight_overlay)
-                m_highlight_overlay->hide();
-            m_highlight_search_widget->hide();
-            m_highlight_search_widget->setModel(nullptr);
-        }
-    }
-
-    this->setWindowTitle(m_doc->windowTitle());
 }
 
 void
@@ -2468,7 +2317,7 @@ lektra::closeEvent(QCloseEvent *e)
 {
     // Update session file if in session
     if (!m_session_name.isEmpty())
-        writeSessionToFile(m_session_name);
+        writeSessionToFile();
 
     // First pass: handle all unsaved changes dialogs and mark documents as
     // handled
@@ -3103,11 +2952,11 @@ lektra::SaveSession() noexcept
         }
     }
     // Save the session now
-    writeSessionToFile(m_session_dir.filePath(m_session_name + ".json"));
+    writeSessionToFile();
 }
 
 void
-lektra::writeSessionToFile(const QString &sessionName) noexcept
+lektra::writeSessionToFile() noexcept
 {
     QJsonArray sessionArray;
 
@@ -3129,7 +2978,9 @@ lektra::writeSessionToFile(const QString &sessionName) noexcept
         sessionArray.append(entry);
     }
 
-    QFile file(m_session_dir.filePath(m_session_name + ".json"));
+    const QString sessionFileName
+        = m_session_dir.filePath(m_session_name + ".json");
+    QFile file(sessionFileName);
     bool result = file.open(QIODevice::WriteOnly);
     if (!result)
     {
@@ -3317,6 +3168,11 @@ lektra::initActionMap() noexcept
         ACTION_NO_ARGS("zoom_out", ZoomOut),
         ACTION_NO_ARGS("zoom_reset", ZoomReset),
         ACTION_NO_ARGS("region_select_mode", ToggleRegionSelect),
+        ACTION_NO_ARGS("split_horizontal", VSplit),
+        ACTION_NO_ARGS("split_vertical", HSplit),
+        ACTION_NO_ARGS("close_split", CloseSplit),
+        ACTION_NO_ARGS("focus_next_split", FocusNextSplit),
+        ACTION_NO_ARGS("focus_prev_split", FocusPrevSplit),
 
         ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
         ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
@@ -3502,21 +3358,52 @@ lektra::TabGoto(int tabno) noexcept
 void
 lektra::TabClose(int tabno) noexcept
 {
-    if (m_tab_widget->count() == 0)
+    int indexToClose = (tabno == -1) ? m_tab_widget->currentIndex() : tabno;
+
+    if (!validTabIndex(indexToClose))
         return;
 
-    // Current tab
-    if (tabno == -1)
+    // Get the container
+    DocumentContainer *container
+        = m_tab_containers.value(indexToClose, nullptr);
+    if (!container)
+        return;
+
+    // Get all views to update hash
+    QList<DocumentView *> views = container->getAllViews();
+    for (DocumentView *view : views)
     {
-        m_tab_widget->tabCloseRequested(m_tab_widget->currentIndex());
+        QString path = view->filePath();
+        if (!path.isEmpty())
+        {
+            m_path_tab_hash.remove(path);
+        }
     }
-    else // someother tab that's not current
+
+    // Remove from mapping
+    m_tab_containers.remove(indexToClose);
+
+    // Close the tab (this will delete the container and all views)
+    m_tab_widget->removeTab(indexToClose);
+
+    // Update m_doc
+    if (m_tab_widget->count() > 0)
     {
-        if (validTabIndex(tabno - 1))
-            m_tab_widget->tabCloseRequested(tabno - 1);
-        else
-            m_message_bar->showMessage("Invalid tab index");
+        int currentIndex = m_tab_widget->currentIndex();
+        DocumentContainer *currentContainer
+            = m_tab_containers.value(currentIndex, nullptr);
+        if (currentContainer)
+        {
+            m_doc = currentContainer->getCurrentView();
+        }
     }
+    else
+    {
+        m_doc = nullptr;
+        showStartupWidget();
+    }
+
+    updateUiEnabledState();
 }
 
 void
@@ -3956,4 +3843,93 @@ lektra::TabsCloseOthers() noexcept
             continue;
         m_tab_widget->tabCloseRequested(i);
     }
+}
+
+void
+lektra::VSplit() noexcept
+{
+    int currentTabIndex = m_tab_widget->currentIndex();
+    if (!validTabIndex(currentTabIndex))
+        return;
+
+    // Get the container for this tab
+    DocumentContainer *container
+        = m_tab_containers.value(currentTabIndex, nullptr);
+    if (!container)
+        return;
+
+    DocumentView *currentView = container->getCurrentView();
+    if (!currentView)
+        return;
+
+    // Perform vertical split (top/bottom)
+    container->split(currentView, Qt::Vertical);
+}
+
+void
+lektra::HSplit() noexcept
+{
+    int currentTabIndex = m_tab_widget->currentIndex();
+    if (!validTabIndex(currentTabIndex))
+        return;
+
+    // Get the container for this tab
+    DocumentContainer *container
+        = m_tab_containers.value(currentTabIndex, nullptr);
+    if (!container)
+        return;
+
+    DocumentView *currentView = container->getCurrentView();
+    if (!currentView)
+        return;
+
+    // Perform horizontal split (left/right)
+    container->split(currentView, Qt::Horizontal);
+}
+
+void
+lektra::FocusNextSplit() noexcept
+{
+    int currentTabIndex = m_tab_widget->currentIndex();
+    if (!validTabIndex(currentTabIndex))
+        return;
+
+    DocumentContainer *container
+        = m_tab_containers.value(currentTabIndex, nullptr);
+    if (container)
+        container->focusNextView();
+}
+
+void
+lektra::FocusPrevSplit() noexcept
+{
+    int currentTabIndex = m_tab_widget->currentIndex();
+    if (!validTabIndex(currentTabIndex))
+        return;
+
+    DocumentContainer *container
+        = m_tab_containers.value(currentTabIndex, nullptr);
+    if (container)
+        container->focusPrevView();
+}
+
+void
+lektra::CloseSplit() noexcept
+{
+    int currentTabIndex = m_tab_widget->currentIndex();
+    if (!validTabIndex(currentTabIndex))
+        return;
+
+    DocumentContainer *container
+        = m_tab_containers.value(currentTabIndex, nullptr);
+    if (!container)
+        return;
+
+    // Don't close if it's the only view
+    if (container->getViewCount() <= 1)
+        return;
+
+    DocumentView *currentView = container->getCurrentView();
+    if (currentView)
+        container->closeView(currentView);
 }

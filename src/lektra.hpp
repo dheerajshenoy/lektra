@@ -3,9 +3,9 @@
 #include "CommandPaletteWidget.hpp"
 #include "Config.hpp"
 #include "DocumentView.hpp"
-#include "TabBar.hpp"
 #include "FloatingOverlayWidget.hpp"
 #include "HighlightSearchWidget.hpp"
+#include "TabBar.hpp"
 // #include "MarkManager.hpp"
 #include "MessageBar.hpp"
 #include "OutlineWidget.hpp"
@@ -61,6 +61,11 @@ public:
            const QJsonArray &sessionArray) noexcept; // load from session
     ~lektra() noexcept;
 
+    void VSplit() noexcept;
+    void HSplit() noexcept;
+    void CloseSplit() noexcept;
+    void FocusNextSplit() noexcept;
+    void FocusPrevSplit() noexcept;
     void ReadArgsParser(argparse::ArgumentParser &argparser) noexcept;
     // bool OpenFile(DocumentView *view) noexcept;
     void Search() noexcept;
@@ -188,19 +193,17 @@ private:
     void initActionMap() noexcept;
     void trimRecentFilesDatabase() noexcept;
     void reloadDocument() noexcept;
-    void handleTabDataRequested(int index,
-                                TabBar::TabData *outData) noexcept;
+    void handleTabDataRequested(int index, TabBar::TabData *outData) noexcept;
     void handleTabDropReceived(const TabBar::TabData &data) noexcept;
     void handleTabDetached(int index, const QPoint &globalPos) noexcept;
-    void
-    handleTabDetachedToNewWindow(int index,
-                                 const TabBar::TabData &data) noexcept;
+    void handleTabDetachedToNewWindow(int index,
+                                      const TabBar::TabData &data) noexcept;
 
     void gotoPage(int pageno) noexcept;
     void setFocusMode(bool state) noexcept;
     void search(const QString &term = {}) noexcept;
     void searchInPage(const int pageno, const QString &term = {}) noexcept;
-    void writeSessionToFile(const QString &sessionName) noexcept;
+    void writeSessionToFile() noexcept;
 
     // private helpers
     void handleFileNameChanged(const QString &name) noexcept;
@@ -342,7 +345,11 @@ private:
     HighlightSearchWidget *m_highlight_search_widget{nullptr};
     CommandPaletteWidget *m_command_palette_widget{nullptr};
     FloatingOverlayWidget *m_command_palette_overlay{nullptr};
+
     // MarkManager m_marks_manager;
+
+    QMap<int, DocumentContainer *>
+        m_tab_containers; // Maps tab index to container
 
 #ifdef ENABLE_LLM_SUPPORT
     // LLM Support
