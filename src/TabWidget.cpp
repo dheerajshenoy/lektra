@@ -2,15 +2,15 @@
 
 #include <QVBoxLayout>
 
-static TabWidget::TabId nextTabId{0};
+static TabWidget::TabId nextId{0};
 
 static TabWidget::TabId
-g_newTabId() noexcept
+g_newId() noexcept
 {
-    return nextTabId++;
+    return nextId++;
 }
 
-TabWidget::TabWidget(QWidget *parent) : QWidget(parent), m_id(g_newTabId())
+TabWidget::TabWidget(QWidget *parent) : QWidget(parent), m_id(g_newId())
 {
     m_tab_bar        = new TabBar();
     m_stacked_widget = new QStackedWidget();
