@@ -66,6 +66,13 @@ struct Config
         int drag_threshold{50};
     } selection{};
 
+    struct split
+    {
+        bool focus_follows_mouse{true};
+        bool dim_inactive{true};
+        float dim_inactive_opacity{0.5f};
+    } split{};
+
     struct scrollbars
     {
         bool horizontal{true};
