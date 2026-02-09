@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DocumentContainer.hpp"
 #include "TabBar.hpp"
 
 #include <QContextMenuEvent>
@@ -8,6 +9,7 @@
 #include <QPainter>
 #include <QStackedWidget>
 #include <QTabBar>
+#include <qnamespace.h>
 
 class TabWidget : public QWidget
 {
@@ -102,6 +104,11 @@ public:
         return m_tab_bar->tabText(index);
     }
 
+    inline QMap<int, DocumentContainer *> &splitContainers() noexcept
+    {
+        return m_split_containers;
+    }
+
     void removeTab(const int index) noexcept;
 
 protected:
@@ -123,4 +130,6 @@ private:
     TabId m_id{0};
     QStackedWidget *m_stacked_widget{nullptr};
     TabBar *m_tab_bar{nullptr};
+
+    QMap<int, DocumentContainer *> m_split_containers{};
 };
