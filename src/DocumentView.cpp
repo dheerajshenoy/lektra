@@ -2103,6 +2103,14 @@ DocumentView::resizeEvent(QResizeEvent *event)
 }
 
 void
+DocumentView::enterEvent(QEnterEvent *event)
+{
+    QWidget::enterEvent(event);
+    if (m_config.split.focus_follows_mouse && !hasFocus())
+        emit requestFocus(this);
+}
+
+void
 DocumentView::handleDeferredResize() noexcept
 {
     clearDocumentItems();
