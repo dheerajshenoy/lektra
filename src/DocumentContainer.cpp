@@ -2,9 +2,18 @@
 
 #include <QEvent>
 #include <QSplitter>
+#include <qnamespace.h>
+
+static DocumentContainer::Id nextId{0};
+
+static DocumentContainer::Id
+g_newId() noexcept
+{
+    return nextId++;
+}
 
 DocumentContainer::DocumentContainer(DocumentView *initialView, QWidget *parent)
-    : QWidget(parent)
+    : QWidget(parent), m_id(g_newId())
 {
     m_layout = new QVBoxLayout(this);
     m_layout->setContentsMargins(0, 0, 0, 0);
@@ -334,7 +343,7 @@ DocumentContainer::focusNextView() noexcept
     int nextIndex    = (currentIndex + 1) % views.count();
 
     m_current_view = views[nextIndex];
-    m_current_view->setFocus();
+    m_current_view->setFocus(Qt::ShortcutFocusReason);
     emit currentViewChanged(m_current_view);
 }
 
@@ -349,7 +358,7 @@ DocumentContainer::focusPrevView() noexcept
     int prevIndex    = (currentIndex - 1 + views.count()) % views.count();
 
     m_current_view = views[prevIndex];
-    m_current_view->setFocus();
+    m_current_view->setFocus(Qt::ShortcutFocusReason);
     emit currentViewChanged(m_current_view);
 }
 
