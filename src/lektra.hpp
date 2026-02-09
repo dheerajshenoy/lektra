@@ -163,6 +163,9 @@ protected:
     bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
+    void setCurrentDocumentView(DocumentView *view) noexcept;
+    void centerMouseInDocumentView(DocumentView *view) noexcept;
+
     inline bool validTabIndex(int index) const noexcept
     {
         return m_tab_widget && index >= 0 && index < m_tab_widget->count();
@@ -347,9 +350,6 @@ private:
     FloatingOverlayWidget *m_command_palette_overlay{nullptr};
 
     // MarkManager m_marks_manager;
-
-    QMap<int, DocumentContainer *>
-        m_tab_containers; // Maps tab index to container
 
 #ifdef ENABLE_LLM_SUPPORT
     // LLM Support
