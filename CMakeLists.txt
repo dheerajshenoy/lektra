@@ -74,7 +74,7 @@ add_executable(${PROJECT_NAME}
     src/CommandPaletteWidget.cpp
     # src/MarkManager.cpp
     src/TabWidget.cpp
-    src/TabContainer.cpp
+    src/DocumentContainer.cpp
 
     src/Annotations/RectAnnotation.hpp
     src/Annotations/TextAnnotation.hpp
