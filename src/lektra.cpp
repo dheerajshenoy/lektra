@@ -3872,7 +3872,6 @@ lektra::VSplit() noexcept
 
     // Perform vertical split (top/bottom)
     container->split(currentView, Qt::Vertical);
-    m_tab_widget->tabBar()->setSplitCount(container->getViewCount());
     m_tab_widget->tabBar()->update();
 }
 
@@ -3895,7 +3894,6 @@ lektra::HSplit() noexcept
 
     // Perform horizontal split (left/right)
     container->split(currentView, Qt::Horizontal);
-    m_tab_widget->tabBar()->setSplitCount(container->getViewCount());
     m_tab_widget->tabBar()->update();
 }
 

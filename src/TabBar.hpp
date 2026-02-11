@@ -20,9 +20,6 @@ class TabBar : public QTabBar
 public:
     static constexpr const char *MIME_TYPE = "application/lektra-tab";
     explicit TabBar(QWidget *parent = nullptr);
-    void setSplitCount(int count) noexcept;
-    void setSplitCountForTab(int index, int count) noexcept;
-    int splitCountForTab(int index) const noexcept;
     struct TabData
     {
         QString filePath;
@@ -76,7 +73,6 @@ protected:
     void dragMoveEvent(QDragMoveEvent *event) override;
     void dropEvent(QDropEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
-    void tabInserted(int index) override;
 
 private:
     QPoint m_drag_start_pos;
