@@ -100,7 +100,7 @@ TabWidget::paintEvent(QPaintEvent *event)
         painter.fillRect(rect(), palette().color(QPalette::Window));
         painter.setPen(palette().color(QPalette::Disabled, QPalette::Text));
 
-        const char *logoText = "lektra";
+        constexpr const char *logoText = "lektra";
 
         // Setup logo font - load from resources
         const int fontId = QFontDatabase::addApplicationFont(
