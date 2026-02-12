@@ -9,6 +9,30 @@ TabBar::TabBar(QWidget *parent) : QTabBar(parent)
 }
 
 void
+TabBar::setSplitCount(int index, int count) noexcept
+{
+    if (index < 0 || index >= this->count())
+        return;
+
+    const int clampedCount = qMax(1, count);
+    if (tabData(index).toInt() == clampedCount)
+        return;
+
+    setTabData(index, clampedCount);
+    update(tabRect(index));
+}
+
+int
+TabBar::splitCount(int index) const noexcept
+{
+    if (index < 0 || index >= this->count())
+        return 1;
+
+    const QVariant data = tabData(index);
+    return data.isValid() ? data.toInt() : 1;
+}
+
+void
 TabBar::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
@@ -173,55 +197,61 @@ void
 TabBar::paintEvent(QPaintEvent *event)
 {
     QTabBar::paintEvent(event);
-    // if (count() == 0)
-    //     return;
 
-    // QPainter painter(this);
-    // painter.setRenderHint(QPainter::Antialiasing, true);
-    //
-    // const int currentIndex = this->currentIndex();
-    // const int badgeCount   = qMax(2, m_split_count);
-    // const QString text     = QString::number(badgeCount);
-    //
-    // QFont font = painter.font();
-    // font.setBold(true);
-    // painter.setFont(font);
-    //
-    // const int tabIndex = currentIndex >= 0 ? currentIndex : 0;
-    // QRect tabRect      = this->tabRect(tabIndex);
-    // if (!tabRect.isValid())
-    //     return;
-    //
-    // QFontMetrics fm(painter.font());
-    // const int textW    = fm.horizontalAdvance(text);
-    // const int textH    = fm.height();
-    // const int paddingX = 6;
-    // const int paddingY = 2;
-    // const int badgeW   = textW + paddingX * 2;
-    // const int badgeH   = textH + paddingY * 2;
-    // const int radius   = badgeH / 2;
-    // const int margin   = 6;
-    // int badgeLeft      = tabRect.right() - badgeW - margin;
-    // int badgeTop       = tabRect.top() + margin;
-    //
-    // if (QWidget *closeButton = tabButton(tabIndex, QTabBar::RightSide))
-    // {
-    //     const QRect closeRect = closeButton->geometry();
-    //     if (closeRect.isValid())
-    //     {
-    //         badgeLeft = closeRect.left() - badgeW - margin;
-    //         badgeTop  = closeRect.center().y() - badgeH / 2;
-    //     }
-    // }
-    //
-    // QRect badgeRect(badgeLeft, badgeTop, badgeW, badgeH);
-    //
-    // QColor bg = palette().color(QPalette::Highlight);
-    // QColor fg = palette().color(QPalette::HighlightedText);
-    // painter.setPen(Qt::NoPen);
-    // painter.setBrush(bg);
-    // painter.drawRoundedRect(badgeRect, radius, radius);
-    //
-    // painter.setPen(fg);
-    // painter.drawText(badgeRect, Qt::AlignCenter, text);
+    if (count() == 0)
+        return;
+
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
+    QFont font = painter.font();
+    font.setBold(true);
+    painter.setFont(font);
+
+    QFontMetrics fm(painter.font());
+    const int paddingX = 6;
+    const int paddingY = 2;
+    const int margin   = 6;
+
+    for (int i = 0; i < count(); ++i)
+    {
+        const int badgeCount = splitCount(i);
+        if (badgeCount <= 1)
+            continue;
+
+        const QString text = QString::number(badgeCount);
+        const int textW    = fm.horizontalAdvance(text);
+        const int textH    = fm.height();
+        const int badgeW   = textW + paddingX * 2;
+        const int badgeH   = textH + paddingY * 2;
+        const int radius   = badgeH / 2;
+
+        QRect tabRect = this->tabRect(i);
+        if (!tabRect.isValid())
+            continue;
+
+        int badgeLeft = tabRect.right() - badgeW - margin;
+        int badgeTop  = tabRect.top() + margin;
+
+        if (QWidget *closeButton = tabButton(i, QTabBar::RightSide))
+        {
+            const QRect closeRect = closeButton->geometry();
+            if (closeRect.isValid())
+            {
+                badgeLeft = closeRect.left() - badgeW - margin;
+                badgeTop  = closeRect.center().y() - badgeH / 2;
+            }
+        }
+
+        QRect badgeRect(badgeLeft, badgeTop, badgeW, badgeH);
+
+        QColor bg = palette().color(QPalette::Highlight);
+        QColor fg = palette().color(QPalette::HighlightedText);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(bg);
+        painter.drawRoundedRect(badgeRect, radius, radius);
+
+        painter.setPen(fg);
+        painter.drawText(badgeRect, Qt::AlignCenter, text);
+    }
 }

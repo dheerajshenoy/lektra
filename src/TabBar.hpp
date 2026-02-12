@@ -59,6 +59,9 @@ public:
         }
     };
 
+    void setSplitCount(int index, int count) noexcept;
+    int splitCount(int index) const noexcept;
+
 signals:
     void tabDataRequested(int index, TabData *outData);
     void tabDropReceived(const TabData &data);

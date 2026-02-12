@@ -1699,6 +1699,8 @@ lektra::OpenFile(const QString &filename,
     m_tab_widget->splitContainers()[tabIndex] = container;
     m_path_tab_hash[filename]                 = container;
 
+    m_tab_widget->tabBar()->setSplitCount(tabIndex, container->getViewCount());
+
     // Set as current tab
     m_tab_widget->setCurrentIndex(tabIndex);
 
@@ -3872,7 +3874,8 @@ lektra::VSplit() noexcept
 
     // Perform vertical split (top/bottom)
     container->split(currentView, Qt::Vertical);
-    m_tab_widget->tabBar()->update();
+    m_tab_widget->tabBar()->setSplitCount(currentTabIndex,
+                                          container->getViewCount());
 }
 
 void
@@ -3894,7 +3897,8 @@ lektra::HSplit() noexcept
 
     // Perform horizontal split (left/right)
     container->split(currentView, Qt::Horizontal);
-    m_tab_widget->tabBar()->update();
+    m_tab_widget->tabBar()->setSplitCount(currentTabIndex,
+                                          container->getViewCount());
 }
 
 void
@@ -3961,7 +3965,11 @@ lektra::CloseSplit() noexcept
 
     DocumentView *currentView = container->getCurrentView();
     if (currentView)
+    {
         container->closeView(currentView);
+        m_tab_widget->tabBar()->setSplitCount(currentTabIndex,
+                                              container->getViewCount());
+    }
 }
 
 void

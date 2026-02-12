@@ -60,7 +60,7 @@ TabWidget::addTab(QWidget *page, const QString &title) noexcept
 {
     m_stacked_widget->addWidget(page);
     const int tabIndex = m_tab_bar->addTab(title);
-
+    m_tab_bar->setSplitCount(tabIndex, 1);
     emit tabAdded(tabIndex);
     return tabIndex;
 }
@@ -71,6 +71,7 @@ TabWidget::insertTab(const int index, QWidget *page,
 {
     m_stacked_widget->insertWidget(index, page);
     const int tabIndex = m_tab_bar->insertTab(index, title);
+    m_tab_bar->setSplitCount(tabIndex, 1);
     emit tabAdded(tabIndex);
     return tabIndex;
 }
