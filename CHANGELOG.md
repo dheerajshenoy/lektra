@@ -4,8 +4,25 @@
 
 ### Features
 - Ability to move tabs with mouse drag and drop within the tab bar and detach to new window if dropped outside
+- Ability to split the view into multiple panes to view different pages of the same document (or different) side by side
+
+- New config options for splits
+    - `[split]`
+        - `focus_follows_mouse` (bool): Whether to focus split pane on mouse hover
+        - `dim_inactive` (bool): Whether to dim inactive split panes
+        - `dim_inactive_opacity` (float, 0-1): Opacity level for dimming inactive panes (default: 0.5)
+- New commands for splits
+    - `split_horizontal` - Split the current view horizontally
+    - `split_vertical` - Split the current view vertically
+    - `close_split` - Close the current split pane
+    <!-- - `focus_split_left`, `focus_split_right`, `focus_split_up`, `focus_split_down` - Move focus between split panes in the specified direction -->
+    - `focus_next_split`, `focus_prev_split` - Move focus to the next/previous split pane
+    - `open_file_vsplit` - Open a file in a vertically split pane
+    - `open_file_hsplit` - Open a file in a horizontally split pane
+
 
 ### Bug Fixes
+- Fix panel and tab not showing file info properly on file single file open
 - Hide scrollbars when the entire document is visible in the viewport
 - Fix not using config zoom factor
 - Fit incorrect zoom on file open
