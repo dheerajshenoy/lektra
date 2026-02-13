@@ -61,8 +61,8 @@ public:
            const QJsonArray &sessionArray) noexcept; // load from session
     ~lektra() noexcept;
 
-    void VSplit() noexcept;
-    void HSplit() noexcept;
+    DocumentContainer *VSplit() noexcept;
+    DocumentContainer *HSplit() noexcept;
     void CloseSplit() noexcept;
     void FocusNextSplit() noexcept;
     void FocusPrevSplit() noexcept;
@@ -102,6 +102,10 @@ public:
     bool OpenFileInNewWindow(const QString &filename = QString(),
                              const std::function<void()> &callback
                              = {}) noexcept;
+    bool OpenFileVSplit(const QString &filename               = QString(),
+                        const std::function<void()> &callback = {});
+    bool OpenFileHSplit(const QString &filename               = QString(),
+                        const std::function<void()> &callback = {});
     void PrevPage() noexcept;
     void FirstPage() noexcept;
     void ToggleTextSelection() noexcept;
@@ -163,6 +167,10 @@ protected:
     bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
+    bool openFileSplitHelper(const QString &filename               = {},
+                             const std::function<void()> &callback = {},
+                             Qt::Orientation orientation
+                             = Qt::Horizontal);
     void setCurrentDocumentView(DocumentView *view) noexcept;
     void centerMouseInDocumentView(DocumentView *view) noexcept;
 
