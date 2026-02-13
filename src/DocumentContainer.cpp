@@ -21,6 +21,9 @@ DocumentContainer::DocumentContainer(DocumentView *initialView, QWidget *parent)
     m_layout->addWidget(initialView);
 
     m_current_view = initialView;
+    initialView->setContainer(this);
+
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     // Track when view gets focus
     initialView->installEventFilter(this);
@@ -32,10 +35,10 @@ DocumentContainer::~DocumentContainer()
 }
 
 void
-DocumentContainer::split(DocumentView *view,
-                         Qt::Orientation orientation) noexcept
+DocumentContainer::split(DocumentView *view, Qt::Orientation orientation,
+                         const QString &filePath) noexcept
 {
-    if (!view)
+    if (!view || view->filePath().isEmpty())
         return;
 
     // Find the widget in the layout
@@ -57,12 +60,17 @@ DocumentContainer::split(DocumentView *view,
 
     // Create new view for the split - copy settings from current view
     DocumentView *newView = createViewFromTemplate(view);
+    newView->openAsync(filePath);
 
     // If the current widget is the view itself (not in a splitter yet)
     if (currentWidget == view)
     {
-        // Remove the view from layout
-        m_layout->removeWidget(view);
+        int layoutIndex = m_layout->indexOf(view);
+
+        // Capture the view's current geometry BEFORE it gets reparented.
+        // This is the only reliable way to get real pixel dimensions for
+        // both orientations without depending on layout-pass ordering.
+        QRect viewGeom = view->geometry();
 
         // Create a new splitter
         QSplitter *splitter = new QSplitter(orientation, this);
@@ -71,17 +79,17 @@ DocumentContainer::split(DocumentView *view,
         splitter->setStyleSheet(
             "QSplitter::handle { background-color: palette(mid); }");
 
-        // Add both views to the splitter
+        // Reparenting view into splitter removes it from the layout
         splitter->addWidget(view);
         splitter->addWidget(newView);
 
-        // Set equal sizes
-        QList<int> sizes;
-        sizes << 1 << 1;
-        splitter->setSizes(sizes);
+        // Insert splitter where the view was
+        m_layout->insertWidget(layoutIndex, splitter);
 
-        // Add splitter to layout
-        m_layout->addWidget(splitter);
+        // Apply the captured geometry so equalizeStretch sees real dimensions
+        splitter->setGeometry(viewGeom);
+
+        equalizeStretch(splitter);
     }
     else
     {
@@ -100,6 +108,13 @@ DocumentContainer::split(DocumentView *view,
 
     emit viewCreated(newView);
     emit currentViewChanged(newView);
+}
+
+void
+DocumentContainer::split(DocumentView *view,
+                         Qt::Orientation orientation) noexcept
+{
+    split(view, orientation, view->filePath());
 }
 
 void
@@ -124,6 +139,8 @@ DocumentContainer::splitInSplitter(QSplitter *splitter, DocumentView *view,
         {
             if (containsView(childSplitter, view))
             {
+                newView->show(); // Ensure the new view is visible before
+                                 // recursive split
                 splitInSplitter(childSplitter, view, newView, orientation);
                 return;
             }
@@ -137,13 +154,6 @@ DocumentContainer::splitInSplitter(QSplitter *splitter, DocumentView *view,
     if (splitter->orientation() == orientation)
     {
         splitter->insertWidget(viewIndex + 1, newView);
-
-        // Redistribute sizes equally
-        QList<int> sizes;
-        int count = splitter->count();
-        for (int i = 0; i < count; ++i)
-            sizes << 1;
-        splitter->setSizes(sizes);
     }
     else
     {
@@ -151,7 +161,7 @@ DocumentContainer::splitInSplitter(QSplitter *splitter, DocumentView *view,
         QWidget *oldWidget = splitter->widget(viewIndex);
 
         // Create new splitter with the requested orientation
-        QSplitter *newSplitter = new QSplitter(orientation, splitter);
+        QSplitter *newSplitter = new QSplitter(orientation, this);
         newSplitter->setChildrenCollapsible(false);
         newSplitter->setHandleWidth(1);
         newSplitter->setStyleSheet(
@@ -161,14 +171,20 @@ DocumentContainer::splitInSplitter(QSplitter *splitter, DocumentView *view,
         newSplitter->addWidget(oldWidget);
         newSplitter->addWidget(newView);
 
-        // Set equal sizes for the new splitter
-        QList<int> sizes;
-        sizes << 1 << 1;
-        newSplitter->setSizes(sizes);
-
-        // Insert the new splitter at the old position
+        // Insert into parent BEFORE equalizing so the splitter inherits
+        // real pixel dimensions from the already-laid-out parent
         splitter->insertWidget(viewIndex, newSplitter);
+
+        equalizeStretch(newSplitter);
     }
+
+    // Ensure the new view is marked visible so it's included in size calcs
+    newView->show();
+
+    // Force the splitter to recalculate its child list before equalizing
+    splitter->refresh();
+
+    equalizeStretch(splitter);
 }
 
 bool
@@ -267,6 +283,9 @@ DocumentContainer::closeView(DocumentView *view) noexcept
     view->setParent(nullptr);
     view->deleteLater();
     emit viewClosed(view);
+
+    if (parentSplitter->count() > 0)
+        equalizeStretch(parentSplitter);
 
     // Determine which view to focus next
     DocumentView *nextFocus = nullptr;
@@ -368,26 +387,13 @@ DocumentContainer::createViewFromTemplate(DocumentView *templateView) noexcept
     if (!templateView)
         return nullptr;
 
-    // Create new view with the same config
     DocumentView *newView = new DocumentView(templateView->config(), this);
-
-    // Copy the document to the new view (same file)
-    if (!templateView->filePath().isEmpty())
-    {
-        newView->openAsync(templateView->filePath());
-
-        // Copy view settings
-        newView->setDPR(templateView->dpr());
-        newView->setInvertColor(templateView->invertColor());
-        newView->setAutoResize(templateView->autoResize());
-        newView->setLayoutMode(templateView->layoutMode());
-        newView->setFitMode(templateView->fitMode());
-
-        // Navigate to same page
-        newView->GotoPage(templateView->pageNo());
-        newView->setZoom(templateView->zoom());
-    }
-
+    newView->setContainer(this);
+    newView->setDPR(templateView->dpr());
+    newView->setInvertColor(templateView->invertColor());
+    newView->setAutoResize(templateView->autoResize());
+    newView->setLayoutMode(templateView->layoutMode());
+    newView->setFitMode(templateView->fitMode());
     return newView;
 }
 

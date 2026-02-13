@@ -59,6 +59,9 @@ public:
     void split(DocumentView *view, Qt::Orientation orientation
                                    = Qt::Orientation::Horizontal) noexcept;
 
+    void split(DocumentView *view, Qt::Orientation orientation,
+               const QString &filePath) noexcept;
+
     /**
      * Close a specific view.
      *
@@ -175,6 +178,44 @@ private:
     void collectViews(QWidget *widget,
                       QList<DocumentView *> &views) const noexcept;
 
+    inline static void equalizeStretch(QSplitter *splitter) noexcept
+    {
+        if (!splitter || splitter->count() == 0)
+            return;
+
+        // 1. Get the current total size of the splitter
+        int totalSize = 0;
+        for (int size : splitter->sizes())
+        {
+            totalSize += size;
+        }
+
+        // 2. If total size is 0 (not yet rendered), use a fallback
+        // to ensure they aren't initialized to 0px
+        if (totalSize <= 0)
+        {
+            totalSize = 1000;
+        }
+
+        // 3. Create a list where every widget gets an equal share
+        int share = totalSize / splitter->count();
+        QList<int> newSizes;
+        for (int i = 0; i < splitter->count(); ++i)
+        {
+            newSizes << share;
+        }
+
+        // 4. Force the splitter to apply these sizes immediately
+        splitter->setSizes(newSizes);
+
+        // 5. Keep the stretch factors so they stay equal when the window is
+        // resized
+        for (int i = 0; i < splitter->count(); ++i)
+        {
+            splitter->setStretchFactor(i, 1);
+        }
+    }
+
     /**
      * Create a new DocumentView based on a template view.
      *
@@ -183,6 +224,7 @@ private:
      * @param templateView View to use as template
      * @return Newly created view
      */
+
     DocumentView *createViewFromTemplate(DocumentView *templateView) noexcept;
 
     QVBoxLayout *m_layout{nullptr};
