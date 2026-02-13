@@ -2154,7 +2154,7 @@ lektra::initConnections() noexcept
 
     QWindow *win = window()->windowHandle();
 
-    m_dpr = m_screen_dpr_map.value(QGuiApplication::primaryScreen()->name());
+    m_dpr = m_screen_dpr_map[win->screen()->name()];
 
     connect(win, &QWindow::screenChanged, this, [&](QScreen *screen)
     {
