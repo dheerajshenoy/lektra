@@ -49,6 +49,8 @@ extern "C"
 
 #define CSTR(x) x.toStdString().c_str()
 
+class DocumentContainer; // Forward declaration to avoid circular dependency
+
 class DocumentView : public QWidget
 {
     Q_OBJECT
@@ -277,6 +279,16 @@ public:
     void addToHistory(const PageLocation &location) noexcept;
     PageLocation CurrentLocation() noexcept;
 
+    inline void setContainer(DocumentContainer *container) noexcept
+    {
+        m_container = container;
+    }
+
+    DocumentContainer *container() const noexcept
+    {
+        return m_container;
+    }
+
 signals:
     void requestFocus(DocumentView *view);
     void openFileFailed(DocumentView *doc);
@@ -445,6 +457,7 @@ private:
     bool m_visible_pages_dirty{true};
     bool m_deferred_fit{false};
     QFileSystemWatcher *m_file_watcher{nullptr};
+    DocumentContainer *m_container{nullptr};
 
 #ifdef HAS_SYNCTEX
     synctex_scanner_p m_synctex_scanner{nullptr};
