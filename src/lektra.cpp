@@ -2726,6 +2726,25 @@ lektra::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::panelNameChanged, this,
             [this](const QString &name) { m_statusbar->setFileName(name); });
 
+    connect(docwidget, &DocumentView::openFileFinished, this,
+            [this](DocumentView *doc)
+    {
+        // Only update the panel if this view is the currently active one.
+        // If it's a background split, don't clobber the active view's info.
+        if (m_doc == doc)
+        {
+            updatePanel();
+            // Also drive the tab title, which suffers the same timing problem
+            int index = m_tab_widget->currentIndex();
+            if (validTabIndex(index))
+            {
+                m_tab_widget->tabBar()->setTabText(
+                    index, m_config.tabs.full_path ? doc->filePath()
+                                                   : doc->fileName());
+            }
+        }
+    });
+
     connect(docwidget, &DocumentView::currentPageChanged, m_statusbar,
             &Statusbar::setPageNo);
 
@@ -3258,12 +3277,17 @@ lektra::initActionMap() noexcept
            ACTION_NO_ARGS("zoom_out", ZoomOut),
            ACTION_NO_ARGS("zoom_reset", ZoomReset),
            ACTION_NO_ARGS("region_select_mode", ToggleRegionSelect),
+
+           // Split actions
            ACTION_NO_ARGS("split_horizontal", VSplit),
            ACTION_NO_ARGS("split_vertical", HSplit),
            ACTION_NO_ARGS("close_split", CloseSplit),
            ACTION_NO_ARGS("focus_next_split", FocusNextSplit),
            ACTION_NO_ARGS("focus_prev_split", FocusPrevSplit),
+           ACTION_NO_ARGS("open_file_vsplit", OpenFileVSplit),
+           ACTION_NO_ARGS("open_file_hsplit", OpenFileHSplit),
 
+           // Annotation modes
            ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
            ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
            ACTION_NO_ARGS("annot_rect_mode", ToggleAnnotRect),
@@ -3285,8 +3309,6 @@ lektra::initActionMap() noexcept
            ACTION_NO_ARGS("load_session", LoadSession),
            ACTION_NO_ARGS("show_startup", showStartupWidget),
            ACTION_NO_ARGS("close_file", CloseFile),
-           ACTION_NO_ARGS("open_file_vsplit", OpenFileVSplit),
-           ACTION_NO_ARGS("open_file_hsplit", OpenFileHSplit),
 
            ACTION_NO_ARGS("tabs_close_left", TabsCloseLeft),
            ACTION_NO_ARGS("tabs_close_right", TabsCloseRight),
