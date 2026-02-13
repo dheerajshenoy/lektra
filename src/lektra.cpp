@@ -1691,6 +1691,8 @@ lektra::OpenFile(const QString &filename,
     // Open the file asynchronously
     view->openAsync(filename);
 
+    view->setDPR(m_dpr);
+
     // Add the container as a tab
     QString tabTitle = QFileInfo(filename).fileName();
     int tabIndex     = m_tab_widget->addTab(container, tabTitle);
