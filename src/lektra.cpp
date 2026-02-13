@@ -1719,6 +1719,84 @@ lektra::OpenFile(const QString &filename,
 }
 
 bool
+lektra::openFileSplitHelper(const QString &filename,
+                            const std::function<void()> &callback,
+                            Qt::Orientation orientation)
+{
+    if (filename.isEmpty())
+    {
+        // Show file picker
+        QFileDialog dialog(this);
+        dialog.setFileMode(QFileDialog::ExistingFile);
+        dialog.setNameFilter(tr("PDF Files (*.pdf);;All Files (*)"));
+
+        if (dialog.exec())
+        {
+            const QStringList selected = dialog.selectedFiles();
+            if (!selected.isEmpty())
+                return OpenFileVSplit(selected.first(), callback);
+        }
+        return false;
+    }
+
+    // Check if file is already open
+    if (m_path_tab_hash.contains(filename))
+    {
+        const int existingTab
+            = m_tab_widget->indexOf(m_path_tab_hash[filename]);
+        if (existingTab != -1)
+        {
+            m_tab_widget->setCurrentIndex(existingTab);
+            if (callback)
+                callback();
+            return true;
+        }
+    }
+
+    const int tabIndex = m_tab_widget->currentIndex();
+
+    if (!validTabIndex(tabIndex))
+    {
+        QMessageBox::critical(this, "Error", "No active tab to split");
+        return false;
+    }
+
+    DocumentContainer *container
+        = m_tab_widget->splitContainers().value(tabIndex, nullptr);
+
+    if (!container)
+        throw std::runtime_error("No container found for current tab");
+
+    DocumentView *currentView = container->getCurrentView();
+    if (!currentView)
+        return false;
+
+    container->split(currentView, orientation, filename);
+
+    m_tab_widget->tabBar()->setSplitCount(tabIndex, container->getViewCount());
+    insertFileToDB(filename, 1);
+
+    if (callback)
+        callback();
+
+    return false;
+}
+
+bool
+lektra::OpenFileVSplit(const QString &filename,
+                       const std::function<void()> &callback)
+{
+    return openFileSplitHelper(filename, callback, Qt::Vertical);
+}
+
+bool
+lektra::OpenFileHSplit(const QString &filename,
+                       const std::function<void()> &callback)
+{
+    return openFileSplitHelper(filename, callback, Qt::Horizontal);
+}
+
+bool
 lektra::OpenFileInNewWindow(const QString &filePath,
                             const std::function<void()> &callback) noexcept
 {
@@ -3122,10 +3200,10 @@ lektra::Redo() noexcept
 void
 lektra::initActionMap() noexcept
 {
-    m_actionMap = {
-        // Actions with arguments
-        {"tabgoto",
-         [this](const QStringList &args)
+    m_actionMap
+        = {// Actions with arguments
+           {"tabgoto",
+            [this](const QStringList &args)
     {
         if (args.isEmpty())
             return;
@@ -3139,108 +3217,111 @@ lektra::initActionMap() noexcept
 
     // Actions without arguments
 #ifdef ENABLE_LLM_SUPPORT
-        ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
+           ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
 #endif
 
-        ACTION_NO_ARGS("set_dpr", SetDPR),
-        ACTION_NO_ARGS("command_palette", ToggleCommandPalette),
-        ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
-        ACTION_NO_ARGS("encrypt", EncryptDocument),
-        ACTION_NO_ARGS("reload", reloadDocument),
-        ACTION_NO_ARGS("undo", Undo),
-        ACTION_NO_ARGS("redo", Redo),
-        ACTION_NO_ARGS("text_highlight_current_selection",
-                       TextHighlightCurrentSelection),
-        ACTION_NO_ARGS("toggle_tabs", ToggleTabBar),
-        ACTION_NO_ARGS("save", SaveFile),
-        ACTION_NO_ARGS("save_as", SaveAsFile),
-        ACTION_NO_ARGS("yank", YankSelection),
-        ACTION_NO_ARGS("cancel_selection", ClearTextSelection),
-        ACTION_NO_ARGS("about", ShowAbout),
-        ACTION_NO_ARGS("link_hint_visit", VisitLinkKB),
-        ACTION_NO_ARGS("link_hint_copy", CopyLinkKB),
-        ACTION_NO_ARGS("outline", ShowOutline),
-        ACTION_NO_ARGS("highlight_annot_search", ShowHighlightSearch),
-        ACTION_NO_ARGS("rotate_clock", RotateClock),
-        ACTION_NO_ARGS("rotate_anticlock", RotateAnticlock),
-        ACTION_NO_ARGS("prev_location", GoBackHistory),
-        ACTION_NO_ARGS("next_location", GoForwardHistory),
-        ACTION_NO_ARGS("scroll_down", ScrollDown),
-        ACTION_NO_ARGS("scroll_up", ScrollUp),
-        ACTION_NO_ARGS("scroll_left", ScrollLeft),
-        ACTION_NO_ARGS("scroll_right", ScrollRight),
-        ACTION_NO_ARGS("invert_color", InvertColor),
-        ACTION_NO_ARGS("search_next", NextHit),
-        ACTION_NO_ARGS("search_prev", PrevHit),
-        ACTION_NO_ARGS("next_page", NextPage),
-        ACTION_NO_ARGS("prev_page", PrevPage),
-        ACTION_NO_ARGS("first_page", FirstPage),
-        ACTION_NO_ARGS("last_page", LastPage),
-        ACTION_NO_ARGS("zoom_in", ZoomIn),
-        ACTION_NO_ARGS("zoom_out", ZoomOut),
-        ACTION_NO_ARGS("zoom_reset", ZoomReset),
-        ACTION_NO_ARGS("region_select_mode", ToggleRegionSelect),
-        ACTION_NO_ARGS("split_horizontal", VSplit),
-        ACTION_NO_ARGS("split_vertical", HSplit),
-        ACTION_NO_ARGS("close_split", CloseSplit),
-        ACTION_NO_ARGS("focus_next_split", FocusNextSplit),
-        ACTION_NO_ARGS("focus_prev_split", FocusPrevSplit),
+           ACTION_NO_ARGS("set_dpr", SetDPR),
+           ACTION_NO_ARGS("command_palette", ToggleCommandPalette),
+           ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
+           ACTION_NO_ARGS("encrypt", EncryptDocument),
+           ACTION_NO_ARGS("reload", reloadDocument),
+           ACTION_NO_ARGS("undo", Undo),
+           ACTION_NO_ARGS("redo", Redo),
+           ACTION_NO_ARGS("text_highlight_current_selection",
+                          TextHighlightCurrentSelection),
+           ACTION_NO_ARGS("toggle_tabs", ToggleTabBar),
+           ACTION_NO_ARGS("save", SaveFile),
+           ACTION_NO_ARGS("save_as", SaveAsFile),
+           ACTION_NO_ARGS("yank", YankSelection),
+           ACTION_NO_ARGS("cancel_selection", ClearTextSelection),
+           ACTION_NO_ARGS("about", ShowAbout),
+           ACTION_NO_ARGS("link_hint_visit", VisitLinkKB),
+           ACTION_NO_ARGS("link_hint_copy", CopyLinkKB),
+           ACTION_NO_ARGS("outline", ShowOutline),
+           ACTION_NO_ARGS("highlight_annot_search", ShowHighlightSearch),
+           ACTION_NO_ARGS("rotate_clock", RotateClock),
+           ACTION_NO_ARGS("rotate_anticlock", RotateAnticlock),
+           ACTION_NO_ARGS("prev_location", GoBackHistory),
+           ACTION_NO_ARGS("next_location", GoForwardHistory),
+           ACTION_NO_ARGS("scroll_down", ScrollDown),
+           ACTION_NO_ARGS("scroll_up", ScrollUp),
+           ACTION_NO_ARGS("scroll_left", ScrollLeft),
+           ACTION_NO_ARGS("scroll_right", ScrollRight),
+           ACTION_NO_ARGS("invert_color", InvertColor),
+           ACTION_NO_ARGS("search_next", NextHit),
+           ACTION_NO_ARGS("search_prev", PrevHit),
+           ACTION_NO_ARGS("next_page", NextPage),
+           ACTION_NO_ARGS("prev_page", PrevPage),
+           ACTION_NO_ARGS("first_page", FirstPage),
+           ACTION_NO_ARGS("last_page", LastPage),
+           ACTION_NO_ARGS("zoom_in", ZoomIn),
+           ACTION_NO_ARGS("zoom_out", ZoomOut),
+           ACTION_NO_ARGS("zoom_reset", ZoomReset),
+           ACTION_NO_ARGS("region_select_mode", ToggleRegionSelect),
+           ACTION_NO_ARGS("split_horizontal", VSplit),
+           ACTION_NO_ARGS("split_vertical", HSplit),
+           ACTION_NO_ARGS("close_split", CloseSplit),
+           ACTION_NO_ARGS("focus_next_split", FocusNextSplit),
+           ACTION_NO_ARGS("focus_prev_split", FocusPrevSplit),
 
-        ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
-        ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
-        ACTION_NO_ARGS("annot_rect_mode", ToggleAnnotRect),
+           ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
+           ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
+           ACTION_NO_ARGS("annot_rect_mode", ToggleAnnotRect),
 
-        ACTION_NO_ARGS("text_select_mode", ToggleTextSelection),
-        ACTION_NO_ARGS("text_highlight_mode", ToggleTextHighlight),
-        ACTION_NO_ARGS("fullscreen", ToggleFullscreen),
-        ACTION_NO_ARGS("file_properties", FileProperties),
-        ACTION_NO_ARGS("open_file", OpenFile),
-        ACTION_NO_ARGS("fit_width", FitWidth),
-        ACTION_NO_ARGS("fit_height", FitHeight),
-        ACTION_NO_ARGS("fit_window", FitWindow),
-        ACTION_NO_ARGS("auto_resize", ToggleAutoResize),
-        ACTION_NO_ARGS("toggle_menubar", ToggleMenubar),
-        ACTION_NO_ARGS("toggle_statusbar", TogglePanel),
-        ACTION_NO_ARGS("toggle_focus_mode", ToggleFocusMode),
-        ACTION_NO_ARGS("save_session", SaveSession),
-        ACTION_NO_ARGS("save_as_session", SaveAsSession),
-        ACTION_NO_ARGS("load_session", LoadSession),
-        ACTION_NO_ARGS("show_startup", showStartupWidget),
+           ACTION_NO_ARGS("text_select_mode", ToggleTextSelection),
+           ACTION_NO_ARGS("text_highlight_mode", ToggleTextHighlight),
+           ACTION_NO_ARGS("fullscreen", ToggleFullscreen),
+           ACTION_NO_ARGS("file_properties", FileProperties),
+           ACTION_NO_ARGS("open_file", OpenFile),
+           ACTION_NO_ARGS("fit_width", FitWidth),
+           ACTION_NO_ARGS("fit_height", FitHeight),
+           ACTION_NO_ARGS("fit_window", FitWindow),
+           ACTION_NO_ARGS("auto_resize", ToggleAutoResize),
+           ACTION_NO_ARGS("toggle_menubar", ToggleMenubar),
+           ACTION_NO_ARGS("toggle_statusbar", TogglePanel),
+           ACTION_NO_ARGS("toggle_focus_mode", ToggleFocusMode),
+           ACTION_NO_ARGS("save_session", SaveSession),
+           ACTION_NO_ARGS("save_as_session", SaveAsSession),
+           ACTION_NO_ARGS("load_session", LoadSession),
+           ACTION_NO_ARGS("show_startup", showStartupWidget),
+           ACTION_NO_ARGS("close_file", CloseFile),
+           ACTION_NO_ARGS("open_file_vsplit", OpenFileVSplit),
+           ACTION_NO_ARGS("open_file_hsplit", OpenFileHSplit),
 
-        ACTION_NO_ARGS("tabs_close_left", TabsCloseLeft),
-        ACTION_NO_ARGS("tabs_close_right", TabsCloseRight),
-        ACTION_NO_ARGS("tabs_close_others", TabsCloseOthers),
-        ACTION_NO_ARGS("tab_move_right", TabMoveRight),
-        ACTION_NO_ARGS("tab_move_left", TabMoveLeft),
-        ACTION_NO_ARGS("tab_first", TabFirst),
-        ACTION_NO_ARGS("tab_last", TabLast),
-        ACTION_NO_ARGS("tab_next", TabNext),
-        ACTION_NO_ARGS("tab_prev", TabPrev),
-        ACTION_NO_ARGS("tab_close", TabClose),
+           ACTION_NO_ARGS("tabs_close_left", TabsCloseLeft),
+           ACTION_NO_ARGS("tabs_close_right", TabsCloseRight),
+           ACTION_NO_ARGS("tabs_close_others", TabsCloseOthers),
+           ACTION_NO_ARGS("tab_move_right", TabMoveRight),
+           ACTION_NO_ARGS("tab_move_left", TabMoveLeft),
+           ACTION_NO_ARGS("tab_first", TabFirst),
+           ACTION_NO_ARGS("tab_last", TabLast),
+           ACTION_NO_ARGS("tab_next", TabNext),
+           ACTION_NO_ARGS("tab_prev", TabPrev),
+           ACTION_NO_ARGS("tab_close", TabClose),
 
-        ACTION_NO_ARGS("tutorial_file", showTutorialFile),
-        ACTION_NO_ARGS("reselect_last_selection", ReselectLastTextSelection),
-        ACTION_NO_ARGS("search", Search),
+           ACTION_NO_ARGS("tutorial_file", showTutorialFile),
+           ACTION_NO_ARGS("reselect_last_selection", ReselectLastTextSelection),
+           ACTION_NO_ARGS("search", Search),
 
-        {"layout_single", [this](const QStringList &)
+           {"layout_single", [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::SINGLE); }},
-        {"layout_left_to_right", [this](const QStringList &)
+           {"layout_left_to_right", [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::LEFT_TO_RIGHT); }},
-        {"layout_top_to_bottom", [this](const QStringList &)
+           {"layout_top_to_bottom", [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::TOP_TO_BOTTOM); }},
 
-        {"tab1", [this](const QStringList &) { TabGoto(1); }},
-        {"tab2", [this](const QStringList &) { TabGoto(2); }},
-        {"tab3", [this](const QStringList &) { TabGoto(3); }},
-        {"tab4", [this](const QStringList &) { TabGoto(4); }},
-        {"tab5", [this](const QStringList &) { TabGoto(5); }},
-        {"tab6", [this](const QStringList &) { TabGoto(6); }},
-        {"tab7", [this](const QStringList &) { TabGoto(7); }},
-        {"tab8", [this](const QStringList &) { TabGoto(8); }},
-        {"tab9", [this](const QStringList &) { TabGoto(9); }},
+           {"tab1", [this](const QStringList &) { TabGoto(1); }},
+           {"tab2", [this](const QStringList &) { TabGoto(2); }},
+           {"tab3", [this](const QStringList &) { TabGoto(3); }},
+           {"tab4", [this](const QStringList &) { TabGoto(4); }},
+           {"tab5", [this](const QStringList &) { TabGoto(5); }},
+           {"tab6", [this](const QStringList &) { TabGoto(6); }},
+           {"tab7", [this](const QStringList &) { TabGoto(7); }},
+           {"tab8", [this](const QStringList &) { TabGoto(8); }},
+           {"tab9", [this](const QStringList &) { TabGoto(9); }},
 
-        {"goto_page",
-         [this](const QStringList &args)
+           {"goto_page",
+            [this](const QStringList &args)
     {
         if (args.isEmpty())
         {
@@ -3259,10 +3340,11 @@ lektra::initActionMap() noexcept
                 m_message_bar->showMessage("Invalid page number");
         }
     }},
-        // {"search_in_page",
-        // [this](const QStringList &args) { SearchInPage(args.join(" ")); }},
-        {"search_args",
-         [this](const QStringList &args) { search(args.join(" ")); }}};
+           // {"search_in_page",
+           // [this](const QStringList &args) { SearchInPage(args.join("
+           // ")); }},
+           {"search_args",
+            [this](const QStringList &args) { search(args.join(" ")); }}};
 }
 
 #undef ACTION_NO_ARGS
@@ -3857,50 +3939,53 @@ lektra::TabsCloseOthers() noexcept
     }
 }
 
-void
+DocumentContainer *
 lektra::VSplit() noexcept
 {
     int currentTabIndex = m_tab_widget->currentIndex();
     if (!validTabIndex(currentTabIndex))
-        return;
+        return nullptr;
 
     // Get the container for this tab
     DocumentContainer *container
         = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
     if (!container)
-        return;
+        return nullptr;
 
     DocumentView *currentView = container->getCurrentView();
     if (!currentView)
-        return;
+        return nullptr;
 
     // Perform vertical split (top/bottom)
     container->split(currentView, Qt::Vertical);
     m_tab_widget->tabBar()->setSplitCount(currentTabIndex,
                                           container->getViewCount());
+    return container;
 }
 
-void
+DocumentContainer *
 lektra::HSplit() noexcept
 {
     int currentTabIndex = m_tab_widget->currentIndex();
     if (!validTabIndex(currentTabIndex))
-        return;
+        return nullptr;
 
     // Get the container for this tab
     DocumentContainer *container
         = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
     if (!container)
-        return;
+        return nullptr;
 
     DocumentView *currentView = container->getCurrentView();
     if (!currentView)
-        return;
+        return nullptr;
 
     // Perform horizontal split (left/right)
     container->split(currentView, Qt::Horizontal);
     m_tab_widget->tabBar()->setSplitCount(currentTabIndex,
                                           container->getViewCount());
+
+    return container;
 }
 
 void
@@ -4010,4 +4095,14 @@ lektra::centerMouseInDocumentView(DocumentView *view) noexcept
 
         QCursor::setPos(center);
     });
+}
+
+void
+lektra::CloseFile() noexcept
+{
+    if (m_doc)
+    {
+        int indexToClose = m_tab_widget->currentIndex();
+        TabClose(indexToClose);
+    }
 }
