@@ -219,6 +219,16 @@ public:
         return m_layout_mode;
     }
 
+    inline void setContainer(DocumentContainer *container) noexcept
+    {
+        m_container = container;
+    }
+
+    inline DocumentContainer *container() const noexcept
+    {
+        return m_container;
+    }
+
     void FollowLink(const Model::LinkInfo &info) noexcept;
 
     void setInvertColor(bool invert) noexcept;
@@ -278,16 +288,6 @@ public:
     void setLayoutMode(const LayoutMode &mode) noexcept;
     void addToHistory(const PageLocation &location) noexcept;
     PageLocation CurrentLocation() noexcept;
-
-    inline void setContainer(DocumentContainer *container) noexcept
-    {
-        m_container = container;
-    }
-
-    DocumentContainer *container() const noexcept
-    {
-        return m_container;
-    }
 
 signals:
     void requestFocus(DocumentView *view);
