@@ -3314,8 +3314,12 @@ lektra::initActionMap() noexcept
            ACTION_NO_ARGS("focus_split_left", FocusSplitLeft),
            ACTION_NO_ARGS("focus_split_up", FocusSplitUp),
            ACTION_NO_ARGS("focus_split_down", FocusSplitDown),
+
+           // File opening actions
+           ACTION_NO_ARGS("open_file_dwim", OpenFileDWIM),
            ACTION_NO_ARGS("open_file_vsplit", OpenFileVSplit),
            ACTION_NO_ARGS("open_file_hsplit", OpenFileHSplit),
+           ACTION_NO_ARGS("open_file_tab", OpenFileInNewTab),
 
            // Annotation modes
            ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
@@ -3326,7 +3330,6 @@ lektra::initActionMap() noexcept
            ACTION_NO_ARGS("text_highlight_mode", ToggleTextHighlight),
            ACTION_NO_ARGS("fullscreen", ToggleFullscreen),
            ACTION_NO_ARGS("file_properties", FileProperties),
-           ACTION_NO_ARGS("open_file_tab", OpenFileInNewTab),
            ACTION_NO_ARGS("fit_width", FitWidth),
            ACTION_NO_ARGS("fit_height", FitHeight),
            ACTION_NO_ARGS("fit_window", FitWindow),
