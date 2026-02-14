@@ -14,6 +14,12 @@ show_mode = true # show current interaction mode in statusbar
 show_page_number = true # show current page number in statusbar
 show_progress = true # show reading progress in statusbar
 
+[split]
+focus_follows_mouse = true
+dim_inactive = true
+dim_inactive_opacity = 0.5
+
+
 [command_palette]
 show_shortcuts = false
 height = 400
@@ -112,7 +118,7 @@ initial_mode = "text_select_mode" # { "region_select_mode", "annot_rect_mode", "
 always_open_in_new_window = false
 remember_last_visited = true
 page_history = 100
-confirm_on_q = false
+confirm_on_quit = false
 invert_mode = false
 auto_reload = true
 recent_files = true
@@ -203,3 +209,7 @@ completion_next = "Ctrl+n"
 completion_prev = "Ctrl+p"
 toggle_llm_widget = "Ctrl+Shift+L"
 toggle_statusbar = "Ctrl+Shift+S"
+
+focus_next_split = "Ctrl+Alt+Right"
+focus_prev_split = "Ctrl+Alt+Left"
+keyboard_cursor_mode = "v"
