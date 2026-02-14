@@ -3,6 +3,7 @@
 #include <QEvent>
 #include <QSplitter>
 #include <qnamespace.h>
+#include <qtextcursor.h>
 
 static DocumentContainer::Id nextId{0};
 
@@ -351,36 +352,6 @@ DocumentContainer::getCurrentView() const noexcept
     return m_current_view;
 }
 
-void
-DocumentContainer::focusNextView() noexcept
-{
-    QList<DocumentView *> views = getAllViews();
-    if (views.count() <= 1)
-        return;
-
-    int currentIndex = views.indexOf(m_current_view);
-    int nextIndex    = (currentIndex + 1) % views.count();
-
-    m_current_view = views[nextIndex];
-    m_current_view->setFocus(Qt::ShortcutFocusReason);
-    emit currentViewChanged(m_current_view);
-}
-
-void
-DocumentContainer::focusPrevView() noexcept
-{
-    QList<DocumentView *> views = getAllViews();
-    if (views.count() <= 1)
-        return;
-
-    int currentIndex = views.indexOf(m_current_view);
-    int prevIndex    = (currentIndex - 1 + views.count()) % views.count();
-
-    m_current_view = views[prevIndex];
-    m_current_view->setFocus(Qt::ShortcutFocusReason);
-    emit currentViewChanged(m_current_view);
-}
-
 DocumentView *
 DocumentContainer::createViewFromTemplate(DocumentView *templateView) noexcept
 {
@@ -449,4 +420,78 @@ DocumentContainer::focusView(DocumentView *view) noexcept
     m_current_view = view;
     view->setFocus();
     emit currentViewChanged(view);
+}
+
+void
+DocumentContainer::equalizeStretch(QSplitter *splitter) noexcept
+{
+    if (!splitter || splitter->count() == 0)
+        return;
+
+    // 1. Get the current total size of the splitter
+    int totalSize = 0;
+    for (int size : splitter->sizes())
+    {
+        totalSize += size;
+    }
+
+    // 2. If total size is 0 (not yet rendered), use a fallback
+    // to ensure they aren't initialized to 0px
+    if (totalSize <= 0)
+    {
+        totalSize = 1000;
+    }
+
+    // 3. Create a list where every widget gets an equal share
+    int share = totalSize / splitter->count();
+    QList<int> newSizes;
+    for (int i = 0; i < splitter->count(); ++i)
+    {
+        newSizes << share;
+    }
+
+    // 4. Force the splitter to apply these sizes immediately
+    splitter->setSizes(newSizes);
+
+    // 5. Keep the stretch factors so they stay equal when the window is
+    // resized
+    for (int i = 0; i < splitter->count(); ++i)
+    {
+        splitter->setStretchFactor(i, 1);
+    }
+}
+
+void
+DocumentContainer::focusSplit(Direction direction) noexcept
+{
+    if (!m_current_view)
+        return;
+
+    // Get all views in the current container
+    QList<DocumentView *> views = getAllViews();
+    if (views.count() <= 1)
+        return;
+
+    // Find the index of the current view
+    int currentIndex = views.indexOf(m_current_view);
+    if (currentIndex == -1)
+        return;
+
+    // Determine the next index based on the direction
+    int nextIndex = currentIndex;
+    switch (direction)
+    {
+        case Direction::Up:
+        case Direction::Left:
+            nextIndex = (currentIndex - 1 + views.count()) % views.count();
+            break;
+        case Direction::Down:
+        case Direction::Right:
+            nextIndex = (currentIndex + 1) % views.count();
+            break;
+    }
+
+    // Focus the next view
+    DocumentView *nextView = views.at(nextIndex);
+    focusView(nextView);
 }
