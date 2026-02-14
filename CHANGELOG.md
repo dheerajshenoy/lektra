@@ -25,6 +25,7 @@
 
 
 ### Bug Fixes
+- Fix callback not being called after file open in some cases (due to async file opening)
 - Fix panel and tab not showing file info properly on file single file open
 - Hide scrollbars when the entire document is visible in the viewport
 - Fix not using config zoom factor
