@@ -30,12 +30,9 @@ class DocumentContainer : public QWidget
 
 public:
     using Id = uint32_t;
-
     explicit DocumentContainer(DocumentView *initialView,
                                QWidget *parent = nullptr);
-
     ~DocumentContainer();
-
     enum class Direction
     {
         Up = 0,
@@ -49,51 +46,21 @@ public:
         return m_id;
     }
 
-    /**
-     * Split the container at the given view with the specified orientation.
-     *
-     * Creates a new DocumentView that mirrors the settings and document of the
-     * specified view, placing it adjacent based on the orientation.
-     *
-     * @param view The view to split from (must be a view in this container)
-     * @param orientation Qt::Horizontal for left/right, Qt::Vertical for
-     * top/bottom
-     */
     void split(DocumentView *view, Qt::Orientation orientation
                                    = Qt::Orientation::Horizontal) noexcept;
-
     void split(DocumentView *view, Qt::Orientation orientation,
                const QString &filePath) noexcept;
-
-    /**
-     * Close a specific view.
-     *
-     * If it's the last view, the close operation is prevented.
-     * Automatically cleans up empty splitters and refocuses appropriately.
-     *
-     * @param view The view to close
-     */
     void closeView(DocumentView *view) noexcept;
-
-    /**
-     * Get all DocumentView instances in the container.
-     *
-     * Views are returned in tree-traversal order (depth-first).
-     *
-     * @return List of all DocumentView instances
-     */
     QList<DocumentView *> getAllViews() const noexcept;
-    DocumentView *getCurrentView() const noexcept;
 
     inline DocumentView *view() const noexcept
     {
         return m_current_view;
     }
 
+    void focusSplit(Direction direction) noexcept;
     void focusView(DocumentView *view) noexcept;
-
     int getViewCount() const noexcept;
-
     void syncViewSettings(DocumentView *source, DocumentView *target) noexcept;
 
 signals:
