@@ -70,7 +70,7 @@ struct Config
     {
         bool focus_follows_mouse{true};
         bool dim_inactive{true};
-        float dim_inactive_opacity{0.5f};
+        float dim_inactive_opacity{0.5f}; // 0.0 (no dim) to 1.0 (fully dimmed)
     } split{};
 
     struct scrollbars
