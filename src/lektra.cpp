@@ -1562,6 +1562,103 @@ lektra::YankSelection() noexcept
         m_doc->YankSelection();
 }
 
+/*
+ *  + If there's a file opened in tab, open in new tab.
+ *  + If there are split containers, open in the current container.
+ *  + Otherwise, open in the current tab (which may be empty or have a file).
+ */
+
+bool
+lektra::OpenFileDWIM(const QString &filename) noexcept
+{
+    DocumentContainer *container{nullptr};
+
+    if (m_tab_widget->count() > 0)
+    {
+        container = m_tab_widget->splitContainers().value(
+            m_tab_widget->currentIndex(), nullptr);
+
+        if (container)
+        {
+            container->view()->CloseFile();
+            return OpenFileInContainer(container, filename);
+        }
+    }
+
+    // else Open in current tab (which may be empty or have a file)
+    return OpenFileInNewTab(filename);
+}
+
+// Open the file in the current `m_doc' container if possible, otherwise do
+// nothing
+bool
+lektra::OpenFileInContainer(DocumentContainer *container,
+                            const QString &filename,
+                            const std::function<void()> &callback) noexcept
+{
+    if (!container)
+    {
+        assert(false && "Container is null");
+        return false;
+    }
+
+    if (filename.isEmpty())
+    {
+        // Show file picker
+        QFileDialog dialog(this);
+        dialog.setFileMode(QFileDialog::ExistingFile);
+        dialog.setNameFilter(tr("PDF Files (*.pdf);;All Files (*)"));
+
+        if (dialog.exec())
+        {
+            const QStringList selected = dialog.selectedFiles();
+            if (!selected.isEmpty())
+                return OpenFileInContainer(container, selected.first(),
+                                           callback);
+        }
+        return false;
+    }
+
+    // Check if file is already open
+    if (m_path_tab_hash.contains(filename))
+    {
+        int existingTab = m_tab_widget->indexOf(m_path_tab_hash[filename]);
+        if (existingTab != -1)
+        {
+            m_tab_widget->setCurrentIndex(existingTab);
+            if (callback)
+                callback();
+            return true;
+        }
+    }
+
+    DocumentView *view = container->view();
+
+    if (!view)
+    {
+        assert(false && "Container has no view");
+        return false;
+    }
+
+    // Initialize connections for the initial view
+    initTabConnections(view);
+    view->openAsync(filename);
+
+    const int tabIndex = m_tab_widget->currentIndex();
+
+    // Store the container mapping
+    m_tab_widget->splitContainers()[tabIndex] = container;
+    m_path_tab_hash[filename]                 = container;
+
+    // Add to recent files
+    insertFileToDB(filename, 1);
+
+    if (callback)
+        callback();
+
+    return true;
+}
+
 void
 lektra::OpenFiles(const std::vector<std::string> &filenames) noexcept
 {
