@@ -64,8 +64,10 @@ public:
     DocumentContainer *VSplit() noexcept;
     DocumentContainer *HSplit() noexcept;
     void CloseSplit() noexcept;
-    void FocusNextSplit() noexcept;
-    void FocusPrevSplit() noexcept;
+    void FocusSplitUp() noexcept;
+    void FocusSplitDown() noexcept;
+    void FocusSplitLeft() noexcept;
+    void FocusSplitRight() noexcept;
     void ReadArgsParser(argparse::ArgumentParser &argparser) noexcept;
     // bool OpenFile(DocumentView *view) noexcept;
     void Search() noexcept;
@@ -95,13 +97,17 @@ public:
     void LastPage() noexcept;
     void NextPage() noexcept;
     void OpenContainingFolder() noexcept;
-    void OpenFiles(const std::vector<std::string> &files) noexcept;
-    void OpenFiles(const QList<QString> &files) noexcept;
-    bool OpenFile(const QString &filename               = QString(),
+    void OpenFile(const QString &filename               = QString(),
                   const std::function<void()> &callback = {}) noexcept;
+    void OpenFiles(const std::vector<std::string> &filenames) noexcept;
+    void OpenFilesInNewTab(const std::vector<std::string> &files) noexcept;
+    void OpenFilesInNewTab(const QList<QString> &files) noexcept;
+    bool OpenFileInNewTab(const QString &filename               = QString(),
+                          const std::function<void()> &callback = {}) noexcept;
     bool OpenFileInNewWindow(const QString &filename = QString(),
                              const std::function<void()> &callback
                              = {}) noexcept;
+    void OpenFilesInNewWindow(const QStringList &filenames) noexcept;
     bool OpenFileVSplit(const QString &filename               = QString(),
                         const std::function<void()> &callback = {});
     bool OpenFileHSplit(const QString &filename               = QString(),
@@ -142,7 +148,6 @@ public:
     void TabPrev() noexcept;
     void TabMoveRight() noexcept;
     void TabMoveLeft() noexcept;
-
     void ReselectLastTextSelection() noexcept;
     void SetLayoutMode(DocumentView::LayoutMode mode) noexcept;
     void SetMark() noexcept;
@@ -167,10 +172,10 @@ protected:
     bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
+    void focusSplitHelper(DocumentContainer::Direction direction) noexcept;
     bool openFileSplitHelper(const QString &filename               = {},
                              const std::function<void()> &callback = {},
-                             Qt::Orientation orientation
-                             = Qt::Horizontal);
+                             Qt::Orientation orientation = Qt::Horizontal);
     void setCurrentDocumentView(DocumentView *view) noexcept;
     void centerMouseInDocumentView(DocumentView *view) noexcept;
 

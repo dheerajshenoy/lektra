@@ -161,9 +161,18 @@ lektra::initMenubar() noexcept
 {
     // --- File Menu ---
     QMenu *fileMenu = m_menuBar->addMenu("&File");
+
     fileMenu->addAction(
         QString("Open File\t%1").arg(m_config.shortcuts["open_file"]), this,
-        [&]() { OpenFile(); });
+        [&]() { OpenFileInNewTab(); });
+
+    fileMenu->addAction(QString("Open File In VSplit\t%1")
+                            .arg(m_config.shortcuts["open_file_vsplit"]),
+                        this, [&]() { OpenFileVSplit(); });
+
+    fileMenu->addAction(QString("Open File In HSplit\t%1")
+                            .arg(m_config.shortcuts["open_file_hsplit"]),
+                        this, [&]() { OpenFileHSplit(); });
 
     m_recentFilesMenu = fileMenu->addMenu("Recent Files");
 
@@ -1252,7 +1261,7 @@ lektra::ReadArgsParser(argparse::ArgumentParser &argparser) noexcept
             int column = match.captured(4).toInt();
             Q_UNUSED(line);
             Q_UNUSED(column);
-            OpenFile(pdfPath);
+            OpenFileInNewTab(pdfPath);
             // synctexLocateInPdf(texPath, line, column); TODO:
         }
         else
@@ -1302,7 +1311,7 @@ lektra::populateRecentFiles() noexcept
         QAction *fileAction = new QAction(path, m_recentFilesMenu);
         connect(fileAction, &QAction::triggered, this, [&, path, page]()
         {
-            OpenFile(path);
+            OpenFileInNewTab(path);
             gotoPage(page);
         });
 
@@ -1348,7 +1357,7 @@ lektra::openLastVisitedFile() noexcept
     const RecentFileEntry &entry = entries.first();
     if (QFile::exists(entry.file_path))
     {
-        OpenFile(entry.file_path);
+        OpenFileInNewTab(entry.file_path);
         gotoPage(entry.page_number);
     }
 }
@@ -1553,25 +1562,32 @@ lektra::YankSelection() noexcept
         m_doc->YankSelection();
 }
 
+void
+lektra::OpenFiles(const std::vector<std::string> &filenames) noexcept
+{
+    for (const std::string &f : filenames)
+        OpenFileInNewTab(QString::fromStdString(f));
+}
+
 // Opens multiple files given a list of file paths
 void
-lektra::OpenFiles(const std::vector<std::string> &files) noexcept
+lektra::OpenFilesInNewTab(const std::vector<std::string> &files) noexcept
 {
     const bool was_batch_opening = m_batch_opening;
     m_batch_opening              = true;
     for (const std::string &s : files)
-        OpenFile(QString::fromStdString(s));
+        OpenFileInNewTab(QString::fromStdString(s));
     m_batch_opening = was_batch_opening;
 }
 
 // Opens multiple files given a list of file paths
 void
-lektra::OpenFiles(const QStringList &files) noexcept
+lektra::OpenFilesInNewTab(const QStringList &files) noexcept
 {
     const bool was_batch_opening = m_batch_opening;
     m_batch_opening              = true;
     for (const QString &file : files)
-        OpenFile(file);
+        OpenFileInNewTab(file);
     m_batch_opening = was_batch_opening;
 }
 
@@ -1603,8 +1619,8 @@ lektra::OpenFiles(const QStringList &files) noexcept
 // }
 
 bool
-lektra::OpenFile(const QString &filename,
-                 const std::function<void()> &callback) noexcept
+lektra::OpenFileInNewTab(const QString &filename,
+                         const std::function<void()> &callback) noexcept
 {
     if (filename.isEmpty())
     {
@@ -1617,7 +1633,7 @@ lektra::OpenFile(const QString &filename,
         {
             QStringList selected = dialog.selectedFiles();
             if (!selected.isEmpty())
-                return OpenFile(selected.first(), callback);
+                return OpenFileInNewTab(selected.first(), callback);
         }
         return false;
     }
@@ -1796,6 +1812,18 @@ lektra::OpenFileHSplit(const QString &filename,
     return openFileSplitHelper(filename, callback, Qt::Horizontal);
 }
 
+void
+lektra::OpenFilesInNewWindow(const QStringList &filenames) noexcept
+{
+    if (filenames.empty())
+        return;
+
+    for (const QString &file : filenames)
+    {
+        OpenFileInNewWindow(file);
+    }
+}
+
 bool
 lektra::OpenFileInNewWindow(const QString &filePath,
                             const std::function<void()> &callback) noexcept
@@ -1809,12 +1837,12 @@ lektra::OpenFileInNewWindow(const QString &filePath,
             return false;
         else if (files.size() > 1)
         {
-            OpenFiles(files);
+            OpenFilesInNewWindow(files);
             return true;
         }
         else
         {
-            return OpenFile(files.first(), callback);
+            return OpenFileInNewWindow(files.first(), callback);
         }
     }
 
@@ -2325,7 +2353,7 @@ lektra::handleTabDropReceived(const TabBar::TabData &data) noexcept
         return;
 
     // Open the file and restore its state
-    OpenFile(data.filePath, [this, data]()
+    OpenFileInNewTab(data.filePath, [this, data]()
     {
         if (!m_doc)
             return;
@@ -2498,7 +2526,7 @@ lektra::eventFilter(QObject *object, QEvent *event)
                 if (mods & Qt::ShiftModifier)
                     OpenFileInNewWindow(filepath);
                 else
-                    OpenFile(filepath);
+                    OpenFileInNewTab(filepath);
             }
         }
         return true;
@@ -3164,7 +3192,7 @@ lektra::showStartupWidget() noexcept
     connect(m_startup_widget, &StartupWidget::openFileRequested, this,
             [this](const QString &path)
     {
-        OpenFile(path, [this]()
+        OpenFileInNewTab(path, [this]()
         {
             int index = m_tab_widget->indexOf(m_startup_widget);
             if (index != -1)
@@ -3282,8 +3310,10 @@ lektra::initActionMap() noexcept
            ACTION_NO_ARGS("split_horizontal", VSplit),
            ACTION_NO_ARGS("split_vertical", HSplit),
            ACTION_NO_ARGS("close_split", CloseSplit),
-           ACTION_NO_ARGS("focus_next_split", FocusNextSplit),
-           ACTION_NO_ARGS("focus_prev_split", FocusPrevSplit),
+           ACTION_NO_ARGS("focus_split_right", FocusSplitRight),
+           ACTION_NO_ARGS("focus_split_left", FocusSplitLeft),
+           ACTION_NO_ARGS("focus_split_up", FocusSplitUp),
+           ACTION_NO_ARGS("focus_split_down", FocusSplitDown),
            ACTION_NO_ARGS("open_file_vsplit", OpenFileVSplit),
            ACTION_NO_ARGS("open_file_hsplit", OpenFileHSplit),
 
@@ -3296,7 +3326,7 @@ lektra::initActionMap() noexcept
            ACTION_NO_ARGS("text_highlight_mode", ToggleTextHighlight),
            ACTION_NO_ARGS("fullscreen", ToggleFullscreen),
            ACTION_NO_ARGS("file_properties", FileProperties),
-           ACTION_NO_ARGS("open_file", OpenFile),
+           ACTION_NO_ARGS("open_file_tab", OpenFileInNewTab),
            ACTION_NO_ARGS("fit_width", FitWidth),
            ACTION_NO_ARGS("fit_height", FitHeight),
            ACTION_NO_ARGS("fit_window", FitWindow),
@@ -3759,7 +3789,7 @@ lektra::openSessionFromArray(const QJsonArray &sessionArray) noexcept
 
         // Use a lambda to capture session settings and apply them after
         // file opens
-        OpenFile(filePath, [this, page, zoom, fitMode, invert]()
+        OpenFileInNewTab(filePath, [this, page, zoom, fitMode, invert]()
         {
             if (m_doc)
             {
@@ -3871,7 +3901,7 @@ lektra::showTutorialFile() noexcept
     const QString doc_path = QString("%1%2")
                                  .arg(APP_INSTALL_PREFIX)
                                  .arg("/share/doc/lektra/tutorial.pdf");
-    OpenFile(doc_path);
+    OpenFileInNewTab(doc_path);
 #elif defined(__APPLE__) && defined(__MACH__)
     QMessageBox::warning(this, "Show Tutorial File",
                          "Not yet implemented for Macintosh");
@@ -4011,52 +4041,6 @@ lektra::HSplit() noexcept
 }
 
 void
-lektra::FocusNextSplit() noexcept
-{
-    int currentTabIndex = m_tab_widget->currentIndex();
-    if (!validTabIndex(currentTabIndex))
-        return;
-
-    DocumentContainer *container
-        = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
-
-    if (!container)
-        return;
-
-    container->focusNextView();
-
-    if (m_config.split.focus_follows_mouse)
-    {
-        if (auto *currentView = container->getCurrentView())
-        {
-            centerMouseInDocumentView(currentView);
-        }
-    }
-}
-
-void
-lektra::FocusPrevSplit() noexcept
-{
-    int currentTabIndex = m_tab_widget->currentIndex();
-    if (!validTabIndex(currentTabIndex))
-        return;
-
-    DocumentContainer *container
-        = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
-
-    if (!container)
-        return;
-
-    container->focusPrevView();
-
-    if (m_config.split.focus_follows_mouse)
-    {
-        if (auto *currentView = container->getCurrentView())
-            centerMouseInDocumentView(currentView);
-    }
-}
-
-void
 lektra::CloseSplit() noexcept
 {
     int currentTabIndex = m_tab_widget->currentIndex();
@@ -4126,5 +4110,70 @@ lektra::CloseFile() noexcept
     {
         int indexToClose = m_tab_widget->currentIndex();
         TabClose(indexToClose);
+    }
+}
+
+void
+lektra::FocusSplitUp() noexcept
+{
+    focusSplitHelper(DocumentContainer::Direction::Up);
+}
+
+void
+lektra::FocusSplitDown() noexcept
+{
+    focusSplitHelper(DocumentContainer::Direction::Down);
+}
+
+void
+lektra::FocusSplitLeft() noexcept
+{
+    focusSplitHelper(DocumentContainer::Direction::Left);
+}
+
+void
+lektra::FocusSplitRight() noexcept
+{
+    focusSplitHelper(DocumentContainer::Direction::Right);
+}
+
+void
+lektra::focusSplitHelper(DocumentContainer::Direction direction) noexcept
+{
+    int currentTabIndex = m_tab_widget->currentIndex();
+    if (!validTabIndex(currentTabIndex))
+        return;
+
+    DocumentContainer *container
+        = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
+
+    if (!container)
+        return;
+
+    // Use the same enum for directions in DocumentContainer to avoid confusion
+    using enum DocumentContainer::Direction;
+
+    switch (direction)
+    {
+        case Up:
+            container->focusSplit(Up);
+            break;
+        case Down:
+            container->focusSplit(Down);
+            break;
+        case Left:
+            container->focusSplit(Left);
+            break;
+        case Right:
+            container->focusSplit(Right);
+            break;
+    }
+
+    if (m_config.split.focus_follows_mouse)
+    {
+        if (auto *currentView = container->getCurrentView())
+        {
+            centerMouseInDocumentView(currentView);
+        }
     }
 }
