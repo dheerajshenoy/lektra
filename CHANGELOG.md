@@ -6,6 +6,9 @@
 - Ability to move tabs with mouse drag and drop within the tab bar and detach to new window if dropped outside
 - Ability to split the view into multiple panes to view different pages of the same document (or different) side by side
 
+- New flags for opening files in `vsplit` or `hsplit` directly from the command line
+    - `--vsplit` - Open file in a vertically split pane
+    - `--hsplit` - Open file in a horizontally split pane
 - New config options for splits
     - `[split]`
         - `focus_follows_mouse` (bool): Whether to focus split pane on mouse hover
