@@ -1,10 +1,10 @@
 # TODO
+- [X] compare files side by side (split view)
 - [ ] Undo/Redo operations
-  - [X] Rect Annotation
-  - [X] Text Highlight Annotation
-  - [X] Delete Annotation
-  - [ ] Popup Annotation
-
+- [X] Rect Annotation
+- [X] Text Highlight Annotation
+- [X] Delete Annotation
+- [ ] Popup Annotation
 - [ ] Underline Annotation
 - [ ] Synctex highlight line
 - [ ] Easy reference paper search
@@ -16,17 +16,16 @@
 - [ ] Two page side-by-side view mode
 - [ ] Two selected page view mode
 - [ ] AI features
-    - [ ] Equation OCR to LaTeX
-    - [ ] Table exporter to CSV/Excel/Numpy
-    - [ ] Semantic search
-    - [ ] Finding citation from folder
-    - [ ] Explain selection
-    - [ ] Convert to notes
+- [ ] Equation OCR to LaTeX
+- [ ] Table exporter to CSV/Excel/Numpy
+- [ ] Semantic search
+- [ ] Finding citation from folder
+- [ ] Explain selection
+- [ ] Convert to notes
 - [ ] read from stdin
 - [ ] password protected files
 - [ ] add tabs feature to website
 - [ ] book view
-- [ ] compare files side by side
 - [ ] beautify command palette
 - [ ] Suspend unused tabs when inactive for a given time
 - [ ] Auto-find current position in the outline
@@ -35,6 +34,6 @@
 - [ ] Separate dark and light mode colors ability
 - [ ] Copy text on highlight annotation problem
 - [ ] Don't refresh highlights search each time
-- [ ] Search engine configuration
+    - [ ] Search engine configuration
 - [ ] Smart jump under cursor (eg. jump to citation if on citation)
-- [ ] Use OpenGL for rendering using GPU for performance boost instead of QGraphicsView
+    - [ ] Use OpenGL for rendering using GPU for performance boost instead of QGraphicsView
