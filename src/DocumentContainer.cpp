@@ -385,10 +385,10 @@ DocumentContainer::eventFilter(QObject *watched, QEvent *event) noexcept
     if (event->type() == QEvent::FocusIn)
     {
         DocumentView *view = qobject_cast<DocumentView *>(watched);
+
         if (view && view != m_current_view)
         {
-            m_current_view = view;
-            emit currentViewChanged(view);
+            focusView(view);
         }
     }
 
@@ -411,9 +411,14 @@ DocumentContainer::focusView(DocumentView *view) noexcept
     if (!views.contains(view))
         return;
 
+    if (m_current_view && m_current_view != view)
+        m_current_view->graphicsView()->setActive(false);
+
     m_current_view = view;
-    view->setFocus();
-    emit currentViewChanged(view);
+    m_current_view->graphicsView()->setActive(true);
+    m_current_view->setFocus();
+
+    emit currentViewChanged(m_current_view);
 }
 
 void
@@ -460,32 +465,4 @@ DocumentContainer::focusSplit(Direction direction) noexcept
 {
     if (!m_current_view)
         return;
-
-    // Get all views in the current container
-    QList<DocumentView *> views = getAllViews();
-    if (views.count() <= 1)
-        return;
-
-    // Find the index of the current view
-    int currentIndex = views.indexOf(m_current_view);
-    if (currentIndex == -1)
-        return;
-
-    // Determine the next index based on the direction
-    int nextIndex = currentIndex;
-    switch (direction)
-    {
-        case Direction::Up:
-        case Direction::Left:
-            nextIndex = (currentIndex - 1 + views.count()) % views.count();
-            break;
-        case Direction::Down:
-        case Direction::Right:
-            nextIndex = (currentIndex + 1) % views.count();
-            break;
-    }
-
-    // Focus the next view
-    DocumentView *nextView = views.at(nextIndex);
-    focusView(nextView);
 }
