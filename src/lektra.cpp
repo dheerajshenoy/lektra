@@ -1272,17 +1272,36 @@ lektra::ReadArgsParser(argparse::ArgumentParser &argparser) noexcept
     }
 #endif
 
+    bool hsplit{false}, vsplit{false};
+
+    if (argparser.is_used("vsplit"))
+    {
+        vsplit = true;
+    }
+
+    if (argparser.is_used("hsplit"))
+    {
+        hsplit = true;
+    }
+
     if (argparser.is_used("files"))
     {
         auto files = argparser.get<std::vector<std::string>>("files");
+        m_config.behavior.open_last_visited = false;
+
         if (!files.empty())
         {
-            OpenFiles(files);
-            m_config.behavior.open_last_visited = false;
+            if (hsplit)
+                OpenFilesInHSplit(files);
+            else if (vsplit)
+                OpenFilesInVSplit(files);
+            else
+                OpenFiles(files);
         }
-
-        if (m_config.behavior.open_last_visited)
+        else if (m_config.behavior.open_last_visited)
+        {
             openLastVisitedFile();
+        }
     }
 
     if (m_tab_widget->count() == 0 && m_config.window.startup_tab)
@@ -1654,7 +1673,14 @@ lektra::OpenFileInContainer(DocumentContainer *container,
     insertFileToDB(filename, 1);
 
     if (callback)
-        callback();
+    {
+        connect(view, &DocumentView::openFileFinished, this,
+                [callback](DocumentView *view)
+        {
+            Q_UNUSED(view);
+            callback();
+        }, Qt::SingleShotConnection);
+    }
 
     return true;
 }
@@ -1664,6 +1690,45 @@ lektra::OpenFiles(const std::vector<std::string> &filenames) noexcept
 {
     for (const std::string &f : filenames)
         OpenFileInNewTab(QString::fromStdString(f));
+}
+
+void
+lektra::OpenFilesInVSplit(const std::vector<std::string> &files) noexcept
+{
+#ifndef NDEBUG
+    qDebug() << "lektra::OpenFilesInVSplit(): Opening files in vertical split:"
+             << files.size();
+#endif
+    if (files.empty())
+        return;
+
+    // First file always opens in a new tab
+    OpenFileInNewTab(QString::fromStdString(files[0]), [this, files]()
+    {
+        // Subsequent files split into that tab
+        for (size_t i = 1; i < files.size(); ++i)
+            OpenFileVSplit(QString::fromStdString(files[i]));
+    });
+}
+
+void
+lektra::OpenFilesInHSplit(const std::vector<std::string> &files) noexcept
+{
+#ifndef NDEBUG
+    qDebug()
+        << "lektra::OpenFilesInHSplit(): Opening files in horizontal split:"
+        << files.size();
+#endif
+    if (files.empty())
+        return;
+
+    // First file always opens in a new tab
+    OpenFileInNewTab(QString::fromStdString(files[0]), [this, files]()
+    {
+        // Subsequent files split into that tab
+        for (size_t i = 1; i < files.size(); ++i)
+            OpenFileHSplit(QString::fromStdString(files[i]));
+    });
 }
 
 // Opens multiple files given a list of file paths
@@ -1744,6 +1809,7 @@ lektra::OpenFileInNewTab(const QString &filename,
             m_tab_widget->setCurrentIndex(existingTab);
             if (callback)
                 callback();
+
             return true;
         }
     }
@@ -1825,7 +1891,14 @@ lektra::OpenFileInNewTab(const QString &filename,
     insertFileToDB(filename, 1);
 
     if (callback)
-        callback();
+    {
+        connect(view, &DocumentView::openFileFinished, this,
+                [callback](DocumentView *view)
+        {
+            Q_UNUSED(view);
+            callback();
+        }, Qt::SingleShotConnection);
+    }
 
     return true;
 }
@@ -1889,7 +1962,14 @@ lektra::openFileSplitHelper(const QString &filename,
     insertFileToDB(filename, 1);
 
     if (callback)
-        callback();
+    {
+        connect(currentView, &DocumentView::openFileFinished, this,
+                [callback](DocumentView *view)
+        {
+            Q_UNUSED(view);
+            callback();
+        }, Qt::SingleShotConnection);
+    }
 
     return false;
 }

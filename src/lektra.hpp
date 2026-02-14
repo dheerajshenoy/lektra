@@ -102,6 +102,8 @@ public:
                              const QString &filename      = QString(),
                              const std::function<void()> &callback
                              = {}) noexcept;
+    void OpenFilesInVSplit(const std::vector<std::string> &files) noexcept;
+    void OpenFilesInHSplit(const std::vector<std::string> &files) noexcept;
     void OpenFiles(const std::vector<std::string> &filenames) noexcept;
     void OpenFilesInNewTab(const std::vector<std::string> &files) noexcept;
     void OpenFilesInNewTab(const QList<QString> &files) noexcept;

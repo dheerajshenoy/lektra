@@ -90,6 +90,14 @@ init_args(argparse::ArgumentParser &program)
         .nargs(1)
         .metavar("CONFIG_PATH");
 
+    program.add_argument("--vsplit")
+        .help("Open file(s) in vertical split")
+        .flag();
+
+    program.add_argument("--hsplit")
+        .help("Open file(s) in horizontal split")
+        .flag();
+
     program.add_argument("--about")
         .help("Show about dialog")
         .default_value(false)
