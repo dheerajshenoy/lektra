@@ -1668,7 +1668,7 @@ lektra::OpenFileInNewTab(const QString &filename,
         int currentTabIndex = m_tab_widget->currentIndex();
         DocumentContainer *currentContainer
             = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
-        if (currentContainer && currentContainer->getCurrentView() == newView)
+        if (currentContainer && currentContainer->view() == newView)
             setCurrentDocumentView(newView);
     });
 
@@ -1683,7 +1683,7 @@ lektra::OpenFileInNewTab(const QString &filename,
                 = m_tab_widget->splitContainers().value(currentTabIndex,
                                                         nullptr);
             if (currentContainer)
-                setCurrentDocumentView(currentContainer->getCurrentView());
+                setCurrentDocumentView(currentContainer->view());
         }
     });
 
@@ -1783,7 +1783,7 @@ lektra::openFileSplitHelper(const QString &filename,
     if (!container)
         throw std::runtime_error("No container found for current tab");
 
-    DocumentView *currentView = container->getCurrentView();
+    DocumentView *currentView = container->view();
     if (!currentView)
         return false;
 
@@ -2309,7 +2309,7 @@ lektra::handleCurrentTabChanged(int index) noexcept
     }
 
     // Update m_doc to current view in the container
-    setCurrentDocumentView(container->getCurrentView());
+    setCurrentDocumentView(container->view());
 
     if (m_doc)
     {
@@ -3540,7 +3540,7 @@ lektra::TabClose(int tabno) noexcept
             = m_tab_widget->splitContainers().value(currentIndex, nullptr);
         if (currentContainer)
         {
-            setCurrentDocumentView(currentContainer->getCurrentView());
+            setCurrentDocumentView(currentContainer->view());
         }
     }
     else
@@ -4004,7 +4004,7 @@ lektra::VSplit() noexcept
     if (!container)
         return nullptr;
 
-    DocumentView *currentView = container->getCurrentView();
+    DocumentView *currentView = container->view();
     if (!currentView)
         return nullptr;
 
@@ -4028,7 +4028,7 @@ lektra::HSplit() noexcept
     if (!container)
         return nullptr;
 
-    DocumentView *currentView = container->getCurrentView();
+    DocumentView *currentView = container->view();
     if (!currentView)
         return nullptr;
 
@@ -4056,7 +4056,7 @@ lektra::CloseSplit() noexcept
     if (container->getViewCount() <= 1)
         return;
 
-    DocumentView *currentView = container->getCurrentView();
+    DocumentView *currentView = container->view();
     if (currentView)
     {
         container->closeView(currentView);
@@ -4170,10 +4170,6 @@ lektra::focusSplitHelper(DocumentContainer::Direction direction) noexcept
     }
 
     if (m_config.split.focus_follows_mouse)
-    {
-        if (auto *currentView = container->getCurrentView())
-        {
-            centerMouseInDocumentView(currentView);
-        }
-    }
+        if (auto *view = container->view())
+            centerMouseInDocumentView(view);
 }
