@@ -97,8 +97,11 @@ public:
     void LastPage() noexcept;
     void NextPage() noexcept;
     void OpenContainingFolder() noexcept;
-    void OpenFile(const QString &filename               = QString(),
-                  const std::function<void()> &callback = {}) noexcept;
+    bool OpenFileDWIM(const QString &filename = QString()) noexcept;
+    bool OpenFileInContainer(DocumentContainer *container,
+                             const QString &filename      = QString(),
+                             const std::function<void()> &callback
+                             = {}) noexcept;
     void OpenFiles(const std::vector<std::string> &filenames) noexcept;
     void OpenFilesInNewTab(const std::vector<std::string> &files) noexcept;
     void OpenFilesInNewTab(const QList<QString> &files) noexcept;
