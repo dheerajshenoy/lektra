@@ -85,7 +85,10 @@ public:
     QList<DocumentView *> getAllViews() const noexcept;
     DocumentView *getCurrentView() const noexcept;
 
-    void focusSplit(Direction direction) noexcept;
+    inline DocumentView *view() const noexcept
+    {
+        return m_current_view;
+    }
 
     void focusView(DocumentView *view) noexcept;
 

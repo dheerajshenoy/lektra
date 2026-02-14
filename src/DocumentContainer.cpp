@@ -347,12 +347,6 @@ DocumentContainer::closeView(DocumentView *view) noexcept
 }
 
 DocumentView *
-DocumentContainer::getCurrentView() const noexcept
-{
-    return m_current_view;
-}
-
-DocumentView *
 DocumentContainer::createViewFromTemplate(DocumentView *templateView) noexcept
 {
     if (!templateView)
