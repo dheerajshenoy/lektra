@@ -82,7 +82,7 @@ DocumentView::~DocumentView() noexcept
 void
 DocumentView::initGui() noexcept
 {
-    m_gview  = new GraphicsView(this);
+    m_gview  = new GraphicsView(m_config, this);
     m_gscene = new GraphicsScene(m_gview);
     m_gview->setScene(m_gscene);
 
