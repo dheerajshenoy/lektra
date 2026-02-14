@@ -1784,17 +1784,16 @@ lektra::OpenFileInNewTab(const QString &filename,
         }
     });
 
-    connect(container, &DocumentContainer::currentViewChanged, this,
-            [this](DocumentView *newView)
+    connect(container, &DocumentContainer::currentViewChanged, container,
+            [this, container](DocumentView *newView)
     {
-        // Update m_doc to point to the current view in current tab
-        int currentTabIndex = m_tab_widget->currentIndex();
-        DocumentContainer *currentContainer
-            = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
-        if (currentContainer
-            && currentContainer
-                   == qobject_cast<DocumentContainer *>(
-                       m_tab_widget->currentWidget()))
+        DocumentContainer *current = m_tab_widget->splitContainers().value(
+            m_tab_widget->currentIndex(), nullptr);
+
+        if (!current)
+            return;
+
+        if (container == current)
             setCurrentDocumentView(newView);
     });
 
