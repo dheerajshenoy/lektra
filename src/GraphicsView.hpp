@@ -1,11 +1,14 @@
 #pragma once
 
+
 #include <QElapsedTimer>
 #include <QGraphicsView>
 #include <QMouseEvent>
 #include <QRubberBand>
 #include <QScrollBar>
 #include <QTimer>
+
+struct Config;
 
 class GraphicsPixmapItem;
 
@@ -26,7 +29,22 @@ public:
         COUNT
     };
 
-    explicit GraphicsView(QWidget *parent = nullptr);
+    explicit GraphicsView(const Config &config, QWidget *parent = nullptr);
+
+    inline void setActive(bool state) noexcept
+    {
+        m_active = state;
+    }
+
+    inline bool isActive() const noexcept
+    {
+        return m_active;
+    }
+
+    inline const Config &config() const noexcept
+    {
+        return m_config;
+    }
 
     inline QPointF selectionStart() const noexcept
     {
@@ -124,6 +142,7 @@ signals:
     void quadrupleClickRequested(QPointF scenePos);
 
 protected:
+    void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
@@ -215,6 +234,7 @@ private:
     bool m_scrollbarsVisible{false};
     bool m_vbarEnabled{true};
     bool m_hbarEnabled{true};
-
+    bool m_active{true};
     static constexpr int SCROLLBAR_MARGIN = 2;
+    const Config &m_config;
 };
