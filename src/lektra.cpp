@@ -4073,11 +4073,20 @@ lektra::setCurrentDocumentView(DocumentView *view) noexcept
 
     m_doc = view;
 
-    if (m_doc)
+    if (!view)
     {
-        m_doc->raise();
-        m_doc->setFocus(Qt::OtherFocusReason);
+        updateUiEnabledState();
+        updatePanel();
+        return;
     }
+
+    DocumentContainer *container = m_tab_widget->splitContainers().value(
+        m_tab_widget->currentIndex(), nullptr);
+    if (!container)
+        return;
+
+    if (container->view() != view)
+        container->focusView(view);
 
     updateUiEnabledState();
     updatePageNavigationActions();
@@ -4140,34 +4149,16 @@ lektra::FocusSplitRight() noexcept
 void
 lektra::focusSplitHelper(DocumentContainer::Direction direction) noexcept
 {
-    int currentTabIndex = m_tab_widget->currentIndex();
+    const int currentTabIndex = m_tab_widget->currentIndex();
     if (!validTabIndex(currentTabIndex))
         return;
 
     DocumentContainer *container
         = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
-
     if (!container)
         return;
 
-    // Use the same enum for directions in DocumentContainer to avoid confusion
-    using enum DocumentContainer::Direction;
-
-    switch (direction)
-    {
-        case Up:
-            container->focusSplit(Up);
-            break;
-        case Down:
-            container->focusSplit(Down);
-            break;
-        case Left:
-            container->focusSplit(Left);
-            break;
-        case Right:
-            container->focusSplit(Right);
-            break;
-    }
+    container->focusSplit(direction);
 
     if (m_config.split.focus_follows_mouse)
         if (auto *view = container->view())
