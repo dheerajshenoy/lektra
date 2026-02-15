@@ -1655,6 +1655,8 @@ Model::setUrlLinkRegex(const QString &pattern) noexcept
     const QString effectivePattern
         = pattern.isEmpty() ? defaultPattern : pattern;
     QRegularExpression re(effectivePattern);
+    re.optimize();
+
     if (!re.isValid())
     {
         qWarning() << "Invalid url_regex:" << re.errorString();
