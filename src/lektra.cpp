@@ -3977,6 +3977,9 @@ lektra::openSessionFromArray(const QJsonArray &sessionArray) noexcept
                 return;
 
             restoreSplitNode(container, rootView, splitsNode, nullptr);
+
+            m_tab_widget->tabBar()->setSplitCount(idx,
+                                                  container->getViewCount());
         });
     }
 }
