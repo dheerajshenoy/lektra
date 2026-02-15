@@ -50,10 +50,12 @@ DocumentView::DocumentView(const Config &config, QWidget *parent) noexcept
 #endif
 
     m_model = new Model(this);
-    connect(m_model, &Model::openFileFinished, this,
-            &DocumentView::handleOpenFileFinished);
     connect(m_model, &Model::openFileFailed, this,
             [this]() { emit openFileFailed(this); });
+
+    // Add:
+    connect(&m_open_future_watcher, &QFutureWatcher<void>::finished, this,
+            &DocumentView::handleOpenFileFinished);
 
     initGui();
 #ifdef HAS_SYNCTEX
@@ -256,9 +258,16 @@ DocumentView::openAsync(const QString &filePath,
 #ifndef NDEBUG
     qDebug() << "DocumentView::openAsync(): Opening file:" << filePath;
 #endif
+    if (m_open_future_watcher.isRunning())
+    {
+        m_open_future_watcher.cancel();
+    }
+    clearDocumentItems();
+
     m_spinner->start();
     m_spinner->show();
-    m_model->openAsync(filePath, password);
+    QFuture<void> future = m_model->openAsync(filePath, password);
+    m_open_future_watcher.setFuture(future);
 }
 
 void
@@ -1539,6 +1548,8 @@ DocumentView::SaveAsFile() noexcept
 void
 DocumentView::CloseFile() noexcept
 {
+    clearDocumentItems();
+    resetConnections();
     m_model->close();
 }
 

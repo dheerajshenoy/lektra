@@ -230,10 +230,9 @@ public:
     }
 
     void FollowLink(const Model::LinkInfo &info) noexcept;
-
     void setInvertColor(bool invert) noexcept;
     void openAsync(const QString &filePath,
-                   const QString &password = {}) noexcept;
+                            const QString &password = {}) noexcept;
     bool EncryptDocument() noexcept;
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
@@ -452,10 +451,10 @@ private:
     // fz_pixmap *m_hit_pixmap{nullptr};
     LayoutMode m_layout_mode{LayoutMode::TOP_TO_BOTTOM};
     WaitingSpinnerWidget *m_spinner{nullptr};
-    QFutureWatcher<void> m_open_file_watcher;
     std::set<int> m_visible_pages_cache;
     bool m_visible_pages_dirty{true};
     bool m_deferred_fit{false};
+    QFutureWatcher<void> m_open_future_watcher;
     QFileSystemWatcher *m_file_watcher{nullptr};
     DocumentContainer *m_container{nullptr};
 
