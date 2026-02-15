@@ -52,15 +52,18 @@ public:
     {
         _pageno = pageno;
     }
-    inline int gotoPageNo() noexcept
+
+    inline const int &gotoPageNo() const noexcept
     {
         return _pageno;
     }
+
     inline void setTargetLocation(const PageLocation &loc) noexcept
     {
         _loc = loc;
     }
-    inline PageLocation location() noexcept
+
+    inline const PageLocation &location() const noexcept
     {
         return _loc;
     }
@@ -69,7 +72,8 @@ public:
     {
         _source_loc = loc;
     }
-    inline PageLocation sourceLocation() const noexcept
+
+    inline const PageLocation &sourceLocation() const noexcept
     {
         return _source_loc;
     }
@@ -79,7 +83,7 @@ public:
         _uri = uri;
     }
 
-    inline const char *URI() noexcept
+    inline const char *URI() const noexcept
     {
         return _uri;
     }
@@ -89,7 +93,12 @@ public:
         _type = type;
     }
 
-    inline LinkType linkType() noexcept
+    inline bool isInternal() const noexcept
+    {
+        return _type != LinkType::External;
+    }
+
+    inline const LinkType &linkType() const noexcept
     {
         return _type;
     }
