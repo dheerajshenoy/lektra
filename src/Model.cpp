@@ -103,10 +103,10 @@ Model::~Model() noexcept
     fz_drop_context(m_ctx);
 }
 
-void
+QFuture<void>
 Model::openAsync(const QString &filePath, const QString &password) noexcept
 {
-    QFuture<void> _ = QtConcurrent::run([this, filePath, password]()
+    return QtConcurrent::run([this, filePath, password]()
     {
         if (!m_ctx)
         {
@@ -1914,7 +1914,8 @@ void
 Model::searchInPage(const int pageno, const QString &term,
                     bool caseSensitive) noexcept
 {
-    QFuture<void> result = QtConcurrent::run([this, pageno, term, caseSensitive]()
+    QFuture<void> result
+        = QtConcurrent::run([this, pageno, term, caseSensitive]()
     {
         QMap<int, std::vector<Model::SearchHit>> results;
         m_search_match_count = 0;
