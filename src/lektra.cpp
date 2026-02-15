@@ -1581,12 +1581,6 @@ lektra::YankSelection() noexcept
         m_doc->YankSelection();
 }
 
-/*
- *  + If there's a file opened in tab, open in new tab.
- *  + If there are split containers, open in the current container.
- *  + Otherwise, open in the current tab (which may be empty or have a file).
- */
-
 bool
 lektra::OpenFileDWIM(const QString &filename) noexcept
 {
@@ -1613,26 +1607,19 @@ lektra::OpenFileDWIM(const QString &filename) noexcept
     return OpenFileInNewTab(filename);
 }
 
-// Open the file in the current `m_doc' container if possible, otherwise do
-// nothing
 bool
 lektra::OpenFileInContainer(DocumentContainer *container,
                             const QString &filename,
                             const std::function<void()> &callback) noexcept
 {
     if (!container)
-    {
-        assert(false && "Container is null");
         return false;
-    }
 
     if (filename.isEmpty())
     {
-        // Show file picker
         QFileDialog dialog(this);
         dialog.setFileMode(QFileDialog::ExistingFile);
         dialog.setNameFilter(tr("PDF Files (*.pdf);;All Files (*)"));
-
         if (dialog.exec())
         {
             const QStringList selected = dialog.selectedFiles();
@@ -1643,50 +1630,62 @@ lektra::OpenFileInContainer(DocumentContainer *container,
         return false;
     }
 
-    // Check if file is already open
+    // Only redirect if the file is open in a DIFFERENT container
     if (m_path_tab_hash.contains(filename))
     {
-        int existingTab = m_tab_widget->indexOf(m_path_tab_hash[filename]);
-        if (existingTab != -1)
+        QWidget *owner = m_path_tab_hash[filename];
+        if (owner != container)
         {
-            m_tab_widget->setCurrentIndex(existingTab);
-            if (callback)
-                callback();
-            return true;
+            int existingTab = m_tab_widget->indexOf(owner);
+            if (existingTab != -1)
+            {
+                m_tab_widget->setCurrentIndex(existingTab);
+                if (callback)
+                    callback();
+                return true;
+            }
         }
+        // Same container — fall through and replace
     }
 
     DocumentView *view = container->view();
-
     if (!view)
-    {
-        assert(false && "Container has no view");
         return false;
-    }
 
-    // Initialize connections for the initial view
-    initTabConnections(view);
-    view->openAsync(filename);
+    // Remove old path mapping before opening new file
+    if (!view->filePath().isEmpty())
+        m_path_tab_hash.remove(view->filePath());
+
+    view->setDPR(m_dpr); // match OpenFileInNewTab
 
     const int tabIndex = m_tab_widget->currentIndex();
+    // Update tab title once loaded
+    connect(view, &DocumentView::openFileFinished, this,
+            [this, tabIndex](DocumentView *doc)
+    {
+        if (validTabIndex(tabIndex))
+            m_tab_widget->tabBar()->setTabText(tabIndex, m_config.tabs.full_path
+                                                             ? doc->filePath()
+                                                             : doc->fileName());
+        updatePanel();
+    }, Qt::SingleShotConnection);
 
-    // Store the container mapping
+    view->openAsync(filename);
+
     m_tab_widget->splitContainers()[tabIndex] = container;
     m_path_tab_hash[filename]                 = container;
+    m_tab_widget->tabBar()->setSplitCount(tabIndex, container->getViewCount());
 
-    // Add to recent files
-    insertFileToDB(filename, 1);
+    setCurrentDocumentView(view); // immediate, like OpenFileInNewTab
 
     if (callback)
     {
         connect(view, &DocumentView::openFileFinished, this,
-                [callback](DocumentView *view)
-        {
-            Q_UNUSED(view);
-            callback();
-        }, Qt::SingleShotConnection);
+                [callback](DocumentView *) { callback(); },
+                Qt::SingleShotConnection);
     }
 
+    insertFileToDB(filename, 1);
     return true;
 }
 
@@ -3984,7 +3983,26 @@ lektra::openSessionFromArray(const QJsonArray &sessionArray) noexcept
         if (splitsNode.isEmpty())
             continue;
 
-        const QString startFile = getFirstFilePath(splitsNode);
+        // Recursive lambda to find the first file path in the splits tree for
+        // this tab
+        std::function<QString(const QJsonObject &)> firstFilePath
+            = [&firstFilePath](const QJsonObject &node) -> QString
+        {
+            if (node["type"].toString() == "view")
+                return node["file_path"].toString();
+
+            const QJsonArray children = node["children"].toArray();
+            for (const QJsonValue &child : children)
+            {
+                const QString path = firstFilePath(child.toObject());
+                if (!path.isEmpty())
+                    return path;
+            }
+            return {};
+        };
+
+        const QString startFile = firstFilePath(splitsNode);
+
         if (startFile.isEmpty())
             continue;
 
