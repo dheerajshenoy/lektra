@@ -266,7 +266,8 @@ DocumentView::openAsync(const QString &filePath,
 
     m_spinner->start();
     m_spinner->show();
-    QFuture<void> future = m_model->openAsync(filePath, password);
+    QFuture<void> future
+        = m_model->openAsync(QDir::cleanPath(filePath), password);
     m_open_future_watcher.setFuture(future);
 }
 

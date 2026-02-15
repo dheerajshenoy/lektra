@@ -106,6 +106,8 @@ Model::~Model() noexcept
 QFuture<void>
 Model::openAsync(const QString &filePath, const QString &password) noexcept
 {
+    m_filepath = QFileInfo(filePath).canonicalFilePath();
+
     return QtConcurrent::run([this, filePath, password]()
     {
         if (!m_ctx)
@@ -184,10 +186,7 @@ Model::openAsync(const QString &filePath, const QString &password) noexcept
         }
 
         QMetaObject::invokeMethod(this, [this, filePath]()
-        {
-            m_filepath = filePath;
-            emit openFileFinished();
-        }, Qt::QueuedConnection);
+        { emit openFileFinished(); }, Qt::QueuedConnection);
     });
 }
 
