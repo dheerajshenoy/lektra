@@ -370,7 +370,8 @@ public:
                                 const QPointF &end) noexcept;
     void invalidatePageCache(int pageno) noexcept;
     void search(const QString &term, bool caseSensitive = false) noexcept;
-    void searchInPage(const int pageno, const QString &term, bool caseSensitive = false) noexcept;
+    void searchInPage(const int pageno, const QString &term,
+                      bool caseSensitive = false) noexcept;
     std::vector<Model::SearchHit> searchHelper(int pageno, const QString &term,
                                                bool caseSensitive) noexcept;
     std::vector<HighlightText> collectHighlightTexts(bool groupByLine
