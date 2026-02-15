@@ -47,18 +47,17 @@ public:
         return m_id;
     }
 
+    inline DocumentView *view() const noexcept
+    {
+        return m_current_view;
+    }
+
     void split(DocumentView *view, Qt::Orientation orientation
                                    = Qt::Orientation::Horizontal) noexcept;
     void split(DocumentView *view, Qt::Orientation orientation,
                const QString &filePath) noexcept;
     void closeView(DocumentView *view) noexcept;
     QList<DocumentView *> getAllViews() const noexcept;
-
-    inline DocumentView *view() const noexcept
-    {
-        return m_current_view;
-    }
-
     void focusSplit(Direction direction) noexcept;
     void focusView(DocumentView *view) noexcept;
     int getViewCount() const noexcept;
