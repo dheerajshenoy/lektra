@@ -2925,8 +2925,12 @@ lektra::initTabConnections(DocumentView *docwidget) noexcept
         }
     });
 
-    connect(docwidget, &DocumentView::currentPageChanged, m_statusbar,
-            &Statusbar::setPageNo);
+    connect(docwidget, &DocumentView::currentPageChanged, this,
+            [this, docwidget](int pageno)
+    {
+        if (m_doc == docwidget)
+            m_statusbar->setPageNo(pageno);
+    });
 
     connect(docwidget, &DocumentView::searchBarSpinnerShow, m_search_bar,
             &SearchBar::showSpinner);
