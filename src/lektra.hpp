@@ -177,15 +177,12 @@ protected:
     bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
-    void restoreSplitNode(DocumentContainer *container,
-                          DocumentView *targetView, const QJsonObject &node,
-                          std::function<void()> onAllDone) noexcept;
-    void focusSplitHelper(DocumentContainer::Direction direction) noexcept;
-    bool openFileSplitHelper(const QString &filename               = {},
-                             const std::function<void()> &callback = {},
-                             Qt::Orientation orientation = Qt::Horizontal);
-    void setCurrentDocumentView(DocumentView *view) noexcept;
-    void centerMouseInDocumentView(DocumentView *view) noexcept;
+    enum class LinkHintMode
+    {
+        None = 0,
+        Visit,
+        Copy
+    };
 
     inline bool validTabIndex(int index) const noexcept
     {
@@ -199,6 +196,16 @@ private:
             m_search_bar->focusSearchInput();
     }
 
+    void restoreSplitNode(DocumentContainer *container,
+                          DocumentView *targetView, const QJsonObject &node,
+                          std::function<void()> onAllDone) noexcept;
+    void focusSplitHelper(DocumentContainer::Direction direction) noexcept;
+    bool openFileSplitHelper(const QString &filename               = {},
+                             const std::function<void()> &callback = {},
+                             Qt::Orientation orientation = Qt::Horizontal);
+    void setCurrentDocumentView(DocumentView *view) noexcept;
+    void centerMouseInDocumentView(DocumentView *view) noexcept;
+    DocumentView *findOpenView(const QString &path) const noexcept;
     void construct() noexcept;
     void SetDPR() noexcept;
     void initDB() noexcept;
@@ -258,13 +265,8 @@ private:
     void deleteMark(const QString &key) noexcept;
     bool handleLinkHintEvent(QEvent *event) noexcept;
     bool handleTabContextMenu(QObject *object, QEvent *event) noexcept;
-    // bool handleGetInputEvent(QEvent *event) noexcept;
-
-    // End of tab suspension related code
-
     QDir m_config_dir, m_session_dir;
     Statusbar *m_statusbar{nullptr};
-
     QMenuBar *m_menuBar{nullptr};
     QMenu *m_fitMenu{nullptr};
     QMenu *m_recentFilesMenu{nullptr};
@@ -272,12 +274,10 @@ private:
     QMenu *m_toggleMenu{nullptr};
     QMenu *m_viewMenu{nullptr};
     QMenu *m_layoutMenu{nullptr};
-
     QAction *m_actionShowTutorialFile{nullptr};
     QAction *m_actionLayoutSingle{nullptr};
     QAction *m_actionLayoutLeftToRight{nullptr};
     QAction *m_actionLayoutTopToBottom{nullptr};
-
     QAction *m_actionEncrypt{nullptr};
     QAction *m_actionDecrypt{nullptr};
     QMenu *m_modeMenu{nullptr};
@@ -322,27 +322,15 @@ private:
     QAction *m_actionSetMark{nullptr};
     QAction *m_actionGotoMark{nullptr};
     QAction *m_actionDeleteMark{nullptr};
-
 #ifdef ENABLE_LLM_SUPPORT
     QAction *m_actionToggleLLMWidget{nullptr};
 #endif
-
     QTabWidget *m_side_panel_tabs{nullptr};
     FloatingOverlayWidget *m_outline_overlay{nullptr};
     FloatingOverlayWidget *m_highlight_overlay{nullptr};
-
     OutlineWidget *m_outline_widget{nullptr};
-
     Config m_config;
     float m_dpr{1.0f};
-
-    enum class LinkHintMode
-    {
-        None = 0,
-        Visit,
-        Copy
-    };
-
     QMap<QString, float> m_screen_dpr_map; // DPR per screen
     QString m_config_file_path;
     QString m_lockedInputBuffer; // Used for link hints and waiting input event
@@ -362,7 +350,6 @@ private:
     QString m_recent_files_path;
     QString m_session_name;
     QFileSystemWatcher *m_config_watcher{nullptr};
-    QHash<QString, QWidget *> m_path_tab_hash;
     MessageBar *m_message_bar{nullptr};
     SearchBar *m_search_bar{nullptr};
     FloatingOverlayWidget *m_search_bar_overlay{nullptr};
