@@ -1585,13 +1585,13 @@ bool
 lektra::OpenFileDWIM(const QString &filename) noexcept
 {
     // If already open anywhere, just focus it
-    if (DocumentView *existing = findOpenView(filename))
-    {
-        DocumentContainer *container = existing->container();
-        m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
-        container->focusView(existing);
-        return true;
-    }
+    // if (DocumentView *existing = findOpenView(filename))
+    // {
+    //     DocumentContainer *container = existing->container();
+    //     m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
+    //     container->focusView(existing);
+    //     return true;
+    // }
 
     if (m_tab_widget->count() == 0)
         return OpenFileInNewTab(filename);
@@ -1639,15 +1639,15 @@ lektra::OpenFileInContainer(DocumentContainer *container,
         return false;
     }
 
-    if (DocumentView *existing = findOpenView(filename))
-    {
-        DocumentContainer *container = existing->container();
-        m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
-        container->focusView(existing);
-        if (callback)
-            callback();
-        return true;
-    }
+    // if (DocumentView *existing = findOpenView(filename))
+    // {
+    //     DocumentContainer *container = existing->container();
+    //     m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
+    //     container->focusView(existing);
+    //     if (callback)
+    //         callback();
+    //     return true;
+    // }
 
     DocumentView *view = container->view();
     if (!view)
@@ -1800,15 +1800,15 @@ lektra::OpenFileInNewTab(const QString &filename,
     }
 
     // Check if file is already open
-    if (DocumentView *existing = findOpenView(filename))
-    {
-        DocumentContainer *container = existing->container();
-        m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
-        container->focusView(existing);
-        if (callback)
-            callback();
-        return true;
-    }
+    // if (DocumentView *existing = findOpenView(filename))
+    // {
+    //     DocumentContainer *container = existing->container();
+    //     m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
+    //     container->focusView(existing);
+    //     if (callback)
+    //         callback();
+    //     return true;
+    // }
 
     // Create a new DocumentView
     DocumentView *view = new DocumentView(m_config, this);
@@ -1916,15 +1916,15 @@ lektra::openFileSplitHelper(const QString &filename,
     }
 
     // Check if file is already open
-    if (DocumentView *existing = findOpenView(filename))
-    {
-        DocumentContainer *container = existing->container();
-        m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
-        container->focusView(existing);
-        if (callback)
-            callback();
-        return true;
-    }
+    // if (DocumentView *existing = findOpenView(filename))
+    // {
+    //     DocumentContainer *container = existing->container();
+    //     m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
+    //     container->focusView(existing);
+    //     if (callback)
+    //         callback();
+    //     return true;
+    // }
 
     const int tabIndex = m_tab_widget->currentIndex();
 
@@ -2024,15 +2024,15 @@ lektra::OpenFileInNewWindow(const QString &filePath,
     if (QDir::isRelativePath(fp))
         fp = QDir::current().absoluteFilePath(fp);
 
-    if (DocumentView *existing = findOpenView(filePath))
-    {
-        DocumentContainer *container = existing->container();
-        m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
-        container->focusView(existing);
-        if (callback)
-            callback();
-        return true;
-    }
+    // if (DocumentView *existing = findOpenView(filePath))
+    // {
+    //     DocumentContainer *container = existing->container();
+    //     m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
+    //     container->focusView(existing);
+    //     if (callback)
+    //         callback();
+    //     return true;
+    // }
 
     if (!QFile::exists(fp))
     {
