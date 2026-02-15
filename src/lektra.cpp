@@ -1950,12 +1950,9 @@ lektra::openFileSplitHelper(const QString &filename,
 
     if (callback)
     {
-        connect(currentView, &DocumentView::openFileFinished, this,
-                [callback](DocumentView *view)
-        {
-            Q_UNUSED(view);
-            callback();
-        }, Qt::SingleShotConnection);
+        connect(newView, &DocumentView::openFileFinished, this,
+                [callback](DocumentView *) { callback(); },
+                Qt::SingleShotConnection);
     }
 
     return false;
