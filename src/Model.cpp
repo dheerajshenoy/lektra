@@ -105,87 +105,176 @@ Model::~Model() noexcept
 QFuture<void>
 Model::openAsync(const QString &filePath, const QString &password) noexcept
 {
-    m_filepath = QFileInfo(filePath).canonicalFilePath();
+    // Canonical path resolved on the calling thread — cheap, no MuPDF
+    m_filepath              = QFileInfo(filePath).canonicalFilePath();
+    const QString canonPath = m_filepath;
 
-    return QtConcurrent::run([this, filePath, password]()
+    // Clone a context for the background thread RIGHT NOW, on the calling
+    // thread. This is the only safe moment — m_ctx is idle here.
+    fz_context *bg_ctx = cloneContext();
+    if (!bg_ctx)
     {
-        if (!m_ctx)
+        m_success = false;
+        QMetaObject::invokeMethod(this, [this] { emit openFileFailed(); },
+                                  Qt::QueuedConnection);
+        return QtConcurrent::run([]() {});
+    }
+
+    return QtConcurrent::run([this, canonPath, password, bg_ctx]() mutable
+    {
+        //------------------------------------------------------------
+        // Everything below runs on a thread-pool thread.
+        // bg_ctx is exclusively ours. m_ctx, m_doc are NOT touched.
+        //------------------------------------------------------------
+
+        struct Guard
         {
-            m_success = false;
-            emit openFileFailed();
+            fz_context *ctx;
+            fz_document *doc{nullptr};
+            bool committed{false};
+            ~Guard()
+            {
+                if (!committed)
+                {
+                    if (doc)
+                        fz_drop_document(ctx, doc);
+                    fz_drop_context(ctx);
+                }
+            }
+        } g{bg_ctx};
+
+        // --- 1. Detect file type (fast, no document load needed) ---
+        FileType filetype = FileType::NONE;
+        fz_try(bg_ctx)
+        {
+            const fz_document_handler *handler
+                = fz_recognize_document_content(bg_ctx, CSTR(canonPath));
+            if (handler && handler->extensions)
+            {
+                const QString ext = QString::fromUtf8(handler->extensions[0]);
+                if (ext == "pdf")
+                    filetype = FileType::PDF;
+                else if (ext == "cbt")
+                    filetype = FileType::CBZ;
+                else if (ext == "mobi")
+                    filetype = FileType::MOBI;
+                else if (ext == "fb2")
+                    filetype = FileType::FB2;
+                else if (ext == "svg")
+                    filetype = FileType::SVG;
+                else if (ext == "epub")
+                    filetype = FileType::EPUB;
+            }
+        }
+        fz_catch(bg_ctx)
+        {
+            qWarning() << "openAsync: type detection failed:"
+                       << fz_caught_message(bg_ctx);
+        }
+
+        // --- 2. Open the document ---
+        fz_document *doc = nullptr;
+        fz_try(bg_ctx)
+        {
+            doc = fz_open_document(bg_ctx, CSTR(canonPath));
+        }
+        fz_catch(bg_ctx)
+        {
+            qWarning() << "openAsync: fz_open_document failed:"
+                       << fz_caught_message(bg_ctx);
+        }
+
+        if (!doc)
+        {
+            QMetaObject::invokeMethod(this, [this]
+            {
+                m_success = false;
+                emit openFileFailed();
+            }, Qt::QueuedConnection);
+            return; // Guard drops bg_ctx
+        }
+        g.doc = doc;
+
+        // --- 3. Authenticate if encrypted ---
+        if (fz_needs_password(bg_ctx, doc))
+        {
+            if (password.isEmpty()
+                || !fz_authenticate_password(bg_ctx, doc, CSTR(password)))
+            {
+                QMetaObject::invokeMethod(this, [this]
+                {
+                    m_success = false;
+                    emit openFileFailed();
+                }, Qt::QueuedConnection);
+                return;
+            }
+        }
+
+        // --- 4. Read document metadata (all on the background thread) ---
+        int page_count   = 0;
+        float width_pts  = 0.0f;
+        float height_pts = 0.0f;
+        bool ok          = false;
+
+        fz_try(bg_ctx)
+        {
+            page_count = fz_count_pages(bg_ctx, doc);
+
+            if (page_count > 0)
+            {
+                fz_page *p = fz_load_page(bg_ctx, doc, 0);
+                fz_rect r  = fz_bound_page(bg_ctx, p);
+                fz_drop_page(bg_ctx, p);
+                width_pts  = r.x1 - r.x0;
+                height_pts = r.y1 - r.y0;
+            }
+            ok = true;
+        }
+        fz_catch(bg_ctx)
+        {
+            qWarning() << "openAsync: metadata failed:"
+                       << fz_caught_message(bg_ctx);
+        }
+
+        if (!ok)
+        {
+            QMetaObject::invokeMethod(this, [this]
+            {
+                m_success = false;
+                emit openFileFailed();
+            }, Qt::QueuedConnection);
             return;
         }
 
-        const fz_document_handler *handler
-            = fz_recognize_document_content(m_ctx, CSTR(filePath));
-        const char **extensions = handler->extensions;
+        // --- 5. Commit: hand everything to the main thread ---
+        // bg_ctx and doc are transferred — Guard must not drop them.
+        g.committed = true;
 
-        if (!extensions)
+        QMetaObject::invokeMethod(
+            this,
+            [this, bg_ctx, doc, page_count, width_pts, height_pts, filetype]()
         {
-            m_success = false;
-            emit openFileFailed();
-            return;
-        }
+            // On the main thread: atomically replace all document state.
+            // waitForRenders() ensures no background render thread is
+            // still using m_ctx or m_doc.
+            waitForRenders();
+            cleanup(); // drops old m_doc, clears LRU, drops m_outline
 
-        const QString extension = extensions[0];
+            fz_drop_context(m_ctx); // old master context is now free
 
-        if (extension == "pdf")
-        {
-            m_filetype = FileType::PDF;
-        }
-        else if (extension == "cbt")
-        {
-            m_filetype = FileType::CBZ;
-        }
-        else if (extension == "mobi")
-        {
-            m_filetype = FileType::MOBI;
-        }
-        else if (extension == "fb2")
-        {
-            m_filetype = FileType::FB2;
-        }
-        else if (extension == "svg")
-        {
-            m_filetype = FileType::SVG;
-        }
-        else if (extension == "epub")
-        {
-            m_filetype = FileType::EPUB;
-        }
+            // bg_ctx becomes the new master context.
+            // doc was opened with bg_ctx — they are permanently paired.
+            m_ctx             = bg_ctx;
+            m_doc             = doc;
+            m_pdf_doc         = pdf_specifics(m_ctx, m_doc);
+            m_page_count      = page_count;
+            m_page_width_pts  = width_pts;
+            m_page_height_pts = height_pts;
+            m_filetype        = filetype;
+            m_success         = true;
 
-                                        qDebug() << "FileType: " << (int) m_filetype;
-
-        m_doc = fz_open_document(m_ctx, CSTR(filePath));
-
-        if (!m_doc)
-        {
-            emit openFileFailed();
-            m_success = false;
-            return;
-        }
-
-        fz_try(m_ctx)
-        {
-            m_pdf_doc    = pdf_specifics(m_ctx, m_doc);
-            m_page_count = fz_count_pages(m_ctx, m_doc);
-            m_success    = true;
-            cachePageDimension();
-
-            // Lazy loading: don't pre-cache all pages
-            // Pages will be cached on-demand when rendered
-        }
-        fz_catch(m_ctx)
-        {
-            fz_drop_context(m_ctx);
-            m_ctx     = nullptr;
-            m_success = false;
-            emit openFileFailed();
-            return;
-        }
-
-        QMetaObject::invokeMethod(this, [this, filePath]()
-        { emit openFileFinished(); }, Qt::QueuedConnection);
+            emit openFileFinished();
+        }, Qt::QueuedConnection);
     });
 }
 
@@ -209,28 +298,27 @@ Model::clearPageCache() noexcept
 void
 Model::ensurePageCached(int pageno) noexcept
 {
-    std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-    // auto it = m_page_cache.find(pageno);
-    // if (it != m_page_cache.end())
-    //     return;
-    if (m_page_lru_cache.has(pageno))
-        return;
+    {
+        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+        if (m_page_lru_cache.has(pageno))
+            return;
+    }
 
     // Not cached, build it
+    // Build outside the lock — expensive, but safe
     buildPageCache(pageno);
 }
 
 void
 Model::buildPageCache(int pageno) noexcept
 {
-    std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
     // auto it = m_page_cache.find(pageno);
     // if (it != m_page_cache.end())
     //     return;
 
     PageCacheEntry entry;
 
-    // fz_context *ctx = m_ctx;
+    fz_context *ctx = cloneContext();
     fz_page *page{nullptr};
     fz_display_list *dlist{nullptr};
     fz_device *list_dev{nullptr};
@@ -238,21 +326,21 @@ Model::buildPageCache(int pageno) noexcept
     fz_rect bounds{};
     bool success{false};
 
-    fz_try(m_ctx)
+    fz_try(ctx)
     {
-        page = fz_load_page(m_ctx, m_doc, pageno);
+        page = fz_load_page(ctx, m_doc, pageno);
         if (!page)
-            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+            fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-        bounds = fz_bound_page(m_ctx, page);
+        bounds = fz_bound_page(ctx, page);
 
-        dlist    = fz_new_display_list(m_ctx, bounds);
-        list_dev = fz_new_list_device(m_ctx, dlist);
+        dlist    = fz_new_display_list(ctx, bounds);
+        list_dev = fz_new_list_device(ctx, dlist);
 
-        fz_run_page(m_ctx, page, list_dev, fz_identity, nullptr);
+        fz_run_page(ctx, page, list_dev, fz_identity, nullptr);
 
         // Extract links and cache them
-        head = fz_load_links(m_ctx, page);
+        head = fz_load_links(ctx, page);
         for (fz_link *link = head; link; link = link->next)
         {
             if (!link->uri)
@@ -267,7 +355,7 @@ Model::buildPageCache(int pageno) noexcept
             cl.source_loc.x = link->rect.x0;
             cl.source_loc.y = link->rect.y0;
 
-            if (fz_is_external_link(m_ctx, link->uri))
+            if (fz_is_external_link(ctx, link->uri))
             {
                 cl.type = BrowseLinkItem::LinkType::External;
             }
@@ -275,39 +363,38 @@ Model::buildPageCache(int pageno) noexcept
             {
                 float xp, yp;
                 fz_location loc
-                    = fz_resolve_link(m_ctx, m_doc, link->uri, &xp, &yp);
+                    = fz_resolve_link(ctx, m_doc, link->uri, &xp, &yp);
                 cl.type        = BrowseLinkItem::LinkType::Page;
                 cl.target_page = loc.page;
             }
             else
             {
-                fz_link_dest dest
-                    = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
-                cl.type         = BrowseLinkItem::LinkType::Location;
-                cl.target_page  = dest.loc.page;
-                cl.target_loc.x = dest.x;
-                cl.target_loc.y = dest.y;
-                cl.zoom         = dest.zoom;
+                fz_link_dest dest = fz_resolve_link_dest(ctx, m_doc, link->uri);
+                cl.type           = BrowseLinkItem::LinkType::Location;
+                cl.target_page    = dest.loc.page;
+                cl.target_loc.x   = dest.x;
+                cl.target_loc.y   = dest.y;
+                cl.zoom           = dest.zoom;
             }
 
             entry.links.push_back(std::move(cl));
         }
 
-        pdf_page *pdfPage = pdf_page_from_fz_page(m_ctx, page);
+        pdf_page *pdfPage = pdf_page_from_fz_page(ctx, page);
         if (pdfPage)
         {
             float color[3];
             int n = 3;
 
-            for (pdf_annot *annot = pdf_first_annot(m_ctx, pdfPage); annot;
-                 annot            = pdf_next_annot(m_ctx, annot))
+            for (pdf_annot *annot = pdf_first_annot(ctx, pdfPage); annot;
+                 annot            = pdf_next_annot(ctx, annot))
             {
                 CachedAnnotation ca;
-                ca.rect    = pdf_bound_annot(m_ctx, annot);
-                ca.type    = pdf_annot_type(m_ctx, annot);
-                ca.index   = pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot));
-                ca.opacity = pdf_annot_opacity(m_ctx, annot);
-                ca.text    = pdf_annot_contents(m_ctx, annot);
+                ca.rect    = pdf_bound_annot(ctx, annot);
+                ca.type    = pdf_annot_type(ctx, annot);
+                ca.index   = pdf_to_num(ctx, pdf_annot_obj(ctx, annot));
+                ca.opacity = pdf_annot_opacity(ctx, annot);
+                ca.text    = pdf_annot_contents(ctx, annot);
 
                 if (fz_is_infinite_rect(ca.rect) || fz_is_empty_rect(ca.rect))
                     continue;
@@ -317,7 +404,7 @@ Model::buildPageCache(int pageno) noexcept
                     case PDF_ANNOT_POPUP:
                     case PDF_ANNOT_TEXT:
                     {
-                        pdf_annot_color(m_ctx, annot, &n, color);
+                        pdf_annot_color(ctx, annot, &n, color);
                         ca.color = QColor::fromRgbF(color[0], color[1],
                                                     color[2], ca.opacity);
                     }
@@ -325,7 +412,7 @@ Model::buildPageCache(int pageno) noexcept
 
                     case PDF_ANNOT_SQUARE:
                     {
-                        pdf_annot_interior_color(m_ctx, annot, &n, color);
+                        pdf_annot_interior_color(ctx, annot, &n, color);
                         ca.color = QColor::fromRgbF(color[0], color[1],
                                                     color[2], ca.opacity);
                     }
@@ -333,7 +420,7 @@ Model::buildPageCache(int pageno) noexcept
 
                     case PDF_ANNOT_HIGHLIGHT:
                     {
-                        pdf_annot_color(m_ctx, annot, &n, color);
+                        pdf_annot_color(ctx, annot, &n, color);
                         ca.color = QColor::fromRgbF(color[0], color[1],
                                                     color[2], ca.opacity);
                     }
@@ -352,24 +439,24 @@ Model::buildPageCache(int pageno) noexcept
         entry.bounds       = bounds;
         success            = true;
     }
-    fz_always(m_ctx)
+    fz_always(ctx)
     {
         if (head)
-            fz_drop_link(m_ctx, head);
+            fz_drop_link(ctx, head);
         if (list_dev)
         {
-            fz_close_device(m_ctx, list_dev);
-            fz_drop_device(m_ctx, list_dev);
+            fz_close_device(ctx, list_dev);
+            fz_drop_device(ctx, list_dev);
         }
         if (page)
-            fz_drop_page(m_ctx, page);
+            fz_drop_page(ctx, page);
         if (!success && dlist)
-            fz_drop_display_list(m_ctx, dlist);
+            fz_drop_display_list(ctx, dlist);
     }
-    fz_catch(m_ctx)
+    fz_catch(ctx)
     {
         qWarning() << "Failed to build page cache for page" << pageno << ":"
-                   << fz_caught_message(m_ctx);
+                   << fz_caught_message(ctx);
         return;
     }
 
@@ -378,7 +465,10 @@ Model::buildPageCache(int pageno) noexcept
 
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-        m_page_lru_cache.put(pageno, entry);
+        if (!m_page_lru_cache.has(pageno))
+            m_page_lru_cache.put(pageno, std::move(entry));
+        else
+            fz_drop_display_list(ctx, dlist);
     }
 }
 
@@ -606,12 +696,24 @@ Model::cachePageDimension() noexcept
     if (!m_doc)
         return;
 
-    fz_page *page     = fz_load_page(m_ctx, m_doc, 0);
-    fz_rect rect      = fz_bound_page(m_ctx, page);
-    m_page_width_pts  = rect.x1 - rect.x0;
-    m_page_height_pts = rect.y1 - rect.y0;
+    fz_page *page = nullptr;
 
-    fz_drop_page(m_ctx, page);
+    fz_try(m_ctx)
+    {
+        page              = fz_load_page(m_ctx, m_doc, 0);
+        fz_rect rect      = fz_bound_page(m_ctx, page);
+        m_page_width_pts  = rect.x1 - rect.x0;
+        m_page_height_pts = rect.y1 - rect.y0;
+    }
+    fz_always(m_ctx)
+    {
+        fz_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Failed to get page dimensions:"
+                   << fz_caught_message(m_ctx);
+    }
 }
 
 std::vector<QPolygonF>
@@ -839,39 +941,51 @@ fz_point
 Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
 {
     // 1. Get the page bounds
-    fz_page *page  = fz_load_page(m_ctx, m_doc, pageno);
-    fz_rect bounds = fz_bound_page(m_ctx, page);
-
-    // 2. Re-create the same transform used in rendering
-    // Must match the scale used in createRenderJob: m_zoom * m_dpr * m_dpi
-    const float scale   = m_zoom * m_dpr * m_dpi;
-    fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
-
-    // 3. Get the bbox (to find the origin shift)
-    fz_rect transformed = fz_transform_rect(bounds, transform);
-    fz_irect bbox       = fz_round_rect(transformed);
-
-    // 4. Reverse Step 6: Adjust for Qt's Device Pixel Ratio
-    // Map from logical Qt coordinates back to physical pixel coordinates
-    // The pixmap is scaled by DPR, so multiply to get physical pixels
-    float physicalX = pixelPos.x() * m_dpr;
-    float physicalY = pixelPos.y() * m_dpr;
-
-    // 5. Reverse Step 5: ADD the bbox origin
-    // Move from the pixmap-local (0,0) back to the transformed coordinate
-    // space
+    fz_page *page{nullptr};
     fz_point p;
-    p.x = physicalX + bbox.x0;
-    p.y = physicalY + bbox.y0;
 
-    // 6. Reverse Step 2: Invert the transformation matrix
-    // This takes the point from transformed (scaled/rotated) space back to
-    // PDF points
-    fz_matrix inv_transform = fz_invert_matrix(transform);
-    p                       = fz_transform_point(p, inv_transform);
+    fz_try(m_ctx)
+    {
+        page           = fz_load_page(m_ctx, m_doc, pageno);
+        fz_rect bounds = fz_bound_page(m_ctx, page);
 
-    // Clean up
-    fz_drop_page(m_ctx, page);
+        // 2. Re-create the same transform used in rendering
+        // Must match the scale used in createRenderJob: m_zoom * m_dpr * m_dpi
+        const float scale   = m_zoom * m_dpr * m_dpi;
+        fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
+
+        // 3. Get the bbox (to find the origin shift)
+        fz_rect transformed = fz_transform_rect(bounds, transform);
+        fz_irect bbox       = fz_round_rect(transformed);
+
+        // 4. Reverse Step 6: Adjust for Qt's Device Pixel Ratio
+        // Map from logical Qt coordinates back to physical pixel coordinates
+        // The pixmap is scaled by DPR, so multiply to get physical pixels
+        float physicalX = pixelPos.x() * m_dpr;
+        float physicalY = pixelPos.y() * m_dpr;
+
+        // 5. Reverse Step 5: ADD the bbox origin
+        // Move from the pixmap-local (0,0) back to the transformed coordinate
+        // space
+        p.x = physicalX + bbox.x0;
+        p.y = physicalY + bbox.y0;
+
+        // 6. Reverse Step 2: Invert the transformation matrix
+        // This takes the point from transformed (scaled/rotated) space back to
+        // PDF points
+        fz_matrix inv_transform = fz_invert_matrix(transform);
+        p                       = fz_transform_point(p, inv_transform);
+    }
+    fz_always(m_ctx)
+    {
+        fz_drop_page(m_ctx, page);
+    }
+
+    fz_catch(m_ctx)
+    {
+        qWarning() << "toPDFSpace failed:" << fz_caught_message(m_ctx);
+        return {0, 0};
+    }
 
     return p;
 }
@@ -879,29 +993,45 @@ Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
 QPointF
 Model::toPixelSpace(int pageno, fz_point p) const noexcept
 {
-    // 1. Get the page bounds (identical to your render function)
-    fz_page *page  = fz_load_page(m_ctx, m_doc, pageno);
-    fz_rect bounds = fz_bound_page(m_ctx, page);
+    // Get the page bounds (identical to your render function)
+    fz_page *page{nullptr};
+    float localX{0}, localY{0};
 
-    // 2. Re-create the same transform used in rendering
-    const float scale
-        = m_zoom * m_dpr * m_dpi; // note that there is not / 72.0f here
-    fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
+    fz_try(m_ctx)
+    {
+        page           = fz_load_page(m_ctx, m_doc, pageno);
+        fz_rect bounds = fz_bound_page(m_ctx, page);
 
-    // 3. Get the bbox (this is the key!)
-    fz_rect transformed = fz_transform_rect(bounds, transform);
-    fz_irect bbox       = fz_round_rect(transformed);
+        // 2. Re-create the same transform used in rendering
+        const float scale
+            = m_zoom * m_dpr * m_dpi; // note that there is not / 72.0f here
+        fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
 
-    p = fz_transform_point(p, transform);
+        // 3. Get the bbox (this is the key!)
+        fz_rect transformed = fz_transform_rect(bounds, transform);
+        fz_irect bbox       = fz_round_rect(transformed);
 
-    // 5. SUBTRACT the bbox origin
-    // Pixmap (0,0) is actually at bbox.x0, bbox.y0 in the transformed space
-    float localX = p.x - bbox.x0;
-    float localY = p.y - bbox.y0;
+        p = fz_transform_point(p, transform);
 
-    // 6. Adjust for Qt's Device Pixel Ratio
-    // Since the pixmap is scaled by DPR, but QGraphicsItem::setPos
-    // expects logical coordinates:
+        // 5. SUBTRACT the bbox origin
+        // Pixmap (0,0) is actually at bbox.x0, bbox.y0 in the transformed space
+        localX = p.x - bbox.x0;
+        localY = p.y - bbox.y0;
+
+        // 6. Adjust for Qt's Device Pixel Ratio
+        // Since the pixmap is scaled by DPR, but QGraphicsItem::setPos
+        // expects logical coordinates:
+    }
+    fz_always(m_ctx)
+    {
+        fz_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "toPixelSpace failed:" << fz_caught_message(m_ctx);
+        return {0, 0};
+    }
+
     return QPointF(localX / m_dpr, localY / m_dpr);
 }
 
@@ -925,6 +1055,10 @@ Model::requestPageRender(
     const RenderJob &job,
     const std::function<void(PageRenderResult)> &callback) noexcept
 {
+    // Cancel/wait for any previous render before issuing a new one
+    if (m_render_future.isRunning())
+        m_render_future.waitForFinished();
+
     // Ensure page is cached before rendering (lazy loading)
     ensurePageCached(job.pageno);
 
@@ -952,13 +1086,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     PageRenderResult result;
     fz_context *ctx{nullptr};
 
-    // MuPDF context cloning must be thread-safe
-    {
-        static std::mutex clone_lock;
-        std::lock_guard<std::mutex> lock(clone_lock);
-        ctx = fz_clone_context(m_ctx);
-    }
-
+    ctx = cloneContext();
     if (!ctx)
         return result;
 
@@ -1017,8 +1145,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         fz_run_display_list(ctx, dlist, dev, transform,
                             fz_rect_from_irect(bbox), nullptr);
 
-        static const int fg = (m_fg_color >> 8) & 0xFFFFFF;
-        static const int bg = (m_bg_color >> 8) & 0xFFFFFF;
+        const int fg = (m_fg_color >> 8) & 0xFFFFFF;
+        const int bg = (m_bg_color >> 8) & 0xFFFFFF;
         fz_tint_pixmap(ctx, pix, fg, bg);
 
         if (job.invert_color)
@@ -1611,8 +1739,9 @@ Model::invalidatePageCache(int pageno) noexcept
     }
 }
 
+// private helper in Model
 std::vector<QPolygonF>
-Model::selectWordAt(int pageno, fz_point pt) noexcept
+Model::selectAtHelper(int pageno, fz_point pt, int snapMode) noexcept
 {
     std::vector<QPolygonF> out;
 
@@ -1661,7 +1790,7 @@ Model::selectWordAt(int pageno, fz_point pt) noexcept
         page       = fz_load_page(m_ctx, m_doc, pageno);
         stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
 
-        fz_snap_selection(m_ctx, stext_page, &a, &b, FZ_SELECT_WORDS);
+        fz_snap_selection(m_ctx, stext_page, &a, &b, snapMode);
         count = fz_highlight_selection(m_ctx, stext_page, a, b, hits.data(),
                                        MAX_HITS);
         m_selection_start = a;
@@ -1698,89 +1827,15 @@ Model::selectWordAt(int pageno, fz_point pt) noexcept
 }
 
 std::vector<QPolygonF>
+Model::selectWordAt(int pageno, fz_point pt) noexcept
+{
+    return selectAtHelper(pageno, pt, FZ_SELECT_WORDS);
+}
+
+std::vector<QPolygonF>
 Model::selectLineAt(int pageno, fz_point pt) noexcept
 {
-    std::vector<QPolygonF> out;
-
-    constexpr int MAX_HITS = 1024;
-    thread_local std::array<fz_quad, MAX_HITS> hits;
-
-    const float scale = viewScale();
-
-    fz_rect page_bounds{};
-    fz_page *page_for_bounds = nullptr;
-
-    fz_try(m_ctx)
-    {
-        page_for_bounds = fz_load_page(m_ctx, m_doc, pageno);
-        page_bounds     = fz_bound_page(m_ctx, page_for_bounds);
-    }
-    fz_always(m_ctx)
-    {
-        if (page_for_bounds)
-            fz_drop_page(m_ctx, page_for_bounds);
-    }
-    fz_catch(m_ctx)
-    {
-        qWarning() << "Selection failed (bounds):" << fz_caught_message(m_ctx);
-        return out;
-    }
-
-    fz_matrix page_to_dev    = fz_scale(scale, scale);
-    page_to_dev              = fz_pre_rotate(page_to_dev, m_rotation);
-    const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
-    page_to_dev
-        = fz_concat(page_to_dev, fz_translate(-dev_bounds.x0, -dev_bounds.y0));
-    const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
-
-    fz_point a = pt;
-    fz_point b = pt;
-    a          = fz_transform_point(a, dev_to_page);
-    b          = fz_transform_point(b, dev_to_page);
-
-    fz_stext_page *stext_page{nullptr};
-    fz_page *page{nullptr};
-    int count = 0;
-
-    fz_try(m_ctx)
-    {
-        page       = fz_load_page(m_ctx, m_doc, pageno);
-        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-
-        fz_snap_selection(m_ctx, stext_page, &a, &b, FZ_SELECT_LINES);
-        count = fz_highlight_selection(m_ctx, stext_page, a, b, hits.data(),
-                                       MAX_HITS);
-        m_selection_start = a;
-        m_selection_end   = b;
-    }
-    fz_always(m_ctx)
-    {
-        fz_drop_page(m_ctx, page);
-        fz_drop_stext_page(m_ctx, stext_page);
-    }
-    fz_catch(m_ctx)
-    {
-        qWarning() << "Selection failed";
-        return out;
-    }
-
-    out.reserve(count);
-    auto toDev = [&](const fz_point &p0) -> QPointF
-    {
-        const fz_point p = fz_transform_point(p0, page_to_dev);
-        return QPointF(p.x, p.y);
-    };
-
-    for (int i = 0; i < count; ++i)
-    {
-        const fz_quad &q = hits[i];
-        QPolygonF poly;
-        poly.reserve(4);
-        poly << toDev(q.ll) << toDev(q.lr) << toDev(q.ur) << toDev(q.ul);
-        out.push_back(std::move(poly));
-    }
-
-    return out;
+    return selectAtHelper(pageno, pt, FZ_SELECT_LINES);
 }
 
 std::vector<QPolygonF>
@@ -1879,6 +1934,36 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
     }
 
     return out;
+}
+
+// Returns {page_to_dev, dev_to_page}, or {identity, identity} on failure
+std::pair<fz_matrix, fz_matrix>
+Model::buildPageTransforms(int pageno) const noexcept
+{
+    const fz_matrix identity = fz_identity;
+    fz_page *page            = nullptr;
+    fz_rect bounds{};
+
+    fz_try(m_ctx)
+    {
+        page   = fz_load_page(m_ctx, m_doc, pageno);
+        bounds = fz_bound_page(m_ctx, page);
+    }
+    fz_always(m_ctx)
+    {
+        fz_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        return {identity, identity};
+    }
+
+    const float scale     = viewScale();
+    fz_matrix page_to_dev = fz_scale(scale, scale);
+    page_to_dev           = fz_pre_rotate(page_to_dev, m_rotation);
+    const fz_rect dbox    = fz_transform_rect(bounds, page_to_dev);
+    page_to_dev = fz_concat(page_to_dev, fz_translate(-dbox.x0, -dbox.y0));
+    return {page_to_dev, fz_invert_matrix(page_to_dev)};
 }
 
 void
