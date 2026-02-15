@@ -3275,35 +3275,27 @@ lektra::writeSessionToFile() noexcept
 
     for (int i = 0; i < m_tab_widget->count(); ++i)
     {
-        DocumentView *doc
-            = qobject_cast<DocumentView *>(m_tab_widget->widget(i));
-        if (!doc)
+        DocumentContainer *container
+            = m_tab_widget->splitContainers().value(i, nullptr);
+        if (!container)
             continue;
 
-        QJsonObject entry;
-        entry["file_path"]    = doc->filePath();
-        entry["current_page"] = doc->pageNo() + 1;
-        entry["zoom"]         = doc->zoom();
-        entry["invert_color"] = doc->invertColor();
-        entry["rotation"]     = doc->model()->rotation();
-        entry["fit_mode"]     = static_cast<int>(doc->fitMode());
-
-        sessionArray.append(entry);
+        QJsonObject tabEntry;
+        tabEntry["splits"] = container->serializeSplits();
+        sessionArray.append(tabEntry);
     }
 
     const QString sessionFileName
         = m_session_dir.filePath(m_session_name + ".json");
     QFile file(sessionFileName);
-    bool result = file.open(QIODevice::WriteOnly);
-    if (!result)
+    if (!file.open(QIODevice::WriteOnly))
     {
         QMessageBox::critical(
             this, "Save Session",
             QStringLiteral("Could not save session: %1").arg(m_session_name));
         return;
     }
-    QJsonDocument doc(sessionArray);
-    file.write(doc.toJson());
+    file.write(QJsonDocument(sessionArray).toJson());
     file.close();
 }
 
@@ -3954,30 +3946,56 @@ lektra::setSessionName(const QString &name) noexcept
 void
 lektra::openSessionFromArray(const QJsonArray &sessionArray) noexcept
 {
-    for (const QJsonValue &value : sessionArray)
+    for (const QJsonValue &val : sessionArray)
     {
-        const QJsonObject entry = value.toObject();
-        const QString filePath  = entry["file_path"].toString();
-        const int page          = entry["current_page"].toInt();
-        const double zoom       = entry["zoom"].toDouble();
-        const int fitMode       = entry["fit_mode"].toInt();
-        const bool invert       = entry["invert_color"].toBool();
+        const QJsonObject tabObj     = val.toObject();
+        const QJsonObject splitsNode = tabObj["splits"].toObject();
 
-        if (filePath.isEmpty())
-            continue;
-
-        // Use a lambda to capture session settings and apply them after
-        // file opens
-        OpenFileInNewTab(filePath, [this, page, zoom, fitMode, invert]()
+        // Legacy format — flat entry with file_path at top level
+        if (splitsNode.isEmpty() && tabObj.contains("file_path"))
         {
-            if (m_doc)
+            const QString filePath = tabObj["file_path"].toString();
+            const int page         = tabObj["current_page"].toInt();
+            const double zoom      = tabObj["zoom"].toDouble();
+            const int fitMode      = tabObj["fit_mode"].toInt();
+            const bool invert      = tabObj["invert_color"].toBool();
+
+            if (filePath.isEmpty())
+                continue;
+
+            OpenFileInNewTab(filePath, [this, page, zoom, fitMode, invert]()
             {
+                if (!m_doc)
+                    return;
                 if (invert)
                     m_doc->setInvertColor(true);
                 m_doc->setFitMode(static_cast<DocumentView::FitMode>(fitMode));
                 m_doc->setZoom(zoom);
                 m_doc->GotoPage(page);
-            }
+            });
+            continue;
+        }
+
+        if (splitsNode.isEmpty())
+            continue;
+
+        const QString startFile = getFirstFilePath(splitsNode);
+        if (startFile.isEmpty())
+            continue;
+
+        OpenFileInNewTab(startFile, [this, splitsNode]()
+        {
+            int idx = m_tab_widget->currentIndex();
+            DocumentContainer *container
+                = m_tab_widget->splitContainers().value(idx, nullptr);
+            if (!container)
+                return;
+
+            DocumentView *rootView = container->view();
+            if (!rootView)
+                return;
+
+            restoreSplitNode(container, rootView, splitsNode, nullptr);
         });
     }
 }
@@ -4342,4 +4360,113 @@ lektra::focusSplitHelper(DocumentContainer::Direction direction) noexcept
     if (m_config.split.focus_follows_mouse)
         if (auto *view = container->view())
             centerMouseInDocumentView(view);
+}
+
+void
+lektra::restoreSplitNode(DocumentContainer *container, DocumentView *targetView,
+                         const QJsonObject &node,
+                         std::function<void()> onAllDone) noexcept
+{
+    const QString type = node["type"].toString();
+
+    if (type == "view")
+    {
+        const QString path = node["file_path"].toString();
+        const int page     = node["current_page"].toInt();
+        const double zoom  = node["zoom"].toDouble();
+        const int fitMode  = node["fit_mode"].toInt();
+        const bool invert  = node["invert_color"].toBool();
+
+        auto applyState
+            = [page, zoom, fitMode, invert, onAllDone](DocumentView *doc)
+        {
+            doc->setFitMode(static_cast<DocumentView::FitMode>(fitMode));
+            doc->setZoom(zoom);
+            doc->GotoPage(page - 1);
+            if (invert)
+                doc->setInvertColor(true);
+            if (onAllDone)
+                onAllDone();
+        };
+
+        if (path.isEmpty())
+        {
+            if (onAllDone)
+                onAllDone();
+            return;
+        }
+
+        // If this view already has the right file loaded, just apply state
+        if (targetView->filePath() == path)
+        {
+            applyState(targetView);
+            return;
+        }
+
+        targetView->openAsync(path);
+
+        connect(targetView, &DocumentView::openFileFinished, this,
+                [applyState](DocumentView *doc) { applyState(doc); },
+                Qt::SingleShotConnection);
+
+        return;
+    }
+
+    if (type == "splitter")
+    {
+        const QJsonArray children = node["children"].toArray();
+        const Qt::Orientation orient
+            = static_cast<Qt::Orientation>(node["orientation"].toInt());
+        const QJsonArray sizesArray = node["sizes"].toArray();
+
+        if (children.isEmpty())
+        {
+            if (onAllDone)
+                onAllDone();
+            return;
+        }
+
+        // Build the full splitter structure FIRST (synchronously),
+        // then fill each pane asynchronously
+        QList<DocumentView *> panes;
+        panes.append(targetView);
+
+        for (int i = 1; i < children.size(); ++i)
+        {
+            // splitEmpty creates the pane without opening any file
+            // so there's no async conflict
+            DocumentView *newPane = container->splitEmpty(targetView, orient);
+            if (newPane)
+                panes.append(newPane);
+        }
+
+        // Apply saved sizes immediately after structure is built
+        QSplitter *splitter
+            = qobject_cast<QSplitter *>(targetView->parentWidget());
+        if (splitter)
+        {
+            QList<int> sizes;
+            for (const QJsonValue &s : sizesArray)
+                sizes << s.toInt();
+            if (sizes.size() == splitter->count())
+                splitter->setSizes(sizes);
+        }
+
+        // Now fill each pane asynchronously — they're all independent
+        // so we don't need to chain them, just count completions
+        auto remaining = std::make_shared<int>(panes.size());
+
+        for (int i = 0; i < panes.size() && i < children.size(); ++i)
+        {
+            const QJsonObject child = children[i].toObject();
+            DocumentView *pane      = panes[i];
+
+            restoreSplitNode(container, pane, child, [remaining, onAllDone]()
+            {
+                --(*remaining);
+                if (*remaining == 0 && onAllDone)
+                    onAllDone();
+            });
+        }
+    }
 }
