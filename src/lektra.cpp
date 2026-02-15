@@ -3065,10 +3065,6 @@ lektra::updatePanel() noexcept
 {
     if (m_doc)
     {
-#ifndef NDEBUG
-        qDebug() << "lektra::updatePanel() Updating panel for document:"
-                 << m_doc->fileName();
-#endif
         Model *model = m_doc->model();
         if (!model)
             return;
