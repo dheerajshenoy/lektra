@@ -4467,3 +4467,44 @@ lektra::findOpenView(const QString &path) const noexcept
     }
     return nullptr;
 }
+
+void
+lektra::handleCtrlLinkClickRequested(DocumentView *view,
+                                     const BrowseLinkItem *linkItem) noexcept
+{
+    // Only handle internal links in a split — external links open
+    // in browser as usual
+    if (!view || !linkItem)
+        return;
+
+    if (!linkItem->isInternal())
+    {
+        if (!linkItem->link().isEmpty())
+            QDesktopServices::openUrl(QUrl(linkItem->URI()));
+        return;
+    }
+
+    // Open same file in a vertical split, jumped to target page
+    DocumentContainer *container = view->container();
+    if (!container)
+        return;
+
+    const QString filePath = view->filePath();
+
+    OpenFileVSplit(filePath, [this, linkItem]()
+    {
+        if (!m_doc)
+            return;
+
+        DocumentView::PageLocation target{linkItem->gotoPageNo(),
+                                          linkItem->location().x,
+                                          linkItem->location().y};
+
+        if (std::isnan(target.x))
+            target.x = 0;
+        if (std::isnan(target.y))
+            target.y = 0;
+
+        GotoLocation(target);
+    });
+}
