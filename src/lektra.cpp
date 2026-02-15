@@ -1590,21 +1590,26 @@ lektra::YankSelection() noexcept
 bool
 lektra::OpenFileDWIM(const QString &filename) noexcept
 {
-    DocumentContainer *container{nullptr};
+    if (m_tab_widget->count() == 0)
+        return OpenFileInNewTab(filename);
 
-    if (m_tab_widget->count() > 0)
-    {
-        container = m_tab_widget->splitContainers().value(
-            m_tab_widget->currentIndex(), nullptr);
+    DocumentContainer *container = m_tab_widget->splitContainers().value(
+        m_tab_widget->currentIndex(), nullptr);
 
-        if (container)
-        {
-            container->view()->CloseFile();
-            return OpenFileInContainer(container, filename);
-        }
-    }
+    if (!container)
+        return OpenFileInNewTab(filename);
 
-    // else Open in current tab (which may be empty or have a file)
+    DocumentView *view = container->view();
+
+    // Empty view — reuse it
+    if (!view || view->filePath().isEmpty())
+        return OpenFileInContainer(container, filename);
+
+    // Multiple splits — replace current pane
+    if (container->getViewCount() > 1)
+        return OpenFileInContainer(container, filename);
+
+    // Single view with file — open in new tab
     return OpenFileInNewTab(filename);
 }
 
