@@ -36,12 +36,12 @@ DocumentContainer::~DocumentContainer()
     // Qt's parent-child relationship handles cleanup
 }
 
-void
+DocumentView *
 DocumentContainer::split(DocumentView *view, Qt::Orientation orientation,
                          const QString &filePath) noexcept
 {
     if (!view || view->filePath().isEmpty())
-        return;
+        return nullptr;
 
     // Find the widget in the layout
     QWidget *currentWidget = nullptr;
@@ -58,7 +58,7 @@ DocumentContainer::split(DocumentView *view, Qt::Orientation orientation,
     }
 
     if (!currentWidget)
-        return;
+        return nullptr;
 
     // Create new view for the split - copy settings from current view
     DocumentView *newView = createViewFromTemplate(view);
@@ -110,13 +110,15 @@ DocumentContainer::split(DocumentView *view, Qt::Orientation orientation,
 
     emit viewCreated(newView);
     emit currentViewChanged(newView);
+
+    return newView;
 }
 
-void
+DocumentView *
 DocumentContainer::split(DocumentView *view,
                          Qt::Orientation orientation) noexcept
 {
-    split(view, orientation, view->filePath());
+    return split(view, orientation, view->filePath());
 }
 
 void
