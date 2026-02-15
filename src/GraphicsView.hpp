@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <QElapsedTimer>
 #include <QGraphicsView>
 #include <QMouseEvent>
