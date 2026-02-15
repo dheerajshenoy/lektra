@@ -54,7 +54,7 @@ public:
 
     void split(DocumentView *view, Qt::Orientation orientation
                                    = Qt::Orientation::Horizontal) noexcept;
-    void split(DocumentView *view, Qt::Orientation orientation,
+    DocumentView* split(DocumentView *view, Qt::Orientation orientation,
                const QString &filePath) noexcept;
     void closeView(DocumentView *view) noexcept;
     QList<DocumentView *> getAllViews() const noexcept;
