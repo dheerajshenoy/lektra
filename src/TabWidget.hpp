@@ -104,9 +104,19 @@ public:
         return m_tab_bar->tabText(index);
     }
 
-    inline QMap<int, DocumentContainer *> &splitContainers() noexcept
+    inline DocumentContainer *rootContainer(int index) const noexcept
     {
-        return m_split_containers;
+        if (index < 0 || index >= count())
+            return nullptr;
+        // Safely cast the page widget back to your container
+        return qobject_cast<DocumentContainer *>(
+            m_stacked_widget->widget(index));
+    }
+
+    inline DocumentContainer *currentRootContainer() const noexcept
+    {
+        return qobject_cast<DocumentContainer *>(
+            m_stacked_widget->currentWidget());
     }
 
     void removeTab(const int index) noexcept;
@@ -130,6 +140,4 @@ private:
     TabId m_id{0};
     QStackedWidget *m_stacked_widget{nullptr};
     TabBar *m_tab_bar{nullptr};
-
-    QMap<int, DocumentContainer *> m_split_containers{};
 };
