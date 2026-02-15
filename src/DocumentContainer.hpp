@@ -4,6 +4,7 @@
 
 #include <QEvent>
 #include <QHash>
+#include <QJsonObject>
 #include <QList>
 #include <QSet>
 #include <QSplitter>
@@ -62,6 +63,10 @@ public:
     void focusView(DocumentView *view) noexcept;
     int getViewCount() const noexcept;
     void syncViewSettings(DocumentView *source, DocumentView *target) noexcept;
+    QJsonObject serializeSplits() const noexcept;
+
+    DocumentView *splitEmpty(DocumentView *view,
+                             Qt::Orientation orientation) noexcept;
 
 signals:
     void viewCreated(DocumentView *view);

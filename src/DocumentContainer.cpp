@@ -1,6 +1,7 @@
 #include "DocumentContainer.hpp"
 
 #include <QEvent>
+#include <QJsonArray>
 #include <QSplitter>
 #include <qnamespace.h>
 #include <qtextcursor.h>
@@ -463,6 +464,120 @@ DocumentContainer::equalizeStretch(QSplitter *splitter) noexcept
 void
 DocumentContainer::focusSplit(Direction direction) noexcept
 {
+    Q_UNUSED(direction);
+    assert(0 && "Not implemented yet");
     if (!m_current_view)
         return;
+}
+
+// Recursively serialize a widget (either a view or a splitter)
+static QJsonObject
+serializeWidget(QWidget *widget)
+{
+    if (DocumentView *view = qobject_cast<DocumentView *>(widget))
+    {
+        QJsonObject obj;
+        obj["type"]         = "view";
+        obj["file_path"]    = view->filePath();
+        obj["current_page"] = view->pageNo() + 1;
+        obj["zoom"]         = view->zoom();
+        obj["fit_mode"]     = static_cast<int>(view->fitMode());
+        obj["invert_color"] = view->invertColor();
+        obj["rotation"]     = view->model() ? view->model()->rotation() : 0;
+        return obj;
+    }
+
+    if (QSplitter *splitter = qobject_cast<QSplitter *>(widget))
+    {
+        QJsonObject obj;
+        obj["type"]        = "splitter";
+        obj["orientation"] = static_cast<int>(splitter->orientation());
+
+        QJsonArray sizes;
+        for (int s : splitter->sizes())
+            sizes.append(s);
+        obj["sizes"] = sizes;
+
+        QJsonArray children;
+        for (int i = 0; i < splitter->count(); ++i)
+            children.append(serializeWidget(splitter->widget(i)));
+        obj["children"] = children;
+
+        return obj;
+    }
+
+    return {};
+}
+
+QJsonObject
+DocumentContainer::serializeSplits() const noexcept
+{
+    // The layout has exactly one top-level widget (either a view or
+    // splitter)
+    if (m_layout->count() == 0)
+        return {};
+
+    QWidget *root = m_layout->itemAt(0)->widget();
+    return serializeWidget(root);
+}
+
+// Splits the given view into a new empty view using the same template, and
+// returns the new view. The new view is created and focused, but the file is
+// not loaded until the user explicitly opens one. Returns nullptr if the split
+// failed (e.g. view not found in layout).
+DocumentView *
+DocumentContainer::splitEmpty(DocumentView *view,
+                              Qt::Orientation orientation) noexcept
+{
+    // Find the widget in the layout
+    QWidget *currentWidget = nullptr;
+    for (int i = 0; i < m_layout->count(); ++i)
+    {
+        QWidget *widget = m_layout->itemAt(i)->widget();
+        if (widget == view
+            || (qobject_cast<QSplitter *>(widget)
+                && containsView(widget, view)))
+        {
+            currentWidget = widget;
+            break;
+        }
+    }
+
+    if (!currentWidget)
+        return nullptr;
+
+    // Create new empty view from template
+    DocumentView *newView = createViewFromTemplate(view);
+
+    if (currentWidget == view)
+    {
+        int layoutIndex = m_layout->indexOf(view);
+        QRect viewGeom  = view->geometry();
+
+        QSplitter *splitter = new QSplitter(orientation, this);
+        splitter->setChildrenCollapsible(false);
+        splitter->setHandleWidth(1);
+        splitter->setStyleSheet(
+            "QSplitter::handle { background-color: palette(mid); }");
+
+        splitter->addWidget(view);
+        splitter->addWidget(newView);
+        m_layout->insertWidget(layoutIndex, splitter);
+        splitter->setGeometry(viewGeom);
+        equalizeStretch(splitter);
+    }
+    else
+    {
+        QSplitter *parentSplitter = qobject_cast<QSplitter *>(currentWidget);
+        if (parentSplitter)
+            splitInSplitter(parentSplitter, view, newView, orientation);
+    }
+
+    newView->installEventFilter(this);
+    m_current_view = newView;
+
+    emit viewCreated(newView);
+    emit currentViewChanged(newView);
+
+    return newView;
 }
