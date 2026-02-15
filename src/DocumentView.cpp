@@ -496,6 +496,42 @@ DocumentView::initConnections() noexcept
 
     connect(m_gview, &GraphicsView::annotPopupRequested, this,
             &DocumentView::handleAnnotPopupRequested);
+
+    connect(m_gview, &GraphicsView::linkCtrlClickRequested, this,
+            &DocumentView::handleLinkCtrlClickRequested);
+}
+
+void
+DocumentView::handleLinkCtrlClickRequested(const QPointF &scenePos) noexcept
+{
+    assert(m_container
+           && "handleLinkCtrlClickRequested called before container is set");
+
+    int pageIndex                = -1;
+    GraphicsPixmapItem *pageItem = nullptr;
+
+    if (!pageAtScenePos(scenePos, pageIndex, pageItem))
+        return;
+
+    const std::vector<BrowseLinkItem *> links_in_page
+        = m_page_links_hash[pageIndex];
+    if (links_in_page.empty())
+        return;
+
+    // Get the link item at the clicked position, if any
+    BrowseLinkItem *clicked_link{nullptr};
+    for (BrowseLinkItem *link : links_in_page)
+    {
+        if (link->contains(scenePos))
+        {
+            clicked_link = link;
+            break;
+        }
+    }
+
+    if (!clicked_link)
+        return;
+    emit ctrlLinkClickRequested(this, clicked_link);
 }
 
 void

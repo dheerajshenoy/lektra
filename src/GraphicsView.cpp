@@ -196,7 +196,16 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         {
             if (item->data(0).toString() == "link")
             {
-                QGraphicsView::mousePressEvent(event);
+
+                if (event->modifiers() & Qt::ControlModifier)
+                {
+                    emit linkCtrlClickRequested(mapToScene(event->pos()));
+                    event->accept();
+                }
+                else
+                {
+                    QGraphicsView::mousePressEvent(event);
+                }
                 return;
             }
         }

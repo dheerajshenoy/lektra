@@ -229,6 +229,7 @@ private:
     void handleTabDetached(int index, const QPoint &globalPos) noexcept;
     void handleTabDetachedToNewWindow(int index,
                                       const TabBar::TabData &data) noexcept;
+    void handleCtrlLinkClickRequested(DocumentView *view, const BrowseLinkItem *linkItem) noexcept;
 
     void gotoPage(int pageno) noexcept;
     void setFocusMode(bool state) noexcept;

@@ -289,6 +289,7 @@ public:
     PageLocation CurrentLocation() noexcept;
 
 signals:
+    void ctrlLinkClickRequested(DocumentView *view, const BrowseLinkItem *linkItem);
     void requestFocus(DocumentView *view);
     void openFileFailed(DocumentView *doc);
     void openFileFinished(DocumentView *doc);
@@ -309,6 +310,7 @@ signals:
     void currentPageChanged(int pageno);
 
 public slots:
+    void handleLinkCtrlClickRequested(const QPointF &scenePos) noexcept;
     void handleTextHighlightRequested() noexcept;
     void handleTextSelection(const QPointF &start, const QPointF &end) noexcept;
     void handleClickSelection(int clickType, const QPointF &scenePos) noexcept;

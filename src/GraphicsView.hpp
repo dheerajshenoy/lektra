@@ -124,6 +124,7 @@ signals:
     void textSelectionRequested(const QPointF &a, const QPointF &b);
     void textHighlightRequested(const QPointF &a, const QPointF &b);
     void textSelectionDeletionRequested();
+    void linkCtrlClickRequested(const QPointF &scenePos);
 #ifdef HAS_SYNCTEX
     void synctexJumpRequested(QPointF scenePos);
 #endif
