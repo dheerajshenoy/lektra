@@ -1596,8 +1596,8 @@ lektra::OpenFileDWIM(const QString &filename) noexcept
     if (m_tab_widget->count() == 0)
         return OpenFileInNewTab(filename);
 
-    DocumentContainer *container = m_tab_widget->splitContainers().value(
-        m_tab_widget->currentIndex(), nullptr);
+    DocumentContainer *container
+        = m_tab_widget->rootContainer(m_tab_widget->currentIndex());
 
     if (!container)
         return OpenFileInNewTab(filename);
@@ -1669,7 +1669,6 @@ lektra::OpenFileInContainer(DocumentContainer *container,
 
     view->openAsync(filename);
 
-    m_tab_widget->splitContainers()[tabIndex] = container;
     m_tab_widget->tabBar()->setSplitCount(tabIndex, container->getViewCount());
 
     setCurrentDocumentView(view); // immediate, like OpenFileInNewTab
@@ -1827,7 +1826,7 @@ lektra::OpenFileInNewTab(const QString &filename,
         // Update m_doc if this is in the current tab
         int currentTabIndex = m_tab_widget->currentIndex();
         DocumentContainer *currentContainer
-            = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
+            = m_tab_widget->rootContainer(currentTabIndex);
         if (currentContainer && currentContainer->view() == newView)
             setCurrentDocumentView(newView);
     });
@@ -1840,8 +1839,7 @@ lektra::OpenFileInNewTab(const QString &filename,
         {
             int currentTabIndex = m_tab_widget->currentIndex();
             DocumentContainer *currentContainer
-                = m_tab_widget->splitContainers().value(currentTabIndex,
-                                                        nullptr);
+                = m_tab_widget->rootContainer(currentTabIndex);
             if (currentContainer)
                 setCurrentDocumentView(currentContainer->view());
         }
@@ -1850,8 +1848,8 @@ lektra::OpenFileInNewTab(const QString &filename,
     connect(container, &DocumentContainer::currentViewChanged, container,
             [this, container](DocumentView *newView)
     {
-        DocumentContainer *current = m_tab_widget->splitContainers().value(
-            m_tab_widget->currentIndex(), nullptr);
+        DocumentContainer *current
+            = m_tab_widget->rootContainer(m_tab_widget->currentIndex());
 
         if (!current)
             return;
@@ -1871,9 +1869,6 @@ lektra::OpenFileInNewTab(const QString &filename,
     // Add the container as a tab
     QString tabTitle = QFileInfo(filename).fileName();
     int tabIndex     = m_tab_widget->addTab(container, tabTitle);
-
-    // Store the container mapping
-    m_tab_widget->splitContainers()[tabIndex] = container;
 
     m_tab_widget->tabBar()->setSplitCount(tabIndex, container->getViewCount());
 
@@ -1939,8 +1934,7 @@ lektra::openFileSplitHelper(const QString &filename,
         return false;
     }
 
-    DocumentContainer *container
-        = m_tab_widget->splitContainers().value(tabIndex, nullptr);
+    DocumentContainer *container = m_tab_widget->rootContainer(tabIndex);
 
     if (!container)
         throw std::runtime_error("No container found for current tab");
@@ -2458,8 +2452,8 @@ lektra::handleCurrentTabChanged(int index) noexcept
         return;
     }
 
-    DocumentContainer *container
-        = m_tab_widget->splitContainers().value(index, nullptr);
+    DocumentContainer *container = m_tab_widget->rootContainer(
+        index); // get the root container for the current tab
     if (!container)
     {
         setCurrentDocumentView(nullptr);
@@ -3257,8 +3251,7 @@ lektra::writeSessionToFile() noexcept
 
     for (int i = 0; i < m_tab_widget->count(); ++i)
     {
-        DocumentContainer *container
-            = m_tab_widget->splitContainers().value(i, nullptr);
+        DocumentContainer *container = m_tab_widget->rootContainer(i);
         if (!container)
             continue;
 
@@ -3663,16 +3656,12 @@ lektra::TabClose(int tabno) noexcept
         return;
 
     // Get the container
-    DocumentContainer *container
-        = m_tab_widget->splitContainers().value(indexToClose, nullptr);
+    DocumentContainer *container = m_tab_widget->rootContainer(indexToClose);
     if (!container)
         return;
 
     // Get all views to update hash
     QList<DocumentView *> views = container->getAllViews();
-
-    // Remove from mapping
-    m_tab_widget->splitContainers().remove(indexToClose);
 
     // Close the tab (this will delete the container and all views)
     m_tab_widget->removeTab(indexToClose);
@@ -3682,7 +3671,7 @@ lektra::TabClose(int tabno) noexcept
     {
         int currentIndex = m_tab_widget->currentIndex();
         DocumentContainer *currentContainer
-            = m_tab_widget->splitContainers().value(currentIndex, nullptr);
+            = m_tab_widget->rootContainer(currentIndex);
         if (currentContainer)
         {
             setCurrentDocumentView(currentContainer->view());
@@ -3978,9 +3967,8 @@ lektra::openSessionFromArray(const QJsonArray &sessionArray) noexcept
 
         OpenFileInNewTab(startFile, [this, splitsNode]()
         {
-            int idx = m_tab_widget->currentIndex();
-            DocumentContainer *container
-                = m_tab_widget->splitContainers().value(idx, nullptr);
+            int idx                      = m_tab_widget->currentIndex();
+            DocumentContainer *container = m_tab_widget->rootContainer(idx);
             if (!container)
                 return;
 
@@ -4189,8 +4177,7 @@ lektra::VSplit() noexcept
         return nullptr;
 
     // Get the container for this tab
-    DocumentContainer *container
-        = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
+    DocumentContainer *container = m_tab_widget->rootContainer(currentTabIndex);
     if (!container)
         return nullptr;
 
@@ -4213,8 +4200,7 @@ lektra::HSplit() noexcept
         return nullptr;
 
     // Get the container for this tab
-    DocumentContainer *container
-        = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
+    DocumentContainer *container = m_tab_widget->rootContainer(currentTabIndex);
     if (!container)
         return nullptr;
 
@@ -4237,8 +4223,7 @@ lektra::CloseSplit() noexcept
     if (!validTabIndex(currentTabIndex))
         return;
 
-    DocumentContainer *container
-        = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
+    DocumentContainer *container = m_tab_widget->rootContainer(currentTabIndex);
     if (!container)
         return;
 
@@ -4270,8 +4255,8 @@ lektra::setCurrentDocumentView(DocumentView *view) noexcept
         return;
     }
 
-    DocumentContainer *container = m_tab_widget->splitContainers().value(
-        m_tab_widget->currentIndex(), nullptr);
+    DocumentContainer *container
+        = m_tab_widget->rootContainer(m_tab_widget->currentIndex());
     if (!container)
         return;
 
@@ -4343,8 +4328,7 @@ lektra::focusSplitHelper(DocumentContainer::Direction direction) noexcept
     if (!validTabIndex(currentTabIndex))
         return;
 
-    DocumentContainer *container
-        = m_tab_widget->splitContainers().value(currentTabIndex, nullptr);
+    DocumentContainer *container = m_tab_widget->rootContainer(currentTabIndex);
     if (!container)
         return;
 
@@ -4471,8 +4455,7 @@ lektra::findOpenView(const QString &path) const noexcept
 {
     for (int i = 0; i < m_tab_widget->count(); ++i)
     {
-        DocumentContainer *container
-            = m_tab_widget->splitContainers().value(i, nullptr);
+        DocumentContainer *container = m_tab_widget->rootContainer(i);
         if (!container)
             continue;
         for (DocumentView *view : container->getAllViews())
