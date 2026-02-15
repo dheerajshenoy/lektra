@@ -2995,6 +2995,9 @@ lektra::initTabConnections(DocumentView *docwidget) noexcept
 
     connect(docwidget, &DocumentView::insertToDBRequested, this,
             &lektra::insertFileToDB);
+
+    connect(docwidget, &DocumentView::ctrlLinkClickRequested, this,
+            &lektra::handleCtrlLinkClickRequested);
 }
 
 // Insert file to store when tab is closed to track
