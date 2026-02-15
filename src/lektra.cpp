@@ -1943,7 +1943,8 @@ lektra::openFileSplitHelper(const QString &filename,
     if (!currentView)
         return false;
 
-    container->split(currentView, orientation, filename);
+    DocumentView *newView
+        = container->split(currentView, orientation, filename);
 
     m_tab_widget->tabBar()->setSplitCount(tabIndex, container->getViewCount());
     insertFileToDB(filename, 1);
