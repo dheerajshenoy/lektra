@@ -339,8 +339,8 @@ public:
     std::vector<std::pair<QString, QString>> properties() noexcept;
     fz_outline *getOutline() noexcept;
     bool reloadDocument() noexcept;
-    void openAsync(const QString &filePath,
-                   const QString &password = {}) noexcept;
+    QFuture<void> openAsync(const QString &filePath,
+                            const QString &password = {}) noexcept;
     void close() noexcept;
     void cleanup() noexcept;
     bool decrypt() noexcept;
