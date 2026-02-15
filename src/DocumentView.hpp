@@ -232,7 +232,7 @@ public:
     void FollowLink(const Model::LinkInfo &info) noexcept;
     void setInvertColor(bool invert) noexcept;
     void openAsync(const QString &filePath,
-                            const QString &password = {}) noexcept;
+                   const QString &password = {}) noexcept;
     bool EncryptDocument() noexcept;
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
