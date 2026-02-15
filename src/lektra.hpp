@@ -99,7 +99,7 @@ public:
     void OpenContainingFolder() noexcept;
     bool OpenFileDWIM(const QString &filename = QString()) noexcept;
     bool OpenFileInContainer(DocumentContainer *container,
-                             const QString &filename      = QString(),
+                             const QString &filename = QString(),
                              const std::function<void()> &callback
                              = {}) noexcept;
     void OpenFilesInVSplit(const std::vector<std::string> &files) noexcept;
@@ -177,6 +177,9 @@ protected:
     bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
+    void restoreSplitNode(DocumentContainer *container,
+                          DocumentView *targetView, const QJsonObject &node,
+                          std::function<void()> onAllDone) noexcept;
     void focusSplitHelper(DocumentContainer::Direction direction) noexcept;
     bool openFileSplitHelper(const QString &filename               = {},
                              const std::function<void()> &callback = {},
