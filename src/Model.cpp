@@ -12,8 +12,9 @@
 #include <qregularexpression.h>
 #include <qstyle.h>
 #include <qtextformat.h>
-#include <ranges>
 #include <unordered_set>
+
+static std::array<std::mutex, FZ_LOCK_MAX> mupdf_mutexes;
 
 /**
  * @brief Clean up image data when the last copy of the QImage is destoryed.
@@ -32,8 +33,6 @@ imageCleanupHandler(void *info) noexcept
         delete payload;
     }
 }
-
-static std::array<std::mutex, FZ_LOCK_MAX> mupdf_mutexes;
 
 static void
 mupdf_lock_mutex(void *user, int lock)
