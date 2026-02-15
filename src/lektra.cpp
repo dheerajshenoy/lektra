@@ -3080,8 +3080,19 @@ lektra::updatePanel() noexcept
 
         m_statusbar->setHighlightColor(model->highlightAnnotColor());
         m_statusbar->setMode(m_doc->selectionMode());
-        m_statusbar->setTotalPageCount(model->numPages());
-        m_statusbar->setPageNo(m_doc->pageNo() + 1);
+
+        const int numPages = model->numPages();
+        if (numPages > 0)
+        {
+            m_statusbar->hidePageInfo(false);
+            m_statusbar->setTotalPageCount(numPages);
+            m_statusbar->setPageNo(m_doc->pageNo() + 1);
+        }
+        else
+        {
+            // File still loading — hide until openFileFinished fires
+            m_statusbar->hidePageInfo(true);
+        }
     }
     else
     {
