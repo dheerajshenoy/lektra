@@ -1584,6 +1584,15 @@ lektra::YankSelection() noexcept
 bool
 lektra::OpenFileDWIM(const QString &filename) noexcept
 {
+    // If already open anywhere, just focus it
+    if (DocumentView *existing = findOpenView(filename))
+    {
+        DocumentContainer *container = existing->container();
+        m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
+        container->focusView(existing);
+        return true;
+    }
+
     if (m_tab_widget->count() == 0)
         return OpenFileInNewTab(filename);
 
@@ -1630,31 +1639,19 @@ lektra::OpenFileInContainer(DocumentContainer *container,
         return false;
     }
 
-    // Only redirect if the file is open in a DIFFERENT container
-    if (m_path_tab_hash.contains(filename))
+    if (DocumentView *existing = findOpenView(filename))
     {
-        QWidget *owner = m_path_tab_hash[filename];
-        if (owner != container)
-        {
-            int existingTab = m_tab_widget->indexOf(owner);
-            if (existingTab != -1)
-            {
-                m_tab_widget->setCurrentIndex(existingTab);
-                if (callback)
-                    callback();
-                return true;
-            }
-        }
-        // Same container — fall through and replace
+        DocumentContainer *container = existing->container();
+        m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
+        container->focusView(existing);
+        if (callback)
+            callback();
+        return true;
     }
 
     DocumentView *view = container->view();
     if (!view)
         return false;
-
-    // Remove old path mapping before opening new file
-    if (!view->filePath().isEmpty())
-        m_path_tab_hash.remove(view->filePath());
 
     view->setDPR(m_dpr); // match OpenFileInNewTab
 
@@ -1673,7 +1670,6 @@ lektra::OpenFileInContainer(DocumentContainer *container,
     view->openAsync(filename);
 
     m_tab_widget->splitContainers()[tabIndex] = container;
-    m_path_tab_hash[filename]                 = container;
     m_tab_widget->tabBar()->setSplitCount(tabIndex, container->getViewCount());
 
     setCurrentDocumentView(view); // immediate, like OpenFileInNewTab
@@ -1805,17 +1801,14 @@ lektra::OpenFileInNewTab(const QString &filename,
     }
 
     // Check if file is already open
-    if (m_path_tab_hash.contains(filename))
+    if (DocumentView *existing = findOpenView(filename))
     {
-        int existingTab = m_tab_widget->indexOf(m_path_tab_hash[filename]);
-        if (existingTab != -1)
-        {
-            m_tab_widget->setCurrentIndex(existingTab);
-            if (callback)
-                callback();
-
-            return true;
-        }
+        DocumentContainer *container = existing->container();
+        m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
+        container->focusView(existing);
+        if (callback)
+            callback();
+        return true;
     }
 
     // Create a new DocumentView
@@ -1881,7 +1874,6 @@ lektra::OpenFileInNewTab(const QString &filename,
 
     // Store the container mapping
     m_tab_widget->splitContainers()[tabIndex] = container;
-    m_path_tab_hash[filename]                 = container;
 
     m_tab_widget->tabBar()->setSplitCount(tabIndex, container->getViewCount());
 
@@ -1929,17 +1921,14 @@ lektra::openFileSplitHelper(const QString &filename,
     }
 
     // Check if file is already open
-    if (m_path_tab_hash.contains(filename))
+    if (DocumentView *existing = findOpenView(filename))
     {
-        const int existingTab
-            = m_tab_widget->indexOf(m_path_tab_hash[filename]);
-        if (existingTab != -1)
-        {
-            m_tab_widget->setCurrentIndex(existingTab);
-            if (callback)
-                callback();
-            return true;
-        }
+        DocumentContainer *container = existing->container();
+        m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
+        container->focusView(existing);
+        if (callback)
+            callback();
+        return true;
     }
 
     const int tabIndex = m_tab_widget->currentIndex();
@@ -2041,21 +2030,14 @@ lektra::OpenFileInNewWindow(const QString &filePath,
     if (QDir::isRelativePath(fp))
         fp = QDir::current().absoluteFilePath(fp);
 
-    // Switch to already opened filepath, if it's open.
-    auto it = m_path_tab_hash.find(fp);
-    if (it != m_path_tab_hash.end())
+    if (DocumentView *existing = findOpenView(filePath))
     {
-        int existingIndex = m_tab_widget->indexOf(it.value());
-        if (existingIndex != -1)
-        {
-            m_tab_widget->setCurrentIndex(existingIndex);
-            // if (auto *doc = qobject_cast<DocumentView *>(it.value()))
-            // {
-            //     const int page = doc->pageNo() + 1;
-            // insertFileToDB(fp, page > 0 ? page : 1);
-            // }
-            return true;
-        }
+        DocumentContainer *container = existing->container();
+        m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
+        container->focusView(existing);
+        if (callback)
+            callback();
+        return true;
     }
 
     if (!QFile::exists(fp))
@@ -2406,8 +2388,6 @@ lektra::initConnections() noexcept
 
             if (doc)
             {
-                m_path_tab_hash.remove(doc->filePath());
-
                 // Set the outline to nullptr if the closed tab was the
                 // current one
                 if (m_doc == doc)
@@ -2418,8 +2398,6 @@ lektra::initConnections() noexcept
         else if (tabRole == "lazy")
         {
             const QString filePath = widget->property("filePath").toString();
-            if (!filePath.isEmpty())
-                m_path_tab_hash.remove(filePath);
         }
         else if (tabRole == "startup")
         {
@@ -3692,14 +3670,6 @@ lektra::TabClose(int tabno) noexcept
 
     // Get all views to update hash
     QList<DocumentView *> views = container->getAllViews();
-    for (DocumentView *view : views)
-    {
-        QString path = view->filePath();
-        if (!path.isEmpty())
-        {
-            m_path_tab_hash.remove(path);
-        }
-    }
 
     // Remove from mapping
     m_tab_widget->splitContainers().remove(indexToClose);
@@ -4492,4 +4462,22 @@ lektra::restoreSplitNode(DocumentContainer *container, DocumentView *targetView,
             });
         }
     }
+}
+
+// Searches for an open DocumentView with the given file path and returns it if
+// found, otherwise returns nullptr
+DocumentView *
+lektra::findOpenView(const QString &path) const noexcept
+{
+    for (int i = 0; i < m_tab_widget->count(); ++i)
+    {
+        DocumentContainer *container
+            = m_tab_widget->splitContainers().value(i, nullptr);
+        if (!container)
+            continue;
+        for (DocumentView *view : container->getAllViews())
+            if (view->filePath() == path)
+                return view;
+    }
+    return nullptr;
 }
