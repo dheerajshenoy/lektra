@@ -127,6 +127,11 @@ public:
         fz_pixmap *pix;
     };
 
+    inline fz_context *cloneContext() const noexcept
+    {
+        return fz_clone_context(m_ctx);
+    }
+
     inline void setRotation(float angle) noexcept
     {
         m_rotation = angle;
@@ -477,6 +482,12 @@ private:
         m_inv_dpr{1.0f};
     bool m_invert_color{false};
 
+    // private helper in Model
+    std::vector<QPolygonF> selectAtHelper(int pageno, fz_point pt,
+                                          int snapMode) noexcept;
+
+    std::pair<fz_matrix, fz_matrix>
+    buildPageTransforms(int pageno) const noexcept;
     void buildPageCache(int pageno) noexcept;
     int addRectAnnotation(const int pageno, const fz_rect &rect) noexcept;
     int addHighlightAnnotation(const int pageno,
@@ -521,7 +532,7 @@ private:
     std::mutex m_doc_mutex;
     QFuture<PageRenderResult> m_render_future;
     pdf_write_options m_pdf_write_options{pdf_default_write_options};
-    int m_search_match_count{0};
+    std::atomic<int> m_search_match_count{0};
     std::unordered_map<int, CachedTextPage> m_text_cache;
     bool m_link_show_boundary{false};
     bool m_detect_url_links{false};
