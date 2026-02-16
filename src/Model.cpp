@@ -1055,26 +1055,34 @@ Model::requestPageRender(
     const RenderJob &job,
     const std::function<void(PageRenderResult)> &callback) noexcept
 {
-    // Cancel/wait for any previous render before issuing a new one
-    if (m_render_future.isRunning())
-        m_render_future.waitForFinished();
-
-    // Ensure page is cached before rendering (lazy loading)
     ensurePageCached(job.pageno);
-
-    m_render_future = QtConcurrent::run([this, job]() -> PageRenderResult
+    m_render_future
+        = QtConcurrent::run([this, job, callback]() -> PageRenderResult
     { return renderPageWithExtrasAsync(job); });
 
     auto watcher = new QFutureWatcher<PageRenderResult>();
     connect(watcher, &QFutureWatcher<PageRenderResult>::finished,
-            [watcher, callback]()
+            [this, watcher, callback, job]()
     {
         PageRenderResult result = watcher->result();
         watcher->deleteLater();
 
-        // on main thread
+        // Deliver pixels + PDF links immediately — this fires GotoLocation
         if (callback)
             callback(result);
+
+        // URL detection runs as a fire-and-forget second pass
+        // It doesn't block the jump marker or page display at all
+        if (m_detect_url_links)
+        {
+            const int pageno = job.pageno;
+            QFuture<void> _  = QtConcurrent::run([this, job, pageno]()
+            {
+                auto urlLinks = detectUrlLinksForPage(job);
+                if (!urlLinks.empty())
+                    emit urlLinksReady(pageno, std::move(urlLinks));
+            });
+        }
     });
 
     watcher->setFuture(m_render_future);
@@ -1236,7 +1244,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
             if (stext_page)
             {
-                const QRegularExpression urlRe = m_url_link_re;
+                const QRegularExpression &urlRe = m_url_link_re;
 
                 auto hasIntersectingLink = [&](const fz_rect &r) -> bool
                 {
@@ -2633,4 +2641,128 @@ Model::getFirstCharPos(const int pageno) noexcept
     }
 
     return {0, 0};
+}
+
+// Detect URL-like text and return as links, excluding areas already covered by
+// PDF links
+std::vector<Model::RenderLink>
+Model::detectUrlLinksForPage(const RenderJob &job) noexcept
+{
+    std::vector<RenderLink> result;
+
+    fz_context *ctx = cloneContext();
+    if (!ctx)
+        return result;
+
+    fz_page *text_page        = nullptr;
+    fz_stext_page *stext_page = nullptr;
+
+    // Grab cached links under lock to check for intersections
+    std::vector<CachedLink> cachedLinks;
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+        const PageCacheEntry *entry = m_page_lru_cache.get(job.pageno);
+        if (entry)
+            cachedLinks = entry->links;
+    }
+
+    fz_matrix transform = fz_transform_page(
+        fz_empty_rect, job.zoom, job.rotation); // bounds not needed for stext
+
+    fz_try(ctx)
+    {
+        text_page  = fz_load_page(ctx, m_doc, job.pageno);
+        stext_page = fz_new_stext_page_from_page(ctx, text_page, nullptr);
+
+        const QRegularExpression &urlRe = m_url_link_re;
+
+        // Get bounds for proper transform
+        fz_rect bounds = fz_bound_page(ctx, text_page);
+        transform      = fz_transform_page(bounds, job.zoom, job.rotation);
+
+        for (fz_stext_block *b = stext_page->first_block; b; b = b->next)
+        {
+            if (b->type != FZ_STEXT_BLOCK_TEXT)
+                continue;
+
+            for (fz_stext_line *line = b->u.t.first_line; line;
+                 line                = line->next)
+            {
+                QString lineText;
+                lineText.reserve(256);
+                for (fz_stext_char *ch = line->first_char; ch; ch = ch->next)
+                    lineText.append(QChar::fromUcs4(ch->c));
+
+                if (lineText.isEmpty())
+                    continue;
+
+                QRegularExpressionMatchIterator it
+                    = urlRe.globalMatch(lineText);
+                while (it.hasNext())
+                {
+                    QRegularExpressionMatch match = it.next();
+                    int start                     = match.capturedStart();
+                    int len                       = match.capturedLength();
+                    if (start < 0 || len <= 0)
+                        continue;
+
+                    QString raw = match.captured();
+                    while (!raw.isEmpty()
+                           && QString(".,;:!?)\"'").contains(raw.back()))
+                    {
+                        raw.chop(1);
+                        --len;
+                    }
+                    if (raw.isEmpty() || len <= 0)
+                        continue;
+
+                    fz_quad q = getQuadForSubstring(line, start, len);
+                    fz_rect r = fz_rect_from_quad(q);
+                    if (fz_is_empty_rect(r))
+                        continue;
+
+                    // Skip if already covered by a PDF link
+                    bool intersects = false;
+                    for (const auto &cl : cachedLinks)
+                    {
+                        const fz_rect lr = cl.rect;
+                        if (r.x1 >= lr.x0 && r.x0 <= lr.x1 && r.y1 >= lr.y0
+                            && r.y0 <= lr.y1)
+                        {
+                            intersects = true;
+                            break;
+                        }
+                    }
+                    if (intersects)
+                        continue;
+
+                    QString uri = raw;
+                    if (uri.startsWith("www."))
+                        uri.prepend("https://");
+
+                    fz_rect tr        = fz_transform_rect(r, transform);
+                    const float scale = m_inv_dpr;
+                    QRectF qtRect(tr.x0 * scale, tr.y0 * scale,
+                                  (tr.x1 - tr.x0) * scale,
+                                  (tr.y1 - tr.y0) * scale);
+
+                    RenderLink renderLink;
+                    renderLink.rect     = qtRect;
+                    renderLink.uri      = uri;
+                    renderLink.type     = BrowseLinkItem::LinkType::External;
+                    renderLink.boundary = m_link_show_boundary;
+                    result.push_back(std::move(renderLink));
+                }
+            }
+        }
+    }
+    fz_always(ctx)
+    {
+        fz_drop_stext_page(ctx, stext_page);
+        fz_drop_page(ctx, text_page);
+    }
+    fz_catch(ctx) {}
+
+    fz_drop_context(ctx);
+    return result;
 }

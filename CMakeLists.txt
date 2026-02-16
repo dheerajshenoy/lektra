@@ -100,6 +100,7 @@ add_executable(${PROJECT_NAME}
     src/PlaceholderWidget.hpp
     src/ScrollBar.hpp
     src/CommandPaletteWidget.hpp
+    src/JumpMarker.hpp
 
 )
 

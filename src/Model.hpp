@@ -384,6 +384,7 @@ public:
     void annotChangeColor(int pageno, int index, const QColor &color) noexcept;
 
 signals:
+    void urlLinksReady(int pageno, std::vector<RenderLink> links);
     void openFileFailed();
     void openFileFinished();
     void reloadRequested(int pageno);
@@ -504,6 +505,8 @@ private:
     void populatePDFProperties(
         std::vector<std::pair<QString, QString>> &props) noexcept;
     fz_point getFirstCharPos(const int pageno) noexcept;
+    std::vector<Model::RenderLink>
+    detectUrlLinksForPage(const RenderJob &job) noexcept;
 
     // std::optional<std::wstring>
     // get_paper_name_at_position(const int pageno, const fz_point) noexcept;

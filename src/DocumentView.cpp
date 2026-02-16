@@ -258,10 +258,6 @@ DocumentView::openAsync(const QString &filePath,
 #ifndef NDEBUG
     qDebug() << "DocumentView::openAsync(): Opening file:" << filePath;
 #endif
-    if (m_open_future_watcher.isRunning())
-    {
-        m_open_future_watcher.cancel();
-    }
     clearDocumentItems();
 
     m_spinner->start();
@@ -409,6 +405,14 @@ DocumentView::initConnections() noexcept
     // });
     connect(m_model, &Model::searchResultsReady, this,
             &DocumentView::handleSearchResults);
+
+    // In initConnections():
+    connect(m_model, &Model::urlLinksReady, this,
+            [this](int pageno, std::vector<Model::RenderLink> links)
+    {
+        if (m_page_items_hash.contains(pageno))
+            renderLinks(pageno, links); // appends to existing links
+    });
 
     connect(m_model, &Model::reloadRequested, this, &DocumentView::reloadPage);
 
