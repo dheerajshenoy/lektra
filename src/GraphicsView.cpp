@@ -692,7 +692,6 @@ GraphicsView::leaveEvent(QEvent *event)
 {
     if (m_autoHide)
         restartHideTimer();
-    setActive(false);
     QGraphicsView::leaveEvent(event);
 }
 
