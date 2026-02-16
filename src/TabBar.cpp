@@ -46,6 +46,7 @@ TabBar::mousePressEvent(QMouseEvent *event)
 void
 TabBar::mouseMoveEvent(QMouseEvent *event)
 {
+    // Early exit if not dragging with left button
     if (!(event->buttons() & Qt::LeftButton) || m_drag_tab_index < 0)
     {
         QTabBar::mouseMoveEvent(event);
@@ -60,11 +61,29 @@ TabBar::mouseMoveEvent(QMouseEvent *event)
         return;
     }
 
+    // Check if cursor has left the window
+    QWidget *topWindow = window();
+    QPoint globalPos   = mapToGlobal(event->pos());
+
+    // Only initiate custom drag if we're outside the window
+    if (topWindow->geometry().contains(globalPos))
+    {
+        // Still inside window - let QTabBar handle it
+        QTabBar::mouseMoveEvent(event);
+        return;
+    }
+
+    // ===== CURSOR IS OUTSIDE WINDOW - INITIATE DETACH =====
+
     // Request tab data from the parent widget
     TabData tabData;
     emit tabDataRequested(m_drag_tab_index, &tabData);
+
     if (tabData.filePath.isEmpty())
+    {
+        m_drag_tab_index = -1;
         return;
+    }
 
     m_drop_received  = false;
     int draggedIndex = m_drag_tab_index;
@@ -91,22 +110,25 @@ TabBar::mouseMoveEvent(QMouseEvent *event)
     painter.end();
 
     drag->setPixmap(tabPixmap);
-    drag->setHotSpot(event->pos() - tabRect.topLeft());
+    drag->setHotSpot(m_drag_start_pos);
 
-    Qt::DropAction result = drag->exec(Qt::MoveAction | Qt::CopyAction);
-    m_drag_tab_index      = -1;
+    Qt::DropAction result = drag->exec(Qt::MoveAction | Qt::IgnoreAction);
 
-    // If the drag was accepted by another window, close this tab
+    m_drag_tab_index = -1;
+
+    // Handle the drag result
     if (result == Qt::MoveAction && !m_drop_received)
     {
+        // Dropped on another application window
         emit tabDetached(draggedIndex, QCursor::pos());
     }
-    else if (result == Qt::IgnoreAction)
+    else if (result == Qt::IgnoreAction || result == Qt::CopyAction)
     {
-        // Tab was dropped outside any accepting window - detach to new
-        // window
+        // Dropped outside - create new window
         emit tabDetachedToNewWindow(draggedIndex, tabData);
     }
+
+    // Don't call parent implementation - we handled everything
 }
 
 void

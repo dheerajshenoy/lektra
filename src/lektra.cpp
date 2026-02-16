@@ -11,6 +11,7 @@
 #include "SaveSessionDialog.hpp"
 #include "SearchBar.hpp"
 #include "StartupWidget.hpp"
+#include "TabBar.hpp"
 #include "utils.hpp"
 
 #include <QColorDialog>
@@ -2480,14 +2481,17 @@ lektra::handleTabDataRequested(int index, TabBar::TabData *outData) noexcept
     if (!validTabIndex(index))
         return;
 
-    QWidget *widget = m_tab_widget->widget(index);
-    if (!widget)
+    // Get the DocumentContainer, not the widget directly
+    DocumentContainer *container = m_tab_widget->rootContainer(index);
+    if (!container)
         return;
 
-    DocumentView *doc = qobject_cast<DocumentView *>(widget);
+    // Get the active view from the container
+    DocumentView *doc = container->view();
     if (!doc)
         return;
 
+    // Now populate the data
     outData->filePath    = doc->filePath();
     outData->currentPage = doc->pageNo() + 1;
     outData->zoom        = doc->zoom();
@@ -2664,8 +2668,14 @@ lektra::eventFilter(QObject *object, QEvent *event)
     // Drop Event
     if (event->type() == QEvent::Drop)
     {
-        QDropEvent *e                    = static_cast<QDropEvent *>(event);
-        const QList<QUrl> urls           = e->mimeData()->urls();
+        QDropEvent *e         = static_cast<QDropEvent *>(event);
+        const QMimeData *mime = e->mimeData();
+        if (mime->hasFormat(TabBar::MIME_TYPE))
+            return false;
+        if (!mime->hasUrls())
+            return false;
+
+        const QList<QUrl> urls           = mime->urls();
         const Qt::KeyboardModifiers mods = e->modifiers();
 
         for (const QUrl &url : urls)
@@ -2683,9 +2693,14 @@ lektra::eventFilter(QObject *object, QEvent *event)
     }
     else if (event->type() == QEvent::DragEnter)
     {
-        QDragEnterEvent *e = static_cast<QDragEnterEvent *>(event);
-        if (e->mimeData()->hasUrls())
-            e->acceptProposedAction();
+        QDragEnterEvent *e    = static_cast<QDragEnterEvent *>(event);
+        const QMimeData *mime = e->mimeData();
+        if (mime->hasFormat(TabBar::MIME_TYPE))
+            return false;
+        if (!mime->hasUrls())
+            return false;
+
+        e->acceptProposedAction();
         return true;
     }
 
@@ -2881,8 +2896,11 @@ lektra::openInExplorerForIndex(int index) noexcept
         = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
     if (doc)
     {
-        QString filepath = doc->fileName();
-        QDesktopServices::openUrl(QUrl(QFileInfo(filepath).absolutePath()));
+        const QString filePath = doc->filePath();
+        if (QFile::exists(filePath))
+        {
+            QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
+        }
     }
 }
 
@@ -2912,7 +2930,8 @@ lektra::initTabConnections(DocumentView *docwidget) noexcept
         if (m_doc == doc)
         {
             updatePanel();
-            // Also drive the tab title, which suffers the same timing problem
+            // Also drive the tab title, which suffers the same timing
+            // problem
             int index = m_tab_widget->currentIndex();
             if (validTabIndex(index))
             {
@@ -2936,6 +2955,9 @@ lektra::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::requestFocus, this,
             [this](DocumentView *view)
     {
+        if (m_doc == view)
+            return;
+
 #ifndef NDEBUG
         qDebug()
             << "DocumentView requested focus, setting current document view"
@@ -3954,8 +3976,8 @@ lektra::openSessionFromArray(const QJsonArray &sessionArray) noexcept
         if (splitsNode.isEmpty())
             continue;
 
-        // Recursive lambda to find the first file path in the splits tree for
-        // this tab
+        // Recursive lambda to find the first file path in the splits tree
+        // for this tab
         std::function<QString(const QJsonObject &)> firstFilePath
             = [&firstFilePath](const QJsonObject &node) -> QString
         {
@@ -4463,8 +4485,8 @@ lektra::restoreSplitNode(DocumentContainer *container, DocumentView *targetView,
     }
 }
 
-// Searches for an open DocumentView with the given file path and returns it if
-// found, otherwise returns nullptr
+// Searches for an open DocumentView with the given file path and returns it
+// if found, otherwise returns nullptr
 DocumentView *
 lektra::findOpenView(const QString &path) const noexcept
 {
