@@ -5,6 +5,7 @@
 ### Features
 - Ability to move tabs with mouse drag and drop within the tab bar and detach to new window if dropped outside
 - Ability to split the view into multiple panes to view different pages of the same document (or different) side by side
+- Ability to focus split with direction
 
 - New flags for opening files in `vsplit` or `hsplit` directly from the command line
     - `--vsplit` - Open file in a vertically split pane
@@ -19,12 +20,19 @@
     - `split_vertical` - Split the current view vertically
     - `close_split` - Close the current split pane
     <!-- - `focus_split_left`, `focus_split_right`, `focus_split_up`, `focus_split_down` - Move focus between split panes in the specified direction -->
-    - `focus_next_split`, `focus_prev_split` - Move focus to the next/previous split pane
+    - `focus_split_left`, `focus_split_right`, `focus_split_up`, `focus_split_down` - Move focus between split panes in the specified direction (if no pane in that direction, do nothing)
     - `open_file_vsplit` - Open a file in a vertically split pane
     - `open_file_hsplit` - Open a file in a horizontally split pane
-
+- New command for opening file
+    - `open_file_dwim` - Open file with "Do What I Mean" behavior: if there's a tab open with no splits, open the file in new tab, if there's a tab open with splits, open the file in current split.
 
 ### Bug Fixes
+
+- Fix window focus changing the dimmed state of split panes
+- Fix crashing on splitting with huge documents.
+- Remove filepath hash to keep track of already opened files, instead use the file path directly which should fix many other issues related to file opening and session restore
+- Fix session loading layout restoration to work with the new splits system
+- Fix `open_file_dwim` not working properly in some cases
 - Fix callback not being called after file open in some cases (due to async file opening)
 - Fix panel and tab not showing file info properly on file single file open
 - Hide scrollbars when the entire document is visible in the viewport
