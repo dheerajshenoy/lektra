@@ -243,7 +243,7 @@ lektra::initMenubar() noexcept
         &lektra::ZoomOut);
 
     m_actionHighlightSearch = m_viewMenu->addAction(
-        "Search Highlights", this, &lektra::ShowHighlightSearch);
+        "Search Highlights", this, &lektra::Show_highlight_search);
 
     m_viewMenu->addSeparator();
 
@@ -330,7 +330,7 @@ lektra::initMenubar() noexcept
     m_actionToggleHighlightAnnotSearch = m_toggleMenu->addAction(
         QString("Highlight Annotation Search\t%1")
             .arg(m_config.shortcuts["highlight_annot_search"]),
-        this, &lektra::ShowHighlightSearch);
+        this, &lektra::Show_highlight_search);
     m_actionToggleHighlightAnnotSearch->setCheckable(true);
     m_actionToggleHighlightAnnotSearch->setChecked(
         !m_outline_widget->isHidden());
@@ -1203,7 +1203,7 @@ lektra::ShowAbout() noexcept
 // Reads the arguments passed with `lektra` from the
 // commandline
 void
-lektra::ReadArgsParser(argparse::ArgumentParser &argparser) noexcept
+lektra::Read_args_parser(argparse::ArgumentParser &argparser) noexcept
 {
 
     if (argparser.is_used("version"))
@@ -1669,7 +1669,8 @@ lektra::OpenFileInContainer(DocumentContainer *container,
 
     view->openAsync(filename);
 
-    m_tab_widget->tabBar()->setSplitCount(tabIndex, container->getViewCount());
+    m_tab_widget->tabBar()->set_split_count(tabIndex,
+                                            container->getViewCount());
 
     setCurrentDocumentView(view); // immediate, like OpenFileInNewTab
 
@@ -1779,7 +1780,7 @@ lektra::OpenFilesInNewTab(const QStringList &files) noexcept
 //     return false;
 // }
 
-bool
+DocumentView::Id
 lektra::OpenFileInNewTab(const QString &filename,
                          const std::function<void()> &callback) noexcept
 {
@@ -1870,7 +1871,8 @@ lektra::OpenFileInNewTab(const QString &filename,
     QString tabTitle = QFileInfo(filename).fileName();
     int tabIndex     = m_tab_widget->addTab(container, tabTitle);
 
-    m_tab_widget->tabBar()->setSplitCount(tabIndex, container->getViewCount());
+    m_tab_widget->tabBar()->set_split_count(tabIndex,
+                                            container->getViewCount());
 
     // Set as current tab
     m_tab_widget->setCurrentIndex(tabIndex);
@@ -1894,7 +1896,7 @@ lektra::OpenFileInNewTab(const QString &filename,
     return true;
 }
 
-bool
+DocumentView::Id
 lektra::openFileSplitHelper(const QString &filename,
                             const std::function<void()> &callback,
                             Qt::Orientation orientation)
@@ -1946,7 +1948,8 @@ lektra::openFileSplitHelper(const QString &filename,
     DocumentView *newView
         = container->split(currentView, orientation, filename);
 
-    m_tab_widget->tabBar()->setSplitCount(tabIndex, container->getViewCount());
+    m_tab_widget->tabBar()->set_split_count(tabIndex,
+                                            container->getViewCount());
     insertFileToDB(filename, 1);
 
     if (callback)
@@ -1959,14 +1962,14 @@ lektra::openFileSplitHelper(const QString &filename,
     return false;
 }
 
-bool
+DocumentView::Id
 lektra::OpenFileVSplit(const QString &filename,
                        const std::function<void()> &callback)
 {
     return openFileSplitHelper(filename, callback, Qt::Vertical);
 }
 
-bool
+DocumentView::Id
 lektra::OpenFileHSplit(const QString &filename,
                        const std::function<void()> &callback)
 {
@@ -1985,7 +1988,7 @@ lektra::OpenFilesInNewWindow(const QStringList &filenames) noexcept
     }
 }
 
-bool
+DocumentView::Id
 lektra::OpenFileInNewWindow(const QString &filePath,
                             const std::function<void()> &callback) noexcept
 {
@@ -2136,7 +2139,7 @@ lektra::ShowOutline() noexcept
 
 // Show the highlight search panel
 void
-lektra::ShowHighlightSearch() noexcept
+lektra::Show_highlight_search() noexcept
 {
     if (!m_doc)
         return;
@@ -3117,6 +3120,7 @@ lektra::updatePanel() noexcept
 
         m_statusbar->setHighlightColor(model->highlightAnnotColor());
         m_statusbar->setMode(m_doc->selectionMode());
+        m_statusbar->setHighlightColor(model->highlightAnnotColor());
 
         const int numPages = model->numPages();
         if (numPages > 0)
@@ -3476,7 +3480,7 @@ lektra::initActionMap() noexcept
            ACTION_NO_ARGS("link_hint_visit", VisitLinkKB),
            ACTION_NO_ARGS("link_hint_copy", CopyLinkKB),
            ACTION_NO_ARGS("outline", ShowOutline),
-           ACTION_NO_ARGS("highlight_annot_search", ShowHighlightSearch),
+           ACTION_NO_ARGS("highlight_annot_search", Show_highlight_search),
            ACTION_NO_ARGS("rotate_clock", RotateClock),
            ACTION_NO_ARGS("rotate_anticlock", RotateAnticlock),
            ACTION_NO_ARGS("prev_location", GoBackHistory),
@@ -3500,11 +3504,14 @@ lektra::initActionMap() noexcept
            // Split actions
            ACTION_NO_ARGS("split_horizontal", VSplit),
            ACTION_NO_ARGS("split_vertical", HSplit),
-           ACTION_NO_ARGS("close_split", CloseSplit),
-           ACTION_NO_ARGS("focus_split_right", FocusSplitRight),
-           ACTION_NO_ARGS("focus_split_left", FocusSplitLeft),
-           ACTION_NO_ARGS("focus_split_up", FocusSplitUp),
-           ACTION_NO_ARGS("focus_split_down", FocusSplitDown),
+           ACTION_NO_ARGS("close_split", Close_split),
+           ACTION_NO_ARGS("focus_split_right", Focus_split_right),
+           ACTION_NO_ARGS("focus_split_left", Focus_split_left),
+           ACTION_NO_ARGS("focus_split_up", Focus_split_up),
+           ACTION_NO_ARGS("focus_split_down", Focus_split_down),
+           ACTION_NO_ARGS("close_other_splits", Close_other_splits),
+
+           ACTION_NO_ARGS("focus_portal", Focus_portal),
 
            // File opening actions
            ACTION_NO_ARGS("open_file_dwim", OpenFileDWIM),
@@ -4026,8 +4033,8 @@ lektra::openSessionFromArray(const QJsonArray &sessionArray) noexcept
 
             restoreSplitNode(container, rootView, splitsNode, nullptr);
 
-            m_tab_widget->tabBar()->setSplitCount(idx,
-                                                  container->getViewCount());
+            m_tab_widget->tabBar()->set_split_count(idx,
+                                                    container->getViewCount());
         });
     }
 }
@@ -4238,8 +4245,8 @@ lektra::VSplit() noexcept
 
     // Perform vertical split (top/bottom)
     container->split(currentView, Qt::Vertical);
-    m_tab_widget->tabBar()->setSplitCount(currentTabIndex,
-                                          container->getViewCount());
+    m_tab_widget->tabBar()->set_split_count(currentTabIndex,
+                                            container->getViewCount());
     return container;
 }
 
@@ -4261,14 +4268,36 @@ lektra::HSplit() noexcept
 
     // Perform horizontal split (left/right)
     container->split(currentView, Qt::Horizontal);
-    m_tab_widget->tabBar()->setSplitCount(currentTabIndex,
-                                          container->getViewCount());
+    m_tab_widget->tabBar()->set_split_count(currentTabIndex,
+                                            container->getViewCount());
 
     return container;
 }
 
+// Closes all splits except the current one in the current tab. If there is only
+// one split, does nothing.
 void
-lektra::CloseSplit() noexcept
+lektra::Close_other_splits() noexcept
+{
+    const int currentTabIndex = m_tab_widget->currentIndex();
+    if (!validTabIndex(currentTabIndex))
+        return;
+
+    DocumentContainer *container = m_tab_widget->rootContainer(currentTabIndex);
+    if (!container)
+        return;
+
+    DocumentView *currentView = container->view();
+    if (!currentView)
+        return;
+
+    container->close_other_views(currentView);
+    m_tab_widget->tabBar()->set_split_count(currentTabIndex,
+                                            container->getViewCount());
+}
+
+void
+lektra::Close_split() noexcept
 {
     int currentTabIndex = m_tab_widget->currentIndex();
     if (!validTabIndex(currentTabIndex))
@@ -4286,8 +4315,8 @@ lektra::CloseSplit() noexcept
     if (currentView)
     {
         container->closeView(currentView);
-        m_tab_widget->tabBar()->setSplitCount(currentTabIndex,
-                                              container->getViewCount());
+        m_tab_widget->tabBar()->set_split_count(currentTabIndex,
+                                                container->getViewCount());
     }
 }
 
@@ -4349,25 +4378,25 @@ lektra::CloseFile() noexcept
 }
 
 void
-lektra::FocusSplitUp() noexcept
+lektra::Focus_split_up() noexcept
 {
     focusSplitHelper(DocumentContainer::Direction::Up);
 }
 
 void
-lektra::FocusSplitDown() noexcept
+lektra::Focus_split_down() noexcept
 {
     focusSplitHelper(DocumentContainer::Direction::Down);
 }
 
 void
-lektra::FocusSplitLeft() noexcept
+lektra::Focus_split_left() noexcept
 {
     focusSplitHelper(DocumentContainer::Direction::Left);
 }
 
 void
-lektra::FocusSplitRight() noexcept
+lektra::Focus_split_right() noexcept
 {
     focusSplitHelper(DocumentContainer::Direction::Right);
 }
@@ -4537,22 +4566,88 @@ lektra::handleCtrlLinkClickRequested(DocumentView *view,
     if (!container)
         return;
 
+    // Create the location target data (copy values, not pointers)
+    DocumentView::PageLocation target{
+        linkItem->gotoPageNo(), linkItem->location().x, linkItem->location().y};
+
+    if (std::isnan(target.x))
+        target.x = 0;
+    if (std::isnan(target.y))
+        target.y = 0;
+
+    // Check if portal already exists
+    if (container->has_portal())
+    {
+        DocumentView *portalView = container->portal();
+        if (portalView)
+            portalView->GotoLocation(target);
+        return;
+    }
+
     const QString filePath = view->filePath();
 
-    OpenFileVSplit(filePath, [this, linkItem]()
+    // Capture by VALUE, not reference
+    OpenFileVSplit(filePath, [this, container, target, filePath]()
     {
         if (!m_doc)
             return;
 
-        DocumentView::PageLocation target{linkItem->gotoPageNo(),
-                                          linkItem->location().x,
-                                          linkItem->location().y};
+        // Go to the location
+        m_doc->GotoLocation(target);
 
-        if (std::isnan(target.x))
-            target.x = 0;
-        if (std::isnan(target.y))
-            target.y = 0;
+        // Find the newly created split's ID and set it as portal
+        int currentTabIndex = m_tab_widget->currentIndex();
+        DocumentContainer *currentContainer
+            = m_tab_widget->rootContainer(currentTabIndex);
 
-        GotoLocation(target);
+        if (currentContainer == container && m_doc)
+        {
+            container->set_portal(m_doc);
+        }
     });
+}
+
+DocumentView *
+lektra::get_view_by_id(const DocumentView::Id &id) const noexcept
+{
+    for (int i = 0; i < m_tab_widget->count(); ++i)
+    {
+        DocumentContainer *container = m_tab_widget->rootContainer(i);
+        if (!container)
+            continue;
+
+        DocumentView *view = container->view();
+
+        if (view->id() == id)
+            return view;
+
+        DocumentView *child_view = container->get_child_view_by_id(id);
+
+        if (child_view)
+            return child_view;
+    }
+
+    return nullptr;
+}
+
+// Focus the portal view in the current tab, if it exists. The portal view is a
+// special view that can be set to follow the location of another view (e.g. for
+// ctrl+click navigation)
+void
+lektra::Focus_portal() noexcept
+{
+    int currentTabIndex = m_tab_widget->currentIndex();
+    if (!validTabIndex(currentTabIndex))
+        return;
+
+    DocumentContainer *container = m_tab_widget->rootContainer(currentTabIndex);
+    if (!container)
+        return;
+
+    if (container->has_portal())
+    {
+        DocumentView *portalView = container->portal();
+        if (portalView)
+            container->focusView(portalView);
+    }
 }
