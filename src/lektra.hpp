@@ -63,16 +63,19 @@ public:
 
     DocumentContainer *VSplit() noexcept;
     DocumentContainer *HSplit() noexcept;
-    void CloseSplit() noexcept;
-    void FocusSplitUp() noexcept;
-    void FocusSplitDown() noexcept;
-    void FocusSplitLeft() noexcept;
-    void FocusSplitRight() noexcept;
-    void ReadArgsParser(argparse::ArgumentParser &argparser) noexcept;
+
+    void Focus_portal() noexcept;
+    void Close_split() noexcept;
+    void Close_other_splits() noexcept;
+    void Focus_split_up() noexcept;
+    void Focus_split_down() noexcept;
+    void Focus_split_left() noexcept;
+    void Focus_split_right() noexcept;
+    void Read_args_parser(argparse::ArgumentParser &argparser) noexcept;
     // bool OpenFile(DocumentView *view) noexcept;
     void Search() noexcept;
-    void SearchInPage() noexcept;
-    void ShowHighlightSearch() noexcept;
+    void Search_in_page() noexcept;
+    void Show_highlight_search() noexcept;
     void ToggleAutoResize() noexcept;
     void ToggleCommandPalette() noexcept;
     void ToggleFocusMode() noexcept;
@@ -104,19 +107,21 @@ public:
                              = {}) noexcept;
     void OpenFilesInVSplit(const std::vector<std::string> &files) noexcept;
     void OpenFilesInHSplit(const std::vector<std::string> &files) noexcept;
+
     void OpenFiles(const std::vector<std::string> &filenames) noexcept;
     void OpenFilesInNewTab(const std::vector<std::string> &files) noexcept;
     void OpenFilesInNewTab(const QList<QString> &files) noexcept;
-    bool OpenFileInNewTab(const QString &filename               = QString(),
-                          const std::function<void()> &callback = {}) noexcept;
-    bool OpenFileInNewWindow(const QString &filename = QString(),
-                             const std::function<void()> &callback
-                             = {}) noexcept;
+    DocumentView::Id OpenFileInNewTab(const QString &filename = QString(),
+                                      const std::function<void()> &callback
+                                      = {}) noexcept;
+    DocumentView::Id OpenFileInNewWindow(const QString &filename = QString(),
+                                         const std::function<void()> &callback
+                                         = {}) noexcept;
     void OpenFilesInNewWindow(const QStringList &filenames) noexcept;
-    bool OpenFileVSplit(const QString &filename               = QString(),
-                        const std::function<void()> &callback = {});
-    bool OpenFileHSplit(const QString &filename               = QString(),
-                        const std::function<void()> &callback = {});
+    DocumentView::Id OpenFileVSplit(const QString &filename = QString(),
+                                    const std::function<void()> &callback = {});
+    DocumentView::Id OpenFileHSplit(const QString &filename = QString(),
+                                    const std::function<void()> &callback = {});
     void PrevPage() noexcept;
     void FirstPage() noexcept;
     void ToggleTextSelection() noexcept;
@@ -201,9 +206,12 @@ private:
                           DocumentView *targetView, const QJsonObject &node,
                           std::function<void()> onAllDone) noexcept;
     void focusSplitHelper(DocumentContainer::Direction direction) noexcept;
-    bool openFileSplitHelper(const QString &filename               = {},
-                             const std::function<void()> &callback = {},
-                             Qt::Orientation orientation = Qt::Horizontal);
+
+    DocumentView::Id
+    openFileSplitHelper(const QString &filename               = {},
+                        const std::function<void()> &callback = {},
+                        Qt::Orientation orientation           = Qt::Horizontal);
+
     void setCurrentDocumentView(DocumentView *view) noexcept;
     void centerMouseInDocumentView(DocumentView *view) noexcept;
     DocumentView *findOpenView(const QString &path) const noexcept;
@@ -240,6 +248,7 @@ private:
     void writeSessionToFile() noexcept;
 
     // private helpers
+    DocumentView *get_view_by_id(const DocumentView::Id &id) const noexcept;
     void handleFileNameChanged(const QString &name) noexcept;
     void handleCurrentTabChanged(int index) noexcept;
     void openInExplorerForIndex(int index) noexcept;
