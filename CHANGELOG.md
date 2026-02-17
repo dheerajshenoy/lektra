@@ -28,6 +28,7 @@
 
 ### Bug Fixes
 
+- Fix tab drop opening new window instead of moving tab when dropped within the same window
 - Fix window focus changing the dimmed state of split panes
 - Fix crashing on splitting with huge documents.
 - Remove filepath hash to keep track of already opened files, instead use the file path directly which should fix many other issues related to file opening and session restore
