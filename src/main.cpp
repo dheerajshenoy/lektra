@@ -152,6 +152,6 @@ main(int argc, char *argv[])
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon(":/resources/png/lektra.png"));
     lektra d;
-    d.ReadArgsParser(program);
+    d.Read_args_parser(program);
     app.exec();
 }
