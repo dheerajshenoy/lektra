@@ -72,13 +72,9 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
-    void dragEnterEvent(QDragEnterEvent *event) override;
-    void dragMoveEvent(QDragMoveEvent *event) override;
-    void dropEvent(QDropEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
 
 private:
     QPoint m_drag_start_pos;
     int m_drag_tab_index{-1};
-    bool m_drop_received{false};
 };

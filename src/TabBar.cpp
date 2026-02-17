@@ -2,7 +2,6 @@
 
 TabBar::TabBar(QWidget *parent) : QTabBar(parent)
 {
-    setAcceptDrops(true);
     setElideMode(Qt::TextElideMode::ElideRight);
     setDrawBase(false);
     setMovable(true);
@@ -85,7 +84,6 @@ TabBar::mouseMoveEvent(QMouseEvent *event)
         return;
     }
 
-    m_drop_received  = false;
     int draggedIndex = m_drag_tab_index;
 
     // Create drag object
@@ -116,13 +114,18 @@ TabBar::mouseMoveEvent(QMouseEvent *event)
 
     m_drag_tab_index = -1;
 
+    const bool dropWasAccepted = (result == Qt::MoveAction) || s_drop_accepted;
+
+    s_drop_accepted = false; // Reset for next drag
+
+    //
     // Handle the drag result
-    if (result == Qt::MoveAction && !m_drop_received)
+    if (dropWasAccepted)
     {
         // Dropped on another application window
         emit tabDetached(draggedIndex, QCursor::pos());
     }
-    else if (result == Qt::IgnoreAction || result == Qt::CopyAction)
+    else
     {
         // Dropped outside - create new window
         emit tabDetachedToNewWindow(draggedIndex, tabData);
@@ -136,83 +139,6 @@ TabBar::mouseReleaseEvent(QMouseEvent *event)
 {
     m_drag_tab_index = -1;
     QTabBar::mouseReleaseEvent(event);
-}
-
-void
-TabBar::dragEnterEvent(QDragEnterEvent *event)
-{
-    if (event->mimeData()->hasFormat(MIME_TYPE))
-    {
-        event->setDropAction(Qt::MoveAction);
-        event->accept();
-    }
-    else if (event->mimeData()->hasUrls())
-    {
-        // Accept file drops
-        for (const QUrl &url : event->mimeData()->urls())
-        {
-            if (url.isLocalFile()
-                && url.toLocalFile().endsWith(".pdf", Qt::CaseInsensitive))
-            {
-                event->acceptProposedAction();
-                return;
-            }
-        }
-    }
-}
-
-void
-TabBar::dragMoveEvent(QDragMoveEvent *event)
-{
-    if (event->mimeData()->hasFormat(MIME_TYPE))
-    {
-        event->setDropAction(Qt::MoveAction);
-        event->accept();
-    }
-    else if (event->mimeData()->hasUrls())
-    {
-        event->acceptProposedAction();
-    }
-}
-
-void
-TabBar::dropEvent(QDropEvent *event)
-{
-    if (event->mimeData()->hasFormat(MIME_TYPE))
-    {
-        m_drop_received = true;
-
-        // Handle Internal Move
-        if (event->source() == this)
-        {
-            int toIndex   = tabAt(event->position().toPoint());
-            int fromIndex = m_drag_tab_index; // This is valid because we
-                                              // haven't cleared it yet
-
-            if (toIndex != -1 && fromIndex != -1 && fromIndex != toIndex)
-            {
-                moveTab(fromIndex, toIndex);
-                setCurrentIndex(toIndex); // Optional: keep the moved tab active
-                event->setDropAction(Qt::MoveAction);
-                event->accept();
-                return;
-            }
-
-            // If it was dropped on itself, still accept to prevent detachment
-            event->acceptProposedAction();
-            return;
-        }
-
-        TabData tabData
-            = TabData::deserialize(event->mimeData()->data(MIME_TYPE));
-
-        if (!tabData.filePath.isEmpty())
-        {
-            event->setDropAction(Qt::MoveAction);
-            event->accept();
-            emit tabDropReceived(tabData);
-        }
-    }
 }
 
 void
