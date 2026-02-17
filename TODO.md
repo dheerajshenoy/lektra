@@ -1,9 +1,10 @@
 # TODO
-- [X] compare files side by side (split view)
 - [ ] Undo/Redo operations
-- [X] Rect Annotation
-- [X] Text Highlight Annotation
-- [X] Delete Annotation
+    - [X] Rect Annotation
+    - [X] Text Highlight Annotation
+    - [X] Delete Annotation
+    - [ ] Annotation color
+
 - [ ] Popup Annotation
 - [ ] Underline Annotation
 - [ ] Synctex highlight line
@@ -37,3 +38,5 @@
     - [ ] Search engine configuration
 - [ ] Smart jump under cursor (eg. jump to citation if on citation)
     - [ ] Use OpenGL for rendering using GPU for performance boost instead of QGraphicsView
+- [X] Drag and drop tabs not working, also get it to work with splits
+- [ ] Fix open containing folder
