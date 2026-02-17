@@ -8,7 +8,7 @@ TabBar::TabBar(QWidget *parent) : QTabBar(parent)
 }
 
 void
-TabBar::setSplitCount(int index, int count) noexcept
+TabBar::set_split_count(int index, int count) noexcept
 {
     if (index < 0 || index >= this->count())
         return;

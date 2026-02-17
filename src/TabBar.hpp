@@ -59,7 +59,7 @@ public:
         }
     };
 
-    void setSplitCount(int index, int count) noexcept;
+    void set_split_count(int index, int count) noexcept;
     int splitCount(int index) const noexcept;
 
 signals:
