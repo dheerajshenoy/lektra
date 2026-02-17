@@ -2669,33 +2669,6 @@ lektra::eventFilter(QObject *object, QEvent *event)
 }
 
 void
-lektra::dragEnterEvent(QDragEnterEvent *e) noexcept
-{
-    const QMimeData *mime = e->mimeData();
-    if (mime->hasFormat(TabBar::MIME_TYPE) || mime->hasUrls())
-    {
-        e->acceptProposedAction();
-        e->accept();
-        return;
-    }
-    e->ignore();
-}
-
-void
-lektra::dragMoveEvent(QDragMoveEvent *e) noexcept
-{
-    const QMimeData *mime = e->mimeData();
-
-    if (mime->hasFormat(TabBar::MIME_TYPE) || mime->hasUrls())
-    {
-        e->acceptProposedAction();
-        e->accept();
-        return;
-    }
-    e->ignore();
-}
-
-void
 lektra::dropEvent(QDropEvent *e) noexcept
 {
     const QMimeData *mime = e->mimeData();

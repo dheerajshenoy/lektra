@@ -175,6 +175,7 @@ public:
 protected:
     void closeEvent(QCloseEvent *e) override;
     bool eventFilter(QObject *object, QEvent *event) override;
+    void dropEvent(QDropEvent *event) noexcept override;
 
 private:
     enum class LinkHintMode
@@ -229,7 +230,8 @@ private:
     void handleTabDetached(int index, const QPoint &globalPos) noexcept;
     void handleTabDetachedToNewWindow(int index,
                                       const TabBar::TabData &data) noexcept;
-    void handleCtrlLinkClickRequested(DocumentView *view, const BrowseLinkItem *linkItem) noexcept;
+    void handleCtrlLinkClickRequested(DocumentView *view,
+                                      const BrowseLinkItem *linkItem) noexcept;
 
     void gotoPage(int pageno) noexcept;
     void setFocusMode(bool state) noexcept;
