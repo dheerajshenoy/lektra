@@ -968,7 +968,6 @@ lektra::initGui() noexcept
 
     widget->setLayout(m_layout);
     m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-    m_tab_widget->installEventFilter(this);
 
     this->setCentralWidget(widget);
 
@@ -2665,47 +2664,89 @@ lektra::eventFilter(QObject *object, QEvent *event)
         && type == QEvent::ContextMenu)
         return handleTabContextMenu(object, event);
 
-    // Drop Event
-    if (event->type() == QEvent::Drop)
-    {
-        QDropEvent *e         = static_cast<QDropEvent *>(event);
-        const QMimeData *mime = e->mimeData();
-        if (mime->hasFormat(TabBar::MIME_TYPE))
-            return false;
-        if (!mime->hasUrls())
-            return false;
+    // Let other events pass through
+    return QObject::eventFilter(object, event);
+}
 
-        const QList<QUrl> urls           = mime->urls();
-        const Qt::KeyboardModifiers mods = e->modifiers();
+void
+lektra::dragEnterEvent(QDragEnterEvent *e) noexcept
+{
+    const QMimeData *mime = e->mimeData();
+    if (mime->hasFormat(TabBar::MIME_TYPE) || mime->hasUrls())
+    {
+        e->acceptProposedAction();
+        e->accept();
+        return;
+    }
+    e->ignore();
+}
+
+void
+lektra::dragMoveEvent(QDragMoveEvent *e) noexcept
+{
+    const QMimeData *mime = e->mimeData();
+
+    if (mime->hasFormat(TabBar::MIME_TYPE) || mime->hasUrls())
+    {
+        e->acceptProposedAction();
+        e->accept();
+        return;
+    }
+    e->ignore();
+}
+
+void
+lektra::dropEvent(QDropEvent *e) noexcept
+{
+    const QMimeData *mime = e->mimeData();
+
+    if (mime->hasFormat(TabBar::MIME_TYPE))
+    {
+        // Check if it's from our own TabBar (same window reordering)
+        if (e->source() == m_tab_widget->tabBar())
+        {
+            e->ignore();
+            return;
+        }
+
+        // It's from another window - accept it
+        TabBar::TabData tabData
+            = TabBar::TabData::deserialize(mime->data(TabBar::MIME_TYPE));
+
+        if (!tabData.filePath.isEmpty())
+        {
+            handleTabDropReceived(tabData);
+
+            e->setDropAction(Qt::MoveAction);
+            e->accept();
+            return;
+        }
+
+        e->ignore();
+        return;
+    }
+
+    if (mime->hasUrls())
+    {
+        const auto urls = mime->urls();
+        const auto mods = e->modifiers();
 
         for (const QUrl &url : urls)
         {
-            if (url.isLocalFile())
-            {
-                const QString filepath = url.toLocalFile();
-                if (mods & Qt::ShiftModifier)
-                    OpenFileInNewWindow(filepath);
-                else
-                    OpenFileInNewTab(filepath);
-            }
+            if (!url.isLocalFile())
+                continue;
+
+            if (mods & Qt::ShiftModifier)
+                OpenFileInNewWindow(url.toLocalFile());
+            else
+                OpenFileInNewTab(url.toLocalFile());
         }
-        return true;
-    }
-    else if (event->type() == QEvent::DragEnter)
-    {
-        QDragEnterEvent *e    = static_cast<QDragEnterEvent *>(event);
-        const QMimeData *mime = e->mimeData();
-        if (mime->hasFormat(TabBar::MIME_TYPE))
-            return false;
-        if (!mime->hasUrls())
-            return false;
 
         e->acceptProposedAction();
-        return true;
+        return;
     }
 
-    // Let other events pass through
-    return QObject::eventFilter(object, event);
+    e->ignore();
 }
 
 bool
