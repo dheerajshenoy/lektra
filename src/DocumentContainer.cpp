@@ -6,16 +6,8 @@
 #include <qnamespace.h>
 #include <qtextcursor.h>
 
-static DocumentContainer::Id nextId{0};
-
-static DocumentContainer::Id
-g_newId() noexcept
-{
-    return nextId++;
-}
-
 DocumentContainer::DocumentContainer(DocumentView *initialView, QWidget *parent)
-    : QWidget(parent), m_id(g_newId())
+    : QWidget(parent)
 {
     m_layout = new QVBoxLayout(this);
     m_layout->setContentsMargins(0, 0, 0, 0);
@@ -582,4 +574,30 @@ DocumentContainer::splitEmpty(DocumentView *view,
     emit currentViewChanged(newView);
 
     return newView;
+}
+
+DocumentView *
+DocumentContainer::get_child_view_by_id(DocumentView::Id id) const noexcept
+{
+    for (DocumentView *view : getAllViews())
+    {
+        if (view->id() == id)
+            return view;
+    }
+    return nullptr;
+}
+
+// Closes all views except the given one. If the given view is nullptr, closes
+// all views. Note that if only one view remains after closing, it will not be
+// closed even if it's not the given view, to ensure there's always at least one
+// view open.
+void
+DocumentContainer::close_other_views(DocumentView *view) noexcept
+{
+    QList<DocumentView *> allViews = getAllViews();
+    for (DocumentView *v : allViews)
+    {
+        if (v != view)
+            closeView(v);
+    }
 }

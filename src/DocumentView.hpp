@@ -55,8 +55,14 @@ class DocumentView : public QWidget
 {
     Q_OBJECT
 public:
+    using Id = uint32_t;
     DocumentView(const Config &config, QWidget *parent = nullptr) noexcept;
     ~DocumentView() noexcept;
+
+    inline Id id() const noexcept
+    {
+        return m_id;
+    }
 
     enum class LayoutMode
     {
@@ -289,7 +295,8 @@ public:
     PageLocation CurrentLocation() noexcept;
 
 signals:
-    void ctrlLinkClickRequested(DocumentView *view, const BrowseLinkItem *linkItem);
+    void ctrlLinkClickRequested(DocumentView *view,
+                                const BrowseLinkItem *linkItem);
     void requestFocus(DocumentView *view);
     void openFileFailed(DocumentView *doc);
     void openFileFinished(DocumentView *doc);
@@ -415,6 +422,7 @@ private:
     void synctexLocateInDocument(const char *fileName, int line) noexcept;
 #endif
 
+    Id m_id{0};
     Model *m_model{nullptr};
     GraphicsView *m_gview{nullptr};
     GraphicsScene *m_gscene{nullptr};

@@ -30,7 +30,6 @@ class DocumentContainer : public QWidget
     Q_OBJECT
 
 public:
-    using Id = uint32_t;
     explicit DocumentContainer(DocumentView *initialView,
                                QWidget *parent = nullptr);
     ~DocumentContainer();
@@ -42,21 +41,38 @@ public:
         Right
     };
 
-    inline Id id() const noexcept
-    {
-        return m_id;
-    }
-
     inline DocumentView *view() const noexcept
     {
         return m_current_view;
     }
 
-    void split(DocumentView *view, Qt::Orientation orientation
-    DocumentView* split(DocumentView *view, Qt::Orientation orientation
-                                   = Qt::Orientation::Horizontal) noexcept;
-    DocumentView* split(DocumentView *view, Qt::Orientation orientation,
-               const QString &filePath) noexcept;
+    inline bool has_portal() const noexcept
+    {
+        return m_portal_view != nullptr;
+    }
+
+    inline DocumentView *portal() const noexcept
+    {
+        return m_portal_view;
+    }
+
+    inline void set_portal(DocumentView *portal) noexcept
+    {
+        m_portal_view = portal;
+    }
+
+    inline void clear_portal() noexcept
+    {
+        m_portal_view = nullptr;
+        // TODO: Maybe notify views that the portal was cleared
+    }
+
+    void set_portal(DocumentView::Id id) noexcept;
+    DocumentView *split(DocumentView *view,
+                        Qt::Orientation orientation
+                        = Qt::Orientation::Horizontal) noexcept;
+    DocumentView *split(DocumentView *view, Qt::Orientation orientation,
+                        const QString &filePath) noexcept;
     void closeView(DocumentView *view) noexcept;
     QList<DocumentView *> getAllViews() const noexcept;
     void focusSplit(Direction direction) noexcept;
@@ -64,9 +80,10 @@ public:
     int getViewCount() const noexcept;
     void syncViewSettings(DocumentView *source, DocumentView *target) noexcept;
     QJsonObject serializeSplits() const noexcept;
-
     DocumentView *splitEmpty(DocumentView *view,
                              Qt::Orientation orientation) noexcept;
+    DocumentView *get_child_view_by_id(DocumentView::Id id) const noexcept;
+    void close_other_views(DocumentView *view) noexcept;
 
 signals:
     void viewCreated(DocumentView *view);
@@ -86,8 +103,7 @@ private:
 
     static void equalizeStretch(QSplitter *splitter) noexcept;
     DocumentView *createViewFromTemplate(DocumentView *templateView) noexcept;
-
     QVBoxLayout *m_layout{nullptr};
     DocumentView *m_current_view{nullptr};
-    Id m_id{0};
+    DocumentView *m_portal_view{nullptr};
 };

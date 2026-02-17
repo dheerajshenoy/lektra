@@ -41,8 +41,16 @@
 #include <qpolygon.h>
 #include <qstyle.h>
 
+static DocumentView::Id nextId{0};
+
+static DocumentView::Id
+g_newId() noexcept
+{
+    return nextId++;
+}
+
 DocumentView::DocumentView(const Config &config, QWidget *parent) noexcept
-    : QWidget(parent), m_config(config)
+    : QWidget(parent), m_id(g_newId()), m_config(config)
 {
 
 #ifndef NDEBUG
@@ -586,8 +594,8 @@ DocumentView::buildFlatSearchHitIndex() noexcept
         const int page   = it.key();
         const auto &hits = it.value();
 
-        for (int i = 0; i < hits.size(); ++i)
-            m_search_hit_flat_refs.push_back({page, i});
+        for (unsigned int i = 0; i < hits.size(); ++i)
+            m_search_hit_flat_refs.push_back({page, static_cast<int>(i)});
     }
 }
 
@@ -2273,9 +2281,6 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
     qDebug() << "DocumentView::handleContextMenuRequested(): Context menu "
              << "requested at global position:" << globalPos;
 #endif
-    const QPoint viewPos   = m_gview->mapFromGlobal(globalPos);
-    const QPointF scenePos = m_gview->mapToScene(viewPos);
-
     QMenu *menu    = new QMenu(this);
     auto addAction = [this, &menu](const QString &text, const auto &slot)
     {
@@ -2980,7 +2985,7 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
 
     QPainterPath allPath;
 
-    for (int i = 0; i < hits.size(); ++i)
+    for (unsigned int i = 0; i < hits.size(); ++i)
     {
         const Model::SearchHit &hit = hits[i];
         QPolygonF poly;
