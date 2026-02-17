@@ -40,3 +40,5 @@
     - [ ] Use OpenGL for rendering using GPU for performance boost instead of QGraphicsView
 - [X] Drag and drop tabs not working, also get it to work with splits
 - [ ] Fix open containing folder
+- [ ] Reshow jump marker action
+- [ ] Handle closing split for friends
