@@ -3,6 +3,8 @@
 ## 0.6.2
 
 ### Features
+- Ability to create portals:
+    - A portal is a view of the same document but viewing different page or location in the document. Portals are useful for referencing different parts of the same document side by side, for example when reading a research paper and wanting to view the references at the same time. (Ctrl + click on a link to open the target in a new portal)
 - Ability to move tabs with mouse drag and drop within the tab bar and detach to new window if dropped outside
 - Ability to split the view into multiple panes to view different pages of the same document (or different) side by side
 - Ability to focus split with direction
