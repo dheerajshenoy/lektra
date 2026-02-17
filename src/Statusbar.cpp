@@ -35,6 +35,7 @@ Statusbar::initGui() noexcept
 
     leftLayout->addWidget(m_session_label);
     leftLayout->addWidget(m_filename_label);
+    leftLayout->addWidget(m_portal_label);
 
     // Center
     auto *centerLayout = new QHBoxLayout;
@@ -194,5 +195,20 @@ Statusbar::setSessionName(const QString &name) noexcept
             m_session_label->setText(name);
             m_session_label->show();
         }
+    }
+}
+
+void
+Statusbar::setPortalMode(bool state) noexcept
+{
+    if (state)
+    {
+        m_portal_label->setStyleSheet(
+            "QLabel { background-color: red; color: white; padding: 2px; }");
+        m_portal_label->show();
+    }
+    else
+    {
+        m_portal_label->hide();
     }
 }

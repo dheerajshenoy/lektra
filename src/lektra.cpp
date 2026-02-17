@@ -3118,7 +3118,7 @@ lektra::updatePanel() noexcept
         else
             m_statusbar->setFileName(m_doc->filePath());
 
-        m_statusbar->setHighlightColor(model->highlightAnnotColor());
+        m_statusbar->setPortalMode(m_doc->container()->has_portal());
         m_statusbar->setMode(m_doc->selectionMode());
         m_statusbar->setHighlightColor(model->highlightAnnotColor());
 

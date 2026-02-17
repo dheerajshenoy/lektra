@@ -27,6 +27,7 @@ public:
     void setMode(GraphicsView::Mode) noexcept;
     void setHighlightColor(const QColor &color) noexcept;
     void setSessionName(const QString &name) noexcept;
+    void setPortalMode(bool state) noexcept;
 
 signals:
     void modeChangeRequested();
@@ -46,6 +47,7 @@ private:
     QLabel *m_totalpage_label       = new QLabel();
     QLabel *m_pageno_separator      = new QLabel(" of ");
     QLabel *m_progress_label        = new QLabel();
+    QLabel *m_portal_label          = new QLabel("P");
     QPushButton *m_session_label    = new QPushButton();
     QGridLayout *m_layout           = new QGridLayout();
     GraphicsView::Mode m_current_mode;
