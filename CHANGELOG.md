@@ -1,5 +1,68 @@
 # dodo
 
+## 0.6.3
+
+### Breaking Changes
+
+#### Renamed commands
+
+- `yank` -> `selection_copy`
+- `cancel_selection` -> `selection_cancel`
+- `reselect_last_selection` -> `selection_last`
+- `first_page` -> `page_first`
+- `last_page` -> `page_last`
+- `next_page` -> `page_next`
+- `prev_page` -> `page_prev`
+- `goto_page` -> `page_goto`
+- `prev_location` -> `location_prev`
+- `next_location` -> `location_next`
+- `close_split` -> `split_close`
+- `focus_split_left` -> `split_focus_left`
+- `focus_split_right` -> `split_focus_right`
+- `focus_split_up` -> `split_focus_up`
+- `focus_split_down` -> `split_focus_down`
+- `close_other_splits` -> `split_close_others`
+- `focus_portal` -> `portal_focus`
+- `save_session` -> `session_save`
+- `save_as_session` -> `session_save_as`
+- `load_session` -> `session_load`
+- `text_select_mode` -> `selection_mode_text`
+- `region_select_mode` -> `selection_mode_region`
+- `open_file_tab` -> `file_open_tab`
+- `open_file_vsplit` -> `file_open_vsplit`
+- `open_file_hsplit` -> `file_open_hsplit`
+- `open_file_dwim` -> `file_open_dwim`
+- `close_file` -> `file_close`
+- `reload` -> `file_reload`
+- `encrypt` -> `file_encrypt`
+- `save` -> `file_save`
+- `save_as` -> `file_save_as`
+- `tab1` -> `tab_1`
+- `tab2` -> `tab_2`
+- `tab3` -> `tab_3`
+- `tab4` -> `tab_4`
+- `tab5` -> `tab_5`
+- `tab6` -> `tab_6`
+- `tab7` -> `tab_7`
+- `tab8` -> `tab_8`
+- `tab9` -> `tab_9`
+- `about` -> `show_about`
+- `outline` -> `picker_outline`
+- `highlight_annot_search` -> `picker_highlight_search`
+- `command_palette` -> `toggle_command_palette`
+- `tutorial_file` -> `show_tutorial_file`
+- `show_startup` -> `show_startup_widget`
+- `fullscreen` -> `toggle_fullscreen`
+- `auto_resize` -> `fit_auto`
+- `text_highlight_current_selection` -> `highlight_selection`
+
+
+
+### New command
+
+- `file_decrypt` - Decrypt the current PDF file
+- `annot_popup_mode` - Enter popup annotation creation mode
+
 ## 0.6.2
 
 ### Features

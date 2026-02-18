@@ -164,15 +164,15 @@ lektra::initMenubar() noexcept
     QMenu *fileMenu = m_menuBar->addMenu("&File");
 
     fileMenu->addAction(
-        QString("Open File\t%1").arg(m_config.shortcuts["open_file"]), this,
+        QString("Open File\t%1").arg(m_config.shortcuts["file_open_tab"]), this,
         [&]() { OpenFileInNewTab(); });
 
     fileMenu->addAction(QString("Open File In VSplit\t%1")
-                            .arg(m_config.shortcuts["open_file_vsplit"]),
+                            .arg(m_config.shortcuts["file_open_vsplit"]),
                         this, [&]() { OpenFileVSplit(); });
 
     fileMenu->addAction(QString("Open File In HSplit\t%1")
-                            .arg(m_config.shortcuts["open_file_hsplit"]),
+                            .arg(m_config.shortcuts["file_open_hsplit"]),
                         this, [&]() { OpenFileHSplit(); });
 
     m_recentFilesMenu = fileMenu->addMenu("Recent Files");
@@ -189,27 +189,30 @@ lektra::initMenubar() noexcept
     m_actionOpenContainingFolder->setEnabled(false);
 
     m_actionSaveFile = fileMenu->addAction(
-        QString("Save File\t%1").arg(m_config.shortcuts["save"]), this,
+        QString("Save File\t%1").arg(m_config.shortcuts["file_save"]), this,
         &lektra::SaveFile);
 
     m_actionSaveAsFile = fileMenu->addAction(
-        QString("Save As File\t%1").arg(m_config.shortcuts["save_as"]), this,
-        &lektra::SaveAsFile);
+        QString("Save As File\t%1").arg(m_config.shortcuts["file_save_as"]),
+        this, &lektra::SaveAsFile);
 
     QMenu *sessionMenu = fileMenu->addMenu("Session");
 
-    m_actionSessionSave
-        = sessionMenu->addAction("Save", this, [&]() { SaveSession(); });
-    m_actionSessionSaveAs
-        = sessionMenu->addAction("Save As", this, [&]() { SaveAsSession(); });
-    m_actionSessionLoad
-        = sessionMenu->addAction("Load", this, [&]() { LoadSession(); });
+    m_actionSessionSave = sessionMenu->addAction(
+        QString("Save\t%1").arg(m_config.shortcuts["session_save"]), this,
+        [&]() { SaveSession(); });
+    m_actionSessionSaveAs = sessionMenu->addAction(
+        QString("Save As\t%1").arg(m_config.shortcuts["session_save_as"]), this,
+        [&]() { SaveAsSession(); });
+    m_actionSessionLoad = sessionMenu->addAction(
+        QString("Load\t%1").arg(m_config.shortcuts["session_load"]), this,
+        [&]() { LoadSession(); });
 
     m_actionSessionSaveAs->setEnabled(false);
 
     m_actionCloseFile = fileMenu->addAction(
-        QString("Close File\t%1").arg(m_config.shortcuts["close_file"]), this,
-        [this]() { TabClose(); });
+        QString("Close File\t%1").arg(m_config.shortcuts["file_close"]), this,
+        [this]() { Tab_close(); });
 
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, &QMainWindow::close);
@@ -230,8 +233,8 @@ lektra::initMenubar() noexcept
     // --- View Menu ---
     m_viewMenu         = m_menuBar->addMenu("&View");
     m_actionFullscreen = m_viewMenu->addAction(
-        QString("Fullscreen\t%1").arg(m_config.shortcuts["fullscreen"]), this,
-        &lektra::ToggleFullscreen);
+        QString("Fullscreen\t%1").arg(m_config.shortcuts["toggle_fullscreen"]),
+        this, &lektra::ToggleFullscreen);
     m_actionFullscreen->setCheckable(true);
     m_actionFullscreen->setChecked(m_config.window.fullscreen);
 
@@ -242,30 +245,27 @@ lektra::initMenubar() noexcept
         QString("Zoom Out\t%1").arg(m_config.shortcuts["zoom_out"]), this,
         &lektra::ZoomOut);
 
-    m_actionHighlightSearch = m_viewMenu->addAction(
-        "Search Highlights", this, &lektra::Show_highlight_search);
-
     m_viewMenu->addSeparator();
 
     m_fitMenu = m_viewMenu->addMenu("Fit");
 
     m_actionFitWidth = m_fitMenu->addAction(
         QString("Width\t%1").arg(m_config.shortcuts["fit_width"]), this,
-        &lektra::FitWidth);
+        &lektra::Fit_width);
 
     m_actionFitHeight = m_fitMenu->addAction(
         QString("Height\t%1").arg(m_config.shortcuts["fit_height"]), this,
-        &lektra::FitHeight);
+        &lektra::Fit_height);
 
     m_actionFitWindow = m_fitMenu->addAction(
-        QString("Window\t%1").arg(m_config.shortcuts["fit_window"]), this,
-        &lektra::FitWindow);
+        QString("Page\t%1").arg(m_config.shortcuts["fit_page"]), this,
+        &lektra::Fit_page);
 
     m_fitMenu->addSeparator();
 
     // Auto Resize toggle (independent)
     m_actionAutoresize = m_viewMenu->addAction(
-        QString("Auto Resize\t%1").arg(m_config.shortcuts["auto_resize"]), this,
+        QString("Auto Fit\t%1").arg(m_config.shortcuts["fit_auto"]), this,
         &lektra::ToggleAutoResize);
     m_actionAutoresize->setCheckable(true);
     m_actionAutoresize->setChecked(
@@ -322,14 +322,14 @@ lektra::initMenubar() noexcept
 #endif
 
     m_actionToggleOutline = m_toggleMenu->addAction(
-        QString("Outline\t%1").arg(m_config.shortcuts["outline"]), this,
+        QString("Outline\t%1").arg(m_config.shortcuts["picker_outline"]), this,
         &lektra::ShowOutline);
     m_actionToggleOutline->setCheckable(true);
     m_actionToggleOutline->setChecked(!m_outline_widget->isHidden());
 
     m_actionToggleHighlightAnnotSearch = m_toggleMenu->addAction(
         QString("Highlight Annotation Search\t%1")
-            .arg(m_config.shortcuts["highlight_annot_search"]),
+            .arg(m_config.shortcuts["picker_highlight_search"]),
         this, &lektra::Show_highlight_search);
     m_actionToggleHighlightAnnotSearch->setCheckable(true);
     m_actionToggleHighlightAnnotSearch->setChecked(
@@ -369,18 +369,22 @@ lektra::initMenubar() noexcept
     modeActionGroup->setExclusive(true);
 
     m_actionRegionSelect = m_modeMenu->addAction(
-        QString("Region Selection"), this, &lektra::ToggleRegionSelect);
+        QString("Region Selection\t%1")
+            .arg(m_config.shortcuts["selection_mode_region"]),
+        this, &lektra::ToggleRegionSelect);
     m_actionRegionSelect->setCheckable(true);
     modeActionGroup->addAction(m_actionRegionSelect);
 
-    m_actionTextSelect = m_modeMenu->addAction(QString("Text Selection"), this,
-                                               &lektra::ToggleTextSelection);
+    m_actionTextSelect = m_modeMenu->addAction(
+        QString("Text Selection\t%1")
+            .arg(m_config.shortcuts["selection_mode_text"]),
+        this, &lektra::ToggleTextSelection);
     m_actionTextSelect->setCheckable(true);
     modeActionGroup->addAction(m_actionTextSelect);
 
     m_actionTextHighlight = m_modeMenu->addAction(
         QString("Text Highlight\t%1")
-            .arg(m_config.shortcuts["text_highlight_mode"]),
+            .arg(m_config.shortcuts["annot_highlight_mode"]),
         this, &lektra::ToggleTextHighlight);
     m_actionTextHighlight->setCheckable(true);
     modeActionGroup->addAction(m_actionTextHighlight);
@@ -431,12 +435,12 @@ lektra::initMenubar() noexcept
     }
 
     m_actionEncrypt = toolsMenu->addAction(
-        QString("Encrypt Document\t%1").arg(m_config.shortcuts["encrypt"]),
+        QString("Encrypt Document\t%1").arg(m_config.shortcuts["file_encrypt"]),
         this, &lektra::EncryptDocument);
     m_actionEncrypt->setEnabled(false);
 
     m_actionDecrypt = toolsMenu->addAction(
-        QString("Decrypt Document\t%1").arg(m_config.shortcuts["decrypt"]),
+        QString("Decrypt Document\t%1").arg(m_config.shortcuts["file_decrypt"]),
         this, &lektra::DecryptDocument);
     m_actionDecrypt->setEnabled(false);
 
@@ -444,34 +448,34 @@ lektra::initMenubar() noexcept
     m_navMenu = m_menuBar->addMenu("&Navigation");
 
     m_navMenu->addAction(
-        QString("StartPage\t%1").arg(m_config.shortcuts["startpage"]), this,
-        &lektra::showStartupWidget);
+        QString("StartPage\t%1").arg(m_config.shortcuts["show_startup_widget"]),
+        this, &lektra::showStartupWidget);
 
     m_actionGotoPage = m_navMenu->addAction(
-        QString("Goto Page\t%1").arg(m_config.shortcuts["goto_page"]), this,
-        &lektra::GotoPage);
+        QString("Goto Page\t%1").arg(m_config.shortcuts["page_goto"]), this,
+        &lektra::Goto_page);
 
     m_actionFirstPage = m_navMenu->addAction(
-        QString("First Page\t%1").arg(m_config.shortcuts["first_page"]), this,
+        QString("First Page\t%1").arg(m_config.shortcuts["page_first"]), this,
         &lektra::FirstPage);
 
     m_actionPrevPage = m_navMenu->addAction(
-        QString("Previous Page\t%1").arg(m_config.shortcuts["prev_page"]), this,
+        QString("Previous Page\t%1").arg(m_config.shortcuts["page_prev"]), this,
         &lektra::PrevPage);
 
     m_actionNextPage = m_navMenu->addAction(
-        QString("Next Page\t%1").arg(m_config.shortcuts["next_page"]), this,
+        QString("Next Page\t%1").arg(m_config.shortcuts["page_next"]), this,
         &lektra::NextPage);
     m_actionLastPage = m_navMenu->addAction(
-        QString("Last Page\t%1").arg(m_config.shortcuts["last_page"]), this,
+        QString("Last Page\t%1").arg(m_config.shortcuts["page_last"]), this,
         &lektra::LastPage);
 
     m_actionPrevLocation
         = m_navMenu->addAction(QString("Previous Location\t%1")
-                                   .arg(m_config.shortcuts["prev_location"]),
+                                   .arg(m_config.shortcuts["location_prev"]),
                                this, &lektra::GoBackHistory);
     m_actionNextLocation = m_navMenu->addAction(
-        QString("Next Location\t%1").arg(m_config.shortcuts["next_location"]),
+        QString("Next Location\t%1").arg(m_config.shortcuts["location_next"]),
         this, &lektra::GoForwardHistory);
 
     // QMenu *markMenu = m_navMenu->addMenu("Marks");
@@ -483,13 +487,13 @@ lektra::initMenubar() noexcept
     /* Help Menu */
     QMenu *helpMenu = m_menuBar->addMenu("&Help");
     m_actionAbout   = helpMenu->addAction(
-        QString("About\t%1").arg(m_config.shortcuts["about"]), this,
+        QString("About\t%1").arg(m_config.shortcuts["show_about"]), this,
         &lektra::ShowAbout);
 
-    m_actionShowTutorialFile
-        = helpMenu->addAction(QString("Open Tutorial File\t%1")
-                                  .arg(m_config.shortcuts["tutorial_file"]),
-                              this, &lektra::showTutorialFile);
+    m_actionShowTutorialFile = helpMenu->addAction(
+        QString("Open Tutorial File\t%1")
+            .arg(m_config.shortcuts["show_tutorial_file"]),
+        this, &lektra::showTutorialFile);
 }
 
 // Initialize the recent files store
@@ -854,7 +858,7 @@ lektra::initDefaultKeybinds() noexcept
         {"prev_location", "Ctrl+o"},
         {"next_location", "Ctrl+i"},
         {"text_select_mode", "1"},
-        {"text_highlight_mode", "2"},
+        {"annot_highlight_mode", "2"},
         {"annot_rect_mode", "3"},
         {"region_select_mode", "4"},
         {"annot_popup_mode", "5"},
@@ -1120,7 +1124,6 @@ lektra::updateUiEnabledState() noexcept
     m_actionOpenContainingFolder->setEnabled(hasOpenedFile);
     m_actionZoomIn->setEnabled(hasOpenedFile);
     m_actionZoomOut->setEnabled(hasOpenedFile);
-    m_actionHighlightSearch->setEnabled(hasOpenedFile);
     m_actionGotoPage->setEnabled(hasOpenedFile);
     m_actionFirstPage->setEnabled(hasOpenedFile);
     m_actionPrevPage->setEnabled(hasOpenedFile);
@@ -1397,6 +1400,21 @@ lektra::ZoomIn() noexcept
         m_doc->ZoomIn();
 }
 
+void
+lektra::Zoom_set() noexcept
+{
+    if (m_doc)
+    {
+        bool ok           = false;
+        const double zoom = QInputDialog::getDouble(
+            this, "Set Zoom",
+            "Enter zoom level (e.g. 1.5 for 150%):", m_doc->zoom(), 0.1, 10.0,
+            2, &ok);
+        if (ok)
+            m_doc->setZoom(zoom);
+    }
+}
+
 // Resets zoom
 void
 lektra::ZoomReset() noexcept
@@ -1407,7 +1425,7 @@ lektra::ZoomReset() noexcept
 
 // Go to a particular page (asks user with a dialog)
 void
-lektra::GotoPage() noexcept
+lektra::Goto_page() noexcept
 {
     if (!m_doc || !m_doc->model())
         return;
@@ -1567,7 +1585,7 @@ lektra::CopyLinkKB() noexcept
 
 // Clears the currently selected text in the file
 void
-lektra::ClearTextSelection() noexcept
+lektra::Selection_cancel() noexcept
 {
     if (m_doc)
         m_doc->ClearTextSelection();
@@ -1575,7 +1593,7 @@ lektra::ClearTextSelection() noexcept
 
 // Copies the text selection (if any) to the clipboard
 void
-lektra::YankSelection() noexcept
+lektra::Selection_copy() noexcept
 {
     if (m_doc)
         m_doc->YankSelection();
@@ -1932,8 +1950,8 @@ lektra::openFileSplitHelper(const QString &filename,
 
     if (!validTabIndex(tabIndex))
     {
-        QMessageBox::critical(this, "Error", "No active tab to split");
-        return false;
+        // No tabs open, open in new tab instead
+        return OpenFileInNewTab(filename, callback);
     }
 
     DocumentContainer *container = m_tab_widget->rootContainer(tabIndex);
@@ -2078,7 +2096,7 @@ lektra::SaveAsFile() noexcept
 
 // Fit the document to the width of the window
 void
-lektra::FitWidth() noexcept
+lektra::Fit_width() noexcept
 {
     if (m_doc)
         m_doc->setFitMode(DocumentView::FitMode::Width);
@@ -2086,7 +2104,7 @@ lektra::FitWidth() noexcept
 
 // Fit the document to the height of the window
 void
-lektra::FitHeight() noexcept
+lektra::Fit_height() noexcept
 {
     if (m_doc)
         m_doc->setFitMode(DocumentView::FitMode::Height);
@@ -2094,7 +2112,7 @@ lektra::FitHeight() noexcept
 
 // Fit the document to the window
 void
-lektra::FitWindow() noexcept
+lektra::Fit_page() noexcept
 {
     if (m_doc)
         m_doc->setFitMode(DocumentView::FitMode::Window);
@@ -3442,162 +3460,172 @@ lektra::Redo() noexcept
 void
 lektra::initActionMap() noexcept
 {
-    m_actionMap
-        = {// Actions with arguments
-           {"tabgoto",
-            [this](const QStringList &args)
-    {
-        if (args.isEmpty())
-            return;
-        bool ok;
-        int index = args.at(0).toInt(&ok);
-        if (ok)
-            TabGoto(index);
-        else
-            m_message_bar->showMessage(QStringLiteral("Invalid tab index"));
-    }},
+    m_actionMap = {
+        // Selection actions
+        ACTION_NO_ARGS("selection_copy", Selection_copy),
+        ACTION_NO_ARGS("selection_cancel", Selection_cancel),
+        ACTION_NO_ARGS("selection_last", ReselectLastTextSelection),
 
-    // Actions without arguments
+        // Toggle UI elements
+        ACTION_NO_ARGS("toggle_fullscreen", ToggleFullscreen),
+        ACTION_NO_ARGS("toggle_command_palette", ToggleCommandPalette),
+        ACTION_NO_ARGS("toggle_tabs", ToggleTabBar),
+        ACTION_NO_ARGS("toggle_menubar", ToggleMenubar),
+        ACTION_NO_ARGS("toggle_statusbar", TogglePanel),
+        ACTION_NO_ARGS("toggle_focus_mode", ToggleFocusMode),
+// Actions without arguments
 #ifdef ENABLE_LLM_SUPPORT
-           ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
+        ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
 #endif
 
-           ACTION_NO_ARGS("set_dpr", SetDPR),
-           ACTION_NO_ARGS("command_palette", ToggleCommandPalette),
-           ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
-           ACTION_NO_ARGS("encrypt", EncryptDocument),
-           ACTION_NO_ARGS("reload", reloadDocument),
-           ACTION_NO_ARGS("undo", Undo),
-           ACTION_NO_ARGS("redo", Redo),
-           ACTION_NO_ARGS("text_highlight_current_selection",
-                          TextHighlightCurrentSelection),
-           ACTION_NO_ARGS("toggle_tabs", ToggleTabBar),
-           ACTION_NO_ARGS("save", SaveFile),
-           ACTION_NO_ARGS("save_as", SaveAsFile),
-           ACTION_NO_ARGS("yank", YankSelection),
-           ACTION_NO_ARGS("cancel_selection", ClearTextSelection),
-           ACTION_NO_ARGS("about", ShowAbout),
-           ACTION_NO_ARGS("link_hint_visit", VisitLinkKB),
-           ACTION_NO_ARGS("link_hint_copy", CopyLinkKB),
-           ACTION_NO_ARGS("outline", ShowOutline),
-           ACTION_NO_ARGS("highlight_annot_search", Show_highlight_search),
-           ACTION_NO_ARGS("rotate_clock", RotateClock),
-           ACTION_NO_ARGS("rotate_anticlock", RotateAnticlock),
-           ACTION_NO_ARGS("prev_location", GoBackHistory),
-           ACTION_NO_ARGS("next_location", GoForwardHistory),
-           ACTION_NO_ARGS("scroll_down", ScrollDown),
-           ACTION_NO_ARGS("scroll_up", ScrollUp),
-           ACTION_NO_ARGS("scroll_left", ScrollLeft),
-           ACTION_NO_ARGS("scroll_right", ScrollRight),
-           ACTION_NO_ARGS("invert_color", InvertColor),
-           ACTION_NO_ARGS("search_next", NextHit),
-           ACTION_NO_ARGS("search_prev", PrevHit),
-           ACTION_NO_ARGS("next_page", NextPage),
-           ACTION_NO_ARGS("prev_page", PrevPage),
-           ACTION_NO_ARGS("first_page", FirstPage),
-           ACTION_NO_ARGS("last_page", LastPage),
-           ACTION_NO_ARGS("zoom_in", ZoomIn),
-           ACTION_NO_ARGS("zoom_out", ZoomOut),
-           ACTION_NO_ARGS("zoom_reset", ZoomReset),
-           ACTION_NO_ARGS("region_select_mode", ToggleRegionSelect),
+        // Link hint actions
+        ACTION_NO_ARGS("link_hint_visit", VisitLinkKB),
+        ACTION_NO_ARGS("link_hint_copy", CopyLinkKB),
 
-           // Split actions
-           ACTION_NO_ARGS("split_horizontal", VSplit),
-           ACTION_NO_ARGS("split_vertical", HSplit),
-           ACTION_NO_ARGS("close_split", Close_split),
-           ACTION_NO_ARGS("focus_split_right", Focus_split_right),
-           ACTION_NO_ARGS("focus_split_left", Focus_split_left),
-           ACTION_NO_ARGS("focus_split_up", Focus_split_up),
-           ACTION_NO_ARGS("focus_split_down", Focus_split_down),
-           ACTION_NO_ARGS("close_other_splits", Close_other_splits),
+        // Page navigation actions
+        ACTION_NO_ARGS("page_first", FirstPage),
+        ACTION_NO_ARGS("page_last", LastPage),
+        ACTION_NO_ARGS("page_next", NextPage),
+        ACTION_NO_ARGS("page_prev", PrevPage),
+        ACTION_NO_ARGS("page_goto", Goto_page),
 
-           ACTION_NO_ARGS("focus_portal", Focus_portal),
+        // Scrolling actions
+        ACTION_NO_ARGS("scroll_down", ScrollDown),
+        ACTION_NO_ARGS("scroll_up", ScrollUp),
+        ACTION_NO_ARGS("scroll_left", ScrollLeft),
+        ACTION_NO_ARGS("scroll_right", ScrollRight),
 
-           // File opening actions
-           ACTION_NO_ARGS("open_file_dwim", OpenFileDWIM),
-           ACTION_NO_ARGS("open_file_vsplit", OpenFileVSplit),
-           ACTION_NO_ARGS("open_file_hsplit", OpenFileHSplit),
-           ACTION_NO_ARGS("open_file_tab", OpenFileInNewTab),
+        // Rotation actions
+        ACTION_NO_ARGS("rotate_clock", RotateClock),
+        ACTION_NO_ARGS("rotate_anticlock", RotateAnticlock),
 
-           // Annotation modes
-           ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
-           ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
-           ACTION_NO_ARGS("annot_rect_mode", ToggleAnnotRect),
+        // Location actions
+        ACTION_NO_ARGS("location_prev", GoBackHistory),
+        ACTION_NO_ARGS("location_next", GoForwardHistory),
 
-           ACTION_NO_ARGS("text_select_mode", ToggleTextSelection),
-           ACTION_NO_ARGS("text_highlight_mode", ToggleTextHighlight),
-           ACTION_NO_ARGS("fullscreen", ToggleFullscreen),
-           ACTION_NO_ARGS("file_properties", FileProperties),
-           ACTION_NO_ARGS("fit_width", FitWidth),
-           ACTION_NO_ARGS("fit_height", FitHeight),
-           ACTION_NO_ARGS("fit_window", FitWindow),
-           ACTION_NO_ARGS("auto_resize", ToggleAutoResize),
-           ACTION_NO_ARGS("toggle_menubar", ToggleMenubar),
-           ACTION_NO_ARGS("toggle_statusbar", TogglePanel),
-           ACTION_NO_ARGS("toggle_focus_mode", ToggleFocusMode),
-           ACTION_NO_ARGS("save_session", SaveSession),
-           ACTION_NO_ARGS("save_as_session", SaveAsSession),
-           ACTION_NO_ARGS("load_session", LoadSession),
-           ACTION_NO_ARGS("show_startup", showStartupWidget),
-           ACTION_NO_ARGS("close_file", CloseFile),
+        // Zoom actions
+        ACTION_NO_ARGS("zoom_in", ZoomIn),
+        ACTION_NO_ARGS("zoom_out", ZoomOut),
+        ACTION_NO_ARGS("zoom_reset", ZoomReset),
+        ACTION_NO_ARGS("zoom_set", Zoom_set),
 
-           ACTION_NO_ARGS("tabs_close_left", TabsCloseLeft),
-           ACTION_NO_ARGS("tabs_close_right", TabsCloseRight),
-           ACTION_NO_ARGS("tabs_close_others", TabsCloseOthers),
-           ACTION_NO_ARGS("tab_move_right", TabMoveRight),
-           ACTION_NO_ARGS("tab_move_left", TabMoveLeft),
-           ACTION_NO_ARGS("tab_first", TabFirst),
-           ACTION_NO_ARGS("tab_last", TabLast),
-           ACTION_NO_ARGS("tab_next", TabNext),
-           ACTION_NO_ARGS("tab_prev", TabPrev),
-           ACTION_NO_ARGS("tab_close", TabClose),
+        // Split actions
+        ACTION_NO_ARGS("split_horizontal", VSplit),
+        ACTION_NO_ARGS("split_vertical", HSplit),
+        ACTION_NO_ARGS("split_close", Close_split),
+        ACTION_NO_ARGS("split_focus_right", Focus_split_right),
+        ACTION_NO_ARGS("split_focus_left", Focus_split_left),
+        ACTION_NO_ARGS("split_focus_up", Focus_split_up),
+        ACTION_NO_ARGS("split_focus_down", Focus_split_down),
+        ACTION_NO_ARGS("split_close_others", Close_other_splits),
 
-           ACTION_NO_ARGS("tutorial_file", showTutorialFile),
-           ACTION_NO_ARGS("reselect_last_selection", ReselectLastTextSelection),
-           ACTION_NO_ARGS("search", Search),
+        // Portal actions
+        ACTION_NO_ARGS("portal_focus", Focus_portal),
 
-           {"layout_single", [this](const QStringList &)
+        // File opening actions
+        ACTION_NO_ARGS("file_open_tab", OpenFileInNewTab),
+        ACTION_NO_ARGS("file_open_vsplit", OpenFileVSplit),
+        ACTION_NO_ARGS("file_open_hsplit", OpenFileHSplit),
+        ACTION_NO_ARGS("file_open_dwim", OpenFileDWIM),
+        ACTION_NO_ARGS("file_close", CloseFile),
+        ACTION_NO_ARGS("file_save", SaveFile),
+        ACTION_NO_ARGS("file_save_as", SaveAsFile),
+        ACTION_NO_ARGS("file_encrypt", EncryptDocument),
+        ACTION_NO_ARGS("file_decrypt", DecryptDocument),
+        ACTION_NO_ARGS("file_reload", reloadDocument),
+        ACTION_NO_ARGS("file_properties", FileProperties),
+
+        // Annotation modes
+        ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
+        ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
+        ACTION_NO_ARGS("annot_rect_mode", ToggleAnnotRect),
+        ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
+        ACTION_NO_ARGS("annot_highlight_mode", ToggleTextHighlight),
+
+        // Selection modes
+        ACTION_NO_ARGS("selection_mode_text", ToggleTextSelection),
+        ACTION_NO_ARGS("selection_mode_region", ToggleRegionSelect),
+
+        // Fit modes
+        ACTION_NO_ARGS("fit_width", Fit_width),
+        ACTION_NO_ARGS("fit_height", Fit_height),
+        ACTION_NO_ARGS("fit_page", Fit_page),
+        ACTION_NO_ARGS("fit_auto", ToggleAutoResize),
+
+        // Session actions
+        ACTION_NO_ARGS("session_save", SaveSession),
+        ACTION_NO_ARGS("session_save_as", SaveAsSession),
+        ACTION_NO_ARGS("session_load", LoadSession),
+
+        // Tab actions
+        ACTION_NO_ARGS("tabs_close_left", TabsCloseLeft),
+        ACTION_NO_ARGS("tabs_close_right", TabsCloseRight),
+        ACTION_NO_ARGS("tabs_close_others", TabsCloseOthers),
+        ACTION_NO_ARGS("tab_move_right", TabMoveRight),
+        ACTION_NO_ARGS("tab_move_left", TabMoveLeft),
+        ACTION_NO_ARGS("tab_first", Tab_first),
+        ACTION_NO_ARGS("tab_last", Tab_last),
+        ACTION_NO_ARGS("tab_next", Tab_next),
+        ACTION_NO_ARGS("tab_prev", Tab_prev),
+        ACTION_NO_ARGS("tab_close", Tab_close),
+        ACTION_NO_ARGS("tab_goto", [this]() { Tab_goto(); }),
+        ACTION_NO_ARGS("tab_1", [this]() { Tab_goto(1); }),
+        ACTION_NO_ARGS("tab_2", [this]() { Tab_goto(2); }),
+        ACTION_NO_ARGS("tab_3", [this]() { Tab_goto(3); }),
+        ACTION_NO_ARGS("tab_4", [this]() { Tab_goto(4); }),
+        ACTION_NO_ARGS("tab_5", [this]() { Tab_goto(5); }),
+        ACTION_NO_ARGS("tab_6", [this]() { Tab_goto(6); }),
+        ACTION_NO_ARGS("tab_7", [this]() { Tab_goto(7); }),
+        ACTION_NO_ARGS("tab_8", [this]() { Tab_goto(8); }),
+        ACTION_NO_ARGS("tab_9", [this]() { Tab_goto(9); }),
+
+        // Pickers
+        ACTION_NO_ARGS("picker_outline", ShowOutline),
+        ACTION_NO_ARGS("picker_highlight_search", Show_highlight_search),
+
+        // Search actions
+        ACTION_NO_ARGS("search", Search),
+        ACTION_NO_ARGS("search_next", NextHit),
+        ACTION_NO_ARGS("search_prev", PrevHit),
+        {"search_args",
+         [this](const QStringList &args) { search(args.join(" ")); }},
+
+        // Layout modes
+        {"layout_single", [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::SINGLE); }},
-           {"layout_left_to_right", [this](const QStringList &)
+        {"layout_left_to_right", [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::LEFT_TO_RIGHT); }},
-           {"layout_top_to_bottom", [this](const QStringList &)
+        {"layout_top_to_bottom", [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::TOP_TO_BOTTOM); }},
 
-           {"tab1", [this](const QStringList &) { TabGoto(1); }},
-           {"tab2", [this](const QStringList &) { TabGoto(2); }},
-           {"tab3", [this](const QStringList &) { TabGoto(3); }},
-           {"tab4", [this](const QStringList &) { TabGoto(4); }},
-           {"tab5", [this](const QStringList &) { TabGoto(5); }},
-           {"tab6", [this](const QStringList &) { TabGoto(6); }},
-           {"tab7", [this](const QStringList &) { TabGoto(7); }},
-           {"tab8", [this](const QStringList &) { TabGoto(8); }},
-           {"tab9", [this](const QStringList &) { TabGoto(9); }},
+        // Other actions
+        ACTION_NO_ARGS("set_dpr", SetDPR),
+        ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
+        ACTION_NO_ARGS("undo", Undo),
+        ACTION_NO_ARGS("redo", Redo),
+        ACTION_NO_ARGS("highlight_selection", TextHighlightCurrentSelection),
+        ACTION_NO_ARGS("invert_color", InvertColor),
 
-           {"goto_page",
-            [this](const QStringList &args)
-    {
-        if (args.isEmpty())
-        {
-            GotoPage();
-            return;
-        }
+        // Help/About actions
+        ACTION_NO_ARGS("show_startup_widget", showStartupWidget),
+        ACTION_NO_ARGS("show_tutorial_file", showTutorialFile),
+        ACTION_NO_ARGS("show_about", ShowAbout),
 
-        auto _args = args.join(" ");
-        if (!_args.isEmpty())
-        {
-            bool ok;
-            int pageno = _args.toInt(&ok);
-            if (ok)
-                gotoPage(pageno);
-            else
-                m_message_bar->showMessage("Invalid page number");
-        }
-    }},
-           // {"search_in_page",
-           // [this](const QStringList &args) { SearchInPage(args.join("
-           // ")); }},
-           {"search_args",
-            [this](const QStringList &args) { search(args.join(" ")); }}};
+        // TODO: Implement these actions
+        // ACTION_NO_ARGS("annot_next", Annot_next),
+        // ACTION_NO_ARGS("annot_prev", Annot_prev),
+        // ACTION_NO_ARGS("annot_export", Annot_export),
+        // ACTION_NO_ARGS("save_selection_as_image", Save_selection_as_image),
+        // ACTION_NO_ARGS("search_clear", Clear_search),
+        // ACTION_NO_ARGS("reopen_last_closed_file", Reopen_last_closed_file),
+        // ACTION_NO_ARGS("toggle_presentation_mode", Toggle_presentation_mode),
+        // ACTION_NO_ARGS("recent_files", Show_recent_files_picker),
+        // ACTION_NO_ARGS("copy_page_image", Copy_page_image),
+
+        // {"search_in_page",
+        // [this](const QStringList &args) { SearchInPage(args.join("
+        // ")); }},
+    };
 }
 
 #undef ACTION_NO_ARGS
@@ -3644,7 +3672,7 @@ lektra::reloadDocument() noexcept
 
 // Go to the first tab
 void
-lektra::TabFirst() noexcept
+lektra::Tab_first() noexcept
 {
     if (m_tab_widget->count() != 0)
     {
@@ -3654,7 +3682,7 @@ lektra::TabFirst() noexcept
 
 // Go to the last tab
 void
-lektra::TabLast() noexcept
+lektra::Tab_last() noexcept
 {
     int count = m_tab_widget->count();
     if (count != 0)
@@ -3665,7 +3693,7 @@ lektra::TabLast() noexcept
 
 // Go to the next tab
 void
-lektra::TabNext() noexcept
+lektra::Tab_next() noexcept
 {
     int count        = m_tab_widget->count();
     int currentIndex = m_tab_widget->currentIndex();
@@ -3677,7 +3705,7 @@ lektra::TabNext() noexcept
 
 // Go to the previous tab
 void
-lektra::TabPrev() noexcept
+lektra::Tab_prev() noexcept
 {
     int count        = m_tab_widget->count();
     int currentIndex = m_tab_widget->currentIndex();
@@ -3689,21 +3717,23 @@ lektra::TabPrev() noexcept
 
 // Go to the tab at nth position specified by `tabno`
 void
-lektra::TabGoto(int tabno) noexcept
+lektra::Tab_goto(int index) noexcept
 {
-    if (tabno > 0 && tabno <= m_tab_widget->count())
+    if (index == -1)
     {
-        m_tab_widget->setCurrentIndex(tabno - 1);
+        index = QInputDialog::getInt(this, "Go to Tab", "Enter tab number: ", 1,
+                                     1, m_tab_widget->count());
     }
+
+    if (index < 1 || index > m_tab_widget->count())
+        m_tab_widget->setCurrentIndex(index - 1);
     else
-    {
         m_message_bar->showMessage("Invalid Tab Number");
-    }
 }
 
 // Close the current tab
 void
-lektra::TabClose(int tabno) noexcept
+lektra::Tab_close(int tabno) noexcept
 {
     int indexToClose = (tabno == -1) ? m_tab_widget->currentIndex() : tabno;
 
@@ -4373,7 +4403,7 @@ lektra::CloseFile() noexcept
     if (m_doc)
     {
         int indexToClose = m_tab_widget->currentIndex();
-        TabClose(indexToClose);
+        Tab_close(indexToClose);
     }
 }
 
