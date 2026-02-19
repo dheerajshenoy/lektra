@@ -3605,6 +3605,7 @@ lektra::initActionMap() noexcept
         ACTION_NO_ARGS("redo", Redo),
         ACTION_NO_ARGS("highlight_selection", TextHighlightCurrentSelection),
         ACTION_NO_ARGS("invert_color", InvertColor),
+        ACTION_NO_ARGS("reshow_jump_marker", Reshow_jump_marker),
 
         // Help/About actions
         ACTION_NO_ARGS("show_startup_widget", showStartupWidget),
@@ -4680,4 +4681,12 @@ lektra::Focus_portal() noexcept
         if (portalView)
             container->focusView(portalView);
     }
+}
+
+// If a jump marker was shown for the current document view, re-show it (e.g. after a reload)
+void
+lektra::Reshow_jump_marker() noexcept
+{
+    if (m_doc)
+        m_doc->Reshow_jump_marker();
 }

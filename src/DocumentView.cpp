@@ -963,10 +963,10 @@ DocumentView::GotoLocation(const PageLocation &targetLocation) noexcept
         return;
     }
 
-    QPointF targetPixelPos = m_model->toPixelSpace(
+    const QPointF targetPixelPos = m_model->toPixelSpace(
         targetLocation.pageno, {targetLocation.x, targetLocation.y});
 
-    QPointF scenePos = pageItem->mapToScene(targetPixelPos);
+    const QPointF scenePos = pageItem->mapToScene(targetPixelPos);
 
     if (m_layout_mode == LayoutMode::SINGLE)
     {
@@ -977,7 +977,8 @@ DocumentView::GotoLocation(const PageLocation &targetLocation) noexcept
     m_gview->centerOn(scenePos);
 
     m_jump_marker->showAt(scenePos.x(), scenePos.y());
-    m_pending_jump = {-1, 0, 0};
+    m_old_jump_marker_pos = scenePos;
+    m_pending_jump        = {-1, 0, 0};
 }
 
 namespace
@@ -3629,4 +3630,12 @@ DocumentView::handleAnnotPopupRequested(const QPointF &scenePos) noexcept
     m_model->undoStack()->push(
         new TextAnnotationCommand(m_model, pageno, rect, text));
     setModified(true);
+}
+
+// Re display the jump marker (e.g. after a jump link is activated), useful if
+// user lost track of it for example.
+void
+DocumentView::Reshow_jump_marker() noexcept
+{
+    m_jump_marker->showAt(m_old_jump_marker_pos);
 }

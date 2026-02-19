@@ -173,6 +173,7 @@ public:
     void TabsCloseLeft() noexcept;
     void TabsCloseRight() noexcept;
     void TabsCloseOthers() noexcept;
+    void Reshow_jump_marker() noexcept;
 
 #ifdef ENABLE_LLM_SUPPORT
     void ToggleLLMWidget() noexcept;

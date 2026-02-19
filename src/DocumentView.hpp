@@ -293,6 +293,7 @@ public:
     void setLayoutMode(const LayoutMode &mode) noexcept;
     void addToHistory(const PageLocation &location) noexcept;
     PageLocation CurrentLocation() noexcept;
+    void Reshow_jump_marker() noexcept;
 
 signals:
     void ctrlLinkClickRequested(DocumentView *view,
@@ -467,6 +468,8 @@ private:
     QFutureWatcher<void> m_open_future_watcher;
     QFileSystemWatcher *m_file_watcher{nullptr};
     DocumentContainer *m_container{nullptr};
+
+    QPointF m_old_jump_marker_pos{};
 
 #ifdef HAS_SYNCTEX
     synctex_scanner_p m_synctex_scanner{nullptr};
