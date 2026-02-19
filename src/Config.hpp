@@ -161,7 +161,7 @@ struct Config
 
     struct rendering
     {
-        float dpi{300};
+        float dpi{72.0f};
         std::variant<float, QMap<QString, float>> dpr{1.0f};
         float inv_dpr{1.0f};
         bool icc_color_profile{true};
