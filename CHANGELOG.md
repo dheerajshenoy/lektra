@@ -62,6 +62,7 @@
 
 - `file_decrypt` - Decrypt the current PDF file
 - `annot_popup_mode` - Enter popup annotation creation mode
+- `reshow_jump_marker` - Reshow the jump marker at the current location (useful if it was hidden after timeout)
 
 ## 0.6.2
 
