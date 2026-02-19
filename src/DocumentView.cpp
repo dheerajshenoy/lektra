@@ -3489,6 +3489,10 @@ DocumentView::setAutoReload(bool state) noexcept
     }
 }
 
+// Wait until the file is readable and fully written. This is needed because
+// when using latex with continuous compilation, the PDF file is often replaced
+// by a new file that is first created with 0 bytes and then written to. If we
+// try to reload while the file is still 0 bytes, it will fail.
 bool
 DocumentView::waitUntilReadableAsync() noexcept
 {
@@ -3501,6 +3505,7 @@ DocumentView::waitUntilReadableAsync() noexcept
     return b.exists() && a.size() == b.size();
 }
 
+// Slot to handle file change notifications for auto-reload
 void
 DocumentView::onFileReloadRequested(const QString &path) noexcept
 {
@@ -3510,6 +3515,8 @@ DocumentView::onFileReloadRequested(const QString &path) noexcept
     tryReloadLater(0);
 }
 
+// Try to reload the document, if the file is not yet readable, wait and try
+// again a few times before giving up.
 void
 DocumentView::tryReloadLater(int attempt) noexcept
 {
