@@ -2618,17 +2618,42 @@ DocumentView::clearDocumentItems() noexcept
 }
 
 // Request rendering of a specific page (ASYNC)
+// void
+// DocumentView::requestPageRender(int pageno) noexcept
+// {
+//     if (m_pending_renders.contains(pageno))
+//         return;
+//
+//     m_pending_renders.insert(pageno);
+//     createAndAddPlaceholderPageItem(pageno);
+//
+//     m_render_queue.enqueue(pageno);
+//     startNextRenderJob();
+// }
+
 void
 DocumentView::requestPageRender(int pageno) noexcept
 {
-    // if (m_page_items_hash.contains(pageno))
-    //     return;
-
     if (m_pending_renders.contains(pageno))
         return;
 
+    // Check if we already have a real page
+    if (m_page_items_hash.contains(pageno))
+    {
+        auto *existing = m_page_items_hash[pageno];
+        if (existing->data(0).toString() != "placeholder_page")
+        {
+            return; // Already have real page
+        }
+    }
+
     m_pending_renders.insert(pageno);
-    createAndAddPlaceholderPageItem(pageno);
+
+    // Only create placeholder if we don't have any item yet
+    if (!m_page_items_hash.contains(pageno))
+    {
+        createAndAddPlaceholderPageItem(pageno);
+    }
 
     m_render_queue.enqueue(pageno);
     startNextRenderJob();
@@ -2637,10 +2662,34 @@ DocumentView::requestPageRender(int pageno) noexcept
 void
 DocumentView::renderPageFromPixmap(int pageno, const QPixmap &pixmap) noexcept
 {
+    createAndAddPageItem(pageno, pixmap);
+
     clearLinksForPage(pageno);
     clearAnnotationsForPage(pageno);
-    removePageItem(pageno);
-    createAndAddPageItem(pageno, pixmap);
+    clearSearchItemsForPage(pageno);
+    // removePageItem(pageno);
+
+    // Remove the old placeholder (now that new item exists)
+    // Find and remove ONLY the placeholder, not the new item
+    auto it = m_page_items_hash.find(pageno);
+    if (it != m_page_items_hash.end())
+    {
+        GraphicsPixmapItem *placeholder = it.value();
+        // Check if this is the placeholder (different from the new item we just
+        // added)
+        if (placeholder->data(0).toString() == "placeholder_page"
+            || placeholder->data(0).toString() == "scroll_placeholder")
+        {
+            if (placeholder->scene() == m_gscene)
+                m_gscene->removeItem(placeholder);
+            delete placeholder;
+            // Update the hash to point to the new item (which was added
+            // separately)
+            m_page_items_hash[pageno]
+                = m_page_items_hash[pageno]; // This ensures we keep the new
+                                             // item
+        }
+    }
 }
 
 void
