@@ -771,11 +771,12 @@ DocumentView::updateSelectionPath(int pageno,
     if (!pageItem)
         return;
 
+    const QTransform toScene = pageItem->sceneTransform();
     for (const QPolygonF &poly : quads)
     {
         // We map to scene here, or better yet, make pageItem the parent
         // of m_selection_path_item once to avoid mapping every frame.
-        path.addPolygon(pageItem->mapToScene(poly));
+        path.addPolygon(toScene.map(poly));
     }
 
     m_selection_path_item->setPath(path);
@@ -876,7 +877,6 @@ DocumentView::setFitMode(FitMode mode) noexcept
             const double newZoom = static_cast<double>(viewWidth) / bboxW;
 
             setZoom(newZoom);
-            renderVisiblePages();
         }
         break;
 
@@ -887,7 +887,6 @@ DocumentView::setFitMode(FitMode mode) noexcept
             const double newZoom = static_cast<double>(viewHeight) / bboxH;
 
             setZoom(newZoom);
-            renderVisiblePages();
         }
         break;
 
@@ -902,7 +901,6 @@ DocumentView::setFitMode(FitMode mode) noexcept
             const double newZoom = std::min(zoomX, zoomY);
 
             setZoom(newZoom);
-            renderVisiblePages();
         }
         break;
 
@@ -1242,9 +1240,7 @@ DocumentView::zoomHelper() noexcept
         }
     }
 
-    m_model->setZoom(m_current_zoom);
-
-    QList<int> trackedPages = m_page_links_hash.keys();
+    const QList<int> trackedPages = m_page_items_hash.keys();
     for (int pageno : trackedPages)
     {
         m_model->invalidatePageCache(pageno);
@@ -1252,6 +1248,8 @@ DocumentView::zoomHelper() noexcept
         clearAnnotationsForPage(pageno);
         clearSearchItemsForPage(pageno);
     }
+
+    m_model->setZoom(m_current_zoom);
 
     renderSearchHitsInScrollbar();
 
@@ -1347,28 +1345,36 @@ DocumentView::GotoHit(int index) noexcept
 void
 DocumentView::ScrollLeft() noexcept
 {
+    m_hscroll->setUpdatesEnabled(false);
     m_hscroll->setValue(m_hscroll->value() - 50);
+    m_hscroll->setUpdatesEnabled(true);
 }
 
 // Scroll right by a fixed amount
 void
 DocumentView::ScrollRight() noexcept
 {
+    m_hscroll->setUpdatesEnabled(false);
     m_hscroll->setValue(m_hscroll->value() + 50);
+    m_hscroll->setUpdatesEnabled(true);
 }
 
 // Scroll up by a fixed amount
 void
 DocumentView::ScrollUp() noexcept
 {
+    m_vscroll->setUpdatesEnabled(false);
     m_vscroll->setValue(m_vscroll->value() - 50);
+    m_vscroll->setUpdatesEnabled(true);
 }
 
 // Scroll down by a fixed amount
 void
 DocumentView::ScrollDown() noexcept
 {
+    m_vscroll->setUpdatesEnabled(false);
     m_vscroll->setValue(m_vscroll->value() + 50);
+    m_vscroll->setUpdatesEnabled(true);
 }
 
 // Get the link KB for the current document
@@ -1724,7 +1730,6 @@ DocumentView::UpdateKBHintsOverlay(const QString &input) noexcept
     if (!m_gscene)
         return;
 
-    const auto items = m_gscene->items();
     for (auto *hint : m_kb_link_hints)
     {
         if (auto *hintItem = qgraphicsitem_cast<LinkHint *>(hint))
@@ -1946,6 +1951,10 @@ DocumentView::renderVisiblePages() noexcept
 {
     std::set<int> visiblePages = getVisiblePages();
 
+    m_gview->setRenderHints(QPainter::TextAntialiasing);
+    m_gview->setUpdatesEnabled(false);
+    m_gscene->blockSignals(true);
+
     prunePendingRenders(visiblePages);
     removeUnusedPageItems(visiblePages);
     // ClearTextSelection();
@@ -1955,6 +1964,11 @@ DocumentView::renderVisiblePages() noexcept
 
     updateSceneRect();
     updateCurrentHitHighlight();
+
+    m_gscene->blockSignals(false);
+    m_gview->setUpdatesEnabled(true);
+    m_gview->setRenderHints(QPainter::Antialiasing
+                            | QPainter::SmoothPixmapTransform);
 }
 
 // Render a specific page (used when LayoutMode is SINGLE)
@@ -1969,35 +1983,57 @@ DocumentView::renderPage() noexcept
     updateCurrentHitHighlight();
 }
 
+void
+DocumentView::startNextRenderJob() noexcept
+{
+    while (m_renders_in_flight < MAX_CONCURRENT_RENDERS
+           && !m_render_queue.isEmpty())
+    {
+        const int pageno = m_render_queue.dequeue();
+        if (!m_pending_renders.contains(pageno))
+            continue;
+
+        ++m_renders_in_flight;
+        auto job = m_model->createRenderJob(pageno);
+
+        m_model->requestPageRender(
+            job, [this, pageno](const Model::PageRenderResult &result)
+        {
+            --m_renders_in_flight;
+            m_pending_renders.remove(pageno);
+
+            const QPixmap &pixmap = result.pixmap;
+            if (!pixmap.isNull())
+            {
+                const std::set<int> &visiblePages = getVisiblePages();
+                if (visiblePages.find(pageno) != visiblePages.end())
+                {
+                    renderPageFromPixmap(pageno, result.pixmap);
+                    renderLinks(pageno, result.links);
+                    renderAnnotations(pageno, result.annotations);
+                    renderSearchHitsForPage(pageno);
+                }
+
+                if (m_pending_jump.pageno == pageno)
+                    GotoLocation(m_pending_jump);
+
+                if (m_search_index != -1 && !m_search_hit_flat_refs.empty()
+                    && m_search_hit_flat_refs[m_search_index].page == pageno)
+                    updateCurrentHitHighlight();
+            }
+
+            startNextRenderJob();
+        });
+    }
+}
+
 // Remove pending renders for pages that are no longer visible and not in-flight
 void
 DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
 {
-    if (m_pending_renders.isEmpty() && m_render_queue.isEmpty())
-        return;
-
-    QSet<int> visibleSet;
-    for (int pageno : visiblePages)
-        visibleSet.insert(pageno);
-
-    const int inFlightPage = m_render_in_flight ? m_render_in_flight_page : -1;
-
-    // TODO: Fix — query the std::set directly, it's already O(log n)
-    // const bool keep = (pageno == inFlightPage)
-    //                   || (visiblePages.find(pageno) != visiblePages.end());
 
     for (auto it = m_pending_renders.begin(); it != m_pending_renders.end();)
-    {
-        const int pageno = *it;
-        if (pageno == inFlightPage || visibleSet.contains(pageno))
-        {
-            ++it;
-        }
-        else
-        {
-            it = m_pending_renders.erase(it);
-        }
-    }
+        it = visiblePages.count(*it) ? ++it : m_pending_renders.erase(it);
 
     if (m_render_queue.isEmpty())
         return;
@@ -2006,7 +2042,7 @@ DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
     while (!m_render_queue.isEmpty())
     {
         const int pageno = m_render_queue.dequeue();
-        if (pageno == inFlightPage || visibleSet.contains(pageno))
+        if (visiblePages.contains(pageno))
             filtered.enqueue(pageno);
     }
     m_render_queue = std::move(filtered);
@@ -2016,48 +2052,22 @@ void
 DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
 {
     // Copy keys first to avoid iterator invalidation
-    QList<int> trackedPages = m_page_links_hash.keys();
+    const QList<int> trackedPages = m_page_items_hash.keys();
     for (int pageno : trackedPages)
     {
-        if (visibleSet.find(pageno) == visibleSet.end())
+        if (visibleSet.count(pageno))
+            continue;
+
+        clearLinksForPage(pageno);
+        clearAnnotationsForPage(pageno);
+        clearSearchItemsForPage(pageno);
+
+        auto *item = m_page_items_hash.take(pageno);
+        if (item)
         {
-            auto links = m_page_links_hash.take(pageno); // removes from hash
-            for (auto *link : links)
-            {
-                if (!link)
-                    continue;
-
-                // Remove from scene if still present
-                if (link->scene() == m_gscene)
-                    m_gscene->removeItem(link);
-
-                delete link; // safe: we "own" these
-            }
-
-            auto *item = m_page_items_hash.take(pageno);
-            if (item)
-            {
-                if (item->scene() == m_gscene)
-                    m_gscene->removeItem(item);
-                delete item;
-            }
-
-            auto annots
-                = m_page_annotations_hash.take(pageno); // removes from hash
-            for (auto *annot : annots)
-            {
-                if (!annot)
-                    continue;
-
-                // Remove from scene if still present
-                if (annot->scene() == m_gscene)
-                    m_gscene->removeItem(annot);
-
-                delete annot; // safe: we "own" these
-            }
-
-            // Remove search hits for this page
-            clearSearchItemsForPage(pageno);
+            if (item->scene() == m_gscene)
+                m_gscene->removeItem(item);
+            delete item;
         }
     }
 }
@@ -2169,7 +2179,10 @@ DocumentView::enterEvent(QEnterEvent *event)
 void
 DocumentView::handleDeferredResize() noexcept
 {
-    clearDocumentItems();
+    // clearDocumentItems();
+    cachePageStride();
+    updateSceneRect();
+
     if (m_layout_mode == LayoutMode::SINGLE)
         renderPage();
     else
@@ -2404,7 +2417,9 @@ DocumentView::updateCurrentHitHighlight() noexcept
                     hit.quad.ll.y * m_current_zoom);
 
     QPainterPath path;
-    path.addPolygon(pageItem->mapToScene(poly));
+    const QTransform toScene = pageItem->sceneTransform();
+
+    path.addPolygon(toScene.map(poly));
 
     // 4. Only update the underlying QGraphicsPathItem if the path has
     // actually changed
@@ -2518,8 +2533,7 @@ DocumentView::clearDocumentItems() noexcept
     ClearTextSelection();
     m_pending_renders.clear();
     m_render_queue.clear();
-    m_render_in_flight      = false;
-    m_render_in_flight_page = -1;
+    m_renders_in_flight = 0;
 }
 
 // Request rendering of a specific page (ASYNC)
@@ -2540,67 +2554,12 @@ DocumentView::requestPageRender(int pageno) noexcept
 }
 
 void
-DocumentView::startNextRenderJob() noexcept
-{
-    if (m_render_in_flight)
-        return;
-
-    while (!m_render_queue.isEmpty())
-    {
-        const int pageno = m_render_queue.dequeue();
-        if (!m_pending_renders.contains(pageno))
-            continue;
-
-        m_render_in_flight      = true;
-        m_render_in_flight_page = pageno;
-        auto job                = m_model->createRenderJob(pageno);
-
-        m_model->requestPageRender(
-            job, [this, pageno](const Model::PageRenderResult &result)
-        {
-            m_pending_renders.remove(pageno);
-            m_render_in_flight      = false;
-            m_render_in_flight_page = -1;
-
-            const QImage &image = result.image;
-            if (!image.isNull())
-            {
-                const std::set<int> &visiblePages = getVisiblePages();
-                if (visiblePages.find(pageno) != visiblePages.end())
-                {
-                    renderPageFromImage(pageno, result.image);
-                    renderLinks(pageno, result.links);
-                    renderAnnotations(pageno, result.annotations);
-                    renderSearchHitsForPage(pageno);
-                }
-
-                if (m_pending_jump.pageno == pageno)
-                {
-                    GotoLocation(m_pending_jump);
-                }
-
-                // If the page we just rendered is the page in the current
-                // search.
-                if (m_search_index != -1 && !m_search_hit_flat_refs.empty()
-                    && m_search_hit_flat_refs[m_search_index].page == pageno)
-                {
-                    updateCurrentHitHighlight();
-                }
-            }
-
-            startNextRenderJob();
-        });
-        break;
-    }
-}
-
-void
-DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
+DocumentView::renderPageFromPixmap(int pageno, const QPixmap &pixmap) noexcept
 {
     clearLinksForPage(pageno);
     clearAnnotationsForPage(pageno);
     removePageItem(pageno);
-    createAndAddPageItem(pageno, QPixmap::fromImage(image));
+    createAndAddPageItem(pageno, pixmap);
 }
 
 void
@@ -3027,6 +2986,8 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
 
     QPainterPath allPath;
 
+    const QTransform toScene = pageItem->sceneTransform();
+
     for (unsigned int i = 0; i < hits.size(); ++i)
     {
         const Model::SearchHit &hit = hits[i];
@@ -3041,7 +3002,7 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
              << QPointF(hit.quad.ll.x * m_current_zoom,
                         hit.quad.ll.y * m_current_zoom);
 
-        allPath.addPolygon(pageItem->mapToScene(poly));
+        allPath.addPolygon(toScene.map(poly));
     }
 
     // Set colors

@@ -6,10 +6,10 @@
 #include "GraphicsScene.hpp"
 #include "GraphicsView.hpp"
 #include "JumpMarker.hpp"
+#include "LinkHint.hpp"
 #include "Model.hpp"
 #include "ScrollBar.hpp"
 #include "WaitingSpinnerWidget.hpp"
-#include "LinkHint.hpp"
 
 #include <QFutureWatcher>
 
@@ -379,7 +379,7 @@ private:
     void clearVisibleAnnotations() noexcept;
     void clearVisiblePages() noexcept;
     void clearVisibleLinks() noexcept;
-    void renderPageFromImage(int pageno, const QImage &image) noexcept;
+    void renderPageFromPixmap(int pageno, const QPixmap &pixmap) noexcept;
     void renderLinks(int pageno,
                      const std::vector<Model::RenderLink> &links) noexcept;
     void renderAnnotations(
@@ -441,8 +441,6 @@ private:
     QHash<int, std::vector<Annotation *>> m_page_annotations_hash;
     QSet<int> m_pending_renders;
     QQueue<int> m_render_queue;
-    bool m_render_in_flight{false};
-    int m_render_in_flight_page{-1};
     float m_old_y{0.0f};
     JumpMarker *m_jump_marker{nullptr};
     QTimer *m_scroll_page_update_timer{nullptr};
@@ -469,7 +467,13 @@ private:
     QFutureWatcher<void> m_open_future_watcher;
     QFileSystemWatcher *m_file_watcher{nullptr};
     DocumentContainer *m_container{nullptr};
-    std::vector<LinkHint*> m_kb_link_hints{};
+    std::vector<LinkHint *> m_kb_link_hints{};
+
+    unsigned int MAX_CONCURRENT_RENDERS{
+        std::thread::hardware_concurrency() > 1
+            ? std::thread::hardware_concurrency() - 1
+            : 1};
+    int m_renders_in_flight{0};
 
     QPointF m_old_jump_marker_pos{};
 
