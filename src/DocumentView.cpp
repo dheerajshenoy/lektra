@@ -115,15 +115,15 @@ DocumentView::initGui() noexcept
     m_current_search_hit_item->setZValue(ZVALUE_SEARCH_HITS + 1);
 
     m_hq_render_timer = new QTimer(this);
-    m_hq_render_timer->setInterval(200);
+    m_hq_render_timer->setInterval(150);
     m_hq_render_timer->setSingleShot(true);
 
     m_scroll_page_update_timer = new QTimer(this);
-    m_scroll_page_update_timer->setInterval(100);
+    m_scroll_page_update_timer->setInterval(66);
     m_scroll_page_update_timer->setSingleShot(true);
 
     m_resize_timer = new QTimer(this);
-    m_resize_timer->setInterval(150);
+    m_resize_timer->setInterval(100);
     m_resize_timer->setSingleShot(true);
     connect(m_resize_timer, &QTimer::timeout, this,
             &DocumentView::handleDeferredResize);
@@ -426,44 +426,48 @@ DocumentView::initConnections() noexcept
 
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
-        connect(m_hscroll, &QScrollBar::valueChanged,
-                m_scroll_page_update_timer,
-                static_cast<void (QTimer::*)()>(&QTimer::start));
-
         connect(m_hscroll, &QScrollBar::valueChanged, this,
-                &DocumentView::invalidateVisiblePagesCache);
-
-        connect(m_hscroll, &QScrollBar::valueChanged, this,
-                &DocumentView::updateCurrentPage);
+                &DocumentView::handleHScrollValueChanged, Qt::UniqueConnection);
+        // connect(m_hscroll, &QScrollBar::valueChanged,
+        //         m_scroll_page_update_timer,
+        //         static_cast<void (QTimer::*)()>(&QTimer::start));
+        //
+        // connect(m_hscroll, &QScrollBar::valueChanged, this,
+        //         &DocumentView::invalidateVisiblePagesCache);
+        //
+        // connect(m_hscroll, &QScrollBar::valueChanged, this,
+        //         &DocumentView::updateCurrentPage);
 
         connect(m_hq_render_timer, &QTimer::timeout, this,
-                &DocumentView::renderVisiblePages);
+                &DocumentView::renderVisiblePages, Qt::UniqueConnection);
 
         connect(m_scroll_page_update_timer, &QTimer::timeout, this,
-                &DocumentView::renderVisiblePages);
+                &DocumentView::renderVisiblePages, Qt::UniqueConnection);
     }
     else if (m_layout_mode == LayoutMode::TOP_TO_BOTTOM)
     {
-        connect(m_vscroll, &QScrollBar::valueChanged,
-                m_scroll_page_update_timer,
-                static_cast<void (QTimer::*)()>(&QTimer::start));
-
         connect(m_vscroll, &QScrollBar::valueChanged, this,
-                &DocumentView::invalidateVisiblePagesCache);
-
-        connect(m_vscroll, &QScrollBar::valueChanged, this,
-                &DocumentView::updateCurrentPage);
+                &DocumentView::handleVScrollValueChanged, Qt::UniqueConnection);
+        // connect(m_vscroll, &QScrollBar::valueChanged,
+        //         m_scroll_page_update_timer,
+        //         static_cast<void (QTimer::*)()>(&QTimer::start));
+        //
+        // connect(m_vscroll, &QScrollBar::valueChanged, this,
+        //         &DocumentView::invalidateVisiblePagesCache);
+        //
+        // connect(m_vscroll, &QScrollBar::valueChanged, this,
+        //         &DocumentView::updateCurrentPage);
 
         connect(m_hq_render_timer, &QTimer::timeout, this,
-                &DocumentView::renderVisiblePages);
+                &DocumentView::renderVisiblePages, Qt::UniqueConnection);
 
         connect(m_scroll_page_update_timer, &QTimer::timeout, this,
-                &DocumentView::renderVisiblePages);
+                &DocumentView::renderVisiblePages, Qt::UniqueConnection);
     }
     else if (m_layout_mode == LayoutMode::SINGLE)
     {
         connect(m_hq_render_timer, &QTimer::timeout, this,
-                &DocumentView::renderPage);
+                &DocumentView::renderPage, Qt::UniqueConnection);
     }
 
     /* Graphics View Signals */
@@ -1829,6 +1833,19 @@ DocumentView::getVisiblePages() noexcept
     if (!m_visible_pages_dirty)
         return m_visible_pages_cache;
 
+    // Add a time-based cache invalidation to prevent excessive recalculation
+    static qint64 lastCalcTime = 0;
+    qint64 now                 = QDateTime::currentMSecsSinceEpoch();
+
+    // If cache was invalidated but we just calculated recently, use old cache
+    if (now - lastCalcTime < 50)
+    { // Don't recalculate more than every 50ms
+        m_visible_pages_dirty = false;
+        return m_visible_pages_cache;
+    }
+
+    lastCalcTime = now;
+
     m_visible_pages_cache.clear();
 
     if (m_model->numPages() == 0)
@@ -1883,6 +1900,17 @@ DocumentView::getVisiblePages() noexcept
 void
 DocumentView::invalidateVisiblePagesCache() noexcept
 {
+    // Don't invalidate too frequently
+    static qint64 lastInvalidate = 0;
+    qint64 now                   = QDateTime::currentMSecsSinceEpoch();
+
+    if (now - lastInvalidate < 16)
+    { // ~60fps throttle
+        return;
+    }
+
+    lastInvalidate = now;
+
     m_visible_pages_dirty = true;
 }
 
@@ -1949,7 +1977,19 @@ DocumentView::clearAnnotationsForPage(int pageno) noexcept
 void
 DocumentView::renderVisiblePages() noexcept
 {
+    // Early exit if no changes needed
+    static std::set<int> lastRenderedPages;
+
     std::set<int> visiblePages = getVisiblePages();
+
+    if (visiblePages == lastRenderedPages
+        && m_page_items_hash.size() == visiblePages.size())
+    {
+        // Same pages are visible and already rendered, skip
+        return;
+    }
+
+    lastRenderedPages = visiblePages;
 
     m_gview->setRenderHints(QPainter::TextAntialiasing);
     m_gview->setUpdatesEnabled(false);
@@ -1986,13 +2026,36 @@ DocumentView::renderPage() noexcept
 void
 DocumentView::startNextRenderJob() noexcept
 {
+    // Get current visible pages for prioritization
+    std::set<int> visiblePages = getVisiblePages();
+
     while (m_renders_in_flight < MAX_CONCURRENT_RENDERS
            && !m_render_queue.isEmpty())
     {
-        const int pageno = m_render_queue.dequeue();
+        // Prioritize visible pages first
+        int pageno = -1;
+        for (int i = 0; i < m_render_queue.size(); ++i)
+        {
+            int candidate = m_render_queue[i];
+            if (visiblePages.contains(candidate))
+            {
+                pageno = candidate;
+                m_render_queue.removeAt(i);
+                break;
+            }
+        }
+
+        // If no visible pages in queue, take the next one
+        if (pageno == -1)
+            pageno = m_render_queue.dequeue();
+
         if (!m_pending_renders.contains(pageno))
             continue;
 
+        // pageno = m_render_queue.dequeue();
+        // if (!m_pending_renders.contains(pageno))
+        //     continue;
+        //
         ++m_renders_in_flight;
         auto job = m_model->createRenderJob(pageno);
 
@@ -2482,8 +2545,26 @@ void
 DocumentView::ensureVisiblePagePlaceholders() noexcept
 {
     const std::set<int> &visiblePages = getVisiblePages();
+
+    // Quick check - if we already have all pages, return early
+    bool allExist = true;
     for (int pageno : visiblePages)
-        createAndAddPlaceholderPageItem(pageno);
+    {
+        if (!m_page_items_hash.contains(pageno))
+        {
+            allExist = false;
+            break;
+        }
+    }
+
+    if (allExist)
+        return;
+
+    for (int pageno : visiblePages)
+    {
+        if (!m_page_items_hash.contains(pageno))
+            createAndAddPlaceholderPageItem(pageno);
+    }
 }
 
 void
@@ -3647,3 +3728,59 @@ DocumentView::Reshow_jump_marker() noexcept
 {
     m_jump_marker->showAt(m_old_jump_marker_pos);
 }
+
+void
+DocumentView::handleHScrollValueChanged(int value) noexcept
+{
+    // Skip tiny scroll events
+    if (std::abs(value - m_last_scroll_value) < SCROLL_THRESHOLD)
+    {
+        m_last_scroll_value = value;
+        return;
+    }
+
+    m_last_scroll_value = value;
+    m_last_scroll_time  = QDateTime::currentMSecsSinceEpoch();
+
+    // During fast scrolling, only invalidate cache, don't trigger render
+    invalidateVisiblePagesCache();
+
+    ensureVisiblePagePlaceholders();
+    updateCurrentPage();
+
+    // Always restart the timer (debouncing)
+    m_scroll_page_update_timer->start();
+
+    // Don't trigger HQ render during rapid scrolling
+    m_hq_render_timer->stop();
+}
+
+// Same for handleVScrollValueChanged
+
+void
+DocumentView::handleVScrollValueChanged(int value) noexcept
+{
+    // Skip tiny scroll events
+    if (std::abs(value - m_last_scroll_value) < SCROLL_THRESHOLD)
+    {
+        m_last_scroll_value = value;
+        return;
+    }
+
+    m_last_scroll_value = value;
+    m_last_scroll_time  = QDateTime::currentMSecsSinceEpoch();
+
+    // During fast scrolling, only invalidate cache, don't trigger render
+    invalidateVisiblePagesCache();
+
+    ensureVisiblePagePlaceholders();
+    updateCurrentPage();
+
+    // Always restart the timer (debouncing)
+    m_scroll_page_update_timer->start();
+
+    // Don't trigger HQ render during rapid scrolling
+    m_hq_render_timer->stop();
+}
+
+// Same for handleVScrollValueChanged
