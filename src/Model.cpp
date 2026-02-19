@@ -1,7 +1,7 @@
 #include "Model.hpp"
 
 #include "BrowseLinkItem.hpp"
-#include "commands/TextHighlightAnnotationCommand.hpp"
+#include "Commands/TextHighlightAnnotationCommand.hpp"
 #include "utils.hpp"
 
 #include <QtConcurrent/QtConcurrent>
