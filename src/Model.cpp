@@ -721,7 +721,7 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &devStart,
     constexpr int MAX_HITS = 1024;
     thread_local std::array<fz_quad, MAX_HITS> hits;
 
-    const float scale = viewScale();
+    const float scale = logicalScale();
 
     fz_stext_page *stext_page{nullptr};
     fz_page *page{nullptr};
@@ -927,7 +927,9 @@ Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
 
         // 2. Re-create the same transform used in rendering
         // Must match the scale used in createRenderJob: m_zoom * m_dpr * m_dpi
-        const float scale   = m_zoom * m_dpr * m_dpi;
+        const float scale
+            = m_zoom * m_dpr * m_dpi; // must match toPixelSpace (no /72 —
+                                      // fz_transform_page divides internally)
         fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
 
         // 3. Get the bbox (to find the origin shift)
@@ -1015,11 +1017,12 @@ Model::RenderJob
 Model::createRenderJob(int pageno) const noexcept
 {
     RenderJob job;
-    job.filepath     = m_filepath;
-    job.pageno       = pageno;
-    job.dpr          = m_dpr;
-    job.dpi          = m_dpi;
-    job.zoom         = m_zoom * m_dpr * m_dpi;
+    job.filepath = m_filepath;
+    job.pageno   = pageno;
+    job.dpr      = m_dpr;
+    job.dpi      = m_dpi;
+    job.zoom = m_zoom * m_dpr * m_dpi; // DPI resolution for fz_transform_page
+                                       // (divides by 72 internally)
     job.rotation     = m_rotation;
     job.invert_color = m_invert_color;
     job.colorspace   = m_colorspace;
@@ -1737,7 +1740,8 @@ Model::selectAtHelper(int pageno, fz_point pt, int snapMode) noexcept
     constexpr int MAX_HITS = 1024;
     thread_local std::array<fz_quad, MAX_HITS> hits;
 
-    const float scale = viewScale();
+    const float scale = logicalScale(); // does not include DPR or DPI, since
+                                        // selection is in PDF points
 
     fz_rect page_bounds{};
     fz_page *page_for_bounds = nullptr;
@@ -1835,7 +1839,8 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
     constexpr int MAX_HITS = 1024;
     thread_local std::array<fz_quad, MAX_HITS> hits;
 
-    const float scale = viewScale();
+    const float scale = logicalScale(); // does not include DPR or DPI, since
+                                        // selection is in PDF points
 
     fz_rect page_bounds{};
     fz_page *page_for_bounds = nullptr;
@@ -1947,7 +1952,8 @@ Model::buildPageTransforms(int pageno) const noexcept
         return {identity, identity};
     }
 
-    const float scale     = viewScale();
+    const float scale = logicalScale(); // does not include DPR or DPI, since
+                                        // selection is in PDF points
     fz_matrix page_to_dev = fz_scale(scale, scale);
     page_to_dev           = fz_pre_rotate(page_to_dev, m_rotation);
     const fz_rect dbox    = fz_transform_rect(bounds, page_to_dev);
@@ -2361,7 +2367,8 @@ Model::getTextInArea(const int pageno, const QPointF &start,
     if (deviceRect.isEmpty())
         return result;
 
-    const float scale = viewScale();
+    const float scale = logicalScale(); // does not include DPR or DPI, since
+                                        // selection is in PDF points
 
     fz_stext_page *stext_page{nullptr};
     fz_page *page{nullptr};

@@ -194,11 +194,10 @@ DocumentView::initGui() noexcept
 QSizeF
 DocumentView::currentPageSceneSize() const noexcept
 {
-    // pts -> inches (/72) -> pixels (*DPI) -> zoom
-    double w
-        = (m_model->pageWidthPts() / 72.0) * m_model->DPI() * m_current_zoom;
-    double h
-        = (m_model->pageHeightPts() / 72.0) * m_model->DPI() * m_current_zoom;
+    const float scale = m_model->logicalScale();
+
+    double w = m_model->pageWidthPts() * scale;
+    double h = m_model->pageHeightPts() * scale;
 
     const int rot
         = static_cast<int>(std::fmod(std::abs(m_model->rotation()), 360.0));
@@ -1167,11 +1166,13 @@ DocumentView::zoomHelper() noexcept
     if (pageAtScenePos(centerScene, anchorPageIndex, anchorItem))
     {
         const QPointF localPos = anchorItem->mapFromScene(centerScene);
-        const QPixmap pix      = anchorItem->pixmap();
-        if (!pix.isNull() && pix.width() > 0 && pix.height() > 0)
+        const QRectF bounds    = anchorItem->boundingRect();
+        if (!bounds.isEmpty())
         {
-            anchorFrac = QPointF(localPos.x() / pix.width(),
-                                 localPos.y() / pix.height());
+            // Use boundingRect which is in local/logical coordinates,
+            // matching what mapFromScene returns
+            anchorFrac = QPointF(localPos.x() / bounds.width(),
+                                 localPos.y() / bounds.height());
             hasAnchor  = true;
         }
     }
@@ -1261,11 +1262,13 @@ DocumentView::zoomHelper() noexcept
     if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
     {
         GraphicsPixmapItem *pageItem = m_page_items_hash[anchorPageIndex];
-        const QPixmap pix            = pageItem->pixmap();
-        if (!pix.isNull() && pix.width() > 0 && pix.height() > 0)
+        const QRectF bounds          = pageItem->boundingRect();
+        if (!bounds.isEmpty())
         {
-            const QPointF restoredLocalPos(anchorFrac.x() * pix.width(),
-                                           anchorFrac.y() * pix.height());
+            // Use boundingRect which is in local/logical coordinates,
+            // matching what mapToScene expects
+            const QPointF restoredLocalPos(anchorFrac.x() * bounds.width(),
+                                           anchorFrac.y() * bounds.height());
             const QPointF restoredScenePos
                 = pageItem->mapToScene(restoredLocalPos);
             m_gview->centerOn(restoredScenePos);
@@ -1978,18 +1981,18 @@ void
 DocumentView::renderVisiblePages() noexcept
 {
     // Early exit if no changes needed
-    static std::set<int> lastRenderedPages;
+    // static std::set<int> lastRenderedPages;
 
-    std::set<int> visiblePages = getVisiblePages();
+    const std::set<int> visiblePages = getVisiblePages();
 
-    if (visiblePages == lastRenderedPages
-        && m_page_items_hash.size() == visiblePages.size())
-    {
-        // Same pages are visible and already rendered, skip
-        return;
-    }
+    // if (visiblePages == lastRenderedPages
+    //     && m_page_items_hash.size() == visiblePages.size())
+    // {
+    //     // Same pages are visible and already rendered, skip
+    //     return;
+    // }
 
-    lastRenderedPages = visiblePages;
+    // lastRenderedPages = visiblePages;
 
     m_gview->setRenderHints(QPainter::TextAntialiasing);
     m_gview->setUpdatesEnabled(false);
@@ -2193,9 +2196,9 @@ DocumentView::cachePageStride() noexcept
 {
     const double spacingScene = m_spacing * m_current_zoom;
 
-    double w
+    const double w
         = (m_model->pageWidthPts() / 72.0) * m_model->DPI() * m_current_zoom;
-    double h
+    const double h
         = (m_model->pageHeightPts() / 72.0) * m_model->DPI() * m_current_zoom;
 
     double rot = static_cast<double>(m_model->rotation());
@@ -2702,34 +2705,25 @@ DocumentView::requestPageRender(int pageno) noexcept
 void
 DocumentView::renderPageFromPixmap(int pageno, const QPixmap &pixmap) noexcept
 {
+    // Remove old item (placeholder OR real page) BEFORE adding the new item,
+    // since createAndAddPageItem overwrites the hash entry.  Without this,
+    // re-renders after zoom leave orphaned items in the scene (visible stale
+    // pages and unbounded memory growth).
+    auto it = m_page_items_hash.find(pageno);
+    if (it != m_page_items_hash.end())
+    {
+        GraphicsPixmapItem *old = it.value();
+        if (old->scene() == m_gscene)
+            m_gscene->removeItem(old);
+        delete old;
+        m_page_items_hash.remove(pageno);
+    }
+
     createAndAddPageItem(pageno, pixmap);
 
     clearLinksForPage(pageno);
     clearAnnotationsForPage(pageno);
     clearSearchItemsForPage(pageno);
-    // removePageItem(pageno);
-
-    // Remove the old placeholder (now that new item exists)
-    // Find and remove ONLY the placeholder, not the new item
-    auto it = m_page_items_hash.find(pageno);
-    if (it != m_page_items_hash.end())
-    {
-        GraphicsPixmapItem *placeholder = it.value();
-        // Check if this is the placeholder (different from the new item we just
-        // added)
-        if (placeholder->data(0).toString() == "placeholder_page"
-            || placeholder->data(0).toString() == "scroll_placeholder")
-        {
-            if (placeholder->scene() == m_gscene)
-                m_gscene->removeItem(placeholder);
-            delete placeholder;
-            // Update the hash to point to the new item (which was added
-            // separately)
-            m_page_items_hash[pageno]
-                = m_page_items_hash[pageno]; // This ensures we keep the new
-                                             // item
-        }
-    }
 }
 
 void
@@ -3195,7 +3189,7 @@ DocumentView::renderSearchHitsInScrollbar() noexcept
     search_markers_pos.reserve(m_search_hit_flat_refs.size());
 
     // Scale factor to convert PDF points to current scene pixels
-    const double pdfToSceneScale = m_model->viewScale();
+    const double pdfToSceneScale = m_model->physicalScale();
 
     switch (m_layout_mode)
     {

@@ -1763,10 +1763,11 @@ lektra::OpenFileInNewTab(const QString &filename,
     // Initialize connections for the initial view
     initTabConnections(view);
 
+    // Set DPR BEFORE opening the file to ensure correct resolution rendering
+    view->setDPR(m_dpr);
+
     // Open the file asynchronously
     view->openAsync(filename);
-
-    view->setDPR(m_dpr);
 
     // Add the container as a tab
     QString tabTitle = QFileInfo(filename).fileName();

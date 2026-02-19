@@ -242,9 +242,16 @@ public:
         return false;
     }
 
-    inline float viewScale() const noexcept
+    // This is the "Logical" scale for the UI
+    inline float logicalScale() const noexcept
     {
-        return m_zoom * m_dpi / 72.0f;
+        return m_zoom * (m_dpi / 72.0f);
+    }
+
+    // This is the "Physical" scale for the actual pixels
+    inline float physicalScale() const noexcept
+    {
+        return logicalScale() * m_dpr;
     }
 
     inline void setLinkBoundary(bool state) noexcept
