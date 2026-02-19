@@ -469,9 +469,12 @@ Model::buildPageCache(int pageno) noexcept
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
         if (!m_page_lru_cache.has(pageno))
+        {
+            entry.pageno = pageno;
             m_page_lru_cache.put(pageno, std::move(entry));
-        else
-            fz_drop_display_list(ctx, dlist);
+        }
+        // else
+        //     fz_drop_display_list(ctx, dlist);
     }
 }
 
