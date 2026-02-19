@@ -708,6 +708,10 @@ lektra::initConfig() noexcept
     /* rendering */
     auto rendering = toml["rendering"];
     set_if_present(rendering["dpi"], m_config.rendering.dpi);
+
+    if (m_config.rendering.dpi <= 72.0f)
+        m_config.rendering.dpi = 72.0f; // minimum DPI is 72
+
     set_if_present(rendering["antialiasing_bits"],
                    m_config.rendering.antialiasing_bits);
     set_if_present(rendering["icc_color_profile"],
@@ -824,16 +828,16 @@ lektra::initDefaultKeybinds() noexcept
         const char *key;
     };
 
-    static const DefaultBinding defaults[] = {
+    constexpr DefaultBinding defaults[] = {
         {"scroll_left", "h"},
         {"scroll_down", "j"},
         {"scroll_up", "k"},
         {"scroll_right", "l"},
-        {"next_page", "Shift+j"},
-        {"prev_page", "Shift+k"},
-        {"first_page", "g,g"},
-        {"last_page", "Shift+g"},
-        {"goto_page", "Ctrl+g"},
+        {"page_next", "Shift+j"},
+        {"page_prev", "Shift+k"},
+        {"page_first", "g,g"},
+        {"page_last", "Shift+g"},
+        {"page_goto", "Ctrl+g"},
         {"search", "/"},
         {"search_next", "n"},
         {"search_prev", "Shift+n"},
@@ -842,27 +846,36 @@ lektra::initDefaultKeybinds() noexcept
         {"zoom_reset", "0"},
         {"fit_width", "Ctrl+Shift+W"},
         {"fit_height", "Ctrl+Shift+H"},
-        {"fit_window", "Ctrl+Shift+="},
-        {"auto_resize", "Ctrl+Shift+R"},
-        {"outline", "t"},
-        {"highlight_annot_search", "Alt+Shift+H"},
-        {"prev_location", "Ctrl+o"},
-        {"next_location", "Ctrl+i"},
-        {"text_select_mode", "1"},
+        {"fit_page", "Ctrl+Shift+="},
+        {"fit_auto", "Ctrl+Shift+R"},
+        {"picker_outline", "t"},
+        {"picker_highlight_search", "Alt+Shift+H"},
+        {"location_prev", "Ctrl+o"},
+        {"location_next", "Ctrl+i"},
+        {"selection_mode_text", "1"},
         {"annot_highlight_mode", "2"},
         {"annot_rect_mode", "3"},
-        {"region_select_mode", "4"},
+        {"selection_mode_region", "4"},
         {"annot_popup_mode", "5"},
         {"link_hint_visit", "f"},
-        {"open_file", "o"},
-        {"save", "Ctrl+s"},
+        {"file_open_tab", "o"},
+        {"file_save", "Ctrl+s"},
         {"undo", "u"},
         {"redo", "Ctrl+r"},
         {"invert_color", "i"},
         {"toggle_menubar", "Ctrl+Shift+m"},
-        {"command_palette", "Ctrl+Shift+P"},
+        {"toggle_command_palette", "Ctrl+Shift+P"},
         {"rotate_clock", ">"},
         {"rotate_anticlock", "<"},
+        {"tab_1", "Alt+1"},
+        {"tab_2", "Alt+2"},
+        {"tab_3", "Alt+3"},
+        {"tab_4", "Alt+4"},
+        {"tab_5", "Alt+5"},
+        {"tab_6", "Alt+6"},
+        {"tab_7", "Alt+7"},
+        {"tab_8", "Alt+8"},
+        {"tab_9", "Alt+9"},
     };
 
     for (const auto &binding : defaults)
@@ -3587,7 +3600,7 @@ lektra::Tab_prev() noexcept
     }
 }
 
-// Go to the tab at nth position specified by `tabno`
+// Go to the tab at nth position specified by `tabno` (1-based index)
 void
 lektra::Tab_goto(int index) noexcept
 {
@@ -3597,7 +3610,7 @@ lektra::Tab_goto(int index) noexcept
                                      1, m_tab_widget->count());
     }
 
-    if (index < 1 || index > m_tab_widget->count())
+    if (index > 0 || index < m_tab_widget->count())
         m_tab_widget->setCurrentIndex(index - 1);
     else
         m_message_bar->showMessage("Invalid Tab Number");
