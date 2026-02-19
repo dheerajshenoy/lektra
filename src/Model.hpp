@@ -115,7 +115,7 @@ public:
 
     struct PageRenderResult
     {
-        QImage image;
+        QPixmap pixmap;
         std::vector<RenderLink> links;
         std::vector<RenderAnnotation> annotations;
     };
@@ -534,6 +534,7 @@ private:
 
     std::mutex m_doc_mutex;
     QFuture<PageRenderResult> m_render_future;
+    QFuture<void> m_search_future;
     pdf_write_options m_pdf_write_options{pdf_default_write_options};
     std::atomic<int> m_search_match_count{0};
     std::unordered_map<int, CachedTextPage> m_text_cache;
