@@ -331,6 +331,8 @@ public slots:
     void handleRegionSelectRequested(const QRectF &area) noexcept;
     void handleAnnotRectRequested(const QRectF &area) noexcept;
     void handleAnnotPopupRequested(const QPointF &scenePos) noexcept;
+    void handleHScrollValueChanged(int value) noexcept;
+    void handleVScrollValueChanged(int value) noexcept;
 
 #ifdef HAS_SYNCTEX
     void handleSynctexJumpRequested(const QPointF &scenePos) noexcept;
@@ -476,6 +478,10 @@ private:
     int m_renders_in_flight{0};
 
     QPointF m_old_jump_marker_pos{};
+
+    int m_last_scroll_value{0};
+    qint64 m_last_scroll_time{0};
+    static constexpr int SCROLL_THRESHOLD{20}; // Min pixels to trigger update
 
 #ifdef HAS_SYNCTEX
     synctex_scanner_p m_synctex_scanner{nullptr};
