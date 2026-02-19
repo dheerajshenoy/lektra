@@ -116,7 +116,6 @@ struct Config
     {
         bool visible{false};
         bool as_side_panel{true};
-        QString type{"overlay"};
         QString panel_position{"left"};
         int panel_width{300};
     } outline{};
@@ -124,7 +123,6 @@ struct Config
     struct highlight_search
     {
         bool visible{false};
-        QString type{"overlay"};
         QString panel_position{"right"};
         int panel_width{300};
     } highlight_search{};
@@ -139,7 +137,7 @@ struct Config
         bool show_grid{false};
     } command_palette{};
 
-    struct overlays
+    struct picker
     {
         bool border{true};
         struct shadow
@@ -150,7 +148,7 @@ struct Config
             int offset_y{6};
             int opacity{120};
         } shadow{};
-    } overlays{};
+    } picker{};
 
 #ifdef ENABLE_LLM_SUPPORT
     struct llm_widget
