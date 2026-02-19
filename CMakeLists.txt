@@ -68,14 +68,17 @@ add_executable(${PROJECT_NAME}
     src/SearchBar.cpp
     src/SaveSessionDialog.cpp
     src/FloatingOverlayWidget.cpp
-    src/HighlightSearchWidget.cpp
+    src/HighlightSearchPicker.cpp
     src/utils.cpp
     src/WaitingSpinnerWidget.cpp
-    src/CommandPaletteWidget.cpp
+    src/CommandPicker.cpp
     # src/MarkManager.cpp
     src/TabWidget.cpp
     src/DocumentContainer.cpp
     src/TabBar.cpp
+    src/Picker.cpp
+    src/RecentFilesPicker.cpp
+    src/OutlinePicker.cpp
 
     src/Annotations/RectAnnotation.hpp
     src/Annotations/TextAnnotation.hpp
@@ -86,21 +89,22 @@ add_executable(${PROJECT_NAME}
     src/ElidableLabel.hpp
     src/Annotations/HighlightAnnotation.hpp
     src/FloatingOverlayWidget.hpp
-    src/HighlightSearchWidget.hpp
+    src/HighlightSearchPicker.hpp
     src/EditLastPagesWidget.hpp
     src/RecentFilesStore.hpp
     src/RecentFilesModel.hpp
     src/LinkHint.hpp
     src/JumpMarker.hpp
     src/CircleLabel.hpp
-    src/commands/RectAnnotationCommand.hpp
-    src/commands/TextAnnotationCommand.hpp
-    src/commands/TextHighlightAnnotationCommand.hpp
-    src/commands/DeleteAnnotationsCommand.hpp
+    src/Commands/RectAnnotationCommand.hpp
+    src/Commands/TextAnnotationCommand.hpp
+    src/Commands/TextHighlightAnnotationCommand.hpp
+    src/Commands/DeleteAnnotationsCommand.hpp
     src/PlaceholderWidget.hpp
     src/ScrollBar.hpp
-    src/CommandPaletteWidget.hpp
+    src/CommandPicker.hpp
     src/JumpMarker.hpp
+    src/OutlinePicker.hpp
 
 )
 
@@ -110,10 +114,10 @@ if (ENABLE_LLM_SUPPORT)
     target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_LLM_SUPPORT=1)
 
     target_sources(${PROJECT_NAME} PRIVATE
-        src/llm/http/HttpStreamClient.cpp
-        src/llm/LLMWidget.cpp
-        src/llm/providers/LLMProvider.cpp
-        src/llm/providers/ollama/OllamaProvider.cpp
+        src/LLM/http/HttpStreamClient.cpp
+        src/LLM/LLMWidget.cpp
+        src/LLM/providers/LLMProvider.cpp
+        src/LLM/providers/ollama/OllamaProvider.cpp
     )
 
     find_package(CURL REQUIRED)
