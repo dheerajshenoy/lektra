@@ -95,7 +95,10 @@ Picker::eventFilter(QObject *watched, QEvent *event)
 
     // Only reposition on parent resize — no move tracking needed
     if (watched == parentWidget() && event->type() == QEvent::Resize)
+    {
         reposition();
+        return false; // let parent handle it too
+    }
 
     // Fix for the escape key not working when the search box is focused — we
     // want to close
@@ -104,10 +107,13 @@ Picker::eventFilter(QObject *watched, QEvent *event)
         auto *keyEvent = static_cast<QKeyEvent *>(event);
         const auto key = keyEvent->keyCombination();
 
-        if (event->type() == QEvent::KeyRelease && key == m_keys.dismiss)
+        if (event->type() == QEvent::KeyRelease)
         {
-            hide();
-            return true; // don't let search box see it
+            if (key == m_keys.dismiss)
+            {
+                hide();
+                return true; // don't let search box see it
+            }
         }
 
         if (event->type() == QEvent::KeyPress)
@@ -115,7 +121,7 @@ Picker::eventFilter(QObject *watched, QEvent *event)
 
             if (key == m_keys.moveDown || key == m_keys.moveUp
                 || key == m_keys.pageDown || key == m_keys.pageUp
-                || key == m_keys.accept || key == m_keys.dismiss)
+                || key == m_keys.accept)
             {
                 keyPressEvent(keyEvent); // handle it directly
                 return true;             // don't let search box see it
@@ -169,23 +175,9 @@ Picker::keyPressEvent(QKeyEvent *event)
             onItemActivated(m_listView->currentIndex());
         event->accept();
     }
-    else if (key == m_keys.dismiss)
-    {
-        hide();
-        event->accept();
-    }
     else
     {
-        if (!event->text().isEmpty()
-            && !event->modifiers().testFlag(Qt::ControlModifier))
-        {
-            m_searchBox->setFocus();
-            QApplication::sendEvent(m_searchBox, event);
-        }
-        else
-        {
-            QWidget::keyPressEvent(event);
-        }
+        QWidget::keyPressEvent(event);
     }
 }
 
