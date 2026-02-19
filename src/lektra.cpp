@@ -4689,3 +4689,31 @@ lektra::Reshow_jump_marker() noexcept
     if (m_doc)
         m_doc->Reshow_jump_marker();
 }
+// Show a picker with the list of recent files from the recent files store, and
+// allow the user to open a file from there.
+void
+lektra::Show_recent_files_picker() noexcept
+{
+    const auto &entries = m_recent_files_store.entries();
+
+    if (entries.empty())
+    {
+        QMessageBox::information(this, "Recent Files",
+                                 "No recent files found.");
+        return;
+    }
+
+    QStringList recentFiles;
+    recentFiles.reserve(entries.size());
+
+    for (const auto &entry : entries)
+        recentFiles.push_back(entry.file_path);
+
+    bool ok;
+    const QString file = QInputDialog::getItem(
+        this, "Recent Files", "Select a file:", recentFiles, 0, false, &ok);
+    if (ok && !file.isEmpty())
+    {
+        OpenFileInNewTab(file);
+    }
+}
