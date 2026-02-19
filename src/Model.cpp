@@ -16,11 +16,7 @@
 
 static std::array<std::mutex, FZ_LOCK_MAX> mupdf_mutexes;
 
-/**
- * @brief Clean up image data when the last copy of the QImage is destoryed.
-
- This is called by Qt when the last copy of the QImage is destroyed
- */
+// This is called by Qt when the last copy of the QImage is destroyed
 static void
 imageCleanupHandler(void *info) noexcept
 {
@@ -635,22 +631,12 @@ Model::SaveChanges() noexcept
     if (!m_doc || !m_pdf_doc)
         return false;
 
-    std::string path = m_filepath.toStdString();
+    const std::string path = m_filepath.toStdString();
 
     fz_try(m_ctx)
     {
         // MUST clear text pages; they hold page references!
-
-        if (m_pdf_doc)
-        {
-            pdf_save_document(m_ctx, m_pdf_doc, path.c_str(),
-                              &m_pdf_write_options);
-        }
-        else
-        {
-            qWarning() << "No PDF document opened!";
-            return false;
-        }
+        pdf_save_document(m_ctx, m_pdf_doc, path.c_str(), &m_pdf_write_options);
     }
     fz_catch(m_ctx)
     {
@@ -725,73 +711,56 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &devStart,
     constexpr int MAX_HITS = 1024;
     thread_local std::array<fz_quad, MAX_HITS> hits;
 
-    // --- Build page<->device transforms EXACTLY like rendering
-    // (scale+rotate+translate-to-(0,0)) ---
     const float scale = viewScale();
 
-    fz_rect page_bounds;
-    fz_page *page_for_bounds = nullptr;
-
-    fz_try(m_ctx)
-    {
-        page_for_bounds = fz_load_page(m_ctx, m_doc, pageno);
-        page_bounds     = fz_bound_page(m_ctx, page_for_bounds);
-    }
-    fz_always(m_ctx)
-    {
-        if (page_for_bounds)
-            fz_drop_page(m_ctx, page_for_bounds);
-    }
-    fz_catch(m_ctx)
-    {
-        qWarning() << "Selection failed (bounds):" << fz_caught_message(m_ctx);
-        return out;
-    }
-
-    // page -> device
-    fz_matrix page_to_dev = fz_scale(scale, scale);
-    page_to_dev           = fz_pre_rotate(page_to_dev, m_rotation);
-
-    // translate so the rendered pixmap's top-left is (0,0)
-    const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
-    page_to_dev
-        = fz_concat(page_to_dev, fz_translate(-dev_bounds.x0, -dev_bounds.y0));
-
-    // device -> page
-    const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
-
-    // Convert input device points -> page points for MuPDF selection functions
-    fz_point a = {float(devStart.x()), float(devStart.y())};
-    fz_point b = {float(devEnd.x()), float(devEnd.y())};
-
-    a = fz_transform_point(a, dev_to_page);
-    b = fz_transform_point(b, dev_to_page);
-
-    m_selection_start = a;
-    m_selection_end   = b;
-
-    // --- Get (or build) stext page and compute highlight quads in PAGE space
     fz_stext_page *stext_page{nullptr};
     fz_page *page{nullptr};
+    fz_rect page_bounds{};
+    fz_matrix page_to_dev{};
     int count{0};
 
     fz_try(m_ctx)
     {
-        page       = fz_load_page(m_ctx, m_doc, pageno);
+        // Single page load — get bounds AND build stext in one shot
+        page        = fz_load_page(m_ctx, m_doc, pageno);
+        page_bounds = fz_bound_page(m_ctx, page);
+
+        // Build page -> device transform
+        page_to_dev = fz_scale(scale, scale);
+        page_to_dev = fz_pre_rotate(page_to_dev, m_rotation);
+
+        const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
+        page_to_dev              = fz_concat(page_to_dev,
+                                             fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+
+        const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
+
+        fz_point a = {float(devStart.x()), float(devStart.y())};
+        fz_point b = {float(devEnd.x()), float(devEnd.y())};
+
+        a = fz_transform_point(a, dev_to_page);
+        b = fz_transform_point(b, dev_to_page);
+
+        m_selection_start = a;
+        m_selection_end   = b;
+
         stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
         if (!stext_page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to build text page");
 
         fz_snap_selection(m_ctx, stext_page, &a, &b, FZ_SELECT_CHARS);
+
+        // Re-store snapped endpoints so callers get the corrected range
+        m_selection_start = a;
+        m_selection_end   = b;
+
         count = fz_highlight_selection(m_ctx, stext_page, a, b, hits.data(),
                                        MAX_HITS);
     }
     fz_always(m_ctx)
     {
-        if (stext_page)
-            fz_drop_stext_page(m_ctx, stext_page);
-        if (page)
-            fz_drop_page(m_ctx, page);
+        fz_drop_stext_page(m_ctx, stext_page);
+        fz_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
     {
@@ -801,21 +770,19 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &devStart,
 
     out.reserve(count);
 
-    // Helper: PAGE -> DEVICE (pixmap coords)
-    auto toDev = [&](const fz_point &p0) -> QPointF
-    {
-        const fz_point p = fz_transform_point(p0, page_to_dev);
-        return QPointF(p.x, p.y);
-    };
-
     for (int i = 0; i < count; ++i)
     {
         const fz_quad &q = hits[i];
 
+        auto toDev = [&](const fz_point &p0) -> QPointF
+        {
+            const fz_point p = fz_transform_point(p0, page_to_dev);
+            return {p.x, p.y};
+        };
+
         QPolygonF poly;
         poly.reserve(4);
         poly << toDev(q.ll) << toDev(q.lr) << toDev(q.ur) << toDev(q.ul);
-
         out.push_back(std::move(poly));
     }
 
@@ -872,8 +839,7 @@ Model::properties() noexcept
     props.push_back(qMakePair("File Path", m_filepath));
     props.push_back(
         qMakePair("Encrypted", fz_needs_password(m_ctx, m_doc) ? "Yes" : "No"));
-    props.push_back(
-        qMakePair("Page Count", QString::number(fz_count_pages(m_ctx, m_doc))));
+    props.push_back(qMakePair("Page Count", QString::number(m_page_count)));
 
     if (m_pdf_doc)
         populatePDFProperties(props);
@@ -1060,8 +1026,8 @@ Model::requestPageRender(
         = QtConcurrent::run([this, job, callback]() -> PageRenderResult
     { return renderPageWithExtrasAsync(job); });
 
-    auto watcher = new QFutureWatcher<PageRenderResult>();
-    connect(watcher, &QFutureWatcher<PageRenderResult>::finished,
+    auto watcher = new QFutureWatcher<PageRenderResult>(this);
+    connect(watcher, &QFutureWatcher<PageRenderResult>::finished, this,
             [this, watcher, callback, job]()
     {
         PageRenderResult result = watcher->result();
@@ -1127,9 +1093,12 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         }
 
         // Increment reference count so the display list stays valid
-        dlist       = fz_keep_display_list(ctx, entry->display_list);
-        bounds      = entry->bounds;
-        links       = entry->links;
+        dlist  = fz_keep_display_list(ctx, entry->display_list);
+        bounds = entry->bounds;
+
+        links.reserve(entry->links.size());
+        links = entry->links;
+        annotations.reserve(entry->annotations.size());
         annotations = entry->annotations;
     }
 
@@ -1155,13 +1124,15 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
         const int fg = (m_fg_color >> 8) & 0xFFFFFF;
         const int bg = (m_bg_color >> 8) & 0xFFFFFF;
-        fz_tint_pixmap(ctx, pix, fg, bg);
+
+        if (fg != 0 || bg != 0)
+            fz_tint_pixmap(ctx, pix, fg, bg);
 
         if (job.invert_color)
         {
             fz_invert_pixmap_luminance(ctx, pix);
         }
-        fz_gamma_pixmap(ctx, pix, 1.0f);
+        // fz_gamma_pixmap(ctx, pix, 1.0f);
 
         int width  = fz_pixmap_width(ctx, pix);
         int height = fz_pixmap_height(ctx, pix);
@@ -1194,13 +1165,12 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
         RenderPayload *payload = new RenderPayload{ctx, pix};
 
-        result.image = QImage(samples, width, height, stride, fmt,
+        QImage image = QImage(samples, width, height, stride, fmt,
                               imageCleanupHandler, payload);
-        result.image.setDotsPerMeterX(
-            static_cast<int>((job.dpi * 1000) / 25.4));
-        result.image.setDotsPerMeterY(
-            static_cast<int>((job.dpi * 1000) / 25.4));
-        result.image.setDevicePixelRatio(job.dpr);
+        image.setDotsPerMeterX(static_cast<int>((job.dpi * 1000) / 25.4));
+        image.setDotsPerMeterY(static_cast<int>((job.dpi * 1000) / 25.4));
+        image.setDevicePixelRatio(job.dpr);
+        result.pixmap = QPixmap::fromImage(image);
 
         // --- Extract links ---
         for (const auto &link : links)
@@ -1235,102 +1205,103 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             result.links.push_back(std::move(renderLink));
         }
 
-        if (m_detect_url_links)
-        {
-            text_page = fz_load_page(ctx, m_doc, job.pageno);
-            if (text_page)
-                stext_page
-                    = fz_new_stext_page_from_page(ctx, text_page, nullptr);
-
-            if (stext_page)
-            {
-                const QRegularExpression &urlRe = m_url_link_re;
-
-                auto hasIntersectingLink = [&](const fz_rect &r) -> bool
-                {
-                    for (const auto &link : links)
-                    {
-                        const fz_rect lr = link.rect;
-                        if (r.x1 < lr.x0 || r.x0 > lr.x1 || r.y1 < lr.y0
-                            || r.y0 > lr.y1)
-                            continue;
-                        return true;
-                    }
-                    return false;
-                };
-
-                for (fz_stext_block *b = stext_page->first_block; b;
-                     b                 = b->next)
-                {
-                    if (b->type != FZ_STEXT_BLOCK_TEXT)
-                        continue;
-
-                    for (fz_stext_line *line = b->u.t.first_line; line;
-                         line                = line->next)
-                    {
-                        QString lineText;
-                        lineText.reserve(256);
-                        for (fz_stext_char *ch = line->first_char; ch;
-                             ch                = ch->next)
-                        {
-                            lineText.append(QChar::fromUcs4(ch->c));
-                        }
-
-                        if (lineText.isEmpty())
-                            continue;
-
-                        QRegularExpressionMatchIterator it
-                            = urlRe.globalMatch(lineText);
-                        while (it.hasNext())
-                        {
-                            QRegularExpressionMatch match = it.next();
-                            int start = match.capturedStart();
-                            int len   = match.capturedLength();
-                            if (start < 0 || len <= 0)
-                                continue;
-
-                            QString raw = match.captured();
-                            while (
-                                !raw.isEmpty()
-                                && QString(".,;:!?)\"'").contains(raw.back()))
-                            {
-                                raw.chop(1);
-                                --len;
-                            }
-
-                            if (raw.isEmpty() || len <= 0)
-                                continue;
-
-                            fz_quad q = getQuadForSubstring(line, start, len);
-                            fz_rect r = fz_rect_from_quad(q);
-                            if (fz_is_empty_rect(r))
-                                continue;
-
-                            if (hasIntersectingLink(r))
-                                continue;
-
-                            QString uri = raw;
-                            if (uri.startsWith("www."))
-                                uri.prepend("https://");
-
-                            fz_rect tr        = fz_transform_rect(r, transform);
-                            const float scale = m_inv_dpr;
-                            QRectF qtRect(tr.x0 * scale, tr.y0 * scale,
-                                          (tr.x1 - tr.x0) * scale,
-                                          (tr.y1 - tr.y0) * scale);
-
-                            RenderLink renderLink;
-                            renderLink.rect = qtRect;
-                            renderLink.uri  = uri;
-                            renderLink.type
-                                = BrowseLinkItem::LinkType::External;
-                            renderLink.boundary = m_link_show_boundary;
-                            result.links.push_back(std::move(renderLink));
-                        }
-                    }
-                }
-            }
-        }
+        // if (m_detect_url_links)
+        // {
+        //     text_page = fz_load_page(ctx, m_doc, job.pageno);
+        //     if (text_page)
+        //         stext_page
+        //             = fz_new_stext_page_from_page(ctx, text_page, nullptr);
+        //
+        //     if (stext_page)
+        //     {
+        //         const QRegularExpression &urlRe = m_url_link_re;
+        //
+        //         auto hasIntersectingLink = [&](const fz_rect &r) -> bool
+        //         {
+        //             for (const auto &link : links)
+        //             {
+        //                 const fz_rect lr = link.rect;
+        //                 if (r.x1 < lr.x0 || r.x0 > lr.x1 || r.y1 < lr.y0
+        //                     || r.y0 > lr.y1)
+        //                     continue;
+        //                 return true;
+        //             }
+        //             return false;
+        //         };
+        //
+        //         for (fz_stext_block *b = stext_page->first_block; b;
+        //              b                 = b->next)
+        //         {
+        //             if (b->type != FZ_STEXT_BLOCK_TEXT)
+        //                 continue;
+        //
+        //             for (fz_stext_line *line = b->u.t.first_line; line;
+        //                  line                = line->next)
+        //             {
+        //                 QString lineText;
+        //                 lineText.reserve(256);
+        //                 for (fz_stext_char *ch = line->first_char; ch;
+        //                      ch                = ch->next)
+        //                 {
+        //                     lineText.append(QChar::fromUcs4(ch->c));
+        //                 }
+        //
+        //                 if (lineText.isEmpty())
+        //                     continue;
+        //
+        //                 QRegularExpressionMatchIterator it
+        //                     = urlRe.globalMatch(lineText);
+        //                 while (it.hasNext())
+        //                 {
+        //                     QRegularExpressionMatch match = it.next();
+        //                     int start = match.capturedStart();
+        //                     int len   = match.capturedLength();
+        //                     if (start < 0 || len <= 0)
+        //                         continue;
+        //
+        //                     QString raw = match.captured();
+        //                     while (
+        //                         !raw.isEmpty()
+        //                         &&
+        //                         QString(".,;:!?)\"'").contains(raw.back()))
+        //                     {
+        //                         raw.chop(1);
+        //                         --len;
+        //                     }
+        //
+        //                     if (raw.isEmpty() || len <= 0)
+        //                         continue;
+        //
+        //                     fz_quad q = getQuadForSubstring(line, start,
+        //                     len); fz_rect r = fz_rect_from_quad(q); if
+        //                     (fz_is_empty_rect(r))
+        //                         continue;
+        //
+        //                     if (hasIntersectingLink(r))
+        //                         continue;
+        //
+        //                     QString uri = raw;
+        //                     if (uri.startsWith("www."))
+        //                         uri.prepend("https://");
+        //
+        //                     fz_rect tr        = fz_transform_rect(r,
+        //                     transform); const float scale = m_inv_dpr; QRectF
+        //                     qtRect(tr.x0 * scale, tr.y0 * scale,
+        //                                   (tr.x1 - tr.x0) * scale,
+        //                                   (tr.y1 - tr.y0) * scale);
+        //
+        //                     RenderLink renderLink;
+        //                     renderLink.rect = qtRect;
+        //                     renderLink.uri  = uri;
+        //                     renderLink.type
+        //                         = BrowseLinkItem::LinkType::External;
+        //                     renderLink.boundary = m_link_show_boundary;
+        //                     result.links.push_back(std::move(renderLink));
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
         for (const auto &annot : annotations)
         {
@@ -1364,6 +1335,10 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         qWarning() << "MuPDF error in thread:" << fz_caught_message(ctx);
         fz_drop_pixmap(ctx, pix);
     }
+    // result.image = result.image.convertToFormat(
+    //         QImage::Format_ARGB32_Premultiplied); // Optimize for rendering
+    //         in
+    //                                               // QGraphicsView
 
     return result;
 }
@@ -1611,48 +1586,42 @@ void
 Model::setTextAnnotationContents(const int pageno, const int objNum,
                                  const QString &text) noexcept
 {
+    bool changed = false;
+
     fz_try(m_ctx)
     {
         pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-        // Find the annotation by object number
         for (pdf_annot *annot = pdf_first_annot(m_ctx, page); annot;
              annot            = pdf_next_annot(m_ctx, annot))
         {
-            pdf_obj *obj = pdf_annot_obj(m_ctx, annot);
-            if (pdf_to_num(m_ctx, obj) == objNum)
-            {
-                pdf_set_annot_contents(m_ctx, annot, text.toUtf8().constData());
-                pdf_update_annot(m_ctx, annot);
-                pdf_update_page(m_ctx, page);
-                break;
-            }
+            if (pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot)) != objNum)
+                continue;
+
+            const QByteArray utf8 = text.toUtf8();
+            pdf_set_annot_contents(m_ctx, annot, utf8.constData());
+            pdf_update_annot(m_ctx, annot);
+            pdf_update_page(m_ctx, page);
+            changed = true;
+            break;
         }
 
         pdf_drop_page(m_ctx, page);
-
-        {
-            std::lock_guard<std::recursive_mutex> cache_lock(
-                m_page_cache_mutex);
-            if (m_page_lru_cache.has(pageno))
-            {
-                // fz_drop_display_list(m_ctx,
-                // m_page_cache[pageno].display_list);
-                // m_page_cache.erase(pageno);
-                m_page_lru_cache.remove(pageno);
-            }
-        }
-        buildPageCache(pageno);
     }
     fz_catch(m_ctx)
     {
         qWarning() << "setTextAnnotationContents failed:"
                    << fz_caught_message(m_ctx);
+        return;
     }
 
-    emit reloadRequested(pageno);
+    if (changed)
+    {
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
+    }
 }
 
 void
@@ -1979,7 +1948,13 @@ Model::buildPageTransforms(int pageno) const noexcept
 void
 Model::search(const QString &term, bool caseSensitive) noexcept
 {
-    QFuture<void> result = QtConcurrent::run([this, term, caseSensitive]()
+    if (m_search_future.isRunning())
+    {
+        m_search_future.cancel();
+        m_search_future.waitForFinished();
+    }
+
+    m_search_future = QtConcurrent::run([this, term, caseSensitive]()
     {
         QMap<int, std::vector<Model::SearchHit>> results;
         m_search_match_count = 0;
@@ -2118,12 +2093,9 @@ Model::collectHighlightTexts(bool groupByLine) noexcept
             if (!pdfPage)
                 fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-            fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
-            if (page)
-            {
-                stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-                fz_drop_page(m_ctx, page);
-            }
+            stext_page = fz_new_stext_page_from_page(m_ctx, (fz_page *)pdfPage,
+                                                     nullptr);
+            pdf_drop_page(m_ctx, pdfPage);
 
             if (!stext_page)
                 continue;
@@ -2304,23 +2276,20 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
     if (!m_pdf_doc)
         return;
 
+    bool changed = false;
+
     fz_try(m_ctx)
     {
         pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-        // Find the annotation by its object number (stored as index)
-        pdf_annot *annot = pdf_first_annot(m_ctx, page);
-        while (annot)
+        for (pdf_annot *annot = pdf_first_annot(m_ctx, page); annot;
+             annot            = pdf_next_annot(m_ctx, annot))
         {
-            if (pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot)) == index)
-                break;
-            annot = pdf_next_annot(m_ctx, annot);
-        }
+            if (pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot)) != index)
+                continue;
 
-        if (annot)
-        {
             const float rgb[3] = {color.redF(), color.greenF(), color.blueF()};
             switch (pdf_annot_type(m_ctx, annot))
             {
@@ -2328,25 +2297,24 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
                 case PDF_ANNOT_TEXT:
                     pdf_set_annot_interior_color(m_ctx, annot, 3, rgb);
                     break;
-
                 case PDF_ANNOT_HIGHLIGHT:
                     pdf_set_annot_color(m_ctx, annot, 3, rgb);
                     break;
-
                 default:
                     break;
             }
             pdf_set_annot_opacity(m_ctx, annot, color.alphaF());
             pdf_update_annot(m_ctx, annot);
             pdf_update_page(m_ctx, page);
-        }
-        else
-        {
-            qWarning() << "annotChangeColor: annotation not found, index:"
-                       << index;
+            changed = true;
+            break;
         }
 
         pdf_drop_page(m_ctx, page);
+
+        if (!changed)
+            qWarning() << "annotChangeColor: annotation not found, index:"
+                       << index;
     }
     fz_catch(m_ctx)
     {
@@ -2354,8 +2322,11 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
         return;
     }
 
-    invalidatePageCache(pageno);
-    emit reloadRequested(pageno);
+    if (changed)
+    {
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
+    }
 }
 
 std::string
@@ -2363,63 +2334,45 @@ Model::getTextInArea(const int pageno, const QPointF &start,
                      const QPointF &end) noexcept
 {
     std::string result;
+
     const QRectF deviceRect = QRectF(start, end).normalized();
     if (deviceRect.isEmpty())
         return result;
 
-    const float scale = m_zoom * (m_dpi / 72.0f);
+    const float scale = viewScale();
 
-    fz_rect page_bounds{};
-    fz_page *page_for_bounds = nullptr;
-
-    fz_try(m_ctx)
-    {
-        page_for_bounds = fz_load_page(m_ctx, m_doc, pageno);
-        page_bounds     = fz_bound_page(m_ctx, page_for_bounds);
-    }
-    fz_always(m_ctx)
-    {
-        if (page_for_bounds)
-            fz_drop_page(m_ctx, page_for_bounds);
-    }
-    fz_catch(m_ctx)
-    {
-        qWarning() << "getTextInArea failed (bounds):"
-                   << fz_caught_message(m_ctx);
-        return result;
-    }
-
-    fz_matrix page_to_dev    = fz_scale(scale, scale);
-    page_to_dev              = fz_pre_rotate(page_to_dev, m_rotation);
-    const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
-    page_to_dev
-        = fz_concat(page_to_dev, fz_translate(-dev_bounds.x0, -dev_bounds.y0));
-    const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
-
-    fz_point p1 = {float(deviceRect.left()), float(deviceRect.top())};
-    fz_point p2 = {float(deviceRect.right()), float(deviceRect.top())};
-    fz_point p3 = {float(deviceRect.right()), float(deviceRect.bottom())};
-    fz_point p4 = {float(deviceRect.left()), float(deviceRect.bottom())};
-
-    p1 = fz_transform_point(p1, dev_to_page);
-    p2 = fz_transform_point(p2, dev_to_page);
-    p3 = fz_transform_point(p3, dev_to_page);
-    p4 = fz_transform_point(p4, dev_to_page);
-
-    const float min_x = std::min(std::min(p1.x, p2.x), std::min(p3.x, p4.x));
-    const float min_y = std::min(std::min(p1.y, p2.y), std::min(p3.y, p4.y));
-    const float max_x = std::max(std::max(p1.x, p2.x), std::max(p3.x, p4.x));
-    const float max_y = std::max(std::max(p1.y, p2.y), std::max(p3.y, p4.y));
-
-    const fz_rect rect = {min_x, min_y, max_x, max_y};
-
-    fz_page *page{nullptr};
     fz_stext_page *stext_page{nullptr};
+    fz_page *page{nullptr};
     char *selection_text{nullptr};
 
     fz_try(m_ctx)
     {
-        page           = fz_load_page(m_ctx, m_doc, pageno);
+        page = fz_load_page(m_ctx, m_doc, pageno);
+
+        const fz_rect page_bounds = fz_bound_page(m_ctx, page);
+        fz_matrix page_to_dev     = fz_scale(scale, scale);
+        page_to_dev               = fz_pre_rotate(page_to_dev, m_rotation);
+        const fz_rect dev_bounds  = fz_transform_rect(page_bounds, page_to_dev);
+        page_to_dev               = fz_concat(page_to_dev,
+                                              fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+        const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
+
+        fz_point p1 = fz_transform_point(
+            {float(deviceRect.left()), float(deviceRect.top())}, dev_to_page);
+        fz_point p2 = fz_transform_point(
+            {float(deviceRect.right()), float(deviceRect.top())}, dev_to_page);
+        fz_point p3 = fz_transform_point(
+            {float(deviceRect.right()), float(deviceRect.bottom())},
+            dev_to_page);
+        fz_point p4 = fz_transform_point(
+            {float(deviceRect.left()), float(deviceRect.bottom())},
+            dev_to_page);
+
+        const fz_rect rect = {std::min({p1.x, p2.x, p3.x, p4.x}),
+                              std::min({p1.y, p2.y, p3.y, p4.y}),
+                              std::max({p1.x, p2.x, p3.x, p4.x}),
+                              std::max({p1.y, p2.y, p3.y, p4.y})};
+
         stext_page     = fz_new_stext_page_from_page(m_ctx, page, nullptr);
         selection_text = fz_copy_rectangle(m_ctx, stext_page, rect, 0);
     }
@@ -2427,10 +2380,9 @@ Model::getTextInArea(const int pageno, const QPointF &start,
     {
         if (selection_text)
         {
-            result = std::string(selection_text);
+            result = selection_text;
             fz_free(m_ctx, selection_text);
         }
-
         fz_drop_stext_page(m_ctx, stext_page);
         fz_drop_page(m_ctx, page);
     }
