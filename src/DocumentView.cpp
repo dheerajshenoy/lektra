@@ -1466,6 +1466,8 @@ DocumentView::LinkKB() noexcept
         hintMap.insert(hint, info);
 
         ++hint;
+
+        m_kb_link_hints.push_back(hintItem);
     }
 
     return hintMap;
@@ -1552,13 +1554,9 @@ DocumentView::FileProperties() noexcept
     if (!m_model->success())
         return;
 
-    PropertiesWidget *propsWidget{nullptr};
-    if (!propsWidget)
-    {
-        propsWidget = new PropertiesWidget(this);
-        auto props  = m_model->properties();
-        propsWidget->setProperties(props);
-    }
+    PropertiesWidget *propsWidget = new PropertiesWidget(this);
+    const auto props              = m_model->properties();
+    propsWidget->setProperties(props);
     propsWidget->exec();
 }
 
@@ -1711,18 +1709,13 @@ DocumentView::ClearKBHintsOverlay() noexcept
     if (!m_gscene)
         return;
 
-    const auto items = m_gscene->items();
-    for (auto *item : items)
+    for (auto *hint : m_kb_link_hints)
     {
-        if (!item)
-            continue;
-
-        if (item->data(0).toString() == "kb_link_overlay")
-        {
-            m_gscene->removeItem(item);
-            delete item;
-        }
+        m_gscene->removeItem(hint);
+        delete hint;
     }
+
+    m_kb_link_hints.clear();
 }
 
 void
@@ -1732,12 +1725,9 @@ DocumentView::UpdateKBHintsOverlay(const QString &input) noexcept
         return;
 
     const auto items = m_gscene->items();
-    for (auto *item : items)
+    for (auto *hint : m_kb_link_hints)
     {
-        if (!item)
-            continue;
-
-        if (auto *hintItem = qgraphicsitem_cast<LinkHint *>(item))
+        if (auto *hintItem = qgraphicsitem_cast<LinkHint *>(hint))
             hintItem->setInputPrefix(input);
     }
 }
@@ -1775,7 +1765,7 @@ DocumentView::YankSelection(bool formatted) noexcept
     const auto range       = m_model->getTextSelectionRange();
     const std::string text = m_model->getSelectedText(pageIndex, range.first,
                                                       range.second, formatted);
-    clipboard->setText(text.c_str());
+    clipboard->setText(QString::fromStdString(text));
 }
 
 // Go to the first page
@@ -1979,6 +1969,7 @@ DocumentView::renderPage() noexcept
     updateCurrentHitHighlight();
 }
 
+// Remove pending renders for pages that are no longer visible and not in-flight
 void
 DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
 {
@@ -1990,6 +1981,10 @@ DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
         visibleSet.insert(pageno);
 
     const int inFlightPage = m_render_in_flight ? m_render_in_flight_page : -1;
+
+    // TODO: Fix — query the std::set directly, it's already O(log n)
+    // const bool keep = (pageno == inFlightPage)
+    //                   || (visiblePages.find(pageno) != visiblePages.end());
 
     for (auto it = m_pending_renders.begin(); it != m_pending_renders.end();)
     {
@@ -2199,27 +2194,44 @@ DocumentView::showEvent(QShowEvent *event)
     m_deferred_fit = false;
 }
 
-// Check if a scene position is within any page item
+// Check if a scene position is within any page item - use the stride to compute
+// page directly, O(1)
 bool
 DocumentView::pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
                              GraphicsPixmapItem *&outPageItem) const noexcept
 {
-#ifndef NDEBUG
-    qDebug() << "DocumentView::pageAtScenePos(): Checking for page at scene "
-             << "position:" << scenePos;
-#endif
+    if (m_page_stride <= 0)
+        return false;
 
-    for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
-         ++it)
+    int candidate = -1;
+    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+        candidate = static_cast<int>(scenePos.x() / m_page_stride);
+    else if (m_layout_mode == LayoutMode::TOP_TO_BOTTOM)
+        candidate = static_cast<int>(scenePos.y() / m_page_stride);
+    else
+        candidate = m_pageno; // SINGLE
+
+    candidate = std::clamp(candidate, 0, m_model->numPages() - 1);
+
+    // Verify the candidate (handles gaps/margins)
+    auto it = m_page_items_hash.find(candidate);
+    if (it != m_page_items_hash.end() && it.value()
+        && it.value()->sceneBoundingRect().contains(scenePos))
     {
-        GraphicsPixmapItem *item = it.value();
-        if (!item)
-            continue;
+        outPageIndex = candidate;
+        outPageItem  = it.value();
+        return true;
+    }
 
-        if (item->sceneBoundingRect().contains(scenePos))
+    // Fallback: check neighbours only
+    for (int delta : {-1, 1})
+    {
+        auto jt = m_page_items_hash.find(candidate + delta);
+        if (jt != m_page_items_hash.end() && jt.value()
+            && jt.value()->sceneBoundingRect().contains(scenePos))
         {
-            outPageIndex = it.key();
-            outPageItem  = item;
+            outPageIndex = candidate + delta;
+            outPageItem  = jt.value();
             return true;
         }
     }
@@ -2292,7 +2304,12 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
 
     const bool selectionActive
         = m_selection_path_item && !m_selection_path_item->path().isEmpty();
-    const auto selectedAnnots = getSelectedAnnotations();
+    const bool annotModeActive
+        = m_gview->mode() == GraphicsView::Mode::AnnotSelect
+          || m_gview->mode() == GraphicsView::Mode::AnnotPopup;
+    const auto selectedAnnots = annotModeActive
+                                    ? getSelectedAnnotations()
+                                    : decltype(getSelectedAnnotations()){};
     const bool hasAnnots      = !selectedAnnots.empty();
     bool hasActions           = false;
 
@@ -2458,21 +2475,47 @@ void
 DocumentView::clearDocumentItems() noexcept
 {
     invalidateVisiblePagesCache();
-    for (QGraphicsItem *item : m_gscene->items())
-    {
-        if (item != m_jump_marker && item != m_selection_path_item
-            && item != m_current_search_hit_item)
-        {
-            m_gscene->removeItem(item);
-            delete item;
-        }
-    }
 
+    // Remove page items
+    for (auto *item : m_page_items_hash)
+    {
+        if (item->scene() == m_gscene)
+            m_gscene->removeItem(item);
+        delete item;
+    }
     m_page_items_hash.clear();
-    ClearTextSelection();
-    m_search_items.clear();
+
+    // Remove links
+    for (auto &links : m_page_links_hash)
+        for (auto *link : links)
+        {
+            if (link->scene() == m_gscene)
+                m_gscene->removeItem(link);
+            delete link;
+        }
     m_page_links_hash.clear();
+
+    // Remove annotations
+    for (auto &annots : m_page_annotations_hash)
+        for (auto *annot : annots)
+        {
+            if (annot->scene() == m_gscene)
+                m_gscene->removeItem(annot);
+            delete annot;
+        }
     m_page_annotations_hash.clear();
+
+    // Remove search items
+    for (auto *item : m_search_items)
+    {
+        if (item->scene() == m_gscene)
+            m_gscene->removeItem(item);
+        delete item;
+    }
+    m_search_items.clear();
+
+    ClearKBHintsOverlay();
+    ClearTextSelection();
     m_pending_renders.clear();
     m_render_queue.clear();
     m_render_in_flight      = false;
@@ -2650,7 +2693,6 @@ DocumentView::renderLinks(int pageno,
     if (m_page_links_hash.contains(pageno))
         return;
 
-    clearLinksForPage(pageno);
     GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
 
     for (const auto &link : links)
@@ -2794,7 +2836,6 @@ DocumentView::renderAnnotations(
     if (m_page_annotations_hash.contains(pageno))
         return;
 
-    clearAnnotationsForPage(pageno);
     GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
     if (!pageItem)
         return;
@@ -2972,7 +3013,7 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
              << "hits for page:" << pageno;
 #endif
 
-    const auto hits = m_search_hits.value(pageno); // Local copy
+    const auto &hits = m_search_hits.value(pageno); // Local copy
 
     // 2. Validate the Page Item still exists in the scene
     GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
@@ -2990,6 +3031,7 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
     {
         const Model::SearchHit &hit = hits[i];
         QPolygonF poly;
+        poly.reserve(4);
         poly << QPointF(hit.quad.ul.x * m_current_zoom,
                         hit.quad.ul.y * m_current_zoom)
              << QPointF(hit.quad.ur.x * m_current_zoom,
@@ -3493,8 +3535,6 @@ DocumentView::waitUntilReadableAsync() noexcept
     QFileInfo a(filepath);
     if (!a.exists() || a.size() == 0)
         return false;
-
-    QThread::msleep(80);
 
     QFileInfo b(filepath);
     return b.exists() && a.size() == b.size();

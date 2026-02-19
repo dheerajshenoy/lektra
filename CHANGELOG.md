@@ -65,11 +65,17 @@
 - `auto_resize` -> `fit_auto`
 - `text_highlight_current_selection` -> `highlight_selection`
 
-### New command
+### New commands
 
 - `file_decrypt` - Decrypt the current PDF file
 - `annot_popup_mode` - Enter popup annotation creation mode
 - `reshow_jump_marker` - Reshow the jump marker at the current location (useful if it was hidden after timeout)
+
+### Optimizations
+
+- Optimize `pageSceneAtPos` function to use a more efficient way of finding the page at a given position, which should improve performance when clicking on links or navigating to specific locations in the document.
+- Maintain a vector for `LinkHint` pointers for efficient access and management of link hints, which should improve performance when showing and hiding link hints.
+- Optimize `clearDocumentItems` function to efficiently clear all items related to a document when it's closed, which should improve performance and reduce memory usage when closing documents.
 
 ## 0.6.2
 

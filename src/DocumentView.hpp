@@ -9,6 +9,7 @@
 #include "Model.hpp"
 #include "ScrollBar.hpp"
 #include "WaitingSpinnerWidget.hpp"
+#include "LinkHint.hpp"
 
 #include <QFutureWatcher>
 
@@ -468,6 +469,7 @@ private:
     QFutureWatcher<void> m_open_future_watcher;
     QFileSystemWatcher *m_file_watcher{nullptr};
     DocumentContainer *m_container{nullptr};
+    std::vector<LinkHint*> m_kb_link_hints{};
 
     QPointF m_old_jump_marker_pos{};
 
