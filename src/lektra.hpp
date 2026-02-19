@@ -174,6 +174,7 @@ public:
     void TabsCloseRight() noexcept;
     void TabsCloseOthers() noexcept;
     void Reshow_jump_marker() noexcept;
+    void Show_recent_files_picker() noexcept;
 
 #ifdef ENABLE_LLM_SUPPORT
     void ToggleLLMWidget() noexcept;

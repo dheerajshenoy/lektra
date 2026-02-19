@@ -1372,11 +1372,11 @@ lektra::editLastPages() noexcept
 void
 lektra::openLastVisitedFile() noexcept
 {
-    const QVector<RecentFileEntry> &entries = m_recent_files_store.entries();
-    if (entries.isEmpty())
+    const auto &entries = m_recent_files_store.entries();
+    if (entries.empty())
         return;
 
-    const RecentFileEntry &entry = entries.first();
+    const auto &entry = entries.front();
     if (QFile::exists(entry.file_path))
     {
         OpenFileInNewTab(entry.file_path);
@@ -3534,6 +3534,7 @@ lektra::initActionMap() noexcept
         ACTION_NO_ARGS("file_decrypt", DecryptDocument),
         ACTION_NO_ARGS("file_reload", reloadDocument),
         ACTION_NO_ARGS("file_properties", FileProperties),
+        ACTION_NO_ARGS("files_recent", Show_recent_files_picker),
 
         // Annotation modes
         ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
@@ -3619,8 +3620,6 @@ lektra::initActionMap() noexcept
         // ACTION_NO_ARGS("save_selection_as_image", Save_selection_as_image),
         // ACTION_NO_ARGS("search_clear", Clear_search),
         // ACTION_NO_ARGS("reopen_last_closed_file", Reopen_last_closed_file),
-        // ACTION_NO_ARGS("toggle_presentation_mode", Toggle_presentation_mode),
-        // ACTION_NO_ARGS("recent_files", Show_recent_files_picker),
         // ACTION_NO_ARGS("copy_page_image", Copy_page_image),
 
         // {"search_in_page",
