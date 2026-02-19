@@ -2,7 +2,16 @@
 
 ## 0.6.3
 
+### Features
+
+- Centralised `picker` widget for both `outline` and `search highlights` (and potentially other similar widgets in the future). This allows us to reuse the code for both features and also allows us to easily add new features that require a similar UI in the future.
+- Add recent files picker (command: `files_recent`) to quickly access recently opened files
+
 ### Breaking Changes
+
+- Remove `[outline]` and `[search_highlight]` sections from the config
+- Rename `[overlays]` to `[picker]` which is a more accurate name for what it does
+- Add `[picker.keys]` section for keybindings related to the picker navigation keys (which applies to all picker widgets like outline, search highlights, recent files, etc.)
 
 #### Renamed commands
 
@@ -55,8 +64,6 @@
 - `fullscreen` -> `toggle_fullscreen`
 - `auto_resize` -> `fit_auto`
 - `text_highlight_current_selection` -> `highlight_selection`
-
-
 
 ### New command
 
