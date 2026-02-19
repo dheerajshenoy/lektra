@@ -2111,6 +2111,30 @@ DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
     m_render_queue = std::move(filtered);
 }
 
+// void
+// DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
+// {
+//     // Copy keys first to avoid iterator invalidation
+//     const QList<int> trackedPages = m_page_items_hash.keys();
+//     for (int pageno : trackedPages)
+//     {
+//         if (visibleSet.count(pageno))
+//             continue;
+//
+//         clearLinksForPage(pageno);
+//         clearAnnotationsForPage(pageno);
+//         clearSearchItemsForPage(pageno);
+//
+//         auto *item = m_page_items_hash.take(pageno);
+//         if (item)
+//         {
+//             if (item->scene() == m_gscene)
+//                 m_gscene->removeItem(item);
+//             delete item;
+//         }
+//     }
+// }
+
 void
 DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
 {
@@ -2125,13 +2149,29 @@ DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
         clearAnnotationsForPage(pageno);
         clearSearchItemsForPage(pageno);
 
-        auto *item = m_page_items_hash.take(pageno);
-        if (item)
+        auto *item = m_page_items_hash.value(pageno, nullptr);
+        if (!item)
+            continue;
+
+        const QString tag = item->data(0).toString();
+
+        // Keep placeholders to avoid flicker during fast scroll; only remove
+        // actual rendered pages. For placeholders, just hide them so they don't
+        // cause repaints but remain ready to be replaced when rendering
+        // finishes.
+        if (tag == QStringLiteral("placeholder_page")
+            || tag == QStringLiteral("scroll_placeholder"))
         {
             if (item->scene() == m_gscene)
-                m_gscene->removeItem(item);
-            delete item;
+                item->hide();
+            continue;
         }
+
+        // Remove and delete real page item
+        m_page_items_hash.remove(pageno);
+        if (item->scene() == m_gscene)
+            m_gscene->removeItem(item);
+        delete item;
     }
 }
 
