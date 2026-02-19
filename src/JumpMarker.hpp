@@ -57,6 +57,19 @@ public:
         m_fade_animation->start();
     }
 
+    void showAt(QPointF p) noexcept
+    {
+        if (m_fade_animation->state() == QAbstractAnimation::Running)
+        {
+            m_fade_animation->stop();
+        }
+
+        setPos(p);
+        setOpacity(1.0);
+        show();
+        m_fade_animation->start();
+    }
+
 private:
     QColor m_color;
     QPropertyAnimation *m_fade_animation{nullptr};
