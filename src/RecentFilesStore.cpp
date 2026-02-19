@@ -123,6 +123,16 @@ RecentFilesStore::entries() const noexcept
     return m_entries;
 }
 
+QStringList
+RecentFilesStore::files() noexcept
+{
+    QStringList file_paths;
+    file_paths.reserve(m_entries.size());
+    for (RecentFileEntry &entry : m_entries)
+        file_paths.push_back(entry.file_path);
+    return file_paths;
+}
+
 void
 RecentFilesStore::setEntries(std::vector<RecentFileEntry> entries) noexcept
 {

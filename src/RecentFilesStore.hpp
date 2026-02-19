@@ -33,6 +33,7 @@ public:
     bool save() const noexcept;
 
     const std::vector<RecentFileEntry> &entries() const noexcept;
+    QStringList files() noexcept;
     void setEntries(std::vector<RecentFileEntry> entries) noexcept;
     void upsert(const QString &filePath, int pageNumber,
                 const QDateTime &accessed) noexcept;
