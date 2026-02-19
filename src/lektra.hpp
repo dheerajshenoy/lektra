@@ -79,7 +79,7 @@ public:
     void Show_highlight_search() noexcept;
     void Toggle_presentation_mode() noexcept;
     void ToggleAutoResize() noexcept;
-    void ToggleCommandPalette() noexcept;
+    void Show_command_picker() noexcept;
     void ToggleFocusMode() noexcept;
     void ToggleMenubar() noexcept;
     void ToggleTabBar() noexcept;
@@ -291,6 +291,7 @@ private:
     QMenu *m_toggleMenu{nullptr};
     QMenu *m_viewMenu{nullptr};
     QMenu *m_layoutMenu{nullptr};
+    QAction *m_actionCommandPicker{nullptr};
     QAction *m_actionShowTutorialFile{nullptr};
     QAction *m_actionLayoutSingle{nullptr};
     QAction *m_actionLayoutLeftToRight{nullptr};

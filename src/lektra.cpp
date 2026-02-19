@@ -284,6 +284,10 @@ lektra::initMenubar() noexcept
     m_actionToggleLLMWidget->setChecked(m_config.llm_widget.visible);
 #endif
 
+    m_actionCommandPicker = m_toggleMenu->addAction(
+        QString("Command Picker\t%1").arg(m_config.shortcuts["command_picker"]),
+        this, &lektra::Show_command_picker);
+
     m_actionToggleOutline = m_toggleMenu->addAction(
         QString("Outline\t%1").arg(m_config.shortcuts["picker_outline"]), this,
         &lektra::Show_outline);
@@ -3336,7 +3340,7 @@ lektra::initActionMap() noexcept
         // Toggle actions
         ACTION_NO_ARGS("toggle_presentation_mode", Toggle_presentation_mode),
         ACTION_NO_ARGS("toggle_fullscreen", ToggleFullscreen),
-        ACTION_NO_ARGS("toggle_command_palette", ToggleCommandPalette),
+        ACTION_NO_ARGS("toggle_command_palette", Show_command_picker),
         ACTION_NO_ARGS("toggle_tabs", ToggleTabBar),
         ACTION_NO_ARGS("toggle_menubar", ToggleMenubar),
         ACTION_NO_ARGS("toggle_statusbar", TogglePanel),
@@ -3976,7 +3980,7 @@ lektra::handleEscapeKeyPressed() noexcept
 }
 
 void
-lektra::ToggleCommandPalette() noexcept
+lektra::Show_command_picker() noexcept
 {
     if (!m_command_picker)
     {
