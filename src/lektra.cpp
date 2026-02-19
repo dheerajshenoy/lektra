@@ -1,13 +1,11 @@
 #include "lektra.hpp"
 
 #include "AboutDialog.hpp"
-#include "CommandPaletteWidget.hpp"
 #include "DocumentContainer.hpp"
 #include "DocumentView.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "FloatingOverlayWidget.hpp"
 #include "GraphicsView.hpp"
-#include "HighlightSearchWidget.hpp"
 #include "SaveSessionDialog.hpp"
 #include "SearchBar.hpp"
 #include "StartupWidget.hpp"
@@ -72,41 +70,6 @@ set_color_if_present(toml::node_view<toml::node> n, uint32_t &dst)
     }
 }
 
-std::vector<std::pair<QString, QString>>
-buildCommandPaletteEntries(
-    const QHash<QString, std::function<void(const QStringList &args)>>
-        &actionMap,
-    const QHash<QString, QString> &shortcuts)
-{
-    std::vector<lektra::Command> commands;
-    commands.reserve(static_cast<size_t>(actionMap.size()));
-    for (auto it = actionMap.constBegin(); it != actionMap.constEnd(); ++it)
-        commands.push_back({it.key(), shortcuts.value(it.key())});
-
-    std::sort(commands.begin(), commands.end(),
-              [](const lektra::Command &a, const lektra::Command &b)
-    { return QString::compare(a.name, b.name, Qt::CaseInsensitive) < 0; });
-
-    std::vector<std::pair<QString, QString>> entries;
-    entries.reserve(commands.size());
-    for (const auto &cmd : commands)
-        entries.push_back({cmd.name, cmd.shortcut});
-
-    return entries;
-}
-
-FloatingOverlayWidget::FrameStyle
-makeOverlayFrameStyle(const Config &config)
-{
-    FloatingOverlayWidget::FrameStyle style;
-    style.border             = config.overlays.border;
-    style.shadow             = config.overlays.shadow.enabled;
-    style.shadow_blur_radius = config.overlays.shadow.blur_radius;
-    style.shadow_offset_x    = config.overlays.shadow.offset_x;
-    style.shadow_offset_y    = config.overlays.shadow.offset_y;
-    style.shadow_opacity     = config.overlays.shadow.opacity;
-    return style;
-}
 } // namespace
 
 // Constructs the `lektra` class
@@ -323,9 +286,10 @@ lektra::initMenubar() noexcept
 
     m_actionToggleOutline = m_toggleMenu->addAction(
         QString("Outline\t%1").arg(m_config.shortcuts["picker_outline"]), this,
-        &lektra::ShowOutline);
+        &lektra::Show_outline);
     m_actionToggleOutline->setCheckable(true);
-    m_actionToggleOutline->setChecked(!m_outline_widget->isHidden());
+    m_actionToggleOutline->setChecked(m_outline_picker
+                                      && !m_outline_picker->isHidden());
 
     m_actionToggleHighlightAnnotSearch = m_toggleMenu->addAction(
         QString("Highlight Annotation Search\t%1")
@@ -333,7 +297,7 @@ lektra::initMenubar() noexcept
         this, &lektra::Show_highlight_search);
     m_actionToggleHighlightAnnotSearch->setCheckable(true);
     m_actionToggleHighlightAnnotSearch->setChecked(
-        !m_outline_widget->isHidden());
+        m_highlight_search_picker && !m_highlight_search_picker->isHidden());
 
     m_actionToggleMenubar = m_toggleMenu->addAction(
         QString("Menubar\t%1").arg(m_config.shortcuts["toggle_menubar"]), this,
@@ -637,18 +601,44 @@ lektra::initConfig() noexcept
                            m_config.command_palette.placeholder_text);
 
     /* overlays */
-    auto ui_overlays = toml["overlays"];
-    set_if_present(ui_overlays["border"], m_config.overlays.border);
+    auto picker = toml["picker"];
+    set_if_present(picker["border"], m_config.picker.border);
 
-    auto overlay_shadow = ui_overlays["shadow"];
-    set_if_present(overlay_shadow["enabled"], m_config.overlays.shadow.enabled);
-    set_if_present(overlay_shadow["blur_radius"],
-                   m_config.overlays.shadow.blur_radius);
-    set_if_present(overlay_shadow["offset_x"],
-                   m_config.overlays.shadow.offset_x);
-    set_if_present(overlay_shadow["offset_y"],
-                   m_config.overlays.shadow.offset_y);
-    set_if_present(overlay_shadow["opacity"], m_config.overlays.shadow.opacity);
+    auto picker_shadow = picker["shadow"];
+    set_if_present(picker_shadow["enabled"], m_config.picker.shadow.enabled);
+    set_if_present(picker_shadow["blur_radius"],
+                   m_config.picker.shadow.blur_radius);
+    set_if_present(picker_shadow["offset_x"], m_config.picker.shadow.offset_x);
+    set_if_present(picker_shadow["offset_y"], m_config.picker.shadow.offset_y);
+    set_if_present(picker_shadow["opacity"], m_config.picker.shadow.opacity);
+
+    auto picker_keys = picker["keys"];
+
+    // Member: m_pickers
+
+    if (picker_keys.is_table())
+    {
+        const auto &keys = *picker_keys.as_table();
+        const auto get   = [&](std::string_view field, QKeyCombination fallback)
+        {
+            const auto *node = keys.get(field);
+            if (!node || !node->is_string())
+                return fallback;
+            const auto seq = QKeySequence::fromString(
+                QString::fromStdString(std::string(node->as_string()->get())),
+                QKeySequence::PortableText);
+            return seq.isEmpty() ? fallback : seq[0];
+        };
+
+        m_picker_keybinds = Picker::Keybindings{
+            .moveDown = get("down", Picker::Keybindings{}.moveDown),
+            .pageDown = get("page_down", Picker::Keybindings{}.pageDown),
+            .moveUp   = get("up", Picker::Keybindings{}.moveUp),
+            .pageUp   = get("page_up", Picker::Keybindings{}.pageUp),
+            .accept   = get("accept", Picker::Keybindings{}.accept),
+            .dismiss  = get("dismiss", Picker::Keybindings{}.dismiss),
+        };
+    }
 
     /* markers */
     auto ui_markers = toml["markers"];
@@ -667,7 +657,6 @@ lektra::initConfig() noexcept
     auto ui_outline = toml["outline"];
     set_if_present(ui_outline["visible"], m_config.outline.visible);
     // You hard-set this; keeping that behavior:
-    m_config.outline.type = "overlay";
     set_qstring_if_present(ui_outline["panel_position"],
                            m_config.outline.panel_position);
     set_if_present(ui_outline["panel_width"], m_config.outline.panel_width);
@@ -676,8 +665,6 @@ lektra::initConfig() noexcept
     auto ui_highlight_search = toml["highlight_search"];
     set_if_present(ui_highlight_search["visible"],
                    m_config.highlight_search.visible);
-    set_qstring_if_present(ui_highlight_search["type"],
-                           m_config.highlight_search.type);
     set_qstring_if_present(ui_highlight_search["panel_position"],
                            m_config.highlight_search.panel_position);
     set_if_present(ui_highlight_search["panel_width"],
@@ -967,9 +954,6 @@ lektra::initGui() noexcept
     m_message_bar = new MessageBar(this);
     m_message_bar->setVisible(false);
 
-    m_outline_widget          = new OutlineWidget(this);
-    m_highlight_search_widget = new HighlightSearchWidget(this);
-
     widget->setLayout(m_layout);
     m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
@@ -977,69 +961,6 @@ lektra::initGui() noexcept
 
     m_menuBar = this->menuBar(); // initialize here so that the config
                                  // visibility works
-
-    const bool outlineSide   = (m_config.outline.type == "side_panel");
-    const bool highlightSide = (m_config.highlight_search.type == "side_panel");
-    QWidget *mainContent     = nullptr;
-    if (outlineSide || highlightSide)
-    {
-        QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
-        QWidget *sidePanel  = nullptr;
-        bool panelLeft      = true;
-        int panelWidth      = 300;
-
-        if (outlineSide && highlightSide)
-        {
-            m_side_panel_tabs = new QTabWidget(this);
-            m_side_panel_tabs->addTab(m_outline_widget, "Outline");
-            m_side_panel_tabs->addTab(m_highlight_search_widget, "Highlights");
-            sidePanel  = m_side_panel_tabs;
-            panelLeft  = m_config.outline.panel_position != "right";
-            panelWidth = m_config.outline.panel_width;
-        }
-        else if (outlineSide)
-        {
-            sidePanel  = m_outline_widget;
-            panelLeft  = m_config.outline.panel_position != "right";
-            panelWidth = m_config.outline.panel_width;
-        }
-        else
-        {
-            sidePanel  = m_highlight_search_widget;
-            panelLeft  = m_config.highlight_search.panel_position != "right";
-            panelWidth = m_config.highlight_search.panel_width;
-        }
-
-        if (panelLeft)
-        {
-            splitter->addWidget(sidePanel);
-            splitter->addWidget(m_tab_widget);
-            splitter->setStretchFactor(0, 0);
-            splitter->setStretchFactor(1, 1);
-            splitter->setSizes({panelWidth, this->width() - panelWidth});
-        }
-        else
-        {
-            splitter->addWidget(m_tab_widget);
-            splitter->addWidget(sidePanel);
-            splitter->setStretchFactor(0, 1);
-            splitter->setStretchFactor(1, 0);
-            splitter->setSizes({this->width() - panelWidth, panelWidth});
-        }
-        splitter->setFrameShape(QFrame::NoFrame);
-        splitter->setFrameShadow(QFrame::Plain);
-        splitter->setHandleWidth(1);
-        splitter->setContentsMargins(0, 0, 0, 0);
-        splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-        mainContent = splitter;
-
-        if (highlightSide)
-            m_highlight_search_widget->setWindowFlags(Qt::Widget);
-    }
-    else
-    {
-        mainContent = m_tab_widget;
-    }
 
 #ifdef ENABLE_LLM_SUPPORT
     m_llm_widget = new LLMWidget(m_config, this);
@@ -1059,7 +980,7 @@ lektra::initGui() noexcept
     });
 
     QSplitter *llm_splitter = new QSplitter(Qt::Horizontal, this);
-    llm_splitter->addWidget(mainContent);
+    llm_splitter->addWidget(m_tab_widget);
     llm_splitter->addWidget(m_llm_widget);
     llm_splitter->setStretchFactor(0, 1);
     llm_splitter->setStretchFactor(1, 0);
@@ -1072,46 +993,8 @@ lektra::initGui() noexcept
     llm_splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
     m_layout->addWidget(llm_splitter, 1);
 #else
-    m_layout->addWidget(mainContent, 1);
+    m_layout->addWidget(m_tab_widget, 1);
 #endif
-
-    if (!outlineSide && m_config.outline.type == "overlay")
-    {
-        m_outline_overlay = new FloatingOverlayWidget(m_tab_widget);
-        m_outline_overlay->setFrameStyle(makeOverlayFrameStyle(m_config));
-        m_outline_overlay->setContentWidget(m_outline_widget);
-        connect(m_outline_overlay, &FloatingOverlayWidget::overlayHidden, this,
-                [this]()
-        {
-            if (m_actionToggleOutline)
-                m_actionToggleOutline->setChecked(false);
-            this->setFocus();
-        });
-    }
-    else if (!outlineSide)
-    {
-        m_outline_widget->setWindowFlags(Qt::Dialog);
-        m_outline_widget->setWindowModality(Qt::NonModal);
-    }
-
-    if (!highlightSide && m_config.highlight_search.type == "overlay")
-    {
-        m_highlight_overlay = new FloatingOverlayWidget(m_tab_widget);
-        m_highlight_overlay->setFrameStyle(makeOverlayFrameStyle(m_config));
-        m_highlight_overlay->setContentWidget(m_highlight_search_widget);
-        connect(m_highlight_overlay, &FloatingOverlayWidget::overlayHidden,
-                this, [this]()
-        {
-            if (m_actionToggleOutline)
-                m_actionToggleOutline->setChecked(false);
-            this->setFocus();
-        });
-    }
-    else if (!highlightSide)
-    {
-        m_highlight_search_widget->setWindowFlags(Qt::Dialog);
-        m_highlight_search_widget->setWindowModality(Qt::NonModal);
-    }
 }
 
 // Updates the UI elements checking if valid
@@ -1466,7 +1349,7 @@ void
 lektra::GotoLocation(int pageno, float x, float y) noexcept
 {
     if (m_doc)
-        m_doc->GotoLocation({pageno - 1, x, y});
+        m_doc->GotoLocation({pageno, x, y});
 }
 
 void
@@ -2128,30 +2011,35 @@ lektra::ToggleAutoResize() noexcept
 
 // Show or hide the outline panel
 void
-lektra::ShowOutline() noexcept
+lektra::Show_outline() noexcept
 {
-    if (!m_outline_widget->hasOutline())
+    if (!m_doc || !m_doc->model())
+        return;
+
+    if (!m_doc->model()->getOutline())
     {
         QMessageBox::information(this, "Outline",
-                                 "This document has no outline.");
+                                 "This document has no outline");
         return;
     }
-    QWidget *target = m_outline_widget;
 
-    if (m_config.outline.type == "overlay" && m_outline_overlay)
-        target = m_outline_overlay;
-
-    if (target->isVisible())
+    if (!m_outline_picker)
     {
-        target->hide();
-        m_actionToggleOutline->setChecked(false);
+        m_outline_picker = new OutlinePicker(this);
+        m_outline_picker->setKeybindings(m_picker_keybinds);
+        connect(m_outline_picker, &OutlinePicker::jumpToLocationRequested, this,
+                [this](int page, const QPointF &pos) // page returned is 1-based
+        {
+            m_doc->GotoLocationWithHistory(
+                {page, (float)pos.x(), (float)pos.y()});
+        });
     }
-    else
+
+    m_outline_picker->setOutline(m_doc->model()->getOutline());
+
+    if (m_outline_picker->hasOutline())
     {
-        target->show();
-        target->raise();
-        target->activateWindow();
-        m_actionToggleOutline->setChecked(true);
+        m_outline_picker->launch();
     }
 }
 
@@ -2162,27 +2050,19 @@ lektra::Show_highlight_search() noexcept
     if (!m_doc)
         return;
 
-    m_highlight_search_widget->setModel(m_doc->model());
-    if (m_config.highlight_search.type == "side_panel" && m_side_panel_tabs)
-        m_side_panel_tabs->setCurrentWidget(m_highlight_search_widget);
-
-    QWidget *target = m_highlight_search_widget;
-    if (m_config.highlight_search.type == "overlay" && m_highlight_overlay)
-        target = m_highlight_overlay;
-
-    if (target->isVisible())
+    if (!m_highlight_search_picker)
     {
-        target->hide();
-        m_actionToggleHighlightAnnotSearch->setChecked(false);
+        m_highlight_search_picker = new HighlightSearchPicker(this);
+        m_highlight_search_picker->setKeybindings(m_picker_keybinds);
+
+        connect(m_highlight_search_picker,
+                &HighlightSearchPicker::gotoLocationRequested, this,
+                [this](int page, float x, float y)
+        { GotoLocation(page, x, y); });
     }
-    else
-    {
-        target->show();
-        target->raise();
-        target->activateWindow();
-        m_actionToggleHighlightAnnotSearch->setChecked(true);
-        m_highlight_search_widget->refresh();
-    }
+
+    m_highlight_search_picker->setModel(m_doc->model());
+    m_highlight_search_picker->launch();
 }
 
 // Invert colors of the document
@@ -2404,7 +2284,7 @@ lektra::initConnections() noexcept
                 // Set the outline to nullptr if the closed tab was the
                 // current one
                 if (m_doc == doc)
-                    m_outline_widget->clearOutline();
+                    m_outline_picker->clearOutline();
                 doc->CloseFile();
             }
         }
@@ -2433,24 +2313,10 @@ lektra::initConnections() noexcept
     connect(m_navMenu, &QMenu::aboutToShow, this,
             &lektra::updatePageNavigationActions);
 
-    connect(m_outline_widget, &OutlineWidget::jumpToLocationRequested, this,
-            [this](int page, const QPointF &pos) // page returned is 1-based
-    {
-        m_doc->GotoLocationWithHistory(
-            {page - 1, (float)pos.x(), (float)pos.y()});
-        m_outline_overlay->hide();
-    });
-
-    connect(m_highlight_search_widget,
-            &HighlightSearchWidget::gotoLocationRequested, this,
-            [this](int page, const QPointF &pos) // page returned is 0-based
-    {
-        m_doc->GotoLocationWithHistory({page, (float)pos.x(), (float)pos.y()});
-        if (m_config.highlight_search.type == "overlay" && m_highlight_overlay)
-        {
-            m_highlight_overlay->hide();
-        }
-    });
+    connect(m_highlight_search_picker,
+            &HighlightSearchPicker::gotoLocationRequested, this,
+            [this](int page, float x, float y)
+    { m_doc->GotoLocationWithHistory({page, x, y}); });
 }
 
 // Handle when the file name is changed
@@ -3466,7 +3332,8 @@ lektra::initActionMap() noexcept
         ACTION_NO_ARGS("selection_cancel", Selection_cancel),
         ACTION_NO_ARGS("selection_last", ReselectLastTextSelection),
 
-        // Toggle UI elements
+        // Toggle actions
+        ACTION_NO_ARGS("toggle_presentation_mode", Toggle_presentation_mode),
         ACTION_NO_ARGS("toggle_fullscreen", ToggleFullscreen),
         ACTION_NO_ARGS("toggle_command_palette", ToggleCommandPalette),
         ACTION_NO_ARGS("toggle_tabs", ToggleTabBar),
@@ -3581,7 +3448,7 @@ lektra::initActionMap() noexcept
         ACTION_NO_ARGS("tab_9", [this]() { Tab_goto(9); }),
 
         // Pickers
-        ACTION_NO_ARGS("picker_outline", ShowOutline),
+        ACTION_NO_ARGS("picker_outline", Show_outline),
         ACTION_NO_ARGS("picker_highlight_search", Show_highlight_search),
 
         // Search actions
@@ -3890,25 +3757,6 @@ lektra::updateGUIFromConfig() noexcept
     else if (m_config.tabs.location == "right")
         m_tab_widget->setTabPosition(QTabWidget::East);
 
-    if (m_config.outline.type == "overlay" && m_outline_overlay)
-    {
-        m_outline_overlay->setVisible(m_config.outline.visible);
-    }
-    else
-    {
-        m_outline_widget->setVisible(m_config.outline.visible);
-    }
-
-    if (m_config.highlight_search.type == "overlay" && m_highlight_overlay)
-    {
-        m_highlight_overlay->setVisible(m_config.highlight_search.visible);
-    }
-    else
-    {
-        m_highlight_search_widget->setVisible(
-            m_config.highlight_search.visible);
-    }
-
     m_layout->addWidget(m_search_bar);
     m_layout->addWidget(m_message_bar);
     m_layout->addWidget(m_statusbar);
@@ -4129,27 +3977,13 @@ lektra::handleEscapeKeyPressed() noexcept
 void
 lektra::ToggleCommandPalette() noexcept
 {
-    if (!m_command_palette_widget)
+    if (!m_command_picker)
     {
-
-        m_command_palette_widget = new CommandPaletteWidget(
-            m_config,
-            buildCommandPaletteEntries(m_actionMap, m_config.shortcuts), this);
-        connect(m_command_palette_widget,
-                &CommandPaletteWidget::commandSelected, this,
-                [this](const QString &command, const QStringList &args)
-        {
-            m_actionMap[command](args);
-            m_command_palette_overlay->setVisible(false);
-        });
-        m_command_palette_overlay = new FloatingOverlayWidget(this);
-        m_command_palette_overlay->setFrameStyle(
-            makeOverlayFrameStyle(m_config));
-        m_command_palette_overlay->setContentWidget(m_command_palette_widget);
+        m_command_picker = new CommandPicker(m_config, m_actionMap,
+                                             m_config.shortcuts, this);
+        m_command_picker->setKeybindings(m_picker_keybinds);
     }
-
-    m_command_palette_overlay->setVisible(
-        !m_command_palette_overlay->isVisible());
+    m_command_picker->launch();
 }
 
 #ifdef ENABLE_LLM_SUPPORT
@@ -4682,13 +4516,25 @@ lektra::Focus_portal() noexcept
     }
 }
 
-// If a jump marker was shown for the current document view, re-show it (e.g. after a reload)
+// If a jump marker was shown for the current document view, re-show it (e.g.
+// after a reload)
 void
 lektra::Reshow_jump_marker() noexcept
 {
     if (m_doc)
         m_doc->Reshow_jump_marker();
 }
+
+void
+lektra::Toggle_presentation_mode() noexcept
+{
+    if (!m_doc)
+        return;
+
+    // TODO: Implement presentation mode (probably just a special full-screen
+    // mode with extra UI optimizations for it)
+}
+
 // Show a picker with the list of recent files from the recent files store, and
 // allow the user to open a file from there.
 void
@@ -4703,17 +4549,17 @@ lektra::Show_recent_files_picker() noexcept
         return;
     }
 
-    QStringList recentFiles;
-    recentFiles.reserve(entries.size());
+    const QStringList recentFiles = m_recent_files_store.files();
 
-    for (const auto &entry : entries)
-        recentFiles.push_back(entry.file_path);
-
-    bool ok;
-    const QString file = QInputDialog::getItem(
-        this, "Recent Files", "Select a file:", recentFiles, 0, false, &ok);
-    if (ok && !file.isEmpty())
+    if (!m_recent_file_picker)
     {
-        OpenFileInNewTab(file);
+        m_recent_file_picker = new RecentFilesPicker(this);
+        m_recent_file_picker->setRecentFiles(recentFiles);
+        m_recent_file_picker->setKeybindings(m_picker_keybinds);
+
+        connect(m_recent_file_picker, &RecentFilesPicker::fileRequested, this,
+                [this](const QString &file) { OpenFileInNewTab(file); });
     }
+
+    m_recent_file_picker->launch();
 }

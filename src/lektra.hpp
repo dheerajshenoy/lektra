@@ -1,24 +1,25 @@
 #pragma once
 
-#include "CommandPaletteWidget.hpp"
+#include "CommandPicker.hpp"
 #include "Config.hpp"
 #include "DocumentView.hpp"
 #include "FloatingOverlayWidget.hpp"
-#include "HighlightSearchWidget.hpp"
+#include "HighlightSearchPicker.hpp"
 #include "TabBar.hpp"
 // #include "MarkManager.hpp"
 #include "MessageBar.hpp"
-#include "OutlineWidget.hpp"
+// #include "OutlineWidget.hpp"
+#include "OutlinePicker.hpp"
 #include "PropertiesWidget.hpp"
+#include "RecentFilesPicker.hpp"
 #include "RecentFilesStore.hpp"
 #include "SearchBar.hpp"
 #include "StartupWidget.hpp"
 #include "Statusbar.hpp"
 #include "TabWidget.hpp"
 #include "argparse.hpp"
-
 #ifdef ENABLE_LLM_SUPPORT
-#include "llm/LLMWidget.hpp"
+#include "LLM/LLMWidget.hpp"
 #endif
 
 #include "toml.hpp"
@@ -76,6 +77,7 @@ public:
     void Search() noexcept;
     void Search_in_page() noexcept;
     void Show_highlight_search() noexcept;
+    void Toggle_presentation_mode() noexcept;
     void ToggleAutoResize() noexcept;
     void ToggleCommandPalette() noexcept;
     void ToggleFocusMode() noexcept;
@@ -90,7 +92,7 @@ public:
     void Fit_width() noexcept;
     void Fit_height() noexcept;
     void Fit_page() noexcept;
-    void ShowOutline() noexcept;
+    void Show_outline() noexcept;
     void InvertColor() noexcept;
     void TextSelectionMode() noexcept;
     void GoBackHistory() noexcept;
@@ -340,9 +342,6 @@ private:
     QAction *m_actionToggleLLMWidget{nullptr};
 #endif
     QTabWidget *m_side_panel_tabs{nullptr};
-    FloatingOverlayWidget *m_outline_overlay{nullptr};
-    FloatingOverlayWidget *m_highlight_overlay{nullptr};
-    OutlineWidget *m_outline_widget{nullptr};
     Config m_config;
     float m_dpr{1.0f};
     QMap<QString, float> m_screen_dpr_map; // DPR per screen
@@ -366,10 +365,13 @@ private:
     QFileSystemWatcher *m_config_watcher{nullptr};
     MessageBar *m_message_bar{nullptr};
     SearchBar *m_search_bar{nullptr};
-    FloatingOverlayWidget *m_search_bar_overlay{nullptr};
-    HighlightSearchWidget *m_highlight_search_widget{nullptr};
-    CommandPaletteWidget *m_command_palette_widget{nullptr};
-    FloatingOverlayWidget *m_command_palette_overlay{nullptr};
+
+    std::vector<Picker *> m_pickers;
+    CommandPicker *m_command_picker{nullptr}; // Technically a picker
+    Picker::Keybindings m_picker_keybinds{};
+    OutlinePicker *m_outline_picker{nullptr};
+    HighlightSearchPicker *m_highlight_search_picker{nullptr};
+    RecentFilesPicker *m_recent_file_picker{nullptr};
 
     // MarkManager m_marks_manager;
 
