@@ -1,6 +1,6 @@
 #include "OllamaProvider.hpp"
 
-#include "../json.hpp"
+#include "../../../json.hpp"
 
 #include <QDebug>
 

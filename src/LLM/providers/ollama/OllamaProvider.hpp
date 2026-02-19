@@ -1,7 +1,7 @@
 #pragma once
 
-#include "http/HttpStreamClient.hpp"
-#include "providers/LLMProvider.hpp"
+#include "../../http/HttpStreamClient.hpp"
+#include "../../providers/LLMProvider.hpp"
 
 #include <QObject>
 #include <string>
