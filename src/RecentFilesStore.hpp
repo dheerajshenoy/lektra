@@ -6,7 +6,7 @@
 #include <QJsonObject>
 #include <QSaveFile>
 #include <QString>
-#include <QVector>
+#include <vector>
 
 struct RecentFileEntry
 {
@@ -32,8 +32,8 @@ public:
     bool load() noexcept;
     bool save() const noexcept;
 
-    const QVector<RecentFileEntry> &entries() const noexcept;
-    void setEntries(QVector<RecentFileEntry> entries) noexcept;
+    const std::vector<RecentFileEntry> &entries() const noexcept;
+    void setEntries(std::vector<RecentFileEntry> entries) noexcept;
     void upsert(const QString &filePath, int pageNumber,
                 const QDateTime &accessed) noexcept;
     void trim(int maxEntries) noexcept;
@@ -44,5 +44,5 @@ private:
     static QJsonObject serializeEntry(const RecentFileEntry &entry);
 
     QString m_file_path;
-    QVector<RecentFileEntry> m_entries;
+    std::vector<RecentFileEntry> m_entries;
 };

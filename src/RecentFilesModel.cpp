@@ -141,13 +141,13 @@ RecentFilesModel::removeRows(int row, int count, const QModelIndex &parent)
 
     beginRemoveRows(parent, row, row + count - 1);
     for (int i = 0; i < count; ++i)
-        m_entries.removeAt(row);
+        m_entries.erase(m_entries.begin() + row);
     endRemoveRows();
     return true;
 }
 
 void
-RecentFilesModel::setEntries(QVector<RecentFileEntry> entries, bool markClean)
+RecentFilesModel::setEntries(std::vector<RecentFileEntry> entries, bool markClean)
 {
     beginResetModel();
     m_entries = std::move(entries);
@@ -156,7 +156,7 @@ RecentFilesModel::setEntries(QVector<RecentFileEntry> entries, bool markClean)
     endResetModel();
 }
 
-const QVector<RecentFileEntry> &
+const std::vector<RecentFileEntry> &
 RecentFilesModel::entries() const noexcept
 {
     return m_entries;

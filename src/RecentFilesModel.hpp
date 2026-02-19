@@ -30,8 +30,9 @@ public:
     bool removeRows(int row, int count,
                     const QModelIndex &parent = QModelIndex()) override;
 
-    void setEntries(QVector<RecentFileEntry> entries, bool markClean = true);
-    const QVector<RecentFileEntry> &entries() const noexcept;
+    void setEntries(std::vector<RecentFileEntry> entries,
+                    bool markClean = true);
+    const std::vector<RecentFileEntry> &entries() const noexcept;
     RecentFileEntry entryAt(int row) const;
     bool isDirty() const noexcept;
     void revertAll();
@@ -42,8 +43,8 @@ private:
     QString displayPath(const QString &path) const;
     bool parseDateTime(const QVariant &value, QDateTime *out) const;
 
-    QVector<RecentFileEntry> m_entries;
-    QVector<RecentFileEntry> m_original_entries;
+    std::vector<RecentFileEntry> m_entries;
+    std::vector<RecentFileEntry> m_original_entries;
     QString m_home_path;
     bool m_use_tilde{false};
 };

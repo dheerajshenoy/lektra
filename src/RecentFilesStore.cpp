@@ -117,14 +117,14 @@ RecentFilesStore::save() const noexcept
     return file.commit();
 }
 
-const QVector<RecentFileEntry> &
+const std::vector<RecentFileEntry> &
 RecentFilesStore::entries() const noexcept
 {
     return m_entries;
 }
 
 void
-RecentFilesStore::setEntries(QVector<RecentFileEntry> entries) noexcept
+RecentFilesStore::setEntries(std::vector<RecentFileEntry> entries) noexcept
 {
     m_entries = std::move(entries);
     sortByAccessedDesc();
