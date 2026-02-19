@@ -430,6 +430,7 @@ private:
 
     struct PageCacheEntry
     {
+        int pageno;
         fz_display_list *display_list{nullptr};
         fz_rect bounds{};
 
@@ -499,7 +500,7 @@ private:
                                    const QString &text) noexcept;
     void removeAnnotations(const int pageno,
                            const std::vector<int> &objNums) noexcept;
-    void buildTextCacheForPage(int pageno) noexcept;
+    void buildTextCacheForPages(const std::set<int> &pagenos) noexcept;
     void LRUEvictFunction(PageCacheEntry &entry) noexcept;
 
     void populatePDFProperties(

@@ -2658,46 +2658,46 @@ DocumentView::clearDocumentItems() noexcept
 }
 
 // Request rendering of a specific page (ASYNC)
-// void
-// DocumentView::requestPageRender(int pageno) noexcept
-// {
-//     if (m_pending_renders.contains(pageno))
-//         return;
-//
-//     m_pending_renders.insert(pageno);
-//     createAndAddPlaceholderPageItem(pageno);
-//
-//     m_render_queue.enqueue(pageno);
-//     startNextRenderJob();
-// }
-
 void
 DocumentView::requestPageRender(int pageno) noexcept
 {
     if (m_pending_renders.contains(pageno))
         return;
 
-    // Check if we already have a real page
-    if (m_page_items_hash.contains(pageno))
-    {
-        auto *existing = m_page_items_hash[pageno];
-        if (existing->data(0).toString() != "placeholder_page")
-        {
-            return; // Already have real page
-        }
-    }
-
     m_pending_renders.insert(pageno);
-
-    // Only create placeholder if we don't have any item yet
-    if (!m_page_items_hash.contains(pageno))
-    {
-        createAndAddPlaceholderPageItem(pageno);
-    }
+    createAndAddPlaceholderPageItem(pageno);
 
     m_render_queue.enqueue(pageno);
     startNextRenderJob();
 }
+
+// void
+// DocumentView::requestPageRender(int pageno) noexcept
+// {
+//     if (m_pending_renders.contains(pageno))
+//         return;
+//
+//     // Check if we already have a real page
+//     // if (m_page_items_hash.contains(pageno))
+//     // {
+//     //     auto *existing = m_page_items_hash[pageno];
+//     //     if (existing->data(0).toString() != "placeholder_page")
+//     //     {
+//     //         return; // Already have real page
+//     //     }
+//     // }
+//
+//     m_pending_renders.insert(pageno);
+//
+//     // Only create placeholder if we don't have any item yet
+//     if (!m_page_items_hash.contains(pageno))
+//     {
+//         createAndAddPlaceholderPageItem(pageno);
+//     }
+//
+//     m_render_queue.enqueue(pageno);
+//     startNextRenderJob();
+// }
 
 void
 DocumentView::renderPageFromPixmap(int pageno, const QPixmap &pixmap) noexcept
@@ -3821,16 +3821,6 @@ DocumentView::Reshow_jump_marker() noexcept
 void
 DocumentView::handleHScrollValueChanged(int value) noexcept
 {
-    // Skip tiny scroll events
-    if (std::abs(value - m_last_scroll_value) < SCROLL_THRESHOLD)
-    {
-        m_last_scroll_value = value;
-        return;
-    }
-
-    m_last_scroll_value = value;
-    m_last_scroll_time  = QDateTime::currentMSecsSinceEpoch();
-
     // During fast scrolling, only invalidate cache, don't trigger render
     invalidateVisiblePagesCache();
 
@@ -3849,15 +3839,6 @@ DocumentView::handleHScrollValueChanged(int value) noexcept
 void
 DocumentView::handleVScrollValueChanged(int value) noexcept
 {
-    // Skip tiny scroll events
-    if (std::abs(value - m_last_scroll_value) < SCROLL_THRESHOLD)
-    {
-        m_last_scroll_value = value;
-        return;
-    }
-
-    m_last_scroll_value = value;
-    m_last_scroll_time  = QDateTime::currentMSecsSinceEpoch();
 
     // During fast scrolling, only invalidate cache, don't trigger render
     invalidateVisiblePagesCache();

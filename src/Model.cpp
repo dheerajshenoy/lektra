@@ -70,6 +70,13 @@ Model::LRUEvictFunction(PageCacheEntry &entry) noexcept
         fz_drop_display_list(m_ctx, entry.display_list);
         entry.display_list = nullptr;
     }
+
+    // Also clear text cache for this page to save memory
+    auto textIt = m_text_cache.find(entry.pageno);
+    if (textIt != m_text_cache.end())
+    {
+        m_text_cache.erase(textIt);
+    }
 }
 
 void
@@ -2013,7 +2020,7 @@ Model::searchHelper(int pageno, const QString &term,
     if (term.isEmpty())
         return results;
 
-    buildTextCacheForPage(pageno);
+    buildTextCacheForPages({pageno});
 
     auto it = m_text_cache.find(pageno);
     if (it == m_text_cache.end())
@@ -2159,51 +2166,63 @@ Model::collectHighlightTexts(bool groupByLine) noexcept
 }
 
 void
-Model::buildTextCacheForPage(int pageno) noexcept
+Model::buildTextCacheForPages(const std::set<int> &pagenos) noexcept
 {
-    if (m_text_cache.contains(pageno))
+    if (pagenos.empty())
         return;
 
-    fz_page *page        = nullptr;
-    fz_stext_page *stext = nullptr;
+    fz_context *ctx = cloneContext();
+    if (!ctx)
+        return;
 
-    fz_try(m_ctx)
+    for (int pageno : pagenos)
     {
-        page  = fz_load_page(m_ctx, m_doc, pageno);
-        stext = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+        if (m_text_cache.contains(pageno))
+            continue;
 
-        CachedTextPage cache;
-        cache.chars.reserve(4096);
+        fz_page *page        = nullptr;
+        fz_stext_page *stext = nullptr;
 
-        for (fz_stext_block *b = stext->first_block; b; b = b->next)
+        fz_try(m_ctx)
         {
-            if (b->type != FZ_STEXT_BLOCK_TEXT)
-                continue;
+            page  = fz_load_page(m_ctx, m_doc, pageno);
+            stext = fz_new_stext_page_from_page(m_ctx, page, nullptr);
 
-            for (fz_stext_line *l = b->u.t.first_line; l; l = l->next)
+            CachedTextPage cache;
+            cache.chars.reserve(4096); // pre-reserve to reduce reallocations
+
+            for (fz_stext_block *b = stext->first_block; b; b = b->next)
             {
-                for (fz_stext_char *c = l->first_char; c; c = c->next)
+                if (b->type != FZ_STEXT_BLOCK_TEXT)
+                    continue;
+
+                for (fz_stext_line *l = b->u.t.first_line; l; l = l->next)
                 {
-                    cache.chars.push_back(
-                        {static_cast<uint32_t>(c->c), c->quad});
+                    for (fz_stext_char *c = l->first_char; c; c = c->next)
+                    {
+                        cache.chars.push_back(
+                            {static_cast<uint32_t>(c->c), c->quad});
+                    }
+
+                    // logical line break (prevents cross-line matches)
+                    cache.chars.push_back({'\n', {}});
                 }
-
-                // logical line break (prevents cross-line matches)
-                cache.chars.push_back({'\n', {}});
             }
-        }
 
-        m_text_cache.emplace(pageno, std::move(cache));
+            m_text_cache.emplace(pageno, std::move(cache));
+        }
+        fz_always(m_ctx)
+        {
+            fz_drop_stext_page(m_ctx, stext);
+            fz_drop_page(m_ctx, page);
+        }
+        fz_catch(m_ctx)
+        {
+            // ignore page failures
+        }
     }
-    fz_always(m_ctx)
-    {
-        fz_drop_stext_page(m_ctx, stext);
-        fz_drop_page(m_ctx, page);
-    }
-    fz_catch(m_ctx)
-    {
-        // ignore page failures
-    }
+
+    fz_drop_context(ctx);
 }
 
 // fz_pixmap *

@@ -479,10 +479,6 @@ private:
 
     QPointF m_old_jump_marker_pos{};
 
-    int m_last_scroll_value{0};
-    qint64 m_last_scroll_time{0};
-    static constexpr int SCROLL_THRESHOLD{20}; // Min pixels to trigger update
-
 #ifdef HAS_SYNCTEX
     synctex_scanner_p m_synctex_scanner{nullptr};
 #endif
