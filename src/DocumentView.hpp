@@ -103,11 +103,6 @@ public:
         return m_spacing;
     }
 
-    inline bool passwordRequired() const noexcept
-    {
-        return m_model->passwordRequired();
-    }
-
     inline Model *model() const noexcept
     {
         return m_model;
@@ -167,11 +162,6 @@ public:
     inline float dpr() const noexcept
     {
         return m_model->DPR();
-    }
-
-    inline bool authenticate(const QString &password) const noexcept
-    {
-        return m_model->authenticate(password);
     }
 
     inline bool invertColor() const noexcept
@@ -238,8 +228,7 @@ public:
 
     void FollowLink(const Model::LinkInfo &info) noexcept;
     void setInvertColor(bool invert) noexcept;
-    void openAsync(const QString &filePath,
-                   const QString &password = {}) noexcept;
+    void openAsync(const QString &filePath) noexcept;
     bool EncryptDocument() noexcept;
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
@@ -319,6 +308,8 @@ signals:
     void currentPageChanged(int pageno);
 
 public slots:
+    void handle_password_required() noexcept;
+    void handle_wrong_password() noexcept;
     void handleLinkCtrlClickRequested(const QPointF &scenePos) noexcept;
     void handleTextHighlightRequested() noexcept;
     void handleTextSelection(const QPointF &start, const QPointF &end) noexcept;
@@ -442,6 +433,7 @@ private:
     void openImageInExternalViewer(const QImage &image) noexcept;
     std::vector<std::pair<int, Annotation *>> getSelectedAnnotations() noexcept;
     void changeColorOfSelectedAnnotations(const QColor &color) noexcept;
+    void stopPendingRenders() noexcept;
 
 #ifdef HAS_SYNCTEX
     void initSynctex() noexcept;
@@ -501,6 +493,8 @@ private:
             ? std::thread::hardware_concurrency() - 1
             : 1};
     int m_renders_in_flight{0};
+    std::shared_ptr<std::atomic<bool>> m_cancelled{
+        std::make_shared<std::atomic<bool>>(false)};
 
     QPointF m_old_jump_marker_pos{};
 

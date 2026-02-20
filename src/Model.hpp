@@ -341,8 +341,12 @@ public:
     std::vector<std::pair<QString, QString>> properties() noexcept;
     fz_outline *getOutline() noexcept;
     bool reloadDocument() noexcept;
-    QFuture<void> openAsync(const QString &filePath,
-                            const QString &password = {}) noexcept;
+    void cancelOpen() noexcept;
+    QFuture<void> openAsync(const QString &filePath) noexcept;
+    void _continueOpen(fz_context *ctx, fz_document *doc,
+                       FileType filetype) noexcept;
+
+    QFuture<void> submitPassword(const QString &password) noexcept;
     void close() noexcept;
     void cleanup() noexcept;
     bool decrypt() noexcept;
@@ -351,8 +355,6 @@ public:
     void setHighlightColor(const QColor &color) noexcept;
     void setSelectionColor(const QColor &color) noexcept;
     void setAnnotRectColor(const QColor &color) noexcept;
-    bool passwordRequired() const noexcept;
-    bool authenticate(const QString &password) noexcept;
     bool SaveChanges() noexcept;
     bool SaveAs(const QString &newFilePath) noexcept;
     QPointF toPixelSpace(int pageno, fz_point pt) const noexcept;
@@ -381,6 +383,8 @@ public:
 
 signals:
     void urlLinksReady(int pageno, std::vector<RenderLink> links);
+    void passwordRequired();
+    void wrongPassword();
     void openFileFailed();
     void openFileFinished();
     void reloadRequested(int pageno);
@@ -587,6 +591,22 @@ private:
     bool m_detect_url_links{false};
     QRegularExpression m_url_link_re;
     FileType m_filetype{FileType::NONE};
+
+    struct PendingOpen
+    {
+        fz_context *ctx{nullptr};
+        fz_document *doc{nullptr};
+        FileType filetype{FileType::NONE};
+
+        void clear()
+        {
+            ctx      = nullptr;
+            doc      = nullptr;
+            filetype = FileType::NONE;
+        }
+    };
+
+    PendingOpen m_pending;
 
     friend class TextHighlightAnnotationCommand; // for highlight annotation
     friend class RectAnnotationCommand;          // for rectangle annotation

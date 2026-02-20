@@ -61,9 +61,14 @@ DocumentView::DocumentView(const Config &config, QWidget *parent) noexcept
     connect(m_model, &Model::openFileFailed, this,
             [this]() { emit openFileFailed(this); });
 
-    // Add:
-    connect(&m_open_future_watcher, &QFutureWatcher<void>::finished, this,
+    connect(m_model, &Model::openFileFinished, this,
             &DocumentView::handleOpenFileFinished);
+
+    connect(m_model, &Model::passwordRequired, this,
+            &DocumentView::handle_password_required);
+
+    connect(m_model, &Model::wrongPassword, this,
+            &DocumentView::handle_wrong_password);
 
     initGui();
 #ifdef HAS_SYNCTEX
@@ -73,6 +78,7 @@ DocumentView::DocumentView(const Config &config, QWidget *parent) noexcept
 
 DocumentView::~DocumentView() noexcept
 {
+    stopPendingRenders();
 #ifdef HAS_SYNCTEX
     synctex_scanner_free(m_synctex_scanner);
 #endif
@@ -260,8 +266,7 @@ DocumentView::initSynctex() noexcept
 #endif
 
 void
-DocumentView::openAsync(const QString &filePath,
-                        const QString &password) noexcept
+DocumentView::openAsync(const QString &filePath) noexcept
 {
 #ifndef NDEBUG
     qDebug() << "DocumentView::openAsync(): Opening file:" << filePath;
@@ -270,8 +275,9 @@ DocumentView::openAsync(const QString &filePath,
 
     m_spinner->start();
     m_spinner->show();
-    QFuture<void> future
-        = m_model->openAsync(QDir::cleanPath(filePath), password);
+
+    QFuture<void> future = m_model->openAsync(QDir::cleanPath(filePath));
+
     m_open_future_watcher.setFuture(future);
 }
 
@@ -280,27 +286,6 @@ DocumentView::handleOpenFileFinished() noexcept
 {
     m_spinner->stop();
     m_spinner->hide();
-
-    if (m_model->passwordRequired())
-    {
-        bool ok = false;
-        QString password;
-        while (true)
-        {
-            password = QInputDialog::getText(
-                this, "Open Document", "Enter password:", QLineEdit::Password,
-                QString(), &ok);
-            if (!ok)
-            {
-                emit openFileFailed(this);
-                return;
-            }
-            if (authenticate(password))
-                break;
-
-            QMessageBox::warning(this, "Open Document", "Incorrect password.");
-        }
-    }
 
     m_pageno = 0;
 
@@ -414,7 +399,6 @@ DocumentView::initConnections() noexcept
     connect(m_model, &Model::searchResultsReady, this,
             &DocumentView::handleSearchResults);
 
-    // In initConnections():
     connect(m_model, &Model::urlLinksReady, this,
             [this](int pageno, std::vector<Model::RenderLink> links)
     {
@@ -1942,11 +1926,17 @@ DocumentView::startNextRenderJob() noexcept
         ++m_renders_in_flight;
         auto job = m_model->createRenderJob(pageno);
 
+        auto cancelled = m_cancelled; // shared_ptr copy
+
         m_model->requestPageRender(
-            job, [this, pageno](const Model::PageRenderResult &result)
+            job,
+            [this, pageno, cancelled](const Model::PageRenderResult &result)
         {
             --m_renders_in_flight;
             m_pending_renders.remove(pageno);
+
+            if (cancelled->load())
+                return;
 
             const QPixmap pixmap = QPixmap::fromImage(result.image);
             if (!pixmap.isNull())
@@ -3013,7 +3003,7 @@ DocumentView::EncryptDocument() noexcept
 bool
 DocumentView::DecryptDocument() noexcept
 {
-    if (m_model->passwordRequired())
+    if (fz_needs_password(m_model->m_ctx, m_model->m_doc))
     {
         bool ok;
         QString password;
@@ -3026,7 +3016,8 @@ DocumentView::DecryptDocument() noexcept
             if (!ok)
                 return false;
 
-            if (authenticate(password))
+            if (fz_authenticate_password(m_model->m_ctx, m_model->m_doc,
+                                         password.toStdString().c_str()))
                 return m_model->decrypt();
         }
     }
@@ -3863,4 +3854,41 @@ DocumentView::handleVScrollValueChanged(int value) noexcept
     m_hq_render_timer->stop();
 }
 
-// Same for handleVScrollValueChanged
+void
+DocumentView::stopPendingRenders() noexcept
+{
+    m_cancelled->store(true);
+
+    m_pending_renders.clear();
+    m_render_queue.clear();
+}
+
+void
+DocumentView::handle_password_required() noexcept
+{
+    bool ok                = false;
+    const QString password = QInputDialog::getText(
+        this, tr("Password Required"), tr("Enter password:"),
+        QLineEdit::Password, {}, &ok);
+
+    if (!ok)
+    {
+        // user cancelled → abort open cleanly
+        m_model->cancelOpen();
+        CloseFile();
+        return;
+    }
+
+    // fire-and-forget; result comes via signals
+    m_model->submitPassword(password);
+}
+
+void
+DocumentView::handle_wrong_password() noexcept
+{
+    QMessageBox::warning(this, tr("Incorrect Password"),
+                         tr("The password you entered is incorrect."));
+
+    // Ask again
+    handle_password_required();
+}

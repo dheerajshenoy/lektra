@@ -55,6 +55,12 @@ Model::Model(QObject *parent) noexcept : QObject(parent)
     { LRUEvictFunction(entry); });
 }
 
+Model::~Model() noexcept
+{
+    cleanup();
+    fz_drop_context(m_ctx);
+}
+
 void
 Model::initMuPDF() noexcept
 {
@@ -97,14 +103,13 @@ Model::LRUEvictFunction(PageCacheEntry &entry) noexcept
 void
 Model::cleanup() noexcept
 {
+    m_render_future.cancel();
 
     fz_drop_outline(m_ctx, m_outline);
     m_outline = nullptr;
-
-    m_pdf_doc = nullptr;
-
     fz_drop_document(m_ctx, m_doc);
-    m_doc = nullptr;
+    m_doc     = nullptr;
+    m_pdf_doc = nullptr;
 
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
@@ -120,38 +125,22 @@ Model::cleanup() noexcept
     }
 }
 
-Model::~Model() noexcept
-{
-    cleanup();
-    fz_drop_context(m_ctx);
-}
-
 QFuture<void>
-Model::openAsync(const QString &filePath,
-                 const QString &password) noexcept
+Model::openAsync(const QString &filePath) noexcept
 {
-    // Canonical path resolved on the calling thread — cheap, no MuPDF
     m_filepath              = QFileInfo(filePath).canonicalFilePath();
     const QString canonPath = m_filepath;
 
-    // Clone a context for the background thread RIGHT NOW, on the calling
-    // thread. This is the only safe moment — m_ctx is idle here.
     fz_context *bg_ctx = cloneContext();
     if (!bg_ctx)
     {
-        m_success = false;
-        QMetaObject::invokeMethod(this, [this] { emit openFileFailed(); },
+        QMetaObject::invokeMethod(this, &Model::openFileFailed,
                                   Qt::QueuedConnection);
-        return QtConcurrent::run([]() {});
+        return QtConcurrent::run([] {});
     }
 
-    return QtConcurrent::run([this, canonPath, password, bg_ctx]() mutable
+    return QtConcurrent::run([this, canonPath, bg_ctx]
     {
-        //------------------------------------------------------------
-        // Everything below runs on a thread-pool thread.
-        // bg_ctx is exclusively ours. m_ctx, m_doc are NOT touched.
-        //------------------------------------------------------------
-
         struct Guard
         {
             fz_context *ctx;
@@ -168,130 +157,146 @@ Model::openAsync(const QString &filePath,
             }
         } g{bg_ctx};
 
-        // --- 1. Detect file type (fast, no document load needed) ---
+        // --- detect type ---
         FileType filetype = FileType::NONE;
         fz_try(bg_ctx)
         {
-            const fz_document_handler *handler
-                = fz_recognize_document_content(bg_ctx, CSTR(canonPath));
-            if (handler && handler->extensions)
+            if (auto *h
+                = fz_recognize_document_content(bg_ctx, CSTR(canonPath)))
             {
-                const QString ext = QString::fromUtf8(handler->extensions[0]);
-                if (ext == "pdf")
-                    filetype = FileType::PDF;
-                else if (ext == "cbt")
-                    filetype = FileType::CBZ;
-                else if (ext == "mobi")
-                    filetype = FileType::MOBI;
-                else if (ext == "fb2")
-                    filetype = FileType::FB2;
-                else if (ext == "svg")
-                    filetype = FileType::SVG;
-                else if (ext == "epub")
-                    filetype = FileType::EPUB;
+                if (h->extensions)
+                {
+                    const QString ext = QString::fromUtf8(h->extensions[0]);
+                    if (ext == "pdf")
+                        filetype = FileType::PDF;
+                    else if (ext == "epub")
+                        filetype = FileType::EPUB;
+                    else if (ext == "cbt")
+                        filetype = FileType::CBZ;
+                    else if (ext == "svg")
+                        filetype = FileType::SVG;
+                }
             }
         }
-        fz_catch(bg_ctx)
-        {
-            qWarning() << "openAsync: type detection failed:"
-                       << fz_caught_message(bg_ctx);
-            fz_drop_context(bg_ctx);
-        }
+        fz_catch(bg_ctx) {}
 
-        // --- 2. Open the document ---
+        // --- open ---
         fz_document *doc = nullptr;
         fz_try(bg_ctx)
         {
             doc = fz_open_document(bg_ctx, CSTR(canonPath));
         }
-        fz_catch(bg_ctx)
-        {
-            qWarning() << "openAsync: fz_open_document failed:"
-                       << fz_caught_message(bg_ctx);
-            fz_drop_context(bg_ctx);
-        }
+        fz_catch(bg_ctx) {}
 
         if (!doc)
         {
-            QMetaObject::invokeMethod(this, [this]
-            {
-                m_success = false;
-                emit openFileFailed();
-            }, Qt::QueuedConnection);
-            return; // Guard drops bg_ctx
+            QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                      Qt::QueuedConnection);
+            return;
         }
         g.doc = doc;
 
-        // --- 3. Authenticate if encrypted ---
-        if (fz_needs_password(bg_ctx, doc))
+        // --- encrypted? park and stop ---
+        if (filetype == FileType::PDF && fz_needs_password(bg_ctx, doc))
         {
-            if (password.isEmpty()
-                || !fz_authenticate_password(bg_ctx, doc, CSTR(password)))
+            g.committed = true;
+            QMetaObject::invokeMethod(this, [this, bg_ctx, doc, filetype]
             {
-                QMetaObject::invokeMethod(this, [this]
-                {
-                    m_success = false;
-                    emit openFileFailed();
-                }, Qt::QueuedConnection);
-                return;
-            }
-        }
-
-        // --- 4. Read document metadata (all on the background thread) ---
-        int page_count   = 0;
-        float width_pts  = 0.0f;
-        float height_pts = 0.0f;
-        bool ok          = false;
-
-        fz_try(bg_ctx)
-        {
-            page_count = fz_count_pages(bg_ctx, doc);
-
-            if (page_count > 0)
-            {
-                fz_page *p = fz_load_page(bg_ctx, doc, 0);
-                fz_rect r  = fz_bound_page(bg_ctx, p);
-                fz_drop_page(bg_ctx, p);
-                width_pts  = r.x1 - r.x0;
-                height_pts = r.y1 - r.y0;
-            }
-            ok = true;
-        }
-        fz_catch(bg_ctx)
-        {
-            qWarning() << "openAsync: metadata failed:"
-                       << fz_caught_message(bg_ctx);
-        }
-
-        if (!ok)
-        {
-            QMetaObject::invokeMethod(this, [this]
-            {
-                m_success = false;
-                emit openFileFailed();
+                m_pending = {bg_ctx, doc, filetype};
+                emit passwordRequired();
             }, Qt::QueuedConnection);
             return;
         }
 
-        // --- 5. Commit: hand everything to the main thread ---
-        // bg_ctx and doc are transferred — Guard must not drop them.
+        // --- normal path ---
+        g.committed = true;
+        _continueOpen(bg_ctx, doc, filetype);
+    });
+}
+
+QFuture<void>
+Model::submitPassword(const QString &password) noexcept
+{
+    auto ctx = m_pending.ctx;
+    auto doc = m_pending.doc;
+    auto ft  = m_pending.filetype;
+    m_pending.clear();
+
+    if (!ctx || !doc)
+        return QtConcurrent::run([] {});
+
+    return QtConcurrent::run([this, password, ctx, doc, ft]
+    {
+        if (!fz_authenticate_password(ctx, doc, CSTR(password)))
+        {
+            // Wrong password — put it back so the user can retry
+            QMetaObject::invokeMethod(this, [this, ctx, doc, ft]
+            {
+                m_pending = {ctx, doc, ft};
+                emit wrongPassword();
+            }, Qt::QueuedConnection);
+            return;
+        }
+
+        _continueOpen(ctx, doc, ft);
+    });
+}
+
+void
+Model::_continueOpen(fz_context *ctx, fz_document *doc,
+                     FileType filetype) noexcept
+{
+    auto _ = QtConcurrent::run([this, ctx, doc, filetype]
+    {
+        struct Guard
+        {
+            fz_context *ctx;
+            fz_document *doc;
+            bool committed{false};
+            ~Guard()
+            {
+                if (!committed)
+                {
+                    if (doc)
+                        fz_drop_document(ctx, doc);
+                    fz_drop_context(ctx);
+                }
+            }
+        } g{ctx, doc};
+
+        int page_count = 0;
+        float w = 0, h = 0;
+
+        fz_try(ctx)
+        {
+            page_count = fz_count_pages(ctx, doc);
+            if (page_count > 0)
+            {
+                fz_page *p = fz_load_page(ctx, doc, 0);
+                fz_rect r  = fz_bound_page(ctx, p);
+                fz_drop_page(ctx, p);
+                w = r.x1 - r.x0;
+                h = r.y1 - r.y0;
+            }
+        }
+        fz_catch(ctx)
+        {
+            QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                      Qt::QueuedConnection);
+            return;
+        }
+
         g.committed = true;
 
-        QMetaObject::invokeMethod(
-            this,
-            [this, bg_ctx, doc, page_count, width_pts, height_pts, filetype]()
+        QMetaObject::invokeMethod(this,
+                                  [this, ctx, doc, page_count, w, h, filetype]
         {
-            // On the main thread: atomically replace all document state.
-            // waitForRenders() ensures no background render thread is
-            // still using m_ctx or m_doc.
             waitForRenders();
-            cleanup(); // drops old m_doc, clears LRU, drops m_outline
+            cleanup();
 
-            fz_drop_context(m_ctx); // old master context is now free
+            fz_drop_context(m_ctx);
 
-            // bg_ctx becomes the new master context.
-            // doc was opened with bg_ctx — they are permanently paired.
-            m_ctx        = bg_ctx;
+            m_ctx        = ctx;
             m_doc        = doc;
             m_pdf_doc    = pdf_specifics(m_ctx, m_doc);
             m_page_count = page_count;
@@ -299,20 +304,13 @@ Model::openAsync(const QString &filePath,
             m_success    = true;
 
             {
-                std::lock_guard<std::mutex> lock(m_page_dim_mutex);
-                // Set the default used by getOrDefault()
-                m_default_page_dim = PageDimension{width_pts, height_pts};
-
-                // Prefill all pages with the default size so layout works
-                // immediately
+                std::lock_guard<std::mutex> lk(m_page_dim_mutex);
+                m_default_page_dim = {w, h};
                 m_page_dim_cache.dimensions.assign(page_count,
                                                    m_default_page_dim);
                 m_page_dim_cache.known.assign(page_count, 0);
-
-                if (m_page_count > 0)
-                {
+                if (page_count > 0)
                     m_page_dim_cache.known[0] = true;
-                }
             }
 
             emit openFileFinished();
@@ -536,14 +534,6 @@ Model::buildPageCache(int pageno) noexcept
     }
 }
 
-bool
-Model::passwordRequired() const noexcept
-{
-    if (!m_doc)
-        return false;
-    return fz_needs_password(m_ctx, m_doc);
-}
-
 void
 Model::setPopupColor(const QColor &color) noexcept
 {
@@ -635,16 +625,6 @@ Model::encrypt(const EncryptInfo &info) noexcept
     }
 
     return true;
-}
-
-bool
-Model::authenticate(const QString &password) noexcept
-{
-    if (!m_doc)
-        return false;
-
-    return fz_authenticate_password(m_ctx, m_doc,
-                                    password.toUtf8().constData());
 }
 
 bool
@@ -2033,7 +2013,7 @@ Model::searchHelper(int pageno, const QString &term,
 
     buildTextCacheForPages({pageno});
 
-    if (m_text_cache.has(pageno))
+    if (!m_text_cache.has(pageno))
         return results;
 
     const auto &text = m_text_cache.get(pageno)->chars;
@@ -2748,4 +2728,19 @@ Model::detectUrlLinksForPage(const RenderJob &job) noexcept
 
     fz_drop_context(ctx);
     return result;
+}
+
+void
+Model::cancelOpen() noexcept
+{
+    if (m_pending.ctx)
+    {
+        fz_drop_document(m_pending.ctx, m_pending.doc);
+        fz_drop_context(m_pending.ctx);
+        m_pending.clear();
+    }
+
+    cleanup();
+
+    emit openFileFailed();
 }
