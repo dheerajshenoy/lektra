@@ -726,6 +726,11 @@ lektra::initConfig() noexcept
     if (m_config.rendering.dpi <= 72.0f)
         m_config.rendering.dpi = 72.0f; // minimum DPI is 72
 
+    set_if_present(rendering["antialiasing"], m_config.rendering.antialiasing);
+    set_if_present(rendering["text_antialiasing"],
+                   m_config.rendering.text_antialiasing);
+    set_if_present(rendering["smooth_pixmap_transform"],
+                   m_config.rendering.smooth_pixmap_transform);
     set_if_present(rendering["antialiasing_bits"],
                    m_config.rendering.antialiasing_bits);
     set_if_present(rendering["icc_color_profile"],
