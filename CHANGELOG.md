@@ -11,6 +11,10 @@
 - New config option
     - `[window]`
         - `initial_size` (array of 2 ints): Initial window size in pixels (width, height)
+    - `[rendering]`
+        - `antialiasing` (bool): Enable/Disable antialiasing for rendering (default: true)
+        - `text_antialiasing` (bool): Enable/Disable antialiasing for text rendering (default: true)
+        - `smooth_pixmap_transform` (bool): Enable/Disable smooth pixmap transformation when scaling (default: true)
 
 ### Optimizations
 
