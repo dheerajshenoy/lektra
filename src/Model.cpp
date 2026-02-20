@@ -46,13 +46,7 @@ mupdf_unlock_mutex(void *user, int lock)
 
 Model::Model(QObject *parent) noexcept : QObject(parent)
 {
-    // initialize each mutex
-    m_fz_locks.user   = mupdf_mutexes.data();
-    m_fz_locks.lock   = mupdf_lock_mutex;
-    m_fz_locks.unlock = mupdf_unlock_mutex;
-    m_ctx             = fz_new_context(nullptr, &m_fz_locks, FZ_STORE_DEFAULT);
-    fz_register_document_handlers(m_ctx);
-    m_colorspace = fz_device_rgb(m_ctx);
+    initMuPDF();
     m_undo_stack = new QUndoStack();
     setUrlLinkRegex(QString::fromUtf8(R"((https?://|www\.)[^\s<>()\"']+)"));
 
@@ -62,20 +56,33 @@ Model::Model(QObject *parent) noexcept : QObject(parent)
 }
 
 void
+Model::initMuPDF() noexcept
+{
+    // initialize each mutex
+    m_fz_locks.user   = mupdf_mutexes.data();
+    m_fz_locks.lock   = mupdf_lock_mutex;
+    m_fz_locks.unlock = mupdf_unlock_mutex;
+    m_ctx             = fz_new_context(nullptr, &m_fz_locks, FZ_STORE_DEFAULT);
+    fz_register_document_handlers(m_ctx);
+    m_colorspace = fz_device_rgb(m_ctx);
+}
+
+void
 Model::LRUEvictFunction(PageCacheEntry &entry) noexcept
 {
-    std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+    // std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
     if (entry.display_list)
     {
-        fz_drop_display_list(m_ctx, entry.display_list);
+        fz_context *ctx = cloneContext(); // Use a clone to avoid racing m_ctx
+        fz_drop_display_list(ctx, entry.display_list);
         entry.display_list = nullptr;
     }
 
     // Also clear text cache for this page to save memory
-    auto textIt = m_text_cache.find(entry.pageno);
-    if (textIt != m_text_cache.end())
+    auto textIt = m_text_cache.has(entry.pageno);
+    if (textIt)
     {
-        m_text_cache.erase(textIt);
+        m_text_cache.remove(textIt);
     }
 }
 
@@ -336,8 +343,8 @@ Model::ensurePageCached(int pageno) noexcept
 void
 Model::buildPageCache(int pageno) noexcept
 {
-    // auto it = m_page_cache.find(pageno);
-    // if (it != m_page_cache.end())
+    // TODO: Add a check if already cached
+    // if (m_page_lru_cache.has(pageno))
     //     return;
 
     PageCacheEntry entry;
@@ -352,25 +359,27 @@ Model::buildPageCache(int pageno) noexcept
 
     fz_try(ctx)
     {
-        page = fz_load_page(ctx, m_doc, pageno);
-        if (!page)
-            fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
-
-        bounds = fz_bound_page(ctx, page);
-
         {
-            const float w = bounds.x1 - bounds.x0;
-            const float h = bounds.y1 - bounds.y0;
+            std::lock_guard<std::mutex> lock(m_doc_mutex);
+            page = fz_load_page(ctx, m_doc, pageno);
+            if (!page)
+                fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-            std::lock_guard<std::mutex> lock(m_page_dim_mutex);
-            m_page_dim_cache.set(pageno, w, h);
+            bounds = fz_bound_page(ctx, page);
+
+            {
+                const float w = bounds.x1 - bounds.x0;
+                const float h = bounds.y1 - bounds.y0;
+
+                std::lock_guard<std::mutex> lock(m_page_dim_mutex);
+                m_page_dim_cache.set(pageno, w, h);
+            }
+
+            dlist    = fz_new_display_list(ctx, bounds);
+            list_dev = fz_new_list_device(ctx, dlist);
+
+            fz_run_page(ctx, page, list_dev, fz_identity, nullptr);
         }
-
-        dlist    = fz_new_display_list(ctx, bounds);
-        list_dev = fz_new_list_device(ctx, dlist);
-
-        fz_run_page(ctx, page, list_dev, fz_identity, nullptr);
-
         // Extract links and cache them
         head = fz_load_links(ctx, page);
         for (fz_link *link = head; link; link = link->next)
@@ -631,13 +640,7 @@ Model::reloadDocument() noexcept
     std::lock_guard<std::mutex> lock(m_doc_mutex);
 
     if (!m_ctx)
-    {
-        m_ctx = fz_new_context(nullptr, &m_fz_locks, FZ_STORE_DEFAULT);
-        if (!m_ctx)
-            return false;
-        fz_register_document_handlers(m_ctx);
-        m_colorspace = fz_device_rgb(m_ctx);
-    }
+        initMuPDF();
 
     cleanup();
     m_page_count = 0;
@@ -928,7 +931,8 @@ Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
         fz_rect bounds = fz_bound_page(m_ctx, page);
 
         // 2. Re-create the same transform used in rendering
-        // Must match the scale used in createRenderJob: m_zoom * m_dpr * m_dpi
+        // Must match the scale used in createRenderJob: m_zoom * m_dpr *
+        // m_dpi
         const float scale
             = m_zoom * m_dpr * m_dpi; // must match toPixelSpace (no /72 —
                                       // fz_transform_page divides internally)
@@ -939,20 +943,21 @@ Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
         fz_irect bbox       = fz_round_rect(transformed);
 
         // 4. Reverse Step 6: Adjust for Qt's Device Pixel Ratio
-        // Map from logical Qt coordinates back to physical pixel coordinates
-        // The pixmap is scaled by DPR, so multiply to get physical pixels
+        // Map from logical Qt coordinates back to physical pixel
+        // coordinates The pixmap is scaled by DPR, so multiply to get
+        // physical pixels
         float physicalX = pixelPos.x() * m_dpr;
         float physicalY = pixelPos.y() * m_dpr;
 
         // 5. Reverse Step 5: ADD the bbox origin
-        // Move from the pixmap-local (0,0) back to the transformed coordinate
-        // space
+        // Move from the pixmap-local (0,0) back to the transformed
+        // coordinate space
         p.x = physicalX + bbox.x0;
         p.y = physicalY + bbox.y0;
 
         // 6. Reverse Step 2: Invert the transformation matrix
-        // This takes the point from transformed (scaled/rotated) space back to
-        // PDF points
+        // This takes the point from transformed (scaled/rotated) space back
+        // to PDF points
         fz_matrix inv_transform = fz_invert_matrix(transform);
         p                       = fz_transform_point(p, inv_transform);
     }
@@ -994,7 +999,8 @@ Model::toPixelSpace(int pageno, fz_point p) const noexcept
         p = fz_transform_point(p, transform);
 
         // 5. SUBTRACT the bbox origin
-        // Pixmap (0,0) is actually at bbox.x0, bbox.y0 in the transformed space
+        // Pixmap (0,0) is actually at bbox.x0, bbox.y0 in the transformed
+        // space
         localX = p.x - bbox.x0;
         localY = p.y - bbox.y0;
 
@@ -1036,10 +1042,12 @@ Model::requestPageRender(
     const RenderJob &job,
     const std::function<void(PageRenderResult)> &callback) noexcept
 {
-    ensurePageCached(job.pageno);
     m_render_future
         = QtConcurrent::run([this, job, callback]() -> PageRenderResult
-    { return renderPageWithExtrasAsync(job); });
+    {
+        ensurePageCached(job.pageno);
+        return renderPageWithExtrasAsync(job);
+    });
 
     auto watcher = new QFutureWatcher<PageRenderResult>(this);
     connect(watcher, &QFutureWatcher<PageRenderResult>::finished, this,
@@ -1225,7 +1233,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         //     text_page = fz_load_page(ctx, m_doc, job.pageno);
         //     if (text_page)
         //         stext_page
-        //             = fz_new_stext_page_from_page(ctx, text_page, nullptr);
+        //             = fz_new_stext_page_from_page(ctx, text_page,
+        //             nullptr);
         //
         //     if (stext_page)
         //     {
@@ -1300,8 +1309,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         //                         uri.prepend("https://");
         //
         //                     fz_rect tr        = fz_transform_rect(r,
-        //                     transform); const float scale = m_inv_dpr; QRectF
-        //                     qtRect(tr.x0 * scale, tr.y0 * scale,
+        //                     transform); const float scale = m_inv_dpr;
+        //                     QRectF qtRect(tr.x0 * scale, tr.y0 * scale,
         //                                   (tr.x1 - tr.x0) * scale,
         //                                   (tr.y1 - tr.y0) * scale);
         //
@@ -1351,8 +1360,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         fz_drop_pixmap(ctx, pix);
     }
     // result.image = result.image.convertToFormat(
-    //         QImage::Format_ARGB32_Premultiplied); // Optimize for rendering
-    //         in
+    //         QImage::Format_ARGB32_Premultiplied); // Optimize for
+    //         rendering in
     //                                               // QGraphicsView
 
     return result;
@@ -1711,7 +1720,8 @@ Model::removeAnnotations(int pageno, const std::vector<int> &objNums) noexcept
             // pdf_save_document(m_ctx, doc, path, &opts);
         }
 
-        pdf_drop_page(m_ctx, page); // prefer this if available in your MuPDF
+        pdf_drop_page(m_ctx,
+                      page); // prefer this if available in your MuPDF
     }
     fz_catch(m_ctx)
     {
@@ -1742,8 +1752,8 @@ Model::selectAtHelper(int pageno, fz_point pt, int snapMode) noexcept
     constexpr int MAX_HITS = 1024;
     thread_local std::array<fz_quad, MAX_HITS> hits;
 
-    const float scale = logicalScale(); // does not include DPR or DPI, since
-                                        // selection is in PDF points
+    const float scale = logicalScale(); // does not include DPR or DPI,
+                                        // since selection is in PDF points
 
     fz_rect page_bounds{};
     fz_page *page_for_bounds = nullptr;
@@ -1841,8 +1851,8 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
     constexpr int MAX_HITS = 1024;
     thread_local std::array<fz_quad, MAX_HITS> hits;
 
-    const float scale = logicalScale(); // does not include DPR or DPI, since
-                                        // selection is in PDF points
+    const float scale = logicalScale(); // does not include DPR or DPI,
+                                        // since selection is in PDF points
 
     fz_rect page_bounds{};
     fz_page *page_for_bounds = nullptr;
@@ -1954,8 +1964,8 @@ Model::buildPageTransforms(int pageno) const noexcept
         return {identity, identity};
     }
 
-    const float scale = logicalScale(); // does not include DPR or DPI, since
-                                        // selection is in PDF points
+    const float scale = logicalScale(); // does not include DPR or DPI,
+                                        // since selection is in PDF points
     fz_matrix page_to_dev = fz_scale(scale, scale);
     page_to_dev           = fz_pre_rotate(page_to_dev, m_rotation);
     const fz_rect dbox    = fz_transform_rect(bounds, page_to_dev);
@@ -2033,11 +2043,10 @@ Model::searchHelper(int pageno, const QString &term,
 
     buildTextCacheForPages({pageno});
 
-    auto it = m_text_cache.find(pageno);
-    if (it == m_text_cache.end())
+    if (m_text_cache.has(pageno))
         return results;
 
-    const auto &text = it->second.chars;
+    const auto &text = m_text_cache.get(pageno)->chars;
     const int n      = text.size();
     const int m      = term.size();
 
@@ -2188,7 +2197,7 @@ Model::buildTextCacheForPages(const std::set<int> &pagenos) noexcept
 
     for (int pageno : pagenos)
     {
-        if (m_text_cache.contains(pageno))
+        if (m_text_cache.has(pageno))
             continue;
 
         fz_page *page        = nullptr;
@@ -2220,7 +2229,7 @@ Model::buildTextCacheForPages(const std::set<int> &pagenos) noexcept
                 }
             }
 
-            m_text_cache.emplace(pageno, std::move(cache));
+            m_text_cache.put(pageno, std::move(cache));
         }
         fz_always(m_ctx)
         {
@@ -2369,8 +2378,8 @@ Model::getTextInArea(const int pageno, const QPointF &start,
     if (deviceRect.isEmpty())
         return result;
 
-    const float scale = logicalScale(); // does not include DPR or DPI, since
-                                        // selection is in PDF points
+    const float scale = logicalScale(); // does not include DPR or DPI,
+                                        // since selection is in PDF points
 
     fz_stext_page *stext_page{nullptr};
     fz_page *page{nullptr};
@@ -2475,8 +2484,8 @@ Model::getTextInArea(const int pageno, const QPointF &start,
 //     if (flat_chars.empty())
 //         return {};
 
-//     // 3) Find index of the clicked character (point-in-rect with epsilon)
-//     auto contains_point_eps = [&](fz_rect r) -> bool
+//     // 3) Find index of the clicked character (point-in-rect with
+//     epsilon) auto contains_point_eps = [&](fz_rect r) -> bool
 //     {
 //         // expand rect a bit so clicks don't have to be perfect
 //         const float eps = 0.75f; // page units; tweak if needed
@@ -2605,8 +2614,8 @@ Model::getFirstCharPos(const int pageno) noexcept
                 {
                     if (span->size > 0)
                     {
-                        // Return the origin of the first character in the first
-                        // span
+                        // Return the origin of the first character in the
+                        // first span
                         return span->origin;
                     }
                 }
@@ -2626,8 +2635,8 @@ Model::getFirstCharPos(const int pageno) noexcept
     return {0, 0};
 }
 
-// Detect URL-like text and return as links, excluding areas already covered by
-// PDF links
+// Detect URL-like text and return as links, excluding areas already covered
+// by PDF links
 std::vector<Model::RenderLink>
 Model::detectUrlLinksForPage(const RenderJob &job) noexcept
 {
@@ -2649,8 +2658,9 @@ Model::detectUrlLinksForPage(const RenderJob &job) noexcept
             cachedLinks = entry->links;
     }
 
-    fz_matrix transform = fz_transform_page(
-        fz_empty_rect, job.zoom, job.rotation); // bounds not needed for stext
+    fz_matrix transform
+        = fz_transform_page(fz_empty_rect, job.zoom,
+                            job.rotation); // bounds not needed for stext
 
     fz_try(ctx)
     {

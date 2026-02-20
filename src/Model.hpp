@@ -399,6 +399,7 @@ private:
         return m_filetype;
     }
 
+    void initMuPDF() noexcept;
     std::string getTextInArea(const int pageno, const QPointF &start,
                               const QPointF &end) noexcept;
     struct CachedLink
@@ -597,7 +598,7 @@ private:
     QFuture<void> m_search_future;
     pdf_write_options m_pdf_write_options{pdf_default_write_options};
     std::atomic<int> m_search_match_count{0};
-    std::unordered_map<int, CachedTextPage> m_text_cache;
+    LRUCache<int, CachedTextPage> m_text_cache;
     bool m_link_show_boundary{false};
     bool m_detect_url_links{false};
     QRegularExpression m_url_link_re;

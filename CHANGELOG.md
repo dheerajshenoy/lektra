@@ -9,6 +9,10 @@
 - Add recent files picker (command: `files_recent`) to quickly access recently opened files
 - Per page dimension support (instead of using the dimensions of the first page for the entire document, which causes issues with documents that have pages of different sizes)
 
+### Optimizations
+
+- Make `text_cache` an LRU cache to reduce memory usage on large documents (used for text searching)
+
 ### Breaking Changes
 
 - Remove `[outline]` and `[search_highlight]` sections from the config
