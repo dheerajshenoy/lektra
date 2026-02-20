@@ -1199,6 +1199,9 @@ DocumentView::PrevHit() noexcept
 void
 DocumentView::GotoHit(int index) noexcept
 {
+    if (m_search_hit_flat_refs.empty())
+        return;
+
 #ifndef NDEBUG
     qDebug() << "DocumentView::GotoHit(): Going to search hit index:" << index;
 #endif
