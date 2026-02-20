@@ -9,7 +9,7 @@
 #include <QLineF>
 #include <QMenu>
 #include <QNativeGestureEvent>
-#include <QOpenGLWidget>
+// #include <QOpenGLWidget>
 #include <QPinchGesture>
 #include <QScroller>
 #include <QSwipeGesture>
