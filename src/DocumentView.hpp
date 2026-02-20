@@ -415,6 +415,8 @@ private:
     void updateSceneRect() noexcept;
     void initConnections() noexcept;
     void resetConnections() noexcept;
+
+    std::set<int> getPreloadPages() noexcept;
     const std::set<int> &getVisiblePages() noexcept;
     void invalidateVisiblePagesCache() noexcept;
     void handleDeferredResize() noexcept;
