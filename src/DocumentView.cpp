@@ -735,7 +735,6 @@ DocumentView::handleTextSelection(const QPointF &start,
              << "from" << start << "to" << end;
 #endif
 
-    // 🔴 CRITICAL FIX: map to page-local coordinates
     const QPointF pageStart = pageItem->mapFromScene(start);
     const QPointF pageEnd   = pageItem->mapFromScene(end);
 
@@ -3402,7 +3401,6 @@ DocumentView::CopyTextFromRegion(const QRectF &area) noexcept
     if (!pageAtScenePos(area.center(), pageno, pageItem))
         return;
 
-    // 🔴 CRITICAL FIX: map to page-local coordinates
     const QPointF pageStart = pageItem->mapFromScene(area.topLeft());
     const QPointF pageEnd   = pageItem->mapFromScene(area.bottomRight());
 
