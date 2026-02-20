@@ -304,16 +304,6 @@ public:
         return m_fg_color;
     }
 
-    [[nodiscard]] inline float pageWidthPts() const noexcept
-    {
-        return m_page_width_pts;
-    }
-
-    [[nodiscard]] inline float pageHeightPts() const noexcept
-    {
-        return m_page_height_pts;
-    }
-
     [[nodiscard]] inline float DPI() const noexcept
     {
         return m_dpi;
@@ -367,7 +357,6 @@ public:
     bool SaveAs(const QString &newFilePath) noexcept;
     QPointF toPixelSpace(int pageno, fz_point pt) const noexcept;
     fz_point toPDFSpace(int pageno, QPointF pt) const noexcept;
-    void cachePageDimension() noexcept;
 
     std::vector<QPolygonF>
     computeTextSelectionQuad(int pageno, const QPointF &start,
@@ -435,12 +424,72 @@ private:
         float opacity;
     };
 
+    struct PageDimension
+    {
+        float width_pts{0.0f}, height_pts{0.0f};
+    };
+
+    // Cache for page dimensions (W, H)
+    struct PageDimensionCache
+    {
+        std::vector<PageDimension> dimensions;
+        std::vector<bool> known;
+
+        void reset(int page_count)
+        {
+            dimensions.assign(page_count, PageDimension{});
+            known.assign(page_count, 0);
+        }
+
+        bool isKnown(int pageno) const
+        {
+            return pageno >= 0 && pageno < static_cast<int>(known.size())
+                   && known[pageno] != false;
+        }
+
+        void set(int p, float w, float h)
+        {
+            if (p < 0 || p >= (int)dimensions.size())
+                return;
+            dimensions[p] = PageDimension{w, h};
+            known[p]      = true;
+        }
+
+        PageDimension getOrDefault(int p, const PageDimension &def) const
+        {
+            if (p < 0 || p >= (int)dimensions.size())
+                return def;
+            return known[p] ? dimensions[p] : def;
+        }
+
+        PageDimension get(int p, const PageDimension &fallback) const
+        {
+            if (p < 0 || p >= (int)dimensions.size())
+                return fallback;
+            return dimensions[p];
+        }
+    };
+
+    [[nodiscard]] inline PageDimension
+    page_dimension_pts(int pageno) const noexcept
+    {
+        std::lock_guard<std::mutex> lock(m_page_dim_mutex);
+        return m_page_dim_cache.getOrDefault(pageno, m_default_page_dim);
+    }
+
+    [[nodiscard]] inline bool page_dimension_known(int pageno) const noexcept
+    {
+        std::lock_guard<std::mutex> lock(m_page_dim_mutex);
+        return m_page_dim_cache.isKnown(pageno);
+    }
+
     struct PageCacheEntry
     {
         int pageno;
         fz_display_list *display_list{nullptr};
         fz_rect bounds{};
 
+        PageDimension dimension{};
         std::vector<CachedLink> links;
         std::vector<CachedAnnotation> annotations;
     };
@@ -531,7 +580,6 @@ private:
     bool m_success{false};
     fz_colorspace *m_colorspace{nullptr};
     fz_outline *m_outline{nullptr};
-    float m_page_width_pts{0.0f}, m_page_height_pts{0.0f};
     fz_point m_selection_start{}, m_selection_end{};
     fz_locks_context m_fz_locks;
     mutable std::recursive_mutex m_page_cache_mutex;
@@ -539,6 +587,10 @@ private:
 
     uint32_t m_bg_color{0};
     uint32_t m_fg_color{0};
+
+    PageDimensionCache m_page_dim_cache{};
+    mutable std::mutex m_page_dim_mutex;
+    PageDimension m_default_page_dim{};
 
     std::mutex m_doc_mutex;
     QFuture<PageRenderResult> m_render_future;

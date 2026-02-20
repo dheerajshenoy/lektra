@@ -360,6 +360,28 @@ private:
         return m_selection_path_item->data(0).toInt();
     }
 
+    // Helper: O(1) start position of page i in scene axis coordinates
+    inline double pageOffset(int pageno) const noexcept
+    {
+        if (pageno < 0 || pageno >= static_cast<int>(m_page_offsets.size()) - 1)
+            return 0.0;
+        return m_page_offsets[pageno];
+    }
+
+    // Helper: stride (extent + spacing) of a specific page
+    inline double pageStride(int pageno) const noexcept
+    {
+        if (pageno < 0 || pageno >= static_cast<int>(m_page_offsets.size()) - 1)
+            return 0.0;
+        return m_page_offsets[pageno + 1] - m_page_offsets[pageno];
+    }
+
+    // Total scene-axis extent across all pages
+    inline double totalPageExtent() const noexcept
+    {
+        return m_page_offsets.empty() ? 0.0 : m_page_offsets.back();
+    }
+
     void CopyTextFromRegion(const QRectF &area) noexcept;
     void CopyRegionAsImage(const QRectF &area) noexcept;
     void SaveRegionAsImage(const QRectF &area) noexcept;
@@ -413,7 +435,7 @@ private:
     QGraphicsPathItem *ensureSearchItemForPage(int pageno) noexcept;
     QGraphicsPathItem *m_current_search_hit_item{nullptr};
     void updateSelectionPath(int pageno, std::vector<QPolygonF> quads) noexcept;
-    QSizeF currentPageSceneSize() const noexcept;
+    QSizeF pageSceneSize(int pageno) const noexcept;
     std::vector<Annotation *> annotationsInArea(int pageno,
                                                 const QRectF &area) noexcept;
     Annotation *annotationAtPoint(int pageno, const QPointF &point) noexcept;
@@ -433,7 +455,7 @@ private:
     const Config &m_config;
     FitMode m_fit_mode{FitMode::None};
     int m_pageno{-1};
-    float m_spacing{10.0f}, m_page_stride{0.0f}, m_page_x_offset{0.0f};
+    float m_spacing{10.0f}, m_page_x_offset{0.0f};
     double m_target_zoom{MIN_ZOOM_FACTOR}, m_current_zoom{MIN_ZOOM_FACTOR};
     bool m_auto_resize{false}, m_auto_reload{false};
     ScrollBar *m_hscroll{nullptr};
@@ -452,7 +474,6 @@ private:
     QMap<int, std::vector<Model::SearchHit>> m_search_hits;
     std::vector<HitRef> m_search_hit_flat_refs;
     QHash<int, QGraphicsPathItem *> m_search_items;
-    float m_preload_margin{1.0f};
     QPointF m_selection_start, m_selection_end;
     int m_last_selection_page{-1};
     QGraphicsPathItem *m_selection_path_item{nullptr};
@@ -470,6 +491,10 @@ private:
     QFileSystemWatcher *m_file_watcher{nullptr};
     DocumentContainer *m_container{nullptr};
     std::vector<LinkHint *> m_kb_link_hints{};
+    std::vector<double> m_page_offsets{};
+    float m_preload_margin{1.0f};
+
+    int pageAtAxisCoord(double coord) const noexcept;
 
     unsigned int MAX_CONCURRENT_RENDERS{
         std::thread::hardware_concurrency() > 1

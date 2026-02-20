@@ -192,12 +192,13 @@ DocumentView::initGui() noexcept
 
 // Get the size of the current page in scene coordinates
 QSizeF
-DocumentView::currentPageSceneSize() const noexcept
+DocumentView::pageSceneSize(int pageno) const noexcept
 {
     const float scale = m_model->logicalScale();
 
-    double w = m_model->pageWidthPts() * scale;
-    double h = m_model->pageHeightPts() * scale;
+    const auto pageDim = m_model->page_dimension_pts(pageno);
+    double w           = pageDim.width_pts * scale;
+    double h           = pageDim.height_pts * scale;
 
     const int rot
         = static_cast<int>(std::fmod(std::abs(m_model->rotation()), 360.0));
@@ -854,8 +855,10 @@ DocumentView::setFitMode(FitMode mode) noexcept
 
     m_fit_mode = mode;
 
-    const double baseW = (m_model->pageWidthPts() / 72.0) * m_model->DPI();
-    const double baseH = (m_model->pageHeightPts() / 72.0) * m_model->DPI();
+    const auto pageDim = m_model->page_dimension_pts(m_pageno);
+
+    const double baseW = (pageDim.width_pts / 72.0) * m_model->DPI();
+    const double baseH = (pageDim.height_pts / 72.0) * m_model->DPI();
     double rot         = static_cast<double>(m_model->rotation());
     rot                = std::fmod(rot, 360.0);
     if (rot < 0)
@@ -1045,12 +1048,12 @@ DocumentView::GotoPage(int pageno) noexcept
 
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
-        const double x = pageno * m_page_stride + m_page_stride / 2.0;
+        const double x = pageOffset(pageno) + pageStride(pageno) / 2.0;
         m_gview->centerOn(QPointF(x, m_gview->sceneRect().height() / 2.0));
     }
     else
     {
-        const double y = pageno * m_page_stride + m_page_stride / 2.0;
+        const double y = pageOffset(pageno) + pageStride(pageno) / 2.0;
         m_gview->centerOn(QPointF(m_gview->sceneRect().width() / 2.0, y));
     }
 }
@@ -1143,139 +1146,6 @@ DocumentView::SearchInPage(const int pageno, const QString &term) noexcept
 
     // m_search_hits = m_model->search(term);
     m_model->searchInPage(pageno, term, caseSensitive);
-}
-
-// Function that is common to zoom-in and zoom-out
-void
-DocumentView::zoomHelper() noexcept
-{
-#ifndef NDEBUG
-    qDebug() << "DocumentView::zoomHelper(): Zooming from" << m_current_zoom
-             << "to" << m_target_zoom;
-#endif
-
-    // Record the current center position as a fraction of the page pixmap.
-    int anchorPageIndex            = -1;
-    GraphicsPixmapItem *anchorItem = nullptr;
-    QPointF anchorFrac{0.0, 0.0};
-    bool hasAnchor = false;
-
-    const QPointF centerScene
-        = m_gview->mapToScene(m_gview->viewport()->rect().center());
-
-    if (pageAtScenePos(centerScene, anchorPageIndex, anchorItem))
-    {
-        const QPointF localPos = anchorItem->mapFromScene(centerScene);
-        const QRectF bounds    = anchorItem->boundingRect();
-        if (!bounds.isEmpty())
-        {
-            // Use boundingRect which is in local/logical coordinates,
-            // matching what mapFromScene returns
-            anchorFrac = QPointF(localPos.x() / bounds.width(),
-                                 localPos.y() / bounds.height());
-            hasAnchor  = true;
-        }
-    }
-
-    m_current_zoom = m_target_zoom;
-    cachePageStride();
-    updateSceneRect();
-
-    // Show scrollbars after scene rect is updated so handle size is correct
-    m_gview->flashScrollbars();
-
-    const int targetPixelHeight = m_model->pageHeightPts() * m_model->DPR()
-                                  * m_target_zoom * m_model->DPI() / 72.0;
-
-    for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
-         ++it)
-    {
-        int i                    = it.key();
-        GraphicsPixmapItem *item = it.value();
-
-        const QPixmap pix = item->pixmap();
-        const bool isPlaceholder
-            = (item->data(0).toString() == "placeholder_page");
-
-        double pageWidthScene  = 0.0;
-        double pageHeightScene = 0.0;
-        if (isPlaceholder)
-        {
-            const QSizeF logicalSize = currentPageSceneSize();
-            if (!pix.isNull() && pix.width() > 0 && pix.height() > 0)
-            {
-                item->setScale(1.0);
-                item->setTransform(
-                    QTransform::fromScale(logicalSize.width() / pix.width(),
-                                          logicalSize.height() / pix.height()));
-            }
-            pageWidthScene  = logicalSize.width();
-            pageHeightScene = logicalSize.height();
-        }
-        else
-        {
-            // Calculate scale based on ACTUAL pixmap height vs TARGET pixel
-            // height This ensures the item perfectly fills the 'pixelHeight'
-            // portion of the stride
-            double currentPixmapHeight = item->pixmap().height();
-            double perfectScale
-                = static_cast<double>(targetPixelHeight) / currentPixmapHeight;
-            item->setScale(perfectScale);
-
-            pageWidthScene  = item->boundingRect().width() * item->scale();
-            pageHeightScene = item->boundingRect().height() * item->scale();
-        }
-        const QRectF sr = m_gview->sceneRect();
-
-        if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
-        {
-            const double yOffset = (sr.height() - pageHeightScene) / 2.0;
-            item->setPos(i * m_page_stride, yOffset);
-        }
-        else if (m_layout_mode == LayoutMode::SINGLE)
-        {
-            const double xOffset = (sr.width() - pageWidthScene) / 2.0;
-            const double yOffset = (sr.height() - pageHeightScene) / 2.0;
-            item->setPos(xOffset, yOffset);
-        }
-        else
-        {
-            m_page_x_offset = (sr.width() - pageWidthScene) / 2.0;
-            item->setPos(m_page_x_offset, i * m_page_stride);
-        }
-    }
-
-    const QList<int> trackedPages = m_page_items_hash.keys();
-    for (int pageno : trackedPages)
-    {
-        m_model->invalidatePageCache(pageno);
-        clearLinksForPage(pageno);
-        clearAnnotationsForPage(pageno);
-        clearSearchItemsForPage(pageno);
-    }
-
-    m_model->setZoom(m_current_zoom);
-
-    renderSearchHitsInScrollbar();
-
-    // Restore viewport to the same relative point within the page.
-    if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
-    {
-        GraphicsPixmapItem *pageItem = m_page_items_hash[anchorPageIndex];
-        const QRectF bounds          = pageItem->boundingRect();
-        if (!bounds.isEmpty())
-        {
-            // Use boundingRect which is in local/logical coordinates,
-            // matching what mapToScene expects
-            const QPointF restoredLocalPos(anchorFrac.x() * bounds.width(),
-                                           anchorFrac.y() * bounds.height());
-            const QPointF restoredScenePos
-                = pageItem->mapToScene(restoredLocalPos);
-            m_gview->centerOn(restoredScenePos);
-        }
-    }
-
-    m_hq_render_timer->start();
 }
 
 // Zoom in by a fixed factor
@@ -1887,8 +1757,15 @@ DocumentView::getVisiblePages() noexcept
     a0 -= m_preload_margin;
     a1 += m_preload_margin;
 
-    int firstPage = static_cast<int>(std::floor(a0 / m_page_stride));
-    int lastPage  = static_cast<int>(std::floor(a1 / m_page_stride));
+    auto it0
+        = std::upper_bound(m_page_offsets.begin(), m_page_offsets.end(), a0);
+    auto it1
+        = std::upper_bound(m_page_offsets.begin(), m_page_offsets.end(), a1);
+
+    int firstPage = std::max(
+        0, static_cast<int>(std::distance(m_page_offsets.begin(), it0)) - 1);
+    int lastPage = std::max(
+        0, static_cast<int>(std::distance(m_page_offsets.begin(), it1)) - 1);
 
     firstPage = std::max(0, firstPage);
     lastPage  = std::min(m_model->numPages() - 1, lastPage);
@@ -2194,33 +2071,48 @@ DocumentView::removePageItem(int pageno) noexcept
 void
 DocumentView::cachePageStride() noexcept
 {
+    const int N = m_model->numPages();
+
+    if (N <= 0)
+        return;
+
+    m_page_offsets.resize(N + 1);
+
     const double spacingScene = m_spacing * m_current_zoom;
-
-    const double w
-        = (m_model->pageWidthPts() / 72.0) * m_model->DPI() * m_current_zoom;
-    const double h
-        = (m_model->pageHeightPts() / 72.0) * m_model->DPI() * m_current_zoom;
-
-    double rot = static_cast<double>(m_model->rotation());
-    // rot += m_model->pageRotationDeg(); // if applicable
-
-    rot = std::fmod(rot, 360.0);
-    if (rot < 0)
-        rot += 360.0;
+    const double rot          = [](double r)
+    {
+        r = std::fmod(r, 360.0);
+        return r < 0 ? r + 360.0 : r;
+    }(static_cast<double>(m_model->rotation()));
 
     const double t = deg2rad(rot);
     const double c = std::abs(std::cos(t));
     const double s = std::abs(std::sin(t));
 
-    const double bboxW = w * c + h * s;
-    const double bboxH = w * s + h * c;
+    const bool horizontal = (m_layout_mode == LayoutMode::LEFT_TO_RIGHT);
 
-    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
-        m_page_stride = bboxW + spacingScene;
-    else
-        m_page_stride = bboxH + spacingScene;
+    double cursor = 0.0;
+    for (int i = 0; i < N; ++i)
+    {
+        m_page_offsets[i] = cursor;
 
-    m_preload_margin = m_page_stride;
+        const auto dim = m_model->page_dimension_pts(i);
+        const double w
+            = (dim.width_pts / 72.0) * m_model->DPI() * m_current_zoom;
+        const double h
+            = (dim.height_pts / 72.0) * m_model->DPI() * m_current_zoom;
+
+        // Axis-aligned bounding box after rotation
+        const double bboxW = w * c + h * s;
+        const double bboxH = w * s + h * c;
+
+        cursor += (horizontal ? bboxW : bboxH) + spacingScene;
+    }
+    m_page_offsets[N] = cursor;
+
+    // Preload margin: use current page's stride as representative
+    const double currentStride = pageStride(std::clamp(m_pageno, 0, N - 1));
+    m_preload_margin           = currentStride;
     if (m_config.behavior.cache_pages > 0)
         m_preload_margin *= m_config.behavior.cache_pages;
 
@@ -2237,7 +2129,7 @@ DocumentView::updateSceneRect() noexcept
     if (m_layout_mode == LayoutMode::SINGLE)
     {
         // Allow scrollbars to pan within the page
-        const QSizeF page   = currentPageSceneSize();
+        const QSizeF page   = pageSceneSize(m_pageno);
         const double sceneW = std::max(viewW, page.width());
         const double sceneH = std::max(viewH, page.height());
         m_gview->setSceneRect(0, 0, sceneW, sceneH);
@@ -2246,16 +2138,16 @@ DocumentView::updateSceneRect() noexcept
 
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
-        const QSizeF page       = currentPageSceneSize();
-        const double totalWidth = m_model->numPages() * m_page_stride;
+        const QSizeF page       = pageSceneSize(m_pageno);
+        const double totalWidth = totalPageExtent();
         const double sceneH     = std::max(viewH, page.height());
         const double xMargin    = std::max(0.0, (viewW - page.width()) / 2.0);
         m_gview->setSceneRect(-xMargin, 0, totalWidth + 2.0 * xMargin, sceneH);
     }
     else
     {
-        const QSizeF page        = currentPageSceneSize();
-        const double totalHeight = m_model->numPages() * m_page_stride;
+        const QSizeF page        = pageSceneSize(m_pageno);
+        const double totalHeight = totalPageExtent();
         const double sceneW      = std::max(viewW, page.width());
         const double yMargin     = std::max(0.0, (viewH - page.height()) / 2.0);
         m_gview->setSceneRect(0, -yMargin, sceneW, totalHeight + 2.0 * yMargin);
@@ -2313,50 +2205,68 @@ DocumentView::showEvent(QShowEvent *event)
     m_deferred_fit = false;
 }
 
-// Check if a scene position is within any page item - use the stride to compute
-// page directly, O(1)
 bool
 DocumentView::pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
                              GraphicsPixmapItem *&outPageItem) const noexcept
 {
-    if (m_page_stride <= 0)
+    outPageIndex = -1;
+    outPageItem  = nullptr;
+
+    const int N = m_model->numPages();
+    if (N <= 0 || m_page_offsets.size() < static_cast<size_t>(N + 1))
         return false;
 
-    int candidate = -1;
-    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
-        candidate = static_cast<int>(scenePos.x() / m_page_stride);
-    else if (m_layout_mode == LayoutMode::TOP_TO_BOTTOM)
-        candidate = static_cast<int>(scenePos.y() / m_page_stride);
-    else
-        candidate = m_pageno; // SINGLE
-
-    candidate = std::clamp(candidate, 0, m_model->numPages() - 1);
-
-    // Verify the candidate (handles gaps/margins)
-    auto it = m_page_items_hash.find(candidate);
-    if (it != m_page_items_hash.end() && it.value()
-        && it.value()->sceneBoundingRect().contains(scenePos))
+    // ── SINGLE mode: only one page is ever in the scene ─────────────────────
+    if (m_layout_mode == LayoutMode::SINGLE)
     {
-        outPageIndex = candidate;
-        outPageItem  = it.value();
-        return true;
+        auto it = m_page_items_hash.find(m_pageno);
+        if (it != m_page_items_hash.end() && it.value()
+            && it.value()->sceneBoundingRect().contains(scenePos))
+        {
+            outPageIndex = m_pageno;
+            outPageItem  = it.value();
+            return true;
+        }
+        return false;
     }
 
-    // Fallback: check neighbours only
-    for (int delta : {-1, 1})
+    // ── Multi-page modes: binary search the prefix-sum array ─────────────────
+    // pageOffset(i) is the main-axis start of page i.
+    // upper_bound(coord) gives the first entry strictly greater than coord,
+    // so the page that owns coord is one slot before that iterator.
+    const double coord = (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+                             ? scenePos.x()
+                             : scenePos.y();
+
+    const auto it1 = std::upper_bound(m_page_offsets.cbegin(),
+                                      m_page_offsets.cend(), coord);
+    // Candidate is the page whose slot contains coord on the main axis.
+    int candidate
+        = static_cast<int>(std::distance(m_page_offsets.cbegin(), it1) - 1);
+    candidate = std::clamp(candidate, 0, N - 1);
+
+    // ── Try candidate, then expand outward ───────────────────────────────────
+    // With variable page sizes the binary search is exact for the main axis,
+    // but the cross-axis check (sceneBoundingRect) can still miss e.g. during
+    // a zoom animation frame. Expanding ±1 covers that transient case without
+    // ever needing more — the binary search already pins the main-axis page
+    // correctly, so ±1 is now a genuine safety net rather than the primary
+    // mechanism.
+
+    for (int pg : {candidate, candidate - 1, candidate + 1})
     {
-        auto jt = m_page_items_hash.find(candidate + delta);
+        if (pg < 0 || pg >= N)
+            continue;
+        auto jt = m_page_items_hash.find(pg);
         if (jt != m_page_items_hash.end() && jt.value()
             && jt.value()->sceneBoundingRect().contains(scenePos))
         {
-            outPageIndex = candidate + delta;
+            outPageIndex = pg;
             outPageItem  = jt.value();
             return true;
         }
     }
 
-    outPageIndex = -1;
-    outPageItem  = nullptr;
     return false;
 }
 
@@ -2540,6 +2450,17 @@ DocumentView::updateCurrentHitHighlight() noexcept
     }
 }
 
+// Private helper — O(log N), call only in multi-page modes.
+int
+DocumentView::pageAtAxisCoord(double coord) const noexcept
+{
+    const auto it = std::upper_bound(m_page_offsets.cbegin(),
+                                     m_page_offsets.cend(), coord);
+    const int candidate
+        = static_cast<int>(std::distance(m_page_offsets.cbegin(), it) - 1);
+    return std::clamp(candidate, 0, m_model->numPages() - 1);
+}
+
 void
 DocumentView::updateCurrentPage() noexcept
 {
@@ -2547,36 +2468,23 @@ DocumentView::updateCurrentPage() noexcept
 
     if (m_layout_mode == LayoutMode::SINGLE)
     {
-        // The current page is explicit in single-page mode.
         emit currentPageChanged(m_pageno + 1);
         return;
     }
 
-    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
-    {
-        const int scrollX = m_hscroll->value();
-        const int viewW   = m_gview->viewport()->width();
-        const int centerX = scrollX + viewW / 2;
+    const int viewportHalf = (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+                                 ? m_gview->viewport()->width() / 2
+                                 : m_gview->viewport()->height() / 2;
 
-        int page = centerX / m_page_stride;
-        page     = std::clamp(page, 0, m_model->numPages() - 1);
+    const int scrollPos = (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+                              ? m_hscroll->value()
+                              : m_vscroll->value();
 
-        if (page == m_pageno)
-            return;
+    // Map the viewport centre into scene coordinates on the layout axis.
+    // QGraphicsView scroll values are in scene-pixel units, so this is direct.
+    const double centerCoord = static_cast<double>(scrollPos + viewportHalf);
 
-        m_pageno = page;
-        emit currentPageChanged(page + 1);
-        return;
-    }
-
-    // default vertical
-    const int scrollY = m_vscroll->value();
-    const int viewH   = m_gview->viewport()->height();
-    const int centerY = scrollY + viewH / 2;
-
-    int page = centerY / m_page_stride;
-    page     = std::clamp(page, 0, m_model->numPages() - 1);
-
+    const int page = pageAtAxisCoord(centerCoord);
     if (page == m_pageno)
         return;
 
@@ -2732,7 +2640,7 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
     if (m_page_items_hash.contains(pageno))
         return;
 
-    const QSizeF logicalSize = currentPageSceneSize();
+    const QSizeF logicalSize = pageSceneSize(pageno);
     if (logicalSize.isEmpty())
         return;
 
@@ -2752,7 +2660,7 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
         const double yOffset = (sr.height() - pageH) / 2.0;
-        const double xPos    = pageno * m_page_stride;
+        const double xPos    = pageOffset(pageno);
         item->setPos(xPos, yOffset);
     }
     else if (m_layout_mode == LayoutMode::SINGLE)
@@ -2764,7 +2672,7 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
     else
     {
         const double xOffset = (sr.width() - pageW) / 2.0;
-        const double yPos    = pageno * m_page_stride;
+        const double yPos    = pageOffset(pageno);
         item->setPos(xOffset, yPos);
     }
 
@@ -2779,6 +2687,7 @@ DocumentView::createAndAddPageItem(int pageno, const QPixmap &pix) noexcept
     auto *item = new GraphicsPixmapItem();
     item->setPixmap(pix);
 
+    // Logical scene size of the rendered pixmap.
     const double pageW = pix.width() / pix.devicePixelRatio();
     const double pageH = pix.height() / pix.devicePixelRatio();
 
@@ -2787,22 +2696,18 @@ DocumentView::createAndAddPageItem(int pageno, const QPixmap &pix) noexcept
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
         const double yOffset = (sr.height() - pageH) / 2.0;
-        const double xPos    = pageno * m_page_stride;
-        item->setPos(xPos, yOffset);
+        item->setPos(pageOffset(pageno), yOffset);
     }
     else if (m_layout_mode == LayoutMode::SINGLE)
     {
-        // Always place the current page in the center-ish of the viewport
-        // scene.
         const double xOffset = (sr.width() - pageW) / 2.0;
         const double yOffset = (sr.height() - pageH) / 2.0;
         item->setPos(xOffset, yOffset);
     }
-    else
+    else // TOP_TO_BOTTOM
     {
         const double xOffset = (sr.width() - pageW) / 2.0;
-        const double yPos    = pageno * m_page_stride;
-        item->setPos(xOffset, yPos);
+        item->setPos(xOffset, pageOffset(pageno));
     }
 
     m_gscene->addItem(item);
@@ -3174,69 +3079,45 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
     item->setBrush(rgbaToQColor(m_config.colors.search_match));
 }
 
-// Render search hits in the scrollbar
 void
 DocumentView::renderSearchHitsInScrollbar() noexcept
 {
-    // Clear markers for both scrollbars first
     m_vscroll->setSearchMarkers({});
     m_hscroll->setSearchMarkers({});
 
     if (m_search_hit_flat_refs.empty())
         return;
 
-    std::vector<double> search_markers_pos;
-    search_markers_pos.reserve(m_search_hit_flat_refs.size());
+    // SINGLE mode has no scrollbar to mark — only one page is ever shown.
+    if (m_layout_mode == LayoutMode::SINGLE)
+        return;
 
-    // Scale factor to convert PDF points to current scene pixels
-    const double pdfToSceneScale = m_model->physicalScale();
+    // Scene coordinates are logical pixels, so use logicalScale, not
+    // physicalScale (which is DPR-multiplied and overshoots on HiDPI).
+    const double pdfToSceneScale = m_model->logicalScale();
 
-    switch (m_layout_mode)
+    std::vector<double> markers;
+    markers.reserve(m_search_hit_flat_refs.size());
+
+    if (m_layout_mode == LayoutMode::TOP_TO_BOTTOM)
     {
-        case LayoutMode::SINGLE:
-        case LayoutMode::TOP_TO_BOTTOM:
+        for (const auto &hitRef : m_search_hit_flat_refs)
         {
-            // Vertical scrolling - calculate Y positions
-            for (const auto &hitRef : m_search_hit_flat_refs)
-            {
-                const auto &hit
-                    = m_search_hits[hitRef.page][hitRef.indexInPage];
-
-                // 1. Calculate the start of the page in the scene
-                double pageTopInScene = hitRef.page * m_page_stride;
-
-                // 2. Calculate the Y offset within the page
-                double yOffsetInScene = hit.quad.ul.y * pdfToSceneScale;
-
-                search_markers_pos.push_back(pageTopInScene + yOffsetInScene);
-            }
-            m_vscroll->setSearchMarkers(search_markers_pos);
-            break;
+            const auto &hit = m_search_hits[hitRef.page][hitRef.indexInPage];
+            markers.push_back(pageOffset(hitRef.page)
+                              + hit.quad.ul.y * pdfToSceneScale);
         }
-
-        case LayoutMode::LEFT_TO_RIGHT:
+        m_vscroll->setSearchMarkers(std::move(markers));
+    }
+    else // LEFT_TO_RIGHT
+    {
+        for (const auto &hitRef : m_search_hit_flat_refs)
         {
-            // Horizontal scrolling - calculate X positions
-            for (const auto &hitRef : m_search_hit_flat_refs)
-            {
-                const auto &hit
-                    = m_search_hits[hitRef.page][hitRef.indexInPage];
-
-                // 1. Calculate the start of the page in the scene
-                // (horizontally)
-                double pageLeftInScene = hitRef.page * m_page_stride;
-
-                // 2. Calculate the X offset within the page
-                double xOffsetInScene = hit.quad.ul.x * pdfToSceneScale;
-
-                search_markers_pos.push_back(pageLeftInScene + xOffsetInScene);
-            }
-            m_hscroll->setSearchMarkers(search_markers_pos);
-            break;
+            const auto &hit = m_search_hits[hitRef.page][hitRef.indexInPage];
+            markers.push_back(pageOffset(hitRef.page)
+                              + hit.quad.ul.x * pdfToSceneScale);
         }
-
-        default:
-            break;
+        m_hscroll->setSearchMarkers(std::move(markers));
     }
 }
 
@@ -3813,6 +3694,140 @@ DocumentView::Reshow_jump_marker() noexcept
 }
 
 void
+DocumentView::zoomHelper() noexcept
+{
+#ifndef NDEBUG
+    qDebug() << "DocumentView::zoomHelper(): Zooming from" << m_current_zoom
+             << "to" << m_target_zoom;
+#endif
+
+    // ── Anchor: remember which fraction of the centre page we're looking at ──
+    int anchorPageIndex            = -1;
+    GraphicsPixmapItem *anchorItem = nullptr;
+    QPointF anchorFrac{0.0, 0.0};
+    bool hasAnchor = false;
+
+    const QPointF centerScene
+        = m_gview->mapToScene(m_gview->viewport()->rect().center());
+
+    if (pageAtScenePos(centerScene, anchorPageIndex, anchorItem))
+    {
+        const QPointF localPos = anchorItem->mapFromScene(centerScene);
+        const QRectF bounds    = anchorItem->boundingRect();
+        if (!bounds.isEmpty())
+        {
+            anchorFrac = QPointF(localPos.x() / bounds.width(),
+                                 localPos.y() / bounds.height());
+            hasAnchor  = true;
+        }
+    }
+
+    // ── Commit zoom, rebuild stride cache and scene rect ─────────────────────
+    m_current_zoom = m_target_zoom;
+    cachePageStride();
+    updateSceneRect();
+    m_gview->flashScrollbars();
+
+    // ── Reposition every live page item at the new zoom ──────────────────────
+    const QRectF sr = m_gview->sceneRect(); // constant for the whole loop
+
+    // For TOP_TO_BOTTOM the horizontal centering offset is the same for every
+    // page (they all share the same scene width), so compute it once.
+    const double xOffsetTTB
+        = (m_layout_mode == LayoutMode::TOP_TO_BOTTOM)
+              ? (sr.width() - pageSceneSize(m_pageno).width()) / 2.0
+              : 0.0;
+
+    for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
+         ++it)
+    {
+        const int i              = it.key();
+        GraphicsPixmapItem *item = it.value();
+
+        const bool isPlaceholder
+            = (item->data(0).toString() == "placeholder_page");
+
+        double pageWidthScene  = 0.0;
+        double pageHeightScene = 0.0;
+
+        if (isPlaceholder)
+        {
+            // Use this page's own dimensions, not the current page's.
+            const QSizeF logicalSize = pageSceneSize(i);
+            const QPixmap pix        = item->pixmap();
+            if (!pix.isNull() && pix.width() > 0 && pix.height() > 0)
+            {
+                item->setScale(1.0);
+                item->setTransform(
+                    QTransform::fromScale(logicalSize.width() / pix.width(),
+                                          logicalSize.height() / pix.height()));
+            }
+            pageWidthScene  = logicalSize.width();
+            pageHeightScene = logicalSize.height();
+        }
+        else
+        {
+            // Scale the existing pixmap so its height matches the target
+            // physical pixel height for *this* page at the new zoom level.
+            const double targetPixelHeight
+                = m_model->page_dimension_pts(i).height_pts * m_model->DPR()
+                  * m_current_zoom * m_model->DPI() / 72.0;
+
+            const double currentPixmapHeight
+                = static_cast<double>(item->pixmap().height());
+
+            item->setScale(targetPixelHeight / currentPixmapHeight);
+
+            pageWidthScene  = item->boundingRect().width() * item->scale();
+            pageHeightScene = item->boundingRect().height() * item->scale();
+        }
+
+        if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+        {
+            const double yOffset = (sr.height() - pageHeightScene) / 2.0;
+            item->setPos(pageOffset(i), yOffset);
+        }
+        else if (m_layout_mode == LayoutMode::SINGLE)
+        {
+            item->setPos((sr.width() - pageWidthScene) / 2.0,
+                         (sr.height() - pageHeightScene) / 2.0);
+        }
+        else // TOP_TO_BOTTOM
+        {
+            item->setPos(xOffsetTTB, pageOffset(i));
+        }
+    }
+
+    // ── Invalidate render caches for all repositioned pages ──────────────────
+    for (const int pageno : m_page_items_hash.keys())
+    {
+        m_model->invalidatePageCache(pageno);
+        clearLinksForPage(pageno);
+        clearAnnotationsForPage(pageno);
+        clearSearchItemsForPage(pageno);
+    }
+
+    m_model->setZoom(m_current_zoom);
+    renderSearchHitsInScrollbar();
+
+    // ── Restore viewport to the same relative position within the anchor page
+    // ─
+    if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
+    {
+        GraphicsPixmapItem *pageItem = m_page_items_hash[anchorPageIndex];
+        const QRectF bounds          = pageItem->boundingRect();
+        if (!bounds.isEmpty())
+        {
+            const QPointF restoredLocal(anchorFrac.x() * bounds.width(),
+                                        anchorFrac.y() * bounds.height());
+            m_gview->centerOn(pageItem->mapToScene(restoredLocal));
+        }
+    }
+
+    m_hq_render_timer->start();
+}
+
+void
 DocumentView::handleHScrollValueChanged(int value) noexcept
 {
     // During fast scrolling, only invalidate cache, don't trigger render
@@ -3827,8 +3842,6 @@ DocumentView::handleHScrollValueChanged(int value) noexcept
     // Don't trigger HQ render during rapid scrolling
     m_hq_render_timer->stop();
 }
-
-// Same for handleVScrollValueChanged
 
 void
 DocumentView::handleVScrollValueChanged(int value) noexcept

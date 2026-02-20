@@ -97,6 +97,12 @@ Model::cleanup() noexcept
     }
 
     m_text_cache.clear();
+
+    {
+        std::lock_guard<std::mutex> lock(m_page_dim_mutex);
+        m_page_dim_cache.reset(0);
+        m_default_page_dim = {};
+    }
 }
 
 Model::~Model() noexcept
@@ -267,14 +273,29 @@ Model::openAsync(const QString &filePath, const QString &password) noexcept
 
             // bg_ctx becomes the new master context.
             // doc was opened with bg_ctx — they are permanently paired.
-            m_ctx             = bg_ctx;
-            m_doc             = doc;
-            m_pdf_doc         = pdf_specifics(m_ctx, m_doc);
-            m_page_count      = page_count;
-            m_page_width_pts  = width_pts;
-            m_page_height_pts = height_pts;
-            m_filetype        = filetype;
-            m_success         = true;
+            m_ctx        = bg_ctx;
+            m_doc        = doc;
+            m_pdf_doc    = pdf_specifics(m_ctx, m_doc);
+            m_page_count = page_count;
+            m_filetype   = filetype;
+            m_success    = true;
+
+            {
+                std::lock_guard<std::mutex> lock(m_page_dim_mutex);
+                // Set the default used by getOrDefault()
+                m_default_page_dim = PageDimension{width_pts, height_pts};
+
+                // Prefill all pages with the default size so layout works
+                // immediately
+                m_page_dim_cache.dimensions.assign(page_count,
+                                                   m_default_page_dim);
+                m_page_dim_cache.known.assign(page_count, 0);
+
+                if (m_page_count > 0)
+                {
+                    m_page_dim_cache.known[0] = true;
+                }
+            }
 
             emit openFileFinished();
         }, Qt::QueuedConnection);
@@ -336,6 +357,14 @@ Model::buildPageCache(int pageno) noexcept
             fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
         bounds = fz_bound_page(ctx, page);
+
+        {
+            const float w = bounds.x1 - bounds.x0;
+            const float h = bounds.y1 - bounds.y0;
+
+            std::lock_guard<std::mutex> lock(m_page_dim_mutex);
+            m_page_dim_cache.set(pageno, w, h);
+        }
 
         dlist    = fz_new_display_list(ctx, bounds);
         list_dev = fz_new_list_device(ctx, dlist);
@@ -623,8 +652,7 @@ Model::reloadDocument() noexcept
 
         m_pdf_doc    = pdf_specifics(m_ctx, m_doc);
         m_page_count = fz_count_pages(m_ctx, m_doc);
-        cachePageDimension();
-        ok = true;
+        ok           = true;
     }
     fz_catch(m_ctx)
     {
@@ -684,32 +712,6 @@ Model::getOutline() noexcept
     if (!m_outline)
         m_outline = fz_load_outline(m_ctx, m_doc);
     return m_outline;
-}
-
-void
-Model::cachePageDimension() noexcept
-{
-    if (!m_doc)
-        return;
-
-    fz_page *page = nullptr;
-
-    fz_try(m_ctx)
-    {
-        page              = fz_load_page(m_ctx, m_doc, 0);
-        fz_rect rect      = fz_bound_page(m_ctx, page);
-        m_page_width_pts  = rect.x1 - rect.x0;
-        m_page_height_pts = rect.y1 - rect.y0;
-    }
-    fz_always(m_ctx)
-    {
-        fz_drop_page(m_ctx, page);
-    }
-    fz_catch(m_ctx)
-    {
-        qWarning() << "Failed to get page dimensions:"
-                   << fz_caught_message(m_ctx);
-    }
 }
 
 std::vector<QPolygonF>
