@@ -113,7 +113,6 @@ lektra::construct() noexcept
     initDB();
     trimRecentFilesDatabase();
     populateRecentFiles();
-    setMinimumSize(600, 400);
     initConnections();
     updateUiEnabledState();
     this->show();
@@ -525,6 +524,24 @@ lektra::initConfig() noexcept
     set_if_present(ui_window["startup_tab"], m_config.window.startup_tab);
     set_if_present(ui_window["menubar"], m_config.window.menubar);
     set_if_present(ui_window["fullscreen"], m_config.window.fullscreen);
+
+    if (ui_window["initial_size"].is_array())
+    {
+        int width{600}, height{400};
+        setMinimumSize(width, height);
+
+        const auto size_array = *ui_window["initial_size"].as_array();
+        if (size_array.size() >= 2)
+        {
+            if (auto toml_width = size_array.get(0)->value<int>())
+                width = *toml_width;
+            if (auto toml_height = size_array.get(1)->value<int>())
+                height = *toml_height;
+        }
+
+        m_config.window.initial_size = {width, height};
+        resize(width, height);
+    }
 
     if (m_config.window.fullscreen)
         this->showFullScreen();

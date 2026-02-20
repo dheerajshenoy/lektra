@@ -8,6 +8,9 @@
 - Orderless, space-aware searching ability for pickers by default (e.g. "open file", "file open" both will match "file_open" command)
 - Add recent files picker (command: `files_recent`) to quickly access recently opened files
 - Per page dimension support (instead of using the dimensions of the first page for the entire document, which causes issues with documents that have pages of different sizes)
+- New config option
+    - `[window]`
+        - `initial_size` (array of 2 ints): Initial window size in pixels (width, height)
 
 ### Optimizations
 

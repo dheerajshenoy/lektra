@@ -33,6 +33,8 @@ struct Config
         bool menubar{true};
         bool startup_tab{true};
         QString title_format{"{} - lektra"};
+        std::tuple<int, int> initial_size{-1,
+                                          -1}; // width, height; -1 for default
     } window{};
 
     struct layout
