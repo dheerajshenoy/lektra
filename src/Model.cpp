@@ -918,59 +918,49 @@ Model::populatePDFProperties(
                                      .arg(m_pdf_doc->version % 10)));
 }
 
+// Returns page dimensions in points (1/72 inch) if known, otherwise (-1, -1)
+std::tuple<float, float>
+Model::getPageDimensions(int pageno) const noexcept
+{
+    std::tuple<float, float> dims{-1.0f, -1.0f};
+    std::lock_guard<std::mutex> lock(m_page_dim_mutex);
+    if (pageno >= 0 && pageno < m_page_count && m_page_dim_cache.known[pageno])
+    {
+        dims = {m_page_dim_cache.dimensions[pageno].width_pts,
+                m_page_dim_cache.dimensions[pageno].height_pts};
+        return dims;
+    }
+    return dims;
+}
+
 fz_point
 Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
 {
-    // 1. Get the page bounds
-    fz_page *page{nullptr};
-    fz_point p;
+    fz_point p{0, 0};
 
-    fz_try(m_ctx)
-    {
-        page           = fz_load_page(m_ctx, m_doc, pageno);
-        fz_rect bounds = fz_bound_page(m_ctx, page);
+    const auto [width_pts, height_pts] = getPageDimensions(pageno);
 
-        // 2. Re-create the same transform used in rendering
-        // Must match the scale used in createRenderJob: m_zoom * m_dpr *
-        // m_dpi
-        const float scale
-            = m_zoom * m_dpr * m_dpi; // must match toPixelSpace (no /72 —
-                                      // fz_transform_page divides internally)
-        fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
+    // Create bounds rect from cached dimensions
+    fz_rect bounds = {0, 0, width_pts, height_pts};
 
-        // 3. Get the bbox (to find the origin shift)
-        fz_rect transformed = fz_transform_rect(bounds, transform);
-        fz_irect bbox       = fz_round_rect(transformed);
+    // Re-create the same transform used in rendering
+    const float scale   = m_zoom * m_dpr * m_dpi;
+    fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
 
-        // 4. Reverse Step 6: Adjust for Qt's Device Pixel Ratio
-        // Map from logical Qt coordinates back to physical pixel
-        // coordinates The pixmap is scaled by DPR, so multiply to get
-        // physical pixels
-        float physicalX = pixelPos.x() * m_dpr;
-        float physicalY = pixelPos.y() * m_dpr;
+    // Get the bbox (to find the origin shift)
+    fz_rect transformed = fz_transform_rect(bounds, transform);
+    fz_irect bbox       = fz_round_rect(transformed);
 
-        // 5. Reverse Step 5: ADD the bbox origin
-        // Move from the pixmap-local (0,0) back to the transformed
-        // coordinate space
-        p.x = physicalX + bbox.x0;
-        p.y = physicalY + bbox.y0;
+    // Adjust for Qt's Device Pixel Ratio and add bbox origin
+    float physicalX = pixelPos.x() * m_dpr;
+    float physicalY = pixelPos.y() * m_dpr;
 
-        // 6. Reverse Step 2: Invert the transformation matrix
-        // This takes the point from transformed (scaled/rotated) space back
-        // to PDF points
-        fz_matrix inv_transform = fz_invert_matrix(transform);
-        p                       = fz_transform_point(p, inv_transform);
-    }
-    fz_always(m_ctx)
-    {
-        fz_drop_page(m_ctx, page);
-    }
+    p.x = physicalX + bbox.x0;
+    p.y = physicalY + bbox.y0;
 
-    fz_catch(m_ctx)
-    {
-        qWarning() << "toPDFSpace failed:" << fz_caught_message(m_ctx);
-        return {0, 0};
-    }
+    // Invert transformation to get PDF space coordinates
+    fz_matrix inv_transform = fz_invert_matrix(transform);
+    p                       = fz_transform_point(p, inv_transform);
 
     return p;
 }
@@ -978,46 +968,26 @@ Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
 QPointF
 Model::toPixelSpace(int pageno, fz_point p) const noexcept
 {
-    // Get the page bounds (identical to your render function)
-    fz_page *page{nullptr};
-    float localX{0}, localY{0};
+    // Get cached page dimensions instead of loading the page
+    const auto [width_pts, height_pts] = getPageDimensions(pageno);
 
-    fz_try(m_ctx)
-    {
-        page           = fz_load_page(m_ctx, m_doc, pageno);
-        fz_rect bounds = fz_bound_page(m_ctx, page);
+    // Create bounds rect from cached dimensions
+    fz_rect bounds = {0, 0, width_pts, height_pts};
 
-        // 2. Re-create the same transform used in rendering
-        const float scale
-            = m_zoom * m_dpr * m_dpi; // note that there is not / 72.0f here
-        fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
+    // Re-create the same transform used in rendering
+    const float scale   = m_zoom * m_dpr * m_dpi;
+    fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
 
-        // 3. Get the bbox (this is the key!)
-        fz_rect transformed = fz_transform_rect(bounds, transform);
-        fz_irect bbox       = fz_round_rect(transformed);
+    // Get the bbox (this is the key!)
+    fz_rect transformed = fz_transform_rect(bounds, transform);
+    fz_irect bbox       = fz_round_rect(transformed);
 
-        p = fz_transform_point(p, transform);
+    // Transform point to device space and subtract bbox origin
+    fz_point device_point = fz_transform_point(p, transform);
+    float localX          = device_point.x - bbox.x0;
+    float localY          = device_point.y - bbox.y0;
 
-        // 5. SUBTRACT the bbox origin
-        // Pixmap (0,0) is actually at bbox.x0, bbox.y0 in the transformed
-        // space
-        localX = p.x - bbox.x0;
-        localY = p.y - bbox.y0;
-
-        // 6. Adjust for Qt's Device Pixel Ratio
-        // Since the pixmap is scaled by DPR, but QGraphicsItem::setPos
-        // expects logical coordinates:
-    }
-    fz_always(m_ctx)
-    {
-        fz_drop_page(m_ctx, page);
-    }
-    fz_catch(m_ctx)
-    {
-        qWarning() << "toPixelSpace failed:" << fz_caught_message(m_ctx);
-        return {0, 0};
-    }
-
+    // Adjust for Qt's Device Pixel Ratio
     return QPointF(localX / m_dpr, localY / m_dpr);
 }
 
@@ -1137,11 +1107,12 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         fz_rect transformed = fz_transform_rect(bounds, transform);
         fz_irect bbox       = fz_round_rect(transformed);
 
-        // --- Render page to QImage ---
+        // // --- Render page to QImage ---
         pix = fz_new_pixmap_with_bbox(ctx, job.colorspace, bbox, nullptr, 1);
-        fz_clear_pixmap_with_value(ctx, pix, 255);
 
         dev = fz_new_draw_device(ctx, fz_identity, pix);
+
+        fz_clear_pixmap_with_value(ctx, pix, 255);
         fz_run_display_list(ctx, dlist, dev, transform,
                             fz_rect_from_irect(bbox), nullptr);
 
@@ -1152,15 +1123,14 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             fz_tint_pixmap(ctx, pix, fg, bg);
 
         if (job.invert_color)
-        {
             fz_invert_pixmap_luminance(ctx, pix);
-        }
+
         // fz_gamma_pixmap(ctx, pix, 1.0f);
 
-        int width  = fz_pixmap_width(ctx, pix);
-        int height = fz_pixmap_height(ctx, pix);
-        int n      = fz_pixmap_components(ctx, pix);
-        int stride = fz_pixmap_stride(ctx, pix);
+        const int width  = fz_pixmap_width(ctx, pix);
+        const int height = fz_pixmap_height(ctx, pix);
+        const int n      = fz_pixmap_components(ctx, pix);
+        const int stride = fz_pixmap_stride(ctx, pix);
 
         unsigned char *samples = fz_pixmap_samples(ctx, pix);
         if (!samples)
@@ -1193,7 +1163,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         image.setDotsPerMeterX(static_cast<int>((job.dpi * 1000) / 25.4));
         image.setDotsPerMeterY(static_cast<int>((job.dpi * 1000) / 25.4));
         image.setDevicePixelRatio(job.dpr);
-        result.pixmap = QPixmap::fromImage(image);
+        result.image = image;
 
         // --- Extract links ---
         for (const auto &link : links)

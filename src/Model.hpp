@@ -115,7 +115,7 @@ public:
 
     struct PageRenderResult
     {
-        QPixmap pixmap;
+        QImage image;
         std::vector<RenderLink> links;
         std::vector<RenderAnnotation> annotations;
     };
@@ -399,9 +399,6 @@ private:
         return m_filetype;
     }
 
-    void initMuPDF() noexcept;
-    std::string getTextInArea(const int pageno, const QPointF &start,
-                              const QPointF &end) noexcept;
     struct CachedLink
     {
         fz_rect rect; // page space
@@ -514,26 +511,13 @@ private:
         fz_image *img{nullptr};
     };
 
-    // Callback for hit-testing images
-    // static void hit_test_image(fz_context *ctx, fz_device *d, fz_image *img,
-    //                            fz_matrix ctm, float alpha,
-    //                            fz_color_params color_params)
-    // {
-    //     Q_UNUSED(ctx);
-    //     Q_UNUSED(alpha);
-    //     Q_UNUSED(color_params);
+    void initMuPDF() noexcept;
 
-    //     ImageHitTestDevice *dev = reinterpret_cast<ImageHitTestDevice *>(d);
-    //     fz_rect rect            = fz_transform_rect(fz_unit_rect, ctm);
-    //     const float x           = dev->query.x;
-    //     const float y           = dev->query.y;
-
-    //     if (x >= rect.x0 && x <= rect.x1 && y >= rect.y0 && y <= rect.y1)
-    //     {
-    //         qDebug() << "Image hit at point (" << x << "," << y << ")";
-    //         dev->img = img;
-    //     }
-    // }
+    [[nodiscard]] std::string getTextInArea(const int pageno,
+                                            const QPointF &start,
+                                            const QPointF &end) noexcept;
+    [[nodiscard]] std::tuple<float, float>
+    getPageDimensions(int pageno) const noexcept;
 
     QString m_filepath;
     int m_page_count{0};

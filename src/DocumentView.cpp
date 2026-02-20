@@ -1945,13 +1945,13 @@ DocumentView::startNextRenderJob() noexcept
             --m_renders_in_flight;
             m_pending_renders.remove(pageno);
 
-            const QPixmap &pixmap = result.pixmap;
+            const QPixmap pixmap = QPixmap::fromImage(result.image);
             if (!pixmap.isNull())
             {
                 const std::set<int> &visiblePages = getVisiblePages();
                 if (visiblePages.find(pageno) != visiblePages.end())
                 {
-                    renderPageFromPixmap(pageno, result.pixmap);
+                    renderPageFromPixmap(pageno, pixmap);
                     renderLinks(pageno, result.links);
                     renderAnnotations(pageno, result.annotations);
                     renderSearchHitsForPage(pageno);
