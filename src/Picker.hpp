@@ -6,6 +6,104 @@
 #include <QStandardItemModel>
 #include <QWidget>
 
+// ---------------------------------------------------------------------------
+// PickerFilterProxy — replaces QSortFilterProxyModel inside Picker.
+// Supports three search modes that can be combined via flags.
+// ---------------------------------------------------------------------------
+class PickerFilterProxy : public QSortFilterProxyModel
+{
+    Q_OBJECT
+public:
+    enum SearchMode
+    {
+        Fixed     = 0,      // original substring behaviour (default)
+        Orderless = 1 << 0, // split on whitespace; all tokens must match
+        Regex     = 1 << 1, // treat the filter string as a regex pattern
+    };
+    Q_DECLARE_FLAGS(SearchModes, SearchMode)
+
+    explicit PickerFilterProxy(QObject *parent = nullptr)
+        : QSortFilterProxyModel(parent)
+    {
+    }
+
+    void setSearchModes(SearchModes modes) noexcept
+    {
+        if (m_modes == modes)
+            return;
+        m_modes = modes;
+        endFilterChange();
+    }
+
+    SearchModes searchModes() const noexcept
+    {
+        return m_modes;
+    }
+
+    // Call this instead of setFilterFixedString / setFilterRegularExpression.
+    // It recompiles the internal regex / token list so filterAcceptsRow works.
+    void setFilterText(const QString &text, Qt::CaseSensitivity cs)
+    {
+        m_raw = text;
+        m_cs  = cs;
+
+        if (m_modes & Regex)
+        {
+            QRegularExpression::PatternOptions opts
+                = (cs == Qt::CaseInsensitive)
+                      ? QRegularExpression::CaseInsensitiveOption
+                      : QRegularExpression::NoPatternOption;
+            m_regex = QRegularExpression(text, opts);
+            // Fall back silently to fixed if the pattern is invalid
+            if (!m_regex.isValid())
+                m_regex = QRegularExpression(QRegularExpression::escape(text),
+                                             opts);
+        }
+        else if (m_modes & Orderless)
+        {
+            // Pre-split so we don't redo it per row
+            m_tokens = text.split(' ', Qt::SkipEmptyParts);
+        }
+
+        endFilterChange();
+    }
+
+protected:
+    bool filterAcceptsRow(int sourceRow,
+                          const QModelIndex &sourceParent) const override
+    {
+        if (m_raw.isEmpty())
+            return true;
+
+        const QModelIndex idx
+            = sourceModel()->index(sourceRow, 0, sourceParent);
+        const QString haystack = idx.data(filterRole()).toString();
+
+        if (m_modes & Regex)
+            return m_regex.match(haystack).hasMatch();
+
+        if (m_modes & Orderless)
+        {
+            for (const QString &token : m_tokens)
+                if (!haystack.contains(token, m_cs))
+                    return false;
+            return true;
+        }
+
+        // Fixed (default)
+        return haystack.contains(m_raw, m_cs);
+    }
+
+private:
+    SearchModes m_modes{Orderless};
+    QString m_raw;
+    Qt::CaseSensitivity m_cs{Qt::CaseInsensitive};
+    QRegularExpression m_regex;
+    QStringList m_tokens;
+};
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(PickerFilterProxy::SearchModes)
+
 class Picker : public QWidget
 {
     Q_OBJECT
@@ -42,11 +140,15 @@ public:
         QVariant data;
     };
 
-    virtual QList<Item> collectItems()            = 0;
-    virtual void onItemAccepted(const Item &item) = 0;
+    inline void setSearchModes(PickerFilterProxy::SearchModes modes) noexcept
+    {
+        m_proxy->setSearchModes(modes);
+    }
 
-    void launch();
-    void repopulate() noexcept;
+    inline PickerFilterProxy::SearchModes searchModes() const noexcept
+    {
+        return m_proxy->searchModes();
+    }
 
     inline void setKeybindings(const Keybindings &keys) noexcept
     {
@@ -57,6 +159,12 @@ public:
     {
         return m_keys;
     }
+
+    virtual QList<Item> collectItems()            = 0;
+    virtual void onItemAccepted(const Item &item) = 0;
+
+    void launch();
+    void repopulate() noexcept;
 
     virtual Qt::CaseSensitivity caseSensitivity(const QString &term) const
     {
@@ -72,6 +180,7 @@ signals:
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
+    PickerFilterProxy *m_proxy{nullptr};
 
 private slots:
     void onSearchChanged(const QString &text);
@@ -91,7 +200,6 @@ private:
     QLineEdit *m_searchBox;
     QListView *m_listView;
     QStandardItemModel *m_model;
-    QSortFilterProxyModel *m_proxy;
     Keybindings m_keys;
     FrameStyle m_frame_style{};
     class QGraphicsDropShadowEffect *m_shadow_effect{nullptr};

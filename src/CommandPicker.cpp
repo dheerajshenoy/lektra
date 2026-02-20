@@ -1,5 +1,7 @@
 #include "CommandPicker.hpp"
 
+#include "Picker.hpp"
+
 CommandPicker::CommandPicker(const Config &config, const ActionMap &actionMap,
                              const ShortcutMap &shortcuts,
                              QWidget *parent) noexcept

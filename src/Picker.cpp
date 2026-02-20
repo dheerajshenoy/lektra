@@ -51,7 +51,7 @@ Picker::Picker(QWidget *parent) noexcept : QWidget(parent)
 
     // Models parented to this — they outlive any layout changes
     m_model = new QStandardItemModel(this);
-    m_proxy = new QSortFilterProxyModel(this);
+    m_proxy = new PickerFilterProxy(this);
     m_proxy->setSourceModel(m_model);
     m_proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
     m_proxy->setFilterRole(Qt::UserRole + 1);
@@ -184,8 +184,7 @@ Picker::keyPressEvent(QKeyEvent *event)
 void
 Picker::onSearchChanged(const QString &text)
 {
-    m_proxy->setFilterCaseSensitivity(caseSensitivity(text)); // add this line
-    m_proxy->setFilterFixedString(text);
+    m_proxy->setFilterText(text, caseSensitivity(text));
     m_listView->setCurrentIndex(m_proxy->index(0, 0));
     onFilterChanged(m_proxy->rowCount());
 }

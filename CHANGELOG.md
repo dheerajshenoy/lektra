@@ -5,6 +5,7 @@
 ### Features
 
 - Centralised `picker` widget for both `outline` and `search highlights` (and potentially other similar widgets in the future). This allows us to reuse the code for both features and also allows us to easily add new features that require a similar UI in the future.
+- Orderless, space-aware searching ability for pickers by default (e.g. "open file", "file open" both will match "file_open" command)
 - Add recent files picker (command: `files_recent`) to quickly access recently opened files
 - Per page dimension support (instead of using the dimensions of the first page for the entire document, which causes issues with documents that have pages of different sizes)
 
