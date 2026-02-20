@@ -16,7 +16,7 @@ show_progress = true # show reading progress in statusbar
 
 [split]
 focus_follows_mouse = true
-dim_inactive = true
+dim_inactive = false
 dim_inactive_opacity = 0.5
 
 
@@ -25,9 +25,25 @@ show_shortcuts = false
 height = 400
 width = 600
 
-[overlays]
+[picker]
 border = true
-shadow = { enabled = true, blur_radius = 18, offset_x = 0, offset_y = 6, opacity = 120 }
+
+[picker.shadow]
+enabled = true
+blur_radius = 18
+offset_x = 0
+offset_y = 6
+opacity = 120
+
+[picker.keys]
+up = "Ctrl+k"
+down = "Ctrl+j"
+accept = "return"
+dismiss = "escape"
+# page_up = ""
+# page_down = ""
+# top = "g,g"
+# bottom = "G"
 
 [llm_widget]
 visible = false
@@ -59,11 +75,13 @@ jump_marker = true
 
 [links]
 boundary = false # show link boundary box
-detect_urls = true # detect and create links for URLs in text that are not PDF link objects (http, https, mailto etc.)
+detect_urls = false # detect and create links for URLs in text that are not PDF link objects (http, https, mailto etc.)
 url_regex = "(https?://|www\\.)[^\\s<>()\\\"']+" # regex for URL detection (if detect_urls is true)
 
 [link_hints]
 size = 0.25 # relative scale for link hint labels
+
+
 
 [tabs]
 visible = true
@@ -74,19 +92,6 @@ elide_mode = "middle" # "none", "start", "middle", "end"
 bar_position = "top" # "top", "bottom", "left", "right"
 full_path = false # show full file path in tab title
 lazy_load = true # load tab content only when activated
-
-[outline]
-visible = false
-panel_position = "left" # "left", "right"
-type = "overlay" # "overlay", "dialog", "side_panel"
-panel_width = 300
-
-[highlight_search]
-visible = false
-panel_position = "right" # or "left"
-type = "overlay" # or "overlay", "dialog", "side_panel"
-panel_width = 300
-
 
 # ===== Colors (RGBA) =====
 [colors]
@@ -106,9 +111,8 @@ page_foreground = "#000000"
 
 # ===== Rendering =====
 [rendering]
-dpi = 72.0
 dpr = { "eDP-1" = 1.25, "DP-5" = 1.0, "DP-7" = 1.0 } # float or map
-cache_pages = 4
+cache_pages = 20
 antialiasing_bits = 8 # 4=good, 8=high
 icc_color_profile = true
 
@@ -137,22 +141,22 @@ max_tokens = 512
 
 # ===== Shortcuts =====
 [keybindings]
-command_palette = "Ctrl+Shift+P"
-open_file = "o"
+toggle_command_palette = "Ctrl+Shift+P"
+file_open_tab = "o"
 link_hint_visit = "f"
 link_hint_copy = "Shift+F"
 scroll_left = "h"
 scroll_down = "j"
 scroll_up = "k"
 scroll_right = "l"
-prev_location = "Ctrl+o"
-next_location = "Ctrl+i"
-next_page = "Shift+J"
-prev_page = "Shift+K"
-first_page = "g,g"
-last_page = "Shift+G"
-goto_page = "b"
-outline = "t"
+location_prev = "Ctrl+o"
+location_next = "Ctrl+i"
+page_next = "Shift+J"
+page_prev = "Shift+K"
+page_first = "g,g"
+page_last = "Shift+G"
+page_goto = "b"
+picker_outline = "t"
 search = "/"
 search_this_page = "?" # TODO
 search_next = "n"
@@ -160,56 +164,50 @@ search_prev = "Shift+N"
 zoom_reset = "0"
 zoom_in = "="
 zoom_out = "-"
-tab1 = "Alt+1"
-tab2 = "Alt+2"
-tab3 = "Alt+3"
-tab4 = "Alt+4"
-tab5 = "Alt+5"
-tab6 = "Alt+6"
-tab7 = "Alt+7"
-tab8 = "Alt+8"
-tab9 = "Alt+9"
+tab_1 = "Alt+1"
+tab_2 = "Alt+2"
+tab_3 = "Alt+3"
+tab_4 = "Alt+4"
+tab_5 = "Alt+5"
+tab_6 = "Alt+6"
+tab_7 = "Alt+7"
+tab_8 = "Alt+8"
+tab_9 = "Alt+9"
 tab_next = "Ctrl+Period"
 tab_prev = "Ctrl+Comma"
-tab_close = "Ctrl+w"
-text_select_mode = "1"
-region_select_mode = "2"
-annot_rect_mode = "3"
-annot_edit_mode = "4"
-text_highlight_mode = "5"
+tab_close = "Ctrl+w,t"
+selection_mode_text = "1"
+selection_mode_region = "2"
+annot_highlight_mode = "3"
+annot_rect_mode = "4"
+annot_edit_mode = "5"
 annot_pen_mode = "6"
 annot_popup_mode = "7"
-delete = "d"
-file_properties = "Ctrl+Shift+F"
 invert_color = "i"
 fullscreen = "F11"
 fit_height = "Ctrl+Shift+H"
 fit_width = "Ctrl+Shift+W"
-fit_window = "Ctrl+Shift+="
-auto_resize = "Ctrl+Shift+R"
+fit_page = "Ctrl+Shift+="
+fit_auto = "Ctrl+Shift+R"
 toggle_menubar = "Ctrl+Shift+M"
 toggle_panel = "Ctrl+Shift+B"
 toggle_tabs = "Ctrl+Shift+T"
-cancel_selection = "escape"
-yank = "y"
-about = "F12"
-save = "Ctrl+S"
-select_all = "Ctrl+A"
+selection_cancel = "escape"
+selection_copy = "y"
+show_about = "F12"
+file_save = "Ctrl+S"
 rotate_clock = ">"
 rotate_anticlock = "<"
-list_text_highlights = "]"
 undo = "u"
 redo = "Ctrl+R"
 toggle_focus_mode = "Ctrl+Space"
-reselect_last_selection = "g,v"
-highlight_annot_search = "Alt+Shift+H"
-
-# Completion navigation
+selection_last = "g,v"
+picker_highlight_search = "Alt+Shift+H"
 completion_next = "Ctrl+n"
 completion_prev = "Ctrl+p"
 toggle_llm_widget = "Ctrl+Shift+L"
 toggle_statusbar = "Ctrl+Shift+S"
+split_focus_next = "Ctrl+Alt+Right"
+split_focus_prev = "Ctrl+Alt+Left"
+split_close = "Ctrl+w,c"
 
-focus_next_split = "Ctrl+Alt+Right"
-focus_prev_split = "Ctrl+Alt+Left"
-keyboard_cursor_mode = "v"
