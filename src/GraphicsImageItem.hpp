@@ -21,9 +21,12 @@ class GraphicsImageItem : public QGraphicsItem
 public:
     GraphicsImageItem(QGraphicsItem *parent = nullptr) : QGraphicsItem(parent)
     {
-        // Enable caching for better performance during scrolling/panning
-        // DeviceCoordinateCache caches at the device resolution
-        setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+        // Note: When using QOpenGLWidget viewport, DeviceCoordinateCache can
+        // cause rendering issues. Use NoCache for OpenGL compatibility.
+        // If not using OpenGL, DeviceCoordinateCache provides better scroll
+        // performance.
+        // setCacheMode(QGraphicsItem::NoCache);
+        // setCacheMode(QGraphicsItem::ItemCoordinateCache);
     }
 
     // Set image (copy)
@@ -87,7 +90,8 @@ public:
             return;
 
         // Draw the image scaled to its logical size (accounting for DPR)
-        painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
+        // painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
+        // painter->setRenderHint(QPainter::Antialiasing, true);
         painter->drawImage(m_bounding_rect, m_image);
     }
 

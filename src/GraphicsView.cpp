@@ -9,7 +9,7 @@
 #include <QLineF>
 #include <QMenu>
 #include <QNativeGestureEvent>
-// #include <QOpenGLWidget>
+#include <QOpenGLWidget>
 #include <QPinchGesture>
 #include <QScroller>
 #include <QSwipeGesture>
@@ -18,23 +18,39 @@
 GraphicsView::GraphicsView(const Config &config, QWidget *parent)
     : QGraphicsView(parent), m_config(config)
 {
+    // setCacheMode(QGraphicsView::CacheNone);
+    // QSurfaceFormat format;
+    // format.setSamples(4);
+    // format.setAlphaBufferSize(8); // Enable alpha buffer for transparency
+    // QOpenGLWidget *glWidget = new QOpenGLWidget();
+    // glWidget->setFormat(format);
+    // setViewport(glWidget);
+    // setViewportUpdateMode(QGraphicsView::MinimalViewportUpdate);
+    // setCacheMode(QGraphicsView::CacheBackground);
     setMouseTracking(true);
     setResizeAnchor(QGraphicsView::AnchorViewCenter);
     setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
     setAcceptDrops(false);
-    setOptimizationFlags(QGraphicsView::DontAdjustForAntialiasing
-                         | QGraphicsView::DontSavePainterState);
+    // setOptimizationFlags(QGraphicsView::DontAdjustForAntialiasing
+    //                      | QGraphicsView::DontSavePainterState);
     setContentsMargins(0, 0, 0, 0);
-    setCacheMode(QGraphicsView::CacheBackground);
-    setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+
+    setRenderHint(QPainter::Antialiasing, m_config.rendering.antialiasing);
+    setRenderHint(QPainter::SmoothPixmapTransform,
+                  m_config.rendering.smooth_pixmap_transform);
+    setRenderHint(QPainter::TextAntialiasing,
+                  m_config.rendering.text_antialiasing);
 
     // Overlay scrollbars - no reserved space
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
+    // horizontalScrollBar()->setTracking(false);
+    // verticalScrollBar()->setTracking(false);
+
     // Hide timer setup
     m_scrollbar_hide_timer.setSingleShot(true);
-    m_scrollbar_hide_timer.setInterval(1500);
+    m_scrollbar_hide_timer.setInterval(m_config.scrollbars.hide_timeout);
     connect(&m_scrollbar_hide_timer, &QTimer::timeout, this, [this]()
     {
         if (!m_autoHide)
@@ -61,13 +77,6 @@ GraphicsView::GraphicsView(const Config &config, QWidget *parent)
     });
 
     bindScrollbarActivity(verticalScrollBar(), horizontalScrollBar());
-
-    // QSurfaceFormat format;
-    // format.setSamples(4);
-    // QOpenGLWidget *glWidget = new QOpenGLWidget();
-    // glWidget->setFormat(format);
-    // setViewport(glWidget);
-    setViewportUpdateMode(QGraphicsView::SmartViewportUpdate);
 
     // Enable gesture events on the viewport (important for QGraphicsView)
     viewport()->setAttribute(Qt::WA_AcceptTouchEvents, true);
