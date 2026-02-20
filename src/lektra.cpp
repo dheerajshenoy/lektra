@@ -92,9 +92,6 @@ lektra::lektra(const QString &sessionName,
     m_statusbar->setSessionName(sessionName);
 }
 
-// Destructor for `lektra` class
-lektra::~lektra() noexcept {}
-
 // On-demand construction of `lektra` (for use with argparse)
 void
 lektra::construct() noexcept

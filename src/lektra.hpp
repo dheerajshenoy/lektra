@@ -60,7 +60,6 @@ public:
     lektra() noexcept;
     lektra(const QString &sessionName,
            const QJsonArray &sessionArray) noexcept; // load from session
-    ~lektra() noexcept;
 
     DocumentContainer *VSplit() noexcept;
     DocumentContainer *HSplit() noexcept;
