@@ -51,12 +51,6 @@ class lektra : public QMainWindow
         = QHash<QString, std::function<void(const QStringList &args)>>;
 
 public:
-    struct Command
-    {
-        QString name;
-        QString shortcut;
-    };
-
     lektra() noexcept;
     lektra(const QString &sessionName,
            const QJsonArray &sessionArray) noexcept; // load from session
@@ -180,6 +174,12 @@ public:
 #ifdef ENABLE_LLM_SUPPORT
     void ToggleLLMWidget() noexcept;
 #endif
+
+    struct Command
+    {
+        QString name;
+        QString shortcut;
+    };
 
 protected:
     void closeEvent(QCloseEvent *e) override;
