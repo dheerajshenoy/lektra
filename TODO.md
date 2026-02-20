@@ -42,3 +42,4 @@
 - [ ] Fix open containing folder
 - [ ] Handle closing split for friends
 - [ ] Efficient incremental search for words
+- [ ] Cross-page selection
