@@ -1693,19 +1693,6 @@ DocumentView::getVisiblePages() noexcept
     if (!m_visible_pages_dirty)
         return m_visible_pages_cache;
 
-    // Add a time-based cache invalidation to prevent excessive recalculation
-    static qint64 lastCalcTime = 0;
-    qint64 now                 = QDateTime::currentMSecsSinceEpoch();
-
-    // If cache was invalidated but we just calculated recently, use old cache
-    if (now - lastCalcTime < 50)
-    { // Don't recalculate more than every 50ms
-        m_visible_pages_dirty = false;
-        return m_visible_pages_cache;
-    }
-
-    lastCalcTime = now;
-
     m_visible_pages_cache.clear();
 
     if (m_model->numPages() == 0)
@@ -1741,24 +1728,54 @@ DocumentView::getVisiblePages() noexcept
         a1 = visibleSceneRect.bottom();
     }
 
-    a0 -= m_preload_margin;
-    a1 += m_preload_margin;
+    // A page is visible if its interval [page_start, page_end] overlaps [a0,
+    // a1].
+    // Overlap condition: page_start < a1 AND page_end > a0
 
-    auto it0
+    // Find first page whose START is less than a1
+    // i.e. last page where start < a1 => upper_bound gives first start >= a1,
+    // go back one
+    auto it_last
+        = std::lower_bound(m_page_offsets.begin(), m_page_offsets.end(), a1);
+    // it_last points to first page starting at or beyond a1 — that's our
+    // exclusive end
+
+    // Find first page whose END is greater than a0
+    // page_end = m_page_offsets[i+1] (or scene end for last page)
+    // Simpler: find first page where start > a0, then go back one
+    auto it_first
         = std::upper_bound(m_page_offsets.begin(), m_page_offsets.end(), a0);
-    auto it1
-        = std::upper_bound(m_page_offsets.begin(), m_page_offsets.end(), a1);
+    // it_first points past pages that START at or before a0,
+    // but we need to include a page even if it started before a0 (it may still
+    // overlap)
+    if (it_first != m_page_offsets.begin())
+        --it_first; // step back: this page starts before a0 but may extend into
+                    // view
 
     int firstPage = std::max(
-        0, static_cast<int>(std::distance(m_page_offsets.begin(), it0)) - 1);
+        0, static_cast<int>(std::distance(m_page_offsets.begin(), it_first)));
     int lastPage = std::max(
-        0, static_cast<int>(std::distance(m_page_offsets.begin(), it1)) - 1);
+        0,
+        static_cast<int>(std::distance(m_page_offsets.begin(), it_last)) - 1);
 
-    firstPage = std::max(0, firstPage);
-    lastPage  = std::min(m_model->numPages() - 1, lastPage);
+    firstPage = std::clamp(firstPage, 0, m_model->numPages() - 1);
+    lastPage  = std::clamp(lastPage, 0, m_model->numPages() - 1);
+
+    const double spacineScene = m_spacing * m_current_zoom;
 
     for (int pageno = firstPage; pageno <= lastPage; ++pageno)
-        m_visible_pages_cache.insert(pageno);
+    {
+        // m_page_offsets[pageno] = start of page, m_page_offsets[pageno+1] =
+        // start of next
+        double pageStart = m_page_offsets[pageno];
+        double pageEnd
+            = (pageno + 1 < (int)m_page_offsets.size())
+                  ? m_page_offsets[pageno + 1] - spacineScene
+                  : pageStart + pageStride(pageno); // fallback for last page
+
+        if (pageEnd > a0 && pageStart < a1) // true overlap
+            m_visible_pages_cache.insert(pageno);
+    }
 
     m_visible_pages_dirty = false;
     return m_visible_pages_cache;
@@ -1767,17 +1784,6 @@ DocumentView::getVisiblePages() noexcept
 void
 DocumentView::invalidateVisiblePagesCache() noexcept
 {
-    // Don't invalidate too frequently
-    static qint64 lastInvalidate = 0;
-    qint64 now                   = QDateTime::currentMSecsSinceEpoch();
-
-    if (now - lastInvalidate < 16)
-    { // ~60fps throttle
-        return;
-    }
-
-    lastInvalidate = now;
-
     m_visible_pages_dirty = true;
 }
 
@@ -1848,6 +1854,9 @@ DocumentView::renderVisiblePages() noexcept
     // static std::set<int> lastRenderedPages;
 
     const std::set<int> visiblePages = getVisiblePages();
+
+    qDebug() << "DocumentView::renderVisiblePages(): Visible pages:"
+             << visiblePages;
 
     // if (visiblePages == lastRenderedPages
     //     && m_page_items_hash.size() == visiblePages.size())
@@ -2108,13 +2117,20 @@ DocumentView::cachePageStride() noexcept
     }
     m_page_offsets[N] = cursor;
 
+    invalidateVisiblePagesCache();
+}
+
+std::set<int>
+DocumentView::getPreloadPages() noexcept
+{
+    const auto pages = getVisiblePages();
     // Preload margin: use current page's stride as representative
-    const double currentStride = pageStride(std::clamp(m_pageno, 0, N - 1));
-    m_preload_margin           = currentStride;
+    const double currentStride
+        = pageStride(std::clamp(m_pageno, 0, m_model->numPages() - 1));
+    m_preload_margin = currentStride;
     if (m_config.behavior.cache_pages > 0)
         m_preload_margin *= m_config.behavior.cache_pages;
-
-    invalidateVisiblePagesCache();
+    return pages;
 }
 
 // Update the scene rect based on number of pages and page stride
@@ -2144,10 +2160,16 @@ DocumentView::updateSceneRect() noexcept
     }
     else
     {
-        const QSizeF page        = pageSceneSize(m_pageno);
+        // Use the widest page so no page is clipped or off-center.
+        // Using only m_pageno's width leaves wider pages mispositioned.
+        double maxPageW = 0.0;
+        for (int i = 0; i < m_model->numPages(); ++i)
+            maxPageW = std::max(maxPageW, pageSceneSize(i).width());
+
         const double totalHeight = totalPageExtent();
-        const double sceneW      = std::max(viewW, page.width());
-        const double yMargin     = std::max(0.0, (viewH - page.height()) / 2.0);
+        const double sceneW      = std::max(viewW, maxPageW);
+        const double yMargin
+            = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
         m_gview->setSceneRect(0, -yMargin, sceneW, totalHeight + 2.0 * yMargin);
     }
 }
@@ -2687,8 +2709,9 @@ DocumentView::createAndAddPageItem(int pageno, const QImage &img) noexcept
     item->setImage(img);
 
     // Logical scene size of the rendered image.
-    const double pageW = img.width() / img.devicePixelRatio();
-    const double pageH = img.height() / img.devicePixelRatio();
+    const QSizeF logicalSize = pageSceneSize(pageno);
+    const double pageW       = logicalSize.width();
+    const double pageH       = logicalSize.height();
 
     const QRectF sr = m_gview->sceneRect();
 
@@ -3730,13 +3753,9 @@ DocumentView::zoomHelper() noexcept
     // ── Reposition every live page item at the new zoom ──────────────────────
     const QRectF sr = m_gview->sceneRect(); // constant for the whole loop
 
-    // For TOP_TO_BOTTOM the horizontal centering offset is the same for every
-    // page (they all share the same scene width), so compute it once.
-    const double xOffsetTTB
-        = (m_layout_mode == LayoutMode::TOP_TO_BOTTOM)
-              ? (sr.width() - pageSceneSize(m_pageno).width()) / 2.0
-              : 0.0;
-
+    // For TOP_TO_BOTTOM, each page may have a different width so we must
+    // compute the centering offset per-page inside the loop. Using a single
+    // offset based on m_pageno mispositions all pages that differ in width.
     for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
          ++it)
     {
@@ -3793,7 +3812,8 @@ DocumentView::zoomHelper() noexcept
         }
         else // TOP_TO_BOTTOM
         {
-            item->setPos(xOffsetTTB, pageOffset(i));
+            const double xOffset = (sr.width() - pageWidthScene) / 2.0;
+            item->setPos(xOffset, pageOffset(i));
         }
     }
 
