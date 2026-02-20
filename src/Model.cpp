@@ -74,8 +74,16 @@ Model::LRUEvictFunction(PageCacheEntry &entry) noexcept
     if (entry.display_list)
     {
         fz_context *ctx = cloneContext(); // Use a clone to avoid racing m_ctx
+        if (!ctx)
+        {
+            qWarning()
+                << "LRUEvictFunction: failed to clone context for eviction";
+            return;
+        }
+
         fz_drop_display_list(ctx, entry.display_list);
         entry.display_list = nullptr;
+        fz_drop_context(ctx);
     }
 
     // Also clear text cache for this page to save memory
@@ -119,7 +127,8 @@ Model::~Model() noexcept
 }
 
 QFuture<void>
-Model::openAsync(const QString &filePath, const QString &password) noexcept
+Model::openAsync(const QString &filePath,
+                 const QString &password) noexcept
 {
     // Canonical path resolved on the calling thread — cheap, no MuPDF
     m_filepath              = QFileInfo(filePath).canonicalFilePath();
@@ -186,6 +195,7 @@ Model::openAsync(const QString &filePath, const QString &password) noexcept
         {
             qWarning() << "openAsync: type detection failed:"
                        << fz_caught_message(bg_ctx);
+            fz_drop_context(bg_ctx);
         }
 
         // --- 2. Open the document ---
@@ -198,6 +208,7 @@ Model::openAsync(const QString &filePath, const QString &password) noexcept
         {
             qWarning() << "openAsync: fz_open_document failed:"
                        << fz_caught_message(bg_ctx);
+            fz_drop_context(bg_ctx);
         }
 
         if (!doc)
@@ -343,19 +354,28 @@ Model::ensurePageCached(int pageno) noexcept
 void
 Model::buildPageCache(int pageno) noexcept
 {
-    // TODO: Add a check if already cached
-    // if (m_page_lru_cache.has(pageno))
-    //     return;
+    if (m_page_lru_cache.has(pageno))
+        return;
 
     PageCacheEntry entry;
 
     fz_context *ctx = cloneContext();
+    if (!ctx)
+    {
+        qWarning() << "Failed to clone context for page cache";
+        return;
+    }
+
     fz_page *page{nullptr};
     fz_display_list *dlist{nullptr};
     fz_device *list_dev{nullptr};
     fz_link *head{nullptr};
     fz_rect bounds{};
     bool success{false};
+
+    // TODO: Pre-allocate vectors to avoid reallocations
+    // entry.links.reserve(32);      // Typical PDF has ~10-20 links
+    // entry.annotations.reserve(16); // Typical annotations per page
 
     fz_try(ctx)
     {
@@ -364,27 +384,28 @@ Model::buildPageCache(int pageno) noexcept
             page = fz_load_page(ctx, m_doc, pageno);
             if (!page)
                 fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
-
             bounds = fz_bound_page(ctx, page);
-
-            {
-                const float w = bounds.x1 - bounds.x0;
-                const float h = bounds.y1 - bounds.y0;
-
-                std::lock_guard<std::mutex> lock(m_page_dim_mutex);
-                m_page_dim_cache.set(pageno, w, h);
-            }
 
             dlist    = fz_new_display_list(ctx, bounds);
             list_dev = fz_new_list_device(ctx, dlist);
 
             fz_run_page(ctx, page, list_dev, fz_identity, nullptr);
+            fz_close_device(ctx, list_dev);
         }
+
+        {
+            const float w = bounds.x1 - bounds.x0;
+            const float h = bounds.y1 - bounds.y0;
+
+            std::lock_guard<std::mutex> lock(m_page_dim_mutex);
+            m_page_dim_cache.set(pageno, w, h);
+        }
+
         // Extract links and cache them
         head = fz_load_links(ctx, page);
         for (fz_link *link = head; link; link = link->next)
         {
-            if (!link->uri)
+            if (!link->uri || !link->uri[0])
                 continue;
 
             CachedLink cl;
@@ -424,26 +445,35 @@ Model::buildPageCache(int pageno) noexcept
         pdf_page *pdfPage = pdf_page_from_fz_page(ctx, page);
         if (pdfPage)
         {
-            float color[3];
+            float color[3]{0.0f, 0.0f, 0.0f};
             int n = 3;
 
             for (pdf_annot *annot = pdf_first_annot(ctx, pdfPage); annot;
                  annot            = pdf_next_annot(ctx, annot))
             {
                 CachedAnnotation ca;
-                ca.rect    = pdf_bound_annot(ctx, annot);
-                ca.type    = pdf_annot_type(ctx, annot);
-                ca.index   = pdf_to_num(ctx, pdf_annot_obj(ctx, annot));
-                ca.opacity = pdf_annot_opacity(ctx, annot);
-                ca.text    = pdf_annot_contents(ctx, annot);
-
+                ca.rect = pdf_bound_annot(ctx, annot);
                 if (fz_is_infinite_rect(ca.rect) || fz_is_empty_rect(ca.rect))
                     continue;
+
+                ca.type = pdf_annot_type(ctx, annot);
+
+                // Only get text for annotations that typically have it
+                if (ca.type == PDF_ANNOT_TEXT || ca.type == PDF_ANNOT_POPUP)
+                {
+                    const char *contents = pdf_annot_contents(ctx, annot);
+                    if (contents)
+                        ca.text = QString::fromUtf8(contents);
+                }
+
+                ca.index   = pdf_to_num(ctx, pdf_annot_obj(ctx, annot));
+                ca.opacity = pdf_annot_opacity(ctx, annot);
 
                 switch (ca.type)
                 {
                     case PDF_ANNOT_POPUP:
                     case PDF_ANNOT_TEXT:
+                    case PDF_ANNOT_HIGHLIGHT:
                     {
                         pdf_annot_color(ctx, annot, &n, color);
                         ca.color = QColor::fromRgbF(color[0], color[1],
@@ -459,15 +489,6 @@ Model::buildPageCache(int pageno) noexcept
                     }
                     break;
 
-                    case PDF_ANNOT_HIGHLIGHT:
-                    {
-                        pdf_annot_color(ctx, annot, &n, color);
-                        ca.color = QColor::fromRgbF(color[0], color[1],
-                                                    color[2], ca.opacity);
-                    }
-
-                    break;
-
                     default:
                         continue;
                 }
@@ -478,19 +499,14 @@ Model::buildPageCache(int pageno) noexcept
 
         entry.display_list = dlist;
         entry.bounds       = bounds;
+        entry.pageno       = pageno;
         success            = true;
     }
     fz_always(ctx)
     {
-        if (head)
-            fz_drop_link(ctx, head);
-        if (list_dev)
-        {
-            fz_close_device(ctx, list_dev);
-            fz_drop_device(ctx, list_dev);
-        }
-        if (page)
-            fz_drop_page(ctx, page);
+        fz_drop_link(ctx, head);
+        fz_drop_device(ctx, list_dev);
+        fz_drop_page(ctx, page);
         if (!success && dlist)
             fz_drop_display_list(ctx, dlist);
     }
@@ -498,17 +514,21 @@ Model::buildPageCache(int pageno) noexcept
     {
         qWarning() << "Failed to build page cache for page" << pageno << ":"
                    << fz_caught_message(ctx);
+        fz_drop_context(ctx);
         return;
     }
 
     if (!success)
+    {
+        fz_drop_context(ctx);
         return;
+    }
 
+    // Cache the display list and links
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
         if (!m_page_lru_cache.has(pageno))
         {
-            entry.pageno = pageno;
             m_page_lru_cache.put(pageno, std::move(entry));
         }
         // else
