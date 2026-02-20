@@ -91,6 +91,14 @@ TabWidget::removeTab(const int index) noexcept
 }
 
 void
+TabWidget::removeTab(QWidget *page) noexcept
+{
+    const int index = m_stacked_widget->indexOf(page);
+    if (index != -1)
+        removeTab(index);
+}
+
+void
 TabWidget::paintEvent(QPaintEvent *event)
 {
     QWidget::paintEvent(event);

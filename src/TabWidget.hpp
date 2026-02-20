@@ -120,6 +120,7 @@ public:
     }
 
     void removeTab(const int index) noexcept;
+    void removeTab(QWidget *page) noexcept;
 
 protected:
     void paintEvent(QPaintEvent *event) override;
