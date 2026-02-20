@@ -82,7 +82,7 @@ struct Config
         bool search_hits{true};
         bool auto_hide{true};
         int size{12};
-        int hide_timeout{1500};
+        float hide_timeout{1.5}; // seconds of inactivity before hiding
     } scrollbars{};
 
     struct markers
