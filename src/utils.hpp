@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QColor>
+#include <QDebug>
+#include <QDir>
 #include <QPointF>
 #include <algorithm>
 #include <cstdint>
