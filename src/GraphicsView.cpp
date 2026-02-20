@@ -22,8 +22,8 @@ GraphicsView::GraphicsView(const Config &config, QWidget *parent)
     setResizeAnchor(QGraphicsView::AnchorViewCenter);
     setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
     setAcceptDrops(false);
-    setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing);
-    setOptimizationFlag(QGraphicsView::DontSavePainterState);
+    setOptimizationFlags(QGraphicsView::DontAdjustForAntialiasing
+                         | QGraphicsView::DontSavePainterState);
     setContentsMargins(0, 0, 0, 0);
     setCacheMode(QGraphicsView::CacheBackground);
     setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
