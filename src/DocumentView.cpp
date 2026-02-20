@@ -7,6 +7,7 @@
 #include "Commands/DeleteAnnotationsCommand.hpp"
 #include "Commands/RectAnnotationCommand.hpp"
 #include "Commands/TextAnnotationCommand.hpp"
+#include "GraphicsImageItem.hpp"
 #include "GraphicsPixmapItem.hpp"
 #include "GraphicsView.hpp"
 #include "LinkHint.hpp"
@@ -386,7 +387,7 @@ DocumentView::initConnections() noexcept
     //         [&](const QPointF &scenePos)
     // {
     // int pageIndex                = -1;
-    // GraphicsPixmapItem *pageItem = nullptr;
+    // GraphicsImageItem *pageItem = nullptr;
 
     // if (!pageAtScenePos(scenePos, pageIndex, pageItem))
     //     return; // selection start outside visible pages?
@@ -507,8 +508,8 @@ DocumentView::handleLinkCtrlClickRequested(const QPointF &scenePos) noexcept
     assert(m_container
            && "handleLinkCtrlClickRequested called before container is set");
 
-    int pageIndex                = -1;
-    GraphicsPixmapItem *pageItem = nullptr;
+    int pageIndex               = -1;
+    GraphicsImageItem *pageItem = nullptr;
 
     if (!pageAtScenePos(scenePos, pageIndex, pageItem))
         return;
@@ -595,8 +596,8 @@ DocumentView::handleClickSelection(int clickType,
     qDebug() << "DocumentView::handleClickSelection(): Handling click type"
              << clickType << "at scene position" << scenePos;
 #endif
-    int pageIndex                = -1;
-    GraphicsPixmapItem *pageItem = nullptr;
+    int pageIndex               = -1;
+    GraphicsImageItem *pageItem = nullptr;
 
     if (!pageAtScenePos(scenePos, pageIndex, pageItem))
         return;
@@ -642,8 +643,8 @@ DocumentView::handleSynctexJumpRequested(const QPointF &scenePos) noexcept
 
     if (m_synctex_scanner)
     {
-        int pageIndex                = -1;
-        GraphicsPixmapItem *pageItem = nullptr;
+        int pageIndex               = -1;
+        GraphicsImageItem *pageItem = nullptr;
 
         if (!pageAtScenePos(scenePos, pageIndex, pageItem))
             return;
@@ -707,7 +708,7 @@ DocumentView::handleTextHighlightRequested() noexcept
     int pageIndex = m_selection_path_item->data(0).toInt();
 
     // 2. Find the corresponding PageItem in the scene
-    GraphicsPixmapItem *pageItem = m_page_items_hash.value(pageIndex, nullptr);
+    GraphicsImageItem *pageItem = m_page_items_hash.value(pageIndex, nullptr);
     if (!pageItem)
         return;
 
@@ -723,8 +724,8 @@ DocumentView::handleTextSelection(const QPointF &start,
                                   const QPointF &end) noexcept
 {
 
-    int pageIndex                = -1;
-    GraphicsPixmapItem *pageItem = nullptr;
+    int pageIndex               = -1;
+    GraphicsImageItem *pageItem = nullptr;
 
     if (!pageAtScenePos(start, pageIndex, pageItem))
         return; // selection start outside visible pages?
@@ -755,7 +756,7 @@ DocumentView::updateSelectionPath(int pageno,
 
     // Batch all polygons into ONE path
     QPainterPath path;
-    GraphicsPixmapItem *pageItem = m_page_items_hash.value(pageno, nullptr);
+    GraphicsImageItem *pageItem = m_page_items_hash.value(pageno, nullptr);
     if (!pageItem)
         return;
 
@@ -941,7 +942,7 @@ DocumentView::GotoLocation(const PageLocation &targetLocation) noexcept
 #endif
 
     // Continuous / LTR layouts
-    GraphicsPixmapItem *pageItem = m_page_items_hash[targetLocation.pageno];
+    GraphicsImageItem *pageItem = m_page_items_hash[targetLocation.pageno];
     if (!pageItem)
         return;
     if (pageItem->data(0).toString() == "placeholder_page")
@@ -1561,7 +1562,7 @@ DocumentView::TextHighlightCurrentSelection() noexcept
     int pageIndex = m_selection_path_item->data(0).toInt();
 
     // 2. Find the corresponding PageItem in the scene
-    GraphicsPixmapItem *pageItem = m_page_items_hash.value(pageIndex, nullptr);
+    GraphicsImageItem *pageItem = m_page_items_hash.value(pageIndex, nullptr);
     if (!pageItem)
         return;
 
@@ -1938,17 +1939,22 @@ DocumentView::startNextRenderJob() noexcept
             if (cancelled->load())
                 return;
 
-            const QPixmap pixmap = QPixmap::fromImage(result.image);
-            if (!pixmap.isNull())
+            // Use QImage directly - avoid expensive QPixmap::fromImage()
+            // conversion
+            const QImage &image = result.image;
+            if (!image.isNull())
             {
-                const std::set<int> &visiblePages = getVisiblePages();
-                if (visiblePages.find(pageno) != visiblePages.end())
+                m_gscene->blockSignals(true);
+                setUpdatesEnabled(false);
                 {
-                    renderPageFromPixmap(pageno, pixmap);
+                    renderPageFromImage(pageno, image);
                     renderLinks(pageno, result.links);
                     renderAnnotations(pageno, result.annotations);
                     renderSearchHitsForPage(pageno);
                 }
+                setUpdatesEnabled(true);
+                m_gscene->blockSignals(false);
+                m_gview->viewport()->update();
 
                 if (m_pending_jump.pageno == pageno)
                     GotoLocation(m_pending_jump);
@@ -2054,7 +2060,7 @@ DocumentView::removePageItem(int pageno) noexcept
 {
     if (m_page_items_hash.contains(pageno))
     {
-        GraphicsPixmapItem *item = m_page_items_hash.take(pageno);
+        GraphicsImageItem *item = m_page_items_hash.take(pageno);
         if (item->scene() == m_gscene)
             m_gscene->removeItem(item);
         delete item;
@@ -2200,7 +2206,7 @@ DocumentView::showEvent(QShowEvent *event)
 
 bool
 DocumentView::pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
-                             GraphicsPixmapItem *&outPageItem) const noexcept
+                             GraphicsImageItem *&outPageItem) const noexcept
 {
     outPageIndex = -1;
     outPageItem  = nullptr;
@@ -2270,7 +2276,7 @@ DocumentView::clearVisiblePages() noexcept
     for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
          ++it)
     {
-        GraphicsPixmapItem *item = it.value();
+        GraphicsImageItem *item = it.value();
         if (item->scene() == m_gscene)
             m_gscene->removeItem(item);
     }
@@ -2407,7 +2413,7 @@ DocumentView::updateCurrentHitHighlight() noexcept
     const HitRef ref = m_search_hit_flat_refs[m_search_index];
     const auto &hit  = m_search_hits[ref.page][ref.indexInPage];
 
-    GraphicsPixmapItem *pageItem = m_page_items_hash.value(ref.page, nullptr);
+    GraphicsImageItem *pageItem = m_page_items_hash.value(ref.page, nullptr);
     if (!pageItem || !pageItem->scene())
     {
         m_current_search_hit_item->setPath(QPainterPath());
@@ -2604,7 +2610,7 @@ DocumentView::requestPageRender(int pageno) noexcept
 // }
 
 void
-DocumentView::renderPageFromPixmap(int pageno, const QPixmap &pixmap) noexcept
+DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
 {
     // Remove old item (placeholder OR real page) BEFORE adding the new item,
     // since createAndAddPageItem overwrites the hash entry.  Without this,
@@ -2613,14 +2619,14 @@ DocumentView::renderPageFromPixmap(int pageno, const QPixmap &pixmap) noexcept
     auto it = m_page_items_hash.find(pageno);
     if (it != m_page_items_hash.end())
     {
-        GraphicsPixmapItem *old = it.value();
+        GraphicsImageItem *old = it.value();
         if (old->scene() == m_gscene)
             m_gscene->removeItem(old);
         delete old;
         m_page_items_hash.remove(pageno);
     }
 
-    createAndAddPageItem(pageno, pixmap);
+    createAndAddPageItem(pageno, image);
 
     clearLinksForPage(pageno);
     clearAnnotationsForPage(pageno);
@@ -2637,14 +2643,15 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
     if (logicalSize.isEmpty())
         return;
 
-    QPixmap pix(1, 1);
-    pix.fill(m_model->invertColor() ? Qt::black : Qt::white);
+    // Create a minimal 1x1 image for placeholder (memory efficient)
+    QImage img(1, 1, QImage::Format_RGB32);
+    img.fill(m_model->invertColor() ? Qt::black : Qt::white);
 
-    auto *item = new GraphicsPixmapItem();
-    item->setPixmap(pix);
+    auto *item = new GraphicsImageItem();
+    item->setImage(img);
     item->setTransform(
-        QTransform::fromScale(logicalSize.width() / pix.width(),
-                              logicalSize.height() / pix.height()));
+        QTransform::fromScale(logicalSize.width() / img.width(),
+                              logicalSize.height() / img.height()));
 
     const double pageW = logicalSize.width();
     const double pageH = logicalSize.height();
@@ -2675,14 +2682,14 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
 }
 
 void
-DocumentView::createAndAddPageItem(int pageno, const QPixmap &pix) noexcept
+DocumentView::createAndAddPageItem(int pageno, const QImage &img) noexcept
 {
-    auto *item = new GraphicsPixmapItem();
-    item->setPixmap(pix);
+    auto *item = new GraphicsImageItem();
+    item->setImage(img);
 
-    // Logical scene size of the rendered pixmap.
-    const double pageW = pix.width() / pix.devicePixelRatio();
-    const double pageH = pix.height() / pix.devicePixelRatio();
+    // Logical scene size of the rendered image.
+    const double pageW = img.width() / img.devicePixelRatio();
+    const double pageH = img.height() / img.devicePixelRatio();
 
     const QRectF sr = m_gview->sceneRect();
 
@@ -2714,7 +2721,7 @@ DocumentView::renderLinks(int pageno,
     if (m_page_links_hash.contains(pageno))
         return;
 
-    GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
+    GraphicsImageItem *pageItem = m_page_items_hash[pageno];
 
     for (const auto &link : links)
     {
@@ -2857,7 +2864,7 @@ DocumentView::renderAnnotations(
     if (m_page_annotations_hash.contains(pageno))
         return;
 
-    GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
+    GraphicsImageItem *pageItem = m_page_items_hash[pageno];
     if (!pageItem)
         return;
 
@@ -3038,7 +3045,7 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
     const auto &hits = m_search_hits.value(pageno); // Local copy
 
     // 2. Validate the Page Item still exists in the scene
-    GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
+    GraphicsImageItem *pageItem = m_page_items_hash[pageno];
 
     if (!pageItem)
         return;
@@ -3207,7 +3214,7 @@ void
 DocumentView::handleAnnotSelectRequested(const QRectF &sceneRect) noexcept
 {
     int pageno;
-    GraphicsPixmapItem *pageItem;
+    GraphicsImageItem *pageItem;
     if (!pageAtScenePos(sceneRect.center(), pageno, pageItem))
         return;
 
@@ -3228,7 +3235,7 @@ void
 DocumentView::handleAnnotSelectRequested(const QPointF &scenePos) noexcept
 {
     int pageno;
-    GraphicsPixmapItem *pageItem;
+    GraphicsImageItem *pageItem;
     if (!pageAtScenePos(scenePos, pageno, pageItem))
         return;
 
@@ -3344,7 +3351,7 @@ DocumentView::PageLocation
 DocumentView::CurrentLocation() noexcept
 {
     int pageno;
-    GraphicsPixmapItem *pageItem;
+    GraphicsImageItem *pageItem;
     QPointF sceneCenter = m_gview->mapToScene(
         m_gview->viewport()->width() / 2, m_gview->viewport()->height() / 2);
 
@@ -3358,15 +3365,15 @@ DocumentView::CurrentLocation() noexcept
 namespace
 {
 bool
-mapRegionToPageRects(const QRectF &area, GraphicsPixmapItem *pageItem,
+mapRegionToPageRects(const QRectF &area, GraphicsImageItem *pageItem,
                      QRectF &outLogical, QRect &outPixels) noexcept
 {
     if (!pageItem)
         return false;
 
     const QRectF pageRect = pageItem->mapFromScene(area).boundingRect();
-    const qreal dpr       = pageItem->pixmap().devicePixelRatio();
-    const QSize pixSize   = pageItem->pixmap().size();
+    const qreal dpr       = pageItem->devicePixelRatio();
+    const QSize pixSize   = QSize(pageItem->width(), pageItem->height());
     const QRectF logicalBounds(
         QPointF(0.0, 0.0),
         QSizeF(pixSize.width() / dpr, pixSize.height() / dpr));
@@ -3391,7 +3398,7 @@ void
 DocumentView::CopyTextFromRegion(const QRectF &area) noexcept
 {
     int pageno;
-    GraphicsPixmapItem *pageItem;
+    GraphicsImageItem *pageItem;
     if (!pageAtScenePos(area.center(), pageno, pageItem))
         return;
 
@@ -3409,7 +3416,7 @@ void
 DocumentView::CopyRegionAsImage(const QRectF &area) noexcept
 {
     int pageno;
-    GraphicsPixmapItem *pageItem;
+    GraphicsImageItem *pageItem;
 
     if (!pageAtScenePos(area.center(), pageno, pageItem))
         return;
@@ -3418,7 +3425,7 @@ DocumentView::CopyRegionAsImage(const QRectF &area) noexcept
     QRect pixelRect;
     if (!mapRegionToPageRects(area, pageItem, pageRect, pixelRect))
         return;
-    const QImage img = pageItem->pixmap().copy(pixelRect).toImage();
+    const QImage img = pageItem->image().copy(pixelRect);
 
     if (!img.isNull())
     {
@@ -3432,7 +3439,7 @@ DocumentView::SaveRegionAsImage(const QRectF &area) noexcept
 {
 
     int pageno;
-    GraphicsPixmapItem *pageItem;
+    GraphicsImageItem *pageItem;
 
     if (!pageAtScenePos(area.center(), pageno, pageItem))
         return;
@@ -3441,7 +3448,7 @@ DocumentView::SaveRegionAsImage(const QRectF &area) noexcept
     QRect pixelRect;
     if (!mapRegionToPageRects(area, pageItem, pageRect, pixelRect))
         return;
-    const QImage img = pageItem->pixmap().copy(pixelRect).toImage();
+    const QImage img = pageItem->image().copy(pixelRect);
 
     if (img.isNull())
         return;
@@ -3471,7 +3478,7 @@ void
 DocumentView::OpenRegionInExternalViewer(const QRectF &area) noexcept
 {
     int pageno;
-    GraphicsPixmapItem *pageItem;
+    GraphicsImageItem *pageItem;
 
     if (!pageAtScenePos(area.center(), pageno, pageItem))
         return;
@@ -3480,7 +3487,7 @@ DocumentView::OpenRegionInExternalViewer(const QRectF &area) noexcept
     QRect pixelRect;
     if (!mapRegionToPageRects(area, pageItem, pageRect, pixelRect))
         return;
-    openImageInExternalViewer(pageItem->pixmap().copy(pixelRect).toImage());
+    openImageInExternalViewer(pageItem->image().copy(pixelRect));
 }
 
 void
@@ -3617,7 +3624,7 @@ void
 DocumentView::handleAnnotRectRequested(const QRectF &area) noexcept
 {
     int pageno;
-    GraphicsPixmapItem *pageItem;
+    GraphicsImageItem *pageItem;
 
     if (!pageAtScenePos(area.center(), pageno, pageItem))
         return;
@@ -3647,7 +3654,7 @@ void
 DocumentView::handleAnnotPopupRequested(const QPointF &scenePos) noexcept
 {
     int pageno;
-    GraphicsPixmapItem *pageItem;
+    GraphicsImageItem *pageItem;
 
     if (!pageAtScenePos(scenePos, pageno, pageItem))
         return;
@@ -3696,8 +3703,8 @@ DocumentView::zoomHelper() noexcept
 #endif
 
     // ── Anchor: remember which fraction of the centre page we're looking at ──
-    int anchorPageIndex            = -1;
-    GraphicsPixmapItem *anchorItem = nullptr;
+    int anchorPageIndex           = -1;
+    GraphicsImageItem *anchorItem = nullptr;
     QPointF anchorFrac{0.0, 0.0};
     bool hasAnchor = false;
 
@@ -3735,8 +3742,8 @@ DocumentView::zoomHelper() noexcept
     for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
          ++it)
     {
-        const int i              = it.key();
-        GraphicsPixmapItem *item = it.value();
+        const int i             = it.key();
+        GraphicsImageItem *item = it.value();
 
         const bool isPlaceholder
             = (item->data(0).toString() == "placeholder_page");
@@ -3748,29 +3755,29 @@ DocumentView::zoomHelper() noexcept
         {
             // Use this page's own dimensions, not the current page's.
             const QSizeF logicalSize = pageSceneSize(i);
-            const QPixmap pix        = item->pixmap();
-            if (!pix.isNull() && pix.width() > 0 && pix.height() > 0)
+            const QImage &img        = item->image();
+            if (!img.isNull() && img.width() > 0 && img.height() > 0)
             {
                 item->setScale(1.0);
                 item->setTransform(
-                    QTransform::fromScale(logicalSize.width() / pix.width(),
-                                          logicalSize.height() / pix.height()));
+                    QTransform::fromScale(logicalSize.width() / img.width(),
+                                          logicalSize.height() / img.height()));
             }
             pageWidthScene  = logicalSize.width();
             pageHeightScene = logicalSize.height();
         }
         else
         {
-            // Scale the existing pixmap so its height matches the target
+            // Scale the existing image so its height matches the target
             // physical pixel height for *this* page at the new zoom level.
             const double targetPixelHeight
                 = m_model->page_dimension_pts(i).height_pts * m_model->DPR()
                   * m_current_zoom * m_model->DPI() / 72.0;
 
-            const double currentPixmapHeight
-                = static_cast<double>(item->pixmap().height());
+            const double currentImageHeight
+                = static_cast<double>(item->height());
 
-            item->setScale(targetPixelHeight / currentPixmapHeight);
+            item->setScale(targetPixelHeight / currentImageHeight);
 
             pageWidthScene  = item->boundingRect().width() * item->scale();
             pageHeightScene = item->boundingRect().height() * item->scale();
@@ -3808,8 +3815,8 @@ DocumentView::zoomHelper() noexcept
     // ─
     if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
     {
-        GraphicsPixmapItem *pageItem = m_page_items_hash[anchorPageIndex];
-        const QRectF bounds          = pageItem->boundingRect();
+        GraphicsImageItem *pageItem = m_page_items_hash[anchorPageIndex];
+        const QRectF bounds         = pageItem->boundingRect();
         if (!bounds.isEmpty())
         {
             const QPointF restoredLocal(anchorFrac.x() * bounds.width(),

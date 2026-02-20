@@ -16,6 +16,7 @@
 
 - Make `text_cache` an LRU cache to reduce memory usage on large documents (used for text searching)
 - Use page dimension cache (instead of repeatedely querying the document for dimension) for `toPDFSpace` and `toPixelSpace` functions to improve performance when converting coordinates between PDF space and pixel space, especially for documents with many pages or varying page sizes.
+- Memory efficient QImage for page rendering and avoiding conversion to QPixmap. (Huge performance boost)
 
 ### Breaking Changes
 

@@ -2,6 +2,7 @@
 
 #include "AboutDialog.hpp"
 #include "Config.hpp"
+#include "GraphicsImageItem.hpp"
 #include "GraphicsPixmapItem.hpp"
 #include "GraphicsScene.hpp"
 #include "GraphicsView.hpp"
@@ -232,7 +233,7 @@ public:
     bool EncryptDocument() noexcept;
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
-    void createAndAddPageItem(int pageno, const QPixmap &pixmap) noexcept;
+    void createAndAddPageItem(int pageno, const QImage &image) noexcept;
     void renderVisiblePages() noexcept;
     void renderPage() noexcept;
     void setFitMode(FitMode mode) noexcept;
@@ -385,7 +386,7 @@ private:
     void initGui() noexcept;
     void setModified(bool state) noexcept;
     bool pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
-                        GraphicsPixmapItem *&outPageItem) const noexcept;
+                        GraphicsImageItem *&outPageItem) const noexcept;
     void requestPageRender(int pageno) noexcept;
     void startNextRenderJob() noexcept;
     void clearLinksForPage(int pageno) noexcept;
@@ -394,7 +395,7 @@ private:
     void clearVisibleAnnotations() noexcept;
     void clearVisiblePages() noexcept;
     void clearVisibleLinks() noexcept;
-    void renderPageFromPixmap(int pageno, const QPixmap &pixmap) noexcept;
+    void renderPageFromImage(int pageno, const QImage &image) noexcept;
     void renderLinks(int pageno,
                      const std::vector<Model::RenderLink> &links) noexcept;
     void renderAnnotations(
@@ -452,7 +453,7 @@ private:
     bool m_auto_resize{false}, m_auto_reload{false};
     ScrollBar *m_hscroll{nullptr};
     ScrollBar *m_vscroll{nullptr};
-    QHash<int, GraphicsPixmapItem *> m_page_items_hash;
+    QHash<int, GraphicsImageItem *> m_page_items_hash;
     QHash<int, std::vector<BrowseLinkItem *>> m_page_links_hash;
     QHash<int, std::vector<Annotation *>> m_page_annotations_hash;
     QSet<int> m_pending_renders;
