@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <string_view>
 #include <vector>
-#include <QDebug>
 
 extern "C"
 {
@@ -138,10 +137,11 @@ clean_join_pdf_text(const std::string &input);
 void
 clean_pdf_text(std::string &s);
 
-
 /* NOTE: Do not call this function, call PPRINT macro instead */
-template <typename ...Ts>
-inline void __pprint(Ts&&... args) {
+template <typename... Ts>
+inline void
+__pprint(Ts &&...args)
+{
     QDebug dbg = qDebug();
     dbg.nospace();
     dbg.noquote();
@@ -152,7 +152,36 @@ inline void __pprint(Ts&&... args) {
 }
 
 #ifndef NDEBUG
-    #define PPRINT(...) __print(__VA_ARGS__)
+#define PPRINT(...) __print(__VA_ARGS__)
 #else
-    #define PPRINT(...) do {} while (0)
+#define PPRINT(...)                                                            \
+    do                                                                         \
+    {                                                                          \
+    } while (0)
 #endif
+
+template <typename... Args>
+static QString
+joinPaths(Args &&...args)
+{
+    QString result;
+    const QChar sep = QDir::separator();
+    ([&](const QString &part)
+    {
+        if (part.isEmpty())
+            return;
+        if (result.isEmpty())
+        {
+            result = part;
+        }
+        else
+        {
+            if (!result.endsWith(sep) && !part.startsWith(sep))
+                result += sep;
+            else if (result.endsWith(sep) && part.startsWith(sep))
+                result.chop(1);
+            result += part;
+        }
+    }(std::forward<Args>(args)), ...);
+    return QDir::cleanPath(result);
+}
