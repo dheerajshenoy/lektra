@@ -4280,14 +4280,18 @@ lektra::setCurrentDocumentView(DocumentView *view) noexcept
         return;
     }
 
-    DocumentContainer *container
-        = m_tab_widget->rootContainer(m_tab_widget->currentIndex());
+    const int tabIndex = m_tab_widget->currentIndex();
+
+    DocumentContainer *container = m_tab_widget->rootContainer(tabIndex);
     if (!container)
         return;
 
     if (container->view() != view)
         container->focusView(view);
 
+    m_tab_widget->tabBar()->setTabText(tabIndex, m_config.tabs.full_path
+                                                     ? m_doc->filePath()
+                                                     : m_doc->fileName());
     updateUiEnabledState();
     updatePageNavigationActions();
     updatePanel();
