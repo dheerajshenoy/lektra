@@ -177,6 +177,7 @@ struct Config
     {
         int undo_limit{25};
         int cache_pages{20};
+        int preload_pages{5};
         bool auto_reload{true};
         bool config_auto_reload{true};
         bool invert_mode{false};

@@ -147,7 +147,7 @@ public:
     inline void setDPR(float dpr) noexcept
     {
         m_model->setDPR(dpr);
-        renderVisiblePages();
+        renderPages();
     }
 
     inline QString fileName() const noexcept
@@ -234,7 +234,7 @@ public:
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
     void createAndAddPageItem(int pageno, const QImage &image) noexcept;
-    void renderVisiblePages() noexcept;
+    void renderPages() noexcept;
     void renderPage() noexcept;
     void setFitMode(FitMode mode) noexcept;
     void GotoPage(int pageno) noexcept;
@@ -487,7 +487,6 @@ private:
     DocumentContainer *m_container{nullptr};
     std::vector<LinkHint *> m_kb_link_hints{};
     std::vector<double> m_page_offsets{};
-    float m_preload_margin{1.0f};
 
     int pageAtAxisCoord(double coord) const noexcept;
 

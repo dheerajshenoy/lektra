@@ -246,7 +246,7 @@ DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
     {
         // Put viewport near current page along the main axis
         GotoPage(m_pageno);
-        renderVisiblePages();
+        renderPages();
     }
 }
 
@@ -424,10 +424,10 @@ DocumentView::initConnections() noexcept
         //         &DocumentView::updateCurrentPage);
 
         connect(m_hq_render_timer, &QTimer::timeout, this,
-                &DocumentView::renderVisiblePages, Qt::UniqueConnection);
+                &DocumentView::renderPages, Qt::UniqueConnection);
 
         connect(m_scroll_page_update_timer, &QTimer::timeout, this,
-                &DocumentView::renderVisiblePages, Qt::UniqueConnection);
+                &DocumentView::renderPages, Qt::UniqueConnection);
     }
     else if (m_layout_mode == LayoutMode::TOP_TO_BOTTOM)
     {
@@ -444,10 +444,10 @@ DocumentView::initConnections() noexcept
         //         &DocumentView::updateCurrentPage);
 
         connect(m_hq_render_timer, &QTimer::timeout, this,
-                &DocumentView::renderVisiblePages, Qt::UniqueConnection);
+                &DocumentView::renderPages, Qt::UniqueConnection);
 
         connect(m_scroll_page_update_timer, &QTimer::timeout, this,
-                &DocumentView::renderVisiblePages, Qt::UniqueConnection);
+                &DocumentView::renderPages, Qt::UniqueConnection);
     }
     else if (m_layout_mode == LayoutMode::SINGLE)
     {
@@ -558,7 +558,7 @@ DocumentView::handleSearchResults(
 
     m_search_hits = results;
     buildFlatSearchHitIndex();
-    renderVisiblePages();
+    renderPages();
     updateCurrentHitHighlight();
 
     if (m_config.scrollbars.search_hits)
@@ -806,7 +806,7 @@ DocumentView::rotateHelper() noexcept
         clearSearchItemsForPage(pageno);
     }
 
-    renderVisiblePages();
+    renderPages();
 }
 
 // Cycle to the next fit mode
@@ -1256,7 +1256,7 @@ DocumentView::LinkKB() noexcept
         = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
 
     std::vector<std::pair<BrowseLinkItem *, int>> visibleLinks;
-    const std::set<int> visiblePages = getVisiblePages();
+    const std::set<int> &visiblePages = getVisiblePages();
     for (int pageno : visiblePages)
     {
         if (!m_page_links_hash.contains(pageno))
@@ -1846,64 +1846,68 @@ DocumentView::clearAnnotationsForPage(int pageno) noexcept
     }
 }
 
-// Render all visible pages, optionally forcing re-render
+// Render all visible pages
 void
-DocumentView::renderVisiblePages() noexcept
+DocumentView::renderPages() noexcept
 {
-    // Early exit if no changes needed
-    // static std::set<int> lastRenderedPages;
+    const std::set<int> &visiblePages = getVisiblePages();
+    const std::set<int> preloadPages  = getPreloadPages();
 
-    const std::set<int> visiblePages = getVisiblePages();
+    std::set<int> pages = visiblePages;
+    pages.insert(preloadPages.begin(), preloadPages.end());
 
-    qDebug() << "DocumentView::renderVisiblePages(): Visible pages:"
-             << visiblePages;
+#ifndef NDEBUG
+    qDebug() << "DocumentView::renderPages(): Rendering pages:" << pages;
+#endif
 
-    // if (visiblePages == lastRenderedPages
-    //     && m_page_items_hash.size() == visiblePages.size())
-    // {
-    //     // Same pages are visible and already rendered, skip
-    //     return;
-    // }
-
-    // lastRenderedPages = visiblePages;
-
-    m_gview->setRenderHints(QPainter::TextAntialiasing);
     m_gview->setUpdatesEnabled(false);
     m_gscene->blockSignals(true);
+    {
+        prunePendingRenders(pages);
+        removeUnusedPageItems(pages);
+        // ClearTextSelection();
 
-    prunePendingRenders(visiblePages);
-    removeUnusedPageItems(visiblePages);
-    // ClearTextSelection();
+        // Prioritize visible pages for rendering, but also include preload
+        // pages in the queue
+        for (int pageno : visiblePages)
+            requestPageRender(pageno);
 
-    for (int pageno : visiblePages)
-        requestPageRender(pageno);
+        // Prioritize visible pages for rendering, but also include preload
+        // pages in the queue
+        for (int pageno : preloadPages)
+            requestPageRender(pageno);
 
-    updateSceneRect();
-    updateCurrentHitHighlight();
-
+        updateSceneRect();
+        updateCurrentHitHighlight();
+    }
     m_gscene->blockSignals(false);
     m_gview->setUpdatesEnabled(true);
-    m_gview->setRenderHints(QPainter::Antialiasing
-                            | QPainter::SmoothPixmapTransform);
 }
 
 // Render a specific page (used when LayoutMode is SINGLE)
 void
 DocumentView::renderPage() noexcept
 {
-    prunePendingRenders({m_pageno});
-    removeUnusedPageItems({m_pageno});
-    requestPageRender(m_pageno);
+    m_gview->setUpdatesEnabled(false);
+    m_gscene->blockSignals(true);
+    {
 
-    updateSceneRect();
-    updateCurrentHitHighlight();
+        prunePendingRenders({m_pageno});
+        removeUnusedPageItems({m_pageno});
+        requestPageRender(m_pageno);
+
+        updateSceneRect();
+        updateCurrentHitHighlight();
+    }
+    m_gscene->blockSignals(false);
+    m_gview->setUpdatesEnabled(true);
 }
 
 void
 DocumentView::startNextRenderJob() noexcept
 {
     // Get current visible pages for prioritization
-    std::set<int> visiblePages = getVisiblePages();
+    const std::set<int> &visiblePages = getVisiblePages();
 
     while (m_renders_in_flight < MAX_CONCURRENT_RENDERS
            && !m_render_queue.isEmpty())
@@ -2123,14 +2127,39 @@ DocumentView::cachePageStride() noexcept
 std::set<int>
 DocumentView::getPreloadPages() noexcept
 {
-    const auto pages = getVisiblePages();
-    // Preload margin: use current page's stride as representative
-    const double currentStride
-        = pageStride(std::clamp(m_pageno, 0, m_model->numPages() - 1));
-    m_preload_margin = currentStride;
-    if (m_config.behavior.cache_pages > 0)
-        m_preload_margin *= m_config.behavior.cache_pages;
-    return pages;
+    const std::set<int> &visiblePages = getVisiblePages();
+    if (visiblePages.empty())
+        return {};
+
+    const int numPages     = m_model->numPages();
+    const int firstVisible = *visiblePages.begin();
+    const int lastVisible  = *visiblePages.rbegin();
+
+    // Use the stride of the current page as the preload lookahead distance
+    const double preloadDistance
+        = pageStride(std::clamp(m_pageno, 0, numPages - 1))
+          * m_config.behavior.preload_pages;
+
+    const double ahead  = m_page_offsets[lastVisible] + preloadDistance;
+    const double behind = m_page_offsets[firstVisible] - preloadDistance;
+
+    std::set<int> preloadPages;
+
+    for (int p = firstVisible - 1; p >= 0; --p)
+    {
+        if (m_page_offsets[p] < behind)
+            break;
+        preloadPages.insert(p);
+    }
+
+    for (int p = lastVisible + 1; p < numPages; ++p)
+    {
+        if (m_page_offsets[p] > ahead)
+            break;
+        preloadPages.insert(p);
+    }
+
+    return preloadPages;
 }
 
 // Update the scene rect based on number of pages and page stride
@@ -2204,7 +2233,7 @@ DocumentView::handleDeferredResize() noexcept
     if (m_layout_mode == LayoutMode::SINGLE)
         renderPage();
     else
-        renderVisiblePages();
+        renderPages();
 
     if (m_auto_resize)
     {
@@ -3205,7 +3234,7 @@ DocumentView::setInvertColor(bool invert) noexcept
     if (m_layout_mode == LayoutMode::SINGLE)
         renderPage();
     else
-        renderVisiblePages();
+        renderPages();
 }
 
 void
@@ -3600,7 +3629,7 @@ DocumentView::tryReloadLater(int attempt) noexcept
         }
         else
         {
-            renderVisiblePages();
+            renderPages();
             emit totalPageCountChanged(m_model->m_page_count);
 #ifdef HAS_SYNCTEX
             initSynctex();
@@ -3852,7 +3881,6 @@ DocumentView::handleHScrollValueChanged(int value) noexcept
     // During fast scrolling, only invalidate cache, don't trigger render
     invalidateVisiblePagesCache();
 
-    ensureVisiblePagePlaceholders();
     updateCurrentPage();
 
     // Always restart the timer (debouncing)
@@ -3869,7 +3897,6 @@ DocumentView::handleVScrollValueChanged(int value) noexcept
     // During fast scrolling, only invalidate cache, don't trigger render
     invalidateVisiblePagesCache();
 
-    ensureVisiblePagePlaceholders();
     updateCurrentPage();
 
     // Always restart the timer (debouncing)

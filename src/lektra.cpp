@@ -800,6 +800,7 @@ lektra::initConfig() noexcept
                            m_config.behavior.synctex_editor_command);
 #endif
 
+    set_if_present(behavior["preload_pages"], m_config.behavior.preload_pages);
     set_if_present(behavior["confirm_on_quit"],
                    m_config.behavior.confirm_on_quit);
     set_if_present(behavior["undo_limit"], m_config.behavior.undo_limit);
