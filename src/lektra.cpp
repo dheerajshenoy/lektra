@@ -4260,9 +4260,17 @@ lektra::Close_split() noexcept
     if (currentView)
     {
         container->closeView(currentView);
-        m_tab_widget->tabBar()->set_split_count(currentTabIndex,
-                                                container->getViewCount());
     }
+    else
+    {
+        // TODO: Handle split not being closed ?
+    }
+
+    m_tab_widget->tabBar()->set_split_count(currentTabIndex,
+                                            container->getViewCount());
+    m_tab_widget->tabBar()->setTabText(
+        currentTabIndex,
+        m_config.tabs.full_path ? m_doc->filePath() : m_doc->fileName());
 }
 
 void
