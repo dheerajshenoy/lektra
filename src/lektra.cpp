@@ -563,8 +563,6 @@ lektra::initConfig() noexcept
         if (auto toml_height = size_table["height"].value<int>())
             height = *toml_height;
 
-        PPRINT("Width: ", width, " Height: ", height);
-
         if (width > 0 && height > 0 {
             m_config.window.initial_size = {width, height};
         }
