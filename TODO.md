@@ -3,9 +3,9 @@
     - [X] Rect Annotation
     - [X] Text Highlight Annotation
     - [X] Delete Annotation
+    - [X] Popup Annotation
     - [ ] Annotation color
 
-- [ ] Popup Annotation
 - [ ] Underline Annotation
 - [ ] Synctex highlight line
 - [ ] Easy reference paper search
