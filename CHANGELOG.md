@@ -102,6 +102,9 @@
 
 ### Bug Fixes
 
+- Fix for tab title not updated when closing split
+- Fix for tab title not updated which changing current split focus
+
 ## 0.6.2
 
 ### Features
