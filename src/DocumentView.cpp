@@ -3873,11 +3873,11 @@ void
 DocumentView::stopPendingRenders() noexcept
 {
     m_cancelled->store(true);
-
     m_pending_renders.clear();
     m_render_queue.clear();
 }
 
+// Handle password for password-protected files
 void
 DocumentView::handle_password_required() noexcept
 {
@@ -3898,6 +3898,7 @@ DocumentView::handle_password_required() noexcept
     m_model->submitPassword(password);
 }
 
+// Handle wrong entered password
 void
 DocumentView::handle_wrong_password() noexcept
 {
