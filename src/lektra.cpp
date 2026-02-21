@@ -1312,11 +1312,8 @@ lektra::populateRecentFiles() noexcept
         const QString path  = entry.file_path;
         const int page      = entry.page_number;
         QAction *fileAction = new QAction(path, m_recentFilesMenu);
-        connect(fileAction, &QAction::triggered, this, [&, path, page]()
-        {
-            OpenFileInNewTab(path);
-            gotoPage(page);
-        });
+        connect(fileAction, &QAction::triggered, this, [this, path, page]()
+        { OpenFileInNewTab(path, [this, page]() { gotoPage(page); }); });
 
         m_recentFilesMenu->addAction(fileAction);
     }
