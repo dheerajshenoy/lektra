@@ -866,8 +866,6 @@ lektra::initConfig() noexcept
                    m_config.behavior.page_history_limit);
     set_if_present(behavior["invert_mode"], m_config.behavior.invert_mode);
     set_if_present(behavior["auto_reload"], m_config.behavior.auto_reload);
-    set_if_present(behavior["config_auto_reload"],
-                   m_config.behavior.config_auto_reload);
     set_if_present(behavior["recent_files"], m_config.behavior.recent_files);
     set_if_present(behavior["num_recent_files"],
                    m_config.behavior.num_recent_files);

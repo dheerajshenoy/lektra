@@ -176,7 +176,6 @@ struct Config
         int cache_pages{20};
         int preload_pages{5};
         bool auto_reload{true};
-        bool config_auto_reload{true};
         bool invert_mode{false};
         bool open_last_visited{false};
         bool always_open_in_new_window{false};
