@@ -20,6 +20,7 @@
 
 ### Optimizations
 
+- Fix MessageBar's showMessage causing resizeEvent of GraphicsView causing re-rendering of displayed pages
 - Make `text_cache` an LRU cache to reduce memory usage on large documents (used for text searching)
 - Use page dimension cache (instead of repeatedely querying the document for dimension) for `toPDFSpace` and `toPixelSpace` functions to improve performance when converting coordinates between PDF space and pixel space, especially for documents with many pages or varying page sizes.
 - Memory efficient QImage for page rendering and avoiding conversion to QPixmap. (Huge performance boost)
@@ -94,6 +95,8 @@
 - Optimize `pageSceneAtPos` function to use a more efficient way of finding the page at a given position, which should improve performance when clicking on links or navigating to specific locations in the document.
 - Maintain a vector for `LinkHint` pointers for efficient access and management of link hints, which should improve performance when showing and hiding link hints.
 - Optimize `clearDocumentItems` function to efficiently clear all items related to a document when it's closed, which should improve performance and reduce memory usage when closing documents.
+
+### Bug Fixes
 
 ## 0.6.2
 
