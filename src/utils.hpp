@@ -154,7 +154,7 @@ __pprint(Ts &&...args)
 }
 
 #ifndef NDEBUG
-#define PPRINT(...) __print(__VA_ARGS__)
+#define PPRINT(...) __pprint(__VA_ARGS__)
 #else
 #define PPRINT(...)                                                            \
     do                                                                         \
