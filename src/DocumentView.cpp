@@ -392,15 +392,6 @@ DocumentView::initConnections() noexcept
     {
         connect(m_hscroll, &QScrollBar::valueChanged, this,
                 &DocumentView::handleHScrollValueChanged, Qt::UniqueConnection);
-        // connect(m_hscroll, &QScrollBar::valueChanged,
-        //         m_scroll_page_update_timer,
-        //         static_cast<void (QTimer::*)()>(&QTimer::start));
-        //
-        // connect(m_hscroll, &QScrollBar::valueChanged, this,
-        //         &DocumentView::invalidateVisiblePagesCache);
-        //
-        // connect(m_hscroll, &QScrollBar::valueChanged, this,
-        //         &DocumentView::updateCurrentPage);
 
         connect(m_hq_render_timer, &QTimer::timeout, this,
                 &DocumentView::renderPages, Qt::UniqueConnection);
@@ -412,15 +403,6 @@ DocumentView::initConnections() noexcept
     {
         connect(m_vscroll, &QScrollBar::valueChanged, this,
                 &DocumentView::handleVScrollValueChanged, Qt::UniqueConnection);
-        // connect(m_vscroll, &QScrollBar::valueChanged,
-        //         m_scroll_page_update_timer,
-        //         static_cast<void (QTimer::*)()>(&QTimer::start));
-        //
-        // connect(m_vscroll, &QScrollBar::valueChanged, this,
-        //         &DocumentView::invalidateVisiblePagesCache);
-        //
-        // connect(m_vscroll, &QScrollBar::valueChanged, this,
-        //         &DocumentView::updateCurrentPage);
 
         connect(m_hq_render_timer, &QTimer::timeout, this,
                 &DocumentView::renderPages, Qt::UniqueConnection);
