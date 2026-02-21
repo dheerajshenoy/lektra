@@ -75,9 +75,10 @@ set_color_if_present(toml::node_view<toml::node> n, uint32_t &dst)
 // Constructs the `lektra` class
 lektra::lektra() noexcept
 {
-    setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
+    setAttribute(Qt::WA_NativeWindow,
+                 true); // This is necessary for DPI updates
+    setAttribute(Qt::WA_DeleteOnClose, true);
     setAcceptDrops(true);
-    installEventFilter(this);
 }
 
 lektra::lektra(const QString &sessionName,
@@ -85,7 +86,6 @@ lektra::lektra(const QString &sessionName,
 {
     setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
     setAcceptDrops(true);
-    installEventFilter(this);
     construct();
     openSessionFromArray(sessionArray);
     setSessionName(sessionName);
@@ -96,14 +96,11 @@ lektra::lektra(const QString &sessionName,
 void
 lektra::construct() noexcept
 {
-    m_tab_widget = new TabWidget();
-
     initActionMap();
     initConfig();
     initGui();
     if (m_load_default_keybinding)
         initDefaultKeybinds();
-    initMenubar();
     warnShortcutConflicts();
     initDB();
     trimRecentFilesDatabase();
@@ -113,6 +110,7 @@ lektra::construct() noexcept
     setMinimumSize(200, 150);
     this->show();
     resize(m_config.window.initial_size[0], m_config.window.initial_size[1]);
+    installEventFilter(this);
 }
 
 // Initialize the menubar related stuff
@@ -1015,35 +1013,24 @@ lektra::warnShortcutConflicts() noexcept
 void
 lektra::initGui() noexcept
 {
-    QWidget *widget = new QWidget();
-    m_layout        = new QVBoxLayout();
+    QWidget *widget = new QWidget(this);
+    this->setCentralWidget(widget);
+    m_layout = new QVBoxLayout(widget);
     m_layout->setContentsMargins(0, 0, 0, 0);
+    widget->setLayout(m_layout);
+
+    m_menuBar    = this->menuBar();
+    m_tab_widget = new TabWidget(centralWidget());
 
     // Panel
     m_statusbar = new Statusbar(m_config, this);
     m_statusbar->hidePageInfo(true);
     m_statusbar->setMode(GraphicsView::Mode::TextSelection);
     m_statusbar->setSessionName("");
-
     m_search_bar = new SearchBar(this);
-    // m_search_bar_overlay = new FloatingOverlayWidget(this);
-
     m_search_bar->setVisible(false);
-
-    // m_search_bar_overlay->setFrameStyle(makeOverlayFrameStyle(m_config));
-    // m_search_bar_overlay->setContentWidget(m_outline_widget);
-    // m_search_bar_overlay->setContentWidget(m_search_bar);
-    // m_search_bar_overlay->setVisible(false);
-
     m_message_bar = new MessageBar(this);
-
-    widget->setLayout(m_layout);
     m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-
-    this->setCentralWidget(widget);
-
-    m_menuBar = this->menuBar(); // initialize here so that the config
-                                 // visibility works
 
 #ifdef ENABLE_LLM_SUPPORT
     m_llm_widget = new LLMWidget(m_config, this);
@@ -1091,6 +1078,8 @@ lektra::initGui() noexcept
     m_statusbar->setVisible(m_config.statusbar.visible);
     m_menuBar->setVisible(m_config.window.menubar);
     m_tab_widget->tabBar()->setVisible(m_config.tabs.visible);
+
+    initMenubar();
 }
 
 // Updates the UI elements checking if valid
@@ -2406,11 +2395,6 @@ lektra::initConnections() noexcept
 
     connect(m_navMenu, &QMenu::aboutToShow, this,
             &lektra::updatePageNavigationActions);
-
-    connect(m_highlight_search_picker,
-            &HighlightSearchPicker::gotoLocationRequested, this,
-            [this](int page, float x, float y)
-    { m_doc->GotoLocationWithHistory({page, x, y}); });
 }
 
 // Handle when the file name is changed
@@ -3172,7 +3156,7 @@ lektra::LoadSession(QString sessionName) noexcept
         // document already opened in the current window
         if (m_tab_widget->count() > 0)
         {
-            new lektra(sessionName, doc.array());
+            lektra *newWindow = new lektra(sessionName, doc.array());
         }
         else
         {
