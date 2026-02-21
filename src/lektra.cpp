@@ -32,6 +32,11 @@
 namespace
 {
 
+inline void
+hello()
+{
+}
+
 static inline void
 set_title_format_if_present(toml::node_view<toml::node> n,
                             QString &title_format)
@@ -525,16 +530,14 @@ lektra::initConfig() noexcept
     if (ui_window["initial_size"].is_array())
     {
         int width{600}, height{400};
-        setMinimumSize(width, height);
+        setMinimumSize(200, 150);
 
-        const auto size_array = *ui_window["initial_size"].as_array();
-        if (size_array.size() >= 2)
-        {
-            if (auto toml_width = size_array.get(0)->value<int>())
-                width = *toml_width;
-            if (auto toml_height = size_array.get(1)->value<int>())
-                height = *toml_height;
-        }
+        const auto &size_table = *ui_window["initial_size"].as_table();
+
+        if (auto toml_width = size_table["width"].value<int>())
+            width = *toml_width;
+        if (auto toml_height = size_table["height"].value<int>())
+            height = *toml_height;
 
         m_config.window.initial_size = {width, height};
         resize(width, height);
