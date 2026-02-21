@@ -1013,8 +1013,7 @@ lektra::warnShortcutConflicts() noexcept
     }
 
     qWarning() << message;
-    if (m_message_bar)
-        m_message_bar->showMessage(message, 6.0f);
+    m_message_bar->showMessage(message, 6.0f);
 }
 
 // Initialize the GUI related Stuff
@@ -1042,7 +1041,6 @@ lektra::initGui() noexcept
     // m_search_bar_overlay->setVisible(false);
 
     m_message_bar = new MessageBar(this);
-    m_message_bar->setVisible(false);
 
     widget->setLayout(m_layout);
     m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -3565,6 +3563,9 @@ lektra::initActionMap() noexcept
         ACTION_NO_ARGS("highlight_selection", TextHighlightCurrentSelection),
         ACTION_NO_ARGS("invert_color", InvertColor),
         ACTION_NO_ARGS("reshow_jump_marker", Reshow_jump_marker),
+#ifndef NDEBUG
+        ACTION_NO_ARGS("debug_command", debug_command),
+#endif
 
         // Help/About actions
         ACTION_NO_ARGS("show_startup_widget", showStartupWidget),
@@ -4646,3 +4647,11 @@ lektra::Show_recent_files_picker() noexcept
 
     m_recent_file_picker->launch();
 }
+
+#ifndef NDEBUG
+void
+lektra::debug_command() noexcept
+{
+    m_message_bar->showMessage("TEST MESSAGE");
+}
+#endif

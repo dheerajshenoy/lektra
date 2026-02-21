@@ -252,6 +252,10 @@ private:
     void writeSessionToFile() noexcept;
 
     // private helpers
+#ifndef NDEBUG
+    void debug_command() noexcept;
+#endif
+
     DocumentView *get_view_by_id(const DocumentView::Id &id) const noexcept;
     void handleFileNameChanged(const QString &name) noexcept;
     void handleCurrentTabChanged(int index) noexcept;

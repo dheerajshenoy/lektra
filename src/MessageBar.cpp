@@ -5,8 +5,10 @@
 MessageBar::MessageBar(QWidget *parent) : QWidget(parent)
 {
     QHBoxLayout *layout = new QHBoxLayout(this);
+    layout->setContentsMargins(0, 0, 0, 0); // also remove margins
     layout->addWidget(m_label);
     setLayout(layout);
+    setFixedHeight(0);
 }
 
 void
@@ -30,10 +32,12 @@ MessageBar::showNext() noexcept
     const auto [msg, sec] = m_queue.dequeue();
 
     m_label->setText(msg);
-    show();
+    // show();
+    setFixedHeight(30);
     QTimer::singleShot(sec * 1000, this, [this]()
     {
-        hide();
+        // hide();
+        setFixedHeight(0);
         m_label->clear();
         showNext(); // Show the next message after the current one
     });
