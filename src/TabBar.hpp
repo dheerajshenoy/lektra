@@ -74,6 +74,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
+    QSize tabSizeHint(int index) const override;
 
 private:
     QPoint m_drag_start_pos;

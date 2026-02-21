@@ -19,6 +19,7 @@
         - `preload_pages` (int): Number of pages to preload before and after the current page for smoother navigation (default: 5)
     - `[selection]`
         - `copy_on_select` (bool): Copies selection to clipboard when text is selected (default: false)
+- Moved the tab split count to the beginning of the tab instead of it being near the close button of the tab
 
 ### Optimizations
 
@@ -103,6 +104,7 @@
 
 ### Bug Fixes
 
+- Fix tabs not respecting the `tabs.position` config option
 - Fix for tab title not updated when closing split
 - Fix for tab title not updated which changing current split focus
 

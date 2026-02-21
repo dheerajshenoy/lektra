@@ -274,7 +274,6 @@ private:
     void updateActionsAndStuffForSystemTabs() noexcept;
     void updatePageNavigationActions() noexcept;
     void updateSelectionModeActions() noexcept;
-    void updateGUIFromConfig() noexcept;
     void updateTabbarVisibility() noexcept;
     void setSessionName(const QString &name) noexcept;
     void openSessionFromArray(const QJsonArray &sessionArray) noexcept;
@@ -368,7 +367,6 @@ private:
     RecentFilesStore m_recent_files_store;
     QString m_recent_files_path;
     QString m_session_name;
-    QFileSystemWatcher *m_config_watcher{nullptr};
     MessageBar *m_message_bar{nullptr};
     SearchBar *m_search_bar{nullptr};
 

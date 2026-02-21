@@ -96,13 +96,11 @@ lektra::lektra(const QString &sessionName,
 void
 lektra::construct() noexcept
 {
-    m_tab_widget     = new TabWidget();
-    m_config_watcher = new QFileSystemWatcher(this);
+    m_tab_widget = new TabWidget();
 
     initActionMap();
     initConfig();
     initGui();
-    updateGUIFromConfig();
     if (m_load_default_keybinding)
         initDefaultKeybinds();
     initMenubar();
@@ -1082,6 +1080,19 @@ lektra::initGui() noexcept
 #else
     m_layout->addWidget(m_tab_widget, 1);
 #endif
+
+    m_tab_widget->setTabsClosable(m_config.tabs.closable);
+    m_tab_widget->setMovable(m_config.tabs.movable);
+    m_tab_widget->setTabPosition(m_config.tabs.location);
+
+    m_layout->addWidget(m_search_bar);
+    m_layout->addWidget(m_message_bar);
+    m_layout->addWidget(m_statusbar);
+
+    m_tab_widget->setTabBarAutoHide(m_config.tabs.auto_hide);
+    m_statusbar->setVisible(m_config.statusbar.visible);
+    m_menuBar->setVisible(m_config.window.menubar);
+    m_tab_widget->tabBar()->setVisible(m_config.tabs.visible);
 }
 
 // Updates the UI elements checking if valid
@@ -1226,16 +1237,18 @@ lektra::Read_args_parser(argparse::ArgumentParser &argparser) noexcept
         static const QString homeDir = QString::fromLocal8Bit(qgetenv("HOME"));
         if (match.hasMatch())
         {
-            QString pdfPath = match.captured(1);
-            pdfPath.replace(QLatin1Char('~'), homeDir);
-            QString texPath = match.captured(2);
-            texPath.replace(QLatin1Char('~'), homeDir);
-            int line   = match.captured(3).toInt();
-            int column = match.captured(4).toInt();
+            const QString pdfPath
+                = match.captured(1).replace(QLatin1Char('~'), homeDir);
+            const QString texPath
+                = match.captured(2).replace(QLatin1Char('~'), homeDir);
+            const int line   = match.captured(3).toInt();
+            const int column = match.captured(4).toInt();
             Q_UNUSED(line);
             Q_UNUSED(column);
             OpenFileInNewTab(pdfPath);
-            // synctexLocateInPdf(texPath, line, column); TODO:
+            // TODO:
+            // synctexLocateInPdf(texPath, line, column);
+            // m_model->synctexLocateInPdf();
         }
         else
         {
@@ -2307,8 +2320,6 @@ lektra::initConnections() noexcept
     connect(m_statusbar, &Statusbar::pageChangeRequested, this,
             &lektra::gotoPage);
 
-    connect(m_config_watcher, &QFileSystemWatcher::fileChanged, this,
-            &lektra::updateGUIFromConfig);
     QList<QScreen *> outputs = QGuiApplication::screens();
     connect(m_tab_widget, &TabWidget::currentChanged, this,
             &lektra::handleCurrentTabChanged);
@@ -3827,23 +3838,6 @@ lektra::updateSelectionModeActions() noexcept
         default:
             break;
     }
-}
-
-void
-lektra::updateGUIFromConfig() noexcept
-{
-    m_tab_widget->setTabsClosable(m_config.tabs.closable);
-    m_tab_widget->setMovable(m_config.tabs.movable);
-    m_tab_widget->setTabPosition(m_config.tabs.location);
-
-    m_layout->addWidget(m_search_bar);
-    m_layout->addWidget(m_message_bar);
-    m_layout->addWidget(m_statusbar);
-
-    m_tab_widget->setTabBarAutoHide(m_config.tabs.auto_hide);
-    m_statusbar->setVisible(m_config.statusbar.visible);
-    m_menuBar->setVisible(m_config.window.menubar);
-    m_tab_widget->tabBar()->setVisible(m_config.tabs.visible);
 }
 
 void

@@ -145,21 +145,23 @@ void
 TabBar::paintEvent(QPaintEvent *event)
 {
     QTabBar::paintEvent(event);
-
     if (count() == 0)
         return;
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, true);
-
     QFont font = painter.font();
     font.setBold(true);
     painter.setFont(font);
-
     QFontMetrics fm(painter.font());
-    const int paddingX = 6;
+
+    const int paddingX = 7;
     const int paddingY = 2;
-    const int margin   = 6;
+
+    const QTabBar::Shape s = shape();
+    const bool isVertical
+        = (s == QTabBar::RoundedWest || s == QTabBar::RoundedEast
+           || s == QTabBar::TriangularWest || s == QTabBar::TriangularEast);
 
     for (int i = 0; i < count(); ++i)
     {
@@ -167,39 +169,63 @@ TabBar::paintEvent(QPaintEvent *event)
         if (badgeCount <= 1)
             continue;
 
-        const QString text = QString::number(badgeCount);
-        const int textW    = fm.horizontalAdvance(text);
-        const int textH    = fm.height();
-        const int badgeW   = textW + paddingX * 2;
-        const int badgeH   = textH + paddingY * 2;
-        const int radius   = badgeH / 2;
-
-        QRect tabRect = this->tabRect(i);
+        const QString text  = QString::number(badgeCount);
+        const int textW     = fm.horizontalAdvance(text);
+        const int textH     = fm.height();
+        const int badgeW    = textW + paddingX * 2;
+        const int badgeH    = textH + paddingY * 2;
+        const int radius    = badgeH / 2;
+        const QRect tabRect = this->tabRect(i);
         if (!tabRect.isValid())
             continue;
 
-        int badgeLeft = tabRect.right() - badgeW - margin;
-        int badgeTop  = tabRect.top() + margin;
+        int badgeLeft, badgeTop;
 
-        if (QWidget *closeButton = tabButton(i, QTabBar::RightSide))
+        if (!isVertical)
         {
-            const QRect closeRect = closeButton->geometry();
-            if (closeRect.isValid())
+            if (QWidget *closeButton = tabButton(i, QTabBar::RightSide))
             {
-                badgeLeft = closeRect.left() - badgeW - margin;
-                badgeTop  = closeRect.center().y() - badgeH / 2;
+                const QRect closeRect = closeButton->geometry();
+                if (closeRect.isValid())
+                {
+                    badgeLeft = badgeW / 2;
+                    badgeTop  = closeRect.center().y() - badgeH / 2;
+                }
             }
         }
+        else
+        {
+            // We want the badge near the top of the tab rect, centered
+            // horizontally — this places it visually before the close button.
+            badgeLeft = tabRect.left() + (tabRect.width() - badgeW) / 2;
+            badgeTop  = tabRect.bottom() - badgeH - paddingX;
+        }
 
-        QRect badgeRect(badgeLeft, badgeTop, badgeW, badgeH);
+        const QRect badgeRect(badgeLeft, badgeTop, badgeW, badgeH);
 
-        QColor bg = palette().color(QPalette::Highlight);
-        QColor fg = palette().color(QPalette::HighlightedText);
+        const QColor bg = palette().color(QPalette::Highlight);
+        const QColor fg = palette().color(QPalette::HighlightedText);
+
         painter.setPen(Qt::NoPen);
         painter.setBrush(bg);
         painter.drawRoundedRect(badgeRect, radius, radius);
-
         painter.setPen(fg);
         painter.drawText(badgeRect, Qt::AlignCenter, text);
     }
+}
+
+QSize
+TabBar::tabSizeHint(int index) const
+{
+    QSize s = QTabBar::tabSizeHint(index);
+
+    const QTabBar::Shape sh = shape();
+    const bool isVertical
+        = (sh == QTabBar::RoundedWest || sh == QTabBar::RoundedEast
+           || sh == QTabBar::TriangularWest || sh == QTabBar::TriangularEast);
+    if (!isVertical)
+        return s;
+
+    s.setHeight(s.height() + 50);
+    return s;
 }

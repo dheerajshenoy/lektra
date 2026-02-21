@@ -15,20 +15,12 @@ TabWidget::TabWidget(QWidget *parent) : QWidget(parent), m_id(g_newId())
     m_tab_bar        = new TabBar();
     m_stacked_widget = new QStackedWidget();
 
-    QVBoxLayout *main_layout = new QVBoxLayout(this);
-    main_layout->setContentsMargins(0, 0, 0, 0);
-    main_layout->setSpacing(0);
-    main_layout->addWidget(m_tab_bar);
-    main_layout->addWidget(m_stacked_widget);
-
-    setLayout(main_layout);
-    setMovable(true);
-
-    // setElideMode(Qt::TextElideMode::ElideRight);
+    setTabPosition(QTabWidget::TabPosition::North);
     setTabsClosable(true);
     setAcceptDrops(true);
     setStyleSheet("border: 0");
-    setTabPosition(QTabWidget::TabPosition::North);
+    setMovable(true);
+    // m_tab_bar->setElideMode(Qt::TextElideMode::ElideLeft);
 
     // Forward signals from the draggable tab bar
     connect(m_tab_bar, &TabBar::tabDataRequested, this,
@@ -47,6 +39,76 @@ TabWidget::TabWidget(QWidget *parent) : QWidget(parent), m_id(g_newId())
 
     connect(m_tab_bar, &QTabBar::tabCloseRequested, this,
             &TabWidget::tabCloseRequested);
+}
+
+void
+TabWidget::setTabPosition(QTabWidget::TabPosition position) noexcept
+{
+    m_tab_position = position;
+
+    // Remove both widgets from layout first
+    if (m_main_layout)
+    {
+        m_main_layout->removeWidget(m_tab_bar);
+        m_main_layout->removeWidget(m_stacked_widget);
+    }
+
+    // Delete old layout and create appropriate one
+    delete m_main_layout;
+
+    switch (position)
+    {
+        case QTabWidget::North:
+        {
+            auto *layout = new QVBoxLayout(this);
+            layout->setContentsMargins(0, 0, 0, 0);
+            layout->setSpacing(0);
+            layout->addWidget(m_tab_bar);
+            layout->addWidget(m_stacked_widget);
+
+            m_main_layout = layout;
+            m_tab_bar->setShape(QTabBar::RoundedNorth);
+            break;
+        }
+        case QTabWidget::South:
+        {
+            auto *layout = new QVBoxLayout(this);
+            layout->setContentsMargins(0, 0, 0, 0);
+            layout->setSpacing(0);
+            layout->addWidget(m_stacked_widget);
+            layout->addWidget(m_tab_bar);
+
+            m_main_layout = layout;
+            m_tab_bar->setShape(QTabBar::RoundedSouth);
+            break;
+        }
+        case QTabWidget::West:
+        {
+            auto *layout = new QHBoxLayout(this);
+            layout->setContentsMargins(0, 0, 0, 0);
+            layout->setSpacing(0);
+            layout->addWidget(m_tab_bar);
+            layout->addWidget(m_stacked_widget);
+
+            m_main_layout = layout;
+            m_tab_bar->setShape(QTabBar::RoundedWest);
+            break;
+        }
+        case QTabWidget::East:
+        {
+            auto *layout = new QHBoxLayout(this);
+            layout->setContentsMargins(0, 0, 0, 0);
+            layout->setSpacing(0);
+            layout->addWidget(m_stacked_widget);
+            layout->addWidget(m_tab_bar);
+
+            m_main_layout = layout;
+            m_tab_bar->setShape(QTabBar::RoundedEast);
+            break;
+        }
+    }
+
+    setLayout(m_main_layout);
 }
 
 TabBar *

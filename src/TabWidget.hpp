@@ -64,23 +64,6 @@ public:
         m_tab_bar->setMovable(movable);
     }
 
-    inline void setTabPosition(QTabWidget::TabPosition position) noexcept
-    {
-        if (position == QTabWidget::TabPosition::North
-            || position == QTabWidget::TabPosition::South)
-        {
-            m_tab_bar->setShape(position == QTabWidget::TabPosition::North
-                                    ? TabBar::Shape::RoundedNorth
-                                    : TabBar::Shape::RoundedSouth);
-        }
-        else
-        {
-            m_tab_bar->setShape(position == QTabWidget::TabPosition::West
-                                    ? TabBar::Shape::RoundedWest
-                                    : TabBar::Shape::RoundedEast);
-        }
-    }
-
     inline void setTabsClosable(bool closable) noexcept
     {
         m_tab_bar->setTabsClosable(closable);
@@ -121,6 +104,7 @@ public:
 
     void removeTab(const int index) noexcept;
     void removeTab(QWidget *page) noexcept;
+    void setTabPosition(QTabWidget::TabPosition position) noexcept;
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -141,4 +125,6 @@ private:
     TabId m_id{0};
     QStackedWidget *m_stacked_widget{nullptr};
     TabBar *m_tab_bar{nullptr};
+    QLayout *m_main_layout{nullptr};
+    QTabWidget::TabPosition m_tab_position{QTabWidget::North};
 };
