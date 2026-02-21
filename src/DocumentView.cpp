@@ -15,6 +15,7 @@
 #include "WaitingSpinnerWidget.hpp"
 #include "mupdf/pdf/annot.h"
 #include "utils.hpp"
+#include "Config.hpp"
 
 #include <QClipboard>
 #include <QColorDialog>
@@ -290,35 +291,15 @@ DocumentView::handleOpenFileFinished() noexcept
 
     m_pageno = 0;
 
-    if (m_config.layout.mode == "single")
-        setLayoutMode(LayoutMode::SINGLE);
-    else if (m_config.layout.mode == "left_to_right")
-        setLayoutMode(LayoutMode::LEFT_TO_RIGHT);
-    else
-        setLayoutMode(LayoutMode::TOP_TO_BOTTOM);
+    setLayoutMode(m_config.layout.mode);
 
     initConnections();
 
-    FitMode initialFit;
-    if (m_config.layout.initial_fit == "height")
-        initialFit = FitMode::Height;
-    else if (m_config.layout.initial_fit == "width")
-        initialFit = FitMode::Width;
-    else if (m_config.layout.initial_fit == "window")
-        initialFit = FitMode::Window;
-    else
-        initialFit = FitMode::Height;
-
-    m_fit_mode = initialFit;
-    if (isVisible())
-    {
-        setFitMode(initialFit);
-        m_deferred_fit = false;
-    }
-    else
-    {
-        m_deferred_fit = true;
-    }
+    // Always defer fitmode to next event loop tick so geometry is settled
+    QTimer::singleShot(0, this, [this]()
+      {
+        setFitMode(m_config.layout.initial_fit);
+    });
 
     setAutoReload(m_config.behavior.auto_reload);
     emit openFileFinished(this);
@@ -856,9 +837,6 @@ DocumentView::setFitMode(FitMode mode) noexcept
 
     switch (mode)
     {
-        case FitMode::None:
-            break;
-
         case FitMode::Width:
         {
             const int viewWidth = m_gview->viewport()->width();

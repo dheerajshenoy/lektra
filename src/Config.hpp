@@ -1,9 +1,12 @@
 #pragma once
 
+#include "DocumentView.hpp"
 #include "GraphicsView.hpp"
+#include "TabWidget.hpp"
 
 #include <QColor>
 #include <QHash>
+#include <Qt>
 #include <array>
 
 struct Config
@@ -39,8 +42,8 @@ struct Config
 
     struct layout
     {
-        QString mode{"top_to_bottom"};
-        QString initial_fit{"none"};
+        DocumentView::LayoutMode mode{DocumentView::LayoutMode::TOP_TO_BOTTOM};
+        DocumentView::FitMode initial_fit{DocumentView::FitMode::Width};
         bool auto_resize{false};
         int spacing{10};
     } layout{};
@@ -108,25 +111,18 @@ struct Config
         bool auto_hide{false};
         bool closable{true};
         bool movable{true};
-        QString elide_mode{"right"};
-        QString location{"top"};
+        Qt::TextElideMode elide_mode{Qt::TextElideMode::ElideRight};
+        QTabWidget::TabPosition location{QTabWidget::TabPosition::North};
         bool full_path{false};
         bool lazy_load{true};
     } tabs{};
 
     struct outline
     {
-        bool visible{false};
-        bool as_side_panel{true};
-        QString panel_position{"left"};
-        int panel_width{300};
     } outline{};
 
     struct highlight_search
     {
-        bool visible{false};
-        QString panel_position{"right"};
-        int panel_width{300};
     } highlight_search{};
 
     struct command_palette

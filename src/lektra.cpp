@@ -32,11 +32,6 @@
 namespace
 {
 
-inline void
-hello()
-{
-}
-
 static inline void
 set_title_format_if_present(toml::node_view<toml::node> n,
                             QString &title_format)
@@ -265,12 +260,12 @@ lektra::initMenubar() noexcept
     m_actionLayoutSingle->setCheckable(true);
     m_actionLayoutLeftToRight->setCheckable(true);
     m_actionLayoutTopToBottom->setCheckable(true);
-    m_actionLayoutSingle->setChecked(m_config.layout.mode == "single" ? true
-                                                                      : false);
+    m_actionLayoutSingle->setChecked(m_config.layout.mode == DocumentView::LayoutMode::SINGLE);
+
     m_actionLayoutLeftToRight->setChecked(
-        m_config.layout.mode == "left_to_right" ? true : false);
+                                          m_config.layout.mode == DocumentView::LayoutMode::LEFT_TO_RIGHT);
     m_actionLayoutTopToBottom->setChecked(
-        m_config.layout.mode == "top_to_bottom" ? true : false);
+                                          m_config.layout.mode == DocumentView::LayoutMode::TOP_TO_BOTTOM);
 
     // --- Toggle Menu ---
 
@@ -516,8 +511,33 @@ lektra::initConfig() noexcept
     set_if_present(ui_tabs["auto_hide"], m_config.tabs.auto_hide);
     set_if_present(ui_tabs["closable"], m_config.tabs.closable);
     set_if_present(ui_tabs["movable"], m_config.tabs.movable);
-    set_qstring_if_present(ui_tabs["elide_mode"], m_config.tabs.elide_mode);
-    set_qstring_if_present(ui_tabs["location"], m_config.tabs.location);
+    if (auto str = ui_tabs["elide_mode"]) {
+      Qt::TextElideMode mode;
+      if (str == "left")
+        mode = Qt::ElideLeft;
+      else if (str == "right")
+        mode = Qt::ElideRight;
+      else if (str == "middle")
+        mode = Qt::ElideMiddle;
+      else
+        mode = Qt::ElideNone;
+      m_config.tabs.elide_mode = mode;
+    }
+
+    if (auto str = ui_tabs["location"]) {
+      QTabWidget::TabPosition location;
+      
+      if (str == "left")
+        location = QTabWidget::West;
+      else if (str == "right")
+        location = QTabWidget::East;
+      else if (str == "bottom")
+        location = QTabWidget::South;
+      else 
+        location = QTabWidget::North;
+
+      m_config.tabs.location = location;
+    }
     set_if_present(ui_tabs["full_path"], m_config.tabs.full_path);
     set_if_present(ui_tabs["lazy_load"], m_config.tabs.lazy_load);
 
@@ -579,10 +599,36 @@ lektra::initConfig() noexcept
 
     /* layout */
     auto ui_layout = toml["layout"];
-    set_qstring_if_present(ui_layout["mode"],
-                           m_config.layout.mode); // string
-    set_qstring_if_present(ui_layout["initial_fit"],
-                           m_config.layout.initial_fit); // string
+
+    if (auto str = ui_layout["mode"]) {
+      DocumentView::LayoutMode mode;
+
+      if (str == "top_to_bottom")
+        mode = DocumentView::LayoutMode::TOP_TO_BOTTOM;
+      else if (str == "single")
+        mode = DocumentView::LayoutMode::SINGLE;
+      else if (str == "left_to_right")
+        mode = DocumentView::LayoutMode::LEFT_TO_RIGHT;
+      else
+        mode = DocumentView::LayoutMode::TOP_TO_BOTTOM;
+      
+      m_config.layout.mode = mode;
+    }
+    if (auto str = ui_layout["initial_fit"]) {
+      DocumentView::FitMode initial_fit;
+
+      if (str == "width") {
+        initial_fit = DocumentView::FitMode::Width;
+      } else if (str == "height") {
+        initial_fit = DocumentView::FitMode::Height;
+      } else if (str == "window") {
+        initial_fit = DocumentView::FitMode::Window;
+      } else {
+        initial_fit = DocumentView::FitMode::Width;
+      }
+      
+      m_config.layout.initial_fit = initial_fit;
+    }
     set_if_present(ui_layout["auto_resize"], m_config.layout.auto_resize);
     set_if_present(ui_layout["spacing"], m_config.layout.spacing);
 
@@ -676,20 +722,9 @@ lektra::initConfig() noexcept
 
     /* outline */
     auto ui_outline = toml["outline"];
-    set_if_present(ui_outline["visible"], m_config.outline.visible);
-    // You hard-set this; keeping that behavior:
-    set_qstring_if_present(ui_outline["panel_position"],
-                           m_config.outline.panel_position);
-    set_if_present(ui_outline["panel_width"], m_config.outline.panel_width);
 
     /* highlight_search */
     auto ui_highlight_search = toml["highlight_search"];
-    set_if_present(ui_highlight_search["visible"],
-                   m_config.highlight_search.visible);
-    set_qstring_if_present(ui_highlight_search["panel_position"],
-                           m_config.highlight_search.panel_position);
-    set_if_present(ui_highlight_search["panel_width"],
-                   m_config.highlight_search.panel_width);
 
 #ifdef ENABLE_LLM_SUPPORT
     auto llm_widget = toml["llm_widget"];
@@ -3788,16 +3823,8 @@ lektra::updateGUIFromConfig() noexcept
 {
     m_tab_widget->setTabsClosable(m_config.tabs.closable);
     m_tab_widget->setMovable(m_config.tabs.movable);
-
-    if (m_config.tabs.location == "top")
-        m_tab_widget->setTabPosition(QTabWidget::North);
-    else if (m_config.tabs.location == "bottom")
-        m_tab_widget->setTabPosition(QTabWidget::South);
-    else if (m_config.tabs.location == "left")
-        m_tab_widget->setTabPosition(QTabWidget::West);
-    else if (m_config.tabs.location == "right")
-        m_tab_widget->setTabPosition(QTabWidget::East);
-
+    m_tab_widget->setTabPosition(m_config.tabs.location);
+    
     m_layout->addWidget(m_search_bar);
     m_layout->addWidget(m_message_bar);
     m_layout->addWidget(m_statusbar);

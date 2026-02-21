@@ -1,7 +1,6 @@
 #pragma once
 
 #include "AboutDialog.hpp"
-#include "Config.hpp"
 #include "GraphicsImageItem.hpp"
 #include "GraphicsPixmapItem.hpp"
 #include "GraphicsScene.hpp"
@@ -51,6 +50,7 @@ extern "C"
 
 #define CSTR(x) x.toStdString().c_str()
 
+struct Config;
 class DocumentContainer; // Forward declaration to avoid circular dependency
 
 class DocumentView : public QWidget
@@ -76,8 +76,7 @@ public:
 
     enum class FitMode
     {
-        None = 0,
-        Width,
+        Width = 0,
         Height,
         Window,
         COUNT
@@ -448,7 +447,7 @@ private:
     GraphicsView *m_gview{nullptr};
     GraphicsScene *m_gscene{nullptr};
     const Config &m_config;
-    FitMode m_fit_mode{FitMode::None};
+    FitMode m_fit_mode{FitMode::Width};
     int m_pageno{-1};
     float m_spacing{10.0f}, m_page_x_offset{0.0f};
     double m_target_zoom{MIN_ZOOM_FACTOR}, m_current_zoom{MIN_ZOOM_FACTOR};
