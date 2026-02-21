@@ -15,6 +15,8 @@
         - `antialiasing` (bool): Enable/Disable antialiasing for rendering (default: true)
         - `text_antialiasing` (bool): Enable/Disable antialiasing for text rendering (default: true)
         - `smooth_pixmap_transform` (bool): Enable/Disable smooth pixmap transformation when scaling (default: true)
+    - `[behavior]`
+        - `preload_pages` (int): Number of pages to preload before and after the current page for smoother navigation (default: 5)
 
 ### Optimizations
 
