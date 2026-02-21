@@ -163,7 +163,6 @@ struct Config
         float dpi{72.0f};
         std::variant<float, QMap<QString, float>> dpr{1.0f};
         float inv_dpr{1.0f};
-        bool icc_color_profile{true};
         bool antialiasing{true};
         bool text_antialiasing{true};
         bool smooth_pixmap_transform{true};

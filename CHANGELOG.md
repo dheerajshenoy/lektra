@@ -35,6 +35,7 @@
 - Add `[picker.keys]` section for keybindings related to the picker navigation keys (which applies to all picker widgets like outline, search highlights, recent files, etc.)
 - Removed panel settings from `[outline]` and `[search_highlight]` section as overlays are the only variant supported for now.
 - Removed `config_auto_reload` from `[behavior]` as it was never supported.
+- Removed `icc_color_profile` from `[rendering]` as it was never supported.
 
 #### Renamed commands
 

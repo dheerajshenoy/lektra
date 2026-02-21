@@ -785,8 +785,6 @@ lektra::initConfig() noexcept
                    m_config.rendering.smooth_pixmap_transform);
     set_if_present(rendering["antialiasing_bits"],
                    m_config.rendering.antialiasing_bits);
-    set_if_present(rendering["icc_color_profile"],
-                   m_config.rendering.icc_color_profile);
 
     // If DPR is specified in config, use that (can be scalar or map)
     if (rendering["dpr"])
