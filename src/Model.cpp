@@ -377,19 +377,17 @@ Model::buildPageCache(int pageno) noexcept
 
     fz_try(ctx)
     {
-        {
-            std::lock_guard<std::mutex> lock(m_doc_mutex);
-            page = fz_load_page(ctx, m_doc, pageno);
-            if (!page)
-                fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
-            bounds = fz_bound_page(ctx, page);
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        page = fz_load_page(ctx, m_doc, pageno);
+        if (!page)
+            fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
+        bounds = fz_bound_page(ctx, page);
 
-            dlist    = fz_new_display_list(ctx, bounds);
-            list_dev = fz_new_list_device(ctx, dlist);
+        dlist    = fz_new_display_list(ctx, bounds);
+        list_dev = fz_new_list_device(ctx, dlist);
 
-            fz_run_page(ctx, page, list_dev, fz_identity, nullptr);
-            fz_close_device(ctx, list_dev);
-        }
+        fz_run_page(ctx, page, list_dev, fz_identity, nullptr);
+        fz_close_device(ctx, list_dev);
 
         {
             const float w = bounds.x1 - bounds.x0;
