@@ -656,7 +656,8 @@ lektra::initConfig() noexcept
     auto ui_selection = toml["selection"];
     set_if_present(ui_selection["drag_threshold"],
                    m_config.selection.drag_threshold);
-
+    set_if_present(ui_selection["copy_on_select"],
+                   m_config.selection.copy_on_select);
     /* scrollbars */
     auto ui_scrollbars = toml["scrollbars"];
     set_if_present(ui_scrollbars["vertical"], m_config.scrollbars.vertical);

@@ -1,4 +1,3 @@
-# ===== =====
 [window]
 fullscreen = false
 menubar = false
@@ -19,7 +18,6 @@ show_progress = true # show reading progress in statusbar
 focus_follows_mouse = true
 dim_inactive = false
 dim_inactive_opacity = 0.5
-
 
 [command_palette]
 show_shortcuts = false
@@ -52,7 +50,7 @@ panel_width = 400
 
 [layout]
 mode = "top_to_bottom" # "single", "top_to_bottom", "left_to_right"
-initial_fit = "width" # "none", "width", "height", "window"
+initial_fit = "window" # "none", "width", "height", "window"
 auto_resize = false # fit document to window
 spacing = 10
 
@@ -62,6 +60,7 @@ factor = 1.25 # factor for zoom in/out
 
 [selection]
 drag_threshold = 100
+copy_on_select = false
 
 [scrollbars]
 horizontal = true
@@ -81,8 +80,6 @@ url_regex = "(https?://|www\\.)[^\\s<>()\\\"']+" # regex for URL detection (if d
 
 [link_hints]
 size = 0.25 # relative scale for link hint labels
-
-
 
 [tabs]
 visible = true
@@ -211,4 +208,3 @@ toggle_statusbar = "Ctrl+Shift+S"
 split_focus_next = "Ctrl+Alt+Right"
 split_focus_prev = "Ctrl+Alt+Left"
 split_close = "Ctrl+w,c"
-

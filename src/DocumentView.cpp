@@ -7,6 +7,7 @@
 #include "Commands/DeleteAnnotationsCommand.hpp"
 #include "Commands/RectAnnotationCommand.hpp"
 #include "Commands/TextAnnotationCommand.hpp"
+#include "Config.hpp"
 #include "GraphicsImageItem.hpp"
 #include "GraphicsPixmapItem.hpp"
 #include "GraphicsView.hpp"
@@ -15,7 +16,6 @@
 #include "WaitingSpinnerWidget.hpp"
 #include "mupdf/pdf/annot.h"
 #include "utils.hpp"
-#include "Config.hpp"
 
 #include <QClipboard>
 #include <QColorDialog>
@@ -296,10 +296,8 @@ DocumentView::handleOpenFileFinished() noexcept
     initConnections();
 
     // Always defer fitmode to next event loop tick so geometry is settled
-    QTimer::singleShot(0, this, [this]()
-      {
-        setFitMode(m_config.layout.initial_fit);
-    });
+    QTimer::singleShot(0, this,
+                       [this]() { setFitMode(m_config.layout.initial_fit); });
 
     setAutoReload(m_config.behavior.auto_reload);
     emit openFileFinished(this);
@@ -723,6 +721,11 @@ DocumentView::handleTextSelection(const QPointF &start,
         = m_model->computeTextSelectionQuad(pageIndex, pageStart, pageEnd);
 
     updateSelectionPath(pageIndex, quads);
+
+    if (m_config.selection.copy_on_select)
+    {
+        YankSelection();
+    }
 }
 
 void

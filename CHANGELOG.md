@@ -17,6 +17,8 @@
         - `smooth_pixmap_transform` (bool): Enable/Disable smooth pixmap transformation when scaling (default: true)
     - `[behavior]`
         - `preload_pages` (int): Number of pages to preload before and after the current page for smoother navigation (default: 5)
+    - `[selection]`
+        - `copy_on_select` (bool): Copies selection to clipboard when text is selected (default: false)
 
 ### Optimizations
 

@@ -69,6 +69,7 @@ struct Config
     struct selection
     {
         int drag_threshold{50};
+        bool copy_on_select{false};
     } selection{};
 
     struct split
