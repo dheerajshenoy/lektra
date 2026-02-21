@@ -36,6 +36,7 @@ Statusbar::initGui() noexcept
     leftLayout->addWidget(m_session_label);
     leftLayout->addWidget(m_filename_label);
     leftLayout->addWidget(m_portal_label);
+    m_portal_label->setHidden(true);
 
     // Center
     auto *centerLayout = new QHBoxLayout;
