@@ -284,6 +284,7 @@ public:
     void addToHistory(const PageLocation &location) noexcept;
     PageLocation CurrentLocation() noexcept;
     void Reshow_jump_marker() noexcept;
+    void Copy_page_image() noexcept;
 
 signals:
     void ctrlLinkClickRequested(DocumentView *view,

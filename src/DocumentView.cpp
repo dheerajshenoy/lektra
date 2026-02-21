@@ -3907,3 +3907,31 @@ DocumentView::handle_wrong_password() noexcept
     // Ask again
     handle_password_required();
 }
+
+// Copy current page as image to clipboard
+void
+DocumentView::Copy_page_image() noexcept
+{
+    if (!m_model)
+        return;
+
+    int pageno{-1};
+    GraphicsImageItem *pageItem{nullptr};
+
+    if (!pageAtScenePos(m_gview->viewport()->rect().center(), pageno, pageItem))
+        return;
+
+    const QPointF sceneCenter = m_gview->mapToScene(
+        m_gview->viewport()->width() / 2, m_gview->viewport()->height() / 2);
+
+    if (!pageAtScenePos(sceneCenter, pageno, pageItem))
+        return;
+
+    const QImage img = pageItem->image().copy();
+
+    if (!img.isNull())
+    {
+        QClipboard *clip = QApplication::clipboard();
+        clip->setImage(img);
+    }
+}

@@ -3574,13 +3574,9 @@ lektra::initActionMap() noexcept
         ACTION_NO_ARGS("show_about", ShowAbout),
 
         // TODO: Implement these actions
-        // ACTION_NO_ARGS("annot_next", Annot_next),
-        // ACTION_NO_ARGS("annot_prev", Annot_prev),
-        // ACTION_NO_ARGS("annot_export", Annot_export),
         // ACTION_NO_ARGS("save_selection_as_image", Save_selection_as_image),
-        // ACTION_NO_ARGS("search_clear", Clear_search),
         // ACTION_NO_ARGS("reopen_last_closed_file", Reopen_last_closed_file),
-        // ACTION_NO_ARGS("copy_page_image", Copy_page_image),
+        ACTION_NO_ARGS("copy_page_image", Copy_page_image),
 
         // {"search_in_page",
         // [this](const QStringList &args) { SearchInPage(args.join("
@@ -4656,3 +4652,12 @@ lektra::debug_command() noexcept
     m_message_bar->showMessage("TEST MESSAGE");
 }
 #endif
+
+void
+lektra::Copy_page_image() noexcept
+{
+    if (!m_doc)
+        return;
+
+    m_doc->Copy_page_image();
+}
