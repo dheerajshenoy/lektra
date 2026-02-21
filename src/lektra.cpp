@@ -4244,7 +4244,7 @@ lektra::Close_other_splits() noexcept
 void
 lektra::Close_split() noexcept
 {
-    int currentTabIndex = m_tab_widget->currentIndex();
+    const int currentTabIndex = m_tab_widget->currentIndex();
     if (!validTabIndex(currentTabIndex))
         return;
 
