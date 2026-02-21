@@ -181,7 +181,7 @@ DocumentView::initGui() noexcept
     m_vscroll->setSize(m_config.scrollbars.size);
     m_hscroll->setSize(m_config.scrollbars.size);
     m_gview->setScrollbarSize(m_config.scrollbars.size);
-    m_gview->setScrollbarIdleTimeout(m_config.scrollbars.hide_timeout);
+    m_gview->setScrollbarIdleTimeout(m_config.scrollbars.hide_timeout * 1000);
 
     // Enable/disable each scrollbar based on config
     // auto_hide controls whether they fade after inactivity

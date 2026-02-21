@@ -50,7 +50,6 @@ GraphicsView::GraphicsView(const Config &config, QWidget *parent)
 
     // Hide timer setup
     m_scrollbar_hide_timer.setSingleShot(true);
-    m_scrollbar_hide_timer.setInterval(m_config.scrollbars.hide_timeout);
     connect(&m_scrollbar_hide_timer, &QTimer::timeout, this, [this]()
     {
         if (!m_autoHide)
