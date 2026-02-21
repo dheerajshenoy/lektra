@@ -88,6 +88,7 @@
 
 ### New commands
 
+- `reopen_last_closed_file` - Reopens the recently closed file in a new tab
 - `copy_page_image` - Copy the current page as image to clipboard
 - `file_decrypt` - Decrypt the current PDF file
 - `annot_popup_mode` - Enter popup annotation creation mode

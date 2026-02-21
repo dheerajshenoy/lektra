@@ -3575,7 +3575,7 @@ lektra::initActionMap() noexcept
 
         // TODO: Implement these actions
         // ACTION_NO_ARGS("save_selection_as_image", Save_selection_as_image),
-        // ACTION_NO_ARGS("reopen_last_closed_file", Reopen_last_closed_file),
+        ACTION_NO_ARGS("reopen_last_closed_file", Reopen_last_closed_file),
         ACTION_NO_ARGS("copy_page_image", Copy_page_image),
 
         // {"search_in_page",
@@ -4660,4 +4660,37 @@ lektra::Copy_page_image() noexcept
         return;
 
     m_doc->Copy_page_image();
+}
+
+void
+lektra::Reopen_last_closed_file() noexcept
+{
+    const auto &entries = m_recent_files_store.entries();
+    if (entries.empty())
+        return;
+
+    // Skip the currently open file — go to the one before it
+    const RecentFileEntry *target = nullptr;
+    for (const auto &entry : entries)
+    {
+        if (m_doc && entry.file_path == m_doc->filePath())
+            continue;
+        target = &entry;
+        break;
+    }
+
+    if (!target)
+        return;
+
+    if (!QFile::exists(target->file_path))
+    {
+        qWarning() << "Reopen_last_file: file no longer exists:"
+                   << target->file_path;
+        return;
+    }
+
+    const int savedPage  = target->page_number;
+    const QString &fpath = target->file_path;
+
+    OpenFileInNewTab(fpath, [this, savedPage]() { gotoPage(savedPage); });
 }

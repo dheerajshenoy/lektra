@@ -171,6 +171,7 @@ public:
     void Reshow_jump_marker() noexcept;
     void Show_recent_files_picker() noexcept;
     void Copy_page_image() noexcept;
+    void Reopen_last_closed_file() noexcept;
 
 #ifdef ENABLE_LLM_SUPPORT
     void ToggleLLMWidget() noexcept;
