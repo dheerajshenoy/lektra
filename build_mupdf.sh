@@ -11,7 +11,7 @@ BUILD_DIR="$ROOT_DIR/build"
 JOBS=$(nproc)
 
 # MuPDF source tarball
-MUPDF_VERSION="1.27.0"
+MUPDF_VERSION="1.27.2"
 MUPDF_URL="https://mupdf.com/downloads/archive/mupdf-${MUPDF_VERSION}-source.tar.gz"
 MUPDF_TARBALL="$EXTERN_DIR/mupdf-${MUPDF_VERSION}-source.tar.gz"
 MUPDF_SRC_DIR="$EXTERN_DIR/mupdf-${MUPDF_VERSION}-source"
