@@ -372,11 +372,15 @@ public:
     void highlightTextSelection(int pageno, const QPointF &start,
                                 const QPointF &end) noexcept;
     void invalidatePageCache(int pageno) noexcept;
-    void search(const QString &term, bool caseSensitive = false) noexcept;
+    void search(const QString &term, bool caseSensitive = false,
+                bool useRegex = false) noexcept;
     void searchInPage(const int pageno, const QString &term,
                       bool caseSensitive = false) noexcept;
     std::vector<Model::SearchHit> searchHelper(int pageno, const QString &term,
                                                bool caseSensitive) noexcept;
+    std::vector<Model::SearchHit>
+    searchHelperRegex(int pageno, const QRegularExpression &re) noexcept;
+
     std::vector<HighlightText> collectHighlightTexts(bool groupByLine
                                                      = true) noexcept;
     void annotChangeColor(int pageno, int index, const QColor &color) noexcept;
@@ -391,7 +395,7 @@ signals:
     void
     searchResultsReady(const QMap<int, std::vector<Model::SearchHit>> &results);
     void searchPartialResultsReady(
-        const QMap<int, std::vector<Model::SearchHit>> &results;
+        const QMap<int, std::vector<Model::SearchHit>> &results);
 
 private:
     inline void waitForRenders() noexcept

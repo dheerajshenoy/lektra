@@ -245,7 +245,7 @@ public:
     void GotoFirstPage() noexcept;
     void GotoLastPage() noexcept;
     void setZoom(double factor) noexcept;
-    void Search(const QString &term) noexcept;
+    void Search(const QString &term, bool useRegex) noexcept;
     void SearchInPage(int pageno, const QString &term) noexcept;
     void ZoomIn() noexcept;
     void ZoomOut() noexcept;

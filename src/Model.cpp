@@ -1942,7 +1942,7 @@ Model::buildPageTransforms(int pageno) const noexcept
 }
 
 void
-Model::search(const QString &term, bool caseSensitive) noexcept
+Model::search(const QString &term, bool caseSensitive, bool use_regex) noexcept
 {
     if (m_search_future.isRunning())
     {
@@ -1950,12 +1950,32 @@ Model::search(const QString &term, bool caseSensitive) noexcept
         m_search_future.waitForFinished();
     }
 
-    m_search_future = QtConcurrent::run([this, term, caseSensitive]()
+    m_search_future = QtConcurrent::run([this, use_regex, term, caseSensitive]()
     {
         if (term.isEmpty())
         {
             emit searchResultsReady({});
             return;
+        }
+
+        // Validate and compile regex once up front
+        QRegularExpression re;
+        if (use_regex)
+        {
+            QRegularExpression::PatternOptions opts
+                = QRegularExpression::UseUnicodePropertiesOption;
+            if (!caseSensitive)
+                opts |= QRegularExpression::CaseInsensitiveOption;
+
+            re = QRegularExpression(term, opts);
+            if (!re.isValid())
+            {
+                // TODO: new signal for UI feedback for regex fail
+                // emit searchError(
+                //     re.errorString());
+                return;
+            }
+            re.optimize();
         }
 
         // Process in batches: build cache for N pages, search them,
@@ -1970,6 +1990,7 @@ Model::search(const QString &term, bool caseSensitive) noexcept
              batch_start < m_page_count && !m_search_future.isCanceled();
              batch_start += BATCH)
         {
+
             const int batch_end = std::min(batch_start + BATCH, m_page_count);
 
             // Pre-warm text cache for this batch serially (safe, single thread)
@@ -1980,9 +2001,13 @@ Model::search(const QString &term, bool caseSensitive) noexcept
 
             // Search this batch in parallel
             QList<int> batchList(batchPages.begin(), batchPages.end());
-            auto future = QtConcurrent::mapped(
-                batchList, [this, term, caseSensitive](int pageno)
-            { return searchHelper(pageno, term, caseSensitive); });
+            auto future
+                = QtConcurrent::mapped(batchList, [this, use_regex, re, term,
+                                                   caseSensitive](int pageno)
+            {
+                return use_regex ? searchHelperRegex(pageno, re)
+                                 : searchHelper(pageno, term, caseSensitive);
+            });
             future.waitForFinished();
 
             // Merge batch results in page order
@@ -2033,13 +2058,7 @@ Model::searchHelper(int pageno, const QString &term,
                     bool caseSensitive) noexcept
 {
     std::vector<SearchHit> results;
-
     if (term.isEmpty())
-        return results;
-
-    // buildTextCacheForPages({pageno});
-
-    if (!m_text_cache.has(pageno))
         return results;
 
     std::vector<CachedTextChar> text;
@@ -2089,15 +2108,67 @@ Model::searchHelper(int pageno, const QString &term,
 
         if (!fz_is_empty_rect(bbox))
         {
-            results.push_back({
-                pageno,
-                fz_quad{{bbox.x1, bbox.y1},
-                        {bbox.x1, bbox.y0},
-                        {bbox.x0, bbox.y1},
-                        {bbox.x0, bbox.y0}},
-                i // index of first character in match
-            });
+            results.push_back({pageno, fz_quad_from_rect(bbox), i});
         }
+    }
+
+    return results;
+}
+
+std::vector<Model::SearchHit>
+Model::searchHelperRegex(int pageno, const QRegularExpression &re) noexcept
+{
+    std::vector<SearchHit> results;
+
+    std::vector<CachedTextChar> text;
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+        if (!m_text_cache.has(pageno))
+            return results;
+        text = m_text_cache.get(pageno)->chars;
+    }
+
+    const int n = static_cast<int>(text.size());
+
+    // Build flat string + position map
+    QString flat;
+    flat.reserve(n);
+    std::vector<int> strToChar;
+    strToChar.reserve(n);
+
+    for (int i = 0; i < n; ++i)
+    {
+        const uint32_t r = text[i].rune;
+        const QString ch
+            = (r == '\n') ? QStringLiteral("\n") : QString::fromUcs4(&r, 1);
+        for (QChar qc : ch)
+        {
+            flat.append(qc);
+            strToChar.push_back(i);
+        }
+    }
+
+    // Match and map back to quads
+    auto it = re.globalMatch(flat);
+    while (it.hasNext())
+    {
+        const QRegularExpressionMatch match = it.next();
+        const int strStart                  = match.capturedStart();
+        const int strEnd                    = match.capturedEnd() - 1;
+
+        if (strStart < 0 || strEnd >= static_cast<int>(strToChar.size()))
+            continue;
+
+        const int charStart = strToChar[strStart];
+        const int charEnd   = strToChar[strEnd];
+
+        fz_rect bbox = fz_empty_rect;
+        for (int k = charStart; k <= charEnd; ++k)
+            if (!fz_is_empty_quad(text[k].quad))
+                bbox = fz_union_rect(bbox, fz_rect_from_quad(text[k].quad));
+
+        if (!fz_is_empty_rect(bbox))
+            results.push_back({pageno, fz_quad_from_rect(bbox), charStart});
     }
 
     return results;
@@ -2212,6 +2283,7 @@ Model::buildTextCacheForPages(const std::set<int> &pagenos) noexcept
                     m_doc_mutex); // ✓ protect m_doc
                 page = fz_load_page(ctx, m_doc, pageno);
             }
+
             stext = fz_new_stext_page_from_page(ctx, page, nullptr);
 
             CachedTextPage cache;

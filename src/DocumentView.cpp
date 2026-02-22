@@ -1069,7 +1069,7 @@ DocumentView::clearSearchHits() noexcept
 
 // Perform search for the given term
 void
-DocumentView::Search(const QString &term) noexcept
+DocumentView::Search(const QString &term, bool useRegex) noexcept
 {
 #ifndef NDEBUG
     qDebug() << "DocumentView::Search(): Searching for term:" << term;
@@ -1082,15 +1082,12 @@ DocumentView::Search(const QString &term) noexcept
         return;
     }
 
-    emit searchBarSpinnerShow(true);
     // Check if term has atleast one uppercase letter
     bool caseSensitive = std::any_of(term.cbegin(), term.cend(),
                                      [](QChar c) { return c.isUpper(); });
 
-    // m_search_hits = m_model->search(term);
-    clearSearchHits();
-    m_search_index = -1;
-    m_model->search(term, caseSensitive);
+    emit searchBarSpinnerShow(true);
+    m_model->search(term, caseSensitive, useRegex);
 }
 
 void
@@ -1184,16 +1181,12 @@ DocumentView::GotoHit(int index) noexcept
     m_search_index = index;
     m_pageno       = ref.page;
 
-    GotoPage(ref.page);
-
-    QMetaObject::invokeMethod(this, [this]
-    {
-        updateCurrentHitHighlight();
-        // scrollToCurrentHit();
-    }, Qt::QueuedConnection);
-
     emit searchIndexChanged(index);
     emit currentPageChanged(ref.page + 1);
+
+    GotoPage(ref.page);
+
+    // scrollToCurrentHit();
 }
 
 // Scroll left by a fixed amount
@@ -1869,10 +1862,11 @@ DocumentView::renderPages() noexcept
             requestPageRender(pageno);
 
         updateSceneRect();
-        updateCurrentHitHighlight();
     }
     m_gscene->blockSignals(false);
     m_gview->setUpdatesEnabled(true);
+
+    updateCurrentHitHighlight();
 }
 
 // Render a specific page (used when LayoutMode is SINGLE)
@@ -1882,16 +1876,15 @@ DocumentView::renderPage() noexcept
     m_gview->setUpdatesEnabled(false);
     m_gscene->blockSignals(true);
     {
-
         prunePendingRenders({m_pageno});
         removeUnusedPageItems({m_pageno});
         requestPageRender(m_pageno);
-
         updateSceneRect();
-        updateCurrentHitHighlight();
     }
     m_gscene->blockSignals(false);
     m_gview->setUpdatesEnabled(true);
+
+    updateCurrentHitHighlight();
 }
 
 void
@@ -1962,9 +1955,12 @@ DocumentView::startNextRenderJob() noexcept
                 if (m_pending_jump.pageno == pageno)
                     GotoLocation(m_pending_jump);
 
-                // if (m_search_index != -1 && !m_search_hit_flat_refs.empty()
-                //     && m_search_hit_flat_refs[m_search_index].page == pageno)
-                //     updateCurrentHitHighlight();
+                if (m_search_index >= 0 && !m_search_hit_flat_refs.empty()
+                    && m_search_hit_flat_refs[m_search_index].page == pageno)
+                {
+                    updateCurrentHitHighlight();
+                    scrollToCurrentHit();
+                }
             }
 
             startNextRenderJob();
@@ -2451,7 +2447,7 @@ DocumentView::updateCurrentHitHighlight() noexcept
         return;
     }
 
-    const auto &scale = m_model->logicalScale();
+    const float scale = m_model->logicalScale();
     const HitRef ref  = m_search_hit_flat_refs[m_search_index];
     const auto &hit   = m_search_hits[ref.page][ref.indexInPage];
 
@@ -2474,17 +2470,7 @@ DocumentView::updateCurrentHitHighlight() noexcept
 
     path.addPolygon(toScene.map(poly));
 
-    // 4. Only update the underlying QGraphicsPathItem if the path has
-    // actually changed
-    if (m_current_search_hit_item->path() != path)
-    {
-        m_current_search_hit_item->setPath(path);
-
-        // Center on the current hit in the view
-        const QRectF hitBounds  = path.boundingRect();
-        const QPointF hitCenter = hitBounds.center();
-        // m_gview->centerOn(hitCenter);
-    }
+    m_current_search_hit_item->setPath(path);
 }
 
 void

@@ -8,13 +8,16 @@
 
 ### Features
 
+- Implement batch searching for faster search result fetching as soon as few searches are encountered.
+- Regex searching
+
 ### New Commands
 
 - Ability to set marks to locations in the document (both local and global level). Local marks are marks that are local to the document, whereas global marks are associated with particular document and when called will switch focus and go to the mark location in that document.
   - `mark_goto` - Ask user for the mark key and go to the location if key is valid
   - `mark_set` - Ask user for key to set the mark (local mark key start with lowercase letter or word and global starts with uppercase)
   - `mark_delete` - Ask user for the mark key to delete and delete if the key is valid
-- Implement batch searching for faster search result fetching as soon as few searches are encountered.
+- `search_regex` - Opens searchbar with regex enabled
 
 ### Optimizations
 

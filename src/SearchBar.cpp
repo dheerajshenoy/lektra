@@ -2,6 +2,7 @@
 
 #include <QHBoxLayout>
 #include <QMessageBox>
+#include <QRegularExpression>
 #include <QStyle>
 
 SearchBar::SearchBar(QWidget *parent) : QWidget(parent)
@@ -21,6 +22,11 @@ SearchBar::SearchBar(QWidget *parent) : QWidget(parent)
 
     m_searchInput->setFocusPolicy(Qt::ClickFocus);
 
+    m_regexButton->setToolTip("Regular Expression");
+    m_regexButton->setCheckable(true);
+    m_regexButton->setFixedWidth(28);
+    m_regexButton->setFocusPolicy(Qt::NoFocus);
+
     m_nextButton->setToolTip("Goto Next Hit");
     m_prevButton->setToolTip("Goto Previous Hit");
     m_closeButton->setToolTip("Close Search Bar");
@@ -36,6 +42,7 @@ SearchBar::SearchBar(QWidget *parent) : QWidget(parent)
     layout->addWidget(m_searchIndexLabel);
     layout->addWidget(m_searchSeparator);
     layout->addWidget(m_searchCountLabel);
+    layout->addWidget(m_regexButton);
     layout->addWidget(m_prevButton);
     layout->addWidget(m_nextButton);
     layout->addWidget(m_closeButton);
@@ -49,6 +56,12 @@ SearchBar::SearchBar(QWidget *parent) : QWidget(parent)
     m_searchSeparator->hide();
     m_searchCountLabel->hide();
 
+    initConnections();
+}
+
+void
+SearchBar::initConnections() noexcept
+{
     connect(m_searchInput, &QLineEdit::returnPressed, this, [this]()
     {
         m_searchInput->clearFocus();
@@ -81,6 +94,13 @@ SearchBar::SearchBar(QWidget *parent) : QWidget(parent)
         m_searchInput->clearFocus();
         this->hide();
     });
+
+    // Re-search when toggled
+    connect(m_regexButton, &QPushButton::toggled, this, [this]()
+    {
+        if (!m_searchInput->text().isEmpty())
+            search(m_searchInput->text());
+    });
 }
 
 void
@@ -111,7 +131,25 @@ SearchBar::setSearchIndex(int index) noexcept
 void
 SearchBar::search(const QString &term) noexcept
 {
-    emit searchRequested(term);
     if (term.isEmpty())
+    {
         this->hide();
+        return;
+    }
+
+    // Validate regex before emitting
+    if (m_regexButton->isChecked())
+    {
+        QRegularExpression re(term);
+        if (!re.isValid())
+        {
+            m_searchInput->setStyleSheet("border: 1px solid red;");
+            m_searchInput->setToolTip(re.errorString());
+            return;
+        }
+    }
+
+    m_searchInput->setStyleSheet("");
+    m_searchInput->setToolTip("");
+    emit searchRequested(term, m_regexButton->isChecked());
 }

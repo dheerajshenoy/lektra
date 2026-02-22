@@ -68,6 +68,7 @@ public:
     void Read_args_parser(argparse::ArgumentParser &argparser) noexcept;
     // bool OpenFile(DocumentView *view) noexcept;
     void Search() noexcept;
+    void Search_regex() noexcept;
     void Search_in_page() noexcept;
     void Show_highlight_search() noexcept;
     void Toggle_presentation_mode() noexcept;

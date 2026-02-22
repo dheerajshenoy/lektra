@@ -18,6 +18,16 @@ public:
     void setSearchIndex(int index) noexcept;
     void search(const QString &term) noexcept;
 
+    inline void setRegexMode(bool state) noexcept
+    {
+        m_regexButton->setChecked(true);
+    }
+
+    inline bool regexMode() const noexcept
+    {
+        return m_regexButton->isChecked();
+    }
+
     inline void focusSearchInput() noexcept
     {
         m_searchInput->setFocus();
@@ -48,11 +58,15 @@ private:
     QPushButton *m_nextButton;
     QPushButton *m_closeButton;
     WaitingSpinnerWidget *m_spinner;
+    QPushButton *m_regexButton{new QPushButton(".*", this)};
+
+    void initConnections() noexcept;
 
 protected:
     void showEvent(QShowEvent *event) override;
 
-    void keyPressEvent(QKeyEvent *event) override {
+    void keyPressEvent(QKeyEvent *event) override
+    {
         if (event->key() == Qt::Key_Escape)
         {
             m_searchInput->clearFocus();
@@ -62,7 +76,7 @@ protected:
     }
 
 signals:
-    void searchRequested(const QString &term);
+    void searchRequested(const QString &term, bool use_regex);
     void searchIndexChangeRequested(int index);
     void nextHitRequested();
     void prevHitRequested();

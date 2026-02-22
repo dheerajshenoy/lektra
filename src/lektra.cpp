@@ -1563,45 +1563,34 @@ lektra::Selection_copy() noexcept
         m_doc->YankSelection();
 }
 
+// TODO: Fix DWIM version
 bool
 lektra::OpenFileDWIM(const QString &filename) noexcept
 {
-    // If already open anywhere, just focus it
-    // if (DocumentView *existing = findOpenView(filename))
-    // {
-    //     DocumentContainer *container = existing->container();
-    //     m_tab_widget->setCurrentIndex(m_tab_widget->indexOf(container));
-    //     container->focusView(existing);
-    //     return true;
-    // }
-
     if (m_tab_widget->count() == 0)
         return OpenFileInNewTab(filename);
 
     DocumentContainer *container
         = m_tab_widget->rootContainer(m_tab_widget->currentIndex());
-
     if (!container)
         return OpenFileInNewTab(filename);
 
-    DocumentView *view = container->view();
+    // No active view or empty — reuse current pane
+    if (!m_doc || m_doc->filePath().isEmpty())
+        return OpenFileInContainer(container, filename, {}, m_doc);
 
-    // Empty view — reuse it
-    if (!view || view->filePath().isEmpty())
-        return OpenFileInContainer(container, filename);
-
-    // Multiple splits — replace current pane
     if (container->getViewCount() > 1)
-        return OpenFileInContainer(container, filename);
+        return OpenFileInContainer(container, filename, {}, m_doc);
 
-    // Single view with file — open in new tab
+    // Single view with a file — open in new tab
     return OpenFileInNewTab(filename);
 }
 
 bool
 lektra::OpenFileInContainer(DocumentContainer *container,
                             const QString &filename,
-                            const std::function<void()> &callback) noexcept
+                            const std::function<void()> &callback,
+                            DocumentView *targetView) noexcept
 {
     if (!container)
         return false;
@@ -2338,10 +2327,10 @@ lektra::initConnections() noexcept
     });
 
     connect(m_search_bar, &SearchBar::searchRequested, this,
-            [this](const QString &term)
+            [this](const QString &term, bool useRegex)
     {
         if (m_doc)
-            m_doc->Search(term);
+            m_doc->Search(term, useRegex);
     });
 
     connect(m_search_bar, &SearchBar::searchIndexChangeRequested, this,
@@ -3534,6 +3523,7 @@ lektra::initActionMap() noexcept
 
         // Search actions
         ACTION_NO_ARGS("search", Search),
+        ACTION_NO_ARGS("search_regex", Search_regex),
         ACTION_NO_ARGS("search_next", NextHit),
         ACTION_NO_ARGS("search_prev", PrevHit),
         {"search_args",
@@ -3566,6 +3556,7 @@ lektra::initActionMap() noexcept
 
         // TODO: Implement these actions
         // ACTION_NO_ARGS("save_selection_as_image", Save_selection_as_image),
+        // ACTION_NO_ARGS("goto_definition",
         ACTION_NO_ARGS("reopen_last_closed_file", Reopen_last_closed_file),
         ACTION_NO_ARGS("copy_page_image", Copy_page_image),
 
@@ -3863,7 +3854,7 @@ void
 lektra::search(const QString &term) noexcept
 {
     if (m_doc)
-        m_doc->Search(term);
+        m_doc->Search(term, false);
 }
 
 void
@@ -3878,11 +3869,18 @@ lektra::Search() noexcept
 {
     if (m_doc)
     {
-        // m_search_bar_overlay->show();
-        // m_search_bar_overlay->raise();
-        // m_search_bar_overlay->activateWindow();
-        // m_search_bar_overlay->setVisible(true);
         m_search_bar->setVisible(true);
+        m_search_bar->focusSearchInput();
+    }
+}
+
+void
+lektra::Search_regex() noexcept
+{
+    if (m_doc)
+    {
+        m_search_bar->setVisible(true);
+        m_search_bar->setRegexMode(true);
         m_search_bar->focusSearchInput();
     }
 }
@@ -4682,7 +4680,7 @@ lektra::Reopen_last_closed_file() noexcept
 }
 
 void
-lektra::SetMark()
+lektra::SetMark() noexcept
 {
     if (!m_doc)
         return;
@@ -4705,7 +4703,7 @@ lektra::SetMark()
 }
 
 void
-lektra::DeleteMark()
+lektra::DeleteMark() noexcept
 {
     if (!m_doc)
         return;
@@ -4731,7 +4729,7 @@ lektra::DeleteMark()
 }
 
 void
-lektra::GotoMark()
+lektra::GotoMark() noexcept
 {
     if (!m_doc)
         return;
