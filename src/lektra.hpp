@@ -376,8 +376,7 @@ private:
     OutlinePicker *m_outline_picker{nullptr};
     HighlightSearchPicker *m_highlight_search_picker{nullptr};
     RecentFilesPicker *m_recent_file_picker{nullptr};
-
-    // MarkManager m_marks_manager;
+    MarkManager *m_marks_manager{nullptr};
 
 #ifdef ENABLE_LLM_SUPPORT
     // LLM Support

@@ -1080,6 +1080,8 @@ lektra::initGui() noexcept
     m_tab_widget->tabBar()->setVisible(m_config.tabs.visible);
 
     initMenubar();
+
+    m_marks_manager = new MarkManager(this);
 }
 
 // Updates the UI elements checking if valid
@@ -3434,6 +3436,11 @@ lektra::initActionMap() noexcept
         ACTION_NO_ARGS("page_prev", PrevPage),
         ACTION_NO_ARGS("page_goto", Goto_page),
 
+        // Mark actions
+        ACTION_NO_ARGS("mark_set", SetMark),
+        ACTION_NO_ARGS("mark_delete", DeleteMark),
+        ACTION_NO_ARGS("mark_goto", GotoMark),
+
         // Scrolling actions
         ACTION_NO_ARGS("scroll_down", ScrollDown),
         ACTION_NO_ARGS("scroll_up", ScrollUp),
@@ -4676,4 +4683,91 @@ lektra::Reopen_last_closed_file() noexcept
     const QString &fpath = target->file_path;
 
     OpenFileInNewTab(fpath, [this, savedPage]() { gotoPage(savedPage); });
+}
+
+void
+lektra::SetMark()
+{
+    if (!m_doc)
+        return;
+
+    const QString key = QInputDialog::getText(
+        this, "Set Mark", "Enter mark key (a-z for local, A-Z for global):");
+
+    if (key.isEmpty())
+    {
+        QMessageBox::critical(this, "Set Mark", "Mark key cannot be empty");
+        return;
+    }
+
+    if (m_marks_manager->isGlobalKey(key))
+        m_marks_manager->addGlobalMark(key, m_doc->id(),
+                                       m_doc->CurrentLocation());
+    else
+        m_marks_manager->addLocalMark(key, m_doc->id(),
+                                      m_doc->CurrentLocation());
+}
+
+void
+lektra::DeleteMark()
+{
+    if (!m_doc)
+        return;
+
+    const QStringList existingMarks = m_marks_manager->allKeys(m_doc->id());
+    const QString key               = QInputDialog::getItem(
+        this, "Delete Mark", "Mark to delete:", existingMarks, 0);
+
+    if (key.isEmpty())
+    {
+        QMessageBox::critical(this, "Delete Mark", "Mark key cannot be empty");
+        return;
+    }
+
+    if (m_marks_manager->isGlobalKey(key))
+    {
+        m_marks_manager->removeGlobalMark(key);
+    }
+    else
+    {
+        m_marks_manager->removeLocalMark(key, m_doc->id());
+    }
+}
+
+void
+lektra::GotoMark()
+{
+    if (!m_doc)
+        return;
+
+    const QStringList existingMarks = m_marks_manager->allKeys(m_doc->id());
+    const QString key               = QInputDialog::getItem(
+        this, "Goto Mark", "Mark to go to:", existingMarks, 0);
+
+    if (key.isEmpty())
+    {
+        QMessageBox::critical(this, "Goto Mark", "Mark key cannot be empty");
+        return;
+    }
+
+    if (m_marks_manager->isGlobalKey(key))
+    {
+        const auto *mark = m_marks_manager->getGlobalMark(key);
+        if (!mark)
+            return;
+        // Switch to the right document first, then jump
+        DocumentView *view = get_view_by_id(mark->docId);
+        if (view)
+        {
+            setCurrentDocumentView(view);
+            view->GotoLocationWithHistory(mark->plocation);
+        }
+    }
+    else
+    {
+        const auto *mark = m_marks_manager->getLocalMark(key, m_doc->id());
+        if (!mark)
+            return;
+        m_doc->GotoLocationWithHistory(mark->plocation);
+    }
 }
