@@ -525,7 +525,7 @@ private:
 
     QString m_filepath;
     int m_page_count{0};
-    float m_dpr{1.0f}, m_dpi{72.0f}, m_zoom{1.0f}, m_rotation{0.0f},
+    float m_dpr{1.0f}, m_dpi{96.0f}, m_zoom{1.0f}, m_rotation{0.0f},
         m_inv_dpr{1.0f};
     bool m_invert_color{false};
 
