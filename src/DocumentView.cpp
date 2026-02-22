@@ -4009,8 +4009,8 @@ DocumentView::zoomHelper() noexcept
         }
         else if (m_layout_mode == LayoutMode::SINGLE)
         {
-            item->setPos((sr.width() - pageWidthScene) / 2.0,
-                         (sr.height() - pageHeightScene) / 2.0);
+            item->setPos(sr.x() + (sr.width() - pageWidthScene) / 2.0,
+                    sr.y() + (sr.height() - pageHeightScene) / 2.0);
         }
         else // TOP_TO_BOTTOM
         {
