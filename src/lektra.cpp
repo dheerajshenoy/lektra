@@ -250,7 +250,7 @@ lektra::initMenubar() noexcept
         this,
         [&]() { SetLayoutMode(DocumentView::LayoutMode::TOP_TO_BOTTOM); });
 
-    m_actionLayoutTopToBottom = m_layoutMenu->addAction(
+    m_actionLayoutBook = m_layoutMenu->addAction(
         QString("Book\t%1").arg(m_config.shortcuts["layout_book"]), this,
         [&]() { SetLayoutMode(DocumentView::LayoutMode::BOOK); });
 
