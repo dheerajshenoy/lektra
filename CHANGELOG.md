@@ -2,6 +2,10 @@
 
 ## 0.6.4
 
+### Bug Fix
+
+- Fix `search` not working because of recent changes to page text caching
+
 ### Features
 
 ### New Commands
@@ -10,7 +14,6 @@
   - `mark_goto` - Ask user for the mark key and go to the location if key is valid
   - `mark_set` - Ask user for key to set the mark (local mark key start with lowercase letter or word and global starts with uppercase)
   - `mark_delete` - Ask user for the mark key to delete and delete if the key is valid
-
 
 ### Optimizations
 

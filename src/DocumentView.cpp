@@ -144,7 +144,6 @@ DocumentView::initGui() noexcept
     m_gview->setDefaultMode(m_config.behavior.initial_mode);
     m_gview->setMode(m_config.behavior.initial_mode);
     m_gview->setBackgroundBrush(rgbaToQColor(m_config.colors.background));
-    m_model->setDPI(m_config.rendering.dpi);
     m_model->setAnnotRectColor(
         rgbaToQColor(m_config.colors.annot_rect).toRgb());
     m_model->setSelectionColor(rgbaToQColor(m_config.colors.selection));
@@ -2423,8 +2422,9 @@ DocumentView::updateCurrentHitHighlight() noexcept
         return;
     }
 
-    const HitRef ref = m_search_hit_flat_refs[m_search_index];
-    const auto &hit  = m_search_hits[ref.page][ref.indexInPage];
+    const auto &scale = m_model->logicalScale();
+    const HitRef ref  = m_search_hit_flat_refs[m_search_index];
+    const auto &hit   = m_search_hits[ref.page][ref.indexInPage];
 
     GraphicsImageItem *pageItem = m_page_items_hash.value(ref.page, nullptr);
     if (!pageItem || !pageItem->scene())
@@ -2435,14 +2435,10 @@ DocumentView::updateCurrentHitHighlight() noexcept
 
     QPolygonF poly;
     poly.reserve(4);
-    poly << QPointF(hit.quad.ul.x * m_current_zoom,
-                    hit.quad.ul.y * m_current_zoom)
-         << QPointF(hit.quad.ur.x * m_current_zoom,
-                    hit.quad.ur.y * m_current_zoom)
-         << QPointF(hit.quad.lr.x * m_current_zoom,
-                    hit.quad.lr.y * m_current_zoom)
-         << QPointF(hit.quad.ll.x * m_current_zoom,
-                    hit.quad.ll.y * m_current_zoom);
+    poly << QPointF(hit.quad.ul.x * scale, hit.quad.ul.y * scale)
+         << QPointF(hit.quad.ur.x * scale, hit.quad.ur.y * scale)
+         << QPointF(hit.quad.lr.x * scale, hit.quad.lr.y * scale)
+         << QPointF(hit.quad.ll.x * scale, hit.quad.ll.y * scale);
 
     QPainterPath path;
     const QTransform toScene = pageItem->sceneTransform();
@@ -3072,19 +3068,17 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
 
     const QTransform toScene = pageItem->sceneTransform();
 
+    const auto scale = m_model->logicalScale();
+
     for (unsigned int i = 0; i < hits.size(); ++i)
     {
         const Model::SearchHit &hit = hits[i];
         QPolygonF poly;
         poly.reserve(4);
-        poly << QPointF(hit.quad.ul.x * m_current_zoom,
-                        hit.quad.ul.y * m_current_zoom)
-             << QPointF(hit.quad.ur.x * m_current_zoom,
-                        hit.quad.ur.y * m_current_zoom)
-             << QPointF(hit.quad.lr.x * m_current_zoom,
-                        hit.quad.lr.y * m_current_zoom)
-             << QPointF(hit.quad.ll.x * m_current_zoom,
-                        hit.quad.ll.y * m_current_zoom);
+        poly << QPointF(hit.quad.ul.x * scale, hit.quad.ul.y * scale)
+             << QPointF(hit.quad.ur.x * scale, hit.quad.ur.y * scale)
+             << QPointF(hit.quad.lr.x * scale, hit.quad.lr.y * scale)
+             << QPointF(hit.quad.ll.x * scale, hit.quad.ll.y * scale);
 
         allPath.addPolygon(toScene.map(poly));
     }

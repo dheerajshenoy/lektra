@@ -53,6 +53,8 @@ Model::Model(QObject *parent) noexcept : QObject(parent)
     // Eviction for LRU Cache
     m_page_lru_cache.setCallback([this](PageCacheEntry &entry)
     { LRUEvictFunction(entry); });
+
+    m_text_cache.setCapacity(512);
 }
 
 Model::~Model() noexcept
@@ -2171,10 +2173,14 @@ Model::buildTextCacheForPages(const std::set<int> &pagenos) noexcept
         fz_page *page        = nullptr;
         fz_stext_page *stext = nullptr;
 
-        fz_try(m_ctx)
+        fz_try(ctx)
         {
-            page  = fz_load_page(m_ctx, m_doc, pageno);
-            stext = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+            {
+                std::lock_guard<std::mutex> lock(
+                    m_doc_mutex); // ✓ protect m_doc
+                page = fz_load_page(ctx, m_doc, pageno);
+            }
+            stext = fz_new_stext_page_from_page(ctx, page, nullptr);
 
             CachedTextPage cache;
             cache.chars.reserve(4096); // pre-reserve to reduce reallocations
@@ -2199,12 +2205,12 @@ Model::buildTextCacheForPages(const std::set<int> &pagenos) noexcept
 
             m_text_cache.put(pageno, std::move(cache));
         }
-        fz_always(m_ctx)
+        fz_always(ctx)
         {
-            fz_drop_stext_page(m_ctx, stext);
-            fz_drop_page(m_ctx, page);
+            fz_drop_stext_page(ctx, stext);
+            fz_drop_page(ctx, page);
         }
-        fz_catch(m_ctx)
+        fz_catch(ctx)
         {
             // ignore page failures
         }
