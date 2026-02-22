@@ -226,6 +226,9 @@ DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
     m_layout_mode = mode;
     invalidateVisiblePagesCache();
 
+    if (m_model->numPages() == 0)
+        return;
+
     initConnections();
     // Reset view state
     clearDocumentItems();
@@ -234,22 +237,7 @@ DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
     cachePageStride();
     updateSceneRect();
 
-    // Make sure scrollbars start sane
-    if (m_layout_mode == LayoutMode::SINGLE)
-    {
-        // Keep current page, but only render it.
-        if (m_pageno < 0)
-            m_pageno = 0;
-        if (m_pageno >= m_model->numPages())
-            m_pageno = m_model->numPages() - 1;
-        renderPage();
-    }
-    else
-    {
-        // Put viewport near current page along the main axis
-        GotoPage(m_pageno);
-        renderPages();
-    }
+    renderPages();
 }
 
 #ifdef HAS_SYNCTEX
@@ -403,7 +391,8 @@ DocumentView::initConnections() noexcept
         connect(m_scroll_page_update_timer, &QTimer::timeout, this,
                 &DocumentView::renderPages, Qt::UniqueConnection);
     }
-    else if (m_layout_mode == LayoutMode::TOP_TO_BOTTOM)
+    else if (m_layout_mode == LayoutMode::TOP_TO_BOTTOM
+             || m_layout_mode == LayoutMode::BOOK)
     {
         connect(m_vscroll, &QScrollBar::valueChanged, this,
                 &DocumentView::handleVScrollValueChanged, Qt::UniqueConnection);
@@ -414,6 +403,7 @@ DocumentView::initConnections() noexcept
         connect(m_scroll_page_update_timer, &QTimer::timeout, this,
                 &DocumentView::renderPages, Qt::UniqueConnection);
     }
+
     else if (m_layout_mode == LayoutMode::SINGLE)
     {
         connect(m_hq_render_timer, &QTimer::timeout, this,
@@ -839,8 +829,30 @@ DocumentView::setFitMode(FitMode mode) noexcept
     const double t     = deg2rad(rot);
     const double c     = std::abs(std::cos(t));
     const double s     = std::abs(std::sin(t));
-    const double bboxW = baseW * c + baseH * s;
+    double bboxW       = baseW * c + baseH * s;
     const double bboxH = baseW * s + baseH * c;
+
+    if (mode == FitMode::Width && m_layout_mode == LayoutMode::BOOK)
+    {
+        int leftP  = (m_pageno == 0)
+                         ? 0
+                         : ((m_pageno % 2 != 0) ? m_pageno : m_pageno - 1);
+        int rightP = (m_pageno == 0) ? -1 : leftP + 1;
+
+        auto getW = [&](int p)
+        {
+            if (p < 0 || p >= m_model->numPages())
+                return 0.0;
+            const auto dim = m_model->page_dimension_pts(p);
+            return ((dim.width_pts / 72.0) * m_model->DPI()) * c
+                   + ((dim.height_pts / 72.0) * m_model->DPI()) * s;
+        };
+
+        bboxW = getW(leftP) + getW(rightP);
+        if (m_pageno == 0)
+            bboxW
+                *= 2.0; // Force cover zoom to respect the logical spine center
+    }
 
     switch (mode)
     {
@@ -1672,7 +1684,6 @@ DocumentView::GoForwardHistory() noexcept
     GotoLocation(target);
 }
 
-// Get the list of currently visible pages
 const std::set<int> &
 DocumentView::getVisiblePages() noexcept
 {
@@ -1687,10 +1698,6 @@ DocumentView::getVisiblePages() noexcept
         return m_visible_pages_cache;
     }
 
-#ifndef NDEBUG
-    qDebug() << "DocumentView::getVisiblePages(): Calculating visible pages";
-#endif
-
     if (m_layout_mode == LayoutMode::SINGLE)
     {
         m_visible_pages_cache.insert(
@@ -1702,7 +1709,7 @@ DocumentView::getVisiblePages() noexcept
     const QRectF visibleSceneRect
         = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
 
-    double a0, a1; // main axis interval
+    double a0, a1;
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
         a0 = visibleSceneRect.left();
@@ -1714,53 +1721,79 @@ DocumentView::getVisiblePages() noexcept
         a1 = visibleSceneRect.bottom();
     }
 
-    // A page is visible if its interval [page_start, page_end] overlaps [a0,
-    // a1].
-    // Overlap condition: page_start < a1 AND page_end > a0
+    const int N = m_model->numPages();
 
-    // Find first page whose START is less than a1
-    // i.e. last page where start < a1 => upper_bound gives first start >= a1,
-    // go back one
-    auto it_last
-        = std::lower_bound(m_page_offsets.begin(), m_page_offsets.end(), a1);
-    // it_last points to first page starting at or beyond a1 — that's our
-    // exclusive end
-
-    // Find first page whose END is greater than a0
-    // page_end = m_page_offsets[i+1] (or scene end for last page)
-    // Simpler: find first page where start > a0, then go back one
-    auto it_first
-        = std::upper_bound(m_page_offsets.begin(), m_page_offsets.end(), a0);
-    // it_first points past pages that START at or before a0,
-    // but we need to include a page even if it started before a0 (it may still
-    // overlap)
-    if (it_first != m_page_offsets.begin())
-        --it_first; // step back: this page starts before a0 but may extend into
-                    // view
-
-    int firstPage = std::max(
-        0, static_cast<int>(std::distance(m_page_offsets.begin(), it_first)));
-    int lastPage = std::max(
-        0,
-        static_cast<int>(std::distance(m_page_offsets.begin(), it_last)) - 1);
-
-    firstPage = std::clamp(firstPage, 0, m_model->numPages() - 1);
-    lastPage  = std::clamp(lastPage, 0, m_model->numPages() - 1);
-
-    const double spacineScene = m_spacing * m_current_zoom;
-
-    for (int pageno = firstPage; pageno <= lastPage; ++pageno)
+    if (m_layout_mode == LayoutMode::BOOK)
     {
-        // m_page_offsets[pageno] = start of page, m_page_offsets[pageno+1] =
-        // start of next
-        double pageStart = m_page_offsets[pageno];
-        double pageEnd
-            = (pageno + 1 < (int)m_page_offsets.size())
-                  ? m_page_offsets[pageno + 1] - spacineScene
-                  : pageStart + pageStride(pageno); // fallback for last page
+        // Iterate by ROW to avoid problems with duplicate offsets in spreads.
+        // Row 0 = page 0 (cover), Row 1 = pages 1-2, Row 2 = pages 3-4, etc.
+        for (int i = 0; i < N;)
+        {
+            const double rowStart = m_page_offsets[i];
 
-        if (pageEnd > a0 && pageStart < a1) // true overlap
-            m_visible_pages_cache.insert(pageno);
+            int rowEnd_idx;
+            if (i == 0)
+                rowEnd_idx = 1; // cover is alone
+            else
+                rowEnd_idx = std::min(i + 2, N); // spread pair
+
+            const double rowEnd
+                = (rowEnd_idx < N)
+                      ? m_page_offsets[rowEnd_idx]
+                      : m_page_offsets[N]; // use sentinel for last row
+
+            // Overlap test: rowStart < a1 && rowEnd > a0
+            if (rowStart < a1 && rowEnd > a0)
+            {
+                // Add all pages in this row
+                for (int p = i; p < rowEnd_idx; ++p)
+                    m_visible_pages_cache.insert(p);
+            }
+
+            // Early exit: if this row starts beyond viewport, no more visible
+            if (rowStart >= a1)
+                break;
+
+            // Advance to next row
+            if (i == 0)
+                i = 1;
+            else
+                i += 2;
+        }
+    }
+    else
+    {
+        // Original logic for LEFT_TO_RIGHT and TOP_TO_BOTTOM
+        // (offsets are strictly increasing, binary search is safe)
+        auto it_last = std::lower_bound(m_page_offsets.begin(),
+                                        m_page_offsets.end(), a1);
+
+        auto it_first = std::upper_bound(m_page_offsets.begin(),
+                                         m_page_offsets.end(), a0);
+        if (it_first != m_page_offsets.begin())
+            --it_first;
+
+        int firstPage = std::max(0, static_cast<int>(std::distance(
+                                        m_page_offsets.begin(), it_first)));
+        int lastPage  = std::max(
+            0, static_cast<int>(std::distance(m_page_offsets.begin(), it_last))
+                   - 1);
+
+        firstPage = std::clamp(firstPage, 0, N - 1);
+        lastPage  = std::clamp(lastPage, 0, N - 1);
+
+        const double spacingScene = m_spacing * m_current_zoom;
+
+        for (int pageno = firstPage; pageno <= lastPage; ++pageno)
+        {
+            double pageStart = m_page_offsets[pageno];
+            double pageEnd   = (pageno + 1 < (int)m_page_offsets.size())
+                                   ? m_page_offsets[pageno + 1] - spacingScene
+                                   : pageStart + pageStride(pageno);
+
+            if (pageEnd > a0 && pageStart < a1)
+                m_visible_pages_cache.insert(pageno);
+        }
     }
 
     m_visible_pages_dirty = false;
@@ -2072,44 +2105,68 @@ void
 DocumentView::cachePageStride() noexcept
 {
     const int N = m_model->numPages();
-
     if (N <= 0)
         return;
 
     m_page_offsets.resize(N + 1);
 
     const double spacingScene = m_spacing * m_current_zoom;
-    const double rot          = [](double r)
+    const double rot          = std::fmod(std::abs(m_model->rotation()), 360.0);
+    const bool rotated        = (rot == 90.0 || rot == 270.0);
+
+    // Helper to get extent quickly
+    auto getExtents = [&](int p, double &w, double &h)
     {
-        r = std::fmod(r, 360.0);
-        return r < 0 ? r + 360.0 : r;
-    }(static_cast<double>(m_model->rotation()));
-
-    const double t = deg2rad(rot);
-    const double c = std::abs(std::cos(t));
-    const double s = std::abs(std::sin(t));
-
-    const bool horizontal = (m_layout_mode == LayoutMode::LEFT_TO_RIGHT);
+        const auto dim = m_model->page_dimension_pts(p);
+        w = (dim.width_pts / 72.0) * m_model->DPI() * m_current_zoom;
+        h = (dim.height_pts / 72.0) * m_model->DPI() * m_current_zoom;
+        if (rotated)
+            std::swap(w, h);
+    };
 
     double cursor = 0.0;
-    for (int i = 0; i < N; ++i)
+
+    if (m_layout_mode == LayoutMode::BOOK)
     {
-        m_page_offsets[i] = cursor;
+        for (int i = 0; i < N;)
+        {
+            if (i == 0)
+            { // Cover
+                double w, h;
+                getExtents(i, w, h);
+                m_page_offsets[i] = cursor;
+                cursor += h + spacingScene;
+                i++;
+            }
+            else
+            { // Spreads
+                double w1, h1, w2 = 0, h2 = 0;
+                getExtents(i, w1, h1);
+                if (i + 1 < N)
+                    getExtents(i + 1, w2, h2);
 
-        const auto dim = m_model->page_dimension_pts(i);
-        const double w
-            = (dim.width_pts / 72.0) * m_model->DPI() * m_current_zoom;
-        const double h
-            = (dim.height_pts / 72.0) * m_model->DPI() * m_current_zoom;
+                m_page_offsets[i] = cursor;
+                if (i + 1 < N)
+                    m_page_offsets[i + 1] = cursor;
 
-        // Axis-aligned bounding box after rotation
-        const double bboxW = w * c + h * s;
-        const double bboxH = w * s + h * c;
-
-        cursor += (horizontal ? bboxW : bboxH) + spacingScene;
+                cursor += std::max(h1, h2) + spacingScene;
+                i += 2;
+            }
+        }
     }
-    m_page_offsets[N] = cursor;
+    else
+    {
+        const bool horizontal = (m_layout_mode == LayoutMode::LEFT_TO_RIGHT);
+        for (int i = 0; i < N; ++i)
+        {
+            m_page_offsets[i] = cursor;
+            double w, h;
+            getExtents(i, w, h);
+            cursor += (horizontal ? w : h) + spacingScene;
+        }
+    }
 
+    m_page_offsets[N] = cursor;
     invalidateVisiblePagesCache();
 }
 
@@ -2175,6 +2232,45 @@ DocumentView::updateSceneRect() noexcept
         const double sceneH     = std::max(viewH, page.height());
         const double xMargin    = std::max(0.0, (viewW - page.width()) / 2.0);
         m_gview->setSceneRect(-xMargin, 0, totalWidth + 2.0 * xMargin, sceneH);
+    }
+    else if (m_layout_mode == LayoutMode::BOOK)
+    {
+        // Use the model's points-based dimensions, not the current scene size
+        double maxSpreadPointsW = 0.0;
+        for (int i = 0; i < m_model->numPages();)
+        {
+            if (i == 0)
+            {
+                maxSpreadPointsW
+                    = std::max(maxSpreadPointsW,
+                               m_model->page_dimension_pts(0).width_pts * 2.0);
+                i++;
+            }
+            else
+            {
+                double w = m_model->page_dimension_pts(i).width_pts;
+                if (i + 1 < m_model->numPages())
+                    w += m_model->page_dimension_pts(i + 1).width_pts;
+                maxSpreadPointsW = std::max(maxSpreadPointsW, w);
+                i += 2;
+            }
+        }
+
+        // Convert points to pixels using current zoom
+        const double scale       = (m_model->DPI() / 72.0) * m_current_zoom;
+        const double totalWidth  = maxSpreadPointsW * scale;
+        const double totalHeight = totalPageExtent();
+
+        const double sceneW = std::max(viewW, totalWidth);
+
+        // Safety: Cap the scene width to prevent runaway allocations
+        // 20k pixels is more than enough for any monitor setup
+        const double cappedSceneW = std::min(sceneW, 20000.0);
+
+        const double yMargin
+            = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
+        m_gview->setSceneRect(0, -yMargin, cappedSceneW,
+                              totalHeight + 2.0 * yMargin);
     }
     else
     {
@@ -2291,7 +2387,35 @@ DocumentView::pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
     // correctly, so ±1 is now a genuine safety net rather than the primary
     // mechanism.
 
-    for (int pg : {candidate, candidate - 1, candidate + 1})
+    std::vector<int> candidates;
+    if (m_layout_mode == LayoutMode::BOOK)
+    {
+        candidates.push_back(candidate);
+        // Spread partner
+        if (candidate == 0)
+        {
+            // Cover is alone, but check page 1 as neighbor
+            candidates.push_back(1);
+        }
+        else if (candidate % 2 != 0)
+        {
+            // Odd page (left side) → partner is candidate+1
+            candidates.push_back(candidate + 1);
+            candidates.push_back(candidate - 1);
+        }
+        else
+        {
+            // Even page (right side) → partner is candidate-1
+            candidates.push_back(candidate - 1);
+            candidates.push_back(candidate + 1);
+        }
+    }
+    else
+    {
+        candidates = {candidate, candidate - 1, candidate + 1};
+    }
+
+    for (int pg : candidates)
     {
         if (pg < 0 || pg >= N)
             continue;
@@ -2710,9 +2834,9 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
     }
     else
     {
-        const double xOffset = (sr.width() - pageW) / 2.0;
-        const double yPos    = pageOffset(pageno);
-        item->setPos(xOffset, yPos);
+        // BOOK or TOP_TO_BOTTOM
+        item->setPos(pageXOffset(pageno, pageW, sr.width()),
+                     pageOffset(pageno));
     }
 
     m_gscene->addItem(item);
@@ -2744,10 +2868,10 @@ DocumentView::createAndAddPageItem(int pageno, const QImage &img) noexcept
         const double yOffset = (sr.height() - pageH) / 2.0;
         item->setPos(xOffset, yOffset);
     }
-    else // TOP_TO_BOTTOM
+    else // TOP_TO_BOTTOM & BOOK
     {
-        const double xOffset = (sr.width() - pageW) / 2.0;
-        item->setPos(xOffset, pageOffset(pageno));
+        item->setPos(pageXOffset(pageno, pageW, sr.width()),
+                     pageOffset(pageno));
     }
 
     m_gscene->addItem(item);
@@ -3137,8 +3261,8 @@ DocumentView::renderSearchHitsInScrollbar() noexcept
 
     std::vector<double> markers;
     markers.reserve(m_search_hit_flat_refs.size());
-
-    if (m_layout_mode == LayoutMode::TOP_TO_BOTTOM)
+    if (m_layout_mode == LayoutMode::TOP_TO_BOTTOM
+        || m_layout_mode == LayoutMode::BOOK)
     {
         for (const auto &hitRef : m_search_hit_flat_refs)
         {
@@ -3829,8 +3953,8 @@ DocumentView::zoomHelper() noexcept
         }
         else // TOP_TO_BOTTOM
         {
-            const double xOffset = (sr.width() - pageWidthScene) / 2.0;
-            item->setPos(xOffset, pageOffset(i));
+            item->setPos(pageXOffset(i, pageWidthScene, sr.width()),
+                         pageOffset(i));
         }
     }
 
@@ -3960,4 +4084,49 @@ DocumentView::Copy_page_image() noexcept
         QClipboard *clip = QApplication::clipboard();
         clip->setImage(img);
     }
+}
+
+// Helper: O(1) start position of page i in scene axis coordinates
+double
+DocumentView::pageOffset(int pageno) const noexcept
+{
+    if (pageno < 0 || pageno >= static_cast<int>(m_page_offsets.size()) - 1)
+        return 0.0;
+    return m_page_offsets[pageno];
+}
+
+double
+DocumentView::pageXOffset(int pageno, double pageW,
+                          double sceneW) const noexcept
+{
+    if (m_layout_mode == LayoutMode::BOOK)
+    {
+        const double spacingScene = m_spacing * m_current_zoom;
+        const double spineX       = sceneW / 2.0;
+        if (pageno == 0)
+            return spineX; // Cover is on the right
+        return (pageno % 2 != 0)
+                   ? (spineX - pageW)
+                   : spineX + spacingScene; // Odd=Left, Even=Right
+    }
+    return (sceneW - pageW) / 2.0; // Centered for Single/Top-to-Bottom
+}
+
+// Helper: stride (extent + spacing) of a specific page
+double
+DocumentView::pageStride(int pageno) const noexcept
+{
+    if (pageno < 0 || pageno >= static_cast<int>(m_page_offsets.size()) - 1)
+        return 0.0;
+
+    if (m_layout_mode == LayoutMode::BOOK)
+    {
+        // Look ahead to the index of the next row
+        int nextIdx = (pageno == 0) ? 1 : pageno + (pageno % 2 != 0 ? 2 : 1);
+        nextIdx
+            = std::min(nextIdx, static_cast<int>(m_page_offsets.size()) - 1);
+        return m_page_offsets[nextIdx] - m_page_offsets[pageno];
+    }
+
+    return m_page_offsets[pageno + 1] - m_page_offsets[pageno];
 }

@@ -71,6 +71,7 @@ public:
         SINGLE = 0,
         LEFT_TO_RIGHT,
         TOP_TO_BOTTOM,
+        BOOK,
         COUNT
     };
 
@@ -233,8 +234,10 @@ public:
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
     void createAndAddPageItem(int pageno, const QImage &image) noexcept;
+
     void renderPages() noexcept;
     void renderPage() noexcept;
+
     void setFitMode(FitMode mode) noexcept;
     void GotoPage(int pageno) noexcept;
     void GotoLocation(const PageLocation &targetlocation) noexcept;
@@ -354,28 +357,15 @@ private:
         return m_selection_path_item->data(0).toInt();
     }
 
-    // Helper: O(1) start position of page i in scene axis coordinates
-    inline double pageOffset(int pageno) const noexcept
-    {
-        if (pageno < 0 || pageno >= static_cast<int>(m_page_offsets.size()) - 1)
-            return 0.0;
-        return m_page_offsets[pageno];
-    }
-
-    // Helper: stride (extent + spacing) of a specific page
-    inline double pageStride(int pageno) const noexcept
-    {
-        if (pageno < 0 || pageno >= static_cast<int>(m_page_offsets.size()) - 1)
-            return 0.0;
-        return m_page_offsets[pageno + 1] - m_page_offsets[pageno];
-    }
-
     // Total scene-axis extent across all pages
     inline double totalPageExtent() const noexcept
     {
         return m_page_offsets.empty() ? 0.0 : m_page_offsets.back();
     }
 
+    double pageXOffset(int pageno, double pageW, double sceneW) const noexcept;
+    double pageOffset(int pageno) const noexcept;
+    double pageStride(int pageno) const noexcept;
     void CopyTextFromRegion(const QRectF &area) noexcept;
     void CopyRegionAsImage(const QRectF &area) noexcept;
     void SaveRegionAsImage(const QRectF &area) noexcept;

@@ -611,6 +611,8 @@ lektra::initConfig() noexcept
             mode = DocumentView::LayoutMode::SINGLE;
         else if (str == "left_to_right")
             mode = DocumentView::LayoutMode::LEFT_TO_RIGHT;
+        else if (str == "book")
+            mode = DocumentView::LayoutMode::BOOK;
         else
             mode = DocumentView::LayoutMode::TOP_TO_BOTTOM;
 
@@ -3536,6 +3538,8 @@ lektra::initActionMap() noexcept
     { SetLayoutMode(DocumentView::LayoutMode::LEFT_TO_RIGHT); }},
         {"layout_top_to_bottom", [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::TOP_TO_BOTTOM); }},
+        {"layout_book", [this](const QStringList &)
+    { SetLayoutMode(DocumentView::LayoutMode::BOOK); }},
 
         // Other actions
         ACTION_NO_ARGS("set_dpr", SetDPR),
@@ -3556,7 +3560,8 @@ lektra::initActionMap() noexcept
 
         // TODO: Implement these actions
         // ACTION_NO_ARGS("save_selection_as_image", Save_selection_as_image),
-        // ACTION_NO_ARGS("goto_definition",
+        // ACTION_NO_ARGS("chapter_next", Chapter_next),
+        // ACTION_NO_ARGS("chapter_prev", Chapter_prev),
         ACTION_NO_ARGS("reopen_last_closed_file", Reopen_last_closed_file),
         ACTION_NO_ARGS("copy_page_image", Copy_page_image),
 

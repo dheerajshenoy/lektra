@@ -11,6 +11,7 @@
 
 - Implement batch searching for faster search result fetching as soon as few searches are encountered.
 - Regex searching
+- Book (two-page) layout `[layout] { mode = "book" }`
 
 ### New Commands
 
@@ -19,6 +20,7 @@
   - `mark_set` - Ask user for key to set the mark (local mark key start with lowercase letter or word and global starts with uppercase)
   - `mark_delete` - Ask user for the mark key to delete and delete if the key is valid
 - `search_regex` - Opens searchbar with regex enabled
+- `layout_book` - Book layout mode (Two-page layout)
 
 ### Optimizations
 
