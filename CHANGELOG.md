@@ -14,6 +14,7 @@
   - `mark_goto` - Ask user for the mark key and go to the location if key is valid
   - `mark_set` - Ask user for key to set the mark (local mark key start with lowercase letter or word and global starts with uppercase)
   - `mark_delete` - Ask user for the mark key to delete and delete if the key is valid
+- Implement batch searching for faster search result fetching as soon as few searches are encountered.
 
 ### Optimizations
 

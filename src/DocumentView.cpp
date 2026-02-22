@@ -378,6 +378,9 @@ DocumentView::initConnections() noexcept
     connect(m_model, &Model::searchResultsReady, this,
             &DocumentView::handleSearchResults);
 
+    connect(m_model, &Model::searchPartialResultsReady, this,
+            &DocumentView::handlePartialSearchResults);
+
     connect(m_model, &Model::urlLinksReady, this,
             [this](int pageno, std::vector<Model::RenderLink> links)
     {
@@ -505,7 +508,6 @@ DocumentView::handleSearchResults(
 #endif
 
     emit searchBarSpinnerShow(false);
-    // Clear previous search hits
     clearSearchHits();
 
     if (results.isEmpty())
@@ -518,14 +520,33 @@ DocumentView::handleSearchResults(
 
     m_search_hits = results;
     buildFlatSearchHitIndex();
-    renderPages();
-    updateCurrentHitHighlight();
+
+    m_search_index = 0;
 
     if (m_config.scrollbars.search_hits)
         renderSearchHitsInScrollbar();
+
     emit searchCountChanged(m_model->searchMatchesCount());
 
     GotoHit(0);
+}
+
+void
+DocumentView::handlePartialSearchResults(
+    const QMap<int, std::vector<Model::SearchHit>> &results) noexcept
+{
+    m_search_hits = results; // full accumulated map, just replace
+
+    buildFlatSearchHitIndex();
+
+    if (m_config.scrollbars.search_hits)
+        renderSearchHitsInScrollbar();
+
+    emit searchCountChanged(m_model->searchMatchesCount());
+
+    // Jump to first hit only on the very first partial result
+    if (m_search_index == -1 && !m_search_hit_flat_refs.empty())
+        GotoHit(0);
 }
 
 void
@@ -1067,6 +1088,8 @@ DocumentView::Search(const QString &term) noexcept
                                      [](QChar c) { return c.isUpper(); });
 
     // m_search_hits = m_model->search(term);
+    clearSearchHits();
+    m_search_index = -1;
     m_model->search(term, caseSensitive);
 }
 
@@ -1162,7 +1185,13 @@ DocumentView::GotoHit(int index) noexcept
     m_pageno       = ref.page;
 
     GotoPage(ref.page);
-    updateCurrentHitHighlight();
+
+    QMetaObject::invokeMethod(this, [this]
+    {
+        updateCurrentHitHighlight();
+        // scrollToCurrentHit();
+    }, Qt::QueuedConnection);
+
     emit searchIndexChanged(index);
     emit currentPageChanged(ref.page + 1);
 }
@@ -1933,9 +1962,9 @@ DocumentView::startNextRenderJob() noexcept
                 if (m_pending_jump.pageno == pageno)
                     GotoLocation(m_pending_jump);
 
-                if (m_search_index != -1 && !m_search_hit_flat_refs.empty()
-                    && m_search_hit_flat_refs[m_search_index].page == pageno)
-                    updateCurrentHitHighlight();
+                // if (m_search_index != -1 && !m_search_hit_flat_refs.empty()
+                //     && m_search_hit_flat_refs[m_search_index].page == pageno)
+                //     updateCurrentHitHighlight();
             }
 
             startNextRenderJob();
@@ -2454,8 +2483,21 @@ DocumentView::updateCurrentHitHighlight() noexcept
         // Center on the current hit in the view
         const QRectF hitBounds  = path.boundingRect();
         const QPointF hitCenter = hitBounds.center();
-        m_gview->centerOn(hitCenter);
+        // m_gview->centerOn(hitCenter);
     }
+}
+
+void
+DocumentView::scrollToCurrentHit() noexcept
+{
+    if (m_search_index < 0 || m_search_index >= m_search_hit_flat_refs.size())
+        return;
+
+    const QPainterPath &path = m_current_search_hit_item->path();
+    if (path.isEmpty())
+        return;
+
+    m_gview->centerOn(path.boundingRect().center());
 }
 
 // Private helper — O(log N), call only in multi-page modes.
@@ -3114,7 +3156,8 @@ DocumentView::renderSearchHitsInScrollbar() noexcept
         {
             const auto &hit = m_search_hits[hitRef.page][hitRef.indexInPage];
             markers.push_back(pageOffset(hitRef.page)
-                              + hit.quad.ul.y * pdfToSceneScale);
+                              + hit.quad.ul.y
+                                    * pdfToSceneScale); // ← was missing
         }
         m_vscroll->setSearchMarkers(std::move(markers));
     }

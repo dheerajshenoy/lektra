@@ -78,7 +78,7 @@ Model::initMuPDF() noexcept
 void
 Model::LRUEvictFunction(PageCacheEntry &entry) noexcept
 {
-    // std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+    std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
     if (entry.display_list)
     {
         fz_context *ctx = cloneContext(); // Use a clone to avoid racing m_ctx
@@ -95,16 +95,14 @@ Model::LRUEvictFunction(PageCacheEntry &entry) noexcept
     }
 
     // Also clear text cache for this page to save memory
-    auto textIt = m_text_cache.has(entry.pageno);
-    if (textIt)
-    {
-        m_text_cache.remove(textIt);
-    }
+    if (m_text_cache.has(entry.pageno))
+        m_text_cache.remove(entry.pageno);
 }
 
 void
 Model::cleanup() noexcept
 {
+    m_search_future.cancel();
     m_render_future.cancel();
 
     fz_drop_outline(m_ctx, m_outline);
@@ -116,9 +114,8 @@ Model::cleanup() noexcept
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
         m_page_lru_cache.clear();
+        m_text_cache.clear();
     }
-
-    m_text_cache.clear();
 
     {
         std::lock_guard<std::mutex> lock(m_page_dim_mutex);
@@ -304,6 +301,7 @@ Model::_continueOpen(fz_context *ctx, fz_document *doc,
             m_page_count = page_count;
             m_filetype   = filetype;
             m_success    = true;
+            m_text_cache.setCapacity(std::min(page_count, 1024));
 
             {
                 std::lock_guard<std::mutex> lk(m_page_dim_mutex);
@@ -1954,24 +1952,52 @@ Model::search(const QString &term, bool caseSensitive) noexcept
 
     m_search_future = QtConcurrent::run([this, term, caseSensitive]()
     {
-        QMap<int, std::vector<Model::SearchHit>> results;
-        m_search_match_count = 0;
-
         if (term.isEmpty())
         {
-            emit searchResultsReady(results);
+            emit searchResultsReady({});
             return;
         }
 
-        for (int p = 0; p < m_page_count; ++p)
+        // Process in batches: build cache for N pages, search them,
+        // then move to the next batch. This bounds memory use and
+        // avoids overwhelming the thread pool on large documents.
+        constexpr int BATCH = 64;
+
+        QMap<int, std::vector<SearchHit>> results;
+        int total = 0;
+
+        for (int batch_start = 0;
+             batch_start < m_page_count && !m_search_future.isCanceled();
+             batch_start += BATCH)
         {
-            auto hits = searchHelper(p, term, caseSensitive);
-            if (!hits.empty())
+            const int batch_end = std::min(batch_start + BATCH, m_page_count);
+
+            // Pre-warm text cache for this batch serially (safe, single thread)
+            std::set<int> batchPages;
+            for (int p = batch_start; p < batch_end; ++p)
+                batchPages.insert(p);
+            buildTextCacheForPages(batchPages);
+
+            // Search this batch in parallel
+            QList<int> batchList(batchPages.begin(), batchPages.end());
+            auto future = QtConcurrent::mapped(
+                batchList, [this, term, caseSensitive](int pageno)
+            { return searchHelper(pageno, term, caseSensitive); });
+            future.waitForFinished();
+
+            // Merge batch results in page order
+            for (int i = 0; i < batchList.size(); ++i)
             {
-                m_search_match_count += hits.size();
-                results.insert(p, std::move(hits));
+                auto hits = future.resultAt(i);
+                if (!hits.empty())
+                {
+                    total += static_cast<int>(hits.size());
+                    results.insert(batchList[i], std::move(hits));
+                }
             }
         }
+
+        m_search_match_count = total;
         emit searchResultsReady(results);
     });
 }
@@ -2011,14 +2037,20 @@ Model::searchHelper(int pageno, const QString &term,
     if (term.isEmpty())
         return results;
 
-    buildTextCacheForPages({pageno});
+    // buildTextCacheForPages({pageno});
 
     if (!m_text_cache.has(pageno))
         return results;
 
-    const auto &text = m_text_cache.get(pageno)->chars;
-    const int n      = text.size();
-    const int m      = term.size();
+    std::vector<CachedTextChar> text;
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+        if (!m_text_cache.has(pageno))
+            return results;
+        text = m_text_cache.get(pageno)->chars;
+    }
+    const int n = text.size();
+    const int m = term.size();
 
     if (n < m)
         return results;

@@ -390,6 +390,8 @@ signals:
     void reloadRequested(int pageno);
     void
     searchResultsReady(const QMap<int, std::vector<Model::SearchHit>> &results);
+    void searchPartialResultsReady(
+        const QMap<int, std::vector<Model::SearchHit>> &results;
 
 private:
     inline void waitForRenders() noexcept

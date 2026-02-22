@@ -317,6 +317,8 @@ public slots:
     void handleClickSelection(int clickType, const QPointF &scenePos) noexcept;
     void handleSearchResults(
         const QMap<int, std::vector<Model::SearchHit>> &results) noexcept;
+    void handlePartialSearchResults(
+        const QMap<int, std::vector<Model::SearchHit>> &results) noexcept;
     void handleAnnotSelectRequested(const QRectF &area) noexcept;
     void handleAnnotSelectRequested(const QPointF &area) noexcept;
     void handleAnnotSelectClearRequested() noexcept;
@@ -408,6 +410,7 @@ private:
     void ensureVisiblePagePlaceholders() noexcept;
     void updateCurrentPage() noexcept;
     void updateCurrentHitHighlight() noexcept;
+    void scrollToCurrentHit() noexcept;
     void zoomHelper() noexcept;
     void rotateHelper() noexcept;
     void cachePageStride() noexcept;
