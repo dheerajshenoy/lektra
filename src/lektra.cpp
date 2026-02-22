@@ -671,10 +671,9 @@ lektra::initConfig() noexcept
     set_if_present(command_palette["width"], m_config.command_palette.width);
     set_if_present(command_palette["vscrollbar"],
                    m_config.command_palette.vscrollbar);
-    set_if_present(command_palette["show_grid"],
-                   m_config.command_palette.show_grid);
+    set_if_present(command_palette["show_grid"], m_config.command_palette.grid);
     set_if_present(command_palette["show_shortcuts"],
-                   m_config.command_palette.show_shortcuts);
+                   m_config.command_palette.shortcuts);
 
     set_qstring_if_present(command_palette["placeholder_text"],
                            m_config.command_palette.placeholder_text);
