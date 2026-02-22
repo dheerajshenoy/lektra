@@ -6,6 +6,7 @@
 
 - Fix memory leaks due to not freeing up the cloned MuPDF `fz_context`
 - Fix `search` not working because of recent changes to page text caching
+- Fix page getting cut off in layout modes other than BOOK
 
 ### Features
 

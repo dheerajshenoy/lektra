@@ -404,7 +404,6 @@ private:
     void zoomHelper() noexcept;
     void rotateHelper() noexcept;
     void cachePageStride() noexcept;
-    void cachePageXOffset() noexcept;
     void updateSceneRect() noexcept;
     void initConnections() noexcept;
     void resetConnections() noexcept;
@@ -443,7 +442,7 @@ private:
     const Config &m_config;
     FitMode m_fit_mode{FitMode::Width};
     int m_pageno{-1};
-    float m_spacing{10.0f}, m_page_x_offset{0.0f};
+    double m_spacing{10.0f};
     double m_target_zoom{MIN_ZOOM_FACTOR}, m_current_zoom{MIN_ZOOM_FACTOR};
     bool m_auto_resize{false}, m_auto_reload{false};
     ScrollBar *m_hscroll{nullptr};
@@ -453,7 +452,6 @@ private:
     QHash<int, std::vector<Annotation *>> m_page_annotations_hash;
     QSet<int> m_pending_renders;
     QQueue<int> m_render_queue;
-    float m_old_y{0.0f};
     JumpMarker *m_jump_marker{nullptr};
     QTimer *m_scroll_page_update_timer{nullptr};
     QTimer *m_resize_timer{nullptr};
@@ -480,6 +478,8 @@ private:
     DocumentContainer *m_container{nullptr};
     std::vector<LinkHint *> m_kb_link_hints{};
     std::vector<double> m_page_offsets{};
+    double m_max_page_cross_extent{
+        0.0}; // max cross-axis page size, cached by cachePageStride()
 
     int pageAtAxisCoord(double coord) const noexcept;
 

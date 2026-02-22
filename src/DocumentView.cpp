@@ -2124,7 +2124,8 @@ DocumentView::cachePageStride() noexcept
             std::swap(w, h);
     };
 
-    double cursor = 0.0;
+    double cursor   = 0.0;
+    double maxCross = 0.0;
 
     if (m_layout_mode == LayoutMode::BOOK)
     {
@@ -2135,11 +2136,13 @@ DocumentView::cachePageStride() noexcept
                 double w, h;
                 getExtents(i, w, h);
                 m_page_offsets[i] = cursor;
+                maxCross          = std::max(maxCross, w * 2.0);
                 cursor += h + spacingScene;
                 i++;
             }
             else
-            { // Spreads
+            {
+                // Spreads
                 double w1, h1, w2 = 0, h2 = 0;
                 getExtents(i, w1, h1);
                 if (i + 1 < N)
@@ -2149,6 +2152,7 @@ DocumentView::cachePageStride() noexcept
                 if (i + 1 < N)
                     m_page_offsets[i + 1] = cursor;
 
+                maxCross = std::max(maxCross, w1 + w2);
                 cursor += std::max(h1, h2) + spacingScene;
                 i += 2;
             }
@@ -2163,10 +2167,12 @@ DocumentView::cachePageStride() noexcept
             double w, h;
             getExtents(i, w, h);
             cursor += (horizontal ? w : h) + spacingScene;
+            maxCross = std::max(maxCross, horizontal ? h : w); // <-- add this
         }
     }
 
-    m_page_offsets[N] = cursor;
+    m_page_offsets[N]       = cursor;
+    m_max_page_cross_extent = maxCross;
     invalidateVisiblePagesCache();
 }
 
@@ -2217,75 +2223,49 @@ DocumentView::updateSceneRect() noexcept
 
     if (m_layout_mode == LayoutMode::SINGLE)
     {
-        // Allow scrollbars to pan within the page
-        const QSizeF page   = pageSceneSize(m_pageno);
-        const double sceneW = std::max(viewW, page.width());
-        const double sceneH = std::max(viewH, page.height());
-        m_gview->setSceneRect(0, 0, sceneW, sceneH);
+        const QSizeF page    = pageSceneSize(m_pageno);
+        const double sceneW  = std::max(viewW, page.width());
+        const double sceneH  = std::max(viewH, page.height());
+        const double xMargin = std::max(0.0, (viewW - page.width()) / 2.0);
+        const double yMargin = std::max(0.0, (viewH - page.height()) / 2.0);
+        m_gview->setSceneRect(-xMargin, -yMargin, sceneW + 2.0 * xMargin,
+                              sceneH + 2.0 * yMargin);
         return;
     }
 
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
-        const QSizeF page       = pageSceneSize(m_pageno);
         const double totalWidth = totalPageExtent();
-        const double sceneH     = std::max(viewH, page.height());
-        const double xMargin    = std::max(0.0, (viewW - page.width()) / 2.0);
-        m_gview->setSceneRect(-xMargin, 0, totalWidth + 2.0 * xMargin, sceneH);
+        const double sceneH     = std::max(viewH, m_max_page_cross_extent);
+        const double xMargin
+            = std::max(0.0, (viewW - m_max_page_cross_extent) / 2.0);
+        // yMargin relative to current page so scrolling to a shorter page
+        // doesn't shift content
+        const double yMargin
+            = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
+        m_gview->setSceneRect(-xMargin, -yMargin, totalWidth + 2.0 * xMargin,
+                              sceneH + 2.0 * yMargin);
+        return;
     }
-    else if (m_layout_mode == LayoutMode::BOOK)
+
+    if (m_layout_mode == LayoutMode::BOOK)
     {
-        // Use the model's points-based dimensions, not the current scene size
-        double maxSpreadPointsW = 0.0;
-        for (int i = 0; i < m_model->numPages();)
-        {
-            if (i == 0)
-            {
-                maxSpreadPointsW
-                    = std::max(maxSpreadPointsW,
-                               m_model->page_dimension_pts(0).width_pts * 2.0);
-                i++;
-            }
-            else
-            {
-                double w = m_model->page_dimension_pts(i).width_pts;
-                if (i + 1 < m_model->numPages())
-                    w += m_model->page_dimension_pts(i + 1).width_pts;
-                maxSpreadPointsW = std::max(maxSpreadPointsW, w);
-                i += 2;
-            }
-        }
-
-        // Convert points to pixels using current zoom
-        const double scale       = (m_model->DPI() / 72.0) * m_current_zoom;
-        const double totalWidth  = maxSpreadPointsW * scale;
-        const double totalHeight = totalPageExtent();
-
-        const double sceneW = std::max(viewW, totalWidth);
-
-        // Safety: Cap the scene width to prevent runaway allocations
-        // 20k pixels is more than enough for any monitor setup
+        const double totalHeight  = totalPageExtent();
+        const double sceneW       = std::max(viewW, m_max_page_cross_extent);
         const double cappedSceneW = std::min(sceneW, 20000.0);
-
         const double yMargin
             = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
         m_gview->setSceneRect(0, -yMargin, cappedSceneW,
                               totalHeight + 2.0 * yMargin);
+        return;
     }
-    else
-    {
-        // Use the widest page so no page is clipped or off-center.
-        // Using only m_pageno's width leaves wider pages mispositioned.
-        double maxPageW = 0.0;
-        for (int i = 0; i < m_model->numPages(); ++i)
-            maxPageW = std::max(maxPageW, pageSceneSize(i).width());
 
-        const double totalHeight = totalPageExtent();
-        const double sceneW      = std::max(viewW, maxPageW);
-        const double yMargin
-            = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
-        m_gview->setSceneRect(0, -yMargin, sceneW, totalHeight + 2.0 * yMargin);
-    }
+    // TOP_TO_BOTTOM
+    const double totalHeight = totalPageExtent();
+    const double sceneW      = std::max(viewW, m_max_page_cross_extent);
+    const double yMargin
+        = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
+    m_gview->setSceneRect(0, -yMargin, sceneW, totalHeight + 2.0 * yMargin);
 }
 
 void
