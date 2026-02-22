@@ -13,9 +13,9 @@ struct Config
 {
     QHash<QString, QString> shortcuts{};
 
-    // @field Colors
-    // @desc Color options struct
-    // @type struct
+    // @section Colors
+    // @section_desc Color options struct
+    // @section_type struct
     struct colors
     {
         // @desc Accent color
@@ -83,9 +83,9 @@ struct Config
         // @default 0xFFFFFFAA
         uint32_t annot_popup{0xFFFFFFAA};
     } colors{};
-    // @endfield
+    // @endsection
 
-    // @field Window
+    // @section Window
     // @desc Window options struct
     // @type struct
     struct window
@@ -116,11 +116,11 @@ struct Config
         std::array<int, 2> initial_size{600,
                                         400}; // width, height; -1 for default
     } window{};
-    // @endfield
+    // @endsection
 
-    // @field Layout
-    // @desc Layout options struct
-    // @type struct
+    // @section Layout
+    // @section_desc Layout options struct
+    // @section_type struct
     struct layout
     {
 
@@ -145,7 +145,7 @@ struct Config
         // @default 10
         int spacing{10};
     } layout{};
-    // @endfield
+    // @endsection
 
     // @section Statusbar
     // @section_desc Statusbar options struct
