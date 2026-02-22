@@ -1743,7 +1743,7 @@ DocumentView::getVisiblePages() noexcept
 
     m_visible_pages_cache.clear();
 
-    if (m_model->numPages() == 0)
+    if (m_model->numPages() == 0 || m_page_offsets.size() < static_cast<size_t>(m_model->numPages() + 1))
     {
         m_visible_pages_dirty = false;
         return m_visible_pages_cache;
