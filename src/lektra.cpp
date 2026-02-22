@@ -77,7 +77,6 @@ lektra::lektra() noexcept
 {
     setAttribute(Qt::WA_NativeWindow,
                  true); // This is necessary for DPI updates
-    setAttribute(Qt::WA_DeleteOnClose, true);
     setAcceptDrops(true);
 }
 
@@ -3144,6 +3143,7 @@ lektra::LoadSession(QString sessionName) noexcept
         if (m_tab_widget->count() > 0)
         {
             lektra *newWindow = new lektra(sessionName, doc.array());
+            newWindow->setAttribute(Qt::WA_DeleteOnClose, true);
         }
         else
         {

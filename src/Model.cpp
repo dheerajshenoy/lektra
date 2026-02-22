@@ -16,20 +16,6 @@
 
 static std::array<std::mutex, FZ_LOCK_MAX> mupdf_mutexes;
 
-// This is called by Qt when the last copy of the QImage is destroyed
-static void
-imageCleanupHandler(void *info) noexcept
-{
-    Model::RenderPayload *payload = static_cast<Model::RenderPayload *>(info);
-    if (payload)
-    {
-        // Drop the pixmap first, then the context
-        fz_drop_pixmap(payload->ctx, payload->pix);
-        fz_drop_context(payload->ctx);
-        delete payload;
-    }
-}
-
 static void
 mupdf_lock_mutex(void *user, int lock)
 {
@@ -47,7 +33,7 @@ mupdf_unlock_mutex(void *user, int lock)
 Model::Model(QObject *parent) noexcept : QObject(parent)
 {
     initMuPDF();
-    m_undo_stack = new QUndoStack();
+    m_undo_stack = new QUndoStack(this);
     setUrlLinkRegex(QString::fromUtf8(R"((https?://|www\.)[^\s<>()\"']+)"));
 
     // Eviction for LRU Cache
@@ -81,17 +67,9 @@ Model::LRUEvictFunction(PageCacheEntry &entry) noexcept
     std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
     if (entry.display_list)
     {
-        fz_context *ctx = cloneContext(); // Use a clone to avoid racing m_ctx
-        if (!ctx)
-        {
-            qWarning()
-                << "LRUEvictFunction: failed to clone context for eviction";
-            return;
-        }
-
-        fz_drop_display_list(ctx, entry.display_list);
+        fz_drop_display_list(m_ctx, entry.display_list);
         entry.display_list = nullptr;
-        fz_drop_context(ctx);
+        // fz_drop_context(ctx);
     }
 
     // Also clear text cache for this page to save memory
@@ -505,20 +483,17 @@ Model::buildPageCache(int pageno) noexcept
         fz_drop_page(ctx, page);
         if (!success && dlist)
             fz_drop_display_list(ctx, dlist);
+        fz_drop_context(ctx);
     }
     fz_catch(ctx)
     {
         qWarning() << "Failed to build page cache for page" << pageno << ":"
                    << fz_caught_message(ctx);
-        fz_drop_context(ctx);
         return;
     }
 
     if (!success)
-    {
-        fz_drop_context(ctx);
         return;
-    }
 
     // Cache the display list and links
     {
@@ -1132,7 +1107,9 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
         unsigned char *samples = fz_pixmap_samples(ctx, pix);
         if (!samples)
-            return result;
+        {
+            fz_throw(ctx, FZ_ERROR_GENERIC, "No pixmap samples");
+        }
 
         QImage::Format fmt;
         switch (n)
@@ -1149,15 +1126,18 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
             default:
             {
-                qWarning() << "Unsupported pixmap component count:" << n;
-                return result;
+                fz_throw(ctx, FZ_ERROR_GENERIC,
+                         "Unsupported pixmap component count");
             }
         }
 
-        RenderPayload *payload = new RenderPayload{ctx, pix};
+        QImage image(width, height, fmt);
 
-        QImage image = QImage(samples, width, height, stride, fmt,
-                              imageCleanupHandler, payload);
+        std::memcpy(image.bits(), samples, stride * height);
+
+        fz_drop_pixmap(ctx, pix);
+        fz_drop_context(ctx);
+
         image.setDotsPerMeterX(static_cast<int>((job.dpi * 1000) / 25.4));
         image.setDotsPerMeterY(static_cast<int>((job.dpi * 1000) / 25.4));
         image.setDevicePixelRatio(job.dpr);
@@ -1316,21 +1296,15 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         fz_close_device(ctx, dev);
         fz_drop_device(ctx, dev);
         fz_drop_link(ctx, head);
+        fz_drop_pixmap(ctx, pix);
         fz_drop_display_list(ctx, dlist);
-        if (stext_page)
-            fz_drop_stext_page(ctx, stext_page);
-        if (text_page)
-            fz_drop_page(ctx, text_page);
+        fz_drop_stext_page(ctx, stext_page);
+        fz_drop_page(ctx, text_page);
     }
     fz_catch(ctx)
     {
         qWarning() << "MuPDF error in thread:" << fz_caught_message(ctx);
-        fz_drop_pixmap(ctx, pix);
     }
-    // result.image = result.image.convertToFormat(
-    //         QImage::Format_ARGB32_Premultiplied); // Optimize for
-    //         rendering in
-    //                                               // QGraphicsView
 
     return result;
 }
@@ -2313,14 +2287,13 @@ Model::buildTextCacheForPages(const std::set<int> &pagenos) noexcept
         {
             fz_drop_stext_page(ctx, stext);
             fz_drop_page(ctx, page);
+            fz_drop_context(ctx);
         }
         fz_catch(ctx)
         {
             // ignore page failures
         }
     }
-
-    fz_drop_context(ctx);
 }
 
 // fz_pixmap *

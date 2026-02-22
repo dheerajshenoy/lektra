@@ -80,11 +80,12 @@ DocumentView::DocumentView(const Config &config, QWidget *parent) noexcept
 
 DocumentView::~DocumentView() noexcept
 {
+    // Stop and WAIT for all renders to finish before touching anything
+    m_cancelled->store(true);
     stopPendingRenders();
 #ifdef HAS_SYNCTEX
     synctex_scanner_free(m_synctex_scanner);
 #endif
-    clearDocumentItems();
 
     m_model->cleanup();
 
@@ -92,6 +93,7 @@ DocumentView::~DocumentView() noexcept
     m_gscene->removeItem(m_selection_path_item);
     m_gscene->removeItem(m_current_search_hit_item);
 
+    clearDocumentItems();
     delete m_jump_marker;
     delete m_selection_path_item;
     delete m_current_search_hit_item;

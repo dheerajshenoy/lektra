@@ -120,13 +120,6 @@ public:
         std::vector<RenderAnnotation> annotations;
     };
 
-    // structure to carry the "Life Support" for the image memory
-    struct RenderPayload
-    {
-        fz_context *ctx;
-        fz_pixmap *pix;
-    };
-
     inline fz_context *cloneContext() const noexcept
     {
         return fz_clone_context(m_ctx);

@@ -4,6 +4,7 @@
 
 ### Bug Fix
 
+- Fix memory leaks due to not freeing up the cloned MuPDF `fz_context`
 - Fix `search` not working because of recent changes to page text caching
 
 ### Features
@@ -20,6 +21,7 @@
 - `search_regex` - Opens searchbar with regex enabled
 
 ### Optimizations
+
 
 ### Breaking Changes
 
