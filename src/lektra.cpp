@@ -1900,7 +1900,8 @@ lektra::openFileSplitHelper(const QString &filename,
         {
             const QStringList selected = dialog.selectedFiles();
             if (!selected.isEmpty())
-                return OpenFileVSplit(selected.first(), callback);
+                return openFileSplitHelper(selected.first(), callback,
+                                           orientation);
         }
         return false;
     }
