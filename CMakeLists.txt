@@ -72,7 +72,6 @@ add_executable(${PROJECT_NAME}
     src/utils.cpp
     src/WaitingSpinnerWidget.cpp
     src/CommandPicker.cpp
-    # src/MarkManager.cpp
     src/TabWidget.cpp
     src/DocumentContainer.cpp
     src/TabBar.cpp
@@ -80,6 +79,7 @@ add_executable(${PROJECT_NAME}
     src/RecentFilesPicker.cpp
     src/OutlinePicker.cpp
 
+    src/MarkManager.hpp
     src/Annotations/RectAnnotation.hpp
     src/Annotations/TextAnnotation.hpp
     src/GraphicsPixmapItem.hpp
