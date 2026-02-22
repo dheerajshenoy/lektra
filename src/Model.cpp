@@ -2281,6 +2281,7 @@ Model::buildTextCacheForPages(const std::set<int> &pagenos) noexcept
                 }
             }
 
+            std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
             m_text_cache.put(pageno, std::move(cache));
         }
         fz_always(ctx)
