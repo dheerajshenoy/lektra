@@ -126,7 +126,7 @@ struct Config
 
         // @desc Initial page layout mode
         // @type str
-        // @choice top_to_bottom, left_to_right, single
+        // @choice top_to_bottom, left_to_right, single, book
         // @default top_to_bottom
         DocumentView::LayoutMode mode{DocumentView::LayoutMode::TOP_TO_BOTTOM};
 

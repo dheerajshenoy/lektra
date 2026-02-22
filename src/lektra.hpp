@@ -301,6 +301,7 @@ private:
     QAction *m_actionLayoutSingle{nullptr};
     QAction *m_actionLayoutLeftToRight{nullptr};
     QAction *m_actionLayoutTopToBottom{nullptr};
+    QAction *m_actionLayoutBook{nullptr};
     QAction *m_actionEncrypt{nullptr};
     QAction *m_actionDecrypt{nullptr};
     QMenu *m_modeMenu{nullptr};

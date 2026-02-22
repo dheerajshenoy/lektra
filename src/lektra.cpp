@@ -250,13 +250,19 @@ lektra::initMenubar() noexcept
         this,
         [&]() { SetLayoutMode(DocumentView::LayoutMode::TOP_TO_BOTTOM); });
 
+    m_actionLayoutTopToBottom = m_layoutMenu->addAction(
+        QString("Book\t%1").arg(m_config.shortcuts["layout_book"]), this,
+        [&]() { SetLayoutMode(DocumentView::LayoutMode::BOOK); });
+
     layoutActionGroup->addAction(m_actionLayoutSingle);
     layoutActionGroup->addAction(m_actionLayoutLeftToRight);
     layoutActionGroup->addAction(m_actionLayoutTopToBottom);
+    layoutActionGroup->addAction(m_actionLayoutBook);
 
     m_actionLayoutSingle->setCheckable(true);
     m_actionLayoutLeftToRight->setCheckable(true);
     m_actionLayoutTopToBottom->setCheckable(true);
+    m_actionLayoutBook->setCheckable(true);
     m_actionLayoutSingle->setChecked(m_config.layout.mode
                                      == DocumentView::LayoutMode::SINGLE);
 
@@ -264,6 +270,8 @@ lektra::initMenubar() noexcept
         m_config.layout.mode == DocumentView::LayoutMode::LEFT_TO_RIGHT);
     m_actionLayoutTopToBottom->setChecked(
         m_config.layout.mode == DocumentView::LayoutMode::TOP_TO_BOTTOM);
+    m_actionLayoutBook->setChecked(m_config.layout.mode
+                                   == DocumentView::LayoutMode::BOOK);
 
     // --- Toggle Menu ---
 
