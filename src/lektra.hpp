@@ -95,9 +95,9 @@ public:
     void OpenContainingFolder() noexcept;
     bool OpenFileDWIM(const QString &filename = QString()) noexcept;
     bool OpenFileInContainer(DocumentContainer *container,
-                             const QString &filename = QString(),
-                             const std::function<void()> &callback
-                             = {}) noexcept;
+                             const QString &filename               = QString(),
+                             const std::function<void()> &callback = {},
+                             DocumentView *targetView = nullptr) noexcept;
     void OpenFilesInVSplit(const std::vector<std::string> &files) noexcept;
     void OpenFilesInHSplit(const std::vector<std::string> &files) noexcept;
 

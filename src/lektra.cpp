@@ -1616,7 +1616,7 @@ lektra::OpenFileInContainer(DocumentContainer *container,
             const QStringList selected = dialog.selectedFiles();
             if (!selected.isEmpty())
                 return OpenFileInContainer(container, selected.first(),
-                                           callback);
+                                           callback, targetView);
         }
         return false;
     }
@@ -1631,7 +1631,7 @@ lektra::OpenFileInContainer(DocumentContainer *container,
     //     return true;
     // }
 
-    DocumentView *view = container->view();
+    DocumentView *view = targetView ? targetView : container->view();
     if (!view)
         return false;
 
