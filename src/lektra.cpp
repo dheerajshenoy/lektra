@@ -3457,7 +3457,7 @@ lektra::initActionMap() noexcept
         ACTION_NO_ARGS("split_close_others", Close_other_splits),
 
         // Portal actions
-        ACTION_NO_ARGS("portal_focus", Focus_portal),
+        ACTION_NO_ARGS("portal", Create_or_focus_portal),
 
         // File opening actions
         ACTION_NO_ARGS("file_open_tab", OpenFileInNewTab),
@@ -4559,11 +4559,9 @@ lektra::get_view_by_id(const DocumentView::Id &id) const noexcept
     return nullptr;
 }
 
-// Focus the portal view in the current tab, if it exists. The portal view is a
-// special view that can be set to follow the location of another view (e.g. for
-// ctrl+click navigation)
+// Focus the portal view in the current tab, if it exists. Else create one
 void
-lektra::Focus_portal() noexcept
+lektra::Create_or_focus_portal() noexcept
 {
     int currentTabIndex = m_tab_widget->currentIndex();
     if (!validTabIndex(currentTabIndex))

@@ -58,7 +58,7 @@ public:
     DocumentContainer *VSplit() noexcept;
     DocumentContainer *HSplit() noexcept;
 
-    void Focus_portal() noexcept;
+    void Create_or_focus_portal() noexcept;
     void Close_split() noexcept;
     void Close_other_splits() noexcept;
     void Focus_split_up() noexcept;

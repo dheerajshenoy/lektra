@@ -25,6 +25,8 @@
 
 ### Breaking Changes
 
+- Renamed `portal_focus` -> `portal`
+
 ## 0.6.3
 
 ### Features
