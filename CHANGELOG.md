@@ -8,6 +8,7 @@
 - Fix `search` not working because of recent changes to page text caching
 - Fix page getting cut off in layout modes other than BOOK
 - Fix search navigation being all jumpy and causing head-ache (literally!)
+- Fix SINGLE layout
 
 ### Features
 

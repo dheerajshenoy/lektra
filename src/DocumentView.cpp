@@ -1024,10 +1024,8 @@ DocumentView::GotoPage(int pageno) noexcept
     if (m_layout_mode == LayoutMode::SINGLE)
     {
         renderPage();
-        return;
     }
-
-    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    else if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
         const double x = pageOffset(pageno) + pageStride(pageno) / 2.0;
         m_gview->centerOn(QPointF(x, m_gview->sceneRect().height() / 2.0));
@@ -1743,7 +1741,8 @@ DocumentView::getVisiblePages() noexcept
 
     m_visible_pages_cache.clear();
 
-    if (m_model->numPages() == 0 || m_page_offsets.size() < static_cast<size_t>(m_model->numPages() + 1))
+    if (m_model->numPages() == 0
+        || m_page_offsets.size() < static_cast<size_t>(m_model->numPages() + 1))
     {
         m_visible_pages_dirty = false;
         return m_visible_pages_cache;
@@ -1920,6 +1919,13 @@ DocumentView::clearAnnotationsForPage(int pageno) noexcept
 void
 DocumentView::renderPages() noexcept
 {
+    // Guard
+    if (m_layout_mode == LayoutMode::SINGLE)
+    {
+        renderPage();
+        return;
+    }
+
     const std::set<int> &visiblePages = getVisiblePages();
     const std::set<int> preloadPages  = getPreloadPages();
 
@@ -1964,6 +1970,26 @@ DocumentView::renderPage() noexcept
     {
         prunePendingRenders({m_pageno});
         removeUnusedPageItems({m_pageno});
+
+        // Promote preload item to visible if available — instant display
+        if (m_page_items_hash.contains(m_pageno))
+        {
+            GraphicsImageItem *item = m_page_items_hash[m_pageno];
+            if (item->data(0).toString() == QStringLiteral("preload_page"))
+            {
+                item->setData(0, QVariant()); // clear tag
+                item->show();
+                updateSceneRect();
+                m_gscene->blockSignals(false);
+                m_gview->setUpdatesEnabled(true);
+                updateCurrentHitHighlight();
+                // Still request a fresh render in case zoom changed etc,
+                // but the preload gives instant feedback
+                requestPageRender(m_pageno);
+                return;
+            }
+        }
+
         requestPageRender(m_pageno);
         updateSceneRect();
     }
@@ -2024,8 +2050,31 @@ DocumentView::startNextRenderJob() noexcept
             // Use QImage directly - avoid expensive QPixmap::fromImage()
             // conversion
             const QImage &image = result.image;
+
             if (!image.isNull())
             {
+                if (m_layout_mode == LayoutMode::SINGLE && pageno != m_pageno)
+                {
+                    // Store as a hidden preload item in the scene for instant
+                    // display later
+                    m_gscene->blockSignals(true);
+                    setUpdatesEnabled(false);
+                    {
+                        renderPageFromImage(pageno, image);
+                        // tag it as preload and hide it
+                        if (m_page_items_hash.contains(pageno))
+                        {
+                            m_page_items_hash[pageno]->setData(
+                                0, QStringLiteral("preload_page"));
+                            m_page_items_hash[pageno]->hide();
+                        }
+                    }
+                    setUpdatesEnabled(true);
+                    m_gscene->blockSignals(false);
+                    startNextRenderJob();
+                    return;
+                }
+
                 m_gscene->blockSignals(true);
                 setUpdatesEnabled(false);
                 {
@@ -2281,16 +2330,13 @@ DocumentView::updateSceneRect() noexcept
     if (m_layout_mode == LayoutMode::SINGLE)
     {
         const QSizeF page    = pageSceneSize(m_pageno);
-        const double sceneW  = std::max(viewW, page.width());
-        const double sceneH  = std::max(viewH, page.height());
         const double xMargin = std::max(0.0, (viewW - page.width()) / 2.0);
         const double yMargin = std::max(0.0, (viewH - page.height()) / 2.0);
-        m_gview->setSceneRect(-xMargin, -yMargin, sceneW + 2.0 * xMargin,
-                              sceneH + 2.0 * yMargin);
-        return;
+        const double sceneW  = std::max(viewW, page.width());
+        const double sceneH  = std::max(viewH, page.height());
+        m_gview->setSceneRect(-xMargin, -yMargin, sceneW, sceneH);
     }
-
-    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    else if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
         const double totalWidth = totalPageExtent();
         const double sceneH     = std::max(viewH, m_max_page_cross_extent);
@@ -2302,10 +2348,8 @@ DocumentView::updateSceneRect() noexcept
             = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
         m_gview->setSceneRect(-xMargin, -yMargin, totalWidth + 2.0 * xMargin,
                               sceneH + 2.0 * yMargin);
-        return;
     }
-
-    if (m_layout_mode == LayoutMode::BOOK)
+    else if (m_layout_mode == LayoutMode::BOOK)
     {
         const double totalHeight  = totalPageExtent();
         const double sceneW       = std::max(viewW, m_max_page_cross_extent);
@@ -2314,15 +2358,15 @@ DocumentView::updateSceneRect() noexcept
             = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
         m_gview->setSceneRect(0, -yMargin, cappedSceneW,
                               totalHeight + 2.0 * yMargin);
-        return;
     }
-
-    // TOP_TO_BOTTOM
-    const double totalHeight = totalPageExtent();
-    const double sceneW      = std::max(viewW, m_max_page_cross_extent);
-    const double yMargin
-        = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
-    m_gview->setSceneRect(0, -yMargin, sceneW, totalHeight + 2.0 * yMargin);
+    else
+    { // TOP_TO_BOTTOM
+        const double totalHeight = totalPageExtent();
+        const double sceneW      = std::max(viewW, m_max_page_cross_extent);
+        const double yMargin
+            = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
+        m_gview->setSceneRect(0, -yMargin, sceneW, totalHeight + 2.0 * yMargin);
+    }
 }
 
 void
@@ -2848,7 +2892,7 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
     {
         const double xOffset = (sr.width() - pageW) / 2.0;
         const double yOffset = (sr.height() - pageH) / 2.0;
-        item->setPos(xOffset, yOffset);
+        item->setPos(sr.x() + xOffset, sr.y() + yOffset);
     }
     else
     {
@@ -2882,9 +2926,8 @@ DocumentView::createAndAddPageItem(int pageno, const QImage &img) noexcept
     }
     else if (m_layout_mode == LayoutMode::SINGLE)
     {
-        const double xOffset = (sr.width() - pageW) / 2.0;
-        const double yOffset = (sr.height() - pageH) / 2.0;
-        item->setPos(xOffset, yOffset);
+        item->setPos(sr.x() + (sr.width() - pageW) / 2.0,
+                     sr.y() + (sr.height() - pageH) / 2.0);
     }
     else // TOP_TO_BOTTOM & BOOK
     {
