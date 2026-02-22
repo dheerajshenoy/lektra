@@ -473,6 +473,7 @@ private:
     std::set<int> m_visible_pages_cache;
     bool m_visible_pages_dirty{true};
     bool m_deferred_fit{false};
+    bool m_scroll_to_hit_pending{false};
     QFutureWatcher<void> m_open_future_watcher;
     QFileSystemWatcher *m_file_watcher{nullptr};
     DocumentContainer *m_container{nullptr};

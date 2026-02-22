@@ -1187,20 +1187,71 @@ DocumentView::GotoHit(int index) noexcept
 #endif
 
     if (index < 0)
-        index = m_search_hit_flat_refs.size() - 1;
-    else if (index >= m_search_hit_flat_refs.size())
+        index = static_cast<int>(m_search_hit_flat_refs.size()) - 1;
+    else if (index >= static_cast<int>(m_search_hit_flat_refs.size()))
         index = 0;
-    const HitRef ref = m_search_hit_flat_refs[index];
 
-    m_search_index = index;
-    m_pageno       = ref.page;
+    const HitRef ref  = m_search_hit_flat_refs[index];
+    m_search_index    = index;
+    m_pageno          = ref.page;
+    const auto &hit   = m_search_hits[ref.page][ref.indexInPage];
+    const float scale = m_model->logicalScale();
 
     emit searchIndexChanged(index);
     emit currentPageChanged(ref.page + 1);
 
-    GotoPage(ref.page);
+    // Compute hit centre in scene coordinates directly from cached offsets.
+    const double hitX = (hit.quad.ul.x + hit.quad.ur.x) * scale / 2.0;
+    const double hitY = (hit.quad.ul.y + hit.quad.ll.y) * scale / 2.0;
 
-    // scrollToCurrentHit();
+    QPointF scenePos;
+    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    {
+        scenePos
+            = QPointF(pageOffset(ref.page) + hitX,
+                      pageXOffset(ref.page, pageSceneSize(ref.page).width(),
+                                  m_gview->sceneRect().width())
+                          + hitY);
+    }
+    else if (m_layout_mode == LayoutMode::SINGLE)
+    {
+        const QRectF sr = m_gview->sceneRect();
+        scenePos        = QPointF(
+            sr.x() + (sr.width() - pageSceneSize(ref.page).width()) / 2.0
+                + hitX,
+            sr.y() + (sr.height() - pageSceneSize(ref.page).height()) / 2.0
+                + hitY);
+    }
+    else // TOP_TO_BOTTOM, BOOK
+    {
+        scenePos
+            = QPointF(pageXOffset(ref.page, pageSceneSize(ref.page).width(),
+                                  m_gview->sceneRect().width())
+                          + hitX,
+                      pageOffset(ref.page) + hitY);
+    }
+
+    m_scroll_to_hit_pending = true;
+
+    m_scroll_page_update_timer->stop();
+    m_hq_render_timer->stop();
+
+    m_gview->centerOn(scenePos);
+
+    // If the page is already rendered, the render callback won't reliably
+    // fire for this hit — update the highlight immediately.
+    if (m_page_items_hash.contains(ref.page)
+        && m_page_items_hash[ref.page]->data(0).toString()
+               != "placeholder_page")
+    {
+        m_scroll_to_hit_pending = false;
+        updateCurrentHitHighlight();
+    }
+
+    if (m_layout_mode == LayoutMode::SINGLE)
+        renderPage();
+    else
+        renderPages();
 }
 
 // Scroll left by a fixed amount
@@ -1990,10 +2041,16 @@ DocumentView::startNextRenderJob() noexcept
                 if (m_pending_jump.pageno == pageno)
                     GotoLocation(m_pending_jump);
 
-                if (m_search_index >= 0 && !m_search_hit_flat_refs.empty()
+                if (m_scroll_to_hit_pending && m_search_index >= 0
+                    && !m_search_hit_flat_refs.empty()
                     && m_search_hit_flat_refs[m_search_index].page == pageno)
                 {
+                    m_scroll_to_hit_pending = false;
                     updateCurrentHitHighlight();
+                    // Stop timers before centerOn so the scroll signal it
+                    // generates doesn't trigger another renderPages.
+                    m_scroll_page_update_timer->stop();
+                    m_hq_render_timer->stop();
                     scrollToCurrentHit();
                 }
             }
@@ -2717,40 +2774,21 @@ DocumentView::requestPageRender(int pageno) noexcept
     if (m_pending_renders.contains(pageno))
         return;
 
+    // If a real rendered item already exists, don't re-render it.
+    // Placeholders must still be re-rendered to get the actual image.
+    if (m_page_items_hash.contains(pageno))
+    {
+        const auto *item = m_page_items_hash[pageno];
+        if (item->data(0).toString() != "placeholder_page")
+            return;
+    }
+
     m_pending_renders.insert(pageno);
     createAndAddPlaceholderPageItem(pageno);
 
     m_render_queue.enqueue(pageno);
     startNextRenderJob();
 }
-
-// void
-// DocumentView::requestPageRender(int pageno) noexcept
-// {
-//     if (m_pending_renders.contains(pageno))
-//         return;
-//
-//     // Check if we already have a real page
-//     // if (m_page_items_hash.contains(pageno))
-//     // {
-//     //     auto *existing = m_page_items_hash[pageno];
-//     //     if (existing->data(0).toString() != "placeholder_page")
-//     //     {
-//     //         return; // Already have real page
-//     //     }
-//     // }
-//
-//     m_pending_renders.insert(pageno);
-//
-//     // Only create placeholder if we don't have any item yet
-//     if (!m_page_items_hash.contains(pageno))
-//     {
-//         createAndAddPlaceholderPageItem(pageno);
-//     }
-//
-//     m_render_queue.enqueue(pageno);
-//     startNextRenderJob();
-// }
 
 void
 DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
