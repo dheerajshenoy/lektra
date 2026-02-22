@@ -770,10 +770,6 @@ lektra::initConfig() noexcept
 
     /* rendering */
     auto rendering = toml["rendering"];
-    set_if_present(rendering["dpi"], m_config.rendering.dpi);
-
-    if (m_config.rendering.dpi <= 72.0f)
-        m_config.rendering.dpi = 72.0f; // minimum DPI is 72
 
     set_if_present(rendering["antialiasing"], m_config.rendering.antialiasing);
     set_if_present(rendering["text_antialiasing"],
