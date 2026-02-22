@@ -92,39 +92,39 @@ Picker::reposition()
 bool
 Picker::eventFilter(QObject *watched, QEvent *event)
 {
-
     // Only reposition on parent resize — no move tracking needed
     if (watched == parentWidget() && event->type() == QEvent::Resize)
     {
         reposition();
-        return false; // let parent handle it too
+        return false;
     }
 
-    // Fix for the escape key not working when the search box is focused — we
-    // want to close
     if (watched == m_searchBox)
     {
-        auto *keyEvent = static_cast<QKeyEvent *>(event);
-        const auto key = keyEvent->keyCombination();
-
-        if (event->type() == QEvent::KeyRelease)
+        // FIX: Only treat as QKeyEvent if the type matches
+        if (event->type() == QEvent::KeyPress
+            || event->type() == QEvent::KeyRelease)
         {
-            if (key == m_keys.dismiss)
+            auto *keyEvent = static_cast<QKeyEvent *>(event);
+            const auto key = keyEvent->keyCombination();
+
+            if (event->type() == QEvent::KeyRelease)
             {
-                hide();
-                return true; // don't let search box see it
+                if (key == m_keys.dismiss)
+                {
+                    hide();
+                    return true;
+                }
             }
-        }
-
-        if (event->type() == QEvent::KeyPress)
-        {
-
-            if (key == m_keys.moveDown || key == m_keys.moveUp
-                || key == m_keys.pageDown || key == m_keys.pageUp
-                || key == m_keys.accept)
+            else if (event->type() == QEvent::KeyPress)
             {
-                keyPressEvent(keyEvent); // handle it directly
-                return true;             // don't let search box see it
+                if (key == m_keys.moveDown || key == m_keys.moveUp
+                    || key == m_keys.pageDown || key == m_keys.pageUp
+                    || key == m_keys.accept)
+                {
+                    keyPressEvent(keyEvent);
+                    return true;
+                }
             }
         }
     }
