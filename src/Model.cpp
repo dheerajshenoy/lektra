@@ -2287,13 +2287,13 @@ Model::buildTextCacheForPages(const std::set<int> &pagenos) noexcept
         {
             fz_drop_stext_page(ctx, stext);
             fz_drop_page(ctx, page);
-            fz_drop_context(ctx);
         }
         fz_catch(ctx)
         {
             // ignore page failures
         }
     }
+    fz_drop_context(ctx);
 }
 
 // fz_pixmap *
