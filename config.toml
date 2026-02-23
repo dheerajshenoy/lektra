@@ -1,211 +1,209 @@
-[window]
-fullscreen = false
-menubar = false
-startup_tab = false
-window_title = "{} - lektra" # '{}' replaced with base file name
-initial_size = { width = 1200, height = 800 }
+# LEKTRA configuration file
+# For detailed documentation of all available options, see: https://dheerajshenoy.github.io/lektra/configuration
 
-[statusbar]
-visible = true
-padding = [ 5, 5, 5, 5 ] # top, right, bottom, left
-show_session_name = true # show current session name in statusbar (if in session)
-show_file_name = true # show current file name in statusbar
-show_mode = true # show current interaction mode in statusbar
-show_page_number = true # show current page number in statusbar
-show_progress = true # show reading progress in statusbar
-
-[split]
-focus_follows_mouse = true
-dim_inactive = false
-dim_inactive_opacity = 0.5
-
-[command_palette]
-show_shortcuts = false
-height = 400
-width = 600
-
-[picker]
-border = true
-
-[picker.shadow]
-enabled = true
-blur_radius = 18
-offset_x = 0
-offset_y = 6
-opacity = 120
-
-[picker.keys]
-up = "Ctrl+k"
-down = "Ctrl+j"
-accept = "return"
-dismiss = "escape"
-# page_up = ""
-# page_down = ""
-# top = "g,g"
-# bottom = "G"
-
-[llm_widget]
-visible = false
-panel_width = 400
-
-[layout]
-mode = "top_to_bottom" # "single", "top_to_bottom", "left_to_right", "book"
-initial_fit = "window" # "none", "width", "height", "window"
-auto_resize = false # fit document to window
-spacing = 10
-
-[zoom]
-level = 1.0 # default zoom factor
-factor = 1.25 # factor for zoom in/out
-
-[selection]
-drag_threshold = 100
-copy_on_select = false
-
-[scrollbars]
-horizontal = true
-vertical = true
-auto_hide = true
-search_hits = true # show/hide search hits on scrollbar
-size = 12 # scrollbar thickness in pixels
-hide_timeout = 4000 # time in ms to hide scrollbars when auto_hide is true
-
-[markers]
-jump_marker = true
-
-[links]
-boundary = false # show link boundary box
-detect_urls = false # detect and create links for URLs in text that are not PDF link objects (http, https, mailto etc.)
-url_regex = "(https?://|www\\.)[^\\s<>()\\\"']+" # regex for URL detection (if detect_urls is true)
-
-[link_hints]
-size = 0.25 # relative scale for link hint labels
-
-[tabs]
-visible = true
-auto_hide = false
-closable = true
-movable = true
-elide_mode = "middle" # "none", "start", "middle", "end"
-location = "top" # "top", "bottom", "left", "right"
-full_path = false # show full file path in tab title
-lazy_load = true # load tab content only when activated
-
-# ===== Colors (RGBA) =====
-[colors]
-accent = "#3daee9FF"
-background = "#00000000"
-search_match = "#55500033"
-search_index = "#55FF0055"
-link_hint_bg = "#000000FF"
-link_hint_fg = "#ea3ee9FF"
-selection = "#3297fd66"
-highlight = "#55FF0055"
-jump_marker = "#FF0000FF"
-annot_rect = "#55FF5588"
-annot_popup = "#FFFFFFAA"
-page_background = "#FFFFFF"
-page_foreground = "#000000"
-
-# ===== Rendering =====
-[rendering]
-dpr = { "eDP-1" = 1.25, "DP-5" = 1.0, "DP-7" = 1.0 } # float or map
-cache_pages = 0
-antialiasing_bits = 8 # 4=good, 8=high
-icc_color_profile = true
-
-# ===== Behavior =====
-[behavior]
-initial_mode = "text_select_mode" # { "region_select_mode", "annot_rect_mode", "annot_select_mode", "text_select_mode", "text_highlight_mode", "annot_popup_mode" }
-always_open_in_new_window = false
-remember_last_visited = true
-page_history = 100
-confirm_on_quit = false
-invert_mode = false
-auto_reload = true
-recent_files = true
-num_recent_files = 25
-undo_limit = 25
-synctex_editor_command = "zeditor %f:+%l"
-preload_pages = 1
-# page_nav_with_mouse = true
-
-# ===== LLM Configuration =====
-# Works only if compiled with LLM support
-[llm]
-provider = "ollama"
-model = "llama3.2:3b"
-max_tokens = 512
-
-
-# ===== Shortcuts =====
-[keybindings]
-toggle_command_palette = "Ctrl+Shift+P"
-file_open_tab = "o"
-link_hint_visit = "f"
-link_hint_copy = "Shift+F"
-scroll_left = "h"
-scroll_down = "j"
-scroll_up = "k"
-scroll_right = "l"
-location_prev = "Ctrl+o"
-location_next = "Ctrl+i"
-page_next = "Shift+J"
-page_prev = "Shift+K"
-page_first = "g,g"
-page_last = "Shift+G"
-page_goto = "b"
-picker_outline = "t"
-search = "/"
-search_this_page = "?" # TODO
-search_next = "n"
-search_prev = "Shift+N"
-zoom_reset = "0"
-zoom_in = "="
-zoom_out = "-"
-tab_1 = "Alt+1"
-tab_2 = "Alt+2"
-tab_3 = "Alt+3"
-tab_4 = "Alt+4"
-tab_5 = "Alt+5"
-tab_6 = "Alt+6"
-tab_7 = "Alt+7"
-tab_8 = "Alt+8"
-tab_9 = "Alt+9"
-tab_next = "Ctrl+Period"
-tab_prev = "Ctrl+Comma"
-tab_close = "Ctrl+w,t"
-selection_mode_text = "1"
-selection_mode_region = "2"
-annot_highlight_mode = "3"
-annot_rect_mode = "4"
-annot_edit_mode = "5"
-annot_pen_mode = "6"
-annot_popup_mode = "7"
-invert_color = "i"
-fullscreen = "F11"
-fit_height = "Ctrl+Shift+H"
-fit_width = "Ctrl+Shift+W"
-fit_page = "Ctrl+Shift+="
-fit_auto = "Ctrl+Shift+R"
-toggle_menubar = "Ctrl+Shift+M"
-toggle_panel = "Ctrl+Shift+B"
-toggle_tabs = "Ctrl+Shift+T"
-selection_cancel = "escape"
-selection_copy = "y"
-show_about = "F12"
-file_save = "Ctrl+S"
-rotate_clock = ">"
-rotate_anticlock = "<"
-undo = "u"
-redo = "Ctrl+R"
-toggle_focus_mode = "Ctrl+Space"
-selection_last = "g,v"
-picker_highlight_search = "Alt+Shift+H"
-completion_next = "Ctrl+n"
-completion_prev = "Ctrl+p"
-toggle_llm_widget = "Ctrl+Shift+L"
-toggle_statusbar = "Ctrl+Shift+S"
-split_focus_next = "Ctrl+Alt+Right"
-split_focus_prev = "Ctrl+Alt+Left"
-split_close = "Ctrl+w,c"
+# [window]
+# fullscreen = false
+# menubar = false
+# startup_tab = false
+# window_title = "{} - lektra"
+# initial_size = { width = 1200, height = 800 }
+#
+# [statusbar]
+# visible = true
+# padding = [ 5, 5, 5, 5 ]
+# show_session_name = true
+# show_file_name = true
+# show_mode = true
+# show_page_number = true
+# show_progress = true
+#
+# [split]
+# focus_follows_mouse = true
+# dim_inactive = false
+# dim_inactive_opacity = 0.5
+#
+# [command_palette]
+# show_shortcuts = false
+# height = 400
+# width = 600
+#
+# [picker]
+# border = true
+#
+# [picker.shadow]
+# enabled = true
+# blur_radius = 18
+# offset_x = 0
+# offset_y = 6
+# opacity = 120
+#
+# [picker.keys]
+# up = "Ctrl+k"
+# down = "Ctrl+j"
+# accept = "return"
+# dismiss = "escape"
+# # page_up = ""
+# # page_down = ""
+# # top = "g,g"
+# # bottom = "G"
+#
+# [llm_widget]
+# visible = false
+# panel_width = 400
+#
+# [layout]
+# mode = "top_to_bottom"
+# initial_fit = "none"
+# auto_resize = false
+# spacing = 9
+#
+# [zoom]
+# level = 1.0
+# factor = 1.25
+#
+# [selection]
+# drag_threshold = 100
+# copy_on_select = false
+#
+# [scrollbars]
+# horizontal = true
+# vertical = true
+# auto_hide = true
+# search_hits = true
+# size = 12
+# hide_timeout = 4000
+#
+# [markers]
+# jump_marker = true
+#
+# [links]
+# boundary = false
+# detect_urls = false
+# url_regex = "(https?://|www\\.)[^\\s<>()\\\"']+"
+#
+# [link_hints]
+# size = 0.25
+#
+# [tabs]
+# visible = true
+# auto_hide = false
+# closable = true
+# movable = true
+# elide_mode = "middle"
+# location = "top"
+# full_path = false
+# lazy_load = true
+#
+# [colors]
+# accent = "#3daee9FF"
+# background = "#00000000"
+# search_match = "#55500033"
+# search_index = "#55FF0055"
+# link_hint_bg = "#000000FF"
+# link_hint_fg = "#ea3ee9FF"
+# selection = "#3297fd66"
+# highlight = "#55FF0055"
+# jump_marker = "#FF0000FF"
+# annot_rect = "#55FF5588"
+# annot_popup = "#FFFFFFAA"
+# page_background = "#FFFFFF"
+# page_foreground = "#000000"
+#
+# [rendering]
+# dpr = { "eDP-1" = 1.25, "DP-5" = 1.0, "DP-7" = 1.0 }
+# cache_pages = 0
+# antialiasing_bits = 4
+# icc_color_profile = true
+#
+# # ===== Behavior =====
+# [behavior]
+# initial_mode = "text_select_mode"
+# always_open_in_new_window = false
+# remember_last_visited = true
+# page_history = 100
+# confirm_on_quit = false
+# invert_mode = false
+# auto_reload = true
+# recent_files = true
+# num_recent_files = 25
+# undo_limit = 25
+# synctex_editor_command = "zeditor %f:+%l"
+# preload_pages = 1
+# # page_nav_with_mouse = true
+#
+# # Works only if compiled with LLM support
+# [llm]
+# provider = "ollama"
+# model = "llama3.2:3b"
+# max_tokens = 512
+#
+# [keybindings]
+# toggle_command_palette = "Ctrl+Shift+P"
+# file_open_tab = "o"
+# link_hint_visit = "f"
+# link_hint_copy = "Shift+F"
+# scroll_left = "h"
+# scroll_down = "j"
+# scroll_up = "k"
+# scroll_right = "l"
+# location_prev = "Ctrl+o"
+# location_next = "Ctrl+i"
+# page_next = "Shift+J"
+# page_prev = "Shift+K"
+# page_first = "g,g"
+# page_last = "Shift+G"
+# page_goto = "b"
+# picker_outline = "t"
+# search = "/"
+# search_this_page = "?" # TODO
+# search_next = "n"
+# search_prev = "Shift+N"
+# zoom_reset = "0"
+# zoom_in = "="
+# zoom_out = "-"
+# tab_1 = "Alt+1"
+# tab_2 = "Alt+2"
+# tab_3 = "Alt+3"
+# tab_4 = "Alt+4"
+# tab_5 = "Alt+5"
+# tab_6 = "Alt+6"
+# tab_7 = "Alt+7"
+# tab_8 = "Alt+8"
+# tab_9 = "Alt+9"
+# tab_next = "Ctrl+Period"
+# tab_prev = "Ctrl+Comma"
+# tab_close = "Ctrl+w,t"
+# selection_mode_text = "1"
+# selection_mode_region = "2"
+# annot_highlight_mode = "3"
+# annot_rect_mode = "4"
+# annot_edit_mode = "5"
+# annot_pen_mode = "6"
+# annot_popup_mode = "7"
+# invert_color = "i"
+# fullscreen = "F11"
+# fit_height = "Ctrl+Shift+H"
+# fit_width = "Ctrl+Shift+W"
+# fit_page = "Ctrl+Shift+="
+# fit_auto = "Ctrl+Shift+R"
+# toggle_menubar = "Ctrl+Shift+M"
+# toggle_panel = "Ctrl+Shift+B"
+# toggle_tabs = "Ctrl+Shift+T"
+# selection_cancel = "escape"
+# selection_copy = "y"
+# show_about = "F12"
+# file_save = "Ctrl+S"
+# rotate_clock = ">"
+# rotate_anticlock = "<"
+# undo = "u"
+# redo = "Ctrl+R"
+# toggle_focus_mode = "Ctrl+Space"
+# selection_last = "g,v"
+# picker_highlight_search = "Alt+Shift+H"
+# completion_next = "Ctrl+n"
+# completion_prev = "Ctrl+p"
+# toggle_llm_widget = "Ctrl+Shift+L"
+# toggle_statusbar = "Ctrl+Shift+S"
+# split_focus_next = "Ctrl+Alt+Right"
+# split_focus_prev = "Ctrl+Alt+Left"
+# split_close = "Ctrl+w,c"
