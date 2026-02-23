@@ -2341,11 +2341,11 @@ DocumentView::updateSceneRect() noexcept
         const double totalWidth = totalPageExtent();
         const double sceneH     = std::max(viewH, m_max_page_cross_extent);
         const double xMargin
-            = std::max(0.0, (viewW - m_max_page_cross_extent) / 2.0);
+            = std::max(0.0, (viewW - totalWidth) / 2.0);
         // yMargin relative to current page so scrolling to a shorter page
         // doesn't shift content
         const double yMargin
-            = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
+            = std::max(0.0, (viewH - m_max_page_cross_extent) / 2.0);
         m_gview->setSceneRect(-xMargin, -yMargin, totalWidth + 2.0 * xMargin,
                               sceneH + 2.0 * yMargin);
     }
@@ -2884,15 +2884,15 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
 
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
-        const double yOffset = (sr.height() - pageH) / 2.0;
+        const double yOffset = sr.y() + (m_max_page_cross_extent - pageH) / 2.0;
         const double xPos    = pageOffset(pageno);
         item->setPos(xPos, yOffset);
     }
     else if (m_layout_mode == LayoutMode::SINGLE)
     {
-        const double xOffset = (sr.width() - pageW) / 2.0;
-        const double yOffset = (sr.height() - pageH) / 2.0;
-        item->setPos(sr.x() + xOffset, sr.y() + yOffset);
+        const double xPos = sr.x() + (sr.width() - pageW) / 2.0;
+        const double yPos = sr.y() + (sr.height() - pageH) / 2.0;
+        item->setPos(xPos, yPos);
     }
     else
     {
@@ -2921,8 +2921,8 @@ DocumentView::createAndAddPageItem(int pageno, const QImage &img) noexcept
 
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
-        const double yOffset = (sr.height() - pageH) / 2.0;
-        item->setPos(pageOffset(pageno), yOffset);
+        const double yPos = sr.y() + (sr.height() - pageH) / 2.0;
+        item->setPos(pageOffset(pageno), yPos);
     }
     else if (m_layout_mode == LayoutMode::SINGLE)
     {
@@ -3948,9 +3948,11 @@ DocumentView::zoomHelper() noexcept
 
     // ── Commit zoom, rebuild stride cache and scene rect ─────────────────────
     m_current_zoom = m_target_zoom;
+    m_model->setZoom(m_current_zoom); // must be before cachePageStride/updateSceneRect so pageSceneSize() uses the new zoom
     cachePageStride();
     updateSceneRect();
     m_gview->flashScrollbars();
+    removeUnusedPageItems({});
 
     // ── Reposition every live page item at the new zoom ──────────────────────
     const QRectF sr = m_gview->sceneRect(); // constant for the whole loop
@@ -4004,13 +4006,14 @@ DocumentView::zoomHelper() noexcept
 
         if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
         {
-            const double yOffset = (sr.height() - pageHeightScene) / 2.0;
-            item->setPos(pageOffset(i), yOffset);
+            const double yOffset = (m_max_page_cross_extent - pageHeightScene) / 2.0;
+            const double xPos    = pageOffset(i);
+            item->setPos(xPos, sr.y() + yOffset);
         }
         else if (m_layout_mode == LayoutMode::SINGLE)
         {
             item->setPos(sr.x() + (sr.width() - pageWidthScene) / 2.0,
-                    sr.y() + (sr.height() - pageHeightScene) / 2.0);
+                         sr.y() + (sr.height() - pageHeightScene) / 2.0);
         }
         else // TOP_TO_BOTTOM
         {
@@ -4028,7 +4031,6 @@ DocumentView::zoomHelper() noexcept
         clearSearchItemsForPage(pageno);
     }
 
-    m_model->setZoom(m_current_zoom);
     renderSearchHitsInScrollbar();
 
     // ── Restore viewport to the same relative position within the anchor page
