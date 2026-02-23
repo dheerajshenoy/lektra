@@ -2085,7 +2085,7 @@ DocumentView::startNextRenderJob() noexcept
                 }
                 setUpdatesEnabled(true);
                 m_gscene->blockSignals(false);
-                m_gview->viewport()->update();
+                // m_gview->viewport()->update();
 
                 if (m_pending_jump.pageno == pageno)
                     GotoLocation(m_pending_jump);
@@ -2817,15 +2817,6 @@ DocumentView::requestPageRender(int pageno) noexcept
 {
     if (m_pending_renders.contains(pageno))
         return;
-
-    // If a real rendered item already exists, don't re-render it.
-    // Placeholders must still be re-rendered to get the actual image.
-    if (m_page_items_hash.contains(pageno))
-    {
-        const auto *item = m_page_items_hash[pageno];
-        if (item->data(0).toString() != "placeholder_page")
-            return;
-    }
 
     m_pending_renders.insert(pageno);
     createAndAddPlaceholderPageItem(pageno);
@@ -3952,7 +3943,6 @@ DocumentView::zoomHelper() noexcept
     cachePageStride();
     updateSceneRect();
     m_gview->flashScrollbars();
-    removeUnusedPageItems({});
 
     // ── Reposition every live page item at the new zoom ──────────────────────
     const QRectF sr = m_gview->sceneRect(); // constant for the whole loop
@@ -4034,7 +4024,6 @@ DocumentView::zoomHelper() noexcept
     renderSearchHitsInScrollbar();
 
     // ── Restore viewport to the same relative position within the anchor page
-    // ─
     if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
     {
         GraphicsImageItem *pageItem = m_page_items_hash[anchorPageIndex];
