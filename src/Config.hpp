@@ -586,7 +586,7 @@ struct Config
         // }
         // @type bool
         // @default false
-        bool smart_jump{true};
+        bool smart_jump{false};
 
         // @desc Undo limit
         // @type int
