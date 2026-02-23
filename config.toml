@@ -49,7 +49,7 @@ visible = false
 panel_width = 400
 
 [layout]
-mode = "top_to_bottom" # "single", "top_to_bottom", "left_to_right"
+mode = "top_to_bottom" # "single", "top_to_bottom", "left_to_right", "book"
 initial_fit = "window" # "none", "width", "height", "window"
 auto_resize = false # fit document to window
 spacing = 10
@@ -83,11 +83,11 @@ size = 0.25 # relative scale for link hint labels
 
 [tabs]
 visible = true
-auto_hide = true
+auto_hide = false
 closable = true
 movable = true
 elide_mode = "middle" # "none", "start", "middle", "end"
-bar_position = "top" # "top", "bottom", "left", "right"
+location = "top" # "top", "bottom", "left", "right"
 full_path = false # show full file path in tab title
 lazy_load = true # load tab content only when activated
 
@@ -110,7 +110,7 @@ page_foreground = "#000000"
 # ===== Rendering =====
 [rendering]
 dpr = { "eDP-1" = 1.25, "DP-5" = 1.0, "DP-7" = 1.0 } # float or map
-cache_pages = 20
+cache_pages = 0
 antialiasing_bits = 8 # 4=good, 8=high
 icc_color_profile = true
 
@@ -127,6 +127,7 @@ recent_files = true
 num_recent_files = 25
 undo_limit = 25
 synctex_editor_command = "zeditor %f:+%l"
+preload_pages = 1
 # page_nav_with_mouse = true
 
 # ===== LLM Configuration =====
