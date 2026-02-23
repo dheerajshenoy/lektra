@@ -107,11 +107,12 @@ struct Config
 
         // @desc Title format for the window title
         // @type str
-        // @default \{\} - lektra
+        // @default "{} - lektra"
         QString title_format{"{} - lektra"};
 
         // Required for documentation parsing, do not remove
         using WindowSize = std::array<int, 2>;
+
         // @desc Initial size of the window
         // @type table
         // @default 600,400
@@ -587,6 +588,11 @@ struct Config
         // @type bool
         // @default false
         bool smart_jump{false};
+
+        // @desc Regex to detect smart jump links
+        // @type str
+        // @default page|section|chapter)\s+\d+(\.\d+)*)
+        QString smart_jump_regex{R"((page|section|chapter)\s+\d+(\.\d+)*)"};
 
         // @desc Undo limit
         // @type int

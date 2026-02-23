@@ -435,6 +435,7 @@ private:
     void synctexLocateInDocument(const char *fileName, int line) noexcept;
 #endif
 
+
     Id m_id{0};
     Model *m_model{nullptr};
     GraphicsView *m_gview{nullptr};
