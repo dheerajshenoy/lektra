@@ -9,6 +9,7 @@
 - Fix page getting cut off in layout modes other than BOOK
 - Fix search navigation being all jumpy and causing head-ache (literally!)
 - Fix SINGLE layout
+- Fix LEFT_TO_RIGHT and TOP_TO_BOTTOM layout
 
 ### Features
 
@@ -31,6 +32,7 @@
 ### Breaking Changes
 
 - Renamed `portal_focus` -> `portal`
+- `startup_tab` widget is not enabled by default anymore
 
 ## 0.6.3
 

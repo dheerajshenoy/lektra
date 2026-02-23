@@ -19,68 +19,68 @@ struct Config
     struct colors
     {
         // @desc Accent color
-        // @type RGBA
-        // @default 0x3daee9FF
+        // @type str
+        // @default #3daee9FF
         uint32_t accent{0x3daee9FF};
 
         // @desc Background color
-        // @type RGBA
-        // @default 0x00000000
+        // @type str
+        // @default #00000000
         uint32_t background{0x00000000};
 
         // @desc Page background color
-        // @type RGBA
-        // @default 0xFFFFFFFF
+        // @type str
+        // @default #FFFFFFFF
         uint32_t page_background{0xFFFFFFFF};
 
         // @desc Page foreground color
-        // @type RGBA
-        // @default 0x000000FF
+        // @type str
+        // @default #000000FF
         uint32_t page_foreground{0x000000FF};
 
         // @desc Search match count color
-        // @type RGBA
-        // @default 0x55500033
+        // @type str
+        // @default #55500033
         uint32_t search_match{0x55500033};
 
         // @desc Search match index color
-        // @type RGBA
-        // @default 0x55FF0055
+        // @type str
+        // @default #55FF0055
         uint32_t search_index{0x55FF0055};
 
         // @desc Link hint background color
-        // @type RGBA
-        // @default 0x000000FF
+        // @type str
+        // @default #000000FF
         uint32_t link_hint_bg{0x000000FF};
 
         // @desc Link hint foreground color
-        // @type RGBA
-        // @default 0xea3ee9FF
+        // @type str
+        // @default #ea3ee9FF
         uint32_t link_hint_fg{0xea3ee9FF};
 
         // @desc Selection color
-        // @type RGBA
-        // @default 0x0000FF55
+        // @type str
+        // @default #0000FF55
         uint32_t selection{0x0000FF55};
 
         // @desc Highlight annotation color
-        // @type RGBA
-        // @default 0x55FF0055
+        // @type str
+        // @default #55FF0055
         uint32_t highlight{0x55FF0055};
 
         // @desc Jump marker color
-        // @type RGBA
-        // @default 0xFF0000FF
+        // @type str
+        // @default #FF0000FF
         uint32_t jump_marker{0xFF0000FF};
 
         // @desc Rect annotation color
-        // @type RGBA
-        // @default 0x55FF5588
+        // @type str
+        // @default #55FF5588
         uint32_t annot_rect{0x55FF5588};
 
         // @desc Popup annotation color
-        // @type RGBA
-        // @default 0xFFFFFFAA
+        // @type str
+        // @default #FFFFFFAA
         uint32_t annot_popup{0xFFFFFFAA};
     } colors{};
     // @endsection
@@ -103,18 +103,19 @@ struct Config
         // @desc Show startup widget tab
         // @type bool
         // @default true
-        bool startup_tab{true};
+        bool startup_tab{false};
 
         // @desc Title format for the window title
         // @type str
-        // @default {} - lektra
+        // @default \{\} - lektra
         QString title_format{"{} - lektra"};
 
+        // Required for documentation parsing, do not remove
+        using WindowSize = std::array<int, 2>;
         // @desc Initial size of the window
         // @type table
         // @default 600,400
-        std::array<int, 2> initial_size{600,
-                                        400}; // width, height; -1 for default
+        WindowSize initial_size{600, 400}; // width, height; -1 for default
     } window{};
     // @endsection
 
@@ -157,10 +158,11 @@ struct Config
         // @default true
         bool visible{true};
 
+        using Padding = std::array<int, 4>;
         // @desc Padding
         // @type table
         // @default [5, 5, 5, 5]
-        std::array<int, 4> padding{5, 5, 5, 5}; // top, right, bottom, left
+        Padding padding{5, 5, 5, 5}; // top, right, bottom, left
 
         // @desc Show session name (if in session)
         // @type bool
@@ -534,10 +536,11 @@ struct Config
     // @section_type struct
     struct rendering
     {
+        using DPR = std::variant<float, QMap<QString, float>>;
         // @desc Device Pixel Ratio
         // @type float or table
         // @default 1.0
-        std::variant<float, QMap<QString, float>> dpr{1.0f};
+        DPR dpr{1.0f};
 
         // @desc Enable Antialiasing
         // @type bool
@@ -571,6 +574,19 @@ struct Config
         // @type bool
         // @default true
         bool confirm_on_quit{true};
+
+        // @desc {
+        // Smart jump to non-pdf internal links (e.g. page 5 or
+        // section 2.3)
+        // }
+        // @note {
+        // This is disabled by default because it is resource intensive
+        // to detect these links, especially in large documents. Enabling it may
+        // cause performance issues.
+        // }
+        // @type bool
+        // @default false
+        bool smart_jump{true};
 
         // @desc Undo limit
         // @type int
@@ -632,8 +648,10 @@ struct Config
 
         // @desc Initial interaction mode
         // @type str
-        // @choice text_selection, region_selection, annot_rect, annot_popup,
+        // @choice {
+        // text_selection, region_selection, annot_rect, annot_popup,
         // annot_highlight
+        // }
         // @default text_selection
         GraphicsView::Mode initial_mode{GraphicsView::Mode::TextSelection};
 #ifdef HAS_SYNCTEX
