@@ -514,6 +514,20 @@ private:
         fz_image *img{nullptr};
     };
 
+    // Used for password handling
+    struct PendingOpen
+    {
+        fz_context *ctx{nullptr};
+        fz_document *doc{nullptr};
+        FileType filetype{FileType::NONE};
+
+        void clear() noexcept
+        {
+            ctx      = nullptr;
+            doc      = nullptr;
+            filetype = FileType::NONE;
+        }
+    };
     void initMuPDF() noexcept;
 
     [[nodiscard]] std::string getTextInArea(const int pageno,
@@ -563,7 +577,6 @@ private:
         m_highlight_color[4]{1.0f, 1.0f, 0.0f, 0.5f},
         m_selection_color[4]{0.0f, 0.0f, 1.0f, 0.3f},
         m_annot_rect_color[4]{1.0f, 0.0f, 0.0f, 0.5f};
-
     QUndoStack *m_undo_stack{nullptr};
     bool m_success{false};
     fz_colorspace *m_colorspace{nullptr};
@@ -590,26 +603,11 @@ private:
     bool m_detect_url_links{false};
     QRegularExpression m_url_link_re;
     FileType m_filetype{FileType::NONE};
-
-    struct PendingOpen
-    {
-        fz_context *ctx{nullptr};
-        fz_document *doc{nullptr};
-        FileType filetype{FileType::NONE};
-
-        void clear()
-        {
-            ctx      = nullptr;
-            doc      = nullptr;
-            filetype = FileType::NONE;
-        }
-    };
-
     PendingOpen m_pending;
 
-    friend class TextHighlightAnnotationCommand; // for highlight annotation
-    friend class RectAnnotationCommand;          // for rectangle annotation
-    friend class TextAnnotationCommand;          // for text/popup annotation
-    friend class DeleteAnnotationsCommand;       // for delete annotation
+    friend class TextHighlightAnnotationCommand;
+    friend class RectAnnotationCommand;
+    friend class TextAnnotationCommand;
+    friend class DeleteAnnotationsCommand;
     friend class DocumentView;
 };
