@@ -413,15 +413,13 @@ DocumentView::initConnections() noexcept
     /* Graphics View Signals */
     connect(m_gview, &GraphicsView::textHighlightRequested, this,
             &DocumentView::handleTextHighlightRequested);
-    connect(m_gview,
-            QOverload<const QRectF &>::of(&GraphicsView::annotSelectRequested),
-            this, [this](const QRectF &sceneRect)
+    connect(m_gview, QOverload<QRectF>::of(&GraphicsView::annotSelectRequested),
+            this, [this](QRectF sceneRect)
     { handleAnnotSelectRequested(sceneRect); });
 
     connect(m_gview,
-            QOverload<const QPointF &>::of(&GraphicsView::annotSelectRequested),
-            this, [this](const QPointF &scenePos)
-    { handleAnnotSelectRequested(scenePos); });
+            QOverload<QPointF>::of(&GraphicsView::annotSelectRequested), this,
+            [this](QPointF scenePos) { handleAnnotSelectRequested(scenePos); });
 
     connect(m_gview, &GraphicsView::annotSelectClearRequested, this,
             &DocumentView::handleAnnotSelectClearRequested);
@@ -433,13 +431,13 @@ DocumentView::initConnections() noexcept
             &DocumentView::handleTextSelection);
 
     connect(m_gview, &GraphicsView::doubleClickRequested, this,
-            [this](const QPointF &pos) { handleClickSelection(2, pos); });
+            [this](QPointF pos) { handleClickSelection(2, pos); });
 
     connect(m_gview, &GraphicsView::tripleClickRequested, this,
-            [this](const QPointF &pos) { handleClickSelection(3, pos); });
+            [this](QPointF pos) { handleClickSelection(3, pos); });
 
     connect(m_gview, &GraphicsView::quadrupleClickRequested, this,
-            [this](const QPointF &pos) { handleClickSelection(4, pos); });
+            [this](QPointF pos) { handleClickSelection(4, pos); });
 
     connect(m_gview, &GraphicsView::contextMenuRequested, this,
             &DocumentView::handleContextMenuRequested);
@@ -458,7 +456,7 @@ DocumentView::initConnections() noexcept
 }
 
 void
-DocumentView::handleLinkCtrlClickRequested(const QPointF &scenePos) noexcept
+DocumentView::handleLinkCtrlClickRequested(QPointF scenePos) noexcept
 {
     assert(m_container
            && "handleLinkCtrlClickRequested called before container is set");
@@ -562,8 +560,7 @@ DocumentView::buildFlatSearchHitIndex() noexcept
 }
 
 void
-DocumentView::handleClickSelection(int clickType,
-                                   const QPointF &scenePos) noexcept
+DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
 {
 #ifndef NDEBUG
     qDebug() << "DocumentView::handleClickSelection(): Handling click type"
@@ -607,7 +604,7 @@ DocumentView::handleClickSelection(int clickType,
 // Handle SyncTeX jump request
 #ifdef HAS_SYNCTEX
 void
-DocumentView::handleSynctexJumpRequested(const QPointF &scenePos) noexcept
+DocumentView::handleSynctexJumpRequested(QPointF scenePos) noexcept
 {
 #ifndef NDEBUG
     qDebug() << "DocumentView::handleSynctexJumpRequested(): Handling "
@@ -672,7 +669,7 @@ DocumentView::synctexLocateInDocument(const char *texFileName,
 #endif
 
 void
-DocumentView::handleTextHighlightRequested() noexcept
+DocumentView::handleTextHighlightRequested(QPointF start, QPointF end) noexcept
 {
     if (m_selection_start.isNull())
         return;
@@ -693,8 +690,7 @@ DocumentView::handleTextHighlightRequested() noexcept
 
 // Handle text selection from GraphicsView
 void
-DocumentView::handleTextSelection(const QPointF &start,
-                                  const QPointF &end) noexcept
+DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
 {
 
     int pageIndex               = -1;
@@ -2340,8 +2336,7 @@ DocumentView::updateSceneRect() noexcept
     {
         const double totalWidth = totalPageExtent();
         const double sceneH     = std::max(viewH, m_max_page_cross_extent);
-        const double xMargin
-            = std::max(0.0, (viewW - totalWidth) / 2.0);
+        const double xMargin    = std::max(0.0, (viewW - totalWidth) / 2.0);
         // yMargin relative to current page so scrolling to a shorter page
         // doesn't shift content
         const double yMargin
@@ -2421,7 +2416,7 @@ DocumentView::showEvent(QShowEvent *event)
 }
 
 bool
-DocumentView::pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
+DocumentView::pageAtScenePos(QPointF scenePos, int &outPageIndex,
                              GraphicsImageItem *&outPageItem) const noexcept
 {
     outPageIndex = -1;
@@ -3426,7 +3421,7 @@ DocumentView::handleAnnotSelectClearRequested() noexcept
 }
 
 void
-DocumentView::handleAnnotSelectRequested(const QRectF &sceneRect) noexcept
+DocumentView::handleAnnotSelectRequested(QRectF sceneRect) noexcept
 {
     int pageno;
     GraphicsImageItem *pageItem;
@@ -3447,7 +3442,7 @@ DocumentView::handleAnnotSelectRequested(const QRectF &sceneRect) noexcept
 }
 
 void
-DocumentView::handleAnnotSelectRequested(const QPointF &scenePos) noexcept
+DocumentView::handleAnnotSelectRequested(QPointF scenePos) noexcept
 {
     int pageno;
     GraphicsImageItem *pageItem;
@@ -3464,7 +3459,7 @@ DocumentView::handleAnnotSelectRequested(const QPointF &scenePos) noexcept
 }
 
 std::vector<Annotation *>
-DocumentView::annotationsInArea(int pageno, const QRectF &area) noexcept
+DocumentView::annotationsInArea(int pageno, QRectF area) noexcept
 {
     std::vector<Annotation *> annotsInArea;
     if (!m_page_annotations_hash.contains(pageno))
@@ -3490,7 +3485,7 @@ DocumentView::annotationsInArea(int pageno, const QRectF &area) noexcept
 }
 
 Annotation *
-DocumentView::annotationAtPoint(int pageno, const QPointF &point) noexcept
+DocumentView::annotationAtPoint(int pageno, QPointF point) noexcept
 {
     Annotation *foundAnnot{nullptr};
     if (!m_page_annotations_hash.contains(pageno))
@@ -3573,14 +3568,14 @@ DocumentView::CurrentLocation() noexcept
     if (!pageAtScenePos(sceneCenter, pageno, pageItem))
         return {-1, 0, 0};
 
-    const QPointF &pageLocalPos = pageItem->mapFromScene(sceneCenter);
+    const QPointF pageLocalPos = pageItem->mapFromScene(sceneCenter);
     return {pageno, (float)pageLocalPos.x(), (float)pageLocalPos.y()};
 }
 
 namespace
 {
 bool
-mapRegionToPageRects(const QRectF &area, GraphicsImageItem *pageItem,
+mapRegionToPageRects(QRectF area, GraphicsImageItem *pageItem,
                      QRectF &outLogical, QRect &outPixels) noexcept
 {
     if (!pageItem)
@@ -3610,7 +3605,7 @@ mapRegionToPageRects(const QRectF &area, GraphicsImageItem *pageItem,
 } // namespace
 
 void
-DocumentView::CopyTextFromRegion(const QRectF &area) noexcept
+DocumentView::CopyTextFromRegion(QRectF area) noexcept
 {
     int pageno;
     GraphicsImageItem *pageItem;
@@ -3627,7 +3622,7 @@ DocumentView::CopyTextFromRegion(const QRectF &area) noexcept
 }
 
 void
-DocumentView::CopyRegionAsImage(const QRectF &area) noexcept
+DocumentView::CopyRegionAsImage(QRectF area) noexcept
 {
     int pageno;
     GraphicsImageItem *pageItem;
@@ -3649,7 +3644,7 @@ DocumentView::CopyRegionAsImage(const QRectF &area) noexcept
 }
 
 void
-DocumentView::SaveRegionAsImage(const QRectF &area) noexcept
+DocumentView::SaveRegionAsImage(QRectF area) noexcept
 {
 
     int pageno;
@@ -3689,7 +3684,7 @@ DocumentView::SaveRegionAsImage(const QRectF &area) noexcept
 }
 
 void
-DocumentView::OpenRegionInExternalViewer(const QRectF &area) noexcept
+DocumentView::OpenRegionInExternalViewer(QRectF area) noexcept
 {
     int pageno;
     GraphicsImageItem *pageItem;
@@ -3813,7 +3808,7 @@ DocumentView::tryReloadLater(int attempt) noexcept
 }
 
 void
-DocumentView::handleRegionSelectRequested(const QRectF &area) noexcept
+DocumentView::handleRegionSelectRequested(QRectF area) noexcept
 {
     QMenu *menu = new QMenu(this);
     connect(menu, &QMenu::aboutToHide, this, [this, menu]()
@@ -3835,7 +3830,7 @@ DocumentView::handleRegionSelectRequested(const QRectF &area) noexcept
 
 // Handle annotation rectangle requested
 void
-DocumentView::handleAnnotRectRequested(const QRectF &area) noexcept
+DocumentView::handleAnnotRectRequested(QRectF area) noexcept
 {
     int pageno;
     GraphicsImageItem *pageItem;
@@ -3865,7 +3860,7 @@ DocumentView::handleAnnotRectRequested(const QRectF &area) noexcept
 
 // Handle annotation popup (text/sticky note) requested
 void
-DocumentView::handleAnnotPopupRequested(const QPointF &scenePos) noexcept
+DocumentView::handleAnnotPopupRequested(QPointF scenePos) noexcept
 {
     int pageno;
     GraphicsImageItem *pageItem;
@@ -3939,7 +3934,9 @@ DocumentView::zoomHelper() noexcept
 
     // ── Commit zoom, rebuild stride cache and scene rect ─────────────────────
     m_current_zoom = m_target_zoom;
-    m_model->setZoom(m_current_zoom); // must be before cachePageStride/updateSceneRect so pageSceneSize() uses the new zoom
+    m_model->setZoom(
+        m_current_zoom); // must be before cachePageStride/updateSceneRect so
+                         // pageSceneSize() uses the new zoom
     cachePageStride();
     updateSceneRect();
     m_gview->flashScrollbars();
@@ -3996,8 +3993,9 @@ DocumentView::zoomHelper() noexcept
 
         if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
         {
-            const double yOffset = (m_max_page_cross_extent - pageHeightScene) / 2.0;
-            const double xPos    = pageOffset(i);
+            const double yOffset
+                = (m_max_page_cross_extent - pageHeightScene) / 2.0;
+            const double xPos = pageOffset(i);
             item->setPos(xPos, sr.y() + yOffset);
         }
         else if (m_layout_mode == LayoutMode::SINGLE)

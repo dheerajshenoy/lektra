@@ -314,25 +314,25 @@ signals:
 public slots:
     void handle_password_required() noexcept;
     void handle_wrong_password() noexcept;
-    void handleLinkCtrlClickRequested(const QPointF &scenePos) noexcept;
-    void handleTextHighlightRequested() noexcept;
-    void handleTextSelection(const QPointF &start, const QPointF &end) noexcept;
-    void handleClickSelection(int clickType, const QPointF &scenePos) noexcept;
+    void handleLinkCtrlClickRequested(QPointF scenePos) noexcept;
+    void handleTextHighlightRequested(QPointF start, QPointF end) noexcept;
+    void handleTextSelection(QPointF start, QPointF end) noexcept;
+    void handleClickSelection(int clickType, QPointF scenePos) noexcept;
     void handleSearchResults(
         const QMap<int, std::vector<Model::SearchHit>> &results) noexcept;
     void handlePartialSearchResults(
         const QMap<int, std::vector<Model::SearchHit>> &results) noexcept;
-    void handleAnnotSelectRequested(const QRectF &area) noexcept;
-    void handleAnnotSelectRequested(const QPointF &area) noexcept;
+    void handleAnnotSelectRequested(QRectF area) noexcept;
+    void handleAnnotSelectRequested(QPointF area) noexcept;
     void handleAnnotSelectClearRequested() noexcept;
-    void handleRegionSelectRequested(const QRectF &area) noexcept;
-    void handleAnnotRectRequested(const QRectF &area) noexcept;
-    void handleAnnotPopupRequested(const QPointF &scenePos) noexcept;
+    void handleRegionSelectRequested(QRectF area) noexcept;
+    void handleAnnotRectRequested(QRectF area) noexcept;
+    void handleAnnotPopupRequested(QPointF scenePos) noexcept;
     void handleHScrollValueChanged(int value) noexcept;
     void handleVScrollValueChanged(int value) noexcept;
 
 #ifdef HAS_SYNCTEX
-    void handleSynctexJumpRequested(const QPointF &scenePos) noexcept;
+    void handleSynctexJumpRequested(QPointF scenePos) noexcept;
 #endif
     void handleOpenFileFinished() noexcept;
 
@@ -366,10 +366,10 @@ private:
     double pageXOffset(int pageno, double pageW, double sceneW) const noexcept;
     double pageOffset(int pageno) const noexcept;
     double pageStride(int pageno) const noexcept;
-    void CopyTextFromRegion(const QRectF &area) noexcept;
-    void CopyRegionAsImage(const QRectF &area) noexcept;
-    void SaveRegionAsImage(const QRectF &area) noexcept;
-    void OpenRegionInExternalViewer(const QRectF &area) noexcept;
+    void CopyTextFromRegion(QRectF area) noexcept;
+    void CopyRegionAsImage(QRectF area) noexcept;
+    void SaveRegionAsImage(QRectF area) noexcept;
+    void OpenRegionInExternalViewer(QRectF area) noexcept;
     void setAutoReload(bool state) noexcept;
     bool waitUntilReadableAsync() noexcept;
     void onFileReloadRequested(const QString &path) noexcept;
@@ -377,7 +377,7 @@ private:
 
     void initGui() noexcept;
     void setModified(bool state) noexcept;
-    bool pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
+    bool pageAtScenePos(QPointF scenePos, int &outPageIndex,
                         GraphicsImageItem *&outPageItem) const noexcept;
     void requestPageRender(int pageno) noexcept;
     void startNextRenderJob() noexcept;
@@ -423,8 +423,8 @@ private:
     void updateSelectionPath(int pageno, std::vector<QPolygonF> quads) noexcept;
     QSizeF pageSceneSize(int pageno) const noexcept;
     std::vector<Annotation *> annotationsInArea(int pageno,
-                                                const QRectF &area) noexcept;
-    Annotation *annotationAtPoint(int pageno, const QPointF &point) noexcept;
+                                                QRectF area) noexcept;
+    Annotation *annotationAtPoint(int pageno, QPointF point) noexcept;
     void openImageInExternalViewer(const QImage &image) noexcept;
     std::vector<std::pair<int, Annotation *>> getSelectedAnnotations() noexcept;
     void changeColorOfSelectedAnnotations(const QColor &color) noexcept;
@@ -435,7 +435,6 @@ private:
     void initSynctex() noexcept;
     void synctexLocateInDocument(const char *fileName, int line) noexcept;
 #endif
-
 
     Id m_id{0};
     Model *m_model{nullptr};

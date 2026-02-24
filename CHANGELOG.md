@@ -16,6 +16,7 @@
 - Implement batch searching for faster search result fetching as soon as few searches are encountered.
 - Regex searching
 - Book (two-page) layout `[layout] { mode = "book" }`
+- Ability to select text across page boundaries in layout modes with multiple pages visible
 
 ### New Commands
 
@@ -28,6 +29,7 @@
 
 ### Optimizations
 
+- Don't pass QPointF and QRectF as const references as it's useless.
 
 ### Breaking Changes
 

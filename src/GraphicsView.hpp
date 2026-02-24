@@ -120,15 +120,15 @@ public:
     void clearRubberBand() noexcept;
 
 signals:
-    void textSelectionRequested(const QPointF &a, const QPointF &b);
-    void textHighlightRequested(const QPointF &a, const QPointF &b);
+    void textSelectionRequested(QPointF a, QPointF b);
+    void textHighlightRequested(QPointF a, QPointF b);
     void textSelectionDeletionRequested();
-    void linkCtrlClickRequested(const QPointF &scenePos);
-    void annotRectRequested(const QRectF &sceneRect);
-    void annotPopupRequested(const QPointF &scenePos);
-    void regionSelectRequested(const QRectF &sceneRect);
-    void annotSelectRequested(const QRectF &sceneRect);
-    void annotSelectRequested(const QPointF &scenePos);
+    void linkCtrlClickRequested(QPointF scenePos);
+    void annotRectRequested(QRectF sceneRect);
+    void annotPopupRequested(QPointF scenePos);
+    void regionSelectRequested(QRectF sceneRect);
+    void annotSelectRequested(QRectF sceneRect);
+    void annotSelectRequested(QPointF scenePos);
     void annotSelectClearRequested();
     void zoomInRequested();
     void zoomOutRequested();
