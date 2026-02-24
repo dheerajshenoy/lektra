@@ -579,24 +579,6 @@ struct Config
         // @default true
         bool confirm_on_quit{true};
 
-        // @desc {
-        // Smart jump to non-pdf internal links (e.g. page 5 or
-        // section 2.3)
-        // }
-        // @note {
-        // This is disabled by default because it is resource intensive
-        // to detect these links, especially in large documents. Enabling it may
-        // cause performance issues.
-        // }
-        // @type bool
-        // @default false
-        bool smart_jump{false};
-
-        // @desc Regex to detect smart jump links
-        // @type str
-        // @default page|section|chapter)\s+\d+(\.\d+)*)
-        QString smart_jump_regex{R"((page|section|chapter)\s+\d+(\.\d+)*)"};
-
         // @desc Undo limit
         // @type int
         // @default 25
