@@ -350,17 +350,16 @@ private:
         int indexInPage;
     };
 
-    inline int selectionPage() const noexcept
-    {
-        if (!m_selection_path_item)
-            return -1;
-        return m_selection_path_item->data(0).toInt();
-    }
-
     // Total scene-axis extent across all pages
     inline double totalPageExtent() const noexcept
     {
         return m_page_offsets.empty() ? 0.0 : m_page_offsets.back();
+    }
+
+    inline bool has_text_selection() const noexcept
+    {
+        return (!m_selection_start.isNull() && m_selection_start_page >= 0
+                && m_selection_end_page >= 0);
     }
 
     double pageXOffset(int pageno, double pageW, double sceneW) const noexcept;
@@ -420,7 +419,6 @@ private:
     void clearSearchHits() noexcept;
     QGraphicsPathItem *ensureSearchItemForPage(int pageno) noexcept;
     QGraphicsPathItem *m_current_search_hit_item{nullptr};
-    void updateSelectionPath(int pageno, std::vector<QPolygonF> quads) noexcept;
     QSizeF pageSceneSize(int pageno) const noexcept;
     std::vector<Annotation *> annotationsInArea(int pageno,
                                                 QRectF area) noexcept;
@@ -462,6 +460,7 @@ private:
     std::vector<HitRef> m_search_hit_flat_refs;
     QHash<int, QGraphicsPathItem *> m_search_items;
     QPointF m_selection_start, m_selection_end;
+    int m_selection_start_page{-1}, m_selection_end_page{-1};
     int m_last_selection_page{-1};
     QGraphicsPathItem *m_selection_path_item{nullptr};
     QTimer *m_hq_render_timer{nullptr};

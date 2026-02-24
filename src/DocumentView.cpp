@@ -413,6 +413,7 @@ DocumentView::initConnections() noexcept
     /* Graphics View Signals */
     connect(m_gview, &GraphicsView::textHighlightRequested, this,
             &DocumentView::handleTextHighlightRequested);
+
     connect(m_gview, QOverload<QRectF>::of(&GraphicsView::annotSelectRequested),
             this, [this](QRectF sceneRect)
     { handleAnnotSelectRequested(sceneRect); });
@@ -458,9 +459,6 @@ DocumentView::initConnections() noexcept
 void
 DocumentView::handleLinkCtrlClickRequested(QPointF scenePos) noexcept
 {
-    assert(m_container
-           && "handleLinkCtrlClickRequested called before container is set");
-
     int pageIndex               = -1;
     GraphicsImageItem *pageItem = nullptr;
 
@@ -598,7 +596,7 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
             return;
     }
 
-    updateSelectionPath(pageIndex, quads);
+    // updateSelectionPath(pageIndex, quads);
 }
 
 // Handle SyncTeX jump request
@@ -668,22 +666,95 @@ DocumentView::synctexLocateInDocument(const char *texFileName,
 }
 #endif
 
+// Highlight the current text selection
+void
+DocumentView::TextHighlightCurrentSelection() noexcept
+{
+    if (!has_text_selection())
+        return;
+
+    int startP    = m_selection_start_page;
+    int endP      = m_selection_end_page;
+    QPointF start = m_selection_start;
+    QPointF end   = m_selection_end;
+
+    for (int p = startP; p <= endP; ++p)
+    {
+        GraphicsImageItem *item = m_page_items_hash.value(p, nullptr);
+        assert(item && "Page is not yet in the hash map");
+
+        if (p == startP && p == endP)
+        {
+            m_model->highlight_text_selection(p, item->mapFromScene(start),
+                                              item->mapFromScene(end));
+            PPRINT("DD");
+        }
+        else if (p == startP)
+        {
+            // From start point to END of page
+            m_model->highlight_text_selection(
+                p, item->mapFromScene(start),
+                QPointF(item->boundingRect().bottomRight()));
+        }
+        else if (p == endP)
+        {
+            // From START of page to end point
+            m_model->highlight_text_selection(p, QPointF(0, 0),
+                                              item->mapFromScene(end));
+        }
+        else
+        {
+            // Full page
+            m_model->highlight_text_selection(
+                p, QPointF(0, 0), QPointF(item->boundingRect().bottomRight()));
+        }
+    }
+
+    setModified(true);
+}
+
 void
 DocumentView::handleTextHighlightRequested(QPointF start, QPointF end) noexcept
 {
-    if (m_selection_start.isNull())
+
+    PPRINT(start, end);
+    if (!has_text_selection())
         return;
 
-    // 1. Get the page index where the selection happened
-    int pageIndex = m_selection_path_item->data(0).toInt();
+    int startP = m_selection_start_page;
+    int endP   = m_selection_end_page;
 
-    // 2. Find the corresponding PageItem in the scene
-    GraphicsImageItem *pageItem = m_page_items_hash.value(pageIndex, nullptr);
-    if (!pageItem)
-        return;
+    for (int p = startP; p <= endP; ++p)
+    {
+        GraphicsImageItem *item = m_page_items_hash.value(p, nullptr);
+        assert(item && "Page is not yet in the hash map");
 
-    m_model->highlightTextSelection(pageIndex, m_selection_start,
-                                    m_selection_end);
+        if (p == startP && p == endP)
+        {
+            m_model->highlight_text_selection(p, item->mapFromScene(start),
+                                              item->mapFromScene(end));
+            PPRINT("DD");
+        }
+        else if (p == startP)
+        {
+            // From start point to END of page
+            m_model->highlight_text_selection(
+                p, item->mapFromScene(start),
+                QPointF(item->boundingRect().bottomRight()));
+        }
+        else if (p == endP)
+        {
+            // From START of page to end point
+            m_model->highlight_text_selection(p, QPointF(0, 0),
+                                              item->mapFromScene(end));
+        }
+        else
+        {
+            // Full page
+            m_model->highlight_text_selection(
+                p, QPointF(0, 0), QPointF(item->boundingRect().bottomRight()));
+        }
+    }
 
     setModified(true);
 }
@@ -693,62 +764,83 @@ void
 DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
 {
 
-    int pageIndex               = -1;
-    GraphicsImageItem *pageItem = nullptr;
+    int startPage                    = -1;
+    int endPage                      = -1;
+    GraphicsImageItem *startPageItem = nullptr;
+    GraphicsImageItem *endPageItem   = nullptr;
 
-    if (!pageAtScenePos(start, pageIndex, pageItem))
-        return; // selection start outside visible pages?
+    if (!pageAtScenePos(start, startPage, startPageItem)
+        || !pageAtScenePos(end, endPage, endPageItem))
+        return;
 
 #ifndef NDEBUG
     qDebug() << "DocumentView::handleTextSelection(): Handling text selection"
              << "from" << start << "to" << end;
 #endif
 
-    const QPointF pageStart = pageItem->mapFromScene(start);
-    const QPointF pageEnd   = pageItem->mapFromScene(end);
+    if (startPage > endPage)
+    {
+        std::swap(startPage, endPage);
+        std::swap(start, end);
+    }
 
-    const std::vector<QPolygonF> quads
-        = m_model->computeTextSelectionQuad(pageIndex, pageStart, pageEnd);
+    QPainterPath totalPath;
 
-    updateSelectionPath(pageIndex, quads);
+    for (int p = startPage; p <= endPage; ++p)
+    {
+        GraphicsImageItem *item = m_page_items_hash.value(p, nullptr);
+        assert(item && "Page is not yet in the hash map");
+
+        std::vector<QPolygonF> quads;
+        if (p == startPage && p == endPage)
+        {
+            // Single page selection (existing logic)
+            quads = m_model->computeTextSelectionQuad(
+                p, item->mapFromScene(start), item->mapFromScene(end));
+        }
+        else if (p == startPage)
+        {
+            // Selection from start point to end of page
+            quads = m_model->computeTextSelectionQuad(
+                p, item->mapFromScene(start),
+                QPointF(item->boundingRect().bottomRight()));
+        }
+        else if (p == endPage)
+        {
+            // Selection from start of page to end point
+            quads = m_model->computeTextSelectionQuad(p, QPointF(0, 0),
+                                                      item->mapFromScene(end));
+        }
+        else
+        {
+            // Full page selection
+            quads = m_model->computeTextSelectionQuad(
+                p, QPointF(0, 0), QPointF(item->boundingRect().bottomRight()));
+        }
+
+        const QTransform toScene = item->sceneTransform();
+        for (const QPolygonF &poly : quads)
+        {
+            totalPath.addPolygon(toScene.map(poly));
+        }
+    }
+
+    m_selection_path_item->setPath(totalPath);
+
+    // add these two lines to keep metadata in sync
+    m_selection_start = start;
+    m_selection_end   = end;
+
+    // Update metadata for copying/highlighting
+    m_selection_start_page = startPage;
+    m_selection_end_page   = endPage;
+
+    m_selection_path_item->show();
 
     if (m_config.selection.copy_on_select)
     {
         YankSelection();
     }
-}
-
-void
-DocumentView::updateSelectionPath(int pageno,
-                                  std::vector<QPolygonF> quads) noexcept
-{
-#ifndef NDEBUG
-    qDebug() << "DocumentView::updateSelectionPath(): Updating selection path"
-             << "for page" << pageno << "with" << quads.size() << "polygons.";
-#endif
-
-    // Batch all polygons into ONE path
-    QPainterPath path;
-    GraphicsImageItem *pageItem = m_page_items_hash.value(pageno, nullptr);
-    if (!pageItem)
-        return;
-
-    const QTransform toScene = pageItem->sceneTransform();
-    for (const QPolygonF &poly : quads)
-    {
-        // We map to scene here, or better yet, make pageItem the parent
-        // of m_selection_path_item once to avoid mapping every frame.
-        path.addPolygon(toScene.map(poly));
-    }
-
-    m_selection_path_item->setPath(path);
-    m_selection_path_item->show();
-    m_last_selection_page = pageno;
-    m_selection_path_item->setData(0, pageno); // store page number
-
-    const auto selectionRange = m_model->getTextSelectionRange();
-    m_selection_start = QPointF(selectionRange.first.x, selectionRange.first.y);
-    m_selection_end = QPointF(selectionRange.second.x, selectionRange.second.y);
 }
 
 // Rotate page clockwise
@@ -846,8 +938,8 @@ DocumentView::setFitMode(FitMode mode) noexcept
 
         bboxW = getW(leftP) + getW(rightP);
         if (m_pageno == 0)
-            bboxW
-                *= 2.0; // Force cover zoom to respect the logical spine center
+            bboxW *= 2.0; // Force cover zoom to respect the logical spine
+                          // center
     }
 
     switch (mode)
@@ -1593,28 +1685,6 @@ DocumentView::ToggleAnnotPopup() noexcept
     emit selectionModeChanged(newMode);
 }
 
-// Highlight the current text selection
-void
-DocumentView::TextHighlightCurrentSelection() noexcept
-{
-    if (m_selection_start.isNull())
-        return;
-
-    // 1. Get the page index where the selection happened
-    int pageIndex = m_selection_path_item->data(0).toInt();
-
-    // 2. Find the corresponding PageItem in the scene
-    GraphicsImageItem *pageItem = m_page_items_hash.value(pageIndex, nullptr);
-    if (!pageItem)
-        return;
-
-    m_model->highlightTextSelection(pageIndex, m_selection_start,
-                                    m_selection_end);
-
-    setModified(true);
-    // Render page where selection exists
-}
-
 // Clear keyboard hints overlay
 void
 DocumentView::ClearKBHintsOverlay() noexcept
@@ -1648,7 +1718,7 @@ DocumentView::UpdateKBHintsOverlay(const QString &input) noexcept
 void
 DocumentView::ClearTextSelection() noexcept
 {
-    if (m_selection_start.isNull())
+    if (!has_text_selection())
         return;
 
 #ifndef NDEBUG
@@ -1659,25 +1729,71 @@ DocumentView::ClearTextSelection() noexcept
     {
         m_selection_path_item->setPath(QPainterPath());
         m_selection_path_item->hide();
-        m_selection_path_item->setData(0, -1);
     }
+
     m_selection_start = QPointF();
     m_selection_end   = QPointF();
+
+    m_selection_start_page = -1;
+    m_selection_end_page   = -1;
 }
 
 // Yank the current text selection to clipboard
 void
 DocumentView::YankSelection(bool formatted) noexcept
 {
-    if (m_selection_start.isNull())
+    if (!has_text_selection())
         return;
 
-    const int pageIndex    = selectionPage();
-    QClipboard *clipboard  = QGuiApplication::clipboard();
-    const auto range       = m_model->getTextSelectionRange();
-    const std::string text = m_model->getSelectedText(pageIndex, range.first,
-                                                      range.second, formatted);
-    clipboard->setText(QString::fromStdString(text));
+    QString fullText;
+
+    // Copy the state so we can normalize it safely
+    QPointF start = m_selection_start;
+    QPointF end   = m_selection_end;
+    int startP    = m_selection_start_page;
+    int endP      = m_selection_end_page;
+
+    for (int p = startP; p <= endP; ++p)
+    {
+        GraphicsImageItem *item = m_page_items_hash.value(p, nullptr);
+        assert(item && "Page is not yet in the hash map");
+
+        QString text;
+        if (p == startP && p == endP)
+        {
+            text = m_model->get_selected_text(p, item->mapFromScene(start),
+                                              item->mapFromScene(end),
+                                              formatted);
+        }
+        else if (p == startP)
+        {
+            // From start point to END of page
+            text = m_model->get_selected_text(
+                p, item->mapFromScene(start),
+                QPointF(item->boundingRect().bottomRight()), formatted);
+        }
+        else if (p == endP)
+        {
+            // From START of page to end point
+            text = m_model->get_selected_text(
+                p, QPointF(0, 0), item->mapFromScene(end), formatted);
+        }
+        else
+        {
+            // Full page
+            text = m_model->get_selected_text(
+                p, QPointF(0, 0), QPointF(item->boundingRect().bottomRight()),
+                formatted);
+        }
+
+        fullText += text;
+
+        // Add a newline between pages to prevent text merging
+        if (p < endP && !text.isEmpty())
+            fullText += "\n";
+    }
+
+    QGuiApplication::clipboard()->setText(fullText);
 }
 
 // Go to the first page
@@ -1771,8 +1887,9 @@ DocumentView::getVisiblePages() noexcept
 
     if (m_layout_mode == LayoutMode::BOOK)
     {
-        // Iterate by ROW to avoid problems with duplicate offsets in spreads.
-        // Row 0 = page 0 (cover), Row 1 = pages 1-2, Row 2 = pages 3-4, etc.
+        // Iterate by ROW to avoid problems with duplicate offsets in
+        // spreads. Row 0 = page 0 (cover), Row 1 = pages 1-2, Row 2 = pages
+        // 3-4, etc.
         for (int i = 0; i < N;)
         {
             const double rowStart = m_page_offsets[i];
@@ -1796,7 +1913,8 @@ DocumentView::getVisiblePages() noexcept
                     m_visible_pages_cache.insert(p);
             }
 
-            // Early exit: if this row starts beyond viewport, no more visible
+            // Early exit: if this row starts beyond viewport, no more
+            // visible
             if (rowStart >= a1)
                 break;
 
@@ -2051,8 +2169,8 @@ DocumentView::startNextRenderJob() noexcept
             {
                 if (m_layout_mode == LayoutMode::SINGLE && pageno != m_pageno)
                 {
-                    // Store as a hidden preload item in the scene for instant
-                    // display later
+                    // Store as a hidden preload item in the scene for
+                    // instant display later
                     m_gscene->blockSignals(true);
                     setUpdatesEnabled(false);
                     {
@@ -2105,7 +2223,8 @@ DocumentView::startNextRenderJob() noexcept
     }
 }
 
-// Remove pending renders for pages that are no longer visible and not in-flight
+// Remove pending renders for pages that are no longer visible and not
+// in-flight
 void
 DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
 {
@@ -2127,7 +2246,8 @@ DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
 }
 
 // void
-// DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
+// DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet)
+// noexcept
 // {
 //     // Copy keys first to avoid iterator invalidation
 //     const QList<int> trackedPages = m_page_items_hash.keys();
@@ -2170,10 +2290,10 @@ DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
 
         const QString tag = item->data(0).toString();
 
-        // Keep placeholders to avoid flicker during fast scroll; only remove
-        // actual rendered pages. For placeholders, just hide them so they don't
-        // cause repaints but remain ready to be replaced when rendering
-        // finishes.
+        // Keep placeholders to avoid flicker during fast scroll; only
+        // remove actual rendered pages. For placeholders, just hide them so
+        // they don't cause repaints but remain ready to be replaced when
+        // rendering finishes.
         if (tag == QStringLiteral("placeholder_page")
             || tag == QStringLiteral("scroll_placeholder"))
         {
@@ -2426,7 +2546,8 @@ DocumentView::pageAtScenePos(QPointF scenePos, int &outPageIndex,
     if (N <= 0 || m_page_offsets.size() < static_cast<size_t>(N + 1))
         return false;
 
-    // ── SINGLE mode: only one page is ever in the scene ─────────────────────
+    // ── SINGLE mode: only one page is ever in the scene
+    // ─────────────────────
     if (m_layout_mode == LayoutMode::SINGLE)
     {
         auto it = m_page_items_hash.find(m_pageno);
@@ -2440,8 +2561,8 @@ DocumentView::pageAtScenePos(QPointF scenePos, int &outPageIndex,
         return false;
     }
 
-    // ── Multi-page modes: binary search the prefix-sum array ─────────────────
-    // pageOffset(i) is the main-axis start of page i.
+    // ── Multi-page modes: binary search the prefix-sum array
+    // ───────────────── pageOffset(i) is the main-axis start of page i.
     // upper_bound(coord) gives the first entry strictly greater than coord,
     // so the page that owns coord is one slot before that iterator.
     const double coord = (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
@@ -2455,13 +2576,13 @@ DocumentView::pageAtScenePos(QPointF scenePos, int &outPageIndex,
         = static_cast<int>(std::distance(m_page_offsets.cbegin(), it1) - 1);
     candidate = std::clamp(candidate, 0, N - 1);
 
-    // ── Try candidate, then expand outward ───────────────────────────────────
-    // With variable page sizes the binary search is exact for the main axis,
-    // but the cross-axis check (sceneBoundingRect) can still miss e.g. during
-    // a zoom animation frame. Expanding ±1 covers that transient case without
-    // ever needing more — the binary search already pins the main-axis page
-    // correctly, so ±1 is now a genuine safety net rather than the primary
-    // mechanism.
+    // ── Try candidate, then expand outward
+    // ─────────────────────────────────── With variable page sizes the
+    // binary search is exact for the main axis, but the cross-axis check
+    // (sceneBoundingRect) can still miss e.g. during a zoom animation
+    // frame. Expanding ±1 covers that transient case without ever needing
+    // more — the binary search already pins the main-axis page correctly,
+    // so ±1 is now a genuine safety net rather than the primary mechanism.
 
     std::vector<int> candidates;
     if (m_layout_mode == LayoutMode::BOOK)
@@ -2580,7 +2701,8 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
     const bool hasAnnots      = !selectedAnnots.empty();
     bool hasActions           = false;
 
-    // if (selectionActive && m_selection_path_item->path().contains(scenePos))
+    // if (selectionActive &&
+    // m_selection_path_item->path().contains(scenePos))
     //     emit textSelectionRightClickRequested(globalPos, scenePos);
 
     if (selectionActive)
@@ -2719,7 +2841,8 @@ DocumentView::updateCurrentPage() noexcept
                               : m_vscroll->value();
 
     // Map the viewport centre into scene coordinates on the layout axis.
-    // QGraphicsView scroll values are in scene-pixel units, so this is direct.
+    // QGraphicsView scroll values are in scene-pixel units, so this is
+    // direct.
     const double centerCoord = static_cast<double>(scrollPos + viewportHalf);
 
     const int page = pageAtAxisCoord(centerCoord);
@@ -2823,10 +2946,10 @@ DocumentView::requestPageRender(int pageno) noexcept
 void
 DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
 {
-    // Remove old item (placeholder OR real page) BEFORE adding the new item,
-    // since createAndAddPageItem overwrites the hash entry.  Without this,
-    // re-renders after zoom leave orphaned items in the scene (visible stale
-    // pages and unbounded memory growth).
+    // Remove old item (placeholder OR real page) BEFORE adding the new
+    // item, since createAndAddPageItem overwrites the hash entry.  Without
+    // this, re-renders after zoom leave orphaned items in the scene
+    // (visible stale pages and unbounded memory growth).
     auto it = m_page_items_hash.find(pageno);
     if (it != m_page_items_hash.end())
     {
@@ -3350,12 +3473,7 @@ DocumentView::ensureSearchItemForPage(int pageno) noexcept
 void
 DocumentView::ReselectLastTextSelection() noexcept
 {
-    if (m_selection_start.isNull())
-        return;
-
-    // Re-apply the selection path item
-    if (m_selection_path_item)
-        m_selection_path_item->show();
+    // TODO: Implement this!
 }
 
 void
@@ -3745,9 +3863,10 @@ DocumentView::setAutoReload(bool state) noexcept
 }
 
 // Wait until the file is readable and fully written. This is needed because
-// when using latex with continuous compilation, the PDF file is often replaced
-// by a new file that is first created with 0 bytes and then written to. If we
-// try to reload while the file is still 0 bytes, it will fail.
+// when using latex with continuous compilation, the PDF file is often
+// replaced by a new file that is first created with 0 bytes and then
+// written to. If we try to reload while the file is still 0 bytes, it will
+// fail.
 bool
 DocumentView::waitUntilReadableAsync() noexcept
 {
@@ -3796,7 +3915,8 @@ DocumentView::tryReloadLater(int attempt) noexcept
         }
 
         const QString &filepath = m_model->filePath();
-        // IMPORTANT: file may have been removed and replaced → watcher loses it
+        // IMPORTANT: file may have been removed and replaced → watcher
+        // loses it
         if (m_file_watcher && !m_file_watcher->files().contains(filepath))
             m_file_watcher->addPath(filepath);
 
@@ -3881,7 +4001,8 @@ DocumentView::handleAnnotPopupRequested(QPointF scenePos) noexcept
     // Convert from pixel space to PDF space using the model's transform
     const fz_point pdfPos = m_model->toPDFSpace(pageno, pageLocalPos);
 
-    // Create a small rect at the click position for the text annotation icon
+    // Create a small rect at the click position for the text annotation
+    // icon
     constexpr float annotSize = 24.0f;
     const fz_rect rect        = {
         pdfPos.x,
@@ -3895,8 +4016,8 @@ DocumentView::handleAnnotPopupRequested(QPointF scenePos) noexcept
     setModified(true);
 }
 
-// Re display the jump marker (e.g. after a jump link is activated), useful if
-// user lost track of it for example.
+// Re display the jump marker (e.g. after a jump link is activated), useful
+// if user lost track of it for example.
 void
 DocumentView::Reshow_jump_marker() noexcept
 {
@@ -3911,7 +4032,8 @@ DocumentView::zoomHelper() noexcept
              << "to" << m_target_zoom;
 #endif
 
-    // ── Anchor: remember which fraction of the centre page we're looking at ──
+    // ── Anchor: remember which fraction of the centre page we're looking
+    // at ──
     int anchorPageIndex           = -1;
     GraphicsImageItem *anchorItem = nullptr;
     QPointF anchorFrac{0.0, 0.0};
@@ -3932,16 +4054,18 @@ DocumentView::zoomHelper() noexcept
         }
     }
 
-    // ── Commit zoom, rebuild stride cache and scene rect ─────────────────────
+    // ── Commit zoom, rebuild stride cache and scene rect
+    // ─────────────────────
     m_current_zoom = m_target_zoom;
     m_model->setZoom(
-        m_current_zoom); // must be before cachePageStride/updateSceneRect so
-                         // pageSceneSize() uses the new zoom
+        m_current_zoom); // must be before cachePageStride/updateSceneRect
+                         // so pageSceneSize() uses the new zoom
     cachePageStride();
     updateSceneRect();
     m_gview->flashScrollbars();
 
-    // ── Reposition every live page item at the new zoom ──────────────────────
+    // ── Reposition every live page item at the new zoom
+    // ──────────────────────
     const QRectF sr = m_gview->sceneRect(); // constant for the whole loop
 
     // For TOP_TO_BOTTOM, each page may have a different width so we must
@@ -4010,7 +4134,8 @@ DocumentView::zoomHelper() noexcept
         }
     }
 
-    // ── Invalidate render caches for all repositioned pages ──────────────────
+    // ── Invalidate render caches for all repositioned pages
+    // ──────────────────
     for (const int pageno : m_page_items_hash.keys())
     {
         m_model->invalidatePageCache(pageno);
@@ -4021,7 +4146,8 @@ DocumentView::zoomHelper() noexcept
 
     renderSearchHitsInScrollbar();
 
-    // ── Restore viewport to the same relative position within the anchor page
+    // ── Restore viewport to the same relative position within the anchor
+    // page
     if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
     {
         GraphicsImageItem *pageItem = m_page_items_hash[anchorPageIndex];

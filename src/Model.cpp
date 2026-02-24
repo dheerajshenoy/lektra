@@ -546,18 +546,21 @@ Model::setAnnotRectColor(const QColor &color) noexcept
 bool
 Model::decrypt() noexcept
 {
-    // Use MuPDF to decrypt the PDF
-    fz_try(m_ctx)
+    fz_context *ctx = cloneContext();
+    if (!ctx)
+        return false;
+
+    fz_try(ctx)
     {
         pdf_write_options opts = m_pdf_write_options;
         opts.do_encrypt        = PDF_ENCRYPT_NONE;
 
         if (m_pdf_doc)
-            pdf_save_document(m_ctx, m_pdf_doc, CSTR(m_filepath), &opts);
+            pdf_save_document(ctx, m_pdf_doc, CSTR(m_filepath), &opts);
     }
-    fz_catch(m_ctx)
+    fz_catch(ctx)
     {
-        qWarning() << "Cannot decrypt file: " << fz_caught_message(m_ctx);
+        qWarning() << "Cannot decrypt file: " << fz_caught_message(ctx);
         return false;
     }
     return true;
@@ -566,10 +569,14 @@ Model::decrypt() noexcept
 bool
 Model::encrypt(const EncryptInfo &info) noexcept
 {
+    fz_context *ctx = cloneContext();
+    if (!ctx)
+        return false;
+
     if (!m_doc || !m_pdf_doc)
         return false;
 
-    fz_try(m_ctx)
+    fz_try(ctx)
     {
 
         pdf_write_options opts = m_pdf_write_options;
@@ -591,9 +598,9 @@ Model::encrypt(const EncryptInfo &info) noexcept
         m_pdf_write_options = opts;
         SaveChanges();
     }
-    fz_catch(m_ctx)
+    fz_catch(ctx)
     {
-        qWarning() << "Encryption failed:" << fz_caught_message(m_ctx);
+        qWarning() << "Encryption failed:" << fz_caught_message(ctx);
         return false;
     }
 
@@ -609,10 +616,8 @@ Model::reloadDocument() noexcept
 
     waitForRenders();
 
-    // Lock to prevent concurrent access
-    std::lock_guard<std::mutex> lock(m_doc_mutex);
-
-    if (!m_ctx)
+    fz_context *ctx = cloneContext();
+    if (!ctx)
         initMuPDF();
 
     cleanup();
@@ -620,17 +625,19 @@ Model::reloadDocument() noexcept
     m_success    = false;
 
     bool ok = false;
-    fz_try(m_ctx)
+    fz_try(ctx)
     {
-        m_doc = fz_open_document(m_ctx, CSTR(filepath));
-        if (!m_doc)
-            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to open document");
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
 
-        m_pdf_doc    = pdf_specifics(m_ctx, m_doc);
-        m_page_count = fz_count_pages(m_ctx, m_doc);
+        m_doc = fz_open_document(ctx, CSTR(filepath));
+        if (!m_doc)
+            fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to open document");
+
+        m_pdf_doc    = pdf_specifics(ctx, m_doc);
+        m_page_count = fz_count_pages(ctx, m_doc);
         ok           = true;
     }
-    fz_catch(m_ctx)
+    fz_catch(ctx)
     {
         ok = false;
     }
@@ -647,14 +654,17 @@ Model::SaveChanges() noexcept
 
     const std::string path = m_filepath.toStdString();
 
-    fz_try(m_ctx)
+    fz_context *ctx = cloneContext();
+
+    fz_try(ctx)
     {
         // MUST clear text pages; they hold page references!
-        pdf_save_document(m_ctx, m_pdf_doc, path.c_str(), &m_pdf_write_options);
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        pdf_save_document(ctx, m_pdf_doc, path.c_str(), &m_pdf_write_options);
     }
-    fz_catch(m_ctx)
+    fz_catch(ctx)
     {
-        qWarning() << "Cannot save file: " << fz_caught_message(m_ctx);
+        qWarning() << "Cannot save file: " << fz_caught_message(ctx);
         return false;
     }
 
@@ -667,14 +677,19 @@ Model::SaveAs(const QString &newFilePath) noexcept
     if (!m_doc || !m_pdf_doc)
         return false;
 
-    fz_try(m_ctx)
+    fz_context *ctx = cloneContext();
+    if (!ctx)
+        return false;
+
+    fz_try(ctx)
     {
-        pdf_save_document(m_ctx, m_pdf_doc, CSTR(newFilePath),
-                          nullptr); // TODO: options for saving
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        pdf_save_document(ctx, m_pdf_doc, CSTR(newFilePath), nullptr);
+        // TODO: Explore write options!
     }
-    fz_catch(m_ctx)
+    fz_catch(ctx)
     {
-        qWarning() << "Save As failed: " << fz_caught_message(m_ctx);
+        qWarning() << "Save As failed: " << fz_caught_message(ctx);
         return false;
     }
     return true;
@@ -685,14 +700,23 @@ Model::getOutline() noexcept
 {
     if (!m_doc)
         return nullptr;
+
+    fz_context *ctx = cloneContext();
+    if (!ctx)
+        return nullptr;
+
     if (!m_outline)
+    {
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
         m_outline = fz_load_outline(m_ctx, m_doc);
+    }
+
     return m_outline;
 }
 
 std::vector<QPolygonF>
-Model::computeTextSelectionQuad(int pageno, const QPointF &devStart,
-                                const QPointF &devEnd) noexcept
+Model::computeTextSelectionQuad(int pageno, QPointF devStart,
+                                QPointF devEnd) noexcept
 {
     std::vector<QPolygonF> out;
 
@@ -709,11 +733,9 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &devStart,
 
     fz_try(m_ctx)
     {
-        // Single page load — get bounds AND build stext in one shot
         page        = fz_load_page(m_ctx, m_doc, pageno);
         page_bounds = fz_bound_page(m_ctx, page);
 
-        // Build page -> device transform
         page_to_dev = fz_scale(scale, scale);
         page_to_dev = fz_pre_rotate(page_to_dev, m_rotation);
 
@@ -729,8 +751,8 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &devStart,
         a = fz_transform_point(a, dev_to_page);
         b = fz_transform_point(b, dev_to_page);
 
-        m_selection_start = a;
-        m_selection_end   = b;
+        // m_selection_start = a;
+        // m_selection_end   = b;
 
         stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
         if (!stext_page)
@@ -739,8 +761,8 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &devStart,
         fz_snap_selection(m_ctx, stext_page, &a, &b, FZ_SELECT_CHARS);
 
         // Re-store snapped endpoints so callers get the corrected range
-        m_selection_start = a;
-        m_selection_end   = b;
+        // m_selection_start = a;
+        // m_selection_end   = b;
 
         count = fz_highlight_selection(m_ctx, stext_page, a, b, hits.data(),
                                        MAX_HITS);
@@ -777,42 +799,61 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &devStart,
     return out;
 }
 
-std::string
-Model::getSelectedText(int pageno, const fz_point &a, const fz_point &b,
-                       bool formatted) noexcept
+QString
+Model::get_selected_text(int pageno, QPointF start, QPointF end,
+                         bool formatted) noexcept
 {
     std::string result;
     fz_page *page{nullptr};
     char *selection_text{nullptr};
     fz_stext_page *stext_page{nullptr};
+    const float scale = logicalScale();
 
-    fz_try(m_ctx)
+    fz_context *ctx = cloneContext();
+    if (!ctx)
+        return {};
+
+    fz_try(ctx)
     {
-        page = fz_load_page(m_ctx, m_doc, pageno);
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        page             = fz_load_page(ctx, m_doc, pageno);
+        auto page_bounds = fz_bound_page(ctx, page);
 
-        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+        auto page_to_dev = fz_scale(scale, scale);
+        page_to_dev      = fz_pre_rotate(page_to_dev, m_rotation);
 
-        selection_text = fz_copy_selection(m_ctx, stext_page, a, b, 0);
+        const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
+        page_to_dev              = fz_concat(page_to_dev,
+                                             fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+
+        const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
+
+        fz_point a = {float(start.x()), float(start.y())};
+        fz_point b = {float(end.x()), float(end.y())};
+
+        a              = fz_transform_point(a, dev_to_page);
+        b              = fz_transform_point(b, dev_to_page);
+        stext_page     = fz_new_stext_page_from_page(ctx, page, nullptr);
+        selection_text = fz_copy_selection(ctx, stext_page, a, b, 0);
     }
-    fz_always(m_ctx)
+    fz_always(ctx)
     {
         if (selection_text)
         {
             result = std::string(selection_text);
-            fz_free(m_ctx, selection_text);
+            fz_free(ctx, selection_text);
+            if (!formatted)
+                clean_pdf_text(result);
         }
-        fz_drop_page(m_ctx, page);
-        fz_drop_stext_page(m_ctx, stext_page);
+        fz_drop_page(ctx, page);
+        fz_drop_stext_page(ctx, stext_page);
     }
-    fz_catch(m_ctx)
+    fz_catch(ctx)
     {
         qWarning() << "Failed to copy selection text";
     }
 
-    if (!formatted)
-        clean_pdf_text(result);
-
-    return result;
+    return QString::fromStdString(result);
 }
 
 std::vector<std::pair<QString, QString>>
@@ -1310,33 +1351,51 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 }
 
 void
-Model::highlightTextSelection(int pageno, const QPointF &start,
-                              const QPointF &end) noexcept
+Model::highlight_text_selection(int pageno, QPointF start, QPointF end) noexcept
 {
-    fz_page *page{nullptr};
+    fz_context *ctx = cloneContext();
+    if (!ctx)
+        return;
 
-    constexpr int MAX_HITS = 1000;
+    constexpr int MAX_HITS{1000};
     fz_quad hits[MAX_HITS];
-    int count = 0;
+    int count{0};
+    fz_page *page{nullptr};
     fz_stext_page *stext_page{nullptr};
+    const float scale = logicalScale();
 
-    fz_try(m_ctx)
+    fz_try(ctx)
     {
-        page = fz_load_page(m_ctx, m_doc, pageno);
 
-        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        page             = fz_load_page(ctx, m_doc, pageno);
+        auto page_bounds = fz_bound_page(ctx, page);
 
-        fz_point a, b;
-        a     = {static_cast<float>(start.x()), static_cast<float>(start.y())};
-        b     = {static_cast<float>(end.x()), static_cast<float>(end.y())};
-        count = fz_highlight_selection(m_ctx, stext_page, a, b, hits, MAX_HITS);
+        auto page_to_dev = fz_scale(scale, scale);
+        page_to_dev      = fz_pre_rotate(page_to_dev, m_rotation);
+
+        const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
+        page_to_dev              = fz_concat(page_to_dev,
+                                             fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+
+        const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
+
+        fz_point a = {float(start.x()), float(start.y())};
+        fz_point b = {float(end.x()), float(end.y())};
+
+        a          = fz_transform_point(a, dev_to_page);
+        b          = fz_transform_point(b, dev_to_page);
+        stext_page = fz_new_stext_page_from_page(ctx, page, nullptr);
+
+        count = fz_highlight_selection(ctx, stext_page, a, b, hits, MAX_HITS);
     }
-    fz_always(m_ctx)
+    fz_always(ctx)
     {
-        fz_drop_page(m_ctx, page);
-        fz_drop_stext_page(m_ctx, stext_page);
+        fz_drop_page(ctx, page);
+        fz_drop_stext_page(ctx, stext_page);
+        fz_drop_context(ctx);
     }
-    fz_catch(m_ctx)
+    fz_catch(ctx)
     {
         qWarning() << "Failed to copy selection text";
     }
@@ -1358,6 +1417,11 @@ Model::addHighlightAnnotation(const int pageno,
                               const std::vector<fz_quad> &quads) noexcept
 {
     int objNum{-1};
+
+#ifndef NDEBUG
+    qDebug() << "Model::addHighlightAnnotation(); Adding highlight for page = "
+             << pageno;
+#endif
 
     fz_try(m_ctx)
     {
@@ -1740,8 +1804,8 @@ Model::selectAtHelper(int pageno, fz_point pt, int snapMode) noexcept
         fz_snap_selection(m_ctx, stext_page, &a, &b, snapMode);
         count = fz_highlight_selection(m_ctx, stext_page, a, b, hits.data(),
                                        MAX_HITS);
-        m_selection_start = a;
-        m_selection_end   = b;
+        // m_selection_start = a;
+        // m_selection_end   = b;
     }
     fz_always(m_ctx)
     {
@@ -1865,8 +1929,8 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
                     out.push_back(std::move(poly));
                 }
 
-                m_selection_start = blockStart;
-                m_selection_end   = blockEnd;
+                // m_selection_start = blockStart;
+                // m_selection_end   = blockEnd;
                 break;
             }
         }
@@ -2354,8 +2418,7 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
 }
 
 std::string
-Model::getTextInArea(const int pageno, const QPointF &start,
-                     const QPointF &end) noexcept
+Model::getTextInArea(const int pageno, QPointF start, QPointF end) noexcept
 {
     std::string result;
 

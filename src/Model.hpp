@@ -302,12 +302,6 @@ public:
         return m_dpi;
     }
 
-    [[nodiscard]] inline std::pair<fz_point, fz_point>
-    getTextSelectionRange() const noexcept
-    {
-        return {m_selection_start, m_selection_end};
-    }
-
     // Clear cached fz_stext_page objects
     // inline void clear_fz_stext_page_cache() noexcept
     // {
@@ -328,7 +322,7 @@ public:
         const std::function<void(PageRenderResult)> &callback) noexcept;
     PageRenderResult renderPageWithExtrasAsync(const RenderJob &job) noexcept;
 
-    // fz_pixmap *hitTestImage(int pageno, const QPointF &pt, float zoom,
+    // fz_pixmap *hitTestImage(int pageno, QPointF pt, float zoom,
     //                         float rotation) noexcept;
 
     std::vector<std::pair<QString, QString>> properties() noexcept;
@@ -353,17 +347,16 @@ public:
     QPointF toPixelSpace(int pageno, fz_point pt) const noexcept;
     fz_point toPDFSpace(int pageno, QPointF pt) const noexcept;
 
-    std::vector<QPolygonF>
-    computeTextSelectionQuad(int pageno, const QPointF &start,
-                             const QPointF &end) noexcept;
+    std::vector<QPolygonF> computeTextSelectionQuad(int pageno, QPointF start,
+                                                    QPointF end) noexcept;
     std::vector<QPolygonF> selectWordAt(int pageno, fz_point pt) noexcept;
     std::vector<QPolygonF> selectLineAt(int pageno, fz_point pt) noexcept;
     std::vector<QPolygonF> selectParagraphAt(int pageno, fz_point pt) noexcept;
 
-    std::string getSelectedText(int pageno, const fz_point &a,
-                                const fz_point &b, bool formatted) noexcept;
-    void highlightTextSelection(int pageno, const QPointF &start,
-                                const QPointF &end) noexcept;
+    QString get_selected_text(int pageno, QPointF a, QPointF b,
+                              bool formatted) noexcept;
+    void highlight_text_selection(int pageno, QPointF start,
+                                  QPointF end) noexcept;
     void invalidatePageCache(int pageno) noexcept;
     void search(const QString &term, bool caseSensitive = false,
                 bool useRegex = false) noexcept;
@@ -530,9 +523,8 @@ private:
     };
     void initMuPDF() noexcept;
 
-    [[nodiscard]] std::string getTextInArea(const int pageno,
-                                            const QPointF &start,
-                                            const QPointF &end) noexcept;
+    [[nodiscard]] std::string getTextInArea(const int pageno, QPointF start,
+                                            QPointF end) noexcept;
     [[nodiscard]] std::tuple<float, float>
     getPageDimensions(int pageno) const noexcept;
 
@@ -581,7 +573,6 @@ private:
     bool m_success{false};
     fz_colorspace *m_colorspace{nullptr};
     fz_outline *m_outline{nullptr};
-    fz_point m_selection_start{}, m_selection_end{};
     fz_locks_context m_fz_locks;
     mutable std::recursive_mutex m_page_cache_mutex;
     LRUCache<int, PageCacheEntry> m_page_lru_cache;
