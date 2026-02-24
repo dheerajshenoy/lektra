@@ -429,6 +429,7 @@ private:
     std::vector<std::pair<int, Annotation *>> getSelectedAnnotations() noexcept;
     void changeColorOfSelectedAnnotations(const QColor &color) noexcept;
     void stopPendingRenders() noexcept;
+    int pageAtAxisCoord(double coord) const noexcept;
 
 #ifdef HAS_SYNCTEX
     void initSynctex() noexcept;
@@ -471,7 +472,6 @@ private:
     // fz_pixmap *m_hit_pixmap{nullptr};
     LayoutMode m_layout_mode{LayoutMode::TOP_TO_BOTTOM};
     WaitingSpinnerWidget *m_spinner{nullptr};
-    std::set<int> m_visible_pages_cache;
     bool m_visible_pages_dirty{true};
     bool m_deferred_fit{false};
     bool m_scroll_to_hit_pending{false};
@@ -480,10 +480,10 @@ private:
     DocumentContainer *m_container{nullptr};
     std::vector<LinkHint *> m_kb_link_hints{};
     std::vector<double> m_page_offsets{};
-    double m_max_page_cross_extent{
-        0.0}; // max cross-axis page size, cached by cachePageStride()
+    std::set<int> m_visible_pages_cache;
 
-    int pageAtAxisCoord(double coord) const noexcept;
+    // max cross-axis page size, cached by cachePageStride()
+    double m_max_page_cross_extent{0.0};
 
     unsigned int MAX_CONCURRENT_RENDERS{
         std::thread::hardware_concurrency() > 1
