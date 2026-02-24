@@ -90,7 +90,7 @@ Model::cleanup() noexcept
     m_pdf_doc = nullptr;
 
     {
-        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
         m_page_lru_cache.clear();
         m_text_cache.clear();
     }
@@ -2289,10 +2289,7 @@ Model::buildTextCacheForPages(const std::set<int> &pagenos) noexcept
             fz_drop_stext_page(ctx, stext);
             fz_drop_page(ctx, page);
         }
-        fz_catch(ctx)
-        {
-            // ignore page failures
-        }
+        fz_catch(ctx) {}
     }
     fz_drop_context(ctx);
 }
