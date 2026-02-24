@@ -41,5 +41,3 @@
 - [X] Drag and drop tabs not working, also get it to work with splits
 - [ ] Fix open containing folder
 - [ ] Handle closing split for friends
-- [ ] Efficient incremental search for words
-- [ ] Cross-page selection
