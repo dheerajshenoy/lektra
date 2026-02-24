@@ -46,14 +46,14 @@ set_title_format_if_present(toml::node_view<toml::node> n,
 
 template <typename T>
 static inline void
-set_if_present(toml::node_view<toml::node> node, T &target)
+set(toml::node_view<toml::node> node, T &target)
 {
     if (auto v = node.value<T>())
         target = *v;
 }
 
 static inline void
-set_qstring_if_present(toml::node_view<toml::node> n, QString &dst)
+set_qstring(toml::node_view<toml::node> n, QString &dst)
 {
     if (auto v = n.value<std::string>())
         dst = QString::fromStdString(*v);
@@ -511,368 +511,411 @@ lektra::initConfig() noexcept
         return;
     }
 
-    /* tabs */
-    auto ui_tabs = toml["tabs"];
-    set_if_present(ui_tabs["visible"], m_config.tabs.visible);
-    set_if_present(ui_tabs["auto_hide"], m_config.tabs.auto_hide);
-    set_if_present(ui_tabs["closable"], m_config.tabs.closable);
-    set_if_present(ui_tabs["movable"], m_config.tabs.movable);
-    if (auto str = ui_tabs["elide_mode"])
+    // Tabs
+    if (auto tabs = toml["tabs"])
     {
-        Qt::TextElideMode mode;
-        if (str == "left")
-            mode = Qt::ElideLeft;
-        else if (str == "right")
-            mode = Qt::ElideRight;
-        else if (str == "middle")
-            mode = Qt::ElideMiddle;
-        else
-            mode = Qt::ElideNone;
-        m_config.tabs.elide_mode = mode;
-    }
-
-    if (auto str = ui_tabs["location"])
-    {
-        QTabWidget::TabPosition location;
-
-        if (str == "left")
-            location = QTabWidget::West;
-        else if (str == "right")
-            location = QTabWidget::East;
-        else if (str == "bottom")
-            location = QTabWidget::South;
-        else
-            location = QTabWidget::North;
-
-        m_config.tabs.location = location;
-    }
-    set_if_present(ui_tabs["full_path"], m_config.tabs.full_path);
-    set_if_present(ui_tabs["lazy_load"], m_config.tabs.lazy_load);
-
-    /* window */
-    auto ui_window = toml["window"];
-    set_if_present(ui_window["startup_tab"], m_config.window.startup_tab);
-    set_if_present(ui_window["menubar"], m_config.window.menubar);
-    set_if_present(ui_window["fullscreen"], m_config.window.fullscreen);
-
-    if (ui_window["initial_size"].is_table())
-    {
-        int width{600}, height{400};
-
-        const auto &size_table = *ui_window["initial_size"].as_table();
-
-        if (auto toml_width = size_table["width"].value<int>())
-            width = *toml_width;
-        if (auto toml_height = size_table["height"].value<int>())
-            height = *toml_height;
-
-        if (width > 0 && height > 0)
+        set(tabs["visible"], m_config.tabs.visible);
+        set(tabs["auto_hide"], m_config.tabs.auto_hide);
+        set(tabs["closable"], m_config.tabs.closable);
+        set(tabs["movable"], m_config.tabs.movable);
+        if (auto str = tabs["elide_mode"])
         {
-            m_config.window.initial_size = {width, height};
-        }
-    }
-
-    if (m_config.window.fullscreen)
-        this->showFullScreen();
-
-    // Only override title format if key exists
-    set_title_format_if_present(ui_window["window_title"],
-                                m_config.window.title_format);
-
-    /* statusbar */
-    auto ui_statusbar = toml["statusbar"];
-    set_if_present(ui_statusbar["visible"], m_config.statusbar.visible);
-
-    if (auto padding_array = ui_statusbar["padding"].as_array();
-        padding_array && padding_array->size() >= 4)
-    {
-        for (int i = 0; i < 4; ++i)
-        {
-            if (auto v
-                = padding_array->get(static_cast<size_t>(i))->value<int>())
-                m_config.statusbar.padding[i] = *v;
-        }
-    }
-
-    set_if_present(ui_statusbar["show_progress"],
-                   m_config.statusbar.show_progress);
-    set_if_present(ui_statusbar["file_name_only"],
-                   m_config.statusbar.file_name_only);
-    set_if_present(ui_statusbar["show_file_info"],
-                   m_config.statusbar.show_file_info);
-    set_if_present(ui_statusbar["show_page_number"],
-                   m_config.statusbar.show_page_number);
-    set_if_present(ui_statusbar["show_mode"], m_config.statusbar.show_mode);
-    set_if_present(ui_statusbar["show_session_name"],
-                   m_config.statusbar.show_session_name);
-
-    /* layout */
-    auto ui_layout = toml["layout"];
-
-    if (auto str = ui_layout["mode"])
-    {
-        DocumentView::LayoutMode mode;
-
-        if (str == "top_to_bottom")
-            mode = DocumentView::LayoutMode::TOP_TO_BOTTOM;
-        else if (str == "single")
-            mode = DocumentView::LayoutMode::SINGLE;
-        else if (str == "left_to_right")
-            mode = DocumentView::LayoutMode::LEFT_TO_RIGHT;
-        else if (str == "book")
-            mode = DocumentView::LayoutMode::BOOK;
-        else
-            mode = DocumentView::LayoutMode::TOP_TO_BOTTOM;
-
-        m_config.layout.mode = mode;
-    }
-    if (auto str = ui_layout["initial_fit"])
-    {
-        DocumentView::FitMode initial_fit;
-
-        if (str == "width")
-        {
-            initial_fit = DocumentView::FitMode::Width;
-        }
-        else if (str == "height")
-        {
-            initial_fit = DocumentView::FitMode::Height;
-        }
-        else if (str == "window")
-        {
-            initial_fit = DocumentView::FitMode::Window;
-        }
-        else
-        {
-            initial_fit = DocumentView::FitMode::Width;
+            Qt::TextElideMode mode;
+            if (str == "left")
+                mode = Qt::ElideLeft;
+            else if (str == "right")
+                mode = Qt::ElideRight;
+            else if (str == "middle")
+                mode = Qt::ElideMiddle;
+            else
+                mode = Qt::ElideNone;
+            m_config.tabs.elide_mode = mode;
         }
 
-        m_config.layout.initial_fit = initial_fit;
-    }
-    set_if_present(ui_layout["auto_resize"], m_config.layout.auto_resize);
-    set_if_present(ui_layout["spacing"], m_config.layout.spacing);
-
-    /* zoom */
-    auto ui_zoom = toml["zoom"];
-    set_if_present(ui_zoom["level"], m_config.zoom.level);
-    set_if_present(ui_zoom["factor"], m_config.zoom.factor);
-
-    /* selection */
-    auto ui_selection = toml["selection"];
-    set_if_present(ui_selection["drag_threshold"],
-                   m_config.selection.drag_threshold);
-    set_if_present(ui_selection["copy_on_select"],
-                   m_config.selection.copy_on_select);
-    /* scrollbars */
-    auto ui_scrollbars = toml["scrollbars"];
-    set_if_present(ui_scrollbars["vertical"], m_config.scrollbars.vertical);
-    set_if_present(ui_scrollbars["horizontal"], m_config.scrollbars.horizontal);
-    set_if_present(ui_scrollbars["search_hits"],
-                   m_config.scrollbars.search_hits);
-    set_if_present(ui_scrollbars["auto_hide"], m_config.scrollbars.auto_hide);
-    set_if_present(ui_scrollbars["size"], m_config.scrollbars.size);
-    set_if_present(ui_scrollbars["hide_timeout"],
-                   m_config.scrollbars.hide_timeout);
-
-    /* command_palette */
-    auto command_palette = toml["command_palette"];
-    set_if_present(command_palette["height"], m_config.command_palette.height);
-    set_if_present(command_palette["width"], m_config.command_palette.width);
-    set_if_present(command_palette["vscrollbar"],
-                   m_config.command_palette.vscrollbar);
-    set_if_present(command_palette["show_grid"], m_config.command_palette.grid);
-    set_if_present(command_palette["show_shortcuts"],
-                   m_config.command_palette.shortcuts);
-
-    set_qstring_if_present(command_palette["placeholder_text"],
-                           m_config.command_palette.placeholder_text);
-
-    /* overlays */
-    auto picker = toml["picker"];
-    set_if_present(picker["border"], m_config.picker.border);
-
-    auto picker_shadow = picker["shadow"];
-    set_if_present(picker_shadow["enabled"], m_config.picker.shadow.enabled);
-    set_if_present(picker_shadow["blur_radius"],
-                   m_config.picker.shadow.blur_radius);
-    set_if_present(picker_shadow["offset_x"], m_config.picker.shadow.offset_x);
-    set_if_present(picker_shadow["offset_y"], m_config.picker.shadow.offset_y);
-    set_if_present(picker_shadow["opacity"], m_config.picker.shadow.opacity);
-
-    auto picker_keys = picker["keys"];
-
-    // Member: m_pickers
-
-    if (picker_keys.is_table())
-    {
-        const auto &keys = *picker_keys.as_table();
-        const auto get   = [&](std::string_view field, QKeyCombination fallback)
+        if (auto str = tabs["location"])
         {
-            const auto *node = keys.get(field);
-            if (!node || !node->is_string())
-                return fallback;
-            const auto seq = QKeySequence::fromString(
-                QString::fromStdString(std::string(node->as_string()->get())),
-                QKeySequence::PortableText);
-            return seq.isEmpty() ? fallback : seq[0];
-        };
+            QTabWidget::TabPosition location;
 
-        m_picker_keybinds = Picker::Keybindings{
-            .moveDown = get("down", Picker::Keybindings{}.moveDown),
-            .pageDown = get("page_down", Picker::Keybindings{}.pageDown),
-            .moveUp   = get("up", Picker::Keybindings{}.moveUp),
-            .pageUp   = get("page_up", Picker::Keybindings{}.pageUp),
-            .accept   = get("accept", Picker::Keybindings{}.accept),
-            .dismiss  = get("dismiss", Picker::Keybindings{}.dismiss),
-        };
+            if (str == "left")
+                location = QTabWidget::West;
+            else if (str == "right")
+                location = QTabWidget::East;
+            else if (str == "bottom")
+                location = QTabWidget::South;
+            else
+                location = QTabWidget::North;
+
+            m_config.tabs.location = location;
+        }
+        set(tabs["full_path"], m_config.tabs.full_path);
+        set(tabs["lazy_load"], m_config.tabs.lazy_load);
     }
 
-    /* markers */
-    auto ui_markers = toml["markers"];
-    set_if_present(ui_markers["jump_marker"], m_config.markers.jump_marker);
-
-    /* links + link_hints */
-    auto ui_links      = toml["links"];
-    auto ui_link_hints = toml["link_hints"];
-
-    set_if_present(ui_links["boundary"], m_config.links.boundary);
-    set_if_present(ui_links["detect_urls"], m_config.links.detect_urls);
-    set_qstring_if_present(ui_links["url_regex"], m_config.links.url_regex);
-    set_if_present(ui_link_hints["size"], m_config.link_hints.size);
-
-    /* outline */
-    auto ui_outline = toml["outline"];
-
-    /* highlight_search */
-    auto ui_highlight_search = toml["highlight_search"];
-
-#ifdef ENABLE_LLM_SUPPORT
-    auto llm_widget = toml["llm_widget"];
-    set_qstring_if_present(llm_widget["panel_position"],
-                           m_config.llm_widget.panel_position);
-    set_if_present(llm_widget["panel_width"], m_config.llm_widget.panel_width);
-    set_if_present(llm_widget["visible"], m_config.llm_widget.visible);
-
-    auto llm = toml["llm"];
-    set_if_present(llm["provider"], m_config.llm.provider);
-    set_if_present(llm["model"], m_config.llm.model);
-    set_if_present(llm["max_tokens"], m_config.llm.max_tokens);
-#endif
-
-    /* colors */
-    auto colors = toml["colors"];
-    set_color_if_present(colors["accent"], m_config.colors.accent);
-    set_color_if_present(colors["background"], m_config.colors.background);
-    set_color_if_present(colors["search_match"], m_config.colors.search_match);
-    set_color_if_present(colors["search_index"], m_config.colors.search_index);
-    set_color_if_present(colors["link_hint_bg"], m_config.colors.link_hint_bg);
-    set_color_if_present(colors["link_hint_fg"], m_config.colors.link_hint_fg);
-    set_color_if_present(colors["selection"], m_config.colors.selection);
-    set_color_if_present(colors["highlight"], m_config.colors.highlight);
-    set_color_if_present(colors["jump_marker"], m_config.colors.jump_marker);
-    set_color_if_present(colors["annot_rect"], m_config.colors.annot_rect);
-    set_color_if_present(colors["annot_popup"], m_config.colors.annot_popup);
-    set_color_if_present(colors["page_background"],
-                         m_config.colors.page_background);
-    set_color_if_present(colors["page_foreground"],
-                         m_config.colors.page_foreground);
-
-    /* rendering */
-    auto rendering = toml["rendering"];
-
-    set_if_present(rendering["antialiasing"], m_config.rendering.antialiasing);
-    set_if_present(rendering["text_antialiasing"],
-                   m_config.rendering.text_antialiasing);
-    set_if_present(rendering["smooth_pixmap_transform"],
-                   m_config.rendering.smooth_pixmap_transform);
-    set_if_present(rendering["antialiasing_bits"],
-                   m_config.rendering.antialiasing_bits);
-
-    // If DPR is specified in config, use that (can be scalar or map)
-    if (rendering["dpr"])
+    // Window
+    if (auto window = toml["window"])
     {
-        if (rendering["dpr"].is_value())
+        set(window["startup_tab"], m_config.window.startup_tab);
+        set(window["menubar"], m_config.window.menubar);
+        set(window["fullscreen"], m_config.window.fullscreen);
+
+        if (window["initial_size"].is_table())
         {
-            if (auto v = rendering["dpr"].value<float>())
+            int width{600}, height{400};
+
+            const auto &size_table = *window["initial_size"].as_table();
+
+            if (auto toml_width = size_table["width"].value<int>())
+                width = *toml_width;
+            if (auto toml_height = size_table["height"].value<int>())
+                height = *toml_height;
+
+            if (width > 0 && height > 0)
             {
-                m_config.rendering.dpr                                     = *v;
-                m_screen_dpr_map[QGuiApplication::primaryScreen()->name()] = *v;
+                m_config.window.initial_size = {width, height};
             }
         }
-        else if (rendering["dpr"].is_table())
-        {
-            // Only build a map if table exists; else leave default
-            auto dpr_table = rendering["dpr"];
-            if (auto t = dpr_table.as_table())
-            {
-                // Start from current map (if you want table to "add/override")
-                // or clear it (if you want table to "replace").
-                // Here: replace, because that's what your old code effectively
-                // did.
-                m_screen_dpr_map.clear();
-                for (auto &[screen_name, value] : *t)
-                {
-                    if (auto v = value.value<float>())
-                    {
-                        const QString screen_str = QString::fromStdString(
-                            std::string(screen_name.str()));
 
-                        for (QScreen *screen : QApplication::screens())
+        if (m_config.window.fullscreen)
+            this->showFullScreen();
+
+        // Only override title format if key exists
+        set_title_format_if_present(window["window_title"],
+                                    m_config.window.title_format);
+    }
+
+    // Statusbar
+    if (auto statusbar = toml["statusbar"])
+    {
+        set(statusbar["visible"], m_config.statusbar.visible);
+
+        if (auto padding_array = statusbar["padding"].as_array();
+            padding_array && padding_array->size() >= 4)
+        {
+            for (int i = 0; i < 4; ++i)
+            {
+                if (auto v
+                    = padding_array->get(static_cast<size_t>(i))->value<int>())
+                    m_config.statusbar.padding[i] = *v;
+            }
+        }
+
+        set(statusbar["show_progress"], m_config.statusbar.show_progress);
+        set(statusbar["file_name_only"], m_config.statusbar.file_name_only);
+        set(statusbar["show_file_info"], m_config.statusbar.show_file_info);
+        set(statusbar["show_page_number"], m_config.statusbar.show_page_number);
+        set(statusbar["show_mode"], m_config.statusbar.show_mode);
+        set(statusbar["show_session_name"],
+            m_config.statusbar.show_session_name);
+    }
+
+    // Layout
+    if (auto layout = toml["layout"])
+    {
+        if (auto str = layout["mode"])
+        {
+            DocumentView::LayoutMode mode;
+
+            if (str == "top_to_bottom")
+                mode = DocumentView::LayoutMode::TOP_TO_BOTTOM;
+            else if (str == "single")
+                mode = DocumentView::LayoutMode::SINGLE;
+            else if (str == "left_to_right")
+                mode = DocumentView::LayoutMode::LEFT_TO_RIGHT;
+            else if (str == "book")
+                mode = DocumentView::LayoutMode::BOOK;
+            else
+                mode = DocumentView::LayoutMode::TOP_TO_BOTTOM;
+
+            m_config.layout.mode = mode;
+        }
+        if (auto str = layout["initial_fit"])
+        {
+            DocumentView::FitMode initial_fit;
+
+            if (str == "width")
+            {
+                initial_fit = DocumentView::FitMode::Width;
+            }
+            else if (str == "height")
+            {
+                initial_fit = DocumentView::FitMode::Height;
+            }
+            else if (str == "window")
+            {
+                initial_fit = DocumentView::FitMode::Window;
+            }
+            else
+            {
+                initial_fit = DocumentView::FitMode::Width;
+            }
+
+            m_config.layout.initial_fit = initial_fit;
+        }
+        set(layout["auto_resize"], m_config.layout.auto_resize);
+        set(layout["spacing"], m_config.layout.spacing);
+    }
+
+    // Zoom
+    if (auto zoom = toml["zoom"])
+    {
+        set(zoom["level"], m_config.zoom.level);
+        set(zoom["factor"], m_config.zoom.factor);
+    }
+
+    // Selection
+    if (auto selection = toml["selection"])
+    {
+        set(selection["drag_threshold"], m_config.selection.drag_threshold);
+        set(selection["copy_on_select"], m_config.selection.copy_on_select);
+    }
+    /* scrollbars */
+    if (auto scrollbars = toml["scrollbars"])
+    {
+        set(scrollbars["vertical"], m_config.scrollbars.vertical);
+        set(scrollbars["horizontal"], m_config.scrollbars.horizontal);
+        set(scrollbars["search_hits"], m_config.scrollbars.search_hits);
+        set(scrollbars["auto_hide"], m_config.scrollbars.auto_hide);
+        set(scrollbars["size"], m_config.scrollbars.size);
+        set(scrollbars["hide_timeout"], m_config.scrollbars.hide_timeout);
+    }
+
+    // Command Palette
+    if (auto command_palette = toml["command_palette"])
+    {
+        set(command_palette["height"], m_config.command_palette.height);
+        set(command_palette["width"], m_config.command_palette.width);
+        set(command_palette["vscrollbar"], m_config.command_palette.vscrollbar);
+        set(command_palette["show_grid"], m_config.command_palette.grid);
+        set(command_palette["show_shortcuts"],
+            m_config.command_palette.shortcuts);
+
+        set_qstring(command_palette["placeholder_text"],
+                    m_config.command_palette.placeholder_text);
+    }
+
+    // Picker
+    if (auto picker = toml["picker"])
+    {
+        set(picker["border"], m_config.picker.border);
+
+        if (auto picker_shadow = picker["shadow"])
+        {
+            set(picker_shadow["enabled"], m_config.picker.shadow.enabled);
+            set(picker_shadow["blur_radius"],
+                m_config.picker.shadow.blur_radius);
+            set(picker_shadow["offset_x"], m_config.picker.shadow.offset_x);
+            set(picker_shadow["offset_y"], m_config.picker.shadow.offset_y);
+            set(picker_shadow["opacity"], m_config.picker.shadow.opacity);
+        }
+
+        // Picker.Keys
+        if (auto picker_keys = picker["keys"])
+        {
+            // Member: m_pickers
+            if (picker_keys.is_table())
+            {
+                const auto &keys = *picker_keys.as_table();
+                const auto get
+                    = [&](std::string_view field, QKeyCombination fallback)
+                {
+                    const auto *node = keys.get(field);
+                    if (!node || !node->is_string())
+                        return fallback;
+                    const auto seq = QKeySequence::fromString(
+                        QString::fromStdString(
+                            std::string(node->as_string()->get())),
+                        QKeySequence::PortableText);
+                    return seq.isEmpty() ? fallback : seq[0];
+                };
+
+                m_picker_keybinds = Picker::Keybindings{
+                    .moveDown = get("down", Picker::Keybindings{}.moveDown),
+                    .pageDown
+                    = get("page_down", Picker::Keybindings{}.pageDown),
+                    .moveUp  = get("up", Picker::Keybindings{}.moveUp),
+                    .pageUp  = get("page_up", Picker::Keybindings{}.pageUp),
+                    .accept  = get("accept", Picker::Keybindings{}.accept),
+                    .dismiss = get("dismiss", Picker::Keybindings{}.dismiss),
+                };
+            }
+        }
+    }
+
+    // Markers
+    if (auto markers = toml["markers"])
+    {
+        set(markers["jump_marker"], m_config.markers.jump_marker);
+    }
+
+    // Links
+    if (auto links = toml["links"])
+    {
+        set(links["boundary"], m_config.links.boundary);
+        set(links["detect_urls"], m_config.links.detect_urls);
+        set_qstring(links["url_regex"], m_config.links.url_regex);
+    }
+
+    // Link Hints
+    if (auto link_hints = toml["link_hints"])
+    {
+        set(link_hints["size"], m_config.link_hints.size);
+    }
+
+    // Outline
+    if (auto outline = toml["outline"])
+    {
+        // TODO
+    }
+
+    // Highlight Search
+    if (auto highlight_search = toml["highlight_search"])
+    {
+        // TODO
+    }
+
+#ifdef ENABLE_LLM_SUPPORT
+    // LLM Widget
+    if (auto llm_widget = toml["llm_widget"])
+    {
+        set_qstring(llm_widget["panel_position"],
+                    m_config.llm_widget.panel_position);
+        set(llm_widget["panel_width"], m_config.llm_widget.panel_width);
+        set(llm_widget["visible"], m_config.llm_widget.visible);
+    }
+
+    // LLM
+    if (auto llm = toml["llm"])
+    {
+        set(llm["provider"], m_config.llm.provider);
+        set(llm["model"], m_config.llm.model);
+        set(llm["max_tokens"], m_config.llm.max_tokens);
+    }
+#endif
+
+    // Colors
+    if (auto colors = toml["colors"])
+    {
+        set_color_if_present(colors["accent"], m_config.colors.accent);
+        set_color_if_present(colors["background"], m_config.colors.background);
+        set_color_if_present(colors["search_match"],
+                             m_config.colors.search_match);
+        set_color_if_present(colors["search_index"],
+                             m_config.colors.search_index);
+        set_color_if_present(colors["link_hint_bg"],
+                             m_config.colors.link_hint_bg);
+        set_color_if_present(colors["link_hint_fg"],
+                             m_config.colors.link_hint_fg);
+        set_color_if_present(colors["selection"], m_config.colors.selection);
+        set_color_if_present(colors["highlight"], m_config.colors.highlight);
+        set_color_if_present(colors["jump_marker"],
+                             m_config.colors.jump_marker);
+        set_color_if_present(colors["annot_rect"], m_config.colors.annot_rect);
+        set_color_if_present(colors["annot_popup"],
+                             m_config.colors.annot_popup);
+        set_color_if_present(colors["page_background"],
+                             m_config.colors.page_background);
+        set_color_if_present(colors["page_foreground"],
+                             m_config.colors.page_foreground);
+    }
+
+    // Rendering
+    if (auto rendering = toml["rendering"])
+    {
+        set(rendering["antialiasing"], m_config.rendering.antialiasing);
+        set(rendering["text_antialiasing"],
+            m_config.rendering.text_antialiasing);
+        set(rendering["smooth_pixmap_transform"],
+            m_config.rendering.smooth_pixmap_transform);
+        set(rendering["antialiasing_bits"],
+            m_config.rendering.antialiasing_bits);
+
+        // If DPR is specified in config, use that (can be scalar or map)
+        if (rendering["dpr"])
+        {
+            if (rendering["dpr"].is_value())
+            {
+                if (auto v = rendering["dpr"].value<float>())
+                {
+                    m_config.rendering.dpr = *v;
+                    m_screen_dpr_map[QGuiApplication::primaryScreen()->name()]
+                        = *v;
+                }
+            }
+            else if (rendering["dpr"].is_table())
+            {
+                // Only build a map if table exists; else leave default
+                auto dpr_table = rendering["dpr"];
+                if (auto t = dpr_table.as_table())
+                {
+                    // Start from current map (if you want table to
+                    // "add/override") or clear it (if you want table to
+                    // "replace"). Here: replace, because that's what your old
+                    // code effectively did.
+                    m_screen_dpr_map.clear();
+                    for (auto &[screen_name, value] : *t)
+                    {
+                        if (auto v = value.value<float>())
                         {
-                            if (screen->name() == screen_str)
+                            const QString screen_str = QString::fromStdString(
+                                std::string(screen_name.str()));
+
+                            for (QScreen *screen : QApplication::screens())
                             {
-                                m_screen_dpr_map[screen->name()] = *v;
-                                break;
+                                if (screen->name() == screen_str)
+                                {
+                                    m_screen_dpr_map[screen->name()] = *v;
+                                    break;
+                                }
                             }
                         }
                     }
-                }
 
-                m_config.rendering.dpr = m_screen_dpr_map;
+                    m_config.rendering.dpr = m_screen_dpr_map;
+                }
             }
         }
+        else
+        {
+            m_screen_dpr_map[QGuiApplication::primaryScreen()->name()] = 1.0f;
+        }
     }
-    else
+
+    // Split
+    if (auto split = toml["split"])
     {
-        m_screen_dpr_map[QGuiApplication::primaryScreen()->name()] = 1.0f;
+        set(split["focus_follows_mouse"], m_config.split.focus_follows_mouse);
+        set(split["dim_inactive"], m_config.split.dim_inactive);
+        set(split["dim_inactive_opacity"], m_config.split.dim_inactive_opacity);
     }
 
-    auto split = toml["split"];
 
-    set_if_present(split["focus_follows_mouse"],
-                   m_config.split.focus_follows_mouse);
-    set_if_present(split["dim_inactive"], m_config.split.dim_inactive);
-    set_if_present(split["dim_inactive_opacity"],
-                   m_config.split.dim_inactive_opacity);
+    // Behavior
 
-    auto behavior = toml["behavior"];
-
+    if (auto behavior = toml["behavior"])
+    {
 #ifdef HAS_SYNCTEX
-    set_qstring_if_present(behavior["synctex_editor_command"],
-                           m_config.behavior.synctex_editor_command);
+        set_qstring(behavior["synctex_editor_command"],
+                    m_config.behavior.synctex_editor_command);
 #endif
 
-    set_if_present(behavior["preload_pages"], m_config.behavior.preload_pages);
-    set_if_present(behavior["confirm_on_quit"],
-                   m_config.behavior.confirm_on_quit);
-    set_if_present(behavior["undo_limit"], m_config.behavior.undo_limit);
-    set_if_present(behavior["remember_last_visited"],
-                   m_config.behavior.remember_last_visited);
-    set_if_present(behavior["always_open_in_new_window"],
-                   m_config.behavior.always_open_in_new_window);
-    set_if_present(behavior["page_history"],
-                   m_config.behavior.page_history_limit);
-    set_if_present(behavior["invert_mode"], m_config.behavior.invert_mode);
-    set_if_present(behavior["auto_reload"], m_config.behavior.auto_reload);
-    set_if_present(behavior["recent_files"], m_config.behavior.recent_files);
-    set_if_present(behavior["num_recent_files"],
-                   m_config.behavior.num_recent_files);
-    set_if_present(behavior["cache_pages"], m_config.behavior.cache_pages);
+        set(behavior["preload_pages"], m_config.behavior.preload_pages);
+        set(behavior["confirm_on_quit"], m_config.behavior.confirm_on_quit);
+        set(behavior["undo_limit"], m_config.behavior.undo_limit);
+        set(behavior["remember_last_visited"],
+            m_config.behavior.remember_last_visited);
+        set(behavior["always_open_in_new_window"],
+            m_config.behavior.always_open_in_new_window);
+        set(behavior["page_history"], m_config.behavior.page_history_limit);
+        set(behavior["invert_mode"], m_config.behavior.invert_mode);
+        set(behavior["auto_reload"], m_config.behavior.auto_reload);
+        set(behavior["recent_files"], m_config.behavior.recent_files);
+        set(behavior["num_recent_files"], m_config.behavior.num_recent_files);
+        set(behavior["cache_pages"], m_config.behavior.cache_pages);
+    }
 
-    if (toml.contains("keybindings"))
+    if (auto keys = toml["keybindings"])
     {
         m_load_default_keybinding = false;
-        auto keys                 = toml["keybindings"];
 
         for (auto &[action, value] : *keys.as_table())
         {
@@ -3391,151 +3434,148 @@ lektra::Redo() noexcept
     }
 }
 
-// Initialize the actions with corresponding functions
-// to call
-// Helper macro for actions that don't use arguments
-#define ACTION_NO_ARGS(name, func)                                             \
-    {name, [this](const QStringList &) { func(); }}
+#define ACTION(name, func) {name, [this](const QStringList &) { func(); }}
 
-// Initialize the action map
+#define ACTION_ARGS(name, func)                                                \
+    {name, [this](const QStringList &args) { func(args); }}
+
 void
 lektra::initActionMap() noexcept
 {
     m_actionMap = {
-        // Selection actions
-        ACTION_NO_ARGS("selection_copy", Selection_copy),
-        ACTION_NO_ARGS("selection_cancel", Selection_cancel),
-        ACTION_NO_ARGS("selection_last", ReselectLastTextSelection),
+        // Selection
+        ACTION("selection_copy", Selection_copy),
+        ACTION("selection_cancel", Selection_cancel),
+        ACTION("selection_last", ReselectLastTextSelection),
 
-        // Toggle actions
-        ACTION_NO_ARGS("toggle_presentation_mode", Toggle_presentation_mode),
-        ACTION_NO_ARGS("toggle_fullscreen", ToggleFullscreen),
-        ACTION_NO_ARGS("toggle_command_palette", Show_command_picker),
-        ACTION_NO_ARGS("toggle_tabs", ToggleTabBar),
-        ACTION_NO_ARGS("toggle_menubar", ToggleMenubar),
-        ACTION_NO_ARGS("toggle_statusbar", TogglePanel),
-        ACTION_NO_ARGS("toggle_focus_mode", ToggleFocusMode),
-// Actions without arguments
+        // Toggles
+        ACTION("toggle_presentation_mode", Toggle_presentation_mode),
+        ACTION("toggle_fullscreen", ToggleFullscreen),
+        ACTION("toggle_command_palette", Show_command_picker),
+        ACTION("toggle_tabs", ToggleTabBar),
+        ACTION("toggle_menubar", ToggleMenubar),
+        ACTION("toggle_statusbar", TogglePanel),
+        ACTION("toggle_focus_mode", ToggleFocusMode),
+        ACTION("toggle_smart_jump", Toggle_smart_jump),
 #ifdef ENABLE_LLM_SUPPORT
-        ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
+        ACTION("toggle_llm_widget", ToggleLLMWidget),
 #endif
 
-        // Link hint actions
-        ACTION_NO_ARGS("link_hint_visit", VisitLinkKB),
-        ACTION_NO_ARGS("link_hint_copy", CopyLinkKB),
+        // Link hints
+        ACTION("link_hint_visit", VisitLinkKB),
+        ACTION("link_hint_copy", CopyLinkKB),
 
-        // Page navigation actions
-        ACTION_NO_ARGS("page_first", FirstPage),
-        ACTION_NO_ARGS("page_last", LastPage),
-        ACTION_NO_ARGS("page_next", NextPage),
-        ACTION_NO_ARGS("page_prev", PrevPage),
-        ACTION_NO_ARGS("page_goto", Goto_page),
+        // Page navigation
+        ACTION("page_first", FirstPage),
+        ACTION("page_last", LastPage),
+        ACTION("page_next", NextPage),
+        ACTION("page_prev", PrevPage),
+        ACTION("page_goto", Goto_page),
 
-        // Mark actions
-        ACTION_NO_ARGS("mark_set", SetMark),
-        ACTION_NO_ARGS("mark_delete", DeleteMark),
-        ACTION_NO_ARGS("mark_goto", GotoMark),
+        // Marks
+        ACTION("mark_set", SetMark),
+        ACTION("mark_delete", DeleteMark),
+        ACTION("mark_goto", GotoMark),
 
-        // Scrolling actions
-        ACTION_NO_ARGS("scroll_down", ScrollDown),
-        ACTION_NO_ARGS("scroll_up", ScrollUp),
-        ACTION_NO_ARGS("scroll_left", ScrollLeft),
-        ACTION_NO_ARGS("scroll_right", ScrollRight),
+        // Scrolling
+        ACTION("scroll_down", ScrollDown),
+        ACTION("scroll_up", ScrollUp),
+        ACTION("scroll_left", ScrollLeft),
+        ACTION("scroll_right", ScrollRight),
 
-        // Rotation actions
-        ACTION_NO_ARGS("rotate_clock", RotateClock),
-        ACTION_NO_ARGS("rotate_anticlock", RotateAnticlock),
+        // Rotation
+        ACTION("rotate_clock", RotateClock),
+        ACTION("rotate_anticlock", RotateAnticlock),
 
-        // Location actions
-        ACTION_NO_ARGS("location_prev", GoBackHistory),
-        ACTION_NO_ARGS("location_next", GoForwardHistory),
+        // Location history
+        ACTION("location_prev", GoBackHistory),
+        ACTION("location_next", GoForwardHistory),
 
-        // Zoom actions
-        ACTION_NO_ARGS("zoom_in", ZoomIn),
-        ACTION_NO_ARGS("zoom_out", ZoomOut),
-        ACTION_NO_ARGS("zoom_reset", ZoomReset),
-        ACTION_NO_ARGS("zoom_set", Zoom_set),
+        // Zoom
+        ACTION("zoom_in", ZoomIn),
+        ACTION("zoom_out", ZoomOut),
+        ACTION("zoom_reset", ZoomReset),
+        ACTION("zoom_set", Zoom_set),
 
-        // Split actions
-        ACTION_NO_ARGS("split_horizontal", VSplit),
-        ACTION_NO_ARGS("split_vertical", HSplit),
-        ACTION_NO_ARGS("split_close", Close_split),
-        ACTION_NO_ARGS("split_focus_right", Focus_split_right),
-        ACTION_NO_ARGS("split_focus_left", Focus_split_left),
-        ACTION_NO_ARGS("split_focus_up", Focus_split_up),
-        ACTION_NO_ARGS("split_focus_down", Focus_split_down),
-        ACTION_NO_ARGS("split_close_others", Close_other_splits),
+        // Splits
+        ACTION("split_horizontal", VSplit),
+        ACTION("split_vertical", HSplit),
+        ACTION("split_close", Close_split),
+        ACTION("split_focus_right", Focus_split_right),
+        ACTION("split_focus_left", Focus_split_left),
+        ACTION("split_focus_up", Focus_split_up),
+        ACTION("split_focus_down", Focus_split_down),
+        ACTION("split_close_others", Close_other_splits),
 
-        // Portal actions
-        ACTION_NO_ARGS("portal", Create_or_focus_portal),
+        // Portal
+        ACTION("portal", Create_or_focus_portal),
 
-        // File opening actions
-        ACTION_NO_ARGS("file_open_tab", OpenFileInNewTab),
-        ACTION_NO_ARGS("file_open_vsplit", OpenFileVSplit),
-        ACTION_NO_ARGS("file_open_hsplit", OpenFileHSplit),
-        ACTION_NO_ARGS("file_open_dwim", OpenFileDWIM),
-        ACTION_NO_ARGS("file_close", CloseFile),
-        ACTION_NO_ARGS("file_save", SaveFile),
-        ACTION_NO_ARGS("file_save_as", SaveAsFile),
-        ACTION_NO_ARGS("file_encrypt", EncryptDocument),
-        ACTION_NO_ARGS("file_decrypt", DecryptDocument),
-        ACTION_NO_ARGS("file_reload", reloadDocument),
-        ACTION_NO_ARGS("file_properties", FileProperties),
-        ACTION_NO_ARGS("files_recent", Show_recent_files_picker),
+        // File operations
+        ACTION("file_open_tab", OpenFileInNewTab),
+        ACTION("file_open_vsplit", OpenFileVSplit),
+        ACTION("file_open_hsplit", OpenFileHSplit),
+        ACTION("file_open_dwim", OpenFileDWIM),
+        ACTION("file_close", CloseFile),
+        ACTION("file_save", SaveFile),
+        ACTION("file_save_as", SaveAsFile),
+        ACTION("file_encrypt", EncryptDocument),
+        ACTION("file_decrypt", DecryptDocument),
+        ACTION("file_reload", reloadDocument),
+        ACTION("file_properties", FileProperties),
+        ACTION("files_recent", Show_recent_files_picker),
 
         // Annotation modes
-        ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
-        ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
-        ACTION_NO_ARGS("annot_rect_mode", ToggleAnnotRect),
-        ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
-        ACTION_NO_ARGS("annot_highlight_mode", ToggleTextHighlight),
+        ACTION("annot_edit_mode", ToggleAnnotSelect),
+        ACTION("annot_popup_mode", ToggleAnnotPopup), // duplicate removed
+        ACTION("annot_rect_mode", ToggleAnnotRect),
+        ACTION("annot_highlight_mode", ToggleTextHighlight),
 
         // Selection modes
-        ACTION_NO_ARGS("selection_mode_text", ToggleTextSelection),
-        ACTION_NO_ARGS("selection_mode_region", ToggleRegionSelect),
+        ACTION("selection_mode_text", ToggleTextSelection),
+        ACTION("selection_mode_region", ToggleRegionSelect),
 
         // Fit modes
-        ACTION_NO_ARGS("fit_width", Fit_width),
-        ACTION_NO_ARGS("fit_height", Fit_height),
-        ACTION_NO_ARGS("fit_page", Fit_page),
-        ACTION_NO_ARGS("fit_auto", ToggleAutoResize),
+        ACTION("fit_width", Fit_width),
+        ACTION("fit_height", Fit_height),
+        ACTION("fit_page", Fit_page),
+        ACTION("fit_auto", ToggleAutoResize),
 
-        // Session actions
-        ACTION_NO_ARGS("session_save", SaveSession),
-        ACTION_NO_ARGS("session_save_as", SaveAsSession),
-        ACTION_NO_ARGS("session_load", LoadSession),
+        // Sessions
+        ACTION("session_save", SaveSession),
+        ACTION("session_save_as", SaveAsSession),
+        ACTION("session_load", LoadSession),
 
-        // Tab actions
-        ACTION_NO_ARGS("tabs_close_left", TabsCloseLeft),
-        ACTION_NO_ARGS("tabs_close_right", TabsCloseRight),
-        ACTION_NO_ARGS("tabs_close_others", TabsCloseOthers),
-        ACTION_NO_ARGS("tab_move_right", TabMoveRight),
-        ACTION_NO_ARGS("tab_move_left", TabMoveLeft),
-        ACTION_NO_ARGS("tab_first", Tab_first),
-        ACTION_NO_ARGS("tab_last", Tab_last),
-        ACTION_NO_ARGS("tab_next", Tab_next),
-        ACTION_NO_ARGS("tab_prev", Tab_prev),
-        ACTION_NO_ARGS("tab_close", Tab_close),
-        ACTION_NO_ARGS("tab_goto", [this]() { Tab_goto(); }),
-        ACTION_NO_ARGS("tab_1", [this]() { Tab_goto(1); }),
-        ACTION_NO_ARGS("tab_2", [this]() { Tab_goto(2); }),
-        ACTION_NO_ARGS("tab_3", [this]() { Tab_goto(3); }),
-        ACTION_NO_ARGS("tab_4", [this]() { Tab_goto(4); }),
-        ACTION_NO_ARGS("tab_5", [this]() { Tab_goto(5); }),
-        ACTION_NO_ARGS("tab_6", [this]() { Tab_goto(6); }),
-        ACTION_NO_ARGS("tab_7", [this]() { Tab_goto(7); }),
-        ACTION_NO_ARGS("tab_8", [this]() { Tab_goto(8); }),
-        ACTION_NO_ARGS("tab_9", [this]() { Tab_goto(9); }),
+        // Tabs
+        ACTION("tabs_close_left", TabsCloseLeft),
+        ACTION("tabs_close_right", TabsCloseRight),
+        ACTION("tabs_close_others", TabsCloseOthers),
+        ACTION("tab_move_right", TabMoveRight),
+        ACTION("tab_move_left", TabMoveLeft),
+        ACTION("tab_first", Tab_first),
+        ACTION("tab_last", Tab_last),
+        ACTION("tab_next", Tab_next),
+        ACTION("tab_prev", Tab_prev),
+        ACTION("tab_close", Tab_close),
+        {"tab_goto", [this](const QStringList &) { Tab_goto(); }},
+        {"tab_1", [this](const QStringList &) { Tab_goto(1); }},
+        {"tab_2", [this](const QStringList &) { Tab_goto(2); }},
+        {"tab_3", [this](const QStringList &) { Tab_goto(3); }},
+        {"tab_4", [this](const QStringList &) { Tab_goto(4); }},
+        {"tab_5", [this](const QStringList &) { Tab_goto(5); }},
+        {"tab_6", [this](const QStringList &) { Tab_goto(6); }},
+        {"tab_7", [this](const QStringList &) { Tab_goto(7); }},
+        {"tab_8", [this](const QStringList &) { Tab_goto(8); }},
+        {"tab_9", [this](const QStringList &) { Tab_goto(9); }},
 
         // Pickers
-        ACTION_NO_ARGS("picker_outline", Show_outline),
-        ACTION_NO_ARGS("picker_highlight_search", Show_highlight_search),
+        ACTION("picker_outline", Show_outline),
+        ACTION("picker_highlight_search", Show_highlight_search),
 
-        // Search actions
-        ACTION_NO_ARGS("search", Search),
-        ACTION_NO_ARGS("search_regex", Search_regex),
-        ACTION_NO_ARGS("search_next", NextHit),
-        ACTION_NO_ARGS("search_prev", PrevHit),
+        // Search
+        ACTION("search", Search),
+        ACTION("search_regex", Search_regex),
+        ACTION("search_next", NextHit),
+        ACTION("search_prev", PrevHit),
         {"search_args",
          [this](const QStringList &args) { search(args.join(" ")); }},
 
@@ -3549,37 +3589,29 @@ lektra::initActionMap() noexcept
         {"layout_book", [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::BOOK); }},
 
-        // Other actions
-        ACTION_NO_ARGS("set_dpr", SetDPR),
-        ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
-        ACTION_NO_ARGS("undo", Undo),
-        ACTION_NO_ARGS("redo", Redo),
-        ACTION_NO_ARGS("highlight_selection", TextHighlightCurrentSelection),
-        ACTION_NO_ARGS("invert_color", InvertColor),
-        ACTION_NO_ARGS("reshow_jump_marker", Reshow_jump_marker),
+        // Miscellaneous
+        ACTION("set_dpr", SetDPR),
+        ACTION("open_containing_folder", OpenContainingFolder),
+        ACTION("undo", Undo),
+        ACTION("redo", Redo),
+        ACTION("highlight_selection", TextHighlightCurrentSelection),
+        ACTION("invert_color", InvertColor),
+        ACTION("reshow_jump_marker", Reshow_jump_marker),
+        ACTION("reopen_last_closed_file", Reopen_last_closed_file),
+        ACTION("copy_page_image", Copy_page_image),
 #ifndef NDEBUG
-        ACTION_NO_ARGS("debug_command", debug_command),
+        ACTION("debug_command", debug_command),
 #endif
 
-        // Help/About actions
-        ACTION_NO_ARGS("show_startup_widget", showStartupWidget),
-        ACTION_NO_ARGS("show_tutorial_file", showTutorialFile),
-        ACTION_NO_ARGS("show_about", ShowAbout),
-
-        // TODO: Implement these actions
-        // ACTION_NO_ARGS("save_selection_as_image", Save_selection_as_image),
-        // ACTION_NO_ARGS("chapter_next", Chapter_next),
-        // ACTION_NO_ARGS("chapter_prev", Chapter_prev),
-        ACTION_NO_ARGS("reopen_last_closed_file", Reopen_last_closed_file),
-        ACTION_NO_ARGS("copy_page_image", Copy_page_image),
-
-        // {"search_in_page",
-        // [this](const QStringList &args) { SearchInPage(args.join("
-        // ")); }},
+        // Help / About
+        ACTION("show_startup_widget", showStartupWidget),
+        ACTION("show_tutorial_file", showTutorialFile),
+        ACTION("show_about", ShowAbout),
     };
 }
 
-#undef ACTION_NO_ARGS
+#undef ACTION
+#undef ACTION_ARGS
 
 // Trims the recent files store to `num_recent_files` number of files
 void
