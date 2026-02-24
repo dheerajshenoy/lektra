@@ -3456,7 +3456,6 @@ lektra::initActionMap() noexcept
         ACTION("toggle_menubar", ToggleMenubar),
         ACTION("toggle_statusbar", TogglePanel),
         ACTION("toggle_focus_mode", ToggleFocusMode),
-        ACTION("toggle_smart_jump", Toggle_smart_jump),
 #ifdef ENABLE_LLM_SUPPORT
         ACTION("toggle_llm_widget", ToggleLLMWidget),
 #endif
