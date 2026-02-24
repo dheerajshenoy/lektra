@@ -124,9 +124,6 @@ signals:
     void textHighlightRequested(const QPointF &a, const QPointF &b);
     void textSelectionDeletionRequested();
     void linkCtrlClickRequested(const QPointF &scenePos);
-#ifdef HAS_SYNCTEX
-    void synctexJumpRequested(QPointF scenePos);
-#endif
     void annotRectRequested(const QRectF &sceneRect);
     void annotPopupRequested(const QPointF &scenePos);
     void regionSelectRequested(const QRectF &sceneRect);
@@ -140,6 +137,11 @@ signals:
     void doubleClickRequested(QPointF scenePos);
     void tripleClickRequested(QPointF scenePos);
     void quadrupleClickRequested(QPointF scenePos);
+    void smartJumpRequested(QPointF scenePos);
+
+#ifdef HAS_SYNCTEX
+    void synctexJumpRequested(QPointF scenePos);
+#endif
 
 protected:
     void paintEvent(QPaintEvent *event) override;
