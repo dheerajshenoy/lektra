@@ -14,73 +14,76 @@ struct Config
     QHash<QString, QString> shortcuts{};
 
     // @section Colors
+    // @section_note {
+    // Colors can be specified in hex format (e.g. #RRGGBBAA) or as a color name
+    // }
     // @section_desc Color options struct
     // @section_type struct
     struct colors
     {
         // @desc Accent color
         // @type str
-        // @default #3daee9FF
+        // @default "#3daee9FF"
         uint32_t accent{0x3daee9FF};
 
         // @desc Background color
         // @type str
-        // @default #00000000
+        // @default "#00000000"
         uint32_t background{0x00000000};
 
         // @desc Page background color
         // @type str
-        // @default #FFFFFFFF
+        // @default "#FFFFFFFF"
         uint32_t page_background{0xFFFFFFFF};
 
         // @desc Page foreground color
         // @type str
-        // @default #000000FF
+        // @default "#000000FF"
         uint32_t page_foreground{0x000000FF};
 
         // @desc Search match count color
         // @type str
-        // @default #55500033
+        // @default "#55500033"
         uint32_t search_match{0x55500033};
 
         // @desc Search match index color
         // @type str
-        // @default #55FF0055
+        // @default "#55FF0055"
         uint32_t search_index{0x55FF0055};
 
         // @desc Link hint background color
         // @type str
-        // @default #000000FF
+        // @default "#000000FF"
         uint32_t link_hint_bg{0x000000FF};
 
         // @desc Link hint foreground color
         // @type str
-        // @default #ea3ee9FF
+        // @default "#ea3ee9FF"
         uint32_t link_hint_fg{0xea3ee9FF};
 
         // @desc Selection color
         // @type str
-        // @default #0000FF55
+        // @default "#0000FF55"
         uint32_t selection{0x0000FF55};
 
         // @desc Highlight annotation color
         // @type str
-        // @default #55FF0055
+        // @default "#55FF0055"
         uint32_t highlight{0x55FF0055};
 
         // @desc Jump marker color
         // @type str
-        // @default #FF0000FF
+        // @default "#FF0000FF"
         uint32_t jump_marker{0xFF0000FF};
 
         // @desc Rect annotation color
         // @type str
-        // @default #55FF5588
+        // @default "#55FF5588"
         uint32_t annot_rect{0x55FF5588};
 
         // @desc Popup annotation color
         // @type str
-        // @default #FFFFFFAA
+        // @default "#FFFFFFAA"
         uint32_t annot_popup{0xFFFFFFAA};
     } colors{};
     // @endsection
