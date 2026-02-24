@@ -552,6 +552,8 @@ private:
                            const std::vector<int> &objNums) noexcept;
     void buildTextCacheForPages(const std::set<int> &pagenos) noexcept;
     void LRUEvictFunction(PageCacheEntry &entry) noexcept;
+    fz_stext_page *get_or_build_stext_page(fz_context *ctx,
+                                           int pageno) noexcept;
 
     void populatePDFProperties(
         std::vector<std::pair<QString, QString>> &props) noexcept;
@@ -575,7 +577,10 @@ private:
     fz_outline *m_outline{nullptr};
     fz_locks_context m_fz_locks;
     mutable std::recursive_mutex m_page_cache_mutex;
+
     LRUCache<int, PageCacheEntry> m_page_lru_cache;
+    LRUCache<int, CachedTextPage> m_text_cache;
+    LRUCache<int, fz_stext_page *> m_stext_page_cache;
 
     uint32_t m_bg_color{0};
     uint32_t m_fg_color{0};
@@ -584,12 +589,11 @@ private:
     mutable std::mutex m_page_dim_mutex;
     PageDimension m_default_page_dim{};
 
-    std::mutex m_doc_mutex;
+    mutable std::mutex m_doc_mutex;
     QFuture<PageRenderResult> m_render_future;
     QFuture<void> m_search_future;
     pdf_write_options m_pdf_write_options{pdf_default_write_options};
     std::atomic<int> m_search_match_count{0};
-    LRUCache<int, CachedTextPage> m_text_cache;
     bool m_link_show_boundary{false};
     bool m_detect_url_links{false};
     QRegularExpression m_url_link_re;

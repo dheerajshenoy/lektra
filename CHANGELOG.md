@@ -30,6 +30,7 @@
 ### Optimizations
 
 - Don't pass QPointF and QRectF as const references as it's useless.
+- Cache `fz_stext_page*` (performance boost)
 
 ### Breaking Changes
 

@@ -41,6 +41,14 @@ Model::Model(QObject *parent) noexcept : QObject(parent)
     { LRUEvictFunction(entry); });
 
     m_text_cache.setCapacity(512);
+    m_stext_page_cache.setCapacity(10);
+    m_stext_page_cache.setCallback([this](fz_stext_page *stext_page)
+    {
+        if (m_ctx)
+        {
+            fz_drop_stext_page(m_ctx, stext_page);
+        }
+    });
 }
 
 Model::~Model() noexcept
@@ -349,17 +357,16 @@ Model::buildPageCache(int pageno) noexcept
     fz_rect bounds{};
     bool success{false};
 
-    // TODO: Pre-allocate vectors to avoid reallocations
-    // entry.links.reserve(32);      // Typical PDF has ~10-20 links
-    // entry.annotations.reserve(16); // Typical annotations per page
-
     fz_try(ctx)
     {
         std::lock_guard<std::mutex> lock(m_doc_mutex);
         page = fz_load_page(ctx, m_doc, pageno);
         if (!page)
             fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
-        bounds = fz_bound_page(ctx, page);
+
+        const auto [w, h] = getPageDimensions(pageno);
+        bounds            = (w >= 0 && h >= 0) ? fz_rect{0, 0, w, h}
+                                               : fz_bound_page(ctx, page);
 
         dlist    = fz_new_display_list(ctx, bounds);
         list_dev = fz_new_list_device(ctx, dlist);
@@ -489,7 +496,6 @@ Model::buildPageCache(int pageno) noexcept
     {
         qWarning() << "Failed to build page cache for page" << pageno << ":"
                    << fz_caught_message(ctx);
-        return;
     }
 
     if (!success)
@@ -546,21 +552,17 @@ Model::setAnnotRectColor(const QColor &color) noexcept
 bool
 Model::decrypt() noexcept
 {
-    fz_context *ctx = cloneContext();
-    if (!ctx)
-        return false;
-
-    fz_try(ctx)
+    fz_try(m_ctx)
     {
         pdf_write_options opts = m_pdf_write_options;
         opts.do_encrypt        = PDF_ENCRYPT_NONE;
 
         if (m_pdf_doc)
-            pdf_save_document(ctx, m_pdf_doc, CSTR(m_filepath), &opts);
+            pdf_save_document(m_ctx, m_pdf_doc, CSTR(m_filepath), &opts);
     }
-    fz_catch(ctx)
+    fz_catch(m_ctx)
     {
-        qWarning() << "Cannot decrypt file: " << fz_caught_message(ctx);
+        qWarning() << "Cannot decrypt file: " << fz_caught_message(m_ctx);
         return false;
     }
     return true;
@@ -569,14 +571,10 @@ Model::decrypt() noexcept
 bool
 Model::encrypt(const EncryptInfo &info) noexcept
 {
-    fz_context *ctx = cloneContext();
-    if (!ctx)
+    if (!m_ctx || !m_doc || !m_pdf_doc)
         return false;
 
-    if (!m_doc || !m_pdf_doc)
-        return false;
-
-    fz_try(ctx)
+    fz_try(m_ctx)
     {
 
         pdf_write_options opts = m_pdf_write_options;
@@ -598,9 +596,9 @@ Model::encrypt(const EncryptInfo &info) noexcept
         m_pdf_write_options = opts;
         SaveChanges();
     }
-    fz_catch(ctx)
+    fz_catch(m_ctx)
     {
-        qWarning() << "Encryption failed:" << fz_caught_message(ctx);
+        qWarning() << "Encryption failed:" << fz_caught_message(m_ctx);
         return false;
     }
 
@@ -615,29 +613,23 @@ Model::reloadDocument() noexcept
         return false;
 
     waitForRenders();
-
-    fz_context *ctx = cloneContext();
-    if (!ctx)
-        initMuPDF();
-
+    initMuPDF();
     cleanup();
     m_page_count = 0;
     m_success    = false;
 
     bool ok = false;
-    fz_try(ctx)
+    fz_try(m_ctx)
     {
-        std::lock_guard<std::mutex> lock(m_doc_mutex);
-
-        m_doc = fz_open_document(ctx, CSTR(filepath));
+        m_doc = fz_open_document(m_ctx, CSTR(filepath));
         if (!m_doc)
-            fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to open document");
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to open document");
 
-        m_pdf_doc    = pdf_specifics(ctx, m_doc);
-        m_page_count = fz_count_pages(ctx, m_doc);
+        m_pdf_doc    = pdf_specifics(m_ctx, m_doc);
+        m_page_count = fz_count_pages(m_ctx, m_doc);
         ok           = true;
     }
-    fz_catch(ctx)
+    fz_catch(m_ctx)
     {
         ok = false;
     }
@@ -652,23 +644,20 @@ Model::SaveChanges() noexcept
     if (!m_doc || !m_pdf_doc)
         return false;
 
-    const std::string path = m_filepath.toStdString();
-
-    fz_context *ctx = cloneContext();
-
-    fz_try(ctx)
+    fz_try(m_ctx)
     {
         // MUST clear text pages; they hold page references!
         std::lock_guard<std::mutex> lock(m_doc_mutex);
-        pdf_save_document(ctx, m_pdf_doc, path.c_str(), &m_pdf_write_options);
+        pdf_save_document(m_ctx, m_pdf_doc, CSTR(m_filepath),
+                          &m_pdf_write_options);
+        return true;
     }
-    fz_catch(ctx)
+    fz_catch(m_ctx)
     {
-        qWarning() << "Cannot save file: " << fz_caught_message(ctx);
-        return false;
+        qWarning() << "Cannot save file: " << fz_caught_message(m_ctx);
     }
 
-    return true;
+    return false;
 }
 
 bool
@@ -677,19 +666,15 @@ Model::SaveAs(const QString &newFilePath) noexcept
     if (!m_doc || !m_pdf_doc)
         return false;
 
-    fz_context *ctx = cloneContext();
-    if (!ctx)
-        return false;
-
-    fz_try(ctx)
+    fz_try(m_ctx)
     {
         std::lock_guard<std::mutex> lock(m_doc_mutex);
-        pdf_save_document(ctx, m_pdf_doc, CSTR(newFilePath), nullptr);
+        pdf_save_document(m_ctx, m_pdf_doc, CSTR(newFilePath), nullptr);
         // TODO: Explore write options!
     }
-    fz_catch(ctx)
+    fz_catch(m_ctx)
     {
-        qWarning() << "Save As failed: " << fz_caught_message(ctx);
+        qWarning() << "Save As failed: " << fz_caught_message(m_ctx);
         return false;
     }
     return true;
@@ -699,10 +684,6 @@ fz_outline *
 Model::getOutline() noexcept
 {
     if (!m_doc)
-        return nullptr;
-
-    fz_context *ctx = cloneContext();
-    if (!ctx)
         return nullptr;
 
     if (!m_outline)
@@ -719,13 +700,10 @@ Model::computeTextSelectionQuad(int pageno, QPointF devStart,
                                 QPointF devEnd) noexcept
 {
     std::vector<QPolygonF> out;
-
-    constexpr int MAX_HITS = 1024;
+    constexpr int MAX_HITS{1024};
     thread_local std::array<fz_quad, MAX_HITS> hits;
-
     const float scale = logicalScale();
 
-    fz_stext_page *stext_page{nullptr};
     fz_page *page{nullptr};
     fz_rect page_bounds{};
     fz_matrix page_to_dev{};
@@ -733,8 +711,17 @@ Model::computeTextSelectionQuad(int pageno, QPointF devStart,
 
     fz_try(m_ctx)
     {
-        page        = fz_load_page(m_ctx, m_doc, pageno);
-        page_bounds = fz_bound_page(m_ctx, page);
+        const auto [w, h] = getPageDimensions(pageno);
+        if (w < 0 || h < 0)
+        {
+            // std::lock_guard<std::mutex> lock(m_doc_mutex);
+            page        = fz_load_page(m_ctx, m_doc, pageno);
+            page_bounds = fz_bound_page(m_ctx, page);
+        }
+        else
+        {
+            page_bounds = {0, 0, w, h};
+        }
 
         page_to_dev = fz_scale(scale, scale);
         page_to_dev = fz_pre_rotate(page_to_dev, m_rotation);
@@ -751,10 +738,12 @@ Model::computeTextSelectionQuad(int pageno, QPointF devStart,
         a = fz_transform_point(a, dev_to_page);
         b = fz_transform_point(b, dev_to_page);
 
-        // m_selection_start = a;
-        // m_selection_end   = b;
+        if (a.y > b.y || (qFuzzyCompare(a.y, b.y) && a.x > b.x))
+        {
+            std::swap(a, b);
+        }
 
-        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+        fz_stext_page *stext_page = get_or_build_stext_page(m_ctx, pageno);
         if (!stext_page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to build text page");
 
@@ -769,7 +758,6 @@ Model::computeTextSelectionQuad(int pageno, QPointF devStart,
     }
     fz_always(m_ctx)
     {
-        fz_drop_stext_page(m_ctx, stext_page);
         fz_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
@@ -806,23 +794,27 @@ Model::get_selected_text(int pageno, QPointF start, QPointF end,
     std::string result;
     fz_page *page{nullptr};
     char *selection_text{nullptr};
-    fz_stext_page *stext_page{nullptr};
     const float scale = logicalScale();
+    fz_rect bounds;
 
-    fz_context *ctx = cloneContext();
-    if (!ctx)
-        return {};
-
-    fz_try(ctx)
+    fz_try(m_ctx)
     {
-        std::lock_guard<std::mutex> lock(m_doc_mutex);
-        page             = fz_load_page(ctx, m_doc, pageno);
-        auto page_bounds = fz_bound_page(ctx, page);
+        auto [w, h] = getPageDimensions(pageno);
+        if (w < 0 || h < 0)
+        {
+            std::lock_guard<std::mutex> lock(m_doc_mutex);
+            page   = fz_load_page(m_ctx, m_doc, pageno);
+            bounds = fz_bound_page(m_ctx, page);
+        }
+        else
+        {
+            bounds = {0, 0, w, h};
+        }
 
         auto page_to_dev = fz_scale(scale, scale);
         page_to_dev      = fz_pre_rotate(page_to_dev, m_rotation);
 
-        const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
+        const fz_rect dev_bounds = fz_transform_rect(bounds, page_to_dev);
         page_to_dev              = fz_concat(page_to_dev,
                                              fz_translate(-dev_bounds.x0, -dev_bounds.y0));
 
@@ -830,25 +822,27 @@ Model::get_selected_text(int pageno, QPointF start, QPointF end,
 
         fz_point a = {float(start.x()), float(start.y())};
         fz_point b = {float(end.x()), float(end.y())};
+        a          = fz_transform_point(a, dev_to_page);
+        b          = fz_transform_point(b, dev_to_page);
 
-        a              = fz_transform_point(a, dev_to_page);
-        b              = fz_transform_point(b, dev_to_page);
-        stext_page     = fz_new_stext_page_from_page(ctx, page, nullptr);
-        selection_text = fz_copy_selection(ctx, stext_page, a, b, 0);
+        fz_stext_page *stext_page = get_or_build_stext_page(m_ctx, pageno);
+        if (!stext_page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to build text page");
+
+        selection_text = fz_copy_selection(m_ctx, stext_page, a, b, 0);
     }
-    fz_always(ctx)
+    fz_always(m_ctx)
     {
         if (selection_text)
         {
             result = std::string(selection_text);
-            fz_free(ctx, selection_text);
+            fz_free(m_ctx, selection_text);
             if (!formatted)
                 clean_pdf_text(result);
         }
-        fz_drop_page(ctx, page);
-        fz_drop_stext_page(ctx, stext_page);
+        fz_drop_page(m_ctx, page);
     }
-    fz_catch(ctx)
+    fz_catch(m_ctx)
     {
         qWarning() << "Failed to copy selection text";
     }
@@ -938,13 +932,15 @@ Model::getPageDimensions(int pageno) const noexcept
 {
     std::tuple<float, float> dims{-1.0f, -1.0f};
     std::lock_guard<std::mutex> lock(m_page_dim_mutex);
-    if (pageno >= 0 && pageno < m_page_count && m_page_dim_cache.known[pageno])
+    if (pageno < 0 || pageno >= m_page_count
+        || m_page_dim_cache.known.empty()               // ← add this
+        || pageno >= (int)m_page_dim_cache.known.size() // ← and this
+        || !m_page_dim_cache.known[pageno])
     {
-        dims = {m_page_dim_cache.dimensions[pageno].width_pts,
-                m_page_dim_cache.dimensions[pageno].height_pts};
-        return dims;
+        return {-1.0f, -1.0f};
     }
-    return dims;
+    return {m_page_dim_cache.dimensions[pageno].width_pts,
+            m_page_dim_cache.dimensions[pageno].height_pts};
 }
 
 fz_point
@@ -1065,15 +1061,10 @@ Model::PageRenderResult
 Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 {
     PageRenderResult result;
-    fz_context *ctx{nullptr};
-
-    ctx = cloneContext();
+    fz_context *ctx = cloneContext();
     if (!ctx)
         return result;
 
-    // Copy cache entry data under lock to avoid race condition with
-    // invalidatePageCache. We keep a reference to the display list so it
-    // won't be freed while we're using it.
     fz_display_list *dlist{nullptr};
     fz_rect bounds{};
     std::vector<CachedLink> links;
@@ -1113,7 +1104,6 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     fz_pixmap *pix{nullptr};
     fz_device *dev{nullptr};
     fz_page *text_page{nullptr};
-    fz_stext_page *stext_page{nullptr};
 
     fz_try(ctx)
     {
@@ -1217,6 +1207,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             result.links.push_back(std::move(renderLink));
         }
 
+        // fz_stext_page *stext_page{nullptr};
         // if (m_detect_url_links)
         // {
         //     text_page = fz_load_page(ctx, m_doc, job.pageno);
@@ -1339,7 +1330,6 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         fz_drop_link(ctx, head);
         fz_drop_pixmap(ctx, pix);
         fz_drop_display_list(ctx, dlist);
-        fz_drop_stext_page(ctx, stext_page);
         fz_drop_page(ctx, text_page);
     }
     fz_catch(ctx)
@@ -1353,28 +1343,31 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 void
 Model::highlight_text_selection(int pageno, QPointF start, QPointF end) noexcept
 {
-    fz_context *ctx = cloneContext();
-    if (!ctx)
-        return;
-
     constexpr int MAX_HITS{1000};
     fz_quad hits[MAX_HITS];
     int count{0};
     fz_page *page{nullptr};
-    fz_stext_page *stext_page{nullptr};
     const float scale = logicalScale();
+    fz_rect bounds;
 
-    fz_try(ctx)
+    fz_try(m_ctx)
     {
-
-        std::lock_guard<std::mutex> lock(m_doc_mutex);
-        page             = fz_load_page(ctx, m_doc, pageno);
-        auto page_bounds = fz_bound_page(ctx, page);
+        auto [w, h] = getPageDimensions(pageno);
+        if (w < 0 || h < 0)
+        {
+            std::lock_guard<std::mutex> lock(m_doc_mutex);
+            page   = fz_load_page(m_ctx, m_doc, pageno);
+            bounds = fz_bound_page(m_ctx, page);
+        }
+        else
+        {
+            bounds = {0, 0, w, h};
+        }
 
         auto page_to_dev = fz_scale(scale, scale);
         page_to_dev      = fz_pre_rotate(page_to_dev, m_rotation);
 
-        const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
+        const fz_rect dev_bounds = fz_transform_rect(bounds, page_to_dev);
         page_to_dev              = fz_concat(page_to_dev,
                                              fz_translate(-dev_bounds.x0, -dev_bounds.y0));
 
@@ -1383,19 +1376,20 @@ Model::highlight_text_selection(int pageno, QPointF start, QPointF end) noexcept
         fz_point a = {float(start.x()), float(start.y())};
         fz_point b = {float(end.x()), float(end.y())};
 
-        a          = fz_transform_point(a, dev_to_page);
-        b          = fz_transform_point(b, dev_to_page);
-        stext_page = fz_new_stext_page_from_page(ctx, page, nullptr);
+        a                         = fz_transform_point(a, dev_to_page);
+        b                         = fz_transform_point(b, dev_to_page);
+        fz_stext_page *stext_page = get_or_build_stext_page(m_ctx, pageno);
+        if (!stext_page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "failed to load stext page");
 
-        count = fz_highlight_selection(ctx, stext_page, a, b, hits, MAX_HITS);
+        count = fz_highlight_selection(m_ctx, stext_page, a, b, hits, MAX_HITS);
     }
-    fz_always(ctx)
+    fz_always(m_ctx)
     {
-        fz_drop_page(ctx, page);
-        fz_drop_stext_page(ctx, stext_page);
-        fz_drop_context(ctx);
+        fz_drop_page(m_ctx, page);
+        fz_drop_context(m_ctx);
     }
-    fz_catch(ctx)
+    fz_catch(m_ctx)
     {
         qWarning() << "Failed to copy selection text";
     }
@@ -1749,72 +1743,51 @@ Model::invalidatePageCache(int pageno) noexcept
     }
 }
 
-// private helper in Model
 std::vector<QPolygonF>
 Model::selectAtHelper(int pageno, fz_point pt, int snapMode) noexcept
 {
     std::vector<QPolygonF> out;
-
-    constexpr int MAX_HITS = 1024;
+    constexpr int MAX_HITS{1024};
     thread_local std::array<fz_quad, MAX_HITS> hits;
+    const float scale = logicalScale();
+    fz_rect bounds;
 
-    const float scale = logicalScale(); // does not include DPR or DPI,
-                                        // since selection is in PDF points
-
-    fz_rect page_bounds{};
-    fz_page *page_for_bounds = nullptr;
-
-    fz_try(m_ctx)
+    auto [w, h] = getPageDimensions(pageno);
+    if (w < 0 || h < 0)
     {
-        page_for_bounds = fz_load_page(m_ctx, m_doc, pageno);
-        page_bounds     = fz_bound_page(m_ctx, page_for_bounds);
+        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+        bounds        = fz_bound_page(m_ctx, page);
+        fz_drop_page(m_ctx, page);
     }
-    fz_always(m_ctx)
+    else
     {
-        if (page_for_bounds)
-            fz_drop_page(m_ctx, page_for_bounds);
-    }
-    fz_catch(m_ctx)
-    {
-        qWarning() << "Selection failed (bounds):" << fz_caught_message(m_ctx);
-        return out;
+        bounds = {0, 0, w, h};
     }
 
     fz_matrix page_to_dev    = fz_scale(scale, scale);
     page_to_dev              = fz_pre_rotate(page_to_dev, m_rotation);
-    const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
+    const fz_rect dev_bounds = fz_transform_rect(bounds, page_to_dev);
     page_to_dev
         = fz_concat(page_to_dev, fz_translate(-dev_bounds.x0, -dev_bounds.y0));
     const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
 
-    fz_point a = pt;
-    fz_point b = pt;
-    a          = fz_transform_point(a, dev_to_page);
-    b          = fz_transform_point(b, dev_to_page);
+    fz_point a = fz_transform_point(pt, dev_to_page);
+    fz_point b = a;
 
-    fz_stext_page *stext_page{nullptr};
-    fz_page *page{nullptr};
     int count = 0;
-
     fz_try(m_ctx)
     {
-        page       = fz_load_page(m_ctx, m_doc, pageno);
-        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+        fz_stext_page *stext_page = get_or_build_stext_page(m_ctx, pageno);
+        if (!stext_page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load stext page");
 
         fz_snap_selection(m_ctx, stext_page, &a, &b, snapMode);
         count = fz_highlight_selection(m_ctx, stext_page, a, b, hits.data(),
                                        MAX_HITS);
-        // m_selection_start = a;
-        // m_selection_end   = b;
-    }
-    fz_always(m_ctx)
-    {
-        fz_drop_page(m_ctx, page);
-        fz_drop_stext_page(m_ctx, stext_page);
     }
     fz_catch(m_ctx)
     {
-        qWarning() << "Selection failed";
+        qWarning() << "Selection failed:" << fz_caught_message(m_ctx);
         return out;
     }
 
@@ -1853,48 +1826,36 @@ std::vector<QPolygonF>
 Model::selectParagraphAt(int pageno, fz_point pt) noexcept
 {
     std::vector<QPolygonF> out;
-
     constexpr int MAX_HITS = 1024;
     thread_local std::array<fz_quad, MAX_HITS> hits;
-
-    const float scale = logicalScale(); // does not include DPR or DPI,
-                                        // since selection is in PDF points
-
-    fz_rect page_bounds{};
-    fz_page *page_for_bounds = nullptr;
+    const float scale = logicalScale();
+    fz_rect bounds;
 
     fz_try(m_ctx)
     {
-        page_for_bounds = fz_load_page(m_ctx, m_doc, pageno);
-        page_bounds     = fz_bound_page(m_ctx, page_for_bounds);
-    }
-    fz_always(m_ctx)
-    {
-        if (page_for_bounds)
-            fz_drop_page(m_ctx, page_for_bounds);
-    }
-    fz_catch(m_ctx)
-    {
-        qWarning() << "Selection failed (bounds):" << fz_caught_message(m_ctx);
-        return out;
-    }
+        auto [w, h] = getPageDimensions(pageno);
+        if (w < 0 || h < 0)
+        {
+            // std::lock_guard<std::mutex> lock(m_doc_mutex);
+            fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+            bounds        = fz_bound_page(m_ctx, page);
+            fz_drop_page(m_ctx, page);
+        }
+        else
+        {
+            bounds = {0, 0, w, h};
+        }
 
-    fz_matrix page_to_dev    = fz_scale(scale, scale);
-    page_to_dev              = fz_pre_rotate(page_to_dev, m_rotation);
-    const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
-    page_to_dev
-        = fz_concat(page_to_dev, fz_translate(-dev_bounds.x0, -dev_bounds.y0));
-    const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
-
-    fz_point page_pt = fz_transform_point(pt, dev_to_page);
-
-    fz_stext_page *stext_page{nullptr};
-    fz_page *page{nullptr};
-
-    fz_try(m_ctx)
-    {
-        page       = fz_load_page(m_ctx, m_doc, pageno);
-        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+        fz_matrix page_to_dev       = fz_scale(scale, scale);
+        page_to_dev                 = fz_pre_rotate(page_to_dev, m_rotation);
+        const fz_rect dev_bounds    = fz_transform_rect(bounds, page_to_dev);
+        page_to_dev                 = fz_concat(page_to_dev,
+                                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+        const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
+        fz_point page_pt            = fz_transform_point(pt, dev_to_page);
+        fz_stext_page *stext_page   = get_or_build_stext_page(m_ctx, pageno);
+        if (!stext_page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "failed to load stext page");
 
         for (fz_stext_block *block = stext_page->first_block; block;
              block                 = block->next)
@@ -1935,11 +1896,6 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
             }
         }
     }
-    fz_always(m_ctx)
-    {
-        fz_drop_page(m_ctx, page);
-        fz_drop_stext_page(m_ctx, stext_page);
-    }
     fz_catch(m_ctx)
     {
         qWarning() << "Quadruple-click paragraph selection failed";
@@ -1952,26 +1908,30 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
 std::pair<fz_matrix, fz_matrix>
 Model::buildPageTransforms(int pageno) const noexcept
 {
-    const fz_matrix identity = fz_identity;
-    fz_page *page            = nullptr;
-    fz_rect bounds{};
+    const fz_matrix identity{fz_identity};
+    fz_rect bounds;
 
     fz_try(m_ctx)
     {
-        page   = fz_load_page(m_ctx, m_doc, pageno);
-        bounds = fz_bound_page(m_ctx, page);
-    }
-    fz_always(m_ctx)
-    {
-        fz_drop_page(m_ctx, page);
+        auto [w, h] = getPageDimensions(pageno);
+        if (w < 0 || h < 0)
+        {
+            std::lock_guard<std::mutex> lock(m_doc_mutex);
+            fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+            bounds        = fz_bound_page(m_ctx, page);
+            fz_drop_page(m_ctx, page);
+        }
+        else
+        {
+            bounds = {0, 0, w, h};
+        }
     }
     fz_catch(m_ctx)
     {
         return {identity, identity};
     }
 
-    const float scale = logicalScale(); // does not include DPR or DPI,
-                                        // since selection is in PDF points
+    const float scale     = logicalScale();
     fz_matrix page_to_dev = fz_scale(scale, scale);
     page_to_dev           = fz_pre_rotate(page_to_dev, m_rotation);
     const fz_rect dbox    = fz_transform_rect(bounds, page_to_dev);
@@ -2311,20 +2271,11 @@ Model::buildTextCacheForPages(const std::set<int> &pagenos) noexcept
         if (m_text_cache.has(pageno))
             continue;
 
-        fz_page *page        = nullptr;
-        fz_stext_page *stext = nullptr;
-
         fz_try(ctx)
         {
-            {
-                std::lock_guard<std::mutex> lock(
-                    m_doc_mutex); // ✓ protect m_doc
-                page = fz_load_page(ctx, m_doc, pageno);
-            }
+            fz_stext_page *stext = get_or_build_stext_page(ctx, pageno);
 
-            stext = fz_new_stext_page_from_page(ctx, page, nullptr);
-
-            CachedTextPage cache;
+            CachedTextPage cache{};
             cache.chars.reserve(4096); // pre-reserve to reduce reallocations
 
             for (fz_stext_block *b = stext->first_block; b; b = b->next)
@@ -2350,12 +2301,10 @@ Model::buildTextCacheForPages(const std::set<int> &pagenos) noexcept
         }
         fz_always(ctx)
         {
-            fz_drop_stext_page(ctx, stext);
-            fz_drop_page(ctx, page);
+            fz_drop_context(ctx);
         }
         fz_catch(ctx) {}
     }
-    fz_drop_context(ctx);
 }
 
 void
@@ -2688,11 +2637,11 @@ Model::getFirstCharPos(const int pageno) noexcept
 std::vector<Model::RenderLink>
 Model::detectUrlLinksForPage(const RenderJob &job) noexcept
 {
-    std::vector<RenderLink> result;
-
     fz_context *ctx = cloneContext();
     if (!ctx)
-        return result;
+        return {};
+
+    std::vector<RenderLink> result;
 
     fz_page *text_page        = nullptr;
     fz_stext_page *stext_page = nullptr;
@@ -2712,14 +2661,26 @@ Model::detectUrlLinksForPage(const RenderJob &job) noexcept
 
     fz_try(ctx)
     {
-        text_page  = fz_load_page(ctx, m_doc, job.pageno);
-        stext_page = fz_new_stext_page_from_page(ctx, text_page, nullptr);
+        // Get bounds for proper transform
+        fz_rect bounds;
+        auto [w, h] = getPageDimensions(job.pageno);
+        if (w < 0 || h < 0)
+        {
+            std::lock_guard<std::mutex> lock(m_doc_mutex);
+            fz_page *page = fz_load_page(ctx, m_doc, job.pageno);
+            bounds        = fz_bound_page(ctx, page);
+            fz_drop_page(ctx, page);
+        }
+        else
+        {
+            bounds = {0, 0, w, h};
+        }
+
+        transform = fz_transform_page(bounds, job.zoom, job.rotation);
+
+        stext_page = get_or_build_stext_page(ctx, job.pageno);
 
         const QRegularExpression &urlRe = m_url_link_re;
-
-        // Get bounds for proper transform
-        fz_rect bounds = fz_bound_page(ctx, text_page);
-        transform      = fz_transform_page(bounds, job.zoom, job.rotation);
 
         for (fz_stext_block *b = stext_page->first_block; b; b = b->next)
         {
@@ -2797,11 +2758,6 @@ Model::detectUrlLinksForPage(const RenderJob &job) noexcept
             }
         }
     }
-    fz_always(ctx)
-    {
-        fz_drop_stext_page(ctx, stext_page);
-        fz_drop_page(ctx, text_page);
-    }
     fz_catch(ctx) {}
 
     fz_drop_context(ctx);
@@ -2821,4 +2777,35 @@ Model::cancelOpen() noexcept
     cleanup();
 
     emit openFileFailed();
+}
+
+// LRU Cache stext page for performance boost
+fz_stext_page *
+Model::get_or_build_stext_page(fz_context *ctx, int pageno) noexcept
+{
+    {
+        std::lock_guard lock(m_page_cache_mutex);
+        if (m_stext_page_cache.has(pageno))
+            return *m_stext_page_cache.get(pageno);
+    }
+
+    fz_page *page        = nullptr;
+    fz_stext_page *stext = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        page  = fz_load_page(ctx, m_doc, pageno);
+        stext = fz_new_stext_page_from_page(ctx, page, nullptr);
+        fz_drop_page(ctx, page);
+    }
+
+    {
+        std::lock_guard lock(m_page_cache_mutex);
+        if (m_stext_page_cache.has(pageno)) // another thread beat us
+        {
+            fz_drop_stext_page(ctx, stext);
+            return *m_stext_page_cache.get(pageno);
+        }
+        m_stext_page_cache.put(pageno, stext);
+    }
+    return stext;
 }

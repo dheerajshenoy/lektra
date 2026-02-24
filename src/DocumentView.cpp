@@ -775,7 +775,7 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
 
 #ifndef NDEBUG
     qDebug() << "DocumentView::handleTextSelection(): Handling text selection"
-             << "from" << start << "to" << end;
+             << "from" << startPage << "to" << endPage;
 #endif
 
     if (startPage > endPage)
@@ -790,33 +790,83 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
     {
         GraphicsImageItem *item = m_page_items_hash.value(p, nullptr);
         assert(item && "Page is not yet in the hash map");
+        QRectF bounds = item->boundingRect();
+
+        // Define logical anchors based on the current visual rotation
+        QPointF docStart, docEnd;
+        switch ((int)m_model->rotation())
+        {
+            case 90:
+                docStart = QPointF(bounds.width(), 0);  // Top-right
+                docEnd   = QPointF(0, bounds.height()); // Bottom-left
+                break;
+            case 180:
+                docStart
+                    = QPointF(bounds.width(), bounds.height()); // Bottom-right
+                docEnd = QPointF(0, 0);                         // Top-left
+                break;
+            case 270:
+                docStart = QPointF(0, bounds.height()); // Bottom-left
+                docEnd   = QPointF(bounds.width(), 0);  // Top-right
+                break;
+            default:                      // 0
+                docStart = QPointF(0, 0); // Top-left
+                docEnd
+                    = QPointF(bounds.width(), bounds.height()); // Bottom-right
+                break;
+        }
 
         std::vector<QPolygonF> quads;
+        QPointF localStart = item->mapFromScene(start);
+        QPointF localEnd   = item->mapFromScene(end);
+
         if (p == startPage && p == endPage)
         {
-            // Single page selection (existing logic)
-            quads = m_model->computeTextSelectionQuad(
-                p, item->mapFromScene(start), item->mapFromScene(end));
+            quads = m_model->computeTextSelectionQuad(p, localStart, localEnd);
         }
         else if (p == startPage)
         {
-            // Selection from start point to end of page
-            quads = m_model->computeTextSelectionQuad(
-                p, item->mapFromScene(start),
-                QPointF(item->boundingRect().bottomRight()));
+            // From click point to the end of the document flow
+            quads = m_model->computeTextSelectionQuad(p, localStart, docEnd);
         }
         else if (p == endPage)
         {
-            // Selection from start of page to end point
-            quads = m_model->computeTextSelectionQuad(p, QPointF(0, 0),
-                                                      item->mapFromScene(end));
+            // From the start of the document flow to the current cursor
+            quads = m_model->computeTextSelectionQuad(p, docStart, localEnd);
         }
         else
         {
             // Full page selection
-            quads = m_model->computeTextSelectionQuad(
-                p, QPointF(0, 0), QPointF(item->boundingRect().bottomRight()));
+            quads = m_model->computeTextSelectionQuad(p, docStart, docEnd);
         }
+
+        // std::vector<QPolygonF> quads;
+        // if (p == startPage && p == endPage)
+        // {
+        //     // Single page selection (existing logic)
+        //     quads = m_model->computeTextSelectionQuad(
+        //         p, item->mapFromScene(start), item->mapFromScene(end));
+        // }
+        // else if (p == startPage)
+        // {
+        //     // Selection from start point to end of page
+        //     quads = m_model->computeTextSelectionQuad(
+        //         p, item->mapFromScene(start), QPointF(1e6, 1e6));
+        //     // QPointF(item->boundingRect().bottomRight()));
+        // }
+        // else if (p == endPage)
+        // {
+        //     // Selection from start of page to end point
+        //     quads = m_model->computeTextSelectionQuad(p, QPointF(0, 0),
+        //                                               item->mapFromScene(end));
+        // }
+        // else
+        // {
+        //     // Full page selection
+        //     quads = m_model->computeTextSelectionQuad(p, QPointF(0, 0),
+        //                                               QPointF(1e6, 1e6));
+        //     // QPointF(item->boundingRect().bottomRight()));
+        // }
 
         const QTransform toScene = item->sceneTransform();
         for (const QPolygonF &poly : quads)
@@ -1570,7 +1620,9 @@ void
 DocumentView::SaveFile() noexcept
 {
     if (m_model->SaveChanges())
+    {
         setModified(false);
+    }
     else
     {
         QMessageBox::critical(
@@ -4054,8 +4106,7 @@ DocumentView::zoomHelper() noexcept
         }
     }
 
-    // ── Commit zoom, rebuild stride cache and scene rect
-    // ─────────────────────
+    // Commit zoom, rebuild stride cache and scene rect
     m_current_zoom = m_target_zoom;
     m_model->setZoom(
         m_current_zoom); // must be before cachePageStride/updateSceneRect
@@ -4064,8 +4115,7 @@ DocumentView::zoomHelper() noexcept
     updateSceneRect();
     m_gview->flashScrollbars();
 
-    // ── Reposition every live page item at the new zoom
-    // ──────────────────────
+    // Reposition every live page item at the new zoom
     const QRectF sr = m_gview->sceneRect(); // constant for the whole loop
 
     // For TOP_TO_BOTTOM, each page may have a different width so we must
@@ -4134,8 +4184,7 @@ DocumentView::zoomHelper() noexcept
         }
     }
 
-    // ── Invalidate render caches for all repositioned pages
-    // ──────────────────
+    // Invalidate render caches for all repositioned pages
     for (const int pageno : m_page_items_hash.keys())
     {
         m_model->invalidatePageCache(pageno);
@@ -4146,8 +4195,7 @@ DocumentView::zoomHelper() noexcept
 
     renderSearchHitsInScrollbar();
 
-    // ── Restore viewport to the same relative position within the anchor
-    // page
+    // Restore viewport to the same relative position within the anchor page
     if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
     {
         GraphicsImageItem *pageItem = m_page_items_hash[anchorPageIndex];
@@ -4159,6 +4207,8 @@ DocumentView::zoomHelper() noexcept
             m_gview->centerOn(pageItem->mapToScene(restoredLocal));
         }
     }
+
+    ClearTextSelection();
 
     m_hq_render_timer->start();
 }
