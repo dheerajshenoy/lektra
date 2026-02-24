@@ -15,9 +15,7 @@ add_compile_definitions(
     APP_NAME="${PROJECT_NAME}"
 )
 
-# Used to .desktop file generation
 set(PREFIX "${CMAKE_INSTALL_PREFIX}")
-
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_COLOR_DIAGNOSTICS ON)
@@ -25,29 +23,21 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
-
-#Set flags for Debug build
 set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address -fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra")
-
-#Set flags for Release build
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
-
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -fno-omit-frame-pointer -DNDEBUG")
 
-find_package(Qt6 REQUIRED COMPONENTS Gui Widgets Core Concurrent)
-#OpenGLWidgets )
+find_package(Qt6 REQUIRED COMPONENTS Gui Widgets Core Concurrent) #OpenGLWidgets )
 find_package(PkgConfig REQUIRED)
 
-# --- SyncTeX (simple, no pkg-config) ---
+# SyncTeX
 find_path(SYNCTEX_INCLUDE_DIR
     NAMES synctex_parser.h synctex/synctex_parser.h
     PATH_SUFFIXES synctex
 )
-
 find_library(SYNCTEX_LIBRARY
     NAMES synctex synctex_parser
 )
-
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
@@ -80,14 +70,11 @@ add_executable(${PROJECT_NAME}
     src/OutlinePicker.cpp
 
     src/MarkManager.hpp
-    src/Annotations/RectAnnotation.hpp
-    src/Annotations/TextAnnotation.hpp
     src/GraphicsPixmapItem.hpp
     src/BrowseLinkItem.hpp
     src/OutlineWidget.hpp
     src/OutlineModel.hpp
     src/ElidableLabel.hpp
-    src/Annotations/HighlightAnnotation.hpp
     src/FloatingOverlayWidget.hpp
     src/HighlightSearchPicker.hpp
     src/EditLastPagesWidget.hpp
@@ -96,16 +83,22 @@ add_executable(${PROJECT_NAME}
     src/LinkHint.hpp
     src/JumpMarker.hpp
     src/CircleLabel.hpp
-    src/Commands/RectAnnotationCommand.hpp
-    src/Commands/TextAnnotationCommand.hpp
-    src/Commands/TextHighlightAnnotationCommand.hpp
-    src/Commands/DeleteAnnotationsCommand.hpp
     src/PlaceholderWidget.hpp
     src/ScrollBar.hpp
     src/CommandPicker.hpp
     src/JumpMarker.hpp
     src/OutlinePicker.hpp
 
+    # Annotations
+    src/Annotations/RectAnnotation.hpp
+    src/Annotations/TextAnnotation.hpp
+    src/Annotations/HighlightAnnotation.hpp
+
+    # Commands
+    src/Commands/RectAnnotationCommand.hpp
+    src/Commands/TextAnnotationCommand.hpp
+    src/Commands/TextHighlightAnnotationCommand.hpp
+    src/Commands/DeleteAnnotationsCommand.hpp
 )
 
 
