@@ -85,8 +85,34 @@ struct Config
         // @type str
         // @default "#FFFFFFAA"
         uint32_t annot_popup{0xFFFFFFAA};
+
+        // @desc Portal border color
+        // @type str
+        // @default "#FFFFFFAA"
+        uint32_t portal_border{0xFFFFFFAA};
     } colors{};
     // @endsection
+
+    struct portal
+    {
+        // @desc Enable portal ability
+        // @type bool
+        // @default true
+        bool enabled{true};
+
+        // @desc Portal border width
+        // @type int
+        // @default 5
+        int border_width{5};
+
+        // @desc {
+        // Respect parent's destruction (if parent closes, close the
+        // portal too)
+        // }
+        // @type bool
+        // @default true
+        bool respect_parent{true};
+    } portal{};
 
     // @section Window
     // @desc Window options struct
@@ -240,11 +266,15 @@ struct Config
     // @section_type struct
     struct split
     {
-
         // @desc Focus of split follows the mouse
         // @type bool
         // @default true
         bool focus_follows_mouse{true};
+
+        // @desc Moving mouse changes the focus
+        // @type bool
+        // @default true
+        bool mouse_follows_focus{true};
 
         // @desc Dims splits that are not currently focused
         // @type bool
@@ -532,7 +562,7 @@ struct Config
         int max_tokens{512};
         // float temperature{0.7f}; //
     } llm{};
-    // @endsection
+// @endsection
 #endif
 
     // @section Rendering
