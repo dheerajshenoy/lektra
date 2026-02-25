@@ -600,6 +600,16 @@ private:
     FileType m_filetype{FileType::NONE};
     PendingOpen m_pending;
 
+
+    // For use with visual line mode
+    struct VisualLineInfo
+    {
+        QRectF bbox; // in page coordinates
+        int pageno;
+    };
+
+    std::vector<VisualLineInfo> get_text_lines(int pageno) noexcept;
+
     friend class TextHighlightAnnotationCommand;
     friend class RectAnnotationCommand;
     friend class TextAnnotationCommand;

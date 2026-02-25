@@ -2806,3 +2806,46 @@ Model::get_or_build_stext_page(fz_context *ctx, int pageno) noexcept
     }
     return stext;
 }
+
+std::vector<Model::VisualLineInfo>
+Model::get_text_lines(int pageno) noexcept
+{
+    std::vector<VisualLineInfo> lines;
+    fz_context *ctx = cloneContext();
+    if (!ctx)
+        return lines;
+
+    const float scale = 1.0f;
+
+    fz_try(ctx)
+    {
+        fz_stext_page *stext = get_or_build_stext_page(ctx, pageno);
+        if (!stext)
+        {
+            fz_drop_context(ctx);
+            return lines;
+        }
+
+        for (fz_stext_block *block = stext->first_block; block;
+             block                 = block->next)
+        {
+            if (block->type != FZ_STEXT_BLOCK_TEXT)
+                continue;
+            for (fz_stext_line *line = block->u.t.first_line; line;
+                 line                = line->next)
+            {
+                VisualLineInfo info;
+                info.bbox
+                    = QRectF(line->bbox.x0 * scale, line->bbox.y0 * scale,
+                             line->bbox.x1 * scale - line->bbox.x0 * scale,
+                             line->bbox.y1 * scale - line->bbox.y0 * scale);
+                info.pageno = pageno;
+                lines.push_back(info);
+            }
+        }
+    }
+    fz_catch(ctx) {}
+
+    fz_drop_context(ctx);
+    return lines;
+}

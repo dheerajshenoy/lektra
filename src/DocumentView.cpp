@@ -91,8 +91,11 @@ DocumentView::~DocumentView() noexcept
     m_gscene->removeItem(m_jump_marker);
     m_gscene->removeItem(m_selection_path_item);
     m_gscene->removeItem(m_current_search_hit_item);
+    m_gscene->removeItem(m_visual_line_item);
 
     clearDocumentItems();
+
+    delete m_visual_line_item;
     delete m_jump_marker;
     delete m_selection_path_item;
     delete m_current_search_hit_item;
@@ -1167,6 +1170,13 @@ DocumentView::GotoPage(int pageno) noexcept
         const double y = pageOffset(pageno) + pageStride(pageno) / 2.0;
         m_gview->centerOn(QPointF(m_gview->sceneRect().width() / 2.0, y));
     }
+
+    if (m_visual_line_mode)
+    {
+        m_visual_lines      = m_model->get_text_lines(m_pageno);
+        m_visual_line_index = 0;
+        snap_visual_line();
+    }
 }
 
 // Go to next page
@@ -1190,6 +1200,11 @@ DocumentView::GotoPrevPage() noexcept
     if (m_pageno == 0)
         return;
     GotoPage(m_pageno - 1);
+    if (m_visual_line_mode && !m_visual_lines.empty())
+    {
+        m_visual_line_index = m_visual_lines.size() - 1; // land on last line
+        snap_visual_line();
+    }
 }
 
 void
@@ -1388,36 +1403,64 @@ DocumentView::GotoHit(int index) noexcept
 void
 DocumentView::ScrollLeft() noexcept
 {
-    m_hscroll->setUpdatesEnabled(false);
-    m_hscroll->setValue(m_hscroll->value() - 50);
-    m_hscroll->setUpdatesEnabled(true);
+    if (m_visual_line_mode)
+    {
+        visual_line_move(Direction::LEFT);
+    }
+    else
+    {
+        m_hscroll->setUpdatesEnabled(false);
+        m_hscroll->setValue(m_hscroll->value() - 50);
+        m_hscroll->setUpdatesEnabled(true);
+    }
 }
 
 // Scroll right by a fixed amount
 void
 DocumentView::ScrollRight() noexcept
 {
-    m_hscroll->setUpdatesEnabled(false);
-    m_hscroll->setValue(m_hscroll->value() + 50);
-    m_hscroll->setUpdatesEnabled(true);
+    if (m_visual_line_mode)
+    {
+        visual_line_move(Direction::RIGHT);
+    }
+    else
+    {
+        m_hscroll->setUpdatesEnabled(false);
+        m_hscroll->setValue(m_hscroll->value() + 50);
+        m_hscroll->setUpdatesEnabled(true);
+    }
 }
 
 // Scroll up by a fixed amount
 void
 DocumentView::ScrollUp() noexcept
 {
-    m_vscroll->setUpdatesEnabled(false);
-    m_vscroll->setValue(m_vscroll->value() - 50);
-    m_vscroll->setUpdatesEnabled(true);
+    if (m_visual_line_mode)
+    {
+        visual_line_move(Direction::UP);
+    }
+    else
+    {
+        m_vscroll->setUpdatesEnabled(false);
+        m_vscroll->setValue(m_vscroll->value() - 50);
+        m_vscroll->setUpdatesEnabled(true);
+    }
 }
 
 // Scroll down by a fixed amount
 void
 DocumentView::ScrollDown() noexcept
 {
-    m_vscroll->setUpdatesEnabled(false);
-    m_vscroll->setValue(m_vscroll->value() + 50);
-    m_vscroll->setUpdatesEnabled(true);
+    if (m_visual_line_mode)
+    {
+        visual_line_move(Direction::DOWN);
+    }
+    else
+    {
+        m_vscroll->setUpdatesEnabled(false);
+        m_vscroll->setValue(m_vscroll->value() + 50);
+        m_vscroll->setUpdatesEnabled(true);
+    }
 }
 
 // Get the link KB for the current document
@@ -2341,8 +2384,7 @@ DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
         // remove actual rendered pages. For placeholders, just hide them so
         // they don't cause repaints but remain ready to be replaced when
         // rendering finishes.
-        if (tag == QStringLiteral("placeholder_page")
-            || tag == QStringLiteral("scroll_placeholder"))
+        if (tag == "placeholder_page" || tag == "scroll_placeholder")
         {
             if (item->scene() == m_gscene)
                 item->hide();
@@ -4353,4 +4395,101 @@ DocumentView::pageStride(int pageno) const noexcept
     }
 
     return m_page_offsets[pageno + 1] - m_page_offsets[pageno];
+}
+
+void
+DocumentView::visual_line_move(Direction direction) noexcept
+{
+    if (!m_visual_line_mode)
+        return;
+
+    if (m_visual_lines.empty())
+        m_visual_lines = m_model->get_text_lines(m_pageno);
+
+    switch (direction)
+    {
+
+        case LEFT:
+        case RIGHT:
+            PPRINT("Not yet implemented");
+            break;
+
+        case UP:
+        {
+            if (m_visual_line_index == 0)
+            {
+                GotoPrevPage();
+                return;
+            }
+            else
+            {
+                m_visual_line_index--;
+            }
+        }
+        break;
+
+        case DOWN:
+        {
+            if (m_visual_lines.empty()
+                || m_visual_line_index == m_visual_lines.size() - 1)
+            {
+                GotoNextPage();
+                return;
+            }
+            else
+            {
+                m_visual_line_index++;
+            }
+        }
+        break;
+    }
+
+    snap_visual_line();
+}
+
+void
+DocumentView::snap_visual_line() noexcept
+{
+    if (m_visual_lines.empty())
+        return;
+    const Model::VisualLineInfo &info = m_visual_lines.at(m_visual_line_index);
+    if (info.pageno == m_pageno)
+    {
+        GraphicsImageItem *pageItem
+            = m_page_items_hash.value(info.pageno, nullptr);
+        if (!pageItem)
+            return;
+
+        // snap_visual_line: apply logical scale before mapping through item
+        // transform
+        const float scale = m_model->logicalScale();
+        QRectF scaledBbox(info.bbox.x() * scale, info.bbox.y() * scale,
+                          info.bbox.width() * scale,
+                          info.bbox.height() * scale);
+        QRectF sceneBbox = pageItem->mapRectToScene(scaledBbox);
+
+        QPainterPath path;
+        path.addRect(sceneBbox);
+
+        if (!m_visual_line_item)
+        {
+            m_visual_line_item = m_gscene->addPath(path);
+            m_visual_line_item->setBrush(QBrush(rgbaToQColor(0xFFFFFF33)));
+            m_visual_line_item->setPen(Qt::NoPen);
+            m_visual_line_item->setZValue(ZVALUE_TEXT_SELECTION);
+        }
+        else
+        {
+            if (!m_visual_line_item->isVisible())
+                m_visual_line_item->setVisible(true);
+            m_visual_line_item->setPath(path);
+        }
+        m_gview->centerOn(m_visual_line_item);
+        m_gview->set_visual_line_rect(sceneBbox);
+    }
+    else if (m_visual_line_item && m_visual_line_item->isVisible())
+    {
+        m_visual_line_item->setVisible(false);
+        m_gview->set_visual_line_rect(QRectF()); // clear the dim
+    }
 }

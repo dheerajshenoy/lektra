@@ -810,6 +810,25 @@ GraphicsView::paintEvent(QPaintEvent *event)
         painter.fillRect(event->rect(), dimColor);
     }
 
+    if (m_mode == Mode::VisualLine)
+    {
+        if (m_visual_line_rect.isValid())
+        {
+            if (m_visual_line_rect.isValid())
+            {
+                QRect viewRect
+                    = mapFromScene(m_visual_line_rect).boundingRect();
+                viewRect.adjust(-4, -2, 4,
+                                2); // left, top, right, bottom padding
+                QPainterPath path;
+                path.setFillRule(Qt::OddEvenFill);
+                path.addRect(viewport()->rect());
+                path.addRect(viewRect);
+                painter.fillPath(path, QColor(0, 0, 0, 120));
+            }
+        }
+    }
+
     if (m_config.portal.border_width > 0 && m_config.portal.enabled
         && m_is_portal)
     {

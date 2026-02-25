@@ -17,6 +17,7 @@ class GraphicsView : public QGraphicsView
 public:
     enum class Mode
     {
+        VisualLine,
         RegionSelection,
         TextSelection,
         TextHighlight,
@@ -29,6 +30,12 @@ public:
     };
 
     explicit GraphicsView(const Config &config, QWidget *parent = nullptr);
+
+    void set_visual_line_rect(const QRectF &sceneRect)
+    {
+        m_visual_line_rect = sceneRect;
+        viewport()->update();
+    }
 
     inline void setPortal(bool state) noexcept
     {
@@ -250,6 +257,7 @@ private:
     bool m_is_portal{false};
     static constexpr int SCROLLBAR_MARGIN = 2;
     const Config &m_config;
+    QRectF m_visual_line_rect;
 
     friend class DocumentView;
 };

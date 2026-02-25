@@ -281,6 +281,31 @@ public:
         return m_gview->isActive();
     }
 
+    inline bool visual_line_mode() const noexcept
+    {
+        return m_visual_line_mode;
+    }
+
+    void set_visual_line_mode(bool state) noexcept
+    {
+        m_visual_line_mode = state;
+        if (state)
+        {
+            if (m_visual_lines.empty())
+            {
+                visual_line_move(Direction::DOWN);
+            }
+            else
+            {
+                m_visual_line_item->show();
+            }
+        }
+        else
+        {
+            m_visual_line_item->hide();
+        }
+    }
+
     void FollowLink(const Model::LinkInfo &info) noexcept;
     void setInvertColor(bool invert) noexcept;
     void openAsync(const QString &filePath) noexcept;
@@ -442,8 +467,8 @@ private:
     void clearVisiblePages() noexcept;
     void clearVisibleLinks() noexcept;
     void renderPageFromImage(int pageno, const QImage &image) noexcept;
-    void renderLinks(int pageno,
-                     const std::vector<Model::RenderLink> &links, bool append = false) noexcept;
+    void renderLinks(int pageno, const std::vector<Model::RenderLink> &links,
+                     bool append = false) noexcept;
     void renderAnnotations(
         const int pageno,
         const std::vector<Model::RenderAnnotation> &annots) noexcept;
@@ -552,6 +577,23 @@ private:
     synctex_scanner_p m_synctex_scanner{nullptr};
 #endif
 
+    // Portal
     DocumentView *m_source_view{nullptr};
     DocumentView *m_portal_view{nullptr};
+
+    enum Direction
+    {
+        LEFT = 0,
+        RIGHT,
+        UP,
+        DOWN
+    };
+
+    // Visual Line Mode
+    QGraphicsPathItem *m_visual_line_item{nullptr};
+    int m_visual_line_index{-1};
+    bool m_visual_line_mode{false};
+    std::vector<Model::VisualLineInfo> m_visual_lines{};
+    void visual_line_move(Direction direction) noexcept;
+    void snap_visual_line() noexcept;
 };

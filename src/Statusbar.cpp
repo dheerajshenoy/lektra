@@ -157,6 +157,13 @@ Statusbar::setMode(GraphicsView::Mode mode) noexcept
         }
         break;
 
+        case GraphicsView::Mode::VisualLine:
+        {
+            m_mode_label->setText("Visual Line");
+            show_color = false;
+        }
+        break;
+
         default:
             break;
     }
