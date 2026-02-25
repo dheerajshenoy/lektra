@@ -799,22 +799,24 @@ GraphicsView::paintEvent(QPaintEvent *event)
 {
     QGraphicsView::paintEvent(event);
 
-    // If not active, draw a subtle overlay to indicate inactive state. This is
-    // especially useful when multiple views are open, so you can easily see
-    // which one is active.
-    if (m_config.split.dim_inactive && !m_active
+    QPainter painter(viewport());
+
+    if (m_config.split.dim_inactive && !m_is_active
         && m_config.split.dim_inactive_opacity > 0)
     {
-        QPainter painter(viewport());
-        painter.setRenderHint(QPainter::Antialiasing, false);
-
-        // Construct color once (or better yet, store this as a member variable)
-        static QColor dimColor(
+        QColor dimColor(
             0, 0, 0,
             static_cast<int>(m_config.split.dim_inactive_opacity * 255));
-
-        // Use the event's rect instead of the whole viewport rect
-        // to stay within the current update region (Performance optimization)
         painter.fillRect(event->rect(), dimColor);
+    }
+
+    if (m_config.portal.border_width > 0 && m_config.portal.enabled
+        && m_is_portal)
+    {
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        QPen pen(QColor(m_config.colors.portal_border),
+                 m_config.portal.border_width);
+        painter.setPen(pen);
+        painter.drawRect(viewport()->rect().adjusted(1, 1, -1, -1));
     }
 }
