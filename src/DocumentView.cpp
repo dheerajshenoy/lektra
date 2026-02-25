@@ -685,7 +685,6 @@ DocumentView::TextHighlightCurrentSelection() noexcept
         {
             m_model->highlight_text_selection(p, item->mapFromScene(start),
                                               item->mapFromScene(end));
-            PPRINT("DD");
         }
         else if (p == startP)
         {
@@ -731,7 +730,6 @@ DocumentView::handleTextHighlightRequested(QPointF start, QPointF end) noexcept
         {
             m_model->highlight_text_selection(p, item->mapFromScene(start),
                                               item->mapFromScene(end));
-            PPRINT("DD");
         }
         else if (p == startP)
         {
