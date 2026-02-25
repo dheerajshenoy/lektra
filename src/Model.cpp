@@ -646,10 +646,11 @@ Model::SaveChanges() noexcept
 
     fz_try(m_ctx)
     {
-        // MUST clear text pages; they hold page references!
-        std::lock_guard<std::mutex> lock(m_doc_mutex);
-        pdf_save_document(m_ctx, m_pdf_doc, CSTR(m_filepath),
-                          &m_pdf_write_options);
+        if (pdf_has_unsaved_changes(m_ctx, m_pdf_doc))
+        {
+            pdf_save_document(m_ctx, m_pdf_doc, CSTR(m_filepath),
+                              &m_pdf_write_options);
+        }
         return true;
     }
     fz_catch(m_ctx)
