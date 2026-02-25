@@ -162,7 +162,6 @@ private:
 
     inline void setActive(bool state) noexcept
     {
-        PPRINT("Setting view active state to", state);
         m_is_active = state;
     }
 
