@@ -7,9 +7,9 @@
 </p>
 
 <p align="center">
-    <a href="https://dheerajshenoy.github.io/lektra.html" target="_blank">Homepage</a> |
-    <a href="https://dheerajshenoy.github.io/lektra-installation.html" target="_blank">Installation</a> |
-    <a href="https://dheerajshenoy.github.io/lektra-configuration.html" target="_blank">Configuration</a>
+    <a href="https://dheerajshenoy.github.io/lektra" target="_blank">Homepage</a> |
+    <a href="https://dheerajshenoy.github.io/lektra/installation.html" target="_blank">Installation</a> |
+    <a href="https://dheerajshenoy.github.io/lektra/configuration.html" target="_blank">Configuration</a>
 </p>
 
 <p align="center">
