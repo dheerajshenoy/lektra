@@ -1388,7 +1388,6 @@ Model::highlight_text_selection(int pageno, QPointF start, QPointF end) noexcept
     fz_always(m_ctx)
     {
         fz_drop_page(m_ctx, page);
-        fz_drop_context(m_ctx);
     }
     fz_catch(m_ctx)
     {
