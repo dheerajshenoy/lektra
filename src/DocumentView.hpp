@@ -576,5 +576,5 @@ private:
     bool m_visual_line_mode{false};
     std::vector<Model::VisualLineInfo> m_visual_lines{};
     void visual_line_move(Direction direction) noexcept;
-    void snap_visual_line() noexcept;
+    void snap_visual_line(bool centerView = true) noexcept;
 };

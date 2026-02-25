@@ -2162,6 +2162,11 @@ DocumentView::renderPages() noexcept
     m_gview->setUpdatesEnabled(true);
 
     updateCurrentHitHighlight();
+
+    if (m_visual_line_mode)
+    {
+        snap_visual_line(false);
+    }
 }
 
 // Render a specific page (used when LayoutMode is SINGLE)
@@ -2937,12 +2942,19 @@ DocumentView::updateCurrentPage() noexcept
     // direct.
     const double centerCoord = static_cast<double>(scrollPos + viewportHalf);
 
-    const int page = pageAtAxisCoord(centerCoord);
-    if (page == m_pageno)
+    const int new_page = pageAtAxisCoord(centerCoord);
+    if (new_page == m_pageno)
         return;
 
-    m_pageno = page;
-    emit currentPageChanged(page + 1);
+    m_pageno = new_page;
+    emit currentPageChanged(new_page + 1);
+
+    // Reset index when scrolling into a new page
+    if (m_visual_line_mode)
+    {
+        m_visual_line_index = -1;
+        snap_visual_line(false);
+    }
 }
 
 void
@@ -4448,7 +4460,7 @@ DocumentView::visual_line_move(Direction direction) noexcept
 }
 
 void
-DocumentView::snap_visual_line() noexcept
+DocumentView::snap_visual_line(bool centerView) noexcept
 {
     // Ensure we have lines for the current page
     if (m_visual_lines.empty() || m_visual_lines.front().pageno != m_pageno)
@@ -4499,7 +4511,12 @@ DocumentView::snap_visual_line() noexcept
         }
 
         m_gview->set_visual_line_rect(sceneBbox);
-        m_gview->centerOn(m_visual_line_item);
+
+        // Only center the view if explicitly requested (Manual Navigation)
+        if (centerView)
+        {
+            m_gview->centerOn(m_visual_line_item);
+        }
     }
 }
 

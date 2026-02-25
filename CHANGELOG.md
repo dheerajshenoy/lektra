@@ -19,7 +19,9 @@
 - Regex searching
 - Book (two-page) layout `[layout] { mode = "book" }`
 - Ability to select text across page boundaries in layout modes with multiple pages visible
-- Added visual line mode for text selection that can be toggled with `visual_line_mode` command. In this mode, when you select a line of text, the selection will automatically extend to the beginning and end of the line, making it easier to select whole lines of text without having to precisely click at the start or end of the line.
+- Visual Line Mode
+    - Added visual line mode for text selection that can be toggled with `visual_line_mode` command. In this mode, when you select a line of text, the selection will automatically extend to the beginning and end of the line, making it easier to select whole lines of text without having to precisely click at the start or end of the line.
+    - Snaps when moving to different pages
 
 ### New Commands
 
