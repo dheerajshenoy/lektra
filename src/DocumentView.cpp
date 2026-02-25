@@ -2587,9 +2587,9 @@ DocumentView::updateSceneRect() noexcept
         // yMargin relative to current page so scrolling to a shorter page
         // doesn't shift content
         const double yMargin
-            = std::max(0.0, (viewH - m_max_page_cross_extent) / 2.0);
+            = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
         m_gview->setSceneRect(-xMargin, -yMargin, totalWidth + 2.0 * xMargin,
-                              sceneH + 2.0 * yMargin);
+                              sceneH);
     }
     else if (m_layout_mode == LayoutMode::BOOK)
     {
@@ -3130,7 +3130,7 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
 
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
-        const double yOffset = sr.y() + (m_max_page_cross_extent - pageH) / 2.0;
+        const double yOffset = (m_max_page_cross_extent - pageH) / 2.0;
         const double xPos    = pageOffset(pageno);
         item->setPos(xPos, yOffset);
     }
@@ -3166,7 +3166,7 @@ DocumentView::createAndAddPageItem(int pageno, const QImage &img) noexcept
 
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
-        const double yPos = sr.y() + (m_max_page_cross_extent - pageH) / 2.0;
+        const double yPos = (m_max_page_cross_extent - pageH) / 2.0;
         item->setPos(pageOffset(pageno), yPos);
     }
     else if (m_layout_mode == LayoutMode::SINGLE)
@@ -3193,6 +3193,9 @@ DocumentView::renderLinks(int pageno,
         return;
 
     GraphicsImageItem *pageItem = m_page_items_hash[pageno];
+
+    if (!pageItem)
+        return;
 
     for (const auto &link : links)
     {
@@ -3317,11 +3320,13 @@ DocumentView::renderLinks(int pageno,
                 emit clipboardContentChanged(link);
             }
         });
+
         // Map link rect to scene coordinates
         const QRectF sceneRect
             = pageItem->mapToScene(item->rect()).boundingRect();
         item->setRect(sceneRect);
         item->setZValue(ZVALUE_LINK);
+
         m_gscene->addItem(item);
         m_page_links_hash[pageno].push_back(item);
     }
@@ -4255,7 +4260,7 @@ DocumentView::zoomHelper() noexcept
             const double yOffset
                 = (m_max_page_cross_extent - pageHeightScene) / 2.0;
             const double xPos = pageOffset(i);
-            item->setPos(xPos, sr.y() + yOffset);
+            item->setPos(xPos, yOffset);
         }
         else if (m_layout_mode == LayoutMode::SINGLE)
         {
@@ -4415,7 +4420,7 @@ DocumentView::pageXOffset(int pageno, double pageW,
         const double spacingScene = m_spacing * m_current_zoom;
         const double spineX       = sceneW / 2.0;
         if (pageno == 0)
-            return spineX; // Cover is on the right
+            return spineX + spacingScene; // Cover is on the right
         return (pageno % 2 != 0)
                    ? (spineX - pageW)
                    : spineX + spacingScene; // Odd=Left, Even=Right
