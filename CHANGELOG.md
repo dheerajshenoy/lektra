@@ -10,6 +10,7 @@
 - Fix search navigation being all jumpy and causing head-ache (literally!)
 - Fix SINGLE layout
 - Fix LEFT_TO_RIGHT and TOP_TO_BOTTOM layout
+- Fix highlighting crash due to context removal
 
 ### Features
 
