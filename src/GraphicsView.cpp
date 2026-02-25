@@ -27,12 +27,12 @@ GraphicsView::GraphicsView(const Config &config, QWidget *parent)
     // setViewport(glWidget);
     // setViewportUpdateMode(QGraphicsView::MinimalViewportUpdate);
     // setCacheMode(QGraphicsView::CacheBackground);
+    // setOptimizationFlags(QGraphicsView::DontAdjustForAntialiasing
+    //                      | QGraphicsView::DontSavePainterState);
     setMouseTracking(true);
     setResizeAnchor(QGraphicsView::AnchorViewCenter);
     setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
     setAcceptDrops(false);
-    // setOptimizationFlags(QGraphicsView::DontAdjustForAntialiasing
-    //                      | QGraphicsView::DontSavePainterState);
     setContentsMargins(0, 0, 0, 0);
 
     setRenderHint(QPainter::Antialiasing, m_config.rendering.antialiasing);
@@ -44,9 +44,6 @@ GraphicsView::GraphicsView(const Config &config, QWidget *parent)
     // Overlay scrollbars - no reserved space
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-
-    // horizontalScrollBar()->setTracking(false);
-    // verticalScrollBar()->setTracking(false);
 
     // Hide timer setup
     m_scrollbar_hide_timer.setSingleShot(true);
@@ -686,21 +683,20 @@ GraphicsView::viewportEvent(QEvent *event)
 void
 GraphicsView::enterEvent(QEnterEvent *event)
 {
+    QGraphicsView::enterEvent(event);
     if (m_autoHide)
     {
         showScrollbars();
         restartHideTimer();
     }
-    setActive(true);
-    QGraphicsView::enterEvent(event);
 }
 
 void
 GraphicsView::leaveEvent(QEvent *event)
 {
+    QGraphicsView::leaveEvent(event);
     if (m_autoHide)
         restartHideTimer();
-    QGraphicsView::leaveEvent(event);
 }
 
 void
