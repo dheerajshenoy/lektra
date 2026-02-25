@@ -189,8 +189,8 @@ lektra::initMenubar() noexcept
     // --- View Menu ---
     m_viewMenu         = m_menuBar->addMenu("&View");
     m_actionFullscreen = m_viewMenu->addAction(
-        QString("Fullscreen\t%1").arg(m_config.shortcuts["toggle_fullscreen"]),
-        this, &lektra::ToggleFullscreen);
+        QString("Fullscreen\t%1").arg(m_config.shortcuts["fullscreen"]), this,
+        &lektra::ToggleFullscreen);
     m_actionFullscreen->setCheckable(true);
     m_actionFullscreen->setChecked(m_config.window.fullscreen);
 
@@ -280,8 +280,8 @@ lektra::initMenubar() noexcept
 
 #ifdef ENABLE_LLM_SUPPORT
     m_actionToggleLLMWidget = m_toggleMenu->addAction(
-        QString("LLM Widget\t%1").arg(m_config.shortcuts["toggle_llm_widget"]),
-        this, &lektra::ToggleLLMWidget);
+        QString("LLM Widget\t%1").arg(m_config.shortcuts["llm_widget"]), this,
+        &lektra::ToggleLLMWidget);
     m_actionToggleLLMWidget->setCheckable(true);
     m_actionToggleLLMWidget->setChecked(m_config.llm_widget.visible);
 #endif
@@ -306,20 +306,20 @@ lektra::initMenubar() noexcept
         m_highlight_search_picker && !m_highlight_search_picker->isHidden());
 
     m_actionToggleMenubar = m_toggleMenu->addAction(
-        QString("Menubar\t%1").arg(m_config.shortcuts["toggle_menubar"]), this,
+        QString("Menubar\t%1").arg(m_config.shortcuts["menubar"]), this,
         &lektra::ToggleMenubar);
     m_actionToggleMenubar->setCheckable(true);
     m_actionToggleMenubar->setChecked(!m_menuBar->isHidden());
 
     m_actionToggleTabBar = m_toggleMenu->addAction(
-        QString("Tabs\t%1").arg(m_config.shortcuts["toggle_tabs"]), this,
+        QString("Tabs\t%1").arg(m_config.shortcuts["tabs"]), this,
         &lektra::ToggleTabBar);
     m_actionToggleTabBar->setCheckable(true);
     m_actionToggleTabBar->setChecked(!m_tab_widget->tabBar()->isHidden());
 
     m_actionTogglePanel = m_toggleMenu->addAction(
-        QString("Statusbar\t%1").arg(m_config.shortcuts["toggle_statusbar"]),
-        this, &lektra::TogglePanel);
+        QString("Statusbar\t%1").arg(m_config.shortcuts["statusbar"]), this,
+        &lektra::TogglePanel);
     m_actionTogglePanel->setCheckable(true);
     m_actionTogglePanel->setChecked(!m_statusbar->isHidden());
 
@@ -697,7 +697,7 @@ lektra::initConfig() noexcept
             m_config.command_palette.shortcuts);
 
         set(command_palette["placeholder_text"],
-                    m_config.command_palette.placeholder_text);
+            m_config.command_palette.placeholder_text);
     }
 
     // Picker
@@ -784,8 +784,7 @@ lektra::initConfig() noexcept
     // LLM Widget
     if (auto llm_widget = toml["llm_widget"])
     {
-        set(llm_widget["panel_position"],
-                    m_config.llm_widget.panel_position);
+        set(llm_widget["panel_position"], m_config.llm_widget.panel_position);
         set(llm_widget["panel_width"], m_config.llm_widget.panel_width);
         set(llm_widget["visible"], m_config.llm_widget.visible);
     }
@@ -895,7 +894,7 @@ lektra::initConfig() noexcept
     {
 #ifdef HAS_SYNCTEX
         set(behavior["synctex_editor_command"],
-                    m_config.behavior.synctex_editor_command);
+            m_config.behavior.synctex_editor_command);
 #endif
 
         set(behavior["preload_pages"], m_config.behavior.preload_pages);
@@ -973,11 +972,12 @@ lektra::initDefaultKeybinds() noexcept
         {"link_hint_visit", "f"},
         {"file_open_tab", "o"},
         {"file_save", "Ctrl+s"},
+        {"visual_line_mode", "v"},
         {"undo", "u"},
         {"redo", "Ctrl+r"},
         {"invert_color", "i"},
-        {"toggle_menubar", "Ctrl+Shift+m"},
-        {"toggle_command_palette", "Ctrl+Shift+P"},
+        {"menubar", "Ctrl+Shift+m"},
+        {"command_palette", "Ctrl+Shift+P"},
         {"rotate_clock", ">"},
         {"rotate_anticlock", "<"},
         {"tab_1", "Alt+1"},
@@ -1871,7 +1871,6 @@ lektra::OpenFileInNewTab(const QString &filename,
 
     connect(container, &DocumentContainer::currentViewChanged, container,
             [this](DocumentView *newView) { setCurrentDocumentView(newView); });
-
 
     // Initialize connections for the initial view
     initTabConnections(view);
@@ -3436,15 +3435,16 @@ lektra::initActionMap() noexcept
         ACTION("selection_last", ReselectLastTextSelection),
 
         // Toggles
-        ACTION("toggle_presentation_mode", Toggle_presentation_mode),
-        ACTION("toggle_fullscreen", ToggleFullscreen),
-        ACTION("toggle_command_palette", Show_command_picker),
-        ACTION("toggle_tabs", ToggleTabBar),
-        ACTION("toggle_menubar", ToggleMenubar),
-        ACTION("toggle_statusbar", TogglePanel),
-        ACTION("toggle_focus_mode", ToggleFocusMode),
+        ACTION("presentation_mode", Toggle_presentation_mode),
+        ACTION("fullscreen", ToggleFullscreen),
+        ACTION("command_palette", Show_command_picker),
+        ACTION("tabs", ToggleTabBar),
+        ACTION("menubar", ToggleMenubar),
+        ACTION("statusbar", TogglePanel),
+        ACTION("focus_mode", ToggleFocusMode),
+        ACTION("visual_line_mode", Toggle_visual_line_mode),
 #ifdef ENABLE_LLM_SUPPORT
-        ACTION("toggle_llm_widget", ToggleLLMWidget),
+        ACTION("llm_widget", ToggleLLMWidget),
 #endif
 
         // Link hints
@@ -3495,6 +3495,9 @@ lektra::initActionMap() noexcept
 
         // Portal
         ACTION("portal", Create_or_focus_portal),
+        // ACTION("portal_demote", Portal_demote),
+        // ACTION("master", Focus_master_view),
+        // ACTION("portal_swap_master", Portal_swap_master),
 
         // File operations
         ACTION("file_open_tab", OpenFileInNewTab),
@@ -4287,7 +4290,6 @@ lektra::setCurrentDocumentView(DocumentView *view) noexcept
     view->setActive(true);
 
     m_doc = view;
-
 
     const int tabIndex = m_tab_widget->currentIndex();
 
