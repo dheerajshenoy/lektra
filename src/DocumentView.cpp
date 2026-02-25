@@ -372,9 +372,7 @@ DocumentView::initConnections() noexcept
 
     connect(m_model, &Model::urlLinksReady, this,
             [this](int pageno, std::vector<Model::RenderLink> links)
-    {
-    renderLinks(pageno, links, true);
-    });
+    { renderLinks(pageno, links, true); });
 
     connect(m_model, &Model::reloadRequested, this, &DocumentView::reloadPage);
 
@@ -2540,6 +2538,8 @@ DocumentView::enterEvent(QEnterEvent *e)
     {
         container()->focusView(this);
     }
+
+    QWidget::enterEvent(e);
 }
 
 void
@@ -3099,7 +3099,8 @@ DocumentView::createAndAddPageItem(int pageno, const QImage &img) noexcept
 
 void
 DocumentView::renderLinks(int pageno,
-                          const std::vector<Model::RenderLink> &links, bool append) noexcept
+                          const std::vector<Model::RenderLink> &links,
+                          bool append) noexcept
 {
     if (!append && m_page_links_hash.contains(pageno))
         return;
