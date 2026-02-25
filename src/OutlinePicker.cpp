@@ -1,8 +1,20 @@
 #include "OutlinePicker.hpp"
 
-OutlinePicker::OutlinePicker(QWidget *parent) noexcept
-    : Picker(parent)
+OutlinePicker::OutlinePicker(const Config::Outline &config,
+                             QWidget *parent) noexcept
+    : Picker(parent), m_config(config)
 {
+    // Configure the columns for the new populate() logic
+
+    if (config.show_page_numbers)
+    {
+        setColumns({{.header = tr("Title"), .stretch = 1},
+                    {.header = tr("Page"), .stretch = 0}});
+    }
+    else
+    {
+        setColumns({{.header = tr("Title"), .stretch = 1}});
+    }
 }
 
 void
@@ -42,14 +54,36 @@ OutlinePicker::collectItems()
     QList<Item> items;
     items.reserve(static_cast<int>(m_entries.size()));
 
-    for (size_t i = 0; i < m_entries.size(); ++i)
+    if (m_config.show_page_numbers)
     {
-        const auto &e = m_entries[i];
-        items.push_back({
-            .title    = QString(e.depth * 2, ' ') + e.title,
-            .subtitle = QString("p%1").arg(e.page + 1),
-            .data     = static_cast<qulonglong>(i),
-        });
+        for (size_t i = 0; i < m_entries.size(); ++i)
+        {
+            const auto &e = m_entries[i];
+
+            // The new populate() logic expects:
+            // Column 0: item.title
+            // Column 1: item.subtitle
+            items.push_back(
+                {.title
+                 = QString(e.depth * m_config.indent_width, ' ') + e.title,
+                 .subtitle = QString::number(e.page + 1),
+                 .data     = static_cast<qulonglong>(i)});
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < m_entries.size(); ++i)
+        {
+            const auto &e = m_entries[i];
+
+            // The new populate() logic expects:
+            // Column 0: item.title
+            // Column 1: item.subtitle
+            items.push_back(
+                {.title
+                 = QString(e.depth * m_config.indent_width, ' ') + e.title,
+                 .data = static_cast<qulonglong>(i)});
+        }
     }
     return items;
 }

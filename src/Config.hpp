@@ -19,7 +19,7 @@ struct Config
     // }
     // @section_desc Color options struct
     // @section_type struct
-    struct colors
+    struct Colors
     {
         // @desc Accent color
         // @type str
@@ -93,7 +93,7 @@ struct Config
     } colors{};
     // @endsection
 
-    struct portal
+    struct Portal
     {
         // @desc Enable portal ability
         // @type bool
@@ -117,7 +117,7 @@ struct Config
     // @section Window
     // @desc Window options struct
     // @type struct
-    struct window
+    struct Window
     {
         // @desc Set the window fullscreen
         // @type bool
@@ -152,7 +152,7 @@ struct Config
     // @section Layout
     // @section_desc Layout options struct
     // @section_type struct
-    struct layout
+    struct Layout
     {
 
         // @desc Initial page layout mode
@@ -181,7 +181,7 @@ struct Config
     // @section Statusbar
     // @section_desc Statusbar options struct
     // @section_type struct
-    struct statusbar
+    struct Statusbar
     {
         // @desc Show statusbar
         // @type bool
@@ -229,7 +229,7 @@ struct Config
     // @section Zoom
     // @section_desc Zoom options struct
     // @section_type struct
-    struct zoom
+    struct Zoom
     {
 
         // @desc Default zoom level
@@ -247,7 +247,7 @@ struct Config
     // @section Selection
     // @section_desc Selection options struct
     // @section_type struct
-    struct selection
+    struct Selection
     {
         // @desc Threshold in pixels before actually starting the selection
         // @type int
@@ -264,7 +264,7 @@ struct Config
     // @section Split
     // @section_desc Split options struct
     // @section_type struct
-    struct split
+    struct Split
     {
         // @desc Focus of split follows the mouse
         // @type bool
@@ -291,7 +291,7 @@ struct Config
     // @section Scrollbars
     // @section_desc Scrollbars options struct
     // @section_type struct
-    struct scrollbars
+    struct Scrollbars
     {
         // @desc Show the horizontal scrollbar
         // @type bool
@@ -328,7 +328,7 @@ struct Config
     // @section Markers
     // @section_desc Jump marker options struct
     // @section_type struct
-    struct markers
+    struct Markers
     {
         // @desc Show the jump marker
         // @type bool
@@ -340,7 +340,7 @@ struct Config
     // @section Links
     // @section_desc Links options struct
     // @section_type struct
-    struct links
+    struct Links
     {
         // @desc Show the rect boundary for links
         // @type bool
@@ -362,7 +362,7 @@ struct Config
     // @section Link Hints
     // @section_desc Link hint options struct
     // @section_type struct
-    struct link_hints
+    struct Link_hints
     {
         // @desc Size of the link hint rects
         // @type float
@@ -374,7 +374,7 @@ struct Config
     // @section Tabs
     // @section_desc Tab options struct
     // @section_type struct
-    struct tabs
+    struct Tabs
     {
         // @desc Show tabs
         // @type bool
@@ -423,15 +423,24 @@ struct Config
     // @section Outline
     // @section_desc Outline options struct
     // @section_type struct
-    struct outline
+    struct Outline
     {
+        // @desc Indent width
+        // @type int
+        // @default 10
+        int indent_width{10};
+
+        // @desc Show page numbers
+        // @type bool
+        // @defaul true
+        bool show_page_numbers{true};
     } outline{};
     // @endsection
 
     // @section Highlight
     // @section_desc Highlight Search options struct
     // @section_type struct
-    struct highlight_search
+    struct Highlight_search
     {
     } highlight_search{};
     // @endsection
@@ -439,7 +448,7 @@ struct Config
     // @section Command Palette
     // @section_desc Command Palette options struct
     // @section_type struct
-    struct command_palette
+    struct Command_palette
     {
         // @desc Width of the command palette picker
         // @type int
@@ -476,7 +485,7 @@ struct Config
     // @section Picker
     // @section_desc Split options struct
     // @section_type struct
-    struct picker
+    struct Picker
     {
 
         // @desc Show stylish border around picker
@@ -521,7 +530,7 @@ struct Config
     // @section LLM Widget
     // @section_desc LLM widget options struct
     // @section_type struct
-    struct llm_widget
+    struct Llm_widget
     {
         // @desc Show the LLM Widget
         // @type bool
@@ -544,7 +553,7 @@ struct Config
     // @section LLM
     // @section_desc LLM options struct
     // @section_type struct
-    struct llm
+    struct LLM
     {
         // @desc LLM Provider
         // @type str
@@ -568,7 +577,7 @@ struct Config
     // @section Rendering
     // @section_desc Rendering options struct
     // @section_type struct
-    struct rendering
+    struct Rendering
     {
         using DPR = std::variant<float, QMap<QString, float>>;
         // @desc Device Pixel Ratio
@@ -602,7 +611,7 @@ struct Config
     // @section Behavior
     // @section_desc Behavior options struct
     // @section_type struct
-    struct behavior
+    struct Behavior
     {
         // @desc Confirm before quitting
         // @type bool

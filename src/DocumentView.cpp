@@ -1206,8 +1206,8 @@ DocumentView::GotoPage(int pageno) noexcept
 
     if (m_visual_line_mode)
     {
-        m_visual_lines      = m_model->get_text_lines(m_pageno);
-        m_visual_line_index = 0;
+        // m_visual_lines      = m_model->get_text_lines(m_pageno);
+        m_visual_line_index = -1;
         snap_visual_line();
     }
 }

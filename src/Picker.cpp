@@ -201,6 +201,89 @@ Picker::onItemActivated(const QModelIndex &index)
     hide();
 }
 
+// void
+// Picker::populate(const QList<Picker::Item> &items, bool hierarchical)
+// {
+//     m_model->clear();
+//     m_model->setColumnCount(m_columns.size());
+
+//     // Map to track parents for Tree mode
+//     QMap<int, QStandardItem *> parents;
+
+//     for (const auto &item : items)
+//     {
+//         QVariantMap meta = item.data.toMap();
+//         int depth        = meta["depth"].toInt();
+//         bool isHeading   = meta["isHeading"].toBool();
+
+//         QList<QStandardItem *> row;
+//         for (int col = 0; col < m_columns.size(); ++col)
+//         {
+//             // Flat mode: Apply manual indentation spaces
+//             // Tree mode: Let the QTreeView handle indentation
+//             QString text = (col == 0)   ? item.title
+//                            : (col == 1) ? item.subtitle
+//                                         : "";
+//             if (!hierarchical && col == 0)
+//             {
+//                 text.prepend(QString(depth * 2, ' '));
+//             }
+
+//             auto *si = new QStandardItem(text);
+
+//             // Visual distinction for sections
+//             // if (isHeading)
+//             // {
+//             //     si->setFont(QFont("", -1, QFont::Bold));
+//             //     si->setData(QColor(245, 245, 245), Qt::BackgroundRole);
+//             // }
+//             row.append(si);
+//         }
+
+//         // Logic Switch: Where do we attach this row?
+//         if (hierarchical)
+//         {
+//             if (depth == 0 || !parents.contains(depth - 1))
+//             {
+//                 m_model->appendRow(row);
+//             }
+//             else
+//             {
+//                 parents[depth - 1]->appendRow(row);
+//             }
+//             parents[depth] = row[0]; // Update current depth pointer
+//         }
+//         else
+//         {
+//             m_model->appendRow(row);
+//         }
+
+//         // Search/Payload Metadata
+//         row[0]->setData(item.title + ' ' + item.subtitle, Qt::UserRole + 1);
+//         row[0]->setData(item.data, Qt::UserRole + 2);
+//     }
+
+//     if (hierarchical)
+//     {
+//         m_listView->expandAll();
+//     }
+
+//     auto *header = m_listView->header();
+
+//     if (header)
+//     {
+//         header->setStretchLastSection(false);
+//         for (int i = 0; i < m_columns.size(); ++i)
+//         {
+//             if (m_columns[i].stretch > 0)
+//                 header->setSectionResizeMode(i, QHeaderView::Stretch);
+//             else
+//                 header->setSectionResizeMode(i,
+//                 QHeaderView::ResizeToContents);
+//         }
+//     }
+// }
+
 void
 Picker::populate(const QList<Picker::Item> &items)
 {

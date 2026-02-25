@@ -3,9 +3,22 @@
 ## 0.6.5
 
 ### Features
+
+### Config Option
+- `[outline]`
+  - `show_page_number` (bool)
+  - `indent_width` (int)
+  
 ### Optimizations
+
+- Pass `struct` const reference of only the respective members instead of the whole `Config` struct.
+
 ### New Commands
+
 ### Breaking Changes
+
+#### Renamed Commands:
+
 ### Bug Fix
 
 ## 0.6.4

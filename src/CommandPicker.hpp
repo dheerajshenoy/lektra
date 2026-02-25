@@ -12,9 +12,10 @@ class CommandPicker : public Picker
 public:
     using ActionMap = QHash<QString, std::function<void(const QStringList &)>>;
     using ShortcutMap = QHash<QString, QString>;
-    explicit CommandPicker(const Config &config, const ActionMap &actions,
-                            const ShortcutMap &shortcuts,
-                            QWidget *parent) noexcept;
+    explicit CommandPicker(const Config::Command_palette &config,
+                           const ActionMap &actions,
+                           const ShortcutMap &shortcuts,
+                           QWidget *parent) noexcept;
 
     void registerCommand(const QString &name, const QString &shortcut,
                          std::function<void()> action);
@@ -34,6 +35,6 @@ private:
         QString shortcut;
         std::function<void(const QStringList &)> action;
     };
-    const Config &m_config;
+    const Config::Command_palette &m_config;
     std::vector<Entry> m_entries; // sorted, stable
 };

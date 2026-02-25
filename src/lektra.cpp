@@ -771,7 +771,8 @@ lektra::initConfig() noexcept
     // Outline
     if (auto outline = toml["outline"])
     {
-        // TODO
+        set(outline["indent_width"], m_config.outline.indent_width);
+        set(outline["show_page_numbers"], m_config.outline.show_page_numbers);
     }
 
     // Highlight Search
@@ -1070,7 +1071,7 @@ lektra::initGui() noexcept
     m_tab_widget = new TabWidget(centralWidget());
 
     // Panel
-    m_statusbar = new Statusbar(m_config, this);
+    m_statusbar = new Statusbar(m_config.statusbar, this);
     m_statusbar->hidePageInfo(true);
     m_statusbar->setMode(GraphicsView::Mode::TextSelection);
     m_statusbar->setSessionName("");
@@ -2139,7 +2140,7 @@ lektra::Show_outline() noexcept
 
     if (!m_outline_picker)
     {
-        m_outline_picker = new OutlinePicker(this);
+        m_outline_picker = new OutlinePicker(m_config.outline, this);
         m_outline_picker->setKeybindings(m_picker_keybinds);
         connect(m_outline_picker, &OutlinePicker::jumpToLocationRequested, this,
                 [this](int page, const QPointF &pos) // page returned is 1-based
@@ -4070,8 +4071,8 @@ lektra::Show_command_picker() noexcept
 {
     if (!m_command_picker)
     {
-        m_command_picker = new CommandPicker(m_config, m_actionMap,
-                                             m_config.shortcuts, this);
+        m_command_picker = new CommandPicker(
+            m_config.command_palette, m_actionMap, m_config.shortcuts, this);
         m_command_picker->setKeybindings(m_picker_keybinds);
     }
     m_command_picker->launch();

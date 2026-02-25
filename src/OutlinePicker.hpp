@@ -9,7 +9,8 @@ class OutlinePicker : public Picker
 {
     Q_OBJECT
 public:
-    explicit OutlinePicker(QWidget *parent) noexcept;
+    explicit OutlinePicker(const Config::Outline &config,
+                           QWidget *parent) noexcept;
 
     // Call this whenever a new document is loaded
     void setOutline(fz_outline *outline) noexcept;
@@ -40,4 +41,5 @@ private:
     void harvest(fz_outline *node, int depth) noexcept;
 
     std::vector<OutlineEntry> m_entries;
+    const Config::Outline &m_config;
 };

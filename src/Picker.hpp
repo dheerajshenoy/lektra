@@ -204,7 +204,7 @@ private slots:
     }
 
 private:
-    void populate(const QList<Item> &items);
+    void populate(const QList<Item> &items); // , bool hierarchical = false);
     void reposition();
     void applyFrameStyle() noexcept;
     Item itemAtProxyIndex(const QModelIndex &index) const;

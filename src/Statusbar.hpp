@@ -17,7 +17,7 @@ class Statusbar : public QWidget
 {
     Q_OBJECT
 public:
-    Statusbar(const Config &config, QWidget *parent = nullptr);
+    Statusbar(const Config::Statusbar &config, QWidget *parent = nullptr);
 
     void hidePageInfo(bool state) noexcept;
     void setTotalPageCount(int total) noexcept;
@@ -36,7 +36,7 @@ signals:
     void pageChangeRequested(int pageno);
 
 private:
-    const Config &m_config;
+    const Config::Statusbar &m_config;
     void initGui() noexcept;
     void initConnections() noexcept;
     void labelBG(QLabel *label, const QColor &color) noexcept;
