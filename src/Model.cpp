@@ -1167,9 +1167,6 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
         std::memcpy(image.bits(), samples, stride * height);
 
-        fz_drop_pixmap(ctx, pix);
-        fz_drop_context(ctx);
-
         image.setDotsPerMeterX(static_cast<int>((job.dpi * 1000) / 25.4));
         image.setDotsPerMeterY(static_cast<int>((job.dpi * 1000) / 25.4));
         image.setDevicePixelRatio(job.dpr);
@@ -1331,7 +1328,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         fz_drop_link(ctx, head);
         fz_drop_pixmap(ctx, pix);
         fz_drop_display_list(ctx, dlist);
-        fz_drop_page(ctx, text_page);
+        // fz_drop_page(ctx, text_page);
+        fz_drop_context(ctx);
     }
     fz_catch(ctx)
     {
