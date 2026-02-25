@@ -1,5 +1,13 @@
 # LEKTRA CHANGELOG
 
+## 0.6.5
+
+### Features
+### Optimizations
+### New Commands
+### Breaking Changes
+### Bug Fix
+
 ## 0.6.4
 
 ### Bug Fix

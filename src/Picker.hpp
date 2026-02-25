@@ -1,9 +1,9 @@
 #pragma once
 #include <QLineEdit>
-#include <QListView>
 #include <QShortcut>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
+#include <QTreeView>
 #include <QWidget>
 
 // ---------------------------------------------------------------------------
@@ -123,6 +123,13 @@ public:
         QKeyCombination dismiss{Qt::Key_Escape};
     };
 
+    struct Column
+    {
+        QString header;
+        int role{Qt::DisplayRole}; // which data role to display
+        int stretch{1};            // relative width weight
+    };
+
     struct FrameStyle
     {
         bool border{true};
@@ -160,10 +167,16 @@ public:
         return m_keys;
     }
 
+    inline void setColumns(const QList<Column> &columns) noexcept
+    {
+        m_columns = columns;
+    }
+
     virtual QList<Item> collectItems()            = 0;
     virtual void onItemAccepted(const Item &item) = 0;
 
-    void launch();
+    void launch() noexcept;
+
     void repopulate() noexcept;
 
     virtual Qt::CaseSensitivity caseSensitivity(const QString &term) const
@@ -198,9 +211,10 @@ private:
 
     QFrame *m_frame{nullptr};
     QLineEdit *m_searchBox;
-    QListView *m_listView;
+    QTreeView *m_listView;
     QStandardItemModel *m_model;
     Keybindings m_keys;
     FrameStyle m_frame_style{};
+    QVector<Column> m_columns{};
     class QGraphicsDropShadowEffect *m_shadow_effect{nullptr};
 };

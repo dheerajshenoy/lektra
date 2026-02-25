@@ -7,10 +7,15 @@ CommandPicker::CommandPicker(const Config &config, const ActionMap &actionMap,
                              QWidget *parent) noexcept
     : Picker(parent), m_config(config)
 {
+    setColumns({{.header = "Command", .stretch = 1},
+                {.header = "Shortcut", .stretch = 0}});
+
     m_entries.reserve(static_cast<size_t>(actionMap.size()));
 
     for (auto it = actionMap.constBegin(); it != actionMap.constEnd(); ++it)
+    {
         m_entries.push_back({it.key(), shortcuts.value(it.key()), it.value()});
+    }
 
     std::sort(m_entries.begin(), m_entries.end(),
               [](const Entry &a, const Entry &b)

@@ -2,10 +2,10 @@
 
 #include <QApplication>
 #include <QGraphicsDropShadowEffect>
+#include <QHeaderView>
 #include <QKeyEvent>
 #include <QStandardItem>
 #include <QVBoxLayout>
-#include <qnamespace.h>
 
 Picker::Picker(QWidget *parent) noexcept : QWidget(parent)
 {
@@ -43,10 +43,13 @@ Picker::Picker(QWidget *parent) noexcept : QWidget(parent)
     m_searchBox->installEventFilter(
         this); // to prevent key events from propagating to picker
 
-    m_listView = new QListView(m_frame); // parent is frame, not this
+    m_listView = new QTreeView(m_frame);
+    m_listView->setRootIsDecorated(false); // no expand arrows — looks flat
+    m_listView->setItemsExpandable(false);
+    m_listView->setUniformRowHeights(true);
     m_listView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_listView->setUniformItemSizes(true);
     m_listView->setFrameShape(QFrame::NoFrame);
+    m_listView->header()->setStretchLastSection(true);
     innerLayout->addWidget(m_listView);
 
     // Models parented to this — they outlive any layout changes
@@ -59,7 +62,7 @@ Picker::Picker(QWidget *parent) noexcept : QWidget(parent)
 
     connect(m_searchBox, &QLineEdit::textChanged, this,
             &Picker::onSearchChanged);
-    connect(m_listView, &QListView::activated, this, &Picker::onItemActivated);
+    connect(m_listView, &QTreeView::activated, this, &Picker::onItemActivated);
 
     applyFrameStyle(); // called once, after everything is constructed
 
@@ -68,7 +71,7 @@ Picker::Picker(QWidget *parent) noexcept : QWidget(parent)
 }
 
 void
-Picker::launch()
+Picker::launch() noexcept
 {
     m_searchBox->clear();
     populate(collectItems());
@@ -202,13 +205,58 @@ void
 Picker::populate(const QList<Picker::Item> &items)
 {
     m_model->clear();
+
+    if (m_columns.isEmpty())
+    {
+        // Single-column fallback — behaves like the original QListView path
+        for (const auto &item : items)
+        {
+            auto *si = new QStandardItem(item.title);
+            si->setData(item.subtitle, Qt::ToolTipRole);
+            si->setData(item.title + ' ' + item.subtitle, Qt::UserRole + 1);
+            si->setData(QVariant::fromValue(item), Qt::UserRole + 2);
+            m_model->appendRow(si);
+        }
+        return;
+    }
+
+    m_model->setColumnCount(m_columns.size());
+    for (int col = 0; col < m_columns.size(); ++col)
+        m_model->setHorizontalHeaderItem(
+            col, new QStandardItem(m_columns[col].header));
+
     for (const auto &item : items)
     {
-        auto *si = new QStandardItem(item.title);
-        si->setData(item.subtitle, Qt::ToolTipRole);
-        si->setData(item.title + ' ' + item.subtitle, Qt::UserRole + 1);
-        si->setData(QVariant::fromValue(item), Qt::UserRole + 2);
-        m_model->appendRow(si);
+        // col 0 = title, col 1 = subtitle, further columns ignored for now
+        QList<QStandardItem *> row;
+        row.reserve(m_columns.size());
+
+        for (int col = 0; col < m_columns.size(); ++col)
+        {
+            const QString text = (col == 0)   ? item.title
+                                 : (col == 1) ? item.subtitle
+                                              : QString{};
+            row.append(new QStandardItem(text));
+        }
+
+        // Searchable text and payload always live on col 0
+        row[0]->setData(item.title + ' ' + item.subtitle, Qt::UserRole + 1);
+        row[0]->setData(QVariant::fromValue(item), Qt::UserRole + 2);
+        m_model->appendRow(row);
+    }
+
+    auto *header = m_listView->header();
+
+    if (header)
+    {
+        header->setStretchLastSection(false);
+        for (int i = 0; i < m_columns.size(); ++i)
+        {
+            if (m_columns[i].stretch > 0)
+                header->setSectionResizeMode(i, QHeaderView::Stretch);
+            else
+                header->setSectionResizeMode(i, QHeaderView::ResizeToContents);
+        }
     }
 }
 
