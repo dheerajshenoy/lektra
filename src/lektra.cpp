@@ -516,6 +516,7 @@ lektra::initConfig() noexcept
     {
         set(portal["enabled"], m_config.portal.enabled);
         set(portal["border_width"], m_config.portal.border_width);
+        set(portal["dim_inactive"], m_config.portal.dim_inactive);
     }
 
     // Tabs

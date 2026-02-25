@@ -8,6 +8,7 @@
 - `[outline]`
   - `show_page_number` (bool)
   - `indent_width` (int)
+- `dim_inactive` in `[portal]` - Dim inactive for portal views too
   
 ### Optimizations
 

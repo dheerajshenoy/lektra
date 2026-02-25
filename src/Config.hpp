@@ -112,6 +112,11 @@ struct Config
         // @type bool
         // @default true
         bool respect_parent{true};
+
+        // @desc Dim inactive for portal views too
+        // @type bool
+        // @default false
+        bool dim_inactive{false};
     } portal{};
 
     // @section Window

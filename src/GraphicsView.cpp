@@ -805,8 +805,16 @@ GraphicsView::paintEvent(QPaintEvent *event)
 
     QPainter painter(viewport());
 
-    if (m_config.split.dim_inactive && !m_is_active
-        && m_config.split.dim_inactive_opacity > 0)
+    // --- Dimming Logic ---
+    bool shouldDim = m_config.split.dim_inactive && !m_is_active;
+
+    // If it's a portal, we override the dimming based on the new config
+    if (m_is_portal && !m_config.portal.dim_inactive)
+    {
+        shouldDim = false;
+    }
+
+    if (shouldDim && m_config.split.dim_inactive_opacity > 0)
     {
         QColor dimColor(
             0, 0, 0,
