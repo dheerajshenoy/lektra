@@ -272,7 +272,6 @@ public:
 
     inline void setActive(bool state) noexcept
     {
-        PPRINT("DocumentView::setActive(): Setting active state to", state);
         m_gview->setActive(state);
         m_gview->update();
     }
@@ -444,7 +443,7 @@ private:
     void clearVisibleLinks() noexcept;
     void renderPageFromImage(int pageno, const QImage &image) noexcept;
     void renderLinks(int pageno,
-                     const std::vector<Model::RenderLink> &links) noexcept;
+                     const std::vector<Model::RenderLink> &links, bool append = false) noexcept;
     void renderAnnotations(
         const int pageno,
         const std::vector<Model::RenderAnnotation> &annots) noexcept;
