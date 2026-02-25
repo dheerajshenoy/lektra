@@ -54,7 +54,6 @@ g_newId() noexcept
 DocumentView::DocumentView(const Config &config, QWidget *parent) noexcept
     : QWidget(parent), m_id(g_newId()), m_config(config)
 {
-
 #ifndef NDEBUG
     qDebug() << "DocumentView::DocumentView(): Initializing DocumentView";
 #endif
@@ -2537,6 +2536,14 @@ DocumentView::updateSceneRect() noexcept
 }
 
 void
+DocumentView::enterEvent(QEnterEvent *e)
+{
+    if (m_config.split.focus_follows_mouse) {
+        container()->focusView(this);
+    }
+}
+
+void
 DocumentView::resizeEvent(QResizeEvent *event)
 {
     // TODO: Maybe do this only when auto resize is enabled ?
@@ -2546,14 +2553,6 @@ DocumentView::resizeEvent(QResizeEvent *event)
         m_resize_timer->start();
 
     QWidget::resizeEvent(event);
-}
-
-void
-DocumentView::enterEvent(QEnterEvent *event)
-{
-    QWidget::enterEvent(event);
-    if (m_config.split.focus_follows_mouse && !hasFocus())
-        emit requestFocus(this);
 }
 
 void

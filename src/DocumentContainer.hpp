@@ -46,28 +46,6 @@ public:
         return m_current_view;
     }
 
-    inline bool has_portal() const noexcept
-    {
-        return m_portal_view != nullptr;
-    }
-
-    inline DocumentView *portal() const noexcept
-    {
-        return m_portal_view;
-    }
-
-    inline void set_portal(DocumentView *portal) noexcept
-    {
-        m_portal_view = portal;
-    }
-
-    inline void clear_portal() noexcept
-    {
-        m_portal_view = nullptr;
-        // TODO: Maybe notify views that the portal was cleared
-    }
-
-    void set_portal(DocumentView::Id id) noexcept;
     DocumentView *split(DocumentView *view,
                         Qt::Orientation orientation
                         = Qt::Orientation::Horizontal) noexcept;
@@ -90,9 +68,6 @@ signals:
     void viewClosed(DocumentView *view);
     void currentViewChanged(DocumentView *view);
 
-protected:
-    bool eventFilter(QObject *watched, QEvent *event) noexcept override;
-
 private:
     void splitInSplitter(QSplitter *splitter, DocumentView *view,
                          DocumentView *newView,
@@ -105,5 +80,4 @@ private:
     DocumentView *createViewFromTemplate(DocumentView *templateView) noexcept;
     QVBoxLayout *m_layout{nullptr};
     DocumentView *m_current_view{nullptr};
-    DocumentView *m_portal_view{nullptr};
 };

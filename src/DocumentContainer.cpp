@@ -18,9 +18,6 @@ DocumentContainer::DocumentContainer(DocumentView *initialView, QWidget *parent)
     initialView->setContainer(this);
 
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-    // Track when view gets focus
-    initialView->installEventFilter(this);
 }
 
 DocumentContainer::~DocumentContainer()
@@ -96,7 +93,6 @@ DocumentContainer::split(DocumentView *view, Qt::Orientation orientation,
     }
 
     // Set up the new view
-    newView->installEventFilter(this);
     m_current_view = newView;
     newView->setFocus();
 
@@ -374,22 +370,6 @@ DocumentContainer::syncViewSettings(DocumentView *source,
     target->GotoPage(source->pageNo());
 }
 
-bool
-DocumentContainer::eventFilter(QObject *watched, QEvent *event) noexcept
-{
-    if (event->type() == QEvent::FocusIn)
-    {
-        DocumentView *view = qobject_cast<DocumentView *>(watched);
-
-        if (view && view != m_current_view)
-        {
-            focusView(view);
-        }
-    }
-
-    return QWidget::eventFilter(watched, event);
-}
-
 int
 DocumentContainer::getViewCount() const noexcept
 {
@@ -399,21 +379,23 @@ DocumentContainer::getViewCount() const noexcept
 void
 DocumentContainer::focusView(DocumentView *view) noexcept
 {
+
     if (!view)
         return;
 
     QList<DocumentView *> views = getAllViews();
+
     if (!views.contains(view))
         return;
 
     if (m_current_view && m_current_view != view)
-        m_current_view->graphicsView()->setActive(false);
+    {
+        m_current_view->setActive(false);
+        m_current_view = view;
+        emit currentViewChanged(view);
+    }
 
-    m_current_view = view;
-    m_current_view->graphicsView()->setActive(true);
-    m_current_view->setFocus();
-
-    emit currentViewChanged(m_current_view);
+    view->setActive(true);
 }
 
 void
@@ -567,7 +549,6 @@ DocumentContainer::splitEmpty(DocumentView *view,
             splitInSplitter(parentSplitter, view, newView, orientation);
     }
 
-    newView->installEventFilter(this);
     m_current_view = newView;
 
     emit viewCreated(newView);
