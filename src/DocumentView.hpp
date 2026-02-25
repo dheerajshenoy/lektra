@@ -227,6 +227,61 @@ public:
         return m_container;
     }
 
+    inline void set_source(DocumentView *source) noexcept
+    {
+        m_source_view = source;
+    }
+
+    inline DocumentView *source() const noexcept
+    {
+        return m_source_view;
+    }
+
+    inline void clear_source() noexcept
+    {
+        m_source_view = nullptr;
+    }
+
+    inline bool is_portal() const noexcept
+    {
+        return m_source_view != nullptr;
+    }
+
+    inline DocumentView *portal() const noexcept
+    {
+        return m_portal_view;
+    }
+
+    inline void set_portal(DocumentView *portal) noexcept
+    {
+        m_portal_view = portal;
+        portal->set_source(this);
+        portal->m_gview->setPortal(true);
+    }
+
+    inline void clear_portal() noexcept
+    {
+        if (m_portal_view)
+        {
+            m_portal_view->clear_source();
+            m_portal_view->m_gview->setPortal(false);
+            m_portal_view = nullptr;
+        }
+        // TODO: Maybe notify views that the portal was cleared
+    }
+
+    inline void setActive(bool state) noexcept
+    {
+        PPRINT("DocumentView::setActive(): Setting active state to", state);
+        m_gview->setActive(state);
+        m_gview->update();
+    }
+
+    inline bool isActive() const noexcept
+    {
+        return m_gview->isActive();
+    }
+
     void FollowLink(const Model::LinkInfo &info) noexcept;
     void setInvertColor(bool invert) noexcept;
     void openAsync(const QString &filePath) noexcept;
@@ -310,6 +365,7 @@ signals:
     void highlightColorChanged(const QColor &color);
     void autoResizeActionUpdate(bool state);
     void currentPageChanged(int pageno);
+    void closed();
 
 public slots:
     void handle_password_required() noexcept;
@@ -340,8 +396,8 @@ protected:
     void handleContextMenuRequested(const QPoint &globalPos,
                                     bool *handled) noexcept;
     void showEvent(QShowEvent *event) override;
-    void enterEvent(QEnterEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
+    void enterEvent(QEnterEvent *event) override;
 
 private:
     struct HitRef
@@ -496,4 +552,7 @@ private:
 #ifdef HAS_SYNCTEX
     synctex_scanner_p m_synctex_scanner{nullptr};
 #endif
+
+    DocumentView *m_source_view{nullptr};
+    DocumentView *m_portal_view{nullptr};
 };
