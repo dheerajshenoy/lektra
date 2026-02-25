@@ -71,14 +71,23 @@ public:
     void Search_regex() noexcept;
     void Search_in_page() noexcept;
     void Show_highlight_search() noexcept;
+    void Show_command_picker() noexcept;
+
+    void Toggle_visual_line_mode() noexcept;
     void Toggle_presentation_mode() noexcept;
     void ToggleAutoResize() noexcept;
-    void Show_command_picker() noexcept;
     void ToggleFocusMode() noexcept;
     void ToggleMenubar() noexcept;
     void ToggleTabBar() noexcept;
     void TogglePanel() noexcept;
     void ToggleFullscreen() noexcept;
+    void ToggleTextSelection() noexcept;
+    void ToggleTextHighlight() noexcept;
+    void ToggleRegionSelect() noexcept;
+    void ToggleAnnotRect() noexcept;
+    void ToggleAnnotSelect() noexcept;
+    void ToggleAnnotPopup() noexcept;
+
     void FileProperties() noexcept;
     void SaveFile() noexcept;
     void SaveAsFile() noexcept;
@@ -118,12 +127,6 @@ public:
                                  const std::function<void()> &callback = {});
     void PrevPage() noexcept;
     void FirstPage() noexcept;
-    void ToggleTextSelection() noexcept;
-    void ToggleTextHighlight() noexcept;
-    void ToggleRegionSelect() noexcept;
-    void ToggleAnnotRect() noexcept;
-    void ToggleAnnotSelect() noexcept;
-    void ToggleAnnotPopup() noexcept;
     void Selection_copy() noexcept;
     void Selection_cancel() noexcept;
     void VisitLinkKB() noexcept;
@@ -322,6 +325,7 @@ private:
     QAction *m_actionFitWindow{nullptr};
     QAction *m_actionAutoresize{nullptr};
     QAction *m_actionToggleMenubar{nullptr};
+    QAction *m_actionToggleVisualLineMode{nullptr};
     QAction *m_actionTogglePanel{nullptr};
     QAction *m_actionToggleOutline{nullptr};
     QAction *m_actionToggleHighlightAnnotSearch{nullptr};
