@@ -440,10 +440,80 @@ DocumentContainer::equalizeStretch(QSplitter *splitter) noexcept
 void
 DocumentContainer::focusSplit(Direction direction) noexcept
 {
-    Q_UNUSED(direction);
-    assert(0 && "Not implemented yet");
     if (!m_current_view)
         return;
+
+    const QList<DocumentView *> views = getAllViews();
+    if (views.size() <= 1)
+        return;
+
+    const int index = views.indexOf(m_current_view);
+    if (index == -1)
+        return;
+
+    // Find the view whose geometry is closest in the requested direction
+    const QPoint currentCenter
+        = m_current_view->mapToGlobal(m_current_view->rect().center());
+
+    DocumentView *best = nullptr;
+    int bestScore      = std::numeric_limits<int>::max();
+
+    for (DocumentView *candidate : views)
+    {
+        if (candidate == m_current_view)
+            continue;
+
+        const QPoint candidateCenter
+            = candidate->mapToGlobal(candidate->rect().center());
+
+        const int dx = candidateCenter.x() - currentCenter.x();
+        const int dy = candidateCenter.y() - currentCenter.y();
+
+        bool inDirection = false;
+        int score        = 0;
+
+        switch (direction)
+        {
+            case Direction::Left:
+                inDirection = dx < 0;
+                // Prefer closer in x, penalise vertical drift
+                score = -dx + std::abs(dy) * 2;
+                break;
+            case Direction::Right:
+                inDirection = dx > 0;
+                score       = dx + std::abs(dy) * 2;
+                break;
+            case Direction::Up:
+                inDirection = dy < 0;
+                score       = -dy + std::abs(dx) * 2;
+                break;
+            case Direction::Down:
+                inDirection = dy > 0;
+                score       = dy + std::abs(dx) * 2;
+                break;
+            default:
+                break;
+        }
+
+        if (inDirection && score < bestScore)
+        {
+            bestScore = score;
+            best      = candidate;
+        }
+    }
+
+    // Fall back to index cycling if no view lies in that direction
+    // (e.g. only one column and user presses Left/Right)
+    if (!best)
+    {
+        const int step
+            = (direction == Direction::Up || direction == Direction::Left) ? -1
+                                                                           : 1;
+        const int next = (index + step + views.size()) % views.size();
+        best           = views[next];
+    }
+
+    focusView(best);
 }
 
 // Recursively serialize a widget (either a view or a splitter)
