@@ -424,20 +424,14 @@ DocumentView::initConnections() noexcept
     connect(m_gview, &GraphicsView::annotSelectClearRequested, this,
             &DocumentView::handleAnnotSelectClearRequested);
 
-    connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this,
-            &DocumentView::ClearTextSelection);
-
     connect(m_gview, &GraphicsView::textSelectionRequested, this,
             &DocumentView::handleTextSelection);
 
-    connect(m_gview, &GraphicsView::doubleClickRequested, this,
-            [this](QPointF pos) { handleClickSelection(2, pos); });
+    connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this,
+            &DocumentView::ClearTextSelection);
 
-    connect(m_gview, &GraphicsView::tripleClickRequested, this,
-            [this](QPointF pos) { handleClickSelection(3, pos); });
-
-    connect(m_gview, &GraphicsView::quadrupleClickRequested, this,
-            [this](QPointF pos) { handleClickSelection(4, pos); });
+    connect(m_gview, &GraphicsView::clickRequested, this,
+            &DocumentView::handleClickSelection);
 
     connect(m_gview, &GraphicsView::contextMenuRequested, this,
             &DocumentView::handleContextMenuRequested);
@@ -574,9 +568,28 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
     fz_point pdfPos{float(pagePos.x()), float(pagePos.y())};
 
     std::vector<QPolygonF> quads;
-
     switch (clickType)
     {
+        case 1:
+        {
+            if (m_gview->mode() == GraphicsView::Mode::VisualLine)
+            {
+                const float scale = m_model->logicalScale();
+                const QPointF modelPos(pagePos.x() / scale,
+                                       pagePos.y() / scale);
+
+                m_visual_line_index
+                    = m_model->visual_line_index_at_pos(pageIndex, modelPos);
+                m_visual_lines = m_model->get_text_lines(
+                    pageIndex);       // ensure lines are for this page
+                m_pageno = pageIndex; // sync page if user clicked a
+                                      // different page
+                snap_visual_line(false);
+                return;
+            }
+        }
+        break;
+
         case 2: // double click → select word
         {
             quads = m_model->selectWordAt(pageIndex, pdfPos);
@@ -595,7 +608,27 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
             return;
     }
 
-    // updateSelectionPath(pageIndex, quads);
+    QPainterPath totalPath;
+
+    const QTransform toScene = pageItem->sceneTransform();
+    for (const QPolygonF &poly : quads)
+    {
+        totalPath.addPolygon(toScene.map(poly));
+    }
+    m_selection_path_item->setPath(totalPath);
+
+    // MuPDF quad winding: [top-left, top-right, bottom-right, bottom-left]
+    const QPolygonF firstQuad = toScene.map(quads.front());
+    const QPolygonF lastQuad  = toScene.map(quads.back());
+
+    m_selection_start = firstQuad.at(0); // top-left of first quad
+    m_selection_end   = lastQuad.at(2);
+
+    // Update metadata for copying/highlighting
+    m_selection_start_page = pageIndex;
+    m_selection_end_page   = pageIndex;
+
+    m_selection_path_item->show();
 }
 
 // Handle SyncTeX jump request
@@ -798,9 +831,9 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
                 docEnd   = QPointF(0, bounds.height()); // Bottom-left
                 break;
             case 180:
-                docStart
-                    = QPointF(bounds.width(), bounds.height()); // Bottom-right
-                docEnd = QPointF(0, 0);                         // Top-left
+                docStart = QPointF(bounds.width(),
+                                   bounds.height()); // Bottom-right
+                docEnd   = QPointF(0, 0);            // Top-left
                 break;
             case 270:
                 docStart = QPointF(0, bounds.height()); // Bottom-left
@@ -808,8 +841,8 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
                 break;
             default:                      // 0
                 docStart = QPointF(0, 0); // Top-left
-                docEnd
-                    = QPointF(bounds.width(), bounds.height()); // Bottom-right
+                docEnd   = QPointF(bounds.width(),
+                                   bounds.height()); // Bottom-right
                 break;
         }
 

@@ -197,6 +197,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
     }
 #endif
 
+    // Link click handling
     if ((m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
         && event->button() == Qt::LeftButton)
     {
@@ -204,64 +205,64 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         {
             if (item->data(0).toString() == "link")
             {
-
                 if (event->modifiers() & Qt::ControlModifier)
                 {
                     emit linkCtrlClickRequested(mapToScene(event->pos()));
                     event->accept();
                 }
                 else
-                {
                     QGraphicsView::mousePressEvent(event);
-                }
+
                 return;
             }
         }
     }
 
-    // Multi-click tracking (avoid QLineF sqrt)
-    if (m_mode == Mode::TextSelection && event->button() == Qt::LeftButton)
+    // Visual Line Mode
+    if (m_mode == Mode::VisualLine)
     {
-        const bool timerOk = m_clickTimer.isValid()
-                             && m_clickTimer.elapsed() < MULTI_CLICK_INTERVAL;
-
-        const QPointF d    = event->pos() - m_lastClickPos;
-        const double dist2 = d.x() * d.x() + d.y() * d.y();
-        const double thresh2
-            = CLICK_DISTANCE_THRESHOLD * CLICK_DISTANCE_THRESHOLD;
-
-        const bool isMultiClick = timerOk && (dist2 < thresh2);
-
-        m_clickCount = isMultiClick ? (m_clickCount + 1) : 1;
-        if (m_clickCount > 4)
-            m_clickCount = 1;
-
-        m_lastClickPos = event->pos();
-        m_clickTimer.restart();
-
-        const QPointF scenePos = mapToScene(event->pos());
-
-        if (m_clickCount == 2)
+        if (event->button() == Qt::LeftButton)
         {
-            emit doubleClickRequested(scenePos);
-            event->accept();
+            const QPointF scenePos = mapToScene(event->pos());
+            emit clickRequested(1, scenePos);
             return;
         }
-        if (m_clickCount == 3)
-        {
-            emit tripleClickRequested(scenePos);
-            event->accept();
-            return;
-        }
-        if (m_clickCount == 4)
-        {
-            emit quadrupleClickRequested(scenePos);
-            event->accept();
-            return;
-        }
+    }
 
-        // single click
-        emit textSelectionDeletionRequested();
+    // Multi-click tracking (avoid QLineF sqrt)
+    if (m_mode == Mode::TextSelection)
+    {
+        if (event->button() == Qt::LeftButton)
+        {
+            const bool timerOk
+                = m_clickTimer.isValid()
+                  && m_clickTimer.elapsed() < MULTI_CLICK_INTERVAL;
+
+            const QPointF d    = event->pos() - m_lastClickPos;
+            const double dist2 = d.x() * d.x() + d.y() * d.y();
+            const double thresh2
+                = CLICK_DISTANCE_THRESHOLD * CLICK_DISTANCE_THRESHOLD;
+
+            const bool isMultiClick = timerOk && (dist2 < thresh2);
+
+            m_clickCount = isMultiClick ? (m_clickCount + 1) : 1;
+            if (m_clickCount > 4)
+                m_clickCount = 1;
+
+            m_lastClickPos = event->pos();
+            m_clickTimer.restart();
+
+            const QPointF scenePos = mapToScene(event->pos());
+
+            if (m_clickCount == 1)
+                emit textSelectionDeletionRequested();
+            else
+            {
+                emit clickRequested(m_clickCount, scenePos);
+                event->accept();
+            }
+            return;
+        }
     }
 
     switch (m_mode)

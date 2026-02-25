@@ -129,7 +129,6 @@ public:
 signals:
     void textSelectionRequested(QPointF a, QPointF b);
     void textHighlightRequested(QPointF a, QPointF b);
-    void textSelectionDeletionRequested();
     void linkCtrlClickRequested(QPointF scenePos);
     void annotRectRequested(QRectF sceneRect);
     void annotPopupRequested(QPointF scenePos);
@@ -138,12 +137,11 @@ signals:
     void annotSelectRequested(QPointF scenePos);
     void annotSelectClearRequested();
     void zoomInRequested();
+    void textSelectionDeletionRequested();
     void zoomOutRequested();
     void contextMenuRequested(QPoint globalPos, bool *handled);
+    void clickRequested(int count, QPointF scenePos);
     void rightClickRequested(QPointF scenePos);
-    void doubleClickRequested(QPointF scenePos);
-    void tripleClickRequested(QPointF scenePos);
-    void quadrupleClickRequested(QPointF scenePos);
     void smartJumpRequested(QPointF scenePos);
 
 #ifdef HAS_SYNCTEX

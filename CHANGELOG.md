@@ -14,6 +14,7 @@
 - Fix split focus
 - Fix `page_goto` dialog defaulting to page number 1 instead of current page number
 - Fix `page_goto` requesting render even when the dialog is closed without input
+- Fix multi click text selection
 
 ### Features
 
@@ -24,6 +25,7 @@
 - Visual Line Mode
     - Added visual line mode for text selection that can be toggled with `visual_line_mode` command. In this mode, when you select a line of text, the selection will automatically extend to the beginning and end of the line, making it easier to select whole lines of text without having to precisely click at the start or end of the line.
     - Snaps when moving to different pages
+    - mouse click in visual line mode to select the line
 
 ### New Commands
 

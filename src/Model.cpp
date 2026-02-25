@@ -2813,37 +2813,71 @@ Model::get_text_lines(int pageno) noexcept
     if (!ctx)
         return lines;
 
-    const float scale = 1.0f;
-
     fz_try(ctx)
     {
         fz_stext_page *stext = get_or_build_stext_page(ctx, pageno);
         if (!stext)
-        {
-            fz_drop_context(ctx);
-            return lines;
-        }
+            fz_throw(ctx, FZ_ERROR_GENERIC, "no stext page");
 
         for (fz_stext_block *block = stext->first_block; block;
              block                 = block->next)
         {
             if (block->type != FZ_STEXT_BLOCK_TEXT)
                 continue;
+
             for (fz_stext_line *line = block->u.t.first_line; line;
                  line                = line->next)
             {
                 VisualLineInfo info;
-                info.bbox
-                    = QRectF(line->bbox.x0 * scale, line->bbox.y0 * scale,
-                             line->bbox.x1 * scale - line->bbox.x0 * scale,
-                             line->bbox.y1 * scale - line->bbox.y0 * scale);
+                info.bbox   = QRectF(line->bbox.x0, line->bbox.y0,
+                                     line->bbox.x1 - line->bbox.x0,
+                                     line->bbox.y1 - line->bbox.y0);
                 info.pageno = pageno;
                 lines.push_back(info);
             }
         }
     }
-    fz_catch(ctx) {}
+    fz_catch(ctx)
+    {
+        lines.clear();
+    }
 
     fz_drop_context(ctx);
+
     return lines;
+}
+
+int
+Model::visual_line_index_at_pos(int pageno, QPointF pos) noexcept
+{
+    const auto lines = get_text_lines(pageno);
+    if (lines.empty())
+        return -1;
+
+    int closest   = -1;
+    float minDist = std::numeric_limits<float>::max();
+
+    for (size_t i = 0; i < lines.size(); ++i)
+    {
+        const auto &line = lines[i];
+
+        // Exact vertical hit
+        if (pos.y() >= line.bbox.top() && pos.y() <= line.bbox.bottom())
+        {
+            return i;
+        }
+
+        // Closest-by-vertical-distance fallback
+        float dy = (pos.y() < line.bbox.top())
+                       ? static_cast<float>(line.bbox.top() - pos.y())
+                       : static_cast<float>(pos.y() - line.bbox.bottom());
+
+        if (dy < minDist)
+        {
+            minDist = dy;
+            closest = static_cast<int>(i);
+        }
+    }
+
+    return closest;
 }

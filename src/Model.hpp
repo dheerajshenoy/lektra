@@ -600,7 +600,6 @@ private:
     FileType m_filetype{FileType::NONE};
     PendingOpen m_pending;
 
-
     // For use with visual line mode
     struct VisualLineInfo
     {
@@ -609,6 +608,7 @@ private:
     };
 
     std::vector<VisualLineInfo> get_text_lines(int pageno) noexcept;
+    int visual_line_index_at_pos(int pageno, QPointF scenePos) noexcept;
 
     friend class TextHighlightAnnotationCommand;
     friend class RectAnnotationCommand;
