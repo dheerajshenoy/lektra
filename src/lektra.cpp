@@ -1454,9 +1454,13 @@ lektra::Goto_page() noexcept
         return;
     }
 
+    bool ok;
     int pageno = QInputDialog::getInt(
         this, "Goto Page", QString("Enter page number (1 to %1)").arg(total),
-        1);
+        m_doc->pageNo() + 1, 0, m_doc->numPages(), 1, &ok);
+
+    if (!ok)
+        return;
 
     if (pageno <= 0 || pageno > total)
     {

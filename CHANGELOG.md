@@ -12,6 +12,8 @@
 - Fix LEFT_TO_RIGHT and TOP_TO_BOTTOM layout
 - Fix highlighting crash due to context removal
 - Fix split focus
+- Fix `page_goto` dialog defaulting to page number 1 instead of current page number
+- Fix `page_goto` requesting render even when the dialog is closed without input
 
 ### Features
 
