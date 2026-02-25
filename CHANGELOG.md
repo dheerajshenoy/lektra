@@ -11,6 +11,7 @@
 - Fix SINGLE layout
 - Fix LEFT_TO_RIGHT and TOP_TO_BOTTOM layout
 - Fix highlighting crash due to context removal
+- Fix split focus
 
 ### Features
 
