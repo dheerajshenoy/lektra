@@ -30,14 +30,14 @@ public:
 
     explicit GraphicsView(const Config &config, QWidget *parent = nullptr);
 
-    inline void setActive(bool state) noexcept
+    inline void setPortal(bool state) noexcept
     {
-        m_active = state;
+        m_is_portal = state;
     }
 
-    inline bool isActive() const noexcept
+    inline bool isPortal() const noexcept
     {
-        return m_active;
+        return m_is_portal;
     }
 
     inline const Config &config() const noexcept
@@ -160,6 +160,17 @@ private:
     void updateCursorForMode() noexcept;
     void onScrollbarActivity() noexcept;
 
+    inline void setActive(bool state) noexcept
+    {
+        PPRINT("Setting view active state to", state);
+        m_is_active = state;
+    }
+
+    inline bool isActive() const noexcept
+    {
+        return m_is_active;
+    }
+
     // Overlay scrollbar helpers (optimized)
     void updateScrollbars();
     void layoutScrollbars();
@@ -236,7 +247,10 @@ private:
     bool m_scrollbarsVisible{false};
     bool m_vbarEnabled{true};
     bool m_hbarEnabled{true};
-    bool m_active{true};
+    bool m_is_active{false};
+    bool m_is_portal{false};
     static constexpr int SCROLLBAR_MARGIN = 2;
     const Config &m_config;
+
+    friend class DocumentView;
 };
