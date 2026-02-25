@@ -373,8 +373,7 @@ DocumentView::initConnections() noexcept
     connect(m_model, &Model::urlLinksReady, this,
             [this](int pageno, std::vector<Model::RenderLink> links)
     {
-        if (m_page_items_hash.contains(pageno))
-            renderLinks(pageno, links); // appends to existing links
+    renderLinks(pageno, links, true);
     });
 
     connect(m_model, &Model::reloadRequested, this, &DocumentView::reloadPage);
@@ -2235,6 +2234,7 @@ DocumentView::startNextRenderJob() noexcept
                         }
                     }
                     setUpdatesEnabled(true);
+                    renderLinks(pageno, result.links);
                     m_gscene->blockSignals(false);
                     startNextRenderJob();
                     return;
@@ -2538,7 +2538,8 @@ DocumentView::updateSceneRect() noexcept
 void
 DocumentView::enterEvent(QEnterEvent *e)
 {
-    if (m_config.split.focus_follows_mouse) {
+    if (m_config.split.focus_follows_mouse)
+    {
         container()->focusView(this);
     }
 }
@@ -3076,12 +3077,11 @@ DocumentView::createAndAddPageItem(int pageno, const QImage &img) noexcept
     const QSizeF logicalSize = pageSceneSize(pageno);
     const double pageW       = logicalSize.width();
     const double pageH       = logicalSize.height();
-
-    const QRectF sr = m_gview->sceneRect();
+    const QRectF sr          = m_gview->sceneRect();
 
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
-        const double yPos = sr.y() + (sr.height() - pageH) / 2.0;
+        const double yPos = sr.y() + (m_max_page_cross_extent - pageH) / 2.0;
         item->setPos(pageOffset(pageno), yPos);
     }
     else if (m_layout_mode == LayoutMode::SINGLE)
@@ -3101,9 +3101,9 @@ DocumentView::createAndAddPageItem(int pageno, const QImage &img) noexcept
 
 void
 DocumentView::renderLinks(int pageno,
-                          const std::vector<Model::RenderLink> &links) noexcept
+                          const std::vector<Model::RenderLink> &links, bool append) noexcept
 {
-    if (m_page_links_hash.contains(pageno))
+    if (!append && m_page_links_hash.contains(pageno))
         return;
 
     GraphicsImageItem *pageItem = m_page_items_hash[pageno];
