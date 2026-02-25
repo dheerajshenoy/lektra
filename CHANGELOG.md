@@ -19,6 +19,7 @@
 - Regex searching
 - Book (two-page) layout `[layout] { mode = "book" }`
 - Ability to select text across page boundaries in layout modes with multiple pages visible
+- Added visual line mode for text selection that can be toggled with `visual_line_mode` command. In this mode, when you select a line of text, the selection will automatically extend to the beginning and end of the line, making it easier to select whole lines of text without having to precisely click at the start or end of the line.
 
 ### New Commands
 
@@ -46,6 +47,7 @@
 
 - Renamed command:
   - `portal_focus` -> `portal`
+  - Commands that begun with `toggle_` are renamed to just the action they do without the toggle prefix (e.g. `toggle_command_palette` -> `command_palette`, `toggle_fullscreen` -> `fullscreen`, etc.) because it's more intuitive to have the command name reflect the action it does rather than the implementation (i.e. whether it toggles or shows/hides explicitly)
 
 - `startup_tab` widget is not enabled by default anymore
 
