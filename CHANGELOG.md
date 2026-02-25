@@ -26,6 +26,14 @@
   - `mark_delete` - Ask user for the mark key to delete and delete if the key is valid
 - `search_regex` - Opens searchbar with regex enabled
 - `layout_book` - Book layout mode (Two-page layout)
+- `mouse_follows_focus` - when enabled, the mouse will automatically move to the center of the focused view when switching focus between splits or portals. This is useful for users who want to keep their hands on the keyboard and avoid having to move mouse manually to the view they just focused.
+
+### New Config Options
+
+- `[portal]`
+  - `enabled` (bool) : Enable portal (ctrl + click on link behavior)
+  - `respect_parent` (bool): Close portal when the source view is closed
+  - `border_width` (int): Width of the border around the view signifying that the view is a portal
 
 ### Optimizations
 
@@ -34,7 +42,9 @@
 
 ### Breaking Changes
 
-- Renamed `portal_focus` -> `portal`
+- Renamed command:
+  - `portal_focus` -> `portal`
+
 - `startup_tab` widget is not enabled by default anymore
 
 ## 0.6.3
