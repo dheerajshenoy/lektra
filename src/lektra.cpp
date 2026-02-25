@@ -4843,16 +4843,11 @@ lektra::Toggle_visual_line_mode() noexcept
     if (!m_doc)
         return;
 
-    bool state = m_doc->visual_line_mode();
-    m_doc->set_visual_line_mode(!state);
+    bool newState = !m_doc->visual_line_mode();
+    m_doc->set_visual_line_mode(newState);
+
     if (m_doc->visual_line_mode())
-    {
-        m_doc->graphicsView()->setMode(GraphicsView::Mode::VisualLine);
         m_statusbar->setMode(GraphicsView::Mode::VisualLine);
-    }
     else
-    {
-        m_doc->graphicsView()->setMode(m_doc->graphicsView()->getDefaultMode());
         m_statusbar->setMode(m_doc->graphicsView()->getDefaultMode());
-    }
 }

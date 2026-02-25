@@ -4450,18 +4450,32 @@ DocumentView::visual_line_move(Direction direction) noexcept
 void
 DocumentView::snap_visual_line() noexcept
 {
+    // Ensure we have lines for the current page
+    if (m_visual_lines.empty() || m_visual_lines.front().pageno != m_pageno)
+    {
+        m_visual_lines = m_model->get_text_lines(m_pageno);
+    }
+
     if (m_visual_lines.empty())
         return;
-    const Model::VisualLineInfo &info = m_visual_lines.at(m_visual_line_index);
-    if (info.pageno == m_pageno)
+
+    // If index is -1 (uninitialized), set it to the first line (0)
+    if (m_visual_line_index == -1)
     {
+        m_visual_line_index = 0;
+    }
+
+    if (m_visual_line_index >= 0
+        && m_visual_line_index < (int)m_visual_lines.size())
+    {
+        const Model::VisualLineInfo &info
+            = m_visual_lines.at(m_visual_line_index);
         GraphicsImageItem *pageItem
             = m_page_items_hash.value(info.pageno, nullptr);
+
         if (!pageItem)
             return;
 
-        // snap_visual_line: apply logical scale before mapping through item
-        // transform
         const float scale = m_model->logicalScale();
         QRectF scaledBbox(info.bbox.x() * scale, info.bbox.y() * scale,
                           info.bbox.width() * scale,
@@ -4480,16 +4494,36 @@ DocumentView::snap_visual_line() noexcept
         }
         else
         {
-            if (!m_visual_line_item->isVisible())
-                m_visual_line_item->setVisible(true);
             m_visual_line_item->setPath(path);
+            m_visual_line_item->setVisible(true);
         }
-        m_gview->centerOn(m_visual_line_item);
+
         m_gview->set_visual_line_rect(sceneBbox);
+        m_gview->centerOn(m_visual_line_item);
     }
-    else if (m_visual_line_item && m_visual_line_item->isVisible())
+}
+
+void
+DocumentView::set_visual_line_mode(bool state) noexcept
+{
+    if (m_visual_line_mode == state)
+        return;
+
+    m_visual_line_mode = state;
+
+    if (m_visual_line_mode)
     {
-        m_visual_line_item->setVisible(false);
-        m_gview->set_visual_line_rect(QRectF()); // clear the dim
+        m_gview->setMode(GraphicsView::Mode::VisualLine);
+        snap_visual_line();
     }
+    else
+    {
+        if (m_visual_line_item)
+        {
+            m_visual_line_item->hide();
+            m_gview->set_visual_line_rect(QRectF());
+        }
+        m_gview->setMode(m_gview->getDefaultMode());
+    }
+    m_gview->update();
 }

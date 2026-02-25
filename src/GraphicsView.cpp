@@ -163,6 +163,9 @@ GraphicsView::setMode(Mode mode) noexcept
             emit annotSelectClearRequested();
             break;
 
+        case Mode::VisualLine:
+            break;
+
         default:
             break;
     }
