@@ -53,7 +53,7 @@ set(toml::node_view<toml::node> node, T &target)
 }
 
 static inline void
-set_qstring(toml::node_view<toml::node> n, QString &dst)
+set(toml::node_view<toml::node> n, QString &dst)
 {
     if (auto v = n.value<std::string>())
         dst = QString::fromStdString(*v);
@@ -696,7 +696,7 @@ lektra::initConfig() noexcept
         set(command_palette["show_shortcuts"],
             m_config.command_palette.shortcuts);
 
-        set_qstring(command_palette["placeholder_text"],
+        set(command_palette["placeholder_text"],
                     m_config.command_palette.placeholder_text);
     }
 
@@ -759,7 +759,7 @@ lektra::initConfig() noexcept
     {
         set(links["boundary"], m_config.links.boundary);
         set(links["detect_urls"], m_config.links.detect_urls);
-        set_qstring(links["url_regex"], m_config.links.url_regex);
+        set(links["url_regex"], m_config.links.url_regex);
     }
 
     // Link Hints
@@ -784,7 +784,7 @@ lektra::initConfig() noexcept
     // LLM Widget
     if (auto llm_widget = toml["llm_widget"])
     {
-        set_qstring(llm_widget["panel_position"],
+        set(llm_widget["panel_position"],
                     m_config.llm_widget.panel_position);
         set(llm_widget["panel_width"], m_config.llm_widget.panel_width);
         set(llm_widget["visible"], m_config.llm_widget.visible);
@@ -894,7 +894,7 @@ lektra::initConfig() noexcept
     if (auto behavior = toml["behavior"])
     {
 #ifdef HAS_SYNCTEX
-        set_qstring(behavior["synctex_editor_command"],
+        set(behavior["synctex_editor_command"],
                     m_config.behavior.synctex_editor_command);
 #endif
 
