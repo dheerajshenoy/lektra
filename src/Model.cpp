@@ -2641,9 +2641,6 @@ Model::detectUrlLinksForPage(const RenderJob &job) noexcept
 
     std::vector<RenderLink> result;
 
-    fz_page *text_page        = nullptr;
-    fz_stext_page *stext_page = nullptr;
-
     // Grab cached links under lock to check for intersections
     std::vector<CachedLink> cachedLinks;
     {
@@ -2676,7 +2673,9 @@ Model::detectUrlLinksForPage(const RenderJob &job) noexcept
 
         transform = fz_transform_page(bounds, job.zoom, job.rotation);
 
-        stext_page = get_or_build_stext_page(ctx, job.pageno);
+        fz_stext_page *stext_page = get_or_build_stext_page(ctx, job.pageno);
+        if (!stext_page)
+            fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load stext page");
 
         const QRegularExpression &urlRe = m_url_link_re;
 
