@@ -60,7 +60,7 @@ set_qstring(toml::node_view<toml::node> n, QString &dst)
 }
 
 static inline void
-set_color_if_present(toml::node_view<toml::node> n, uint32_t &dst)
+set_color(toml::node_view<toml::node> n, uint32_t &dst)
 {
     if (auto s = n.value<std::string>())
     {
@@ -511,6 +511,13 @@ lektra::initConfig() noexcept
         return;
     }
 
+    // Portals
+    if (auto portal = toml["portal"])
+    {
+        set(portal["enabled"], m_config.portal.enabled);
+        set(portal["border_width"], m_config.portal.border_width);
+    }
+
     // Tabs
     if (auto tabs = toml["tabs"])
     {
@@ -795,27 +802,20 @@ lektra::initConfig() noexcept
     // Colors
     if (auto colors = toml["colors"])
     {
-        set_color_if_present(colors["accent"], m_config.colors.accent);
-        set_color_if_present(colors["background"], m_config.colors.background);
-        set_color_if_present(colors["search_match"],
-                             m_config.colors.search_match);
-        set_color_if_present(colors["search_index"],
-                             m_config.colors.search_index);
-        set_color_if_present(colors["link_hint_bg"],
-                             m_config.colors.link_hint_bg);
-        set_color_if_present(colors["link_hint_fg"],
-                             m_config.colors.link_hint_fg);
-        set_color_if_present(colors["selection"], m_config.colors.selection);
-        set_color_if_present(colors["highlight"], m_config.colors.highlight);
-        set_color_if_present(colors["jump_marker"],
-                             m_config.colors.jump_marker);
-        set_color_if_present(colors["annot_rect"], m_config.colors.annot_rect);
-        set_color_if_present(colors["annot_popup"],
-                             m_config.colors.annot_popup);
-        set_color_if_present(colors["page_background"],
-                             m_config.colors.page_background);
-        set_color_if_present(colors["page_foreground"],
-                             m_config.colors.page_foreground);
+        set_color(colors["accent"], m_config.colors.accent);
+        set_color(colors["background"], m_config.colors.background);
+        set_color(colors["search_match"], m_config.colors.search_match);
+        set_color(colors["search_index"], m_config.colors.search_index);
+        set_color(colors["link_hint_bg"], m_config.colors.link_hint_bg);
+        set_color(colors["link_hint_fg"], m_config.colors.link_hint_fg);
+        set_color(colors["selection"], m_config.colors.selection);
+        set_color(colors["highlight"], m_config.colors.highlight);
+        set_color(colors["jump_marker"], m_config.colors.jump_marker);
+        set_color(colors["annot_rect"], m_config.colors.annot_rect);
+        set_color(colors["annot_popup"], m_config.colors.annot_popup);
+        set_color(colors["page_background"], m_config.colors.page_background);
+        set_color(colors["page_foreground"], m_config.colors.page_foreground);
+        set_color(colors["portal_border"], m_config.colors.portal_border);
     }
 
     // Rendering
@@ -849,8 +849,8 @@ lektra::initConfig() noexcept
                 {
                     // Start from current map (if you want table to
                     // "add/override") or clear it (if you want table to
-                    // "replace"). Here: replace, because that's what your old
-                    // code effectively did.
+                    // "replace"). Here: replace, because that's what your
+                    // old code effectively did.
                     m_screen_dpr_map.clear();
                     for (auto &[screen_name, value] : *t)
                     {
@@ -883,11 +883,11 @@ lektra::initConfig() noexcept
     // Split
     if (auto split = toml["split"])
     {
+        set(split["mouse_follows_focus"], m_config.split.mouse_follows_focus);
         set(split["focus_follows_mouse"], m_config.split.focus_follows_mouse);
         set(split["dim_inactive"], m_config.split.dim_inactive);
         set(split["dim_inactive_opacity"], m_config.split.dim_inactive_opacity);
     }
-
 
     // Behavior
 
@@ -1803,7 +1803,7 @@ lektra::OpenFilesInNewTab(const QStringList &files) noexcept
 //     return false;
 // }
 
-DocumentView::Id
+DocumentView *
 lektra::OpenFileInNewTab(const QString &filename,
                          const std::function<void()> &callback) noexcept
 {
@@ -1820,7 +1820,7 @@ lektra::OpenFileInNewTab(const QString &filename,
             if (!selected.isEmpty())
                 return OpenFileInNewTab(selected.first(), callback);
         }
-        return false;
+        return nullptr;
     }
 
     // Check if file is already open
@@ -1859,33 +1859,25 @@ lektra::OpenFileInNewTab(const QString &filename,
             [this](DocumentView *closedView)
     {
         // If the closed view was m_doc, update to current view
-        if (m_doc == closedView)
-        {
-            int currentTabIndex = m_tab_widget->currentIndex();
-            DocumentContainer *currentContainer
-                = m_tab_widget->rootContainer(currentTabIndex);
-            if (currentContainer)
-                setCurrentDocumentView(currentContainer->view());
-        }
+        // if (m_doc == closedView)
+        // {
+        //     int currentTabIndex = m_tab_widget->currentIndex();
+        //     DocumentContainer *currentContainer
+        //         = m_tab_widget->rootContainer(currentTabIndex);
+        //     if (currentContainer)
+        //         setCurrentDocumentView(currentContainer->view());
+        // }
     });
 
     connect(container, &DocumentContainer::currentViewChanged, container,
-            [this, container](DocumentView *newView)
-    {
-        DocumentContainer *current
-            = m_tab_widget->rootContainer(m_tab_widget->currentIndex());
+            [this](DocumentView *newView) { setCurrentDocumentView(newView); });
 
-        if (!current)
-            return;
-
-        if (container == current)
-            setCurrentDocumentView(newView);
-    });
 
     // Initialize connections for the initial view
     initTabConnections(view);
 
-    // Set DPR BEFORE opening the file to ensure correct resolution rendering
+    // Set DPR BEFORE opening the file to ensure correct resolution
+    // rendering
     view->setDPR(m_dpr);
 
     // Open the file asynchronously
@@ -1917,10 +1909,10 @@ lektra::OpenFileInNewTab(const QString &filename,
         }, Qt::SingleShotConnection);
     }
 
-    return true;
+    return view;
 }
 
-DocumentView::Id
+DocumentView *
 lektra::openFileSplitHelper(const QString &filename,
                             const std::function<void()> &callback,
                             Qt::Orientation orientation)
@@ -1939,7 +1931,7 @@ lektra::openFileSplitHelper(const QString &filename,
                 return openFileSplitHelper(selected.first(), callback,
                                            orientation);
         }
-        return false;
+        return nullptr;
     }
 
     // Check if file is already open
@@ -1968,7 +1960,7 @@ lektra::openFileSplitHelper(const QString &filename,
 
     DocumentView *currentView = container->view();
     if (!currentView)
-        return false;
+        return nullptr;
 
     DocumentView *newView
         = container->split(currentView, orientation, filename);
@@ -1984,17 +1976,17 @@ lektra::openFileSplitHelper(const QString &filename,
                 Qt::SingleShotConnection);
     }
 
-    return false;
+    return newView;
 }
 
-DocumentView::Id
+DocumentView *
 lektra::OpenFileVSplit(const QString &filename,
                        const std::function<void()> &callback)
 {
     return openFileSplitHelper(filename, callback, Qt::Vertical);
 }
 
-DocumentView::Id
+DocumentView *
 lektra::OpenFileHSplit(const QString &filename,
                        const std::function<void()> &callback)
 {
@@ -2013,7 +2005,7 @@ lektra::OpenFilesInNewWindow(const QStringList &filenames) noexcept
     }
 }
 
-DocumentView::Id
+bool
 lektra::OpenFileInNewWindow(const QString &filePath,
                             const std::function<void()> &callback) noexcept
 {
@@ -2024,11 +2016,6 @@ lektra::OpenFileInNewWindow(const QString &filePath,
             this, "Open File", "", "PDF Files (*.pdf);; All Files (*)");
         if (files.empty())
             return false;
-        else if (files.size() > 1)
-        {
-            OpenFilesInNewWindow(files);
-            return true;
-        }
         else
         {
             return OpenFileInNewWindow(files.first(), callback);
@@ -3119,7 +3106,7 @@ lektra::updatePanel() noexcept
         else
             m_statusbar->setFileName(m_doc->filePath());
 
-        m_statusbar->setPortalMode(m_doc->container()->has_portal());
+        m_statusbar->setPortalMode(m_doc->portal());
         m_statusbar->setMode(m_doc->selectionMode());
         m_statusbar->setHighlightColor(model->highlightAnnotColor());
 
@@ -4235,8 +4222,8 @@ lektra::HSplit() noexcept
     return container;
 }
 
-// Closes all splits except the current one in the current tab. If there is only
-// one split, does nothing.
+// Closes all splits except the current one in the current tab. If there is
+// only one split, does nothing.
 void
 lektra::Close_other_splits() noexcept
 {
@@ -4292,26 +4279,21 @@ lektra::Close_split() noexcept
 void
 lektra::setCurrentDocumentView(DocumentView *view) noexcept
 {
-    if (m_doc == view)
+    if (!view || m_doc == view)
         return;
+
+    if (m_doc)
+        m_doc->setActive(false);
+    view->setActive(true);
 
     m_doc = view;
 
-    if (!view)
-    {
-        updateUiEnabledState();
-        updatePanel();
-        return;
-    }
 
     const int tabIndex = m_tab_widget->currentIndex();
 
     DocumentContainer *container = m_tab_widget->rootContainer(tabIndex);
     if (!container)
         return;
-
-    if (container->view() != view)
-        container->focusView(view);
 
     m_tab_widget->tabBar()->setTabText(tabIndex, m_config.tabs.full_path
                                                      ? m_doc->filePath()
@@ -4387,7 +4369,7 @@ lektra::focusSplitHelper(DocumentContainer::Direction direction) noexcept
 
     container->focusSplit(direction);
 
-    if (m_config.split.focus_follows_mouse)
+    if (m_config.split.mouse_follows_focus)
         if (auto *view = container->view())
             centerMouseInDocumentView(view);
 }
@@ -4534,11 +4516,6 @@ lektra::handleCtrlLinkClickRequested(DocumentView *view,
         return;
     }
 
-    // Open same file in a vertical split, jumped to target page
-    DocumentContainer *container = view->container();
-    if (!container)
-        return;
-
     // Create the location target data (copy values, not pointers)
     DocumentView::PageLocation target{
         linkItem->gotoPageNo(), linkItem->location().x, linkItem->location().y};
@@ -4548,40 +4525,87 @@ lektra::handleCtrlLinkClickRequested(DocumentView *view,
     if (std::isnan(target.y))
         target.y = 0;
 
+    // Check if this is already a portal
+    if (view->is_portal())
+        return;
+
     // Check if portal already exists
-    if (container->has_portal())
+    if (auto portal = view->portal())
     {
-        DocumentView *portalView = container->portal();
-        if (portalView)
-            portalView->GotoLocation(target);
+        portal->GotoLocation(target);
         return;
     }
 
-    const QString filePath = view->filePath();
+    DocumentView *newView = create_portal(view, view->filePath());
 
-    // Capture by VALUE, not reference
-    OpenFileVSplit(filePath, [this, container, target, filePath]()
+    // Fix for jump marker event loop not executing
+    connect(newView, &DocumentView::openFileFinished, this,
+            [newView, target](DocumentView *)
     {
-        if (!m_doc)
-            return;
+        QTimer::singleShot(0, newView, [newView, target]()
+        { newView->GotoLocation(target); });
+    }, Qt::SingleShotConnection);
+}
 
-        // Go to the location
-        m_doc->GotoLocation(target);
+/*
+ * NOTE: This is problematic to move into the DocumentView class (because the
+ * splitting related stuff are here and in the future we have to implement smart
+ * splitting, so it's better to leave this here)
+ */
+// Helper function for quickly creating portals
+// DocumentView *
+DocumentView *
+lektra::create_portal(DocumentView *sourceView,
+                      const QString &filePath) noexcept
+{
+    if (sourceView->portal() || sourceView->is_portal())
+        return nullptr;
 
-        // Find the newly created split's ID and set it as portal
-        int currentTabIndex = m_tab_widget->currentIndex();
-        DocumentContainer *currentContainer
-            = m_tab_widget->rootContainer(currentTabIndex);
+    DocumentView *newView = OpenFileVSplit(
+        filePath.isEmpty() ? sourceView->filePath() : filePath);
+    if (!newView)
+        return nullptr;
 
-        if (currentContainer == container && m_doc)
+    sourceView->set_portal(newView);
+    m_statusbar->setPortalMode(true);
+
+    auto pair = std::make_shared<PortalPair>(sourceView, newView);
+
+    connect(sourceView, &QObject::destroyed, this, [this, pair]()
+    {
+        pair->source = nullptr;
+        if (pair->portal)
         {
-            container->set_portal(m_doc);
+            if (m_config.portal.respect_parent)
+            {
+                DocumentContainer *container = pair->portal->container();
+                if (container)
+                    container->closeView(pair->portal);
+            }
+            else
+            {
+                pair->portal->graphicsView()->setPortal(false);
+                pair->portal->clear_source();
+            }
         }
-    });
+    }, Qt::SingleShotConnection);
+
+    connect(newView, &QObject::destroyed, this, [this, pair]()
+    {
+        pair->portal = nullptr;
+        if (pair->source)
+        {
+            pair->source->clear_portal();
+            m_statusbar->setPortalMode(false);
+        }
+        PPRINT("PORTAL CLOSED");
+    }, Qt::SingleShotConnection);
+
+    return newView;
 }
 
 DocumentView *
-lektra::get_view_by_id(const DocumentView::Id &id) const noexcept
+lektra::get_view_by_id(const DocumentView::Id id) const noexcept
 {
     for (int i = 0; i < m_tab_widget->count(); ++i)
     {
@@ -4607,24 +4631,27 @@ lektra::get_view_by_id(const DocumentView::Id &id) const noexcept
 void
 lektra::Create_or_focus_portal() noexcept
 {
+    if (!m_doc)
+        return;
+
     int currentTabIndex = m_tab_widget->currentIndex();
     if (!validTabIndex(currentTabIndex))
         return;
 
-    DocumentContainer *container = m_tab_widget->rootContainer(currentTabIndex);
-    if (!container)
-        return;
-
-    if (container->has_portal())
+    if (DocumentView *portal = m_doc->portal())
     {
-        DocumentView *portalView = container->portal();
-        if (portalView)
-            container->focusView(portalView);
+        DocumentContainer *p_container = portal->container();
+        if (p_container)
+            p_container->focusView(portal);
+    }
+    else
+    {
+        create_portal(m_doc, m_doc->filePath());
     }
 }
 
-// If a jump marker was shown for the current document view, re-show it (e.g.
-// after a reload)
+// If a jump marker was shown for the current document view, re-show it
+// (e.g. after a reload)
 void
 lektra::Reshow_jump_marker() noexcept
 {
@@ -4638,12 +4665,12 @@ lektra::Toggle_presentation_mode() noexcept
     if (!m_doc)
         return;
 
-    // TODO: Implement presentation mode (probably just a special full-screen
-    // mode with extra UI optimizations for it)
+    // TODO: Implement presentation mode (probably just a special
+    // full-screen mode with extra UI optimizations for it)
 }
 
-// Show a picker with the list of recent files from the recent files store, and
-// allow the user to open a file from there.
+// Show a picker with the list of recent files from the recent files store,
+// and allow the user to open a file from there.
 void
 lektra::Show_recent_files_picker() noexcept
 {

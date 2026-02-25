@@ -105,17 +105,17 @@ public:
     void OpenFiles(const std::vector<std::string> &filenames) noexcept;
     void OpenFilesInNewTab(const std::vector<std::string> &files) noexcept;
     void OpenFilesInNewTab(const QList<QString> &files) noexcept;
-    DocumentView::Id OpenFileInNewTab(const QString &filename = QString(),
-                                      const std::function<void()> &callback
-                                      = {}) noexcept;
-    DocumentView::Id OpenFileInNewWindow(const QString &filename = QString(),
-                                         const std::function<void()> &callback
-                                         = {}) noexcept;
+    DocumentView *OpenFileInNewTab(const QString &filename = QString(),
+                                   const std::function<void()> &callback
+                                   = {}) noexcept;
+    bool OpenFileInNewWindow(const QString &filename = QString(),
+                             const std::function<void()> &callback
+                             = {}) noexcept;
     void OpenFilesInNewWindow(const QStringList &filenames) noexcept;
-    DocumentView::Id OpenFileVSplit(const QString &filename = QString(),
-                                    const std::function<void()> &callback = {});
-    DocumentView::Id OpenFileHSplit(const QString &filename = QString(),
-                                    const std::function<void()> &callback = {});
+    DocumentView *OpenFileVSplit(const QString &filename = QString(),
+                                 const std::function<void()> &callback = {});
+    DocumentView *OpenFileHSplit(const QString &filename = QString(),
+                                 const std::function<void()> &callback = {});
     void PrevPage() noexcept;
     void FirstPage() noexcept;
     void ToggleTextSelection() noexcept;
@@ -214,7 +214,7 @@ private:
                           std::function<void()> onAllDone) noexcept;
     void focusSplitHelper(DocumentContainer::Direction direction) noexcept;
 
-    DocumentView::Id
+    DocumentView *
     openFileSplitHelper(const QString &filename               = {},
                         const std::function<void()> &callback = {},
                         Qt::Orientation orientation           = Qt::Horizontal);
@@ -259,7 +259,7 @@ private:
     void debug_command() noexcept;
 #endif
 
-    DocumentView *get_view_by_id(const DocumentView::Id &id) const noexcept;
+    DocumentView *get_view_by_id(const DocumentView::Id) const noexcept;
     void handleFileNameChanged(const QString &name) noexcept;
     void handleCurrentTabChanged(int index) noexcept;
     void openInExplorerForIndex(int index) noexcept;
@@ -371,6 +371,8 @@ private:
     QString m_session_name;
     MessageBar *m_message_bar{nullptr};
     SearchBar *m_search_bar{nullptr};
+    DocumentView *create_portal(DocumentView *sourceView,
+                                const QString &filePath) noexcept;
 
     std::vector<Picker *> m_pickers;
     CommandPicker *m_command_picker{nullptr}; // Technically a picker
@@ -379,6 +381,13 @@ private:
     HighlightSearchPicker *m_highlight_search_picker{nullptr};
     RecentFilesPicker *m_recent_file_picker{nullptr};
     MarkManager *m_marks_manager{nullptr};
+
+    // Used for lifetime management of portal-source
+    struct PortalPair
+    {
+        DocumentView *source;
+        DocumentView *portal;
+    };
 
 #ifdef ENABLE_LLM_SUPPORT
     // LLM Support
