@@ -4217,6 +4217,9 @@ DocumentView::zoomHelper() noexcept
         const int i             = it.key();
         GraphicsImageItem *item = it.value();
 
+        if (!item)
+            continue;
+
         const bool isPlaceholder
             = (item->data(0).toString() == "placeholder_page");
 
