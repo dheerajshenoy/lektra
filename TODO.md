@@ -12,24 +12,19 @@
 - [ ] Reference previewer
 - [ ] Peek equation dependencies
 - [ ] Search inside math equations
-- [ ] Set marks and jump to marks
 - [ ] Touchpad gestures
-- [ ] Two page side-by-side view mode
-- [ ] Two selected page view mode
+
 - [ ] AI features
-- [ ] Equation OCR to LaTeX
-- [ ] Table exporter to CSV/Excel/Numpy
-- [ ] Semantic search
-- [ ] Finding citation from folder
-- [ ] Explain selection
+    - [ ] Equation OCR to LaTeX
+    - [ ] Table exporter to CSV/Excel/Numpy
+    - [ ] Semantic search
+    - [ ] Finding citation from folder
+    - [ ] Explain selection
+
 - [ ] Convert to notes
 - [ ] read from stdin
-- [ ] password protected files
-- [ ] add tabs feature to website
-- [ ] book view
 - [ ] beautify command palette
 - [ ] Suspend unused tabs when inactive for a given time
-- [ ] Auto-find current position in the outline
 - [ ] Don't fix the page dimension from the first page only
 - [ ] Export highlight annotations
 - [ ] Separate dark and light mode colors ability
@@ -40,4 +35,14 @@
     - [ ] Use OpenGL for rendering using GPU for performance boost instead of QGraphicsView
 - [X] Drag and drop tabs not working, also get it to work with splits
 - [ ] Fix open containing folder
-- [ ] Handle closing split for friends
+
+- [ ] Navigate chapters, sections, subsections, etc. in the document
+- [ ] Auto-find current position in the outline
+
+- [ ] Narrow to region
+- [ ] Ruler
+- [ ] Update after toggle visual mode
+- [ ] Preview window
+- [ ] Try to generate outline if not present somehow
+- [ ] Fix BOOK layout viewport misalignment
+- [ ] DJVU support
