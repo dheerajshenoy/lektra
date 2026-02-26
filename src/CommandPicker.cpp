@@ -3,38 +3,37 @@
 #include "Picker.hpp"
 
 CommandPicker::CommandPicker(const Config::Command_palette &config,
-                             const ActionMap &actionMap,
+                             const std::vector<Command> &commands,
                              const ShortcutMap &shortcuts,
                              QWidget *parent) noexcept
-    : Picker(parent), m_config(config)
+    : Picker(parent), m_config(config), m_commands(commands),
+      m_shortcuts(shortcuts)
 {
-    setColumns({{.header = "Command", .stretch = 1},
-                {.header = "Shortcut", .stretch = 0}});
-
-    m_entries.reserve(static_cast<size_t>(actionMap.size()));
-
-    for (auto it = actionMap.constBegin(); it != actionMap.constEnd(); ++it)
-    {
-        m_entries.push_back({it.key(), shortcuts.value(it.key()), it.value()});
-    }
-
-    std::sort(m_entries.begin(), m_entries.end(),
-              [](const Entry &a, const Entry &b)
-    { return QString::compare(a.name, b.name, Qt::CaseInsensitive) < 0; });
+    QList<Column> cols;
+    cols.append({.header = "Command", .stretch = 1});
+    if (m_config.description)
+        cols.append({.header = "Description", .stretch = 2});
+    if (m_config.shortcuts)
+        cols.append({.header = "Shortcut", .stretch = 0});
+    setColumns(cols);
 }
 
 QList<Picker::Item>
 CommandPicker::collectItems()
 {
     QList<Item> items;
-    items.reserve(static_cast<int>(m_entries.size()));
+    items.reserve(static_cast<int>(m_commands.size()));
 
-    for (size_t i = 0; i < m_entries.size(); ++i)
+    for (size_t i = 0; i < m_commands.size(); ++i)
     {
-        const auto &e = m_entries[i];
-        items.push_back({.title    = e.name,
-                         .subtitle = e.shortcut,
-                         .data     = static_cast<qulonglong>(i)});
+        const Command &cmd = m_commands[i];
+        QList<QString> cols;
+        cols.append(cmd.name);
+        if (m_config.description)
+            cols.append(cmd.description);
+        if (m_config.shortcuts)
+            cols.append(m_shortcuts.value(cmd.name));
+        items.push_back({.columns = cols, .data = static_cast<quint64>(i)});
     }
     return items;
 }
@@ -43,11 +42,6 @@ void
 CommandPicker::onItemAccepted(const Item &item)
 {
     const size_t i = item.data.toULongLong();
-    if (i < m_entries.size())
-    {
-        emit commandSelected(m_entries[i].name);
-        if (m_entries[i].action)
-            m_entries[i].action(
-                {}); // pass empty args, or extend PickerItem to carry them
-    }
+    if (m_commands.at(i).action)
+        m_commands.at(i).action({});
 }

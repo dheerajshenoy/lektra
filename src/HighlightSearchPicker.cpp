@@ -76,9 +76,8 @@ HighlightSearchPicker::buildItems(const QString & /*term*/) const noexcept
             = (e.quad.ul.y + e.quad.ur.y + e.quad.ll.y + e.quad.lr.y) * 0.25;
 
         items.push_back({
-            .title    = QString("p%1: %2").arg(e.page + 1).arg(e.text),
-            .subtitle = {},
-            .data     = QVariant::fromValue(
+            .columns = {QString("p%1: %2").arg(e.page + 1).arg(e.text)},
+            .data    = QVariant::fromValue(
                 QPersistentModelIndex{}), // unused, we store below
         });
 
@@ -95,7 +94,7 @@ HighlightSearchPicker::onItemAccepted(const Item &item)
     if (list.size() < 2)
         return;
 
-    auto page = list[0].toInt();
+    auto page  = list[0].toInt();
     auto point = list[1].toPointF();
     emit gotoLocationRequested(page, point.x(), point.y());
 }

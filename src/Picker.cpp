@@ -288,48 +288,36 @@ void
 Picker::populate(const QList<Picker::Item> &items)
 {
     m_model->clear();
-
-    if (m_columns.isEmpty())
-    {
-        // Single-column fallback — behaves like the original QListView path
-        for (const auto &item : items)
-        {
-            auto *si = new QStandardItem(item.title);
-            si->setData(item.subtitle, Qt::ToolTipRole);
-            si->setData(item.title + ' ' + item.subtitle, Qt::UserRole + 1);
-            si->setData(QVariant::fromValue(item), Qt::UserRole + 2);
-            m_model->appendRow(si);
-        }
-        return;
-    }
-
     m_model->setColumnCount(m_columns.size());
+
     for (int col = 0; col < m_columns.size(); ++col)
         m_model->setHorizontalHeaderItem(
             col, new QStandardItem(m_columns[col].header));
 
     for (const auto &item : items)
     {
-        // col 0 = title, col 1 = subtitle, further columns ignored for now
         QList<QStandardItem *> row;
         row.reserve(m_columns.size());
 
         for (int col = 0; col < m_columns.size(); ++col)
         {
-            const QString text = (col == 0)   ? item.title
-                                 : (col == 1) ? item.subtitle
-                                              : QString{};
+            const QString text
+                = (col < item.columns.size()) ? item.columns[col] : QString{};
             row.append(new QStandardItem(text));
         }
 
-        // Searchable text and payload always live on col 0
-        row[0]->setData(item.title + ' ' + item.subtitle, Qt::UserRole + 1);
+        // All columns contribute to search
+        QString searchText;
+        for (const auto &c : item.columns)
+            if (!c.isEmpty())
+                searchText += c + ' ';
+
+        row[0]->setData(searchText.trimmed(), Qt::UserRole + 1);
         row[0]->setData(QVariant::fromValue(item), Qt::UserRole + 2);
         m_model->appendRow(row);
     }
 
     auto *header = m_listView->header();
-
     if (header)
     {
         header->setStretchLastSection(false);

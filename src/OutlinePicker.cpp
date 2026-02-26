@@ -64,10 +64,10 @@ OutlinePicker::collectItems()
             // Column 0: item.title
             // Column 1: item.subtitle
             items.push_back(
-                {.title
-                 = QString(e.depth * m_config.indent_width, ' ') + e.title,
-                 .subtitle = QString::number(e.page + 1),
-                 .data     = static_cast<qulonglong>(i)});
+                {.columns
+                 = {QString(e.depth * m_config.indent_width, ' ') + e.title,
+                    QString::number(e.page + 1)},
+                 .data = static_cast<qulonglong>(i)});
         }
     }
     else
@@ -80,8 +80,8 @@ OutlinePicker::collectItems()
             // Column 0: item.title
             // Column 1: item.subtitle
             items.push_back(
-                {.title
-                 = QString(e.depth * m_config.indent_width, ' ') + e.title,
+                {.columns
+                 = {QString(e.depth * m_config.indent_width, ' ') + e.title},
                  .data = static_cast<qulonglong>(i)});
         }
     }

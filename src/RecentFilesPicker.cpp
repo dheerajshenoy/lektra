@@ -8,12 +8,14 @@ QList<Picker::Item>
 RecentFilesPicker::collectItems()
 {
     QList<Item> items;
+    items.reserve(m_recentFiles.size());
     for (const auto &path : m_recentFiles)
     {
         QFileInfo fi(path);
-        items.push_back({.title    = fi.fileName(),
-                         .subtitle = fi.absolutePath(),
-                         .data     = path});
+        items.push_back({
+            .columns = {fi.fileName(), fi.absolutePath()},
+            .data    = path,
+        });
     }
     return items;
 }

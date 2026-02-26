@@ -142,8 +142,7 @@ public:
 
     struct Item
     {
-        QString title;
-        QString subtitle;
+        QList<QString> columns;
         QVariant data;
     };
 
