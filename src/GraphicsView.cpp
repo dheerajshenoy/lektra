@@ -223,9 +223,6 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                 }
             }
 
-            // Clear immediately on press — feels instant
-            emit textSelectionDeletionRequested();
-
             // Multi-click tracking (TextSelection only)
             if (m_mode == Mode::TextSelection)
             {
@@ -256,14 +253,18 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         }
 
         case Mode::VisualLine:
+        {
             emit clickRequested(1, scenePos);
             event->accept();
             return;
+        }
 
         case Mode::AnnotPopup:
+        {
             emit annotPopupRequested(scenePos);
             event->accept();
             return;
+        }
 
         case Mode::RegionSelection:
         case Mode::AnnotRect:
@@ -476,7 +477,6 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
 void
 GraphicsView::mouseReleaseEvent(QMouseEvent *event)
 {
-    // Complete scrollbar drag
     if (m_activeScrollbar)
     {
         forwardMouseEvent(m_activeScrollbar, event);
@@ -485,6 +485,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
         return;
     }
 
+    // Handle Ignored Release (e.g., after context menu)
     if (m_ignore_next_release)
     {
         m_ignore_next_release = false;
@@ -492,82 +493,176 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
         return;
     }
 
-    const bool wasSelecting = m_selecting;
-    m_selecting             = false;
-
-    // If we weren't doing any interaction, let base handle it
-    if (!wasSelecting)
+    // Early exit if not selecting/dragging
+    if (!m_selecting)
     {
         QGraphicsView::mouseReleaseEvent(event);
         return;
     }
 
-    // Text modes
+    // Reset state BEFORE emitting signals to prevent recursive triggers
+    m_selecting      = false;
+    bool wasDragging = m_dragging;
+    m_dragging       = false;
+    event->accept();
+
+    const QPointF scenePos = mapToScene(event->pos());
+    const int dist
+        = (scenePos.toPoint() - m_mousePressPos.toPoint()).manhattanLength();
+    const bool isDrag = dist > m_drag_threshold;
+
+    // 5. Handle Text Selection / Highlighting Modes
     if (m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
     {
         updateCursorForMode();
 
-        const QPointF scenePos = mapToScene(event->pos());
-        const int dist = (scenePos.toPoint() - m_mousePressPos.toPoint())
-                             .manhattanLength();
-        const bool isDrag = dist > m_drag_threshold;
-
-        if (m_mode == Mode::TextSelection)
+        if (isDrag)
         {
-            if (!isDrag || m_selection_start == scenePos)
-                emit textSelectionDeletionRequested();
-            else if (event->button() == Qt::LeftButton)
-                emit textSelectionRequested(m_selection_start, scenePos);
-        }
-        else
-        {
-            if (isDrag)
+            if (m_mode == Mode::TextSelection)
             {
+                // Only emit if we actually moved from the start point
+                if (m_selection_start != scenePos
+                    && event->button() == Qt::LeftButton)
+                    emit textSelectionRequested(m_selection_start, scenePos);
+            }
+            else // Mode::TextHighlight
+            {
+                // Highlight usually implies a selection was made first
                 emit textSelectionRequested(m_selection_start, scenePos);
                 emit textHighlightRequested(m_selection_start, scenePos);
             }
         }
-
-        m_dragging = false;
-        event->accept();
-        return; // handled
+        return;
     }
 
-    // Rubber band modes
+    // 6. Handle Region/Annotation Selection Modes
     if (m_mode == Mode::RegionSelection || m_mode == Mode::AnnotRect
         || m_mode == Mode::AnnotSelect)
     {
         const QRectF sceneRect  = mapToScene(m_rect).boundingRect();
-        const bool hasSelection = m_dragging && !sceneRect.isEmpty();
+        const bool hasSelection = wasDragging && !sceneRect.isEmpty();
 
+        // Fix: Always clear rubber band if we aren't specifically keeping a
+        // region selection visible
         if (m_mode != Mode::RegionSelection || !hasSelection)
             clearRubberBand();
 
-        if (!m_dragging && m_mode == Mode::AnnotSelect)
+        if (m_mode == Mode::AnnotSelect)
         {
-            emit annotSelectRequested(mapToScene(event->pos()));
+            if (!wasDragging)
+                emit annotSelectRequested(scenePos); // Single click selection
+            else if (hasSelection)
+                emit annotSelectRequested(sceneRect); // Area selection
         }
-        else
+        else if (hasSelection)
         {
-            if (hasSelection)
-            {
-                if (m_mode == Mode::RegionSelection)
-                    emit regionSelectRequested(sceneRect);
-                else if (m_mode == Mode::AnnotRect)
-                    emit annotRectRequested(sceneRect);
-                else
-                    emit annotSelectRequested(sceneRect);
-            }
+            if (m_mode == Mode::RegionSelection)
+                emit regionSelectRequested(sceneRect);
+            else if (m_mode == Mode::AnnotRect)
+                emit annotRectRequested(sceneRect);
         }
 
-        m_dragging = false;
-        event->accept();
-        return; // handled
+        return;
     }
 
-    m_dragging = false;
     QGraphicsView::mouseReleaseEvent(event);
 }
+
+// void
+// GraphicsView::mouseReleaseEvent(QMouseEvent *event)
+// {
+//     // Complete scrollbar drag
+//     if (m_activeScrollbar)
+//     {
+//         forwardMouseEvent(m_activeScrollbar, event);
+//         m_activeScrollbar = nullptr;
+//         restartHideTimer();
+//         return;
+//     }
+
+//     if (m_ignore_next_release)
+//     {
+//         m_ignore_next_release = false;
+//         QGraphicsView::mouseReleaseEvent(event);
+//         return;
+//     }
+
+//     const bool wasSelecting = m_selecting;
+//     m_selecting             = false;
+
+//     // If we weren't doing any interaction, let base handle it
+//     if (!wasSelecting)
+//     {
+//         QGraphicsView::mouseReleaseEvent(event);
+//         return;
+//     }
+
+//     // Text modes
+//     if (m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
+//     {
+//         updateCursorForMode();
+
+//         const QPointF scenePos = mapToScene(event->pos());
+//         const int dist = (scenePos.toPoint() - m_mousePressPos.toPoint())
+//                              .manhattanLength();
+//         const bool isDrag = dist > m_drag_threshold;
+
+//         if (m_mode == Mode::TextSelection)
+//         {
+//             if (!isDrag || m_selection_start == scenePos)
+//                 emit textSelectionDeletionRequested();
+//             else if (event->button() == Qt::LeftButton)
+//                 emit textSelectionRequested(m_selection_start, scenePos);
+//         }
+//         else
+//         {
+//             if (isDrag)
+//             {
+//                 emit textSelectionRequested(m_selection_start, scenePos);
+//                 emit textHighlightRequested(m_selection_start, scenePos);
+//             }
+//         }
+
+//         m_dragging = false;
+//         event->accept();
+//         return; // handled
+//     }
+
+//     // Rubber band modes
+//     if (m_mode == Mode::RegionSelection || m_mode == Mode::AnnotRect
+//         || m_mode == Mode::AnnotSelect)
+//     {
+//         const QRectF sceneRect  = mapToScene(m_rect).boundingRect();
+//         const bool hasSelection = m_dragging && !sceneRect.isEmpty();
+
+//         if (m_mode != Mode::RegionSelection || !hasSelection)
+//             clearRubberBand();
+
+//         if (!m_dragging && m_mode == Mode::AnnotSelect)
+//         {
+//             emit annotSelectRequested(mapToScene(event->pos()));
+//         }
+//         else
+//         {
+//             if (hasSelection)
+//             {
+//                 if (m_mode == Mode::RegionSelection)
+//                     emit regionSelectRequested(sceneRect);
+//                 else if (m_mode == Mode::AnnotRect)
+//                     emit annotRectRequested(sceneRect);
+//                 else
+//                     emit annotSelectRequested(sceneRect);
+//             }
+//         }
+
+//         m_dragging = false;
+//         event->accept();
+//         return; // handled
+//     }
+
+//     m_dragging = false;
+//     QGraphicsView::mouseReleaseEvent(event);
+// }
 
 void
 GraphicsView::wheelEvent(QWheelEvent *event)
