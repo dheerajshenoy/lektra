@@ -2267,30 +2267,33 @@ Lektra::ToggleAnnotSelect() noexcept
 void
 Lektra::ToggleAnnotPopup() noexcept
 {
-    if (m_doc)
-    {
-        if (m_doc->fileType() == Model::FileType::PDF)
-            m_doc->ToggleAnnotPopup();
-        else
-            QMessageBox::information(this, "Toggle Annot Popup",
-                                     "Not a PDF file to annotate");
-    }
+    if (!m_doc)
+        return;
+
+    if (m_doc->fileType() == Model::FileType::PDF)
+        m_doc->ToggleAnnotPopup();
+    else
+        QMessageBox::information(this, "Toggle Annot Popup",
+                                 "Not a PDF file to annotate");
 }
 
 // Toggle region select mode
 void
 Lektra::ToggleRegionSelect() noexcept
 {
-    if (m_doc)
-        m_doc->ToggleRegionSelect();
+    if (!m_doc)
+        return;
+    m_doc->ToggleRegionSelect();
 }
 
 // Go to the first page
 void
 Lektra::FirstPage() noexcept
 {
-    if (m_doc)
-        m_doc->GotoFirstPage();
+    if (!m_doc)
+        return;
+
+    m_doc->GotoFirstPage();
     updatePageNavigationActions();
 }
 
@@ -2298,8 +2301,9 @@ Lektra::FirstPage() noexcept
 void
 Lektra::PrevPage() noexcept
 {
-    if (m_doc)
-        m_doc->GotoPrevPage();
+    if (!m_doc)
+        return;
+    m_doc->GotoPrevPage();
     updatePageNavigationActions();
 }
 
@@ -2307,8 +2311,10 @@ Lektra::PrevPage() noexcept
 void
 Lektra::NextPage() noexcept
 {
-    if (m_doc)
-        m_doc->GotoNextPage();
+    if (!m_doc)
+        return;
+
+    m_doc->GotoNextPage();
     updatePageNavigationActions();
 }
 
