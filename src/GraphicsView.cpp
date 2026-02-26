@@ -177,7 +177,7 @@ GraphicsView::setMode(Mode mode) noexcept
 void
 GraphicsView::mousePressEvent(QMouseEvent *event)
 {
-    // Check if click is on overlay scrollbar
+    // Scrollbar
     if (QScrollBar *bar = scrollbarAt(event->pos()))
     {
         m_activeScrollbar = bar;
@@ -186,118 +186,96 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         return;
     }
 
-#ifdef HAS_SYNCTEX
-    if (m_mode == Mode::TextSelection && event->button() == Qt::LeftButton
-        && (event->modifiers() & Qt::ShiftModifier))
+    if (event->button() != Qt::LeftButton)
     {
-        emit synctexJumpRequested(mapToScene(event->pos()));
-        m_ignore_next_release = true;
-        event->accept();
-        return; // don't forward to QGraphicsView
+        QGraphicsView::mousePressEvent(event);
+        return;
     }
-#endif
 
-    // Link click handling
-    if ((m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
-        && event->button() == Qt::LeftButton)
+    const QPointF scenePos = mapToScene(event->pos());
+
+    switch (m_mode)
     {
-        if (QGraphicsItem *item = itemAt(event->pos()))
-        {
-            if (item->data(0).toString() == "link")
+        case Mode::TextSelection:
+#ifdef HAS_SYNCTEX
+            if (event->modifiers() & Qt::ShiftModifier)
             {
-                if (event->modifiers() & Qt::ControlModifier)
-                {
-                    emit linkCtrlClickRequested(mapToScene(event->pos()));
-                    event->accept();
-                }
-                else
-                    QGraphicsView::mousePressEvent(event);
-
+                emit synctexJumpRequested(scenePos);
+                m_ignore_next_release = true;
+                event->accept();
                 return;
             }
-        }
-    }
-
-    // Visual Line Mode
-    if (m_mode == Mode::VisualLine)
-    {
-        if (event->button() == Qt::LeftButton)
+            // [[fallthrough]];
+#endif
+        case Mode::TextHighlight:
         {
-            const QPointF scenePos = mapToScene(event->pos());
-            emit clickRequested(1, scenePos);
-            return;
-        }
-    }
+            // Link check
+            if (QGraphicsItem *item = itemAt(event->pos()))
+            {
+                if (item->data(0).toString() == "link")
+                {
+                    if (event->modifiers() & Qt::ControlModifier)
+                        emit linkCtrlClickRequested(scenePos);
+                    else
+                        QGraphicsView::mousePressEvent(event);
+                    event->accept();
+                    return;
+                }
+            }
 
-    // Multi-click tracking (avoid QLineF sqrt)
-    if (m_mode == Mode::TextSelection)
-    {
-        if (event->button() == Qt::LeftButton)
-        {
-            // --- multi-click tracking ---
-            const bool timerOk
-                = m_clickTimer.isValid()
-                  && m_clickTimer.elapsed() < MULTI_CLICK_INTERVAL;
-            const QPointF d    = event->pos() - m_lastClickPos;
-            const double dist2 = d.x() * d.x() + d.y() * d.y();
-            const double thresh2
-                = CLICK_DISTANCE_THRESHOLD * CLICK_DISTANCE_THRESHOLD;
-            m_clickCount
-                = (timerOk && dist2 < thresh2) ? (m_clickCount + 1) : 1;
-            if (m_clickCount > 4)
-                m_clickCount = 1;
-            m_lastClickPos = event->pos();
-            m_clickTimer.restart();
+            // Clear immediately on press — feels instant
+            emit textSelectionDeletionRequested();
 
-            // --- always start a selection ---
-            m_selecting = true;
+            // Multi-click tracking (TextSelection only)
+            if (m_mode == Mode::TextSelection)
+            {
+                const bool timerOk
+                    = m_clickTimer.isValid()
+                      && m_clickTimer.elapsed() < MULTI_CLICK_INTERVAL;
+                const QPointF d    = event->pos() - m_lastClickPos;
+                const double dist2 = d.x() * d.x() + d.y() * d.y();
+                m_clickCount       = (timerOk
+                                && dist2 < CLICK_DISTANCE_THRESHOLD
+                                               * CLICK_DISTANCE_THRESHOLD)
+                                         ? qMin(m_clickCount + 1, 4)
+                                         : 1;
+                m_lastClickPos     = event->pos();
+                m_clickTimer.restart();
+                emit clickRequested(m_clickCount, scenePos);
+            }
+
+            // Common selection setup
+            m_selecting       = true;
+            m_mousePressPos   = scenePos;
+            m_selection_start = scenePos;
+            m_lastMovePos     = event->pos();
             updateCursorForMode();
-            const QPointF scenePos = mapToScene(event->pos());
-            m_mousePressPos        = scenePos;
-            m_selection_start      = scenePos;
-            m_lastMovePos          = event->pos();
-
-            // emit the appropriate signal
-            if (m_clickCount == 1)
-                emit clickRequested(1,
-                                    scenePos); // single click: position cursor
-            else
-                emit clickRequested(m_clickCount,
-                                    scenePos); // word/line/para select
 
             event->accept();
             return;
         }
-    }
 
-    switch (m_mode)
-    {
+        case Mode::VisualLine:
+            emit clickRequested(1, scenePos);
+            event->accept();
+            return;
+
+        case Mode::AnnotPopup:
+            emit annotPopupRequested(scenePos);
+            event->accept();
+            return;
+
         case Mode::RegionSelection:
         case Mode::AnnotRect:
         case Mode::AnnotSelect:
-        {
             m_start     = event->pos();
             m_rect      = QRect();
             m_dragging  = false;
             m_selecting = true;
-
             m_rubberBand->setGeometry(QRect(m_start, QSize()));
             m_rubberBand->show();
-
             event->accept();
-            return; // handled
-        }
-
-        case Mode::AnnotPopup:
-        {
-            if (event->button() == Qt::LeftButton)
-            {
-                emit annotPopupRequested(mapToScene(event->pos()));
-                event->accept();
-                return; // handled
-            }
-            break;
-        }
+            return;
 
         default:
             break;
@@ -305,6 +283,139 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
 
     QGraphicsView::mousePressEvent(event);
 }
+
+// void
+// GraphicsView::mousePressEvent(QMouseEvent *event)
+// {
+//     // Check if click is on overlay scrollbar
+//     if (QScrollBar *bar = scrollbarAt(event->pos()))
+//     {
+//         m_activeScrollbar = bar;
+//         m_scrollbar_hide_timer.stop();
+//         forwardMouseEvent(bar, event);
+//         return;
+//     }
+//
+// #ifdef HAS_SYNCTEX
+//     if (m_mode == Mode::TextSelection && event->button() == Qt::LeftButton
+//         && (event->modifiers() & Qt::ShiftModifier))
+//     {
+//         emit synctexJumpRequested(mapToScene(event->pos()));
+//         m_ignore_next_release = true;
+//         event->accept();
+//         return; // don't forward to QGraphicsView
+//     }
+// #endif
+//
+//     // Link click handling
+//     if ((m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
+//         && event->button() == Qt::LeftButton)
+//     {
+//         if (QGraphicsItem *item = itemAt(event->pos()))
+//         {
+//             if (item->data(0).toString() == "link")
+//             {
+//                 if (event->modifiers() & Qt::ControlModifier)
+//                 {
+//                     emit linkCtrlClickRequested(mapToScene(event->pos()));
+//                     event->accept();
+//                 }
+//                 else
+//                     QGraphicsView::mousePressEvent(event);
+//
+//                 return;
+//             }
+//         }
+//     }
+//
+//     // Visual Line Mode
+//     if (m_mode == Mode::VisualLine)
+//     {
+//         if (event->button() == Qt::LeftButton)
+//         {
+//             const QPointF scenePos = mapToScene(event->pos());
+//             emit clickRequested(1, scenePos);
+//             return;
+//         }
+//     }
+//
+//     // Multi-click tracking (avoid QLineF sqrt)
+//     if (m_mode == Mode::TextSelection)
+//     {
+//         if (event->button() == Qt::LeftButton)
+//         {
+//             // --- multi-click tracking ---
+//             const bool timerOk
+//                 = m_clickTimer.isValid()
+//                   && m_clickTimer.elapsed() < MULTI_CLICK_INTERVAL;
+//             const QPointF d    = event->pos() - m_lastClickPos;
+//             const double dist2 = d.x() * d.x() + d.y() * d.y();
+//             const double thresh2
+//                 = CLICK_DISTANCE_THRESHOLD * CLICK_DISTANCE_THRESHOLD;
+//             m_clickCount
+//                 = (timerOk && dist2 < thresh2) ? (m_clickCount + 1) : 1;
+//             if (m_clickCount > 4)
+//                 m_clickCount = 1;
+//             m_lastClickPos = event->pos();
+//             m_clickTimer.restart();
+//
+//             // --- always start a selection ---
+//             m_selecting = true;
+//             updateCursorForMode();
+//             const QPointF scenePos = mapToScene(event->pos());
+//             m_mousePressPos        = scenePos;
+//             m_selection_start      = scenePos;
+//             m_lastMovePos          = event->pos();
+//
+//             // emit the appropriate signal
+//             if (m_clickCount == 1)
+//                 emit clickRequested(1,
+//                                     scenePos); // single click: position
+//                                     cursor
+//             else
+//                 emit clickRequested(m_clickCount,
+//                                     scenePos); // word/line/para select
+//
+//             event->accept();
+//             return;
+//         }
+//     }
+//
+//     switch (m_mode)
+//     {
+//         case Mode::RegionSelection:
+//         case Mode::AnnotRect:
+//         case Mode::AnnotSelect:
+//         {
+//             m_start     = event->pos();
+//             m_rect      = QRect();
+//             m_dragging  = false;
+//             m_selecting = true;
+//
+//             m_rubberBand->setGeometry(QRect(m_start, QSize()));
+//             m_rubberBand->show();
+//
+//             event->accept();
+//             return; // handled
+//         }
+//
+//         case Mode::AnnotPopup:
+//         {
+//             if (event->button() == Qt::LeftButton)
+//             {
+//                 emit annotPopupRequested(mapToScene(event->pos()));
+//                 event->accept();
+//                 return; // handled
+//             }
+//             break;
+//         }
+//
+//         default:
+//             break;
+//     }
+//
+//     QGraphicsView::mousePressEvent(event);
+// }
 
 void
 GraphicsView::mouseMoveEvent(QMouseEvent *event)
