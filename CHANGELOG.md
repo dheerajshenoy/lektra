@@ -22,6 +22,8 @@
 
 ### Bug Fix
 
+- Fix crash due to zero image size in BOOK layout mode
+
 ## 0.6.4
 
 ### Bug Fix
