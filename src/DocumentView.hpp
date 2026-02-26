@@ -372,7 +372,7 @@ signals:
     void currentPageChanged(int pageno);
     void closed();
 
-public slots:
+private slots:
     void handle_password_required() noexcept;
     void handle_wrong_password() noexcept;
     void handleLinkCtrlClickRequested(QPointF scenePos) noexcept;
@@ -391,6 +391,8 @@ public slots:
     void handleAnnotPopupRequested(QPointF scenePos) noexcept;
     void handleHScrollValueChanged(int value) noexcept;
     void handleVScrollValueChanged(int value) noexcept;
+    void handleReloadRequested(int pageno = -1) noexcept;
+    void handleDeferredResize() noexcept;
 
 #ifdef HAS_SYNCTEX
     void handleSynctexJumpRequested(QPointF scenePos) noexcept;
@@ -455,7 +457,6 @@ private:
         const std::vector<Model::RenderAnnotation> &annots) noexcept;
     void buildFlatSearchHitIndex() noexcept;
     void removeUnusedPageItems(const std::set<int> &visiblePages) noexcept;
-    void reloadPage(int pageno) noexcept;
     void clearDocumentItems() noexcept;
     void ensureVisiblePagePlaceholders() noexcept;
     void updateCurrentPage() noexcept;
@@ -471,7 +472,6 @@ private:
     std::set<int> getPreloadPages() noexcept;
     const std::set<int> &getVisiblePages() noexcept;
     void invalidateVisiblePagesCache() noexcept;
-    void handleDeferredResize() noexcept;
     void removePageItem(int pageno) noexcept;
     void createAndAddPlaceholderPageItem(int pageno) noexcept;
     void prunePendingRenders(const std::set<int> &visiblePages) noexcept;
