@@ -1,5 +1,5 @@
 #include "argparse.hpp"
-#include "lektra.hpp"
+#include "Lektra.hpp"
 
 #include <QApplication>
 #include <fcntl.h>
@@ -151,7 +151,8 @@ main(int argc, char *argv[])
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon(":/resources/png/lektra.png"));
-    lektra d;
+
+    Lektra d;
     d.Read_args_parser(program);
     app.exec();
 }

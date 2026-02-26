@@ -1,10 +1,9 @@
-#include "lektra.hpp"
+#include "Lektra.hpp"
 
 #include "AboutDialog.hpp"
 #include "DocumentContainer.hpp"
 #include "DocumentView.hpp"
 #include "EditLastPagesWidget.hpp"
-#include "FloatingOverlayWidget.hpp"
 #include "GraphicsView.hpp"
 #include "SaveSessionDialog.hpp"
 #include "SearchBar.hpp"
@@ -72,15 +71,15 @@ set_color(toml::node_view<toml::node> n, uint32_t &dst)
 
 } // namespace
 
-// Constructs the `lektra` class
-lektra::lektra() noexcept
+// Constructs the `Lektra` class
+Lektra::Lektra() noexcept
 {
     setAttribute(Qt::WA_NativeWindow,
                  true); // This is necessary for DPI updates
     setAcceptDrops(true);
 }
 
-lektra::lektra(const QString &sessionName,
+Lektra::Lektra(const QString &sessionName,
                const QJsonArray &sessionArray) noexcept
 {
     setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
@@ -91,9 +90,9 @@ lektra::lektra(const QString &sessionName,
     m_statusbar->setSessionName(sessionName);
 }
 
-// On-demand construction of `lektra` (for use with argparse)
+// On-demand construction of `Lektra` (for use with argparse)
 void
-lektra::construct() noexcept
+Lektra::construct() noexcept
 {
     initActionMap();
     initConfig();
@@ -114,7 +113,7 @@ lektra::construct() noexcept
 
 // Initialize the menubar related stuff
 void
-lektra::initMenubar() noexcept
+Lektra::initMenubar() noexcept
 {
     // --- File Menu ---
     QMenu *fileMenu = m_menuBar->addMenu("&File");
@@ -136,21 +135,21 @@ lektra::initMenubar() noexcept
     m_actionFileProperties
         = fileMenu->addAction(QString("File Properties\t%1")
                                   .arg(m_config.shortcuts["file_properties"]),
-                              this, &lektra::FileProperties);
+                              this, &Lektra::FileProperties);
 
     m_actionOpenContainingFolder = fileMenu->addAction(
         QString("Open Containing Folder\t%1")
             .arg(m_config.shortcuts["open_containing_folder"]),
-        this, &lektra::OpenContainingFolder);
+        this, &Lektra::OpenContainingFolder);
     m_actionOpenContainingFolder->setEnabled(false);
 
     m_actionSaveFile = fileMenu->addAction(
         QString("Save File\t%1").arg(m_config.shortcuts["file_save"]), this,
-        &lektra::SaveFile);
+        &Lektra::SaveFile);
 
     m_actionSaveAsFile = fileMenu->addAction(
         QString("Save As File\t%1").arg(m_config.shortcuts["file_save_as"]),
-        this, &lektra::SaveAsFile);
+        this, &Lektra::SaveAsFile);
 
     QMenu *sessionMenu = fileMenu->addMenu("Session");
 
@@ -176,30 +175,30 @@ lektra::initMenubar() noexcept
     QMenu *editMenu = m_menuBar->addMenu("&Edit");
     m_actionUndo    = editMenu->addAction(
         QString("Undo\t%1").arg(m_config.shortcuts["undo"]), this,
-        &lektra::Undo);
+        &Lektra::Undo);
     m_actionRedo = editMenu->addAction(
         QString("Redo\t%1").arg(m_config.shortcuts["redo"]), this,
-        &lektra::Redo);
+        &Lektra::Redo);
     m_actionUndo->setEnabled(false);
     m_actionRedo->setEnabled(false);
     editMenu->addAction(
         QString("Last Pages\t%1").arg(m_config.shortcuts["edit_last_pages"]),
-        this, &lektra::editLastPages);
+        this, &Lektra::editLastPages);
 
     // --- View Menu ---
     m_viewMenu         = m_menuBar->addMenu("&View");
     m_actionFullscreen = m_viewMenu->addAction(
         QString("Fullscreen\t%1").arg(m_config.shortcuts["fullscreen"]), this,
-        &lektra::ToggleFullscreen);
+        &Lektra::ToggleFullscreen);
     m_actionFullscreen->setCheckable(true);
     m_actionFullscreen->setChecked(m_config.window.fullscreen);
 
     m_actionZoomIn = m_viewMenu->addAction(
         QString("Zoom In\t%1").arg(m_config.shortcuts["zoom_in"]), this,
-        &lektra::ZoomIn);
+        &Lektra::ZoomIn);
     m_actionZoomOut = m_viewMenu->addAction(
         QString("Zoom Out\t%1").arg(m_config.shortcuts["zoom_out"]), this,
-        &lektra::ZoomOut);
+        &Lektra::ZoomOut);
 
     m_viewMenu->addSeparator();
 
@@ -207,22 +206,22 @@ lektra::initMenubar() noexcept
 
     m_actionFitWidth = m_fitMenu->addAction(
         QString("Width\t%1").arg(m_config.shortcuts["fit_width"]), this,
-        &lektra::Fit_width);
+        &Lektra::Fit_width);
 
     m_actionFitHeight = m_fitMenu->addAction(
         QString("Height\t%1").arg(m_config.shortcuts["fit_height"]), this,
-        &lektra::Fit_height);
+        &Lektra::Fit_height);
 
     m_actionFitWindow = m_fitMenu->addAction(
         QString("Page\t%1").arg(m_config.shortcuts["fit_page"]), this,
-        &lektra::Fit_page);
+        &Lektra::Fit_page);
 
     m_fitMenu->addSeparator();
 
     // Auto Resize toggle (independent)
     m_actionAutoresize = m_viewMenu->addAction(
         QString("Auto Fit\t%1").arg(m_config.shortcuts["fit_auto"]), this,
-        &lektra::ToggleAutoResize);
+        &Lektra::ToggleAutoResize);
     m_actionAutoresize->setCheckable(true);
     m_actionAutoresize->setChecked(
         m_config.layout.auto_resize); // default on or off
@@ -281,18 +280,18 @@ lektra::initMenubar() noexcept
 #ifdef ENABLE_LLM_SUPPORT
     m_actionToggleLLMWidget = m_toggleMenu->addAction(
         QString("LLM Widget\t%1").arg(m_config.shortcuts["llm_widget"]), this,
-        &lektra::ToggleLLMWidget);
+        &Lektra::ToggleLLMWidget);
     m_actionToggleLLMWidget->setCheckable(true);
     m_actionToggleLLMWidget->setChecked(m_config.llm_widget.visible);
 #endif
 
     m_actionCommandPicker = m_toggleMenu->addAction(
         QString("Command Picker\t%1").arg(m_config.shortcuts["command_picker"]),
-        this, &lektra::Show_command_picker);
+        this, &Lektra::Show_command_picker);
 
     m_actionToggleOutline = m_toggleMenu->addAction(
         QString("Outline\t%1").arg(m_config.shortcuts["picker_outline"]), this,
-        &lektra::Show_outline);
+        &Lektra::Show_outline);
     m_actionToggleOutline->setCheckable(true);
     m_actionToggleOutline->setChecked(m_outline_picker
                                       && !m_outline_picker->isHidden());
@@ -300,32 +299,32 @@ lektra::initMenubar() noexcept
     m_actionToggleHighlightAnnotSearch = m_toggleMenu->addAction(
         QString("Highlight Annotation Search\t%1")
             .arg(m_config.shortcuts["picker_highlight_search"]),
-        this, &lektra::Show_highlight_search);
+        this, &Lektra::Show_highlight_search);
     m_actionToggleHighlightAnnotSearch->setCheckable(true);
     m_actionToggleHighlightAnnotSearch->setChecked(
         m_highlight_search_picker && !m_highlight_search_picker->isHidden());
 
     m_actionToggleMenubar = m_toggleMenu->addAction(
         QString("Menubar\t%1").arg(m_config.shortcuts["menubar"]), this,
-        &lektra::ToggleMenubar);
+        &Lektra::ToggleMenubar);
     m_actionToggleMenubar->setCheckable(true);
     m_actionToggleMenubar->setChecked(!m_menuBar->isHidden());
 
     m_actionToggleTabBar = m_toggleMenu->addAction(
         QString("Tabs\t%1").arg(m_config.shortcuts["tabs"]), this,
-        &lektra::ToggleTabBar);
+        &Lektra::ToggleTabBar);
     m_actionToggleTabBar->setCheckable(true);
     m_actionToggleTabBar->setChecked(!m_tab_widget->tabBar()->isHidden());
 
     m_actionTogglePanel = m_toggleMenu->addAction(
         QString("Statusbar\t%1").arg(m_config.shortcuts["statusbar"]), this,
-        &lektra::TogglePanel);
+        &Lektra::TogglePanel);
     m_actionTogglePanel->setCheckable(true);
     m_actionTogglePanel->setChecked(!m_statusbar->isHidden());
 
     m_actionInvertColor = m_viewMenu->addAction(
         QString("Invert Color\t%1").arg(m_config.shortcuts["invert_color"]),
-        this, &lektra::InvertColor);
+        this, &Lektra::InvertColor);
     m_actionInvertColor->setCheckable(true);
     m_actionInvertColor->setChecked(m_config.behavior.invert_mode);
 
@@ -341,42 +340,42 @@ lektra::initMenubar() noexcept
     m_actionRegionSelect = m_modeMenu->addAction(
         QString("Region Selection\t%1")
             .arg(m_config.shortcuts["selection_mode_region"]),
-        this, &lektra::ToggleRegionSelect);
+        this, &Lektra::ToggleRegionSelect);
     m_actionRegionSelect->setCheckable(true);
     modeActionGroup->addAction(m_actionRegionSelect);
 
     m_actionTextSelect = m_modeMenu->addAction(
         QString("Text Selection\t%1")
             .arg(m_config.shortcuts["selection_mode_text"]),
-        this, &lektra::ToggleTextSelection);
+        this, &Lektra::ToggleTextSelection);
     m_actionTextSelect->setCheckable(true);
     modeActionGroup->addAction(m_actionTextSelect);
 
     m_actionTextHighlight = m_modeMenu->addAction(
         QString("Text Highlight\t%1")
             .arg(m_config.shortcuts["annot_highlight_mode"]),
-        this, &lektra::ToggleTextHighlight);
+        this, &Lektra::ToggleTextHighlight);
     m_actionTextHighlight->setCheckable(true);
     modeActionGroup->addAction(m_actionTextHighlight);
 
     m_actionAnnotRect
         = m_modeMenu->addAction(QString("Annotate Rectangle\t%1")
                                     .arg(m_config.shortcuts["annot_rect_mode"]),
-                                this, &lektra::ToggleAnnotRect);
+                                this, &Lektra::ToggleAnnotRect);
     m_actionAnnotRect->setCheckable(true);
     modeActionGroup->addAction(m_actionAnnotRect);
 
     m_actionAnnotEdit
         = m_modeMenu->addAction(QString("Edit Annotations\t%1")
                                     .arg(m_config.shortcuts["annot_edit_mode"]),
-                                this, &lektra::ToggleAnnotSelect);
+                                this, &Lektra::ToggleAnnotSelect);
     m_actionAnnotEdit->setCheckable(true);
     modeActionGroup->addAction(m_actionAnnotEdit);
 
     m_actionAnnotPopup = m_modeMenu->addAction(
         QString("Annotate Popup\t%1")
             .arg(m_config.shortcuts["annot_popup_mode"]),
-        this, &lektra::ToggleAnnotPopup);
+        this, &Lektra::ToggleAnnotPopup);
     m_actionAnnotPopup->setCheckable(true);
     modeActionGroup->addAction(m_actionAnnotPopup);
 
@@ -406,12 +405,12 @@ lektra::initMenubar() noexcept
 
     m_actionEncrypt = toolsMenu->addAction(
         QString("Encrypt Document\t%1").arg(m_config.shortcuts["file_encrypt"]),
-        this, &lektra::EncryptDocument);
+        this, &Lektra::EncryptDocument);
     m_actionEncrypt->setEnabled(false);
 
     m_actionDecrypt = toolsMenu->addAction(
         QString("Decrypt Document\t%1").arg(m_config.shortcuts["file_decrypt"]),
-        this, &lektra::DecryptDocument);
+        this, &Lektra::DecryptDocument);
     m_actionDecrypt->setEnabled(false);
 
     // --- Navigation Menu ---
@@ -419,56 +418,56 @@ lektra::initMenubar() noexcept
 
     m_navMenu->addAction(
         QString("StartPage\t%1").arg(m_config.shortcuts["show_startup_widget"]),
-        this, &lektra::showStartupWidget);
+        this, &Lektra::showStartupWidget);
 
     m_actionGotoPage = m_navMenu->addAction(
         QString("Goto Page\t%1").arg(m_config.shortcuts["page_goto"]), this,
-        &lektra::Goto_page);
+        &Lektra::Goto_page);
 
     m_actionFirstPage = m_navMenu->addAction(
         QString("First Page\t%1").arg(m_config.shortcuts["page_first"]), this,
-        &lektra::FirstPage);
+        &Lektra::FirstPage);
 
     m_actionPrevPage = m_navMenu->addAction(
         QString("Previous Page\t%1").arg(m_config.shortcuts["page_prev"]), this,
-        &lektra::PrevPage);
+        &Lektra::PrevPage);
 
     m_actionNextPage = m_navMenu->addAction(
         QString("Next Page\t%1").arg(m_config.shortcuts["page_next"]), this,
-        &lektra::NextPage);
+        &Lektra::NextPage);
     m_actionLastPage = m_navMenu->addAction(
         QString("Last Page\t%1").arg(m_config.shortcuts["page_last"]), this,
-        &lektra::LastPage);
+        &Lektra::LastPage);
 
     m_actionPrevLocation
         = m_navMenu->addAction(QString("Previous Location\t%1")
                                    .arg(m_config.shortcuts["location_prev"]),
-                               this, &lektra::GoBackHistory);
+                               this, &Lektra::GoBackHistory);
     m_actionNextLocation = m_navMenu->addAction(
         QString("Next Location\t%1").arg(m_config.shortcuts["location_next"]),
-        this, &lektra::GoForwardHistory);
+        this, &Lektra::GoForwardHistory);
 
     // QMenu *markMenu = m_navMenu->addMenu("Marks");
 
     // m_actionSetMark = markMenu->addAction(
     //     QString("Set Mar\t%1").arg(m_config.shortcuts["set_mark"]), this,
-    //     &lektra::SetMark);
+    //     &Lektra::SetMark);
 
     /* Help Menu */
     QMenu *helpMenu = m_menuBar->addMenu("&Help");
     m_actionAbout   = helpMenu->addAction(
         QString("About\t%1").arg(m_config.shortcuts["show_about"]), this,
-        &lektra::ShowAbout);
+        &Lektra::ShowAbout);
 
     m_actionShowTutorialFile = helpMenu->addAction(
         QString("Open Tutorial File\t%1")
             .arg(m_config.shortcuts["show_tutorial_file"]),
-        this, &lektra::showTutorialFile);
+        this, &Lektra::showTutorialFile);
 }
 
 // Initialize the recent files store
 void
-lektra::initDB() noexcept
+Lektra::initDB() noexcept
 {
     m_recent_files_path = m_config_dir.filePath("last_pages.json");
     m_recent_files_store.setFilePath(m_recent_files_path);
@@ -478,7 +477,7 @@ lektra::initDB() noexcept
 
 // Initialize the config related stuff
 void
-lektra::initConfig() noexcept
+Lektra::initConfig() noexcept
 {
     m_config_dir = QDir(
         QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
@@ -517,6 +516,30 @@ lektra::initConfig() noexcept
         set(portal["enabled"], m_config.portal.enabled);
         set(portal["border_width"], m_config.portal.border_width);
         set(portal["dim_inactive"], m_config.portal.dim_inactive);
+    }
+
+    // Scripts
+    if (auto scripts = toml["scripts"].as_table())
+    {
+        for (auto &&[key, value] : *scripts)
+        {
+            if (value.is_string())
+            {
+                const QString scriptName
+                    = QString::fromStdString(std::string(key.str()));
+                const QString scriptPath
+                    = QString::fromStdString(value.as_string()->get());
+
+                // m_actionMap.insert(scriptName, run_user_script(scriptPath));
+            }
+            else
+            {
+                // Log a warning if the user put a number or boolean in the
+                // scripts table
+                std::cerr << "Warning: Script '" << key.str()
+                          << "' must be a string path." << std::endl;
+            }
+        }
     }
 
     // Tabs
@@ -934,7 +957,7 @@ lektra::initConfig() noexcept
 
 // Initialize the keybindings related stuff
 void
-lektra::initDefaultKeybinds() noexcept
+Lektra::initDefaultKeybinds() noexcept
 {
     struct DefaultBinding
     {
@@ -1001,7 +1024,7 @@ lektra::initDefaultKeybinds() noexcept
 }
 
 void
-lektra::warnShortcutConflicts() noexcept
+Lektra::warnShortcutConflicts() noexcept
 {
     QHash<QString, QStringList> shortcutsByKey;
     for (auto it = m_config.shortcuts.constBegin();
@@ -1060,7 +1083,7 @@ lektra::warnShortcutConflicts() noexcept
 
 // Initialize the GUI related Stuff
 void
-lektra::initGui() noexcept
+Lektra::initGui() noexcept
 {
     QWidget *widget = new QWidget(this);
     this->setCentralWidget(widget);
@@ -1136,7 +1159,7 @@ lektra::initGui() noexcept
 // Updates the UI elements checking if valid
 // file is open or not
 void
-lektra::updateUiEnabledState() noexcept
+Lektra::updateUiEnabledState() noexcept
 {
     const bool hasOpenedFile = m_doc ? true : false;
 
@@ -1168,7 +1191,7 @@ lektra::updateUiEnabledState() noexcept
 // Helper function to construct `QShortcut` Qt shortcut
 // from the config file
 void
-lektra::setupKeybinding(const QString &action, const QString &key) noexcept
+Lektra::setupKeybinding(const QString &action, const QString &key) noexcept
 {
     auto it = m_actionMap.find(action);
     if (it != m_actionMap.end())
@@ -1186,7 +1209,7 @@ lektra::setupKeybinding(const QString &action, const QString &key) noexcept
 
 // Toggles the fullscreen mode
 void
-lektra::ToggleFullscreen() noexcept
+Lektra::ToggleFullscreen() noexcept
 {
     bool isFullscreen = this->isFullScreen();
     if (isFullscreen)
@@ -1198,7 +1221,7 @@ lektra::ToggleFullscreen() noexcept
 
 // Toggles the panel
 void
-lektra::TogglePanel() noexcept
+Lektra::TogglePanel() noexcept
 {
     bool shown = !m_statusbar->isHidden();
     m_statusbar->setHidden(shown);
@@ -1207,7 +1230,7 @@ lektra::TogglePanel() noexcept
 
 // Toggles the menubar
 void
-lektra::ToggleMenubar() noexcept
+Lektra::ToggleMenubar() noexcept
 {
     bool shown = !m_menuBar->isHidden();
     m_menuBar->setHidden(shown);
@@ -1216,21 +1239,21 @@ lektra::ToggleMenubar() noexcept
 
 // Shows the about page
 void
-lektra::ShowAbout() noexcept
+Lektra::ShowAbout() noexcept
 {
     AboutDialog *abw = new AboutDialog(this);
     abw->show();
 }
 
-// Reads the arguments passed with `lektra` from the
+// Reads the arguments passed with `Lektra` from the
 // commandline
 void
-lektra::Read_args_parser(argparse::ArgumentParser &argparser) noexcept
+Lektra::Read_args_parser(argparse::ArgumentParser &argparser) noexcept
 {
 
     if (argparser.is_used("version"))
     {
-        qInfo() << "lektra version: " << APP_VERSION;
+        qInfo() << "Lektra version: " << APP_VERSION;
         exit(0);
     }
 
@@ -1336,7 +1359,7 @@ lektra::Read_args_parser(argparse::ArgumentParser &argparser) noexcept
 // Populates the `QMenu` for recent files with
 // recent files entries from the store
 void
-lektra::populateRecentFiles() noexcept
+Lektra::populateRecentFiles() noexcept
 {
     if (!m_config.behavior.recent_files)
     {
@@ -1367,7 +1390,7 @@ lektra::populateRecentFiles() noexcept
 // Opens a widget that allows to edit the recent files
 // entries
 void
-lektra::editLastPages() noexcept
+Lektra::editLastPages() noexcept
 {
     if (!m_config.behavior.remember_last_visited)
     {
@@ -1383,12 +1406,12 @@ lektra::editLastPages() noexcept
         = new EditLastPagesWidget(&m_recent_files_store, this);
     elpw->show();
     connect(elpw, &EditLastPagesWidget::finished, this,
-            &lektra::populateRecentFiles);
+            &Lektra::populateRecentFiles);
 }
 
 // Helper function to open last visited file
 void
-lektra::openLastVisitedFile() noexcept
+Lektra::openLastVisitedFile() noexcept
 {
     const auto &entries = m_recent_files_store.entries();
     if (entries.empty())
@@ -1404,7 +1427,7 @@ lektra::openLastVisitedFile() noexcept
 
 // Zoom out the file
 void
-lektra::ZoomOut() noexcept
+Lektra::ZoomOut() noexcept
 {
     if (m_doc)
         m_doc->ZoomOut();
@@ -1412,14 +1435,14 @@ lektra::ZoomOut() noexcept
 
 // Zoom in the file
 void
-lektra::ZoomIn() noexcept
+Lektra::ZoomIn() noexcept
 {
     if (m_doc)
         m_doc->ZoomIn();
 }
 
 void
-lektra::Zoom_set() noexcept
+Lektra::Zoom_set() noexcept
 {
     if (m_doc)
     {
@@ -1435,7 +1458,7 @@ lektra::Zoom_set() noexcept
 
 // Resets zoom
 void
-lektra::ZoomReset() noexcept
+Lektra::ZoomReset() noexcept
 {
     if (m_doc)
         m_doc->ZoomReset();
@@ -1443,7 +1466,7 @@ lektra::ZoomReset() noexcept
 
 // Go to a particular page (asks user with a dialog)
 void
-lektra::Goto_page() noexcept
+Lektra::Goto_page() noexcept
 {
     if (!m_doc || !m_doc->model())
         return;
@@ -1476,7 +1499,7 @@ lektra::Goto_page() noexcept
 
 // Go to a particular page (no dialog)
 void
-lektra::gotoPage(int pageno) noexcept
+Lektra::gotoPage(int pageno) noexcept
 {
     if (m_doc)
     {
@@ -1485,14 +1508,14 @@ lektra::gotoPage(int pageno) noexcept
 }
 
 void
-lektra::GotoLocation(int pageno, float x, float y) noexcept
+Lektra::GotoLocation(int pageno, float x, float y) noexcept
 {
     if (m_doc)
         m_doc->GotoLocation({pageno, x, y});
 }
 
 void
-lektra::GotoLocation(const DocumentView::PageLocation &loc) noexcept
+Lektra::GotoLocation(const DocumentView::PageLocation &loc) noexcept
 {
     if (m_doc)
         m_doc->GotoLocation(loc);
@@ -1500,14 +1523,14 @@ lektra::GotoLocation(const DocumentView::PageLocation &loc) noexcept
 
 // Goes to the next search hit
 void
-lektra::NextHit() noexcept
+Lektra::NextHit() noexcept
 {
     if (m_doc)
         m_doc->NextHit();
 }
 
 void
-lektra::GotoHit(int index) noexcept
+Lektra::GotoHit(int index) noexcept
 {
     if (m_doc)
         m_doc->GotoHit(index);
@@ -1515,7 +1538,7 @@ lektra::GotoHit(int index) noexcept
 
 // Goes to the previous search hit
 void
-lektra::PrevHit() noexcept
+Lektra::PrevHit() noexcept
 {
     if (m_doc)
         m_doc->PrevHit();
@@ -1523,7 +1546,7 @@ lektra::PrevHit() noexcept
 
 // Scrolls left in the file
 void
-lektra::ScrollLeft() noexcept
+Lektra::ScrollLeft() noexcept
 {
     if (m_doc)
         m_doc->ScrollLeft();
@@ -1531,7 +1554,7 @@ lektra::ScrollLeft() noexcept
 
 // Scrolls right in the file
 void
-lektra::ScrollRight() noexcept
+Lektra::ScrollRight() noexcept
 {
     if (m_doc)
         m_doc->ScrollRight();
@@ -1539,7 +1562,7 @@ lektra::ScrollRight() noexcept
 
 // Scrolls up in the file
 void
-lektra::ScrollUp() noexcept
+Lektra::ScrollUp() noexcept
 {
     if (m_doc)
         m_doc->ScrollUp();
@@ -1547,7 +1570,7 @@ lektra::ScrollUp() noexcept
 
 // Scrolls down in the file
 void
-lektra::ScrollDown() noexcept
+Lektra::ScrollDown() noexcept
 {
     if (m_doc)
         m_doc->ScrollDown();
@@ -1555,7 +1578,7 @@ lektra::ScrollDown() noexcept
 
 // Rotates the file in clockwise direction
 void
-lektra::RotateClock() noexcept
+Lektra::RotateClock() noexcept
 {
     if (m_doc)
         m_doc->RotateClock();
@@ -1563,7 +1586,7 @@ lektra::RotateClock() noexcept
 
 // Rotates the file in anticlockwise direction
 void
-lektra::RotateAnticlock() noexcept
+Lektra::RotateAnticlock() noexcept
 {
     if (m_doc)
         m_doc->RotateAnticlock();
@@ -1572,7 +1595,7 @@ lektra::RotateAnticlock() noexcept
 // Shows link hints for each visible link to visit link
 // using the keyboard
 void
-lektra::VisitLinkKB() noexcept
+Lektra::VisitLinkKB() noexcept
 {
     if (m_doc)
     {
@@ -1590,7 +1613,7 @@ lektra::VisitLinkKB() noexcept
 // Shows link hints for each visible link to copy link
 // using the keyboard
 void
-lektra::CopyLinkKB() noexcept
+Lektra::CopyLinkKB() noexcept
 {
     if (m_doc)
     {
@@ -1607,7 +1630,7 @@ lektra::CopyLinkKB() noexcept
 
 // Clears the currently selected text in the file
 void
-lektra::Selection_cancel() noexcept
+Lektra::Selection_cancel() noexcept
 {
     if (m_doc)
         m_doc->ClearTextSelection();
@@ -1615,7 +1638,7 @@ lektra::Selection_cancel() noexcept
 
 // Copies the text selection (if any) to the clipboard
 void
-lektra::Selection_copy() noexcept
+Lektra::Selection_copy() noexcept
 {
     if (m_doc)
         m_doc->YankSelection();
@@ -1623,7 +1646,7 @@ lektra::Selection_copy() noexcept
 
 // TODO: Fix DWIM version
 bool
-lektra::OpenFileDWIM(const QString &filename) noexcept
+Lektra::OpenFileDWIM(const QString &filename) noexcept
 {
     if (m_tab_widget->count() == 0)
         return OpenFileInNewTab(filename);
@@ -1645,7 +1668,7 @@ lektra::OpenFileDWIM(const QString &filename) noexcept
 }
 
 bool
-lektra::OpenFileInContainer(DocumentContainer *container,
+Lektra::OpenFileInContainer(DocumentContainer *container,
                             const QString &filename,
                             const std::function<void()> &callback,
                             DocumentView *targetView) noexcept
@@ -1715,17 +1738,17 @@ lektra::OpenFileInContainer(DocumentContainer *container,
 }
 
 void
-lektra::OpenFiles(const std::vector<std::string> &filenames) noexcept
+Lektra::OpenFiles(const std::vector<std::string> &filenames) noexcept
 {
     for (const std::string &f : filenames)
         OpenFileInNewTab(QString::fromStdString(f));
 }
 
 void
-lektra::OpenFilesInVSplit(const std::vector<std::string> &files) noexcept
+Lektra::OpenFilesInVSplit(const std::vector<std::string> &files) noexcept
 {
 #ifndef NDEBUG
-    qDebug() << "lektra::OpenFilesInVSplit(): Opening files in vertical split:"
+    qDebug() << "Lektra::OpenFilesInVSplit(): Opening files in vertical split:"
              << files.size();
 #endif
     if (files.empty())
@@ -1741,11 +1764,11 @@ lektra::OpenFilesInVSplit(const std::vector<std::string> &files) noexcept
 }
 
 void
-lektra::OpenFilesInHSplit(const std::vector<std::string> &files) noexcept
+Lektra::OpenFilesInHSplit(const std::vector<std::string> &files) noexcept
 {
 #ifndef NDEBUG
     qDebug()
-        << "lektra::OpenFilesInHSplit(): Opening files in horizontal split:"
+        << "Lektra::OpenFilesInHSplit(): Opening files in horizontal split:"
         << files.size();
 #endif
     if (files.empty())
@@ -1762,7 +1785,7 @@ lektra::OpenFilesInHSplit(const std::vector<std::string> &files) noexcept
 
 // Opens multiple files given a list of file paths
 void
-lektra::OpenFilesInNewTab(const std::vector<std::string> &files) noexcept
+Lektra::OpenFilesInNewTab(const std::vector<std::string> &files) noexcept
 {
     const bool was_batch_opening = m_batch_opening;
     m_batch_opening              = true;
@@ -1773,7 +1796,7 @@ lektra::OpenFilesInNewTab(const std::vector<std::string> &files) noexcept
 
 // Opens multiple files given a list of file paths
 void
-lektra::OpenFilesInNewTab(const QStringList &files) noexcept
+Lektra::OpenFilesInNewTab(const QStringList &files) noexcept
 {
     const bool was_batch_opening = m_batch_opening;
     m_batch_opening              = true;
@@ -1784,7 +1807,7 @@ lektra::OpenFilesInNewTab(const QStringList &files) noexcept
 
 // Opens a file given the DocumentView pointer
 // bool
-// lektra::OpenFile(DocumentView *view) noexcept
+// Lektra::OpenFile(DocumentView *view) noexcept
 // {
 //     initTabConnections(view);
 //     view->setDPR(m_dpr);
@@ -1810,7 +1833,7 @@ lektra::OpenFilesInNewTab(const QStringList &files) noexcept
 // }
 
 DocumentView *
-lektra::OpenFileInNewTab(const QString &filename,
+Lektra::OpenFileInNewTab(const QString &filename,
                          const std::function<void()> &callback) noexcept
 {
     if (filename.isEmpty())
@@ -1918,7 +1941,7 @@ lektra::OpenFileInNewTab(const QString &filename,
 }
 
 DocumentView *
-lektra::openFileSplitHelper(const QString &filename,
+Lektra::openFileSplitHelper(const QString &filename,
                             const std::function<void()> &callback,
                             Qt::Orientation orientation)
 {
@@ -1985,21 +2008,21 @@ lektra::openFileSplitHelper(const QString &filename,
 }
 
 DocumentView *
-lektra::OpenFileVSplit(const QString &filename,
+Lektra::OpenFileVSplit(const QString &filename,
                        const std::function<void()> &callback)
 {
     return openFileSplitHelper(filename, callback, Qt::Vertical);
 }
 
 DocumentView *
-lektra::OpenFileHSplit(const QString &filename,
+Lektra::OpenFileHSplit(const QString &filename,
                        const std::function<void()> &callback)
 {
     return openFileSplitHelper(filename, callback, Qt::Horizontal);
 }
 
 void
-lektra::OpenFilesInNewWindow(const QStringList &filenames) noexcept
+Lektra::OpenFilesInNewWindow(const QStringList &filenames) noexcept
 {
     if (filenames.empty())
         return;
@@ -2011,7 +2034,7 @@ lektra::OpenFilesInNewWindow(const QStringList &filenames) noexcept
 }
 
 bool
-lektra::OpenFileInNewWindow(const QString &filePath,
+Lektra::OpenFileInNewWindow(const QString &filePath,
                             const std::function<void()> &callback) noexcept
 {
     if (filePath.isEmpty())
@@ -2071,7 +2094,7 @@ lektra::OpenFileInNewWindow(const QString &filePath,
 // Opens the properties widget with properties for the
 // current file
 void
-lektra::FileProperties() noexcept
+Lektra::FileProperties() noexcept
 {
     if (m_doc)
         m_doc->FileProperties();
@@ -2079,7 +2102,7 @@ lektra::FileProperties() noexcept
 
 // Saves the current file
 void
-lektra::SaveFile() noexcept
+Lektra::SaveFile() noexcept
 {
     if (m_doc)
         m_doc->SaveFile();
@@ -2087,7 +2110,7 @@ lektra::SaveFile() noexcept
 
 // Saves the current file as a new file
 void
-lektra::SaveAsFile() noexcept
+Lektra::SaveAsFile() noexcept
 {
     if (m_doc)
         m_doc->SaveAsFile();
@@ -2095,7 +2118,7 @@ lektra::SaveAsFile() noexcept
 
 // Fit the document to the width of the window
 void
-lektra::Fit_width() noexcept
+Lektra::Fit_width() noexcept
 {
     if (m_doc)
         m_doc->setFitMode(DocumentView::FitMode::Width);
@@ -2103,7 +2126,7 @@ lektra::Fit_width() noexcept
 
 // Fit the document to the height of the window
 void
-lektra::Fit_height() noexcept
+Lektra::Fit_height() noexcept
 {
     if (m_doc)
         m_doc->setFitMode(DocumentView::FitMode::Height);
@@ -2111,7 +2134,7 @@ lektra::Fit_height() noexcept
 
 // Fit the document to the window
 void
-lektra::Fit_page() noexcept
+Lektra::Fit_page() noexcept
 {
     if (m_doc)
         m_doc->setFitMode(DocumentView::FitMode::Window);
@@ -2119,7 +2142,7 @@ lektra::Fit_page() noexcept
 
 // Toggle auto-resize mode
 void
-lektra::ToggleAutoResize() noexcept
+Lektra::ToggleAutoResize() noexcept
 {
     if (m_doc)
         m_doc->ToggleAutoResize();
@@ -2127,7 +2150,7 @@ lektra::ToggleAutoResize() noexcept
 
 // Show or hide the outline panel
 void
-lektra::Show_outline() noexcept
+Lektra::Show_outline() noexcept
 {
     if (!m_doc || !m_doc->model())
         return;
@@ -2161,7 +2184,7 @@ lektra::Show_outline() noexcept
 
 // Show the highlight search panel
 void
-lektra::Show_highlight_search() noexcept
+Lektra::Show_highlight_search() noexcept
 {
     if (!m_doc)
         return;
@@ -2183,7 +2206,7 @@ lektra::Show_highlight_search() noexcept
 
 // Invert colors of the document
 void
-lektra::InvertColor() noexcept
+Lektra::InvertColor() noexcept
 {
     if (m_doc)
     {
@@ -2194,7 +2217,7 @@ lektra::InvertColor() noexcept
 
 // Toggle text highlight mode
 void
-lektra::ToggleTextHighlight() noexcept
+Lektra::ToggleTextHighlight() noexcept
 {
     if (m_doc)
     {
@@ -2208,7 +2231,7 @@ lektra::ToggleTextHighlight() noexcept
 
 // Toggle text selection mode
 void
-lektra::ToggleTextSelection() noexcept
+Lektra::ToggleTextSelection() noexcept
 {
     if (m_doc)
         m_doc->ToggleTextSelection();
@@ -2216,7 +2239,7 @@ lektra::ToggleTextSelection() noexcept
 
 // Toggle rectangle annotation mode
 void
-lektra::ToggleAnnotRect() noexcept
+Lektra::ToggleAnnotRect() noexcept
 {
     if (m_doc)
     {
@@ -2230,7 +2253,7 @@ lektra::ToggleAnnotRect() noexcept
 
 // Toggle annotation select mode
 void
-lektra::ToggleAnnotSelect() noexcept
+Lektra::ToggleAnnotSelect() noexcept
 {
     if (m_doc)
     {
@@ -2244,7 +2267,7 @@ lektra::ToggleAnnotSelect() noexcept
 
 // Toggle popup annotation mode
 void
-lektra::ToggleAnnotPopup() noexcept
+Lektra::ToggleAnnotPopup() noexcept
 {
     if (m_doc)
     {
@@ -2258,7 +2281,7 @@ lektra::ToggleAnnotPopup() noexcept
 
 // Toggle region select mode
 void
-lektra::ToggleRegionSelect() noexcept
+Lektra::ToggleRegionSelect() noexcept
 {
     if (m_doc)
         m_doc->ToggleRegionSelect();
@@ -2266,7 +2289,7 @@ lektra::ToggleRegionSelect() noexcept
 
 // Go to the first page
 void
-lektra::FirstPage() noexcept
+Lektra::FirstPage() noexcept
 {
     if (m_doc)
         m_doc->GotoFirstPage();
@@ -2275,7 +2298,7 @@ lektra::FirstPage() noexcept
 
 // Go to the previous page
 void
-lektra::PrevPage() noexcept
+Lektra::PrevPage() noexcept
 {
     if (m_doc)
         m_doc->GotoPrevPage();
@@ -2284,7 +2307,7 @@ lektra::PrevPage() noexcept
 
 // Go to the next page
 void
-lektra::NextPage() noexcept
+Lektra::NextPage() noexcept
 {
     if (m_doc)
         m_doc->GotoNextPage();
@@ -2293,7 +2316,7 @@ lektra::NextPage() noexcept
 
 // Go to the last page
 void
-lektra::LastPage() noexcept
+Lektra::LastPage() noexcept
 {
     if (m_doc)
         m_doc->GotoLastPage();
@@ -2303,7 +2326,7 @@ lektra::LastPage() noexcept
 
 // Go back in the page history
 void
-lektra::GoBackHistory() noexcept
+Lektra::GoBackHistory() noexcept
 {
     if (m_doc)
         m_doc->GoBackHistory();
@@ -2311,7 +2334,7 @@ lektra::GoBackHistory() noexcept
 
 // Go forward in the page history
 void
-lektra::GoForwardHistory() noexcept
+Lektra::GoForwardHistory() noexcept
 {
     if (m_doc)
         m_doc->GoForwardHistory();
@@ -2319,35 +2342,35 @@ lektra::GoForwardHistory() noexcept
 
 // Highlight text annotation for the current selection
 void
-lektra::TextHighlightCurrentSelection() noexcept
+Lektra::TextHighlightCurrentSelection() noexcept
 {
     if (m_doc)
         m_doc->TextHighlightCurrentSelection();
 }
 
-// Initialize all the connections for the `lektra` class
+// Initialize all the connections for the `Lektra` class
 void
-lektra::initConnections() noexcept
+Lektra::initConnections() noexcept
 {
     connect(m_statusbar, &Statusbar::modeColorChangeRequested, this,
             [&](GraphicsView::Mode mode) { modeColorChangeRequested(mode); });
 
     connect(m_statusbar, &Statusbar::pageChangeRequested, this,
-            &lektra::gotoPage);
+            &Lektra::gotoPage);
 
     QList<QScreen *> outputs = QGuiApplication::screens();
     connect(m_tab_widget, &TabWidget::currentChanged, this,
-            &lektra::handleCurrentTabChanged);
+            &Lektra::handleCurrentTabChanged);
 
     // Tab drag and drop connections for cross-window tab transfer
     connect(m_tab_widget, &TabWidget::tabDataRequested, this,
-            &lektra::handleTabDataRequested);
+            &Lektra::handleTabDataRequested);
     connect(m_tab_widget, &TabWidget::tabDropReceived, this,
-            &lektra::handleTabDropReceived);
+            &Lektra::handleTabDropReceived);
     connect(m_tab_widget, &TabWidget::tabDetached, this,
-            &lektra::handleTabDetached);
+            &Lektra::handleTabDetached);
     connect(m_tab_widget, &TabWidget::tabDetachedToNewWindow, this,
-            &lektra::handleTabDetachedToNewWindow);
+            &Lektra::handleTabDetachedToNewWindow);
 
     QWindow *win = window()->windowHandle();
 
@@ -2378,9 +2401,9 @@ lektra::initConnections() noexcept
     });
 
     connect(m_search_bar, &SearchBar::searchIndexChangeRequested, this,
-            &lektra::GotoHit);
-    connect(m_search_bar, &SearchBar::nextHitRequested, this, &lektra::NextHit);
-    connect(m_search_bar, &SearchBar::prevHitRequested, this, &lektra::PrevHit);
+            &Lektra::GotoHit);
+    connect(m_search_bar, &SearchBar::nextHitRequested, this, &Lektra::NextHit);
+    connect(m_search_bar, &SearchBar::prevHitRequested, this, &Lektra::PrevHit);
 
     connect(m_tab_widget, &TabWidget::tabCloseRequested, this,
             [this](const int index)
@@ -2425,12 +2448,12 @@ lektra::initConnections() noexcept
     connect(m_actionInvertColor, &QAction::triggered, [&]() { InvertColor(); });
 
     connect(m_navMenu, &QMenu::aboutToShow, this,
-            &lektra::updatePageNavigationActions);
+            &Lektra::updatePageNavigationActions);
 }
 
 // Handle when the file name is changed
 void
-lektra::handleFileNameChanged(const QString &name) noexcept
+Lektra::handleFileNameChanged(const QString &name) noexcept
 {
     m_statusbar->setFileName(name);
     this->setWindowTitle(name);
@@ -2438,7 +2461,7 @@ lektra::handleFileNameChanged(const QString &name) noexcept
 
 // Handle when the current tab is changed
 void
-lektra::handleCurrentTabChanged(int index) noexcept
+Lektra::handleCurrentTabChanged(int index) noexcept
 {
     if (!validTabIndex(index))
     {
@@ -2471,7 +2494,7 @@ lektra::handleCurrentTabChanged(int index) noexcept
 }
 
 void
-lektra::handleTabDataRequested(int index, TabBar::TabData *outData) noexcept
+Lektra::handleTabDataRequested(int index, TabBar::TabData *outData) noexcept
 {
     if (!validTabIndex(index))
         return;
@@ -2496,7 +2519,7 @@ lektra::handleTabDataRequested(int index, TabBar::TabData *outData) noexcept
 }
 
 void
-lektra::handleTabDropReceived(const TabBar::TabData &data) noexcept
+Lektra::handleTabDropReceived(const TabBar::TabData &data) noexcept
 {
     if (data.filePath.isEmpty())
         return;
@@ -2528,7 +2551,7 @@ lektra::handleTabDropReceived(const TabBar::TabData &data) noexcept
 }
 
 void
-lektra::handleTabDetached(int index, const QPoint &globalPos) noexcept
+Lektra::handleTabDetached(int index, const QPoint &globalPos) noexcept
 {
     Q_UNUSED(globalPos);
 
@@ -2540,7 +2563,7 @@ lektra::handleTabDetached(int index, const QPoint &globalPos) noexcept
 }
 
 void
-lektra::handleTabDetachedToNewWindow(int index,
+Lektra::handleTabDetachedToNewWindow(int index,
                                      const TabBar::TabData &data) noexcept
 {
     if (!validTabIndex(index))
@@ -2549,7 +2572,7 @@ lektra::handleTabDetachedToNewWindow(int index,
     if (data.filePath.isEmpty())
         return;
 
-    // Spawn a new lektra process with the file
+    // Spawn a new Lektra process with the file
     QStringList args;
     args << "-p" << QString::number(data.currentPage);
     args << data.filePath;
@@ -2569,7 +2592,7 @@ lektra::handleTabDetachedToNewWindow(int index,
 }
 
 void
-lektra::closeEvent(QCloseEvent *e)
+Lektra::closeEvent(QCloseEvent *e)
 {
     // Update session file if in session
     if (!m_session_name.isEmpty())
@@ -2617,7 +2640,7 @@ lektra::closeEvent(QCloseEvent *e)
     if (m_config.behavior.confirm_on_quit)
     {
         int ret = QMessageBox::question(
-            this, "Confirm Quit", "Are you sure you want to quit lektra?",
+            this, "Confirm Quit", "Are you sure you want to quit Lektra?",
             QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
 
         if (ret == QMessageBox::No)
@@ -2631,7 +2654,7 @@ lektra::closeEvent(QCloseEvent *e)
 }
 
 void
-lektra::ToggleTabBar() noexcept
+Lektra::ToggleTabBar() noexcept
 {
     QTabBar *bar = m_tab_widget->tabBar();
 
@@ -2644,7 +2667,7 @@ lektra::ToggleTabBar() noexcept
 // Event filter to capture key events for link hints mode and
 // other events
 bool
-lektra::eventFilter(QObject *object, QEvent *event)
+Lektra::eventFilter(QObject *object, QEvent *event)
 {
     const QEvent::Type type = event->type();
 
@@ -2665,7 +2688,7 @@ lektra::eventFilter(QObject *object, QEvent *event)
 }
 
 void
-lektra::dropEvent(QDropEvent *e) noexcept
+Lektra::dropEvent(QDropEvent *e) noexcept
 {
     const QMimeData *mime = e->mimeData();
 
@@ -2719,7 +2742,7 @@ lektra::dropEvent(QDropEvent *e) noexcept
 }
 
 bool
-lektra::handleTabContextMenu(QObject *object, QEvent *event) noexcept
+Lektra::handleTabContextMenu(QObject *object, QEvent *event) noexcept
 {
     auto *contextEvent = static_cast<QContextMenuEvent *>(event);
     if (!contextEvent || !m_tab_widget)
@@ -2754,7 +2777,7 @@ lektra::handleTabContextMenu(QObject *object, QEvent *event) noexcept
 }
 
 bool
-lektra::handleLinkHintEvent(QEvent *event) noexcept
+Lektra::handleLinkHintEvent(QEvent *event) noexcept
 {
     const QEvent::Type type = event->type();
     switch (type)
@@ -2844,7 +2867,7 @@ lektra::handleLinkHintEvent(QEvent *event) noexcept
 
 // Used for waiting input events like marks etc.
 // bool
-// lektra::handleGetInputEvent(QEvent *event) noexcept
+// Lektra::handleGetInputEvent(QEvent *event) noexcept
 // {
 //     const QEvent::Type type = event->type();
 //     switch (type)
@@ -2900,7 +2923,7 @@ lektra::handleLinkHintEvent(QEvent *event) noexcept
 // Opens the file of tab with index `index`
 // in file manager program
 void
-lektra::openInExplorerForIndex(int index) noexcept
+Lektra::openInExplorerForIndex(int index) noexcept
 {
     DocumentView *doc
         = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
@@ -2916,7 +2939,7 @@ lektra::openInExplorerForIndex(int index) noexcept
 
 // Shows the properties of file of tab with index `index`
 void
-lektra::filePropertiesForIndex(int index) noexcept
+Lektra::filePropertiesForIndex(int index) noexcept
 {
     DocumentView *doc
         = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
@@ -2927,7 +2950,7 @@ lektra::filePropertiesForIndex(int index) noexcept
 
 // Initialize connections on each tab addition
 void
-lektra::initTabConnections(DocumentView *docwidget) noexcept
+Lektra::initTabConnections(DocumentView *docwidget) noexcept
 {
     connect(docwidget, &DocumentView::panelNameChanged, this,
             [this](const QString &name) { m_statusbar->setFileName(name); });
@@ -2998,7 +3021,7 @@ lektra::initTabConnections(DocumentView *docwidget) noexcept
             &DocumentView::NextFitMode);
 
     connect(docwidget, &DocumentView::fileNameChanged, this,
-            &lektra::handleFileNameChanged);
+            &Lektra::handleFileNameChanged);
 
     connect(docwidget, &DocumentView::pageChanged, m_statusbar,
             &Statusbar::setPageNo);
@@ -3028,16 +3051,16 @@ lektra::initTabConnections(DocumentView *docwidget) noexcept
             [&](bool state) { m_actionAutoresize->setChecked(state); });
 
     connect(docwidget, &DocumentView::insertToDBRequested, this,
-            &lektra::insertFileToDB);
+            &Lektra::insertFileToDB);
 
     connect(docwidget, &DocumentView::ctrlLinkClickRequested, this,
-            &lektra::handleCtrlLinkClickRequested);
+            &Lektra::handleCtrlLinkClickRequested);
 }
 
 // Insert file to store when tab is closed to track
 // recent files
 void
-lektra::insertFileToDB(const QString &fname, int pageno) noexcept
+Lektra::insertFileToDB(const QString &fname, int pageno) noexcept
 {
 #ifndef NDEBUG
     qDebug() << "Inserting file to recent files store:" << fname
@@ -3051,7 +3074,7 @@ lektra::insertFileToDB(const QString &fname, int pageno) noexcept
 
 // Update the menu actions based on the current document state
 void
-lektra::updateMenuActions() noexcept
+Lektra::updateMenuActions() noexcept
 {
     const bool valid = m_doc != nullptr;
 
@@ -3098,7 +3121,7 @@ lektra::updateMenuActions() noexcept
 
 // Update the panel info
 void
-lektra::updatePanel() noexcept
+Lektra::updatePanel() noexcept
 {
     if (m_doc)
     {
@@ -3138,7 +3161,7 @@ lektra::updatePanel() noexcept
 
 // Loads the given session (if it exists)
 void
-lektra::LoadSession(QString sessionName) noexcept
+Lektra::LoadSession(QString sessionName) noexcept
 {
     QStringList existingSessions = getSessionFiles();
     if (existingSessions.empty())
@@ -3183,11 +3206,11 @@ lektra::LoadSession(QString sessionName) noexcept
             return;
         }
 
-        // Create a new lektra window to load the session into if there's
+        // Create a new Lektra window to load the session into if there's
         // document already opened in the current window
         if (m_tab_widget->count() > 0)
         {
-            lektra *newWindow = new lektra(sessionName, doc.array());
+            Lektra *newWindow = new Lektra(sessionName, doc.array());
             newWindow->setAttribute(Qt::WA_DeleteOnClose, true);
         }
         else
@@ -3207,7 +3230,7 @@ lektra::LoadSession(QString sessionName) noexcept
 
 // Returns the session files
 QStringList
-lektra::getSessionFiles() noexcept
+Lektra::getSessionFiles() noexcept
 {
     QStringList sessions;
 
@@ -3231,7 +3254,7 @@ lektra::getSessionFiles() noexcept
 
 // Saves the current session
 void
-lektra::SaveSession() noexcept
+Lektra::SaveSession() noexcept
 {
     if (!m_doc)
     {
@@ -3291,7 +3314,7 @@ lektra::SaveSession() noexcept
 }
 
 void
-lektra::writeSessionToFile() noexcept
+Lektra::writeSessionToFile() noexcept
 {
     QJsonArray sessionArray;
 
@@ -3322,7 +3345,7 @@ lektra::writeSessionToFile() noexcept
 
 // Saves the current session under new name
 void
-lektra::SaveAsSession(const QString &sessionPath) noexcept
+Lektra::SaveAsSession(const QString &sessionPath) noexcept
 {
     Q_UNUSED(sessionPath);
     if (m_session_name.isEmpty())
@@ -3337,7 +3360,7 @@ lektra::SaveAsSession(const QString &sessionPath) noexcept
 
     QString selectedPath = QFileDialog::getSaveFileName(
         this, "Save As Session", m_session_dir.absolutePath(),
-        "lektra session files (*.json); All Files (*.*)");
+        "Lektra session files (*.json); All Files (*.*)");
 
     if (selectedPath.isEmpty())
         return;
@@ -3367,7 +3390,7 @@ lektra::SaveAsSession(const QString &sessionPath) noexcept
 
 // Shows the startup widget
 void
-lektra::showStartupWidget() noexcept
+Lektra::showStartupWidget() noexcept
 {
     if (m_startup_widget)
     {
@@ -3395,7 +3418,7 @@ lektra::showStartupWidget() noexcept
 
 // Update actions and stuff for system tabs
 void
-lektra::updateActionsAndStuffForSystemTabs() noexcept
+Lektra::updateActionsAndStuffForSystemTabs() noexcept
 {
     m_statusbar->hidePageInfo(true);
     updateUiEnabledState();
@@ -3404,7 +3427,7 @@ lektra::updateActionsAndStuffForSystemTabs() noexcept
 
 // Undo operation
 void
-lektra::Undo() noexcept
+Lektra::Undo() noexcept
 {
     if (m_doc && m_doc->model())
     {
@@ -3416,7 +3439,7 @@ lektra::Undo() noexcept
 
 // Redo operation
 void
-lektra::Redo() noexcept
+Lektra::Redo() noexcept
 {
     if (m_doc && m_doc->model())
     {
@@ -3432,7 +3455,7 @@ lektra::Redo() noexcept
     {name, [this](const QStringList &args) { func(args); }}
 
 void
-lektra::initActionMap() noexcept
+Lektra::initActionMap() noexcept
 {
     m_actionMap = {
         // Selection
@@ -3610,7 +3633,7 @@ lektra::initActionMap() noexcept
 
 // Trims the recent files store to `num_recent_files` number of files
 void
-lektra::trimRecentFilesDatabase() noexcept
+Lektra::trimRecentFilesDatabase() noexcept
 {
     // If num_recent_files config entry has negative value,
     // retain all the recent files
@@ -3624,7 +3647,7 @@ lektra::trimRecentFilesDatabase() noexcept
 
 // Sets the DPR of the current document
 void
-lektra::SetDPR() noexcept
+Lektra::SetDPR() noexcept
 {
     if (m_doc)
     {
@@ -3642,7 +3665,7 @@ lektra::SetDPR() noexcept
 
 // Reload the document in place
 void
-lektra::reloadDocument() noexcept
+Lektra::reloadDocument() noexcept
 {
     if (m_doc)
         m_doc->model()->reloadDocument();
@@ -3650,7 +3673,7 @@ lektra::reloadDocument() noexcept
 
 // Go to the first tab
 void
-lektra::Tab_first() noexcept
+Lektra::Tab_first() noexcept
 {
     if (m_tab_widget->count() != 0)
     {
@@ -3660,7 +3683,7 @@ lektra::Tab_first() noexcept
 
 // Go to the last tab
 void
-lektra::Tab_last() noexcept
+Lektra::Tab_last() noexcept
 {
     int count = m_tab_widget->count();
     if (count != 0)
@@ -3671,7 +3694,7 @@ lektra::Tab_last() noexcept
 
 // Go to the next tab
 void
-lektra::Tab_next() noexcept
+Lektra::Tab_next() noexcept
 {
     int count        = m_tab_widget->count();
     int currentIndex = m_tab_widget->currentIndex();
@@ -3683,7 +3706,7 @@ lektra::Tab_next() noexcept
 
 // Go to the previous tab
 void
-lektra::Tab_prev() noexcept
+Lektra::Tab_prev() noexcept
 {
     int count        = m_tab_widget->count();
     int currentIndex = m_tab_widget->currentIndex();
@@ -3695,7 +3718,7 @@ lektra::Tab_prev() noexcept
 
 // Go to the tab at nth position specified by `tabno` (1-based index)
 void
-lektra::Tab_goto(int index) noexcept
+Lektra::Tab_goto(int index) noexcept
 {
     if (index == -1)
     {
@@ -3711,7 +3734,7 @@ lektra::Tab_goto(int index) noexcept
 
 // Close the current tab
 void
-lektra::Tab_close(int tabno) noexcept
+Lektra::Tab_close(int tabno) noexcept
 {
     int indexToClose = (tabno == -1) ? m_tab_widget->currentIndex() : tabno;
 
@@ -3750,7 +3773,7 @@ lektra::Tab_close(int tabno) noexcept
 }
 
 void
-lektra::TabMoveRight() noexcept
+Lektra::TabMoveRight() noexcept
 {
     QTabBar *bar = m_tab_widget->tabBar();
     const int n  = bar->count();
@@ -3765,7 +3788,7 @@ lektra::TabMoveRight() noexcept
 }
 
 void
-lektra::TabMoveLeft() noexcept
+Lektra::TabMoveLeft() noexcept
 {
     QTabBar *bar = m_tab_widget->tabBar();
     const int n  = bar->count();
@@ -3781,7 +3804,7 @@ lektra::TabMoveLeft() noexcept
 
 // Useful for updating the Navigation QMenu
 void
-lektra::updatePageNavigationActions() noexcept
+Lektra::updatePageNavigationActions() noexcept
 {
     const int page  = m_doc ? m_doc->pageNo() : -1;
     const int count = m_doc ? m_doc->numPages() : 0;
@@ -3794,7 +3817,7 @@ lektra::updatePageNavigationActions() noexcept
 
 // Open the containing folder of the current document
 void
-lektra::OpenContainingFolder() noexcept
+Lektra::OpenContainingFolder() noexcept
 {
     if (m_doc)
     {
@@ -3805,7 +3828,7 @@ lektra::OpenContainingFolder() noexcept
 
 // Encrypt the current document
 void
-lektra::EncryptDocument() noexcept
+Lektra::EncryptDocument() noexcept
 {
     if (m_doc)
     {
@@ -3814,7 +3837,7 @@ lektra::EncryptDocument() noexcept
 }
 
 void
-lektra::DecryptDocument() noexcept
+Lektra::DecryptDocument() noexcept
 {
     if (m_doc)
         m_doc->DecryptDocument();
@@ -3823,7 +3846,7 @@ lektra::DecryptDocument() noexcept
 // Update selection mode actions (QAction) in QMenu based on current
 // selection mode
 void
-lektra::updateSelectionModeActions() noexcept
+Lektra::updateSelectionModeActions() noexcept
 {
     if (!m_doc)
         return;
@@ -3854,7 +3877,7 @@ lektra::updateSelectionModeActions() noexcept
 }
 
 void
-lektra::ToggleFocusMode() noexcept
+Lektra::ToggleFocusMode() noexcept
 {
     if (!m_doc)
         return;
@@ -3863,7 +3886,7 @@ lektra::ToggleFocusMode() noexcept
 }
 
 void
-lektra::setFocusMode(bool enable) noexcept
+Lektra::setFocusMode(bool enable) noexcept
 {
     m_focus_mode = enable;
 
@@ -3882,7 +3905,7 @@ lektra::setFocusMode(bool enable) noexcept
 }
 
 void
-lektra::updateTabbarVisibility() noexcept
+Lektra::updateTabbarVisibility() noexcept
 {
     // Let tab widget manage visibility itself based on auto-hide property
     m_tab_widget->tabBar()->setVisible(true); // initially show
@@ -3891,21 +3914,21 @@ lektra::updateTabbarVisibility() noexcept
 }
 
 void
-lektra::search(const QString &term) noexcept
+Lektra::search(const QString &term) noexcept
 {
     if (m_doc)
         m_doc->Search(term, false);
 }
 
 void
-lektra::searchInPage(const int pageno, const QString &term) noexcept
+Lektra::searchInPage(const int pageno, const QString &term) noexcept
 {
     if (m_doc)
         m_doc->SearchInPage(pageno, term);
 }
 
 void
-lektra::Search() noexcept
+Lektra::Search() noexcept
 {
     if (m_doc)
     {
@@ -3915,7 +3938,7 @@ lektra::Search() noexcept
 }
 
 void
-lektra::Search_regex() noexcept
+Lektra::Search_regex() noexcept
 {
     if (m_doc)
     {
@@ -3926,14 +3949,14 @@ lektra::Search_regex() noexcept
 }
 
 void
-lektra::setSessionName(const QString &name) noexcept
+Lektra::setSessionName(const QString &name) noexcept
 {
     m_session_name = name;
     m_statusbar->setSessionName(name);
 }
 
 void
-lektra::openSessionFromArray(const QJsonArray &sessionArray) noexcept
+Lektra::openSessionFromArray(const QJsonArray &sessionArray) noexcept
 {
     for (const QJsonValue &val : sessionArray)
     {
@@ -4011,7 +4034,7 @@ lektra::openSessionFromArray(const QJsonArray &sessionArray) noexcept
 }
 
 void
-lektra::modeColorChangeRequested(const GraphicsView::Mode mode) noexcept
+Lektra::modeColorChangeRequested(const GraphicsView::Mode mode) noexcept
 {
     // FIXME: Make this a function
     QColorDialog colorDialog(this);
@@ -4035,14 +4058,14 @@ lektra::modeColorChangeRequested(const GraphicsView::Mode mode) noexcept
 }
 
 void
-lektra::ReselectLastTextSelection() noexcept
+Lektra::ReselectLastTextSelection() noexcept
 {
     if (m_doc)
         m_doc->ReselectLastTextSelection();
 }
 
 void
-lektra::SetLayoutMode(DocumentView::LayoutMode mode) noexcept
+Lektra::SetLayoutMode(DocumentView::LayoutMode mode) noexcept
 {
     if (m_doc)
         m_doc->setLayoutMode(mode);
@@ -4050,7 +4073,7 @@ lektra::SetLayoutMode(DocumentView::LayoutMode mode) noexcept
 
 // Handle Escape key press for the entire application
 void
-lektra::handleEscapeKeyPressed() noexcept
+Lektra::handleEscapeKeyPressed() noexcept
 {
 #ifndef NDEBUG
     qDebug() << "Escape key pressed handled";
@@ -4068,7 +4091,7 @@ lektra::handleEscapeKeyPressed() noexcept
 }
 
 void
-lektra::Show_command_picker() noexcept
+Lektra::Show_command_picker() noexcept
 {
     if (!m_command_picker)
     {
@@ -4081,19 +4104,19 @@ lektra::Show_command_picker() noexcept
 
 #ifdef ENABLE_LLM_SUPPORT
 void
-lektra::ToggleLLMWidget() noexcept
+Lektra::ToggleLLMWidget() noexcept
 {
     m_llm_widget->setVisible(!m_llm_widget->isVisible());
 }
 #endif
 
 void
-lektra::showTutorialFile() noexcept
+Lektra::showTutorialFile() noexcept
 {
 #if defined(__linux__)
     const QString doc_path = QString("%1%2")
                                  .arg(APP_INSTALL_PREFIX)
-                                 .arg("/share/doc/lektra/tutorial.pdf");
+                                 .arg("/share/doc/Lektra/tutorial.pdf");
     OpenFileInNewTab(doc_path);
 #elif defined(__APPLE__) && defined(__MACH__)
     QMessageBox::warning(this, "Show Tutorial File",
@@ -4105,42 +4128,42 @@ lektra::showTutorialFile() noexcept
 }
 
 // void
-// lektra::SetMark() noexcept
+// Lektra::SetMark() noexcept
 // {
 //     m_message_bar->showMessage("**SetMark**, Waiting for mark: ", -1);
 // }
 
 // void
-// lektra::GotoMark() noexcept
+// Lektra::GotoMark() noexcept
 // {
 //     m_message_bar->showMessage("**GotoMark**, Waiting for mark: ", -1);
 //     // Wait for key input
 // }
 
 // void
-// lektra::DeleteMark() noexcept
+// Lektra::DeleteMark() noexcept
 // {
 //     m_message_bar->showMessage("**GotoMark**, Waiting for mark: ", -1);
 // }
 
 // void
-// lektra::setMark(const QString &key, const int pageno,
+// Lektra::setMark(const QString &key, const int pageno,
 //               const DocumentView::PageLocation location) noexcept
 // {
 // }
 
 // void
-// lektra::gotoMark(const QString &key) noexcept
+// Lektra::gotoMark(const QString &key) noexcept
 // {
 // }
 
 // void
-// lektra::deleteMark(const QString &key) noexcept
+// Lektra::deleteMark(const QString &key) noexcept
 // {
 // }
 
 void
-lektra::TabsCloseLeft() noexcept
+Lektra::TabsCloseLeft() noexcept
 {
     const int currentIndex = m_tab_widget->currentIndex();
     if (currentIndex <= 0)
@@ -4151,7 +4174,7 @@ lektra::TabsCloseLeft() noexcept
 }
 
 void
-lektra::TabsCloseRight() noexcept
+Lektra::TabsCloseRight() noexcept
 {
     const int currentIndex = m_tab_widget->currentIndex();
     const int ntabs        = m_tab_widget->count();
@@ -4164,7 +4187,7 @@ lektra::TabsCloseRight() noexcept
 }
 
 void
-lektra::TabsCloseOthers() noexcept
+Lektra::TabsCloseOthers() noexcept
 {
     const int ntabs = m_tab_widget->count();
 
@@ -4185,7 +4208,7 @@ lektra::TabsCloseOthers() noexcept
 }
 
 DocumentContainer *
-lektra::VSplit() noexcept
+Lektra::VSplit() noexcept
 {
     int currentTabIndex = m_tab_widget->currentIndex();
     if (!validTabIndex(currentTabIndex))
@@ -4208,7 +4231,7 @@ lektra::VSplit() noexcept
 }
 
 DocumentContainer *
-lektra::HSplit() noexcept
+Lektra::HSplit() noexcept
 {
     int currentTabIndex = m_tab_widget->currentIndex();
     if (!validTabIndex(currentTabIndex))
@@ -4234,7 +4257,7 @@ lektra::HSplit() noexcept
 // Closes all splits except the current one in the current tab. If there is
 // only one split, does nothing.
 void
-lektra::Close_other_splits() noexcept
+Lektra::Close_other_splits() noexcept
 {
     const int currentTabIndex = m_tab_widget->currentIndex();
     if (!validTabIndex(currentTabIndex))
@@ -4254,7 +4277,7 @@ lektra::Close_other_splits() noexcept
 }
 
 void
-lektra::Close_split() noexcept
+Lektra::Close_split() noexcept
 {
     const int currentTabIndex = m_tab_widget->currentIndex();
     if (!validTabIndex(currentTabIndex))
@@ -4286,7 +4309,7 @@ lektra::Close_split() noexcept
 }
 
 void
-lektra::setCurrentDocumentView(DocumentView *view) noexcept
+Lektra::setCurrentDocumentView(DocumentView *view) noexcept
 {
     if (!view || m_doc == view)
         return;
@@ -4312,7 +4335,7 @@ lektra::setCurrentDocumentView(DocumentView *view) noexcept
 }
 
 void
-lektra::centerMouseInDocumentView(DocumentView *view) noexcept
+Lektra::centerMouseInDocumentView(DocumentView *view) noexcept
 {
     if (!view)
         return;
@@ -4331,7 +4354,7 @@ lektra::centerMouseInDocumentView(DocumentView *view) noexcept
 }
 
 void
-lektra::CloseFile() noexcept
+Lektra::CloseFile() noexcept
 {
     if (m_doc)
     {
@@ -4341,31 +4364,31 @@ lektra::CloseFile() noexcept
 }
 
 void
-lektra::Focus_split_up() noexcept
+Lektra::Focus_split_up() noexcept
 {
     focusSplitHelper(DocumentContainer::Direction::Up);
 }
 
 void
-lektra::Focus_split_down() noexcept
+Lektra::Focus_split_down() noexcept
 {
     focusSplitHelper(DocumentContainer::Direction::Down);
 }
 
 void
-lektra::Focus_split_left() noexcept
+Lektra::Focus_split_left() noexcept
 {
     focusSplitHelper(DocumentContainer::Direction::Left);
 }
 
 void
-lektra::Focus_split_right() noexcept
+Lektra::Focus_split_right() noexcept
 {
     focusSplitHelper(DocumentContainer::Direction::Right);
 }
 
 void
-lektra::focusSplitHelper(DocumentContainer::Direction direction) noexcept
+Lektra::focusSplitHelper(DocumentContainer::Direction direction) noexcept
 {
     const int currentTabIndex = m_tab_widget->currentIndex();
     if (!validTabIndex(currentTabIndex))
@@ -4383,7 +4406,7 @@ lektra::focusSplitHelper(DocumentContainer::Direction direction) noexcept
 }
 
 void
-lektra::restoreSplitNode(DocumentContainer *container, DocumentView *targetView,
+Lektra::restoreSplitNode(DocumentContainer *container, DocumentView *targetView,
                          const QJsonObject &node,
                          std::function<void()> onAllDone) noexcept
 {
@@ -4494,7 +4517,7 @@ lektra::restoreSplitNode(DocumentContainer *container, DocumentView *targetView,
 // Searches for an open DocumentView with the given file path and returns it
 // if found, otherwise returns nullptr
 DocumentView *
-lektra::findOpenView(const QString &path) const noexcept
+Lektra::findOpenView(const QString &path) const noexcept
 {
     for (int i = 0; i < m_tab_widget->count(); ++i)
     {
@@ -4509,7 +4532,7 @@ lektra::findOpenView(const QString &path) const noexcept
 }
 
 void
-lektra::handleCtrlLinkClickRequested(DocumentView *view,
+Lektra::handleCtrlLinkClickRequested(DocumentView *view,
                                      const BrowseLinkItem *linkItem) noexcept
 {
     // Only handle internal links in a split — external links open
@@ -4556,14 +4579,14 @@ lektra::handleCtrlLinkClickRequested(DocumentView *view,
 }
 
 /*
- * NOTE: This is problematic to move into the DocumentView class (because the
- * splitting related stuff are here and in the future we have to implement smart
- * splitting, so it's better to leave this here)
+ * NOTE: This is problematic to move into the DocumentView class (because
+ * the splitting related stuff are here and in the future we have to
+ * implement smart splitting, so it's better to leave this here)
  */
 // Helper function for quickly creating portals
 // DocumentView *
 DocumentView *
-lektra::create_portal(DocumentView *sourceView,
+Lektra::create_portal(DocumentView *sourceView,
                       const QString &filePath) noexcept
 {
     if (sourceView->portal() || sourceView->is_portal())
@@ -4613,7 +4636,7 @@ lektra::create_portal(DocumentView *sourceView,
 }
 
 DocumentView *
-lektra::get_view_by_id(const DocumentView::Id id) const noexcept
+Lektra::get_view_by_id(const DocumentView::Id id) const noexcept
 {
     for (int i = 0; i < m_tab_widget->count(); ++i)
     {
@@ -4637,7 +4660,7 @@ lektra::get_view_by_id(const DocumentView::Id id) const noexcept
 
 // Focus the portal view in the current tab, if it exists. Else create one
 void
-lektra::Create_or_focus_portal() noexcept
+Lektra::Create_or_focus_portal() noexcept
 {
     if (!m_doc)
         return;
@@ -4661,14 +4684,14 @@ lektra::Create_or_focus_portal() noexcept
 // If a jump marker was shown for the current document view, re-show it
 // (e.g. after a reload)
 void
-lektra::Reshow_jump_marker() noexcept
+Lektra::Reshow_jump_marker() noexcept
 {
     if (m_doc)
         m_doc->Reshow_jump_marker();
 }
 
 void
-lektra::Toggle_presentation_mode() noexcept
+Lektra::Toggle_presentation_mode() noexcept
 {
     if (!m_doc)
         return;
@@ -4680,7 +4703,7 @@ lektra::Toggle_presentation_mode() noexcept
 // Show a picker with the list of recent files from the recent files store,
 // and allow the user to open a file from there.
 void
-lektra::Show_recent_files_picker() noexcept
+Lektra::Show_recent_files_picker() noexcept
 {
     const auto &entries = m_recent_files_store.entries();
 
@@ -4708,14 +4731,14 @@ lektra::Show_recent_files_picker() noexcept
 
 #ifndef NDEBUG
 void
-lektra::debug_command() noexcept
+Lektra::debug_command() noexcept
 {
     m_message_bar->showMessage("TEST MESSAGE");
 }
 #endif
 
 void
-lektra::Copy_page_image() noexcept
+Lektra::Copy_page_image() noexcept
 {
     if (!m_doc)
         return;
@@ -4724,7 +4747,7 @@ lektra::Copy_page_image() noexcept
 }
 
 void
-lektra::Reopen_last_closed_file() noexcept
+Lektra::Reopen_last_closed_file() noexcept
 {
     const auto &entries = m_recent_files_store.entries();
     if (entries.empty())
@@ -4757,7 +4780,7 @@ lektra::Reopen_last_closed_file() noexcept
 }
 
 void
-lektra::SetMark() noexcept
+Lektra::SetMark() noexcept
 {
     if (!m_doc)
         return;
@@ -4780,7 +4803,7 @@ lektra::SetMark() noexcept
 }
 
 void
-lektra::DeleteMark() noexcept
+Lektra::DeleteMark() noexcept
 {
     if (!m_doc)
         return;
@@ -4806,7 +4829,7 @@ lektra::DeleteMark() noexcept
 }
 
 void
-lektra::GotoMark() noexcept
+Lektra::GotoMark() noexcept
 {
     if (!m_doc)
         return;
@@ -4844,7 +4867,7 @@ lektra::GotoMark() noexcept
 }
 
 void
-lektra::Toggle_visual_line_mode() noexcept
+Lektra::Toggle_visual_line_mode() noexcept
 {
     if (!m_doc)
         return;

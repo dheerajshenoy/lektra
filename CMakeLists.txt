@@ -41,7 +41,7 @@ find_library(SYNCTEX_LIBRARY
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
-    src/lektra.cpp
+    src/Lektra.cpp
     src/Statusbar.cpp
     src/Model.cpp
     src/PropertiesWidget.cpp

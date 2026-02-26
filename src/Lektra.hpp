@@ -43,7 +43,7 @@
 #include <QStandardPaths>
 #include <QTabWidget>
 
-class lektra : public QMainWindow
+class Lektra : public QMainWindow
 {
     Q_OBJECT
 
@@ -51,8 +51,8 @@ class lektra : public QMainWindow
         = QHash<QString, std::function<void(const QStringList &args)>>;
 
 public:
-    lektra() noexcept;
-    lektra(const QString &sessionName,
+    Lektra() noexcept;
+    Lektra(const QString &sessionName,
            const QJsonArray &sessionArray) noexcept; // load from session
 
     DocumentContainer *VSplit() noexcept;
@@ -180,12 +180,6 @@ public:
 #ifdef ENABLE_LLM_SUPPORT
     void ToggleLLMWidget() noexcept;
 #endif
-
-    struct Command
-    {
-        QString name;
-        QString shortcut;
-    };
 
 protected:
     void closeEvent(QCloseEvent *e) override;
