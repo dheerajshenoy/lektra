@@ -1226,7 +1226,23 @@ DocumentView::GotoNextPage() noexcept
     qDebug() << "DocumentView::GotoNextPage(): Going to next page from"
              << m_pageno;
 #endif
-    GotoPage(m_pageno + 1);
+
+    if (m_layout_mode == DocumentView::LayoutMode::BOOK)
+    {
+        // Page 0 is a lone cover (right side), so next spread starts at 1.
+        // Odd pages are the left side of a spread, so next spread is +2.
+        // Even pages are the right side of a spread, so next spread is +1.
+        int next = (m_pageno == 0 || m_pageno % 2 == 0) ? m_pageno + 1
+                                                        : m_pageno + 2;
+        GotoPage(next);
+    }
+    else
+    {
+        GotoPage(m_pageno + 1);
+    }
+
+    // No need to snap visual line in visual line mode, because it does it
+    // already in the `snap_visual_line()`
 }
 
 // Go to previous page
@@ -1235,10 +1251,24 @@ DocumentView::GotoPrevPage() noexcept
 {
     if (m_pageno == 0)
         return;
-    GotoPage(m_pageno - 1);
+
+    if (m_layout_mode == DocumentView::LayoutMode::BOOK)
+    {
+        // Odd pages are the left side of a spread; going back skips the
+        // whole prior spread (left page = odd), so subtract 2.
+        // Even pages are the right side of their spread; the left partner
+        // is m_pageno-1 (odd), which is where we want to land, so subtract 1.
+        int prev = (m_pageno % 2 != 0) ? m_pageno - 2 : m_pageno - 1;
+        GotoPage(std::max(0, prev));
+    }
+    else
+    {
+        GotoPage(m_pageno - 1);
+    }
+
     if (m_visual_line_mode && !m_visual_lines.empty())
     {
-        m_visual_line_index = m_visual_lines.size() - 1; // land on last line
+        m_visual_line_index = m_visual_lines.size() - 1;
         snap_visual_line();
     }
 }
