@@ -282,9 +282,19 @@ DocumentView::handleOpenFileFinished() noexcept
 
     m_pageno = 0;
 
-    setLayoutMode(m_config.layout.mode);
+    // Block scroll signals to prevent jumping during layout swap
+    m_vscroll->blockSignals(true);
+    m_hscroll->blockSignals(true);
 
+    // First, clear old items and caches
+    clearDocumentItems();
+    invalidateVisiblePagesCache();
+
+    setLayoutMode(m_config.layout.mode);
     initConnections();
+
+    m_vscroll->blockSignals(false);
+    m_hscroll->blockSignals(false);
 
     // Always defer fitmode to next event loop tick so geometry is settled
     QTimer::singleShot(0, this,
@@ -377,7 +387,8 @@ DocumentView::initConnections() noexcept
             [this](int pageno, std::vector<Model::RenderLink> links)
     { renderLinks(pageno, links, true); });
 
-    connect(m_model, &Model::reloadRequested, this, &DocumentView::reloadPage);
+    connect(m_model, &Model::reloadRequested, this,
+            &DocumentView::handleReloadRequested, Qt::UniqueConnection);
 
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
@@ -568,6 +579,12 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
 
     if (clickType == 1) // single click → place cursor or snap visual line
     {
+        if (has_text_selection())
+        {
+            ClearTextSelection();
+            return;
+        }
+
         if (m_gview->mode() == GraphicsView::Mode::VisualLine)
         {
             const float scale = m_model->logicalScale();
@@ -701,57 +718,9 @@ DocumentView::synctexLocateInDocument(const char *texFileName,
 }
 #endif
 
-// Highlight the current text selection
-void
-DocumentView::TextHighlightCurrentSelection() noexcept
-{
-    if (!has_text_selection())
-        return;
-
-    int startP    = m_selection_start_page;
-    int endP      = m_selection_end_page;
-    QPointF start = m_selection_start;
-    QPointF end   = m_selection_end;
-
-    for (int p = startP; p <= endP; ++p)
-    {
-        GraphicsImageItem *item = m_page_items_hash.value(p, nullptr);
-        assert(item && "Page is not yet in the hash map");
-
-        if (p == startP && p == endP)
-        {
-            m_model->highlight_text_selection(p, item->mapFromScene(start),
-                                              item->mapFromScene(end));
-        }
-        else if (p == startP)
-        {
-            // From start point to END of page
-            m_model->highlight_text_selection(
-                p, item->mapFromScene(start),
-                QPointF(item->boundingRect().bottomRight()));
-        }
-        else if (p == endP)
-        {
-            // From START of page to end point
-            m_model->highlight_text_selection(p, QPointF(0, 0),
-                                              item->mapFromScene(end));
-        }
-        else
-        {
-            // Full page
-            m_model->highlight_text_selection(
-                p, QPointF(0, 0), QPointF(item->boundingRect().bottomRight()));
-        }
-    }
-
-    setModified(true);
-}
-
 void
 DocumentView::handleTextHighlightRequested(QPointF start, QPointF end) noexcept
 {
-
-    PPRINT(start, end);
     if (!has_text_selection())
         return;
 
@@ -789,6 +758,7 @@ DocumentView::handleTextHighlightRequested(QPointF start, QPointF end) noexcept
         }
     }
 
+    ClearTextSelection();
     setModified(true);
 }
 
@@ -796,7 +766,6 @@ DocumentView::handleTextHighlightRequested(QPointF start, QPointF end) noexcept
 void
 DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
 {
-
     int startPage                    = -1;
     int endPage                      = -1;
     GraphicsImageItem *startPageItem = nullptr;
@@ -1041,7 +1010,6 @@ DocumentView::setFitMode(FitMode mode) noexcept
         case FitMode::Height:
         {
             const int viewHeight = m_gview->viewport()->height();
-
             const double newZoom = static_cast<double>(viewHeight) / bboxH;
 
             setZoom(newZoom);
@@ -1065,6 +1033,8 @@ DocumentView::setFitMode(FitMode mode) noexcept
         default:
             break;
     }
+
+    GotoPage(m_pageno);
 }
 
 // Set zoom factor directly
@@ -1198,13 +1168,17 @@ DocumentView::GotoPage(int pageno) noexcept
     }
     else if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
-        const double x = pageOffset(pageno) + pageStride(pageno) / 2.0;
-        m_gview->centerOn(QPointF(x, m_gview->sceneRect().height() / 2.0));
+        // Center the view on the horizontal middle of the page
+        const double x
+            = pageOffset(pageno) + pageSceneSize(pageno).width() / 2.0;
+        m_gview->centerOn(QPointF(x, m_gview->sceneRect().center().y()));
     }
     else
     {
-        const double y = pageOffset(pageno) + pageStride(pageno) / 2.0;
-        m_gview->centerOn(QPointF(m_gview->sceneRect().width() / 2.0, y));
+        // Center on the spread
+        const double y
+            = pageOffset(pageno) + pageSceneSize(pageno).height() / 2.0;
+        m_gview->centerOn(QPointF(m_gview->sceneRect().center().x(), y));
     }
 
     if (m_visual_line_mode)
@@ -1222,30 +1196,17 @@ DocumentView::GotoNextPage() noexcept
     if (m_pageno >= m_model->numPages() - 1)
         return;
 
-#ifndef NDEBUG
-    qDebug() << "DocumentView::GotoNextPage(): Going to next page from"
-             << m_pageno;
-#endif
-
     if (m_layout_mode == DocumentView::LayoutMode::BOOK)
     {
-        // Page 0 is a lone cover (right side), so next spread starts at 1.
-        // Odd pages are the left side of a spread, so next spread is +2.
-        // Even pages are the right side of a spread, so next spread is +1.
-        int next = (m_pageno == 0 || m_pageno % 2 == 0) ? m_pageno + 1
-                                                        : m_pageno + 2;
-        GotoPage(next);
+        int next = (m_pageno == 0) ? 1 : m_pageno + 2;
+        GotoPage(std::min(next, m_model->numPages() - 1));
     }
     else
     {
         GotoPage(m_pageno + 1);
     }
-
-    // No need to snap visual line in visual line mode, because it does it
-    // already in the `snap_visual_line()`
 }
 
-// Go to previous page
 void
 DocumentView::GotoPrevPage() noexcept
 {
@@ -1254,22 +1215,12 @@ DocumentView::GotoPrevPage() noexcept
 
     if (m_layout_mode == DocumentView::LayoutMode::BOOK)
     {
-        // Odd pages are the left side of a spread; going back skips the
-        // whole prior spread (left page = odd), so subtract 2.
-        // Even pages are the right side of their spread; the left partner
-        // is m_pageno-1 (odd), which is where we want to land, so subtract 1.
-        int prev = (m_pageno % 2 != 0) ? m_pageno - 2 : m_pageno - 1;
-        GotoPage(std::max(0, prev));
+        int prev = (m_pageno <= 2) ? 0 : m_pageno - 2;
+        GotoPage(prev);
     }
     else
     {
         GotoPage(m_pageno - 1);
-    }
-
-    if (m_visual_line_mode && !m_visual_lines.empty())
-    {
-        m_visual_line_index = m_visual_lines.size() - 1;
-        snap_visual_line();
     }
 }
 
@@ -1427,12 +1378,24 @@ DocumentView::GotoHit(int index) noexcept
     else if (m_layout_mode == LayoutMode::SINGLE)
     {
         const QRectF sr = m_gview->sceneRect();
-        scenePos        = QPointF(
-            sr.x() + (sr.width() - pageSceneSize(ref.page).width()) / 2.0
+        // Ensure the hit is calculated relative to the centered page
+        // position
+        scenePos = QPointF(
+            sr.left() + (sr.width() - pageSceneSize(ref.page).width()) / 2.0
                 + hitX,
-            sr.y() + (sr.height() - pageSceneSize(ref.page).height()) / 2.0
+            sr.top() + (sr.height() - pageSceneSize(ref.page).height()) / 2.0
                 + hitY);
     }
+    // else if (m_layout_mode == LayoutMode::SINGLE)
+    // {
+    //     const QRectF sr = m_gview->sceneRect();
+    //     scenePos        = QPointF(
+    //         sr.x() + (sr.width() - pageSceneSize(ref.page).width()) / 2.0
+    //             + hitX,
+    //         sr.y() + (sr.height() - pageSceneSize(ref.page).height())
+    //         / 2.0
+    //             + hitY);
+    // }
     else // TOP_TO_BOTTOM, BOOK
     {
         scenePos
@@ -2082,7 +2045,6 @@ DocumentView::getVisiblePages() noexcept
     }
     else
     {
-        // Original logic for LEFT_TO_RIGHT and TOP_TO_BOTTOM
         // (offsets are strictly increasing, binary search is safe)
         auto it_last = std::lower_bound(m_page_offsets.begin(),
                                         m_page_offsets.end(), a1);
@@ -2389,7 +2351,6 @@ DocumentView::startNextRenderJob() noexcept
 void
 DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
 {
-
     for (auto it = m_pending_renders.begin(); it != m_pending_renders.end();)
         it = visiblePages.count(*it) ? ++it : m_pending_renders.erase(it);
 
@@ -2926,6 +2887,12 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
 }
 
 void
+DocumentView::TextHighlightCurrentSelection() noexcept
+{
+    handleTextHighlightRequested(m_selection_start, m_selection_end);
+}
+
+void
 DocumentView::updateCurrentHitHighlight() noexcept
 {
     if (m_search_index < 0 || m_search_index >= m_search_hit_flat_refs.size())
@@ -3054,57 +3021,29 @@ DocumentView::clearDocumentItems() noexcept
 {
     invalidateVisiblePagesCache();
 
-    // Remove page items
-    for (auto *item : m_page_items_hash)
-    {
-        if (item && item->scene() == m_gscene)
-        {
-            m_gscene->removeItem(item);
-            delete item;
-        }
-    }
-    m_page_items_hash.clear();
-
-    // Remove links
-    for (auto &links : m_page_links_hash)
-        for (auto *link : links)
-        {
-            if (link && link->scene() == m_gscene)
-            {
-                m_gscene->removeItem(link);
-                delete link;
-            }
-        }
-    m_page_links_hash.clear();
-
-    // Remove annotations
-    for (auto &annots : m_page_annotations_hash)
-        for (auto *annot : annots)
-        {
-            if (annot && annot->scene() == m_gscene)
-            {
-                m_gscene->removeItem(annot);
-                delete annot;
-            }
-        }
     m_page_annotations_hash.clear();
-
-    // Remove search items
-    for (auto *item : m_search_items)
-    {
-        if (item && item->scene() == m_gscene)
-        {
-            m_gscene->removeItem(item);
-            delete item;
-        }
-    }
+    m_page_links_hash.clear();
+    m_page_items_hash.clear();
     m_search_items.clear();
-
-    ClearKBHintsOverlay();
-    ClearTextSelection();
     m_pending_renders.clear();
     m_render_queue.clear();
+
+    // Remove all items from scene EXCEPT the persistent ones
+    // (selection path, search hit, etc.)
+    const auto items = m_gscene->items();
+    for (auto *item : items)
+    {
+        if (item != m_selection_path_item && item != m_current_search_hit_item
+            && item != m_jump_marker && item != m_visual_line_item)
+        {
+            m_gscene->removeItem(item);
+            delete item;
+        }
+    }
+
+    ClearTextSelection();
     m_renders_in_flight = 0;
+    m_gscene->setSceneRect(QRectF()); // Reset scene bounds
 }
 
 // Request rendering of a specific page (ASYNC)
@@ -3500,16 +3439,6 @@ DocumentView::setModified(bool modified) noexcept
 
     emit panelNameChanged(fileName);
     this->setWindowTitle(title);
-}
-
-void
-DocumentView::reloadPage(int pageno) noexcept
-{
-#ifndef NDEBUG
-    qDebug() << "DocumentView::reloadPage(): Reloading page:" << pageno;
-#endif
-    removePageItem(pageno);
-    requestPageRender(pageno);
 }
 
 bool
@@ -3949,7 +3878,6 @@ DocumentView::CopyRegionAsImage(QRectF area) noexcept
 void
 DocumentView::SaveRegionAsImage(QRectF area) noexcept
 {
-
     int pageno;
     GraphicsImageItem *pageItem;
 
@@ -4374,7 +4302,6 @@ DocumentView::handleHScrollValueChanged(int value) noexcept
 void
 DocumentView::handleVScrollValueChanged(int value) noexcept
 {
-
     // During fast scrolling, only invalidate cache, don't trigger render
     invalidateVisiblePagesCache();
 
@@ -4634,4 +4561,25 @@ DocumentView::set_visual_line_mode(bool state) noexcept
         m_gview->setMode(m_gview->getDefaultMode());
     }
     m_gview->update();
+}
+
+void
+DocumentView::handleReloadRequested(int pageno) noexcept
+{
+    if (pageno == -1)
+        return;
+
+    // Remove only the affected page item so it gets re-rendered
+    if (m_page_items_hash.contains(pageno))
+    {
+        if (auto *item = m_page_items_hash.take(pageno))
+        {
+            m_gscene->removeItem(item);
+            delete item;
+        }
+    }
+
+    m_pending_renders.remove(pageno);
+    invalidateVisiblePagesCache();
+    requestPageRender(pageno);
 }
