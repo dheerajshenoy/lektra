@@ -2,14 +2,25 @@
 
 ## 0.6.5
 
-### Features
+### End User Features
+
+- Support for running shell scripts
+
+
+### Core Features
+
+- Picker widget now supports n columns
+- `CommandManager` class to manage commands instead of general hash map, which allows for better organization and management of commands, as well as support for command descriptions, useful for documentation and purpose.
 
 ### Config Option
-- `[outline]`
-  - `show_page_number` (bool)
-  - `indent_width` (int)
-- `dim_inactive` in `[portal]` - Dim inactive for portal views too
-  
+
+#### `[outline]`
+    - `show_page_number` (bool)
+    - `indent_width` (int)
+### `dim_inactive` in `[portal]` - Dim inactive for portal views too
+### `description` in `[command_palette]` - Show command description in the command palette if available
+
+
 ### Optimizations
 
 - Pass `struct` const reference of only the respective members instead of the whole `Config` struct.
