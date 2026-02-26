@@ -66,14 +66,11 @@ public:
     // Returns pixel width (not logical width)
     inline int width() const noexcept
     {
-        return m_image.width();
+        return m_image.isNull() ? 0 : m_image.width();
     }
 
     // Returns pixel height (not logical height)
-    inline int height() const noexcept
-    {
-        return m_image.height();
-    }
+    inline int height() const { return m_image.isNull() ? 0 : m_image.height(); }
 
     QRectF boundingRect() const override
     {

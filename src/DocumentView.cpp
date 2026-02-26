@@ -4246,8 +4246,15 @@ DocumentView::zoomHelper() noexcept
                 = m_model->page_dimension_pts(i).height_pts * m_model->DPR()
                   * m_current_zoom * m_model->DPI() / 72.0;
 
+            const QImage &img = item->image();
+            if (img.isNull() || img.height() == 0 || img.width() == 0)
+                continue;
+
             const double currentImageHeight
                 = static_cast<double>(item->height());
+
+            if (currentImageHeight <= 0.0)
+                continue; // avoid division by zero
 
             item->setScale(targetPixelHeight / currentImageHeight);
 
