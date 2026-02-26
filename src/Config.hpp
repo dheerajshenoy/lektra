@@ -482,8 +482,8 @@ struct Config
 
         // @desc Show command description
         // @type bool
-        // @default true
-        bool description{true};
+        // @default false
+        bool description{false};
 
         // @desc Show grids
         // @type bool
