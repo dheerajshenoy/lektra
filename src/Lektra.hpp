@@ -21,6 +21,7 @@
 #ifdef ENABLE_LLM_SUPPORT
 #include "LLM/LLMWidget.hpp"
 #endif
+#include "CommandManager.hpp"
 
 #include "toml.hpp"
 
@@ -46,9 +47,6 @@
 class Lektra : public QMainWindow
 {
     Q_OBJECT
-
-    using LektraCommandHash
-        = QHash<QString, std::function<void(const QStringList &args)>>;
 
 public:
     Lektra() noexcept;
@@ -234,7 +232,7 @@ private:
     void openLastVisitedFile() noexcept;
     void initConnections() noexcept;
     void initTabConnections(DocumentView *) noexcept;
-    void initActionMap() noexcept;
+    void initCommands() noexcept;
     void trimRecentFilesDatabase() noexcept;
     void reloadDocument() noexcept;
     void handleTabDataRequested(int index, TabBar::TabData *outData) noexcept;
@@ -362,7 +360,6 @@ private:
     DocumentView *m_doc{nullptr};
     TabWidget *m_tab_widget{nullptr};
     QVBoxLayout *m_layout{nullptr};
-    LektraCommandHash m_actionMap;
     QClipboard *m_clipboard{QGuiApplication::clipboard()};
     RecentFilesStore m_recent_files_store;
     QString m_recent_files_path;
@@ -386,6 +383,8 @@ private:
         DocumentView *source;
         DocumentView *portal;
     };
+
+    CommandManager m_command_manager;
 
 #ifdef ENABLE_LLM_SUPPORT
     // LLM Support

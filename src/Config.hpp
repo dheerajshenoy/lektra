@@ -480,6 +480,11 @@ struct Config
         // @default true
         bool shortcuts{true};
 
+        // @desc Show command description
+        // @type bool
+        // @default true
+        bool description{true};
+
         // @desc Show grids
         // @type bool
         // @default false
