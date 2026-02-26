@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 Extract command name + description pairs from Lektra::initCommands().
@@ -8,6 +7,7 @@ Usage: python extract_commands.py <source_file>
 import re
 import sys
 import json
+
 
 def extract_commands(path: str) -> list[tuple[str, str]]:
     with open(path, "r") as f:
@@ -31,12 +31,8 @@ def main():
         print("No commands found.")
         return
 
-    # Output as JSON    output = {name: desc for name, desc in commands}
-    output = {name: desc for name, desc in commands}
-
-    with open("commands.json", "w") as f:
-        json.dump(output, f, indent=2)
-
+    out = [{"name": name, "description": desc} for name, desc in commands]
+    print(json.dumps(out, indent=2))
 
 
 if __name__ == "__main__":
