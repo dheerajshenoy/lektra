@@ -234,33 +234,38 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
     {
         if (event->button() == Qt::LeftButton)
         {
+            // --- multi-click tracking ---
             const bool timerOk
                 = m_clickTimer.isValid()
                   && m_clickTimer.elapsed() < MULTI_CLICK_INTERVAL;
-
             const QPointF d    = event->pos() - m_lastClickPos;
             const double dist2 = d.x() * d.x() + d.y() * d.y();
             const double thresh2
                 = CLICK_DISTANCE_THRESHOLD * CLICK_DISTANCE_THRESHOLD;
-
-            const bool isMultiClick = timerOk && (dist2 < thresh2);
-
-            m_clickCount = isMultiClick ? (m_clickCount + 1) : 1;
+            m_clickCount
+                = (timerOk && dist2 < thresh2) ? (m_clickCount + 1) : 1;
             if (m_clickCount > 4)
                 m_clickCount = 1;
-
             m_lastClickPos = event->pos();
             m_clickTimer.restart();
 
+            // --- always start a selection ---
+            m_selecting = true;
+            updateCursorForMode();
             const QPointF scenePos = mapToScene(event->pos());
+            m_mousePressPos        = scenePos;
+            m_selection_start      = scenePos;
+            m_lastMovePos          = event->pos();
 
+            // emit the appropriate signal
             if (m_clickCount == 1)
-                emit textSelectionDeletionRequested();
+                emit clickRequested(1,
+                                    scenePos); // single click: position cursor
             else
-            {
-                emit clickRequested(m_clickCount, scenePos);
-                event->accept();
-            }
+                emit clickRequested(m_clickCount,
+                                    scenePos); // word/line/para select
+
+            event->accept();
             return;
         }
     }
@@ -288,24 +293,6 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
             if (event->button() == Qt::LeftButton)
             {
                 emit annotPopupRequested(mapToScene(event->pos()));
-                event->accept();
-                return; // handled
-            }
-            break;
-        }
-
-        case Mode::TextSelection:
-        case Mode::TextHighlight:
-        {
-            if (event->button() == Qt::LeftButton)
-            {
-                m_selecting = true;
-                updateCursorForMode();
-                const QPointF scenePos = mapToScene(event->pos());
-                m_mousePressPos        = scenePos;
-                m_selection_start      = scenePos;
-                m_lastMovePos          = event->pos();
-
                 event->accept();
                 return; // handled
             }

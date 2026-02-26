@@ -565,31 +565,30 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
 
     // Map to page-local coordinates
     const QPointF pagePos = pageItem->mapFromScene(scenePos);
+
+    if (clickType == 1) // single click → place cursor or snap visual line
+    {
+        if (m_gview->mode() == GraphicsView::Mode::VisualLine)
+        {
+            const float scale = m_model->logicalScale();
+            const QPointF modelPos(pagePos.x() / scale, pagePos.y() / scale);
+
+            m_visual_line_index
+                = m_model->visual_line_index_at_pos(pageIndex, modelPos);
+            m_visual_lines = m_model->get_text_lines(
+                pageIndex);       // ensure lines are for this page
+            m_pageno = pageIndex; // sync page if user clicked a
+                                  // different page
+            snap_visual_line(false);
+            return;
+        }
+    }
+
     fz_point pdfPos{float(pagePos.x()), float(pagePos.y())};
 
     std::vector<QPolygonF> quads;
     switch (clickType)
     {
-        case 1:
-        {
-            if (m_gview->mode() == GraphicsView::Mode::VisualLine)
-            {
-                const float scale = m_model->logicalScale();
-                const QPointF modelPos(pagePos.x() / scale,
-                                       pagePos.y() / scale);
-
-                m_visual_line_index
-                    = m_model->visual_line_index_at_pos(pageIndex, modelPos);
-                m_visual_lines = m_model->get_text_lines(
-                    pageIndex);       // ensure lines are for this page
-                m_pageno = pageIndex; // sync page if user clicked a
-                                      // different page
-                snap_visual_line(false);
-                return;
-            }
-        }
-        break;
-
         case 2: // double click → select word
         {
             quads = m_model->selectWordAt(pageIndex, pdfPos);
@@ -608,6 +607,9 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
             return;
     }
 
+    if (quads.empty())
+        return;
+
     QPainterPath totalPath;
 
     const QTransform toScene = pageItem->sceneTransform();
@@ -618,6 +620,7 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
     m_selection_path_item->setPath(totalPath);
 
     // MuPDF quad winding: [top-left, top-right, bottom-right, bottom-left]
+
     const QPolygonF firstQuad = toScene.map(quads.front());
     const QPolygonF lastQuad  = toScene.map(quads.back());
 
