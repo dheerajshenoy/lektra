@@ -44,10 +44,11 @@ Model::Model(QObject *parent) noexcept : QObject(parent)
     m_stext_page_cache.setCapacity(10);
     m_stext_page_cache.setCallback([this](fz_stext_page *stext_page)
     {
+        if (!stext_page)
+            return;
+
         if (m_ctx)
-        {
             fz_drop_stext_page(m_ctx, stext_page);
-        }
     });
 }
 
@@ -1470,6 +1471,7 @@ Model::addHighlightAnnotation(const int pageno,
     qDebug() << "Adding highlight annotation on page" << pageno
              << " Quad count:" << quads.size() << " ObjNum:" << objNum;
 #endif
+    emit reloadRequested(pageno);
     return objNum;
 }
 
@@ -1520,6 +1522,7 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect) noexcept
         // Build cache outside the lock to avoid holding it during expensive
         // operations
         buildPageCache(pageno);
+        emit reloadRequested(pageno);
     }
     fz_catch(m_ctx)
     {
@@ -1591,6 +1594,7 @@ Model::addTextAnnotation(const int pageno, const fz_rect &rect,
         // Build cache outside the lock to avoid holding it during expensive
         // operations
         buildPageCache(pageno);
+        emit reloadRequested(pageno);
     }
     fz_catch(m_ctx)
     {
