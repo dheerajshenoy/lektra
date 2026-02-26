@@ -186,7 +186,6 @@ public:
         }
 
         m_model->invalidatePageCache(m_pageno);
-        emit m_model->reloadRequested(m_pageno);
     }
 
 private:

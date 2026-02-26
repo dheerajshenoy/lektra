@@ -23,13 +23,11 @@ public:
     void undo() override
     {
         m_model->removeAnnotations(m_pageno, {m_objNum});
-        emit m_model->reloadRequested(m_pageno);
     }
 
     void redo() override
     {
         m_objNum = m_model->addTextAnnotation(m_pageno, m_rect, m_text);
-        emit m_model->reloadRequested(m_pageno);
     }
 
 private:

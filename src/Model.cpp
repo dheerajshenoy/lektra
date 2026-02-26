@@ -1715,7 +1715,6 @@ Model::removeAnnotations(int pageno, const std::vector<int> &objNums) noexcept
             pdf_update_page(m_ctx, page);
 
             invalidatePageCache(pageno);
-            emit reloadRequested(pageno);
             // Optional (depends on your saving flow):
             // pdf_document *doc = m_pdf_doc;
             // pdf_write_options opts = ...;
@@ -1724,6 +1723,7 @@ Model::removeAnnotations(int pageno, const std::vector<int> &objNums) noexcept
 
         pdf_drop_page(m_ctx,
                       page); // prefer this if available in your MuPDF
+        emit reloadRequested(pageno);
     }
     fz_catch(m_ctx)
     {
@@ -1743,6 +1743,7 @@ Model::invalidatePageCache(int pageno) noexcept
 
         // buildPageCache(pageno);
     }
+    emit reloadRequested(pageno);
 }
 
 std::vector<QPolygonF>
@@ -2362,7 +2363,6 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
     if (changed)
     {
         invalidatePageCache(pageno);
-        emit reloadRequested(pageno);
     }
 }
 

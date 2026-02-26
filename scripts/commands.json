@@ -1,114 +1,450 @@
-{
-  "selection_copy": "Copy current selection to clipboard",
-  "selection_cancel": "Cancel and clear current selection",
-  "selection_last": "Reselect the last text selection",
-  "presentation_mode": "Toggle presentation mode",
-  "fullscreen": "Toggle fullscreen",
-  "command_palette": "Open command palette",
-  "tabs": "Toggle tab bar",
-  "menubar": "Toggle menu bar",
-  "statusbar": "Toggle status bar",
-  "focus_mode": "Toggle focus mode",
-  "visual_line_mode": "Toggle visual line mode",
-  "llm_widget": "Toggle LLM assistant widget",
-  "link_hint_visit": "Open link using keyboard hint",
-  "link_hint_copy": "Copy link URL using keyboard hint",
-  "page_first": "Go to first page",
-  "page_last": "Go to last page",
-  "page_next": "Go to next page",
-  "page_prev": "Go to previous page",
-  "page_goto": "Jump to a specific page number",
-  "mark_set": "Set a named mark at current position",
-  "mark_delete": "Delete a named mark",
-  "mark_goto": "Jump to a named mark",
-  "scroll_down": "Scroll down",
-  "scroll_up": "Scroll up",
-  "scroll_left": "Scroll left",
-  "scroll_right": "Scroll right",
-  "rotate_clock": "Rotate page clockwise",
-  "rotate_anticlock": "Rotate page counter-clockwise",
-  "location_prev": "Go back in location history",
-  "location_next": "Go forward in location history",
-  "zoom_in": "Zoom in",
-  "zoom_out": "Zoom out",
-  "zoom_reset": "Reset zoom to default",
-  "zoom_set": "Set zoom to a specific level",
-  "split_horizontal": "Split view horizontally",
-  "split_vertical": "Split view vertically",
-  "split_close": "Close current split",
-  "split_focus_right": "Focus split to the right",
-  "split_focus_left": "Focus split to the left",
-  "split_focus_up": "Focus split above",
-  "split_focus_down": "Focus split below",
-  "split_close_others": "Close all splits except current",
-  "portal": "Create or focus portal",
-  "file_open_tab": "Open file in new tab",
-  "file_open_vsplit": "Open file in vertical split",
-  "file_open_hsplit": "Open file in horizontal split",
-  "file_open_dwim": "Open file (do what I mean)",
-  "file_close": "Close current file",
-  "file_save": "Save current file",
-  "file_save_as": "Save current file as a new name",
-  "file_encrypt": "Encrypt current document",
-  "file_decrypt": "Decrypt current document",
-  "file_reload": "Reload current file from disk",
-  "file_properties": "Show file properties",
-  "files_recent": "Show recently opened files",
-  "annot_edit_mode": "Toggle annotation select mode",
-  "annot_popup_mode": "Toggle annotation popup mode",
-  "annot_rect_mode": "Toggle rectangle annotation mode",
-  "annot_highlight_mode": "Toggle text highlight mode",
-  "selection_mode_text": "Switch to text selection mode",
-  "selection_mode_region": "Switch to region selection mode",
-  "fit_width": "Fit page to window width",
-  "fit_height": "Fit page to window height",
-  "fit_page": "Fit entire page in window",
-  "fit_auto": "Toggle automatic resize to fit",
-  "session_save": "Save current session",
-  "session_save_as": "Save current session under a new name",
-  "session_load": "Load a saved session",
-  "tabs_close_left": "Close all tabs to the left",
-  "tabs_close_right": "Close all tabs to the right",
-  "tabs_close_others": "Close all tabs except current",
-  "tab_move_right": "Move current tab right",
-  "tab_move_left": "Move current tab left",
-  "tab_first": "Switch to first tab",
-  "tab_last": "Switch to last tab",
-  "tab_next": "Switch to next tab",
-  "tab_prev": "Switch to previous tab",
-  "tab_close": "Close current tab",
-  "tab_goto": "Go to tab by number",
-  "tab_1": "Switch to tab 1",
-  "tab_2": "Switch to tab 2",
-  "tab_3": "Switch to tab 3",
-  "tab_4": "Switch to tab 4",
-  "tab_5": "Switch to tab 5",
-  "tab_6": "Switch to tab 6",
-  "tab_7": "Switch to tab 7",
-  "tab_8": "Switch to tab 8",
-  "tab_9": "Switch to tab 9",
-  "picker_outline": "Open document outline picker",
-  "picker_highlight_search": "Search within highlights",
-  "search": "Search document",
-  "search_regex": "Search document using regex",
-  "search_next": "Jump to next search result",
-  "search_prev": "Jump to previous search result",
-  "search_args": "Search with inline query argument",
-  "layout_single": "Single page layout",
-  "layout_left_to_right": "Horizontal (left to right) layout",
-  "layout_top_to_bottom": "Vertical (top to bottom) layout",
-  "layout_book": "Book (two page spread) layout",
-  "set_dpr": "Set device pixel ratio",
-  "open_containing_folder": "Open folder containing current file",
-  "undo": "Undo last action",
-  "redo": "Redo last undone action",
-  "highlight_selection": "Highlight current text selection",
-  "invert_color": "Toggle inverted colour rendering",
-  "reshow_jump_marker": "Re-show the last jump marker",
-  "reopen_last_closed_file": "Reopen last closed file",
-  "copy_page_image": "Copy current page as image",
-  "debug_command": "Run debug command",
-  "show_startup_widget": "Show startup screen",
-  "show_tutorial_file": "Open tutorial document",
-  "show_about": "Show about dialog"
-}
+[
+  {
+    "name": "selection_copy",
+    "description": "Copy current selection to clipboard"
+  },
+  {
+    "name": "selection_cancel",
+    "description": "Cancel and clear current selection"
+  },
+  {
+    "name": "selection_last",
+    "description": "Reselect the last text selection"
+  },
+  {
+    "name": "presentation_mode",
+    "description": "Toggle presentation mode"
+  },
+  {
+    "name": "fullscreen",
+    "description": "Toggle fullscreen"
+  },
+  {
+    "name": "command_palette",
+    "description": "Open command palette"
+  },
+  {
+    "name": "tabs",
+    "description": "Toggle tab bar"
+  },
+  {
+    "name": "menubar",
+    "description": "Toggle menu bar"
+  },
+  {
+    "name": "statusbar",
+    "description": "Toggle status bar"
+  },
+  {
+    "name": "focus_mode",
+    "description": "Toggle focus mode"
+  },
+  {
+    "name": "visual_line_mode",
+    "description": "Toggle visual line mode"
+  },
+  {
+    "name": "llm_widget",
+    "description": "Toggle LLM assistant widget"
+  },
+  {
+    "name": "link_hint_visit",
+    "description": "Open link using keyboard hint"
+  },
+  {
+    "name": "link_hint_copy",
+    "description": "Copy link URL using keyboard hint"
+  },
+  {
+    "name": "page_first",
+    "description": "Go to first page"
+  },
+  {
+    "name": "page_last",
+    "description": "Go to last page"
+  },
+  {
+    "name": "page_next",
+    "description": "Go to next page"
+  },
+  {
+    "name": "page_prev",
+    "description": "Go to previous page"
+  },
+  {
+    "name": "page_goto",
+    "description": "Jump to a specific page number"
+  },
+  {
+    "name": "mark_set",
+    "description": "Set a named mark at current position"
+  },
+  {
+    "name": "mark_delete",
+    "description": "Delete a named mark"
+  },
+  {
+    "name": "mark_goto",
+    "description": "Jump to a named mark"
+  },
+  {
+    "name": "scroll_down",
+    "description": "Scroll down"
+  },
+  {
+    "name": "scroll_up",
+    "description": "Scroll up"
+  },
+  {
+    "name": "scroll_left",
+    "description": "Scroll left"
+  },
+  {
+    "name": "scroll_right",
+    "description": "Scroll right"
+  },
+  {
+    "name": "rotate_clock",
+    "description": "Rotate page clockwise"
+  },
+  {
+    "name": "rotate_anticlock",
+    "description": "Rotate page counter-clockwise"
+  },
+  {
+    "name": "location_prev",
+    "description": "Go back in location history"
+  },
+  {
+    "name": "location_next",
+    "description": "Go forward in location history"
+  },
+  {
+    "name": "zoom_in",
+    "description": "Zoom in"
+  },
+  {
+    "name": "zoom_out",
+    "description": "Zoom out"
+  },
+  {
+    "name": "zoom_reset",
+    "description": "Reset zoom to default"
+  },
+  {
+    "name": "zoom_set",
+    "description": "Set zoom to a specific level"
+  },
+  {
+    "name": "split_horizontal",
+    "description": "Split view horizontally"
+  },
+  {
+    "name": "split_vertical",
+    "description": "Split view vertically"
+  },
+  {
+    "name": "split_close",
+    "description": "Close current split"
+  },
+  {
+    "name": "split_focus_right",
+    "description": "Focus split to the right"
+  },
+  {
+    "name": "split_focus_left",
+    "description": "Focus split to the left"
+  },
+  {
+    "name": "split_focus_up",
+    "description": "Focus split above"
+  },
+  {
+    "name": "split_focus_down",
+    "description": "Focus split below"
+  },
+  {
+    "name": "split_close_others",
+    "description": "Close all splits except current"
+  },
+  {
+    "name": "portal",
+    "description": "Create or focus portal"
+  },
+  {
+    "name": "file_open_tab",
+    "description": "Open file in new tab"
+  },
+  {
+    "name": "file_open_vsplit",
+    "description": "Open file in vertical split"
+  },
+  {
+    "name": "file_open_hsplit",
+    "description": "Open file in horizontal split"
+  },
+  {
+    "name": "file_open_dwim",
+    "description": "Open file (do what I mean)"
+  },
+  {
+    "name": "file_close",
+    "description": "Close current file"
+  },
+  {
+    "name": "file_save",
+    "description": "Save current file"
+  },
+  {
+    "name": "file_save_as",
+    "description": "Save current file as a new name"
+  },
+  {
+    "name": "file_encrypt",
+    "description": "Encrypt current document"
+  },
+  {
+    "name": "file_decrypt",
+    "description": "Decrypt current document"
+  },
+  {
+    "name": "file_reload",
+    "description": "Reload current file from disk"
+  },
+  {
+    "name": "file_properties",
+    "description": "Show file properties"
+  },
+  {
+    "name": "files_recent",
+    "description": "Show recently opened files"
+  },
+  {
+    "name": "annot_edit_mode",
+    "description": "Toggle annotation select mode"
+  },
+  {
+    "name": "annot_popup_mode",
+    "description": "Toggle annotation popup mode"
+  },
+  {
+    "name": "annot_rect_mode",
+    "description": "Toggle rectangle annotation mode"
+  },
+  {
+    "name": "annot_highlight_mode",
+    "description": "Toggle text highlight mode"
+  },
+  {
+    "name": "selection_mode_text",
+    "description": "Switch to text selection mode"
+  },
+  {
+    "name": "selection_mode_region",
+    "description": "Switch to region selection mode"
+  },
+  {
+    "name": "fit_width",
+    "description": "Fit page to window width"
+  },
+  {
+    "name": "fit_height",
+    "description": "Fit page to window height"
+  },
+  {
+    "name": "fit_page",
+    "description": "Fit entire page in window"
+  },
+  {
+    "name": "fit_auto",
+    "description": "Toggle automatic resize to fit"
+  },
+  {
+    "name": "session_save",
+    "description": "Save current session"
+  },
+  {
+    "name": "session_save_as",
+    "description": "Save current session under a new name"
+  },
+  {
+    "name": "session_load",
+    "description": "Load a saved session"
+  },
+  {
+    "name": "tabs_close_left",
+    "description": "Close all tabs to the left"
+  },
+  {
+    "name": "tabs_close_right",
+    "description": "Close all tabs to the right"
+  },
+  {
+    "name": "tabs_close_others",
+    "description": "Close all tabs except current"
+  },
+  {
+    "name": "tab_move_right",
+    "description": "Move current tab right"
+  },
+  {
+    "name": "tab_move_left",
+    "description": "Move current tab left"
+  },
+  {
+    "name": "tab_first",
+    "description": "Switch to first tab"
+  },
+  {
+    "name": "tab_last",
+    "description": "Switch to last tab"
+  },
+  {
+    "name": "tab_next",
+    "description": "Switch to next tab"
+  },
+  {
+    "name": "tab_prev",
+    "description": "Switch to previous tab"
+  },
+  {
+    "name": "tab_close",
+    "description": "Close current tab"
+  },
+  {
+    "name": "tab_goto",
+    "description": "Go to tab by number"
+  },
+  {
+    "name": "tab_1",
+    "description": "Switch to tab 1"
+  },
+  {
+    "name": "tab_2",
+    "description": "Switch to tab 2"
+  },
+  {
+    "name": "tab_3",
+    "description": "Switch to tab 3"
+  },
+  {
+    "name": "tab_4",
+    "description": "Switch to tab 4"
+  },
+  {
+    "name": "tab_5",
+    "description": "Switch to tab 5"
+  },
+  {
+    "name": "tab_6",
+    "description": "Switch to tab 6"
+  },
+  {
+    "name": "tab_7",
+    "description": "Switch to tab 7"
+  },
+  {
+    "name": "tab_8",
+    "description": "Switch to tab 8"
+  },
+  {
+    "name": "tab_9",
+    "description": "Switch to tab 9"
+  },
+  {
+    "name": "picker_outline",
+    "description": "Open document outline picker"
+  },
+  {
+    "name": "picker_highlight_search",
+    "description": "Search within highlights"
+  },
+  {
+    "name": "search",
+    "description": "Search document"
+  },
+  {
+    "name": "search_regex",
+    "description": "Search document using regex"
+  },
+  {
+    "name": "search_next",
+    "description": "Jump to next search result"
+  },
+  {
+    "name": "search_prev",
+    "description": "Jump to previous search result"
+  },
+  {
+    "name": "search_args",
+    "description": "Search with inline query argument"
+  },
+  {
+    "name": "layout_single",
+    "description": "Single page layout"
+  },
+  {
+    "name": "layout_left_to_right",
+    "description": "Horizontal (left to right) layout"
+  },
+  {
+    "name": "layout_top_to_bottom",
+    "description": "Vertical (top to bottom) layout"
+  },
+  {
+    "name": "layout_book",
+    "description": "Book (two page spread) layout"
+  },
+  {
+    "name": "set_dpr",
+    "description": "Set device pixel ratio"
+  },
+  {
+    "name": "open_containing_folder",
+    "description": "Open folder containing current file"
+  },
+  {
+    "name": "undo",
+    "description": "Undo last action"
+  },
+  {
+    "name": "redo",
+    "description": "Redo last undone action"
+  },
+  {
+    "name": "highlight_selection",
+    "description": "Highlight current text selection"
+  },
+  {
+    "name": "invert_color",
+    "description": "Toggle inverted colour rendering"
+  },
+  {
+    "name": "reshow_jump_marker",
+    "description": "Re-show the last jump marker"
+  },
+  {
+    "name": "reopen_last_closed_file",
+    "description": "Reopen last closed file"
+  },
+  {
+    "name": "copy_page_image",
+    "description": "Copy current page as image"
+  },
+  {
+    "name": "debug_command",
+    "description": "Run debug command"
+  },
+  {
+    "name": "show_startup_widget",
+    "description": "Show startup screen"
+  },
+  {
+    "name": "show_tutorial_file",
+    "description": "Open tutorial document"
+  },
+  {
+    "name": "show_about",
+    "description": "Show about dialog"
+  }
+]
