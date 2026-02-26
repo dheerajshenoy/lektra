@@ -3132,9 +3132,11 @@ DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
     if (it != m_page_items_hash.end())
     {
         GraphicsImageItem *old = it.value();
-        if (old->scene() == m_gscene)
+        if (old && old->scene() == m_gscene)
+        {
             m_gscene->removeItem(old);
-        delete old;
+            delete old;
+        }
         m_page_items_hash.remove(pageno);
     }
 
