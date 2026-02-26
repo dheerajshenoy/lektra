@@ -3027,9 +3027,11 @@ DocumentView::clearDocumentItems() noexcept
     // Remove page items
     for (auto *item : m_page_items_hash)
     {
-        if (item->scene() == m_gscene)
+        if (item && item->scene() == m_gscene)
+        {
             m_gscene->removeItem(item);
-        delete item;
+            delete item;
+        }
     }
     m_page_items_hash.clear();
 
@@ -3037,9 +3039,11 @@ DocumentView::clearDocumentItems() noexcept
     for (auto &links : m_page_links_hash)
         for (auto *link : links)
         {
-            if (link->scene() == m_gscene)
+            if (link && link->scene() == m_gscene)
+            {
                 m_gscene->removeItem(link);
-            delete link;
+                delete link;
+            }
         }
     m_page_links_hash.clear();
 
@@ -3047,18 +3051,22 @@ DocumentView::clearDocumentItems() noexcept
     for (auto &annots : m_page_annotations_hash)
         for (auto *annot : annots)
         {
-            if (annot->scene() == m_gscene)
+            if (annot && annot->scene() == m_gscene)
+            {
                 m_gscene->removeItem(annot);
-            delete annot;
+                delete annot;
+            }
         }
     m_page_annotations_hash.clear();
 
     // Remove search items
     for (auto *item : m_search_items)
     {
-        if (item->scene() == m_gscene)
+        if (item && item->scene() == m_gscene)
+        {
             m_gscene->removeItem(item);
-        delete item;
+            delete item;
+        }
     }
     m_search_items.clear();
 
