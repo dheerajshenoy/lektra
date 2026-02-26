@@ -46,3 +46,6 @@
 - [ ] Try to generate outline if not present somehow
 - [ ] Fix BOOK layout viewport misalignment
 - [ ] DJVU support
+- [ ] Don't link mupdf statically
+- [ ] Visual line mode, if starting fresh, enable at the viewport
+- [ ] Custom source DPI region copy to clipboard
