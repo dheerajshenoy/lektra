@@ -609,34 +609,72 @@ Model::encrypt(const EncryptInfo &info) noexcept
 bool
 Model::reloadDocument() noexcept
 {
-    const QString filepath = m_filepath;
-    if (filepath.isEmpty())
+    if (m_filepath.isEmpty())
         return false;
 
-    waitForRenders();
-    initMuPDF();
-    cleanup();
-    m_page_count = 0;
-    m_success    = false;
-
-    bool ok = false;
+    // Open the fresh document BEFORE cleanup() drops the old one.
+    // cleanup() calls fz_drop_document(m_ctx, m_doc) and nulls m_doc,
+    // so we must have the new handle ready before that happens.
+    fz_document *new_doc = nullptr;
     fz_try(m_ctx)
     {
-        m_doc = fz_open_document(m_ctx, CSTR(filepath));
-        if (!m_doc)
-            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to open document");
-
-        m_pdf_doc    = pdf_specifics(m_ctx, m_doc);
-        m_page_count = fz_count_pages(m_ctx, m_doc);
-        ok           = true;
+        new_doc = fz_open_document(m_ctx, CSTR(m_filepath));
     }
     fz_catch(m_ctx)
     {
-        ok = false;
+        qWarning() << "reloadDocument: failed to open:"
+                   << fz_caught_message(m_ctx);
+        return false;
     }
 
-    m_success = ok;
-    return ok;
+    if (!new_doc)
+        return false;
+
+    int page_count = 0;
+    float w = 0, h = 0;
+    fz_try(m_ctx)
+    {
+        page_count = fz_count_pages(m_ctx, new_doc);
+        if (page_count > 0)
+        {
+            fz_page *p = fz_load_page(m_ctx, new_doc, 0);
+            fz_rect r  = fz_bound_page(m_ctx, p);
+            fz_drop_page(m_ctx, p);
+            w = r.x1 - r.x0;
+            h = r.y1 - r.y0;
+        }
+    }
+    fz_catch(m_ctx)
+    {
+        fz_drop_document(m_ctx, new_doc);
+        return false;
+    }
+
+    waitForRenders();
+
+    // cleanup() drops m_doc, nulls m_doc/m_pdf_doc, clears all caches.
+    cleanup();
+
+    // Flush the MuPDF store so cloned contexts won't serve stale entries
+    // from the old document's object graph to buildPageCache.
+    fz_empty_store(m_ctx);
+
+    m_doc        = new_doc;
+    m_pdf_doc    = pdf_specifics(m_ctx, m_doc);
+    m_page_count = page_count;
+    m_success    = true;
+    m_text_cache.setCapacity(std::min(page_count, 1024));
+
+    {
+        std::lock_guard<std::mutex> lk(m_page_dim_mutex);
+        m_default_page_dim = {w, h};
+        m_page_dim_cache.dimensions.assign(page_count, m_default_page_dim);
+        m_page_dim_cache.known.assign(page_count, 0);
+        if (page_count > 0)
+            m_page_dim_cache.known[0] = true;
+    }
+
+    return true;
 }
 
 bool
@@ -645,21 +683,33 @@ Model::SaveChanges() noexcept
     if (!m_doc || !m_pdf_doc)
         return false;
 
+    bool saved = false;
     fz_try(m_ctx)
     {
         if (pdf_has_unsaved_changes(m_ctx, m_pdf_doc))
         {
+            // m_pdf_write_options.do_incremental = 1;
             pdf_save_document(m_ctx, m_pdf_doc, CSTR(m_filepath),
                               &m_pdf_write_options);
+            saved = true;
         }
-        return true;
     }
     fz_catch(m_ctx)
     {
         qWarning() << "Cannot save file: " << fz_caught_message(m_ctx);
+        return false;
     }
 
-    return false;
+    if (saved)
+    {
+        if (!reloadDocument())
+        {
+            qWarning() << "Failed to reload document after saving changes";
+            return false;
+        }
+    }
+
+    return saved;
 }
 
 bool
@@ -707,7 +757,7 @@ Model::computeTextSelectionQuad(int pageno, QPointF devStart,
     const float scale = logicalScale();
 
     fz_page *page{nullptr};
-    fz_rect page_bounds{};
+    fz_rect page_bounds;
     fz_matrix page_to_dev{};
     int count{0};
 
@@ -716,7 +766,6 @@ Model::computeTextSelectionQuad(int pageno, QPointF devStart,
         const auto [w, h] = getPageDimensions(pageno);
         if (w < 0 || h < 0)
         {
-            // std::lock_guard<std::mutex> lock(m_doc_mutex);
             page        = fz_load_page(m_ctx, m_doc, pageno);
             page_bounds = fz_bound_page(m_ctx, page);
         }
@@ -1024,6 +1073,10 @@ Model::requestPageRender(
     const RenderJob &job,
     const std::function<void(PageRenderResult)> &callback) noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "Model::requestPageRender(): Requesting render for page"
+             << job.pageno;
+#endif
     m_render_future
         = QtConcurrent::run([this, job, callback]() -> PageRenderResult
     {
@@ -1508,20 +1561,22 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect) noexcept
         pdf_drop_annot(m_ctx, annot);
         pdf_drop_page(m_ctx, page);
 
-        {
-            std::lock_guard<std::recursive_mutex> cache_lock(
-                m_page_cache_mutex);
-            if (m_page_lru_cache.has(pageno))
-            {
-                m_page_lru_cache.remove(pageno);
-                // fz_drop_display_list(m_ctx,
-                // m_page_cache[pageno].display_list);
-                // m_page_cache.erase(pageno);
-            }
-        }
+        // {
+        //     std::lock_guard<std::recursive_mutex> cache_lock(
+        //         m_page_cache_mutex);
+        //     if (m_page_lru_cache.has(pageno))
+        //     {
+        //         m_page_lru_cache.remove(pageno);
+        //         // fz_drop_display_list(m_ctx,
+        //         // m_page_cache[pageno].display_list);
+        //         // m_page_cache.erase(pageno);
+        //     }
+        // }
+
         // Build cache outside the lock to avoid holding it during expensive
         // operations
-        buildPageCache(pageno);
+        // buildPageCache(pageno);
+
         emit reloadRequested(pageno);
     }
     fz_catch(m_ctx)
@@ -1580,20 +1635,21 @@ Model::addTextAnnotation(const int pageno, const fz_rect &rect,
         pdf_drop_annot(m_ctx, annot);
         pdf_drop_page(m_ctx, page);
 
-        {
-            std::lock_guard<std::recursive_mutex> cache_lock(
-                m_page_cache_mutex);
-            if (m_page_lru_cache.has(pageno))
-            {
-                // fz_drop_display_list(m_ctx,
-                // m_page_cache[pageno].display_list);
-                // m_page_cache.erase(pageno);
-                m_page_lru_cache.remove(pageno);
-            }
-        }
-        // Build cache outside the lock to avoid holding it during expensive
-        // operations
-        buildPageCache(pageno);
+        // {
+        //     std::lock_guard<std::recursive_mutex> cache_lock(
+        //         m_page_cache_mutex);
+        //     if (m_page_lru_cache.has(pageno))
+        //     {
+        //         // fz_drop_display_list(m_ctx,
+        //         // m_page_cache[pageno].display_list);
+        //         // m_page_cache.erase(pageno);
+        //         m_page_lru_cache.remove(pageno);
+        //     }
+        // }
+        // // Build cache outside the lock to avoid holding it during
+        // expensive
+        // // operations
+        // buildPageCache(pageno);
         emit reloadRequested(pageno);
     }
     fz_catch(m_ctx)
@@ -1646,7 +1702,6 @@ Model::setTextAnnotationContents(const int pageno, const int objNum,
     if (changed)
     {
         invalidatePageCache(pageno);
-        emit reloadRequested(pageno);
     }
 }
 
@@ -1721,8 +1776,7 @@ Model::removeAnnotations(int pageno, const std::vector<int> &objNums) noexcept
             // pdf_save_document(m_ctx, doc, path, &opts);
         }
 
-        pdf_drop_page(m_ctx,
-                      page); // prefer this if available in your MuPDF
+        pdf_drop_page(m_ctx, page);
         emit reloadRequested(pageno);
     }
     fz_catch(m_ctx)
@@ -1737,13 +1791,19 @@ Model::invalidatePageCache(int pageno) noexcept
     std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
     if (m_page_lru_cache.has(pageno))
     {
-        // fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);
         // m_page_cache.erase(pageno);
         m_page_lru_cache.remove(pageno);
-
-        // buildPageCache(pageno);
     }
-    emit reloadRequested(pageno);
+    // emit reloadRequested(pageno);
+}
+
+void
+Model::invalidatePageCaches() noexcept
+{
+    std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+    m_page_lru_cache.clear();
+    m_text_cache.clear();
+    m_stext_page_cache.clear();
 }
 
 std::vector<QPolygonF>
@@ -1994,7 +2054,8 @@ Model::search(const QString &term, bool caseSensitive, bool use_regex) noexcept
 
             const int batch_end = std::min(batch_start + BATCH, m_page_count);
 
-            // Pre-warm text cache for this batch serially (safe, single thread)
+            // Pre-warm text cache for this batch serially (safe, single
+            // thread)
             std::set<int> batchPages;
             for (int p = batch_start; p < batch_end; ++p)
                 batchPages.insert(p);
