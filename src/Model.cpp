@@ -111,6 +111,12 @@ Model::cleanup() noexcept
     }
 }
 
+// Open file asynchronously to avoid blocking the UI, especially for large
+// documents or slow storage. The actual opening and page counting happens in a
+// background thread, and results are posted back to the main thread when done.
+// NOTE: no checking is done on the file path here — if it's invalid, the
+// background thread will catch the error and emit openFileFailed. File
+// existence checking should be done outside, before calling this function.
 QFuture<void>
 Model::openAsync(const QString &filePath) noexcept
 {

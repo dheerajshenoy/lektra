@@ -1689,6 +1689,15 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
         return false;
     }
 
+    // Check if file exists
+    if (!QFile(filename).exists())
+    {
+        QMessageBox::critical(
+            this, tr("Error"),
+            tr("The specified file does not exist:\n%1").arg(filename));
+        return false;
+    }
+
     // if (DocumentView *existing = findOpenView(filename))
     // {
     //     DocumentContainer *container = existing->container();
@@ -1847,6 +1856,15 @@ Lektra::OpenFileInNewTab(const QString &filename,
             if (!selected.isEmpty())
                 return OpenFileInNewTab(selected.first(), callback);
         }
+        return nullptr;
+    }
+
+    // Check if file exists
+    if (!QFile(filename).exists())
+    {
+        QMessageBox::critical(
+            this, tr("Error"),
+            tr("The specified file does not exist:\n%1").arg(filename));
         return nullptr;
     }
 
@@ -4569,6 +4587,15 @@ Lektra::restoreSplitNode(DocumentContainer *container, DocumentView *targetView,
         if (targetView->filePath() == path)
         {
             applyState(targetView);
+            return;
+        }
+
+        // Check if file exists
+        if (!QFile(path).exists())
+        {
+            QMessageBox::critical(
+                this, tr("Error"),
+                tr("The specified file does not exist:\n%1").arg(path));
             return;
         }
 
