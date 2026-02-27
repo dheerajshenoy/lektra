@@ -4053,14 +4053,16 @@ void
 DocumentView::tryReloadLater(int attempt) noexcept
 {
     if (attempt > 15) // ~15 * 100ms = 1.5s
-        return;       // give up
+    {
+        QMessageBox::warning(this, "Auto-reload failed",
+                             "Could not reload the document.");
+        return;
+    }
 
     if (waitUntilReadableAsync())
     {
         if (!m_model->reloadDocument())
         {
-            QMessageBox::warning(this, "Auto-reload failed",
-                                 "Could not reload the document.");
             return;
         }
         else

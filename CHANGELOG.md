@@ -33,6 +33,7 @@
 
 ### Bug Fix
 
+- Fix document reload causing unnecessary popup of message box saying it couldn't reload document
 - Fix crash when reloading after file changes on disk
 - Fix crash and infinite loop when trying to reload after file save
 - Fix layout changing at runtime not working properly
