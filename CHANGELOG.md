@@ -33,6 +33,8 @@
 
 ### Bug Fix
 
+- Fix crash and infinite loop when trying to reload after file save
+- Fix layout changing at runtime not working properly
 - Fix crash due to zero image size in BOOK layout mode
 
 ## 0.6.4
