@@ -225,20 +225,26 @@ DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
     if (m_layout_mode == mode)
         return;
 
+#ifndef NDEBUG
+    qDebug() << "DocumentView::setLayoutMode(): Changing layout mode to"
+             << static_cast<int>(mode);
+#endif
+
     m_layout_mode = mode;
+    initConnections();
     invalidateVisiblePagesCache();
 
     if (m_model->numPages() == 0)
         return;
 
-    initConnections();
-    // Reset view state
     clearDocumentItems();
-
-    // Recompute stride + scene rect
     cachePageStride();
     updateSceneRect();
 
+    // Ensure we are in valid page number
+    m_pageno = std::clamp(m_pageno, 0, m_model->numPages() - 1);
+
+    GotoPage(m_pageno);
     renderPages();
 }
 
@@ -346,6 +352,7 @@ DocumentView::resetConnections() noexcept
     {
         m_scroll_page_update_timer->disconnect(this);
     }
+
 }
 
 // Initialize signal-slot connections
@@ -916,9 +923,13 @@ DocumentView::rotateHelper() noexcept
 {
     cachePageStride();
     const std::set<int> &trackedPages = getVisiblePages();
+
+    if (trackedPages.empty())
+        return;
+
     for (int pageno : trackedPages)
     {
-        m_model->invalidatePageCache(pageno);
+        // m_model->invalidatePageCache(pageno);
         clearLinksForPage(pageno);
         clearAnnotationsForPage(pageno);
         clearSearchItemsForPage(pageno);
@@ -1049,6 +1060,17 @@ DocumentView::setZoom(double factor) noexcept
 
     m_target_zoom  = factor;
     m_current_zoom = factor;
+
+    cachePageStride();
+    updateSceneRect();
+
+    // 2. IMPORTANT: Invalidate the visibility cache so we don't
+    // render pages that were visible at the PREVIOUS zoom level.
+    invalidateVisiblePagesCache();
+
+    GotoPage(m_pageno);
+    renderPages();
+
     zoomHelper();
 }
 
@@ -1685,8 +1707,21 @@ DocumentView::FileProperties() noexcept
 void
 DocumentView::SaveFile() noexcept
 {
+    if (!m_model->hasUnsavedChanges())
+        return;
+
+#ifndef NDEBUG
+    qDebug() << "DocumentView::SaveFile(): Saving file with unsaved changes.";
+#endif
+
+    stopPendingRenders();
     if (m_model->SaveChanges())
     {
+        m_cancelled->store(false);
+        clearDocumentItems();
+        cachePageStride();
+        updateSceneRect();
+        renderPages();
         setModified(false);
     }
     else
@@ -1694,6 +1729,7 @@ DocumentView::SaveFile() noexcept
         QMessageBox::critical(
             this, "Saving failed",
             "Could not save the current file. Try 'Save As' instead.");
+        m_cancelled->store(false);
     }
 }
 
@@ -2172,15 +2208,13 @@ DocumentView::renderPages() noexcept
     {
         prunePendingRenders(pages);
         removeUnusedPageItems(pages);
-        // ClearTextSelection();
 
         // Prioritize visible pages for rendering, but also include preload
         // pages in the queue
         for (int pageno : visiblePages)
             requestPageRender(pageno);
 
-        // Prioritize visible pages for rendering, but also include preload
-        // pages in the queue
+        // Preload pages
         for (int pageno : preloadPages)
             requestPageRender(pageno);
 
@@ -2956,6 +2990,11 @@ DocumentView::updateCurrentPage() noexcept
 {
     ensureVisiblePagePlaceholders();
 
+#ifndef NDEBUG
+    qDebug() << "DocumentView::updateCurrentPage(): Updating current page based "
+             << "on scroll position. Current page:" << m_pageno + 1;
+#endif
+
     if (m_layout_mode == LayoutMode::SINGLE)
     {
         emit currentPageChanged(m_pageno + 1);
@@ -3053,6 +3092,12 @@ DocumentView::requestPageRender(int pageno) noexcept
     if (m_pending_renders.contains(pageno))
         return;
 
+#ifndef NDEBUG
+    qDebug() << "DocumentView::requestPageRender(): Requesting page render for "
+                "pageno = "
+             << pageno;
+#endif
+
     m_pending_renders.insert(pageno);
     createAndAddPlaceholderPageItem(pageno);
 
@@ -3137,6 +3182,10 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
 void
 DocumentView::createAndAddPageItem(int pageno, const QImage &img) noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::createAndAddPageItem(): Adding page item for "
+             << "pageno = " << pageno;
+#endif
     auto *item = new GraphicsImageItem();
     item->setImage(img);
 
@@ -4287,6 +4336,11 @@ DocumentView::zoomHelper() noexcept
 void
 DocumentView::handleHScrollValueChanged(int value) noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::handleHScrollValueChanged(): Scrollbar value "
+             << "changed to" << value;
+#endif
+
     // During fast scrolling, only invalidate cache, don't trigger render
     invalidateVisiblePagesCache();
 
@@ -4569,6 +4623,10 @@ DocumentView::handleReloadRequested(int pageno) noexcept
     if (pageno == -1)
         return;
 
+#ifndef NDEBUG
+    qDebug() << "DocumentView::handleReloadRequested(): Reload requested for "
+             << "page:" << pageno;
+#endif
     // Remove only the affected page item so it gets re-rendered
     if (m_page_items_hash.contains(pageno))
     {
