@@ -1002,7 +1002,7 @@ Lektra::initDefaultKeybinds() noexcept
         {"redo", "Ctrl+r"},
         {"invert_color", "i"},
         {"menubar", "Ctrl+Shift+m"},
-        {"command_palette", "Ctrl+Shift+P"},
+        {"command_palette", ":"},
         {"rotate_clock", ">"},
         {"rotate_anticlock", "<"},
         {"tab_1", "Alt+1"},

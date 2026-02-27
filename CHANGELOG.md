@@ -29,6 +29,8 @@
 
 ### Breaking Changes
 
+- Command palette is now opened with ":" key by default instead of "Ctrl + Shift + P" to stay close to the Vim way of opening command palette and also because it's more ergonomic to open with a single key press.
+
 #### Renamed Commands:
 
 ### Bug Fix
