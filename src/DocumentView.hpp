@@ -297,6 +297,7 @@ public:
 
     void renderPages() noexcept;
     void renderPage() noexcept;
+    void handleTextHighlightRequested() noexcept;
 
     void setFitMode(FitMode mode) noexcept;
     void GotoPage(int pageno) noexcept;
@@ -338,7 +339,6 @@ public:
     void ToggleTextSelection() noexcept;
     void GoBackHistory() noexcept;
     void GoForwardHistory() noexcept;
-    void TextHighlightCurrentSelection() noexcept;
     void ClearKBHintsOverlay() noexcept;
     void UpdateKBHintsOverlay(const QString &input) noexcept;
     void NextSelectionMode() noexcept;
@@ -377,7 +377,6 @@ private slots:
     void handle_password_required() noexcept;
     void handle_wrong_password() noexcept;
     void handleLinkCtrlClickRequested(QPointF scenePos) noexcept;
-    void handleTextHighlightRequested(QPointF start, QPointF end) noexcept;
     void handleTextSelection(QPointF start, QPointF end) noexcept;
     void handleClickSelection(int clickType, QPointF scenePos) noexcept;
     void handleSearchResults(
@@ -442,7 +441,7 @@ private:
     void setModified(bool state) noexcept;
     bool pageAtScenePos(QPointF scenePos, int &outPageIndex,
                         GraphicsImageItem *&outPageItem) const noexcept;
-    void requestPageRender(int pageno) noexcept;
+    void requestPageRender(int pageno, bool force = false) noexcept;
     void startNextRenderJob() noexcept;
     void clearLinksForPage(int pageno) noexcept;
     void clearAnnotationsForPage(int pageno) noexcept;
@@ -549,7 +548,7 @@ private:
         std::thread::hardware_concurrency() > 1
             ? std::thread::hardware_concurrency() - 1
             : 1};
-    int m_renders_in_flight{0};
+    std::atomic<int> m_renders_in_flight{0};
     std::shared_ptr<std::atomic<bool>> m_cancelled{
         std::make_shared<std::atomic<bool>>(false)};
 
@@ -578,4 +577,6 @@ private:
     std::vector<Model::VisualLineInfo> m_visual_lines{};
     void visual_line_move(Direction direction) noexcept;
     void snap_visual_line(bool centerView = true) noexcept;
+
+    int m_generation = 0; // save generation count for pending render jobs to detect stale jobs
 };
