@@ -41,7 +41,6 @@
 
 - [ ] Narrow to region
 - [ ] Ruler
-- [ ] Update after toggle visual mode
 - [ ] Preview window
 - [ ] Try to generate outline if not present somehow
 - [ ] Fix BOOK layout viewport misalignment
