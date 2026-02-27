@@ -230,9 +230,10 @@ public:
 
     inline bool hasUnsavedChanges() const noexcept
     {
-        if (m_undo_stack)
-            return m_undo_stack->isClean() == false;
-        return false;
+        // if (m_undo_stack)
+        //     return m_undo_stack->isClean() == false;
+        // return false;
+        return pdf_has_unsaved_changes(m_ctx, m_pdf_doc);
     }
 
     // This is the "Logical" scale for the UI
@@ -327,7 +328,6 @@ public:
 
     std::vector<std::pair<QString, QString>> properties() noexcept;
     fz_outline *getOutline() noexcept;
-    bool reloadDocument() noexcept;
     void cancelOpen() noexcept;
     QFuture<void> openAsync(const QString &filePath) noexcept;
     void _continueOpen(fz_context *ctx, fz_document *doc,
@@ -357,6 +357,7 @@ public:
                               bool formatted) noexcept;
     void highlight_text_selection(int pageno, QPointF start,
                                   QPointF end) noexcept;
+    void invalidatePageCaches() noexcept;
     void invalidatePageCache(int pageno) noexcept;
     void search(const QString &term, bool caseSensitive = false,
                 bool useRegex = false) noexcept;
@@ -370,6 +371,7 @@ public:
     std::vector<HighlightText> collectHighlightTexts(bool groupByLine
                                                      = true) noexcept;
     void annotChangeColor(int pageno, int index, const QColor &color) noexcept;
+    void reload() noexcept;
 
 signals:
     void urlLinksReady(int pageno, std::vector<RenderLink> links);
@@ -585,6 +587,7 @@ private:
     uint32_t m_bg_color{0};
     uint32_t m_fg_color{0};
 
+    bool reloadDocument() noexcept;
     PageDimensionCache m_page_dim_cache{};
     mutable std::mutex m_page_dim_mutex;
     PageDimension m_default_page_dim{};
