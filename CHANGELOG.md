@@ -35,6 +35,7 @@
 
 ### Bug Fix
 
+- Fix `-p,--page` command line argument not working
 - Fix non-exsistent files trying to be opened
 - Fix document reload causing unnecessary popup of message box saying it couldn't reload document
 - Fix crash when reloading after file changes on disk

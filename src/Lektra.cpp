@@ -1334,14 +1334,33 @@ Lektra::Read_args_parser(argparse::ArgumentParser &argparser) noexcept
         auto files = argparser.get<std::vector<std::string>>("files");
         m_config.behavior.open_last_visited = false;
 
+        const int pageOverride = m_config.behavior.startpage_override;
+
         if (!files.empty())
         {
+
             if (hsplit)
                 OpenFilesInHSplit(files);
             else if (vsplit)
                 OpenFilesInVSplit(files);
             else
-                OpenFiles(files);
+            {
+                if (files.size() == 1)
+                {
+                    // If only one file is passed, open it in a new tab and go
+                    // to the specified page (if any)
+                    OpenFileInNewTab(QString::fromStdString(files[0]),
+                                     [pageOverride, this]()
+                    {
+                        if (pageOverride > 0)
+                            gotoPage(pageOverride);
+                    });
+                }
+                else
+                {
+                    OpenFiles(files);
+                }
+            }
         }
         else if (m_config.behavior.open_last_visited)
         {
