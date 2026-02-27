@@ -348,6 +348,7 @@ public:
     PageLocation CurrentLocation() noexcept;
     void Reshow_jump_marker() noexcept;
     void Copy_page_image() noexcept;
+    void reloadDocument() noexcept;
 
 signals:
     void ctrlLinkClickRequested(DocumentView *view,

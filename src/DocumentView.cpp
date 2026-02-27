@@ -352,7 +352,6 @@ DocumentView::resetConnections() noexcept
     {
         m_scroll_page_update_timer->disconnect(this);
     }
-
 }
 
 // Initialize signal-slot connections
@@ -1717,12 +1716,8 @@ DocumentView::SaveFile() noexcept
     stopPendingRenders();
     if (m_model->SaveChanges())
     {
-        m_cancelled->store(false);
-        clearDocumentItems();
-        cachePageStride();
-        updateSceneRect();
-        renderPages();
         setModified(false);
+        reloadDocument();
     }
     else
     {
@@ -2991,8 +2986,9 @@ DocumentView::updateCurrentPage() noexcept
     ensureVisiblePagePlaceholders();
 
 #ifndef NDEBUG
-    qDebug() << "DocumentView::updateCurrentPage(): Updating current page based "
-             << "on scroll position. Current page:" << m_pageno + 1;
+    qDebug()
+        << "DocumentView::updateCurrentPage(): Updating current page based "
+        << "on scroll position. Current page:" << m_pageno + 1;
 #endif
 
     if (m_layout_mode == LayoutMode::SINGLE)
@@ -4072,13 +4068,8 @@ DocumentView::tryReloadLater(int attempt) noexcept
 #ifdef HAS_SYNCTEX
             initSynctex();
 #endif
-            m_cancelled->store(false);
-            clearDocumentItems();
-            cachePageStride();
-            updateSceneRect();
-            renderPages();
-            setModified(false);
-            // emit totalPageCountChanged(m_model->m_page_count);
+            reloadDocument();
+            emit totalPageCountChanged(m_model->m_page_count);
         }
 
         const QString &filepath = m_model->filePath();
@@ -4645,4 +4636,14 @@ DocumentView::handleReloadRequested(int pageno) noexcept
     m_pending_renders.remove(pageno);
     invalidateVisiblePagesCache();
     requestPageRender(pageno);
+}
+
+void
+DocumentView::reloadDocument() noexcept
+{
+    m_cancelled->store(false);
+    clearDocumentItems();
+    cachePageStride();
+    updateSceneRect();
+    renderPages();
 }

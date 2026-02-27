@@ -3790,8 +3790,9 @@ Lektra::SetDPR() noexcept
 void
 Lektra::reloadDocument() noexcept
 {
-    if (m_doc)
-        m_doc->model()->reloadDocument();
+    if (m_doc) {
+        m_doc->reloadDocument();
+    }
 }
 
 // Go to the first tab
