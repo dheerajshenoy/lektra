@@ -50,6 +50,9 @@ Model::Model(QObject *parent) noexcept : QObject(parent)
         if (m_ctx)
             fz_drop_stext_page(m_ctx, stext_page);
     });
+
+    connect(m_undo_stack, &QUndoStack::cleanChanged, this,
+            [this](bool isClean) { emit undoStackCleanChanged(isClean); });
 }
 
 Model::~Model() noexcept
@@ -583,6 +586,9 @@ Model::setAnnotRectColor(const QColor &color) noexcept
 bool
 Model::decrypt() noexcept
 {
+    if (!m_ctx || !m_doc || !m_pdf_doc)
+        return false;
+
     fz_try(m_ctx)
     {
         pdf_write_options opts = m_pdf_write_options;
@@ -648,7 +654,10 @@ Model::reloadDocument() noexcept
     fz_document *new_doc = nullptr;
     fz_try(m_ctx)
     {
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
         new_doc = fz_open_document(m_ctx, CSTR(m_filepath));
+        if (!new_doc)
+            return false;
     }
     fz_catch(m_ctx)
     {
@@ -657,22 +666,23 @@ Model::reloadDocument() noexcept
         return false;
     }
 
-    if (!new_doc)
-        return false;
-
     int page_count = 0;
     float w = 0, h = 0;
+    fz_page *page{nullptr};
     fz_try(m_ctx)
     {
         page_count = fz_count_pages(m_ctx, new_doc);
         if (page_count > 0)
         {
-            fz_page *p = fz_load_page(m_ctx, new_doc, 0);
-            fz_rect r  = fz_bound_page(m_ctx, p);
-            fz_drop_page(m_ctx, p);
-            w = r.x1 - r.x0;
-            h = r.y1 - r.y0;
+            page      = fz_load_page(m_ctx, new_doc, 0);
+            fz_rect r = fz_bound_page(m_ctx, page);
+            w         = r.x1 - r.x0;
+            h         = r.y1 - r.y0;
         }
+    }
+    fz_always(m_ctx)
+    {
+        fz_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
     {
@@ -681,8 +691,6 @@ Model::reloadDocument() noexcept
     }
 
     waitForRenders();
-
-    // cleanup() drops m_doc, nulls m_doc/m_pdf_doc, clears all caches.
     cleanup();
 
     // Flush the MuPDF store so cloned contexts won't serve stale entries
@@ -710,36 +718,26 @@ Model::reloadDocument() noexcept
 bool
 Model::SaveChanges() noexcept
 {
-    if (!m_doc || !m_pdf_doc)
-        return false;
 
-    bool saved = false;
     fz_try(m_ctx)
     {
-        if (pdf_has_unsaved_changes(m_ctx, m_pdf_doc))
-        {
-            // m_pdf_write_options.do_incremental = 1;
-            pdf_save_document(m_ctx, m_pdf_doc, CSTR(m_filepath),
-                              &m_pdf_write_options);
-            saved = true;
-        }
+        // Use incremental save to keep the current handle valid
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        m_pdf_write_options.do_incremental = 1;
+        pdf_save_document(m_ctx, m_pdf_doc, CSTR(m_filepath),
+                          &m_pdf_write_options);
+
+        if (m_undo_stack)
+            m_undo_stack->setClean();
+
+        return true;
     }
     fz_catch(m_ctx)
     {
-        qWarning() << "Cannot save file: " << fz_caught_message(m_ctx);
-        return false;
+        qWarning() << "Save failed: " << fz_caught_message(m_ctx);
     }
 
-    if (saved)
-    {
-        if (!reloadDocument())
-        {
-            qWarning() << "Failed to reload document after saving changes";
-            return false;
-        }
-    }
-
-    return saved;
+    return false;
 }
 
 bool
@@ -934,11 +932,11 @@ Model::get_selected_text(int pageno, QPointF start, QPointF end,
 std::vector<std::pair<QString, QString>>
 Model::properties() noexcept
 {
+    if (!m_ctx || !m_doc)
+        return {};
+
     std::vector<std::pair<QString, QString>> props;
     props.reserve(16); // Typical number of PDF properties
-
-    if (!m_ctx || !m_doc)
-        return props;
 
     props.push_back(qMakePair("File Path", m_filepath));
     props.push_back(
@@ -1011,11 +1009,9 @@ Model::populatePDFProperties(
 std::tuple<float, float>
 Model::getPageDimensions(int pageno) const noexcept
 {
-    std::tuple<float, float> dims{-1.0f, -1.0f};
     std::lock_guard<std::mutex> lock(m_page_dim_mutex);
-    if (pageno < 0 || pageno >= m_page_count
-        || m_page_dim_cache.known.empty()               // ← add this
-        || pageno >= (int)m_page_dim_cache.known.size() // ← and this
+    if (pageno < 0 || pageno >= m_page_count || m_page_dim_cache.known.empty()
+        || pageno >= (int)m_page_dim_cache.known.size()
         || !m_page_dim_cache.known[pageno])
     {
         return {-1.0f, -1.0f};
@@ -1188,7 +1184,6 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     fz_link *head{nullptr};
     fz_pixmap *pix{nullptr};
     fz_device *dev{nullptr};
-    fz_page *text_page{nullptr};
 
     fz_try(ctx)
     {
@@ -1499,22 +1494,26 @@ Model::addHighlightAnnotation(const int pageno,
              << pageno;
 #endif
 
+    if (quads.empty())
+        return objNum;
+
+    pdf_annot *annot{nullptr};
+    pdf_page *page{nullptr};
+
     fz_try(m_ctx)
     {
         // Load the specific page for this annotation
-        pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
 
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
         // Create a separate highlight annotation for each quad
         // This looks better visually for multi-line selections
-        pdf_annot *annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_HIGHLIGHT);
+        annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_HIGHLIGHT);
         if (!annot)
-            return objNum;
-
-        if (quads.empty())
-            return objNum;
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to create annotation");
 
         pdf_set_annot_quad_points(m_ctx, annot, quads.size(), &quads[0]);
         pdf_set_annot_color(m_ctx, annot, 3, m_highlight_color);
@@ -1527,23 +1526,13 @@ Model::addHighlightAnnotation(const int pageno,
         if (obj)
             objNum = pdf_to_num(m_ctx, obj);
 
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
+    }
+    fz_always(m_ctx)
+    {
         pdf_drop_annot(m_ctx, annot);
         pdf_drop_page(m_ctx, page);
-
-        {
-            std::lock_guard<std::recursive_mutex> cache_lock(
-                m_page_cache_mutex);
-            if (m_page_lru_cache.has(pageno))
-            {
-                // fz_drop_display_list(m_ctx,
-                // m_page_cache[pageno].display_list);
-                // m_page_cache.erase(pageno);
-                m_page_lru_cache.remove(pageno);
-            }
-        }
-        // Build cache outside the lock to avoid holding it during expensive
-        // operations
-        buildPageCache(pageno);
     }
     fz_catch(m_ctx)
     {
@@ -1554,7 +1543,6 @@ Model::addHighlightAnnotation(const int pageno,
     qDebug() << "Adding highlight annotation on page" << pageno
              << " Quad count:" << quads.size() << " ObjNum:" << objNum;
 #endif
-    emit reloadRequested(pageno);
     return objNum;
 }
 
@@ -1562,19 +1550,21 @@ int
 Model::addRectAnnotation(const int pageno, const fz_rect &rect) noexcept
 {
     int objNum{-1};
+    pdf_annot *annot{nullptr};
+    pdf_page *page{nullptr};
 
     fz_try(m_ctx)
     {
         // Load the specific page for this annotation
-        pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
 
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-        pdf_annot *annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_SQUARE);
+        annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_SQUARE);
 
         if (!annot)
-            return objNum;
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to create annotation");
 
         pdf_set_annot_rect(m_ctx, annot, rect);
         pdf_set_annot_interior_color(m_ctx, annot, 3, m_annot_rect_color);
@@ -1585,32 +1575,24 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect) noexcept
 
         // Store the object number for later undo
         pdf_obj *obj = pdf_annot_obj(m_ctx, annot);
-        if (obj)
-            objNum = pdf_to_num(m_ctx, obj);
+        if (!obj)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC,
+                     "Failed to get annotation object");
 
+        objNum = pdf_to_num(m_ctx, obj);
+        // pdf_drop_obj(m_ctx, obj);
+
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
+    }
+    fz_always(m_ctx)
+    {
         pdf_drop_annot(m_ctx, annot);
         pdf_drop_page(m_ctx, page);
-
-        // {
-        //     std::lock_guard<std::recursive_mutex> cache_lock(
-        //         m_page_cache_mutex);
-        //     if (m_page_lru_cache.has(pageno))
-        //     {
-        //         m_page_lru_cache.remove(pageno);
-        //         // fz_drop_display_list(m_ctx,
-        //         // m_page_cache[pageno].display_list);
-        //         // m_page_cache.erase(pageno);
-        //     }
-        // }
-
-        // Build cache outside the lock to avoid holding it during expensive
-        // operations
-        // buildPageCache(pageno);
-
-        emit reloadRequested(pageno);
     }
     fz_catch(m_ctx)
     {
+
         qWarning() << "Redo failed:" << fz_caught_message(m_ctx);
     }
 
@@ -1618,6 +1600,7 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect) noexcept
     qDebug() << "Adding rect annotation on page" << pageno
              << " ObjNum:" << objNum;
 #endif
+
     return objNum;
 }
 
@@ -1627,29 +1610,33 @@ Model::addTextAnnotation(const int pageno, const fz_rect &rect,
 {
     int objNum{-1};
 
+    if (text.isEmpty())
+        return objNum;
+
+    pdf_annot *annot{nullptr};
+    pdf_page *page{nullptr};
+
     fz_try(m_ctx)
     {
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
         // Load the specific page for this annotation
-        pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
 
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
         // Create a text (sticky note) annotation
-        pdf_annot *annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_TEXT);
+        annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_TEXT);
 
         if (!annot)
-            return objNum;
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to create annotation");
 
         pdf_set_annot_rect(m_ctx, annot, rect);
         pdf_set_annot_color(m_ctx, annot, 3, m_popup_color);
         pdf_set_annot_opacity(m_ctx, annot, m_popup_color[3]);
 
         // Set the annotation contents (the text that appears in the popup)
-        if (!text.isEmpty())
-        {
-            pdf_set_annot_contents(m_ctx, annot, text.toUtf8().constData());
-        }
+        pdf_set_annot_contents(m_ctx, annot, text.toUtf8().constData());
 
         // Set the annotation to be open by default (optional)
         // pdf_set_annot_is_open(m_ctx, annot, 0);
@@ -1662,28 +1649,17 @@ Model::addTextAnnotation(const int pageno, const fz_rect &rect,
         if (obj)
             objNum = pdf_to_num(m_ctx, obj);
 
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
+    }
+    fz_always(m_ctx)
+    {
         pdf_drop_annot(m_ctx, annot);
         pdf_drop_page(m_ctx, page);
-
-        // {
-        //     std::lock_guard<std::recursive_mutex> cache_lock(
-        //         m_page_cache_mutex);
-        //     if (m_page_lru_cache.has(pageno))
-        //     {
-        //         // fz_drop_display_list(m_ctx,
-        //         // m_page_cache[pageno].display_list);
-        //         // m_page_cache.erase(pageno);
-        //         m_page_lru_cache.remove(pageno);
-        //     }
-        // }
-        // // Build cache outside the lock to avoid holding it during
-        // expensive
-        // // operations
-        // buildPageCache(pageno);
-        emit reloadRequested(pageno);
     }
     fz_catch(m_ctx)
     {
+
         qWarning() << "addTextAnnotation failed:" << fz_caught_message(m_ctx);
     }
 
@@ -1800,14 +1776,10 @@ Model::removeAnnotations(int pageno, const std::vector<int> &objNums) noexcept
             pdf_update_page(m_ctx, page);
 
             invalidatePageCache(pageno);
-            // Optional (depends on your saving flow):
-            // pdf_document *doc = m_pdf_doc;
-            // pdf_write_options opts = ...;
-            // pdf_save_document(m_ctx, doc, path, &opts);
+            emit reloadRequested(pageno);
         }
 
         pdf_drop_page(m_ctx, page);
-        emit reloadRequested(pageno);
     }
     fz_catch(m_ctx)
     {
@@ -1824,7 +1796,6 @@ Model::invalidatePageCache(int pageno) noexcept
         // m_page_cache.erase(pageno);
         m_page_lru_cache.remove(pageno);
     }
-    // emit reloadRequested(pageno);
 }
 
 void
@@ -2943,9 +2914,9 @@ Model::get_text_lines(int pageno) noexcept
 }
 
 int
-Model::visual_line_index_at_pos(int pageno, QPointF pos) noexcept
+Model::visual_line_index_at_pos(
+    QPointF pos, const std::vector<VisualLineInfo> &lines) noexcept
 {
-    const auto lines = get_text_lines(pageno);
     if (lines.empty())
         return -1;
 
