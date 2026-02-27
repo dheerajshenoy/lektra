@@ -3790,7 +3790,8 @@ Lektra::SetDPR() noexcept
 void
 Lektra::reloadDocument() noexcept
 {
-    if (m_doc) {
+    if (m_doc)
+    {
         m_doc->reloadDocument();
     }
 }
