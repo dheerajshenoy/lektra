@@ -233,9 +233,11 @@ public:
 
     inline bool hasUnsavedChanges() const noexcept
     {
-        // if (m_undo_stack)
-        //     return m_undo_stack->isClean() == false;
-        // return false;
+        // If the undo stack says we are at the 'save point', it's clean.
+        if (m_undo_stack && !m_undo_stack->isClean())
+            return true;
+
+        // Fallback: Ask MuPDF if the bitstream is dirty
         return pdf_has_unsaved_changes(m_ctx, m_pdf_doc);
     }
 
@@ -377,6 +379,7 @@ public:
     void reload() noexcept;
 
 signals:
+    void undoStackCleanChanged(bool clean);
     void urlLinksReady(int pageno, std::vector<RenderLink> links);
     void passwordRequired();
     void wrongPassword();
@@ -614,7 +617,9 @@ private:
     };
 
     std::vector<VisualLineInfo> get_text_lines(int pageno) noexcept;
-    int visual_line_index_at_pos(int pageno, QPointF scenePos) noexcept;
+    int
+    visual_line_index_at_pos(QPointF scenePos,
+                             const std::vector<VisualLineInfo> &lines) noexcept;
 
     friend class TextHighlightAnnotationCommand;
     friend class RectAnnotationCommand;
