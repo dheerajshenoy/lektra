@@ -17,189 +17,74 @@ extern "C"
 class DeleteAnnotationsCommand : public QUndoCommand
 {
 public:
-    // Structure to hold captured annotation data
-    struct AnnotationData
-    {
-        int objNum               = -1;
-        enum pdf_annot_type type = PDF_ANNOT_UNKNOWN;
-        fz_rect rect;
-        float color[4] = {0, 0, 0, 1};
-
-        std::vector<fz_quad> quads; // For highlight annotations
-        QString contents;           // For text annotations
-    };
-
-    // Constructor that captures annotations by their objNums before deletion
-    // Note: indexes here are actually PDF object numbers (objNums), not
-    // iteration indices
     DeleteAnnotationsCommand(Model *model, int pageno, const QSet<int> &objNums,
                              QUndoCommand *parent = nullptr)
-        : QUndoCommand("Delete Annotations", parent), m_model(model),
-          m_pageno(pageno)
+        : QUndoCommand(objNums.size() == 1 ? "Delete Annotation"
+                                           : "Delete Annotations",
+                       parent),
+          m_model(model), m_pageno(pageno)
     {
-        if (objNums.size() == 1)
-            setText("Delete Annotation");
-
-        // Capture annotation data for all selected annotations by objNum
-        captureAnnotationsDataByObjNum(objNums);
+        // Capture annotation data up front so undo can recreate them
+        captureAnnotationsData(objNums);
     }
 
     void undo() override
     {
-        if (!m_model || m_annotations.empty())
-            return;
-
-        fz_context *ctx   = m_model->m_ctx;
-        fz_document *doc  = m_model->m_doc;
-        pdf_document *pdf = pdf_specifics(ctx, doc);
-
-        if (!pdf)
-            return;
-
-        fz_try(ctx)
+        // Recreate each deleted annotation via Model and record the new objNums
+        for (AnnotData &d : m_annotations)
         {
-            pdf_page *page = pdf_load_page(ctx, pdf, m_pageno);
-            if (!page)
-                fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
-
-            // Recreate all annotations
-            for (AnnotationData &data : m_annotations)
+            switch (d.type)
             {
-                pdf_annot *annot = nullptr;
-
-                switch (data.type)
-                {
-                    case PDF_ANNOT_HIGHLIGHT:
-                    {
-                        annot
-                            = pdf_create_annot(ctx, page, PDF_ANNOT_HIGHLIGHT);
-                        if (annot && !data.quads.empty())
-                        {
-                            pdf_set_annot_quad_points(ctx, annot,
-                                                      data.quads.size(),
-                                                      data.quads.data());
-                            pdf_set_annot_color(ctx, annot, 3, data.color);
-                            pdf_set_annot_opacity(ctx, annot, data.color[3]);
-                        }
-                    }
+                case PDF_ANNOT_HIGHLIGHT:
+                    d.objNum
+                        = m_model->addHighlightAnnotation(m_pageno, d.quads);
                     break;
-
-                    case PDF_ANNOT_SQUARE:
-                    {
-                        annot = pdf_create_annot(ctx, page, PDF_ANNOT_SQUARE);
-                        if (annot)
-                        {
-                            pdf_set_annot_rect(ctx, annot, data.rect);
-                            pdf_set_annot_interior_color(ctx, annot, 3,
-                                                         data.color);
-                            pdf_set_annot_opacity(ctx, annot, data.color[3]);
-                        }
-                    }
+                case PDF_ANNOT_SQUARE:
+                    d.objNum = m_model->addRectAnnotation(m_pageno, d.rect);
                     break;
-
-                    case PDF_ANNOT_TEXT:
-                    {
-                        annot = pdf_create_annot(ctx, page, PDF_ANNOT_TEXT);
-                        if (annot)
-                        {
-                            pdf_set_annot_rect(ctx, annot, data.rect);
-                            pdf_set_annot_color(ctx, annot, 3, data.color);
-                            pdf_set_annot_opacity(ctx, annot, data.color[3]);
-                            if (!data.contents.isEmpty())
-                            {
-                                pdf_set_annot_contents(
-                                    ctx, annot,
-                                    data.contents.toUtf8().constData());
-                            }
-                        }
-                    }
+                case PDF_ANNOT_TEXT:
+                    d.objNum = m_model->addTextAnnotation(m_pageno, d.rect,
+                                                          d.contents);
                     break;
-
-                    default:
-                        break;
-                }
-
-                if (annot)
-                {
-                    pdf_update_annot(ctx, annot);
-                    // Update the stored object number to the new annotation
-                    pdf_obj *obj = pdf_annot_obj(ctx, annot);
-                    data.objNum  = pdf_to_num(ctx, obj);
-                    pdf_drop_annot(ctx, annot);
-                }
+                default:
+                    break;
             }
-
-            fz_drop_page(ctx, (fz_page *)page);
         }
-        fz_catch(ctx)
-        {
-            qWarning() << "Undo delete failed:" << fz_caught_message(ctx);
-        }
-
-        m_model->invalidatePageCache(m_pageno);
-        emit m_model->reloadRequested(m_pageno);
     }
 
     void redo() override
     {
-        if (!m_model || m_annotations.empty())
-            return;
+        std::vector<int> objNums;
+        objNums.reserve(m_annotations.size());
+        for (const AnnotData &d : m_annotations)
+            if (d.objNum >= 0)
+                objNums.push_back(d.objNum);
 
-        fz_context *ctx   = m_model->m_ctx;
-        fz_document *doc  = m_model->m_doc;
-        pdf_document *pdf = pdf_specifics(ctx, doc);
-
-        if (!pdf)
-            return;
-
-        fz_try(ctx)
-        {
-            pdf_page *page = pdf_load_page(ctx, pdf, m_pageno);
-            if (!page)
-                fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
-
-            // Delete annotations by objNum
-            for (const AnnotationData &data : m_annotations)
-            {
-                if (data.objNum < 0)
-                    continue;
-
-                pdf_annot *annot = pdf_first_annot(ctx, page);
-                while (annot)
-                {
-                    pdf_obj *obj = pdf_annot_obj(ctx, annot);
-                    if (pdf_to_num(ctx, obj) == data.objNum)
-                    {
-                        pdf_delete_annot(ctx, page, annot);
-                        pdf_update_page(ctx, page);
-                        break;
-                    }
-                    annot = pdf_next_annot(ctx, annot);
-                }
-            }
-
-            fz_drop_page(ctx, (fz_page *)page);
-        }
-        fz_catch(ctx)
-        {
-            qWarning() << "Redo delete failed:" << fz_caught_message(ctx);
-        }
-
-        m_model->invalidatePageCache(m_pageno);
+        m_model->removeAnnotations(m_pageno, objNums);
     }
 
 private:
-    // Capture annotation data by looking up annotations by their objNum (PDF
-    // object number)
-    void captureAnnotationsDataByObjNum(const QSet<int> &objNums)
+    struct AnnotData
+    {
+        int objNum{-1};
+        enum pdf_annot_type type
+        {
+            PDF_ANNOT_UNKNOWN
+        };
+        fz_rect rect{};
+        float color[4]{0, 0, 0, 1};
+        float opacity{1.0f};
+        std::vector<fz_quad> quads;
+        QString contents;
+    };
+
+    void captureAnnotationsData(const QSet<int> &objNums)
     {
         if (!m_model || objNums.isEmpty())
             return;
 
         fz_context *ctx   = m_model->m_ctx;
-        fz_document *doc  = m_model->m_doc;
-        pdf_document *pdf = pdf_specifics(ctx, doc);
-
+        pdf_document *pdf = pdf_specifics(ctx, m_model->m_doc);
         if (!pdf)
             return;
 
@@ -209,85 +94,61 @@ private:
             if (!page)
                 fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-            pdf_annot *annot = pdf_first_annot(ctx, page);
-
-            while (annot)
+            for (pdf_annot *a = pdf_first_annot(ctx, page); a;
+                 a            = pdf_next_annot(ctx, a))
             {
-                pdf_obj *obj   = pdf_annot_obj(ctx, annot);
-                int thisObjNum = pdf_to_num(ctx, obj);
+                const int num = pdf_to_num(ctx, pdf_annot_obj(ctx, a));
+                if (!objNums.contains(num))
+                    continue;
 
-                // Check if this annotation's objNum is in the set we want to
-                // delete
-                if (objNums.contains(thisObjNum))
+                AnnotData d;
+                d.objNum  = num;
+                d.type    = pdf_annot_type(ctx, a);
+                d.opacity = pdf_annot_opacity(ctx, a);
+                int n     = 0;
+
+                switch (d.type)
                 {
-                    AnnotationData data;
-                    data.objNum = thisObjNum;
-                    data.type   = pdf_annot_type(ctx, annot);
-
-                    int n         = 0;
-                    float opacity = pdf_annot_opacity(ctx, annot);
-
-                    switch (data.type)
-                    {
-                        case PDF_ANNOT_HIGHLIGHT:
-                        {
-                            pdf_annot_color(ctx, annot, &n, data.color);
-                            data.color[3] = opacity;
-
-                            // Capture quad points
-                            int quad_count
-                                = pdf_annot_quad_point_count(ctx, annot);
-                            data.quads.reserve(quad_count);
-                            for (int i = 0; i < quad_count; ++i)
-                            {
-                                fz_quad q = pdf_annot_quad_point(ctx, annot, i);
-                                data.quads.push_back(q);
-                            }
-                        }
+                    case PDF_ANNOT_HIGHLIGHT:
+                        pdf_annot_color(ctx, a, &n, d.color);
+                        d.color[3] = d.opacity;
+                        for (int i = 0, c = pdf_annot_quad_point_count(ctx, a);
+                             i < c; ++i)
+                            d.quads.push_back(pdf_annot_quad_point(ctx, a, i));
                         break;
 
-                        case PDF_ANNOT_SQUARE:
-                        {
-                            pdf_annot_interior_color(ctx, annot, &n,
-                                                     data.color);
-                            data.color[3] = opacity;
-                            data.rect     = pdf_annot_rect(ctx, annot);
-                        }
+                    case PDF_ANNOT_SQUARE:
+                        pdf_annot_interior_color(ctx, a, &n, d.color);
+                        d.color[3] = d.opacity;
+                        d.rect     = pdf_annot_rect(ctx, a);
                         break;
 
-                        case PDF_ANNOT_TEXT:
-                        {
-                            pdf_annot_color(ctx, annot, &n, data.color);
-                            data.color[3] = opacity;
-                            data.rect     = pdf_annot_rect(ctx, annot);
-                            const char *contents
-                                = pdf_annot_contents(ctx, annot);
-                            if (contents)
-                                data.contents = QString::fromUtf8(contents);
-                        }
+                    case PDF_ANNOT_TEXT:
+                        pdf_annot_color(ctx, a, &n, d.color);
+                        d.color[3] = d.opacity;
+                        d.rect     = pdf_annot_rect(ctx, a);
+                        if (const char *c = pdf_annot_contents(ctx, a))
+                            d.contents = QString::fromUtf8(c);
                         break;
 
-                        default:
-                            data.rect = pdf_annot_rect(ctx, annot);
-                            break;
-                    }
-
-                    m_annotations.push_back(data);
+                    default:
+                        d.rect = pdf_annot_rect(ctx, a);
+                        break;
                 }
 
-                annot = pdf_next_annot(ctx, annot);
+                m_annotations.push_back(std::move(d));
             }
 
             fz_drop_page(ctx, (fz_page *)page);
         }
         fz_catch(ctx)
         {
-            qWarning() << "Failed to capture annotation data:"
+            qWarning() << "DeleteAnnotationsCommand: failed to capture:"
                        << fz_caught_message(ctx);
         }
     }
 
     Model *m_model;
     int m_pageno;
-    std::vector<AnnotationData> m_annotations;
+    std::vector<AnnotData> m_annotations;
 };
