@@ -46,7 +46,10 @@ public:
         SVG,
         XPS,
         EPUB,
-        FB2
+        FB2,
+        TIFF,
+        PNG,
+        JPG,
     };
 
     struct LinkInfo

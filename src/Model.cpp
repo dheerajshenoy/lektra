@@ -155,12 +155,36 @@ Model::openAsync(const QString &filePath) noexcept
                     const QString ext = QString::fromUtf8(h->extensions[0]);
                     if (ext == "pdf")
                         filetype = FileType::PDF;
+
                     else if (ext == "epub")
                         filetype = FileType::EPUB;
+
                     else if (ext == "cbt")
                         filetype = FileType::CBZ;
+
                     else if (ext == "svg")
                         filetype = FileType::SVG;
+
+                    else if (ext == "xps")
+                        filetype = FileType::XPS;
+
+                    else if (ext == "fbz")
+                        filetype = FileType::FB2;
+
+                    else if (ext == "mobi")
+                        filetype = FileType::MOBI;
+
+                    else if (ext == "jpg" || ext == "jpeg")
+                        filetype = FileType::JPG;
+
+                    else if (ext == "png")
+                        filetype = FileType::PNG;
+
+                    else if (ext == "tif" || ext == "tiff")
+                        filetype = FileType::TIFF;
+
+                    else
+                        filetype = FileType::PDF;
                 }
             }
         }
@@ -2946,3 +2970,10 @@ Model::visual_line_index_at_pos(int pageno, QPointF pos) noexcept
 
     return closest;
 }
+
+#ifdef HAS_DJVU
+void
+Model::openDJVUAsync(const QString &filePath) noexcept
+{
+}
+#endif
