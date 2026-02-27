@@ -80,7 +80,6 @@ DocumentView::DocumentView(const Config &config, QWidget *parent) noexcept
 DocumentView::~DocumentView() noexcept
 {
     // Stop and WAIT for all renders to finish before touching anything
-    m_cancelled->store(true);
     stopPendingRenders();
 #ifdef HAS_SYNCTEX
     synctex_scanner_free(m_synctex_scanner);
@@ -270,6 +269,7 @@ DocumentView::openAsync(const QString &filePath) noexcept
 #ifndef NDEBUG
     qDebug() << "DocumentView::openAsync(): Opening file:" << filePath;
 #endif
+
     clearDocumentItems();
 
     m_spinner->start();
@@ -383,6 +383,9 @@ DocumentView::initConnections() noexcept
     // m_current_zoom,
     //                                      m_rotation);
     // });
+    connect(m_model, &Model::undoStackCleanChanged, this,
+            [this](bool state) { setModified(!state); });
+
     connect(m_model, &Model::searchResultsReady, this,
             &DocumentView::handleSearchResults);
 
@@ -596,12 +599,10 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
             const float scale = m_model->logicalScale();
             const QPointF modelPos(pagePos.x() / scale, pagePos.y() / scale);
 
+            m_visual_lines = m_model->get_text_lines(pageIndex);
             m_visual_line_index
-                = m_model->visual_line_index_at_pos(pageIndex, modelPos);
-            m_visual_lines = m_model->get_text_lines(
-                pageIndex);       // ensure lines are for this page
-            m_pageno = pageIndex; // sync page if user clicked a
-                                  // different page
+                = m_model->visual_line_index_at_pos(modelPos, m_visual_lines);
+            m_pageno = pageIndex;
             snap_visual_line(false);
             return;
         }
@@ -647,8 +648,8 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
     const QPolygonF firstQuad = toScene.map(quads.front());
     const QPolygonF lastQuad  = toScene.map(quads.back());
 
-    m_selection_start = firstQuad.at(0); // top-left of first quad
-    m_selection_end   = lastQuad.at(2);
+    m_selection_start = firstQuad[0]; // top-left of first quad
+    m_selection_end   = lastQuad[2];  // bottom-right of last quad
 
     // Update metadata for copying/highlighting
     m_selection_start_page = pageIndex;
@@ -725,13 +726,15 @@ DocumentView::synctexLocateInDocument(const char *texFileName,
 #endif
 
 void
-DocumentView::handleTextHighlightRequested(QPointF start, QPointF end) noexcept
+DocumentView::handleTextHighlightRequested() noexcept
 {
     if (!has_text_selection())
         return;
 
-    int startP = m_selection_start_page;
-    int endP   = m_selection_end_page;
+    const QPointF start = m_selection_start;
+    const QPointF end   = m_selection_end;
+    const int startP    = m_selection_start_page;
+    const int endP      = m_selection_end_page;
 
     for (int p = startP; p <= endP; ++p)
     {
@@ -765,7 +768,6 @@ DocumentView::handleTextHighlightRequested(QPointF start, QPointF end) noexcept
     }
 
     ClearTextSelection();
-    setModified(true);
 }
 
 // Handle text selection from GraphicsView
@@ -1713,18 +1715,26 @@ DocumentView::SaveFile() noexcept
     qDebug() << "DocumentView::SaveFile(): Saving file with unsaved changes.";
 #endif
 
+    m_generation++;
     stopPendingRenders();
+
     if (m_model->SaveChanges())
     {
+        {
+            // clearDocumentItems();
+            // cachePageStride();
+            // updateSceneRect();
+            invalidateVisiblePagesCache();
+            renderPages();
+        }
+        m_model->undoStack()->setClean();
         setModified(false);
-        reloadDocument();
     }
     else
     {
         QMessageBox::critical(
             this, "Saving failed",
             "Could not save the current file. Try 'Save As' instead.");
-        m_cancelled->store(false);
     }
 }
 
@@ -2267,10 +2277,20 @@ DocumentView::renderPage() noexcept
 void
 DocumentView::startNextRenderJob() noexcept
 {
+
+#ifndef NDEBUG
+    qDebug() << "DocumentView::startNextRenderJob(): Renders in flight:"
+             << m_renders_in_flight << " Queue size: " << m_render_queue.size();
+#endif
+    static bool isProcessing = false;
+    if (isProcessing)
+        return;
+    isProcessing = true;
+
     // Get current visible pages for prioritization
     const std::set<int> &visiblePages = getVisiblePages();
 
-    while (m_renders_in_flight < MAX_CONCURRENT_RENDERS
+    while (m_renders_in_flight < static_cast<int>(MAX_CONCURRENT_RENDERS)
            && !m_render_queue.isEmpty())
     {
         // Prioritize visible pages first
@@ -2296,21 +2316,30 @@ DocumentView::startNextRenderJob() noexcept
         // pageno = m_render_queue.dequeue();
         // if (!m_pending_renders.contains(pageno))
         //     continue;
-        //
+
         ++m_renders_in_flight;
         auto job = m_model->createRenderJob(pageno);
 
-        auto cancelled = m_cancelled; // shared_ptr copy
+        int currentGen
+            = m_generation; // capture current generation for this job
 
         m_model->requestPageRender(
             job,
-            [this, pageno, cancelled](const Model::PageRenderResult &result)
+            [this, pageno, currentGen](const Model::PageRenderResult &result)
         {
-            --m_renders_in_flight;
-            m_pending_renders.remove(pageno);
+            if (currentGen != m_generation)
+                return; // discard results from old generations
 
-            if (cancelled->load())
-                return;
+            struct RenderGuard
+            {
+                std::atomic<int> &counter;
+                ~RenderGuard()
+                {
+                    --counter;
+                }
+            } guard(m_renders_in_flight);
+
+            m_pending_renders.remove(pageno);
 
             // Use QImage directly - avoid expensive QPixmap::fromImage()
             // conversion
@@ -2373,6 +2402,7 @@ DocumentView::startNextRenderJob() noexcept
             startNextRenderJob();
         });
     }
+    isProcessing = false;
 }
 
 // Remove pending renders for pages that are no longer visible and not
@@ -2467,7 +2497,7 @@ DocumentView::removePageItem(int pageno) noexcept
     if (m_page_items_hash.contains(pageno))
     {
         GraphicsImageItem *item = m_page_items_hash.take(pageno);
-        if (item->scene() == m_gscene)
+        if (item && item->scene() == m_gscene)
             m_gscene->removeItem(item);
         delete item;
     }
@@ -2863,7 +2893,7 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
         addAction("Copy Text", [this]() { YankSelection(true); });
         addAction("Copy Unformatted Text", [this]() { YankSelection(false); });
         addAction("Highlight Text",
-                  &DocumentView::TextHighlightCurrentSelection);
+                  &DocumentView::handleTextHighlightRequested);
         hasActions = true;
     }
 
@@ -2889,7 +2919,7 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
                 m_model->undoStack()->push(new DeleteAnnotationsCommand(
                     m_model, it.key(), it.value()));
             }
-            setModified(true);
+            // setModified(true);
         });
 
         // Change color of the selected annotations
@@ -2913,12 +2943,6 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
         *handled = true;
 
     menu->popup(globalPos);
-}
-
-void
-DocumentView::TextHighlightCurrentSelection() noexcept
-{
-    handleTextHighlightRequested(m_selection_start, m_selection_end);
 }
 
 void
@@ -3083,9 +3107,9 @@ DocumentView::clearDocumentItems() noexcept
 
 // Request rendering of a specific page (ASYNC)
 void
-DocumentView::requestPageRender(int pageno) noexcept
+DocumentView::requestPageRender(int pageno, bool force) noexcept
 {
-    if (m_pending_renders.contains(pageno))
+    if (!force && m_pending_renders.contains(pageno))
         return;
 
 #ifndef NDEBUG
@@ -3095,9 +3119,8 @@ DocumentView::requestPageRender(int pageno) noexcept
 #endif
 
     m_pending_renders.insert(pageno);
-    createAndAddPlaceholderPageItem(pageno);
-
     m_render_queue.enqueue(pageno);
+    createAndAddPlaceholderPageItem(pageno);
     startNextRenderJob();
 }
 
@@ -3405,7 +3428,7 @@ DocumentView::renderAnnotations(
                     {
                         m_model->setTextAnnotationContents(
                             pageno, textAnnot->index(), newText);
-                        setModified(true);
+                        // setModified(true);
                     }
                 });
             }
@@ -3430,7 +3453,7 @@ DocumentView::renderAnnotations(
         {
             m_model->undoStack()->push(new DeleteAnnotationsCommand(
                 m_model, pageno, {annot_item->index()}));
-            setModified(true);
+            // setModified(true);
         });
 
         connect(annot_item, &Annotation::annotColorChangeRequested,
@@ -3442,7 +3465,7 @@ DocumentView::renderAnnotations(
             if (color.isValid())
             {
                 m_model->annotChangeColor(pageno, annot_item->index(), color);
-                setModified(true);
+                // setModified(true);
                 // requestPageRender(pageno);
             }
         });
@@ -3830,7 +3853,7 @@ DocumentView::changeColorOfSelectedAnnotations(const QColor &color) noexcept
         m_model->annotChangeColor(pageno, annot->index(), color);
     }
 
-    setModified(true);
+    // setModified(true);
 }
 
 // Returns the current location in the document
@@ -4070,7 +4093,13 @@ DocumentView::tryReloadLater(int attempt) noexcept
 #ifdef HAS_SYNCTEX
             initSynctex();
 #endif
-            reloadDocument();
+            {
+                clearDocumentItems();
+                cachePageStride();
+                updateSceneRect();
+                invalidateVisiblePagesCache();
+                renderPages();
+            }
             emit totalPageCountChanged(m_model->m_page_count);
         }
 
@@ -4135,7 +4164,7 @@ DocumentView::handleAnnotRectRequested(QRectF area) noexcept
 
     m_model->undoStack()->push(
         new RectAnnotationCommand(m_model, pageno, rect));
-    setModified(true);
+    // setModified(true);
 }
 
 // Handle annotation popup (text/sticky note) requested
@@ -4173,7 +4202,7 @@ DocumentView::handleAnnotPopupRequested(QPointF scenePos) noexcept
 
     m_model->undoStack()->push(
         new TextAnnotationCommand(m_model, pageno, rect, text));
-    setModified(true);
+    // setModified(true);
 }
 
 // Re display the jump marker (e.g. after a jump link is activated), useful
@@ -4369,9 +4398,9 @@ DocumentView::handleVScrollValueChanged(int value) noexcept
 void
 DocumentView::stopPendingRenders() noexcept
 {
-    m_cancelled->store(true);
     m_pending_renders.clear();
     m_render_queue.clear();
+    m_renders_in_flight.store(0);
 }
 
 // Handle password for password-protected files
@@ -4625,27 +4654,19 @@ DocumentView::handleReloadRequested(int pageno) noexcept
     qDebug() << "DocumentView::handleReloadRequested(): Reload requested for "
              << "page:" << pageno;
 #endif
-    // Remove only the affected page item so it gets re-rendered
-    if (m_page_items_hash.contains(pageno))
-    {
-        if (auto *item = m_page_items_hash.take(pageno))
-        {
-            m_gscene->removeItem(item);
-            delete item;
-        }
-    }
-
-    m_pending_renders.remove(pageno);
-    invalidateVisiblePagesCache();
-    requestPageRender(pageno);
+    // removePageItem(pageno);
+    // // m_pending_renders.remove(pageno);
+    // invalidateVisiblePagesCache();
+    // removePageItem(pageno);
+    requestPageRender(pageno, true);
 }
 
 void
 DocumentView::reloadDocument() noexcept
 {
-    m_cancelled->store(false);
-    clearDocumentItems();
-    cachePageStride();
-    updateSceneRect();
+    // clearDocumentItems();
+    // cachePageStride();
+    // updateSceneRect();
+    // invalidateVisiblePagesCache();
     renderPages();
 }
