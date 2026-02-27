@@ -2367,7 +2367,7 @@ void
 Lektra::TextHighlightCurrentSelection() noexcept
 {
     if (m_doc)
-        m_doc->TextHighlightCurrentSelection();
+        m_doc->handleTextHighlightRequested();
 }
 
 // Initialize all the connections for the `Lektra` class
