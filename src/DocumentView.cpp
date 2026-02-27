@@ -4069,11 +4069,16 @@ DocumentView::tryReloadLater(int attempt) noexcept
         }
         else
         {
-            renderPages();
-            emit totalPageCountChanged(m_model->m_page_count);
 #ifdef HAS_SYNCTEX
             initSynctex();
 #endif
+            m_cancelled->store(false);
+            clearDocumentItems();
+            cachePageStride();
+            updateSceneRect();
+            renderPages();
+            setModified(false);
+            // emit totalPageCountChanged(m_model->m_page_count);
         }
 
         const QString &filepath = m_model->filePath();
