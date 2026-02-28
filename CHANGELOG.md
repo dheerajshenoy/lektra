@@ -6,6 +6,7 @@
 
 - Support for running shell scripts
 - Support for DJVU files (limited, only basic rendering and navigation, no text selection and searching)
+- New command line argument `--layout` to specify the default layout mode on file open (e.g. `--layout=book` to open in book layout mode)
 
 ### Core Features
 
@@ -32,6 +33,8 @@
 
 ### Breaking Changes
 
+- Rename `LEFT_TO_RIGHT` layout to `horizontal` and `TOP_TO_BOTTOM` layout to `vertical` for better clarity and intuitiveness.
+- Renamed `layout_left_to_right` command to `layout_horizontal` and `layout_top_to_bottom` command to `layout_vertical` to reflect the renamed layout modes.
 - Command palette is now opened with ":" key by default instead of "Ctrl + Shift + P" to stay close to the Vim way of opening command palette and also because it's more ergonomic to open with a single key press.
 
 #### Renamed Commands:
