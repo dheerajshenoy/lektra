@@ -63,7 +63,7 @@ public:
     void Focus_split_down() noexcept;
     void Focus_split_left() noexcept;
     void Focus_split_right() noexcept;
-    void Read_args_parser(argparse::ArgumentParser &argparser) noexcept;
+    void Read_args_parser(const argparse::ArgumentParser &argparser) noexcept;
     // bool OpenFile(DocumentView *view) noexcept;
     void Search() noexcept;
     void Search_regex() noexcept;

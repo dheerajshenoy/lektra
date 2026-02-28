@@ -1310,7 +1310,7 @@ Lektra::ShowAbout() noexcept
 // Reads the arguments passed with `Lektra` from the
 // commandline
 void
-Lektra::Read_args_parser(argparse::ArgumentParser &argparser) noexcept
+Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 {
 
     if (argparser.is_used("version"))
