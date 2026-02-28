@@ -239,15 +239,13 @@ Lektra::initMenubar() noexcept
 
     m_actionLayoutLeftToRight = m_layoutMenu->addAction(
         QString("Left to Right Page\t%1")
-            .arg(m_config.shortcuts["layout_left_to_right"]),
-        this,
-        [&]() { SetLayoutMode(DocumentView::LayoutMode::LEFT_TO_RIGHT); });
+            .arg(m_config.shortcuts["layout_horizontal"]),
+        this, [&]() { SetLayoutMode(DocumentView::LayoutMode::HORIZONTAL); });
 
     m_actionLayoutTopToBottom = m_layoutMenu->addAction(
         QString("Top to Bottom Page\t%1")
-            .arg(m_config.shortcuts["layout_top_to_bottom"]),
-        this,
-        [&]() { SetLayoutMode(DocumentView::LayoutMode::TOP_TO_BOTTOM); });
+            .arg(m_config.shortcuts["layout_vertical"]),
+        this, [&]() { SetLayoutMode(DocumentView::LayoutMode::VERTICAL); });
 
     m_actionLayoutBook = m_layoutMenu->addAction(
         QString("Book\t%1").arg(m_config.shortcuts["layout_book"]), this,
@@ -266,9 +264,9 @@ Lektra::initMenubar() noexcept
                                      == DocumentView::LayoutMode::SINGLE);
 
     m_actionLayoutLeftToRight->setChecked(
-        m_config.layout.mode == DocumentView::LayoutMode::LEFT_TO_RIGHT);
+        m_config.layout.mode == DocumentView::LayoutMode::HORIZONTAL);
     m_actionLayoutTopToBottom->setChecked(
-        m_config.layout.mode == DocumentView::LayoutMode::TOP_TO_BOTTOM);
+        m_config.layout.mode == DocumentView::LayoutMode::VERTICAL);
     m_actionLayoutBook->setChecked(m_config.layout.mode
                                    == DocumentView::LayoutMode::BOOK);
 
@@ -675,16 +673,16 @@ Lektra::initConfig() noexcept
         {
             DocumentView::LayoutMode mode;
 
-            if (str == "top_to_bottom")
-                mode = DocumentView::LayoutMode::TOP_TO_BOTTOM;
+            if (str == "vertical")
+                mode = DocumentView::LayoutMode::VERTICAL;
             else if (str == "single")
                 mode = DocumentView::LayoutMode::SINGLE;
-            else if (str == "left_to_right")
-                mode = DocumentView::LayoutMode::LEFT_TO_RIGHT;
+            else if (str == "horizontal")
+                mode = DocumentView::LayoutMode::HORIZONTAL;
             else if (str == "book")
                 mode = DocumentView::LayoutMode::BOOK;
             else
-                mode = DocumentView::LayoutMode::TOP_TO_BOTTOM;
+                mode = DocumentView::LayoutMode::VERTICAL;
 
             m_config.layout.mode = mode;
         }
@@ -3766,14 +3764,13 @@ Lektra::initCommands() noexcept
     m_command_manager.reg("layout_single", "Single page layout",
                           [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::SINGLE); });
-    m_command_manager.reg("layout_left_to_right",
+    m_command_manager.reg("layout_horizontal",
                           "Horizontal (left to right) layout",
                           [this](const QStringList &)
-    { SetLayoutMode(DocumentView::LayoutMode::LEFT_TO_RIGHT); });
-    m_command_manager.reg("layout_top_to_bottom",
-                          "Vertical (top to bottom) layout",
+    { SetLayoutMode(DocumentView::LayoutMode::HORIZONTAL); });
+    m_command_manager.reg("layout_vertical", "Vertical (top to bottom) layout",
                           [this](const QStringList &)
-    { SetLayoutMode(DocumentView::LayoutMode::TOP_TO_BOTTOM); });
+    { SetLayoutMode(DocumentView::LayoutMode::VERTICAL); });
     m_command_manager.reg("layout_book", "Book (two page spread) layout",
                           [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::BOOK); });
