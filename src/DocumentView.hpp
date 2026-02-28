@@ -578,5 +578,6 @@ private:
     void visual_line_move(Direction direction) noexcept;
     void snap_visual_line(bool centerView = true) noexcept;
 
-    int m_generation = 0; // save generation count for pending render jobs to detect stale jobs
+    int m_generation = 0; // save generation count for pending render jobs to
+                          // detect stale jobs
 };
