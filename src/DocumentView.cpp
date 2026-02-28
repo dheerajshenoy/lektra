@@ -85,7 +85,10 @@ DocumentView::~DocumentView() noexcept
     synctex_scanner_free(m_synctex_scanner);
 #endif
 
-    m_model->cleanup_mupdf();
+    if (m_model->fileType() == Model::FileType::DJVU)
+        m_model->cleanup_djvu();
+    else
+        m_model->cleanup_mupdf();
 
     m_gscene->removeItem(m_jump_marker);
     m_gscene->removeItem(m_selection_path_item);
@@ -251,6 +254,9 @@ DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
 void
 DocumentView::initSynctex() noexcept
 {
+    if (m_model->fileType() != Model::FileType::PDF)
+        return;
+
     if (m_synctex_scanner)
     {
         synctex_scanner_free(m_synctex_scanner);
@@ -404,7 +410,7 @@ DocumentView::initConnections() noexcept
     connect(m_model, &Model::reloadRequested, this,
             &DocumentView::handleReloadRequested, Qt::UniqueConnection);
 
-    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
         connect(m_hscroll, &QScrollBar::valueChanged, this,
                 &DocumentView::handleHScrollValueChanged, Qt::UniqueConnection);
@@ -415,7 +421,7 @@ DocumentView::initConnections() noexcept
         connect(m_scroll_page_update_timer, &QTimer::timeout, this,
                 &DocumentView::renderPages, Qt::UniqueConnection);
     }
-    else if (m_layout_mode == LayoutMode::TOP_TO_BOTTOM
+    else if (m_layout_mode == LayoutMode::VERTICAL
              || m_layout_mode == LayoutMode::BOOK)
     {
         connect(m_vscroll, &QScrollBar::valueChanged, this,
@@ -477,6 +483,9 @@ DocumentView::initConnections() noexcept
 void
 DocumentView::handleLinkCtrlClickRequested(QPointF scenePos) noexcept
 {
+    if (!m_model->supports_links())
+        return;
+
     int pageIndex               = -1;
     GraphicsImageItem *pageItem = nullptr;
 
@@ -561,6 +570,9 @@ DocumentView::buildFlatSearchHitIndex() noexcept
 #ifndef NDEBUG
     qDebug() << "DocumentView::buildFlatSearchHitIndex(): Building flat index";
 #endif
+    if (!m_model->supports_text_search())
+        return;
+
     m_search_hit_flat_refs.clear();
     m_search_hit_flat_refs.reserve(m_model->searchMatchesCount());
 
@@ -582,6 +594,7 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
     qDebug() << "DocumentView::handleClickSelection(): Handling click type"
              << clickType << "at scene position" << scenePos;
 #endif
+
     int pageIndex               = -1;
     GraphicsImageItem *pageItem = nullptr;
 
@@ -779,23 +792,8 @@ DocumentView::handleTextHighlightRequested() noexcept
 void
 DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
 {
-    Model::FileType ft = m_model->fileType();
-    switch (ft)
-    {
-
-        case Model::FileType::NONE:
-        case Model::FileType::CBZ:
-        case Model::FileType::MOBI:
-        case Model::FileType::SVG:
-        case Model::FileType::XPS:
-        case Model::FileType::EPUB:
-        case Model::FileType::FB2:
-        case Model::FileType::TIFF:
-        case Model::FileType::PNG:
-        case Model::FileType::JPG:
-        case Model::FileType::DJVU:
-            return;
-    }
+    if (!m_model->supports_text_selection())
+        return;
 
     int startPage                    = -1;
     int endPage                      = -1;
@@ -1183,7 +1181,7 @@ DocumentView::GotoPage(int pageno) noexcept
     {
         renderPage();
     }
-    else if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    else if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
         // Center the view on the horizontal middle of the page
         const double x
@@ -1267,6 +1265,8 @@ DocumentView::Search(const QString &term, bool useRegex) noexcept
 #ifndef NDEBUG
     qDebug() << "DocumentView::Search(): Searching for term:" << term;
 #endif
+    if (!m_model->supports_text_search())
+        return;
 
     clearSearchHits();
     if (term.isEmpty())
@@ -1290,6 +1290,8 @@ DocumentView::SearchInPage(const int pageno, const QString &term) noexcept
     qDebug() << "DocumentView::SearchInPage(): Searching page: " << pageno
              << " for term: " << term;
 #endif
+    if (!m_model->supports_text_search())
+        return;
 
     clearSearchHits();
     if (term.isEmpty())
@@ -1384,7 +1386,7 @@ DocumentView::GotoHit(int index) noexcept
     const double hitY = (hit.quad.ul.y + hit.quad.ll.y) * scale / 2.0;
 
     QPointF scenePos;
-    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
         scenePos
             = QPointF(pageOffset(ref.page) + hitX,
@@ -1516,6 +1518,9 @@ DocumentView::LinkKB() noexcept
     QMap<int, Model::LinkInfo> hintMap;
 
     if (!m_gscene)
+        return hintMap;
+
+    if (!m_model->supports_links())
         return hintMap;
 
     ClearKBHintsOverlay();
@@ -1689,7 +1694,7 @@ DocumentView::FollowLink(const Model::LinkInfo &info) noexcept
 void
 DocumentView::FileProperties() noexcept
 {
-    if (!m_model->success())
+    if (!m_model->success() || !m_model->supports_metadata())
         return;
 
     PropertiesWidget *propsWidget = new PropertiesWidget(this);
@@ -1702,7 +1707,7 @@ DocumentView::FileProperties() noexcept
 void
 DocumentView::SaveFile() noexcept
 {
-    if (!m_model->hasUnsavedChanges())
+    if (!m_model->hasUnsavedChanges() || m_model->supports_save())
         return;
 
 #ifndef NDEBUG
@@ -1736,6 +1741,9 @@ DocumentView::SaveFile() noexcept
 void
 DocumentView::SaveAsFile() noexcept
 {
+    if (!m_model->supports_save())
+        return;
+
     const QString filename
         = QFileDialog::getSaveFileName(this, "Save as", QString());
 
@@ -2025,7 +2033,7 @@ DocumentView::getVisiblePages() noexcept
         = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
 
     double a0, a1;
-    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
         a0 = visibleSceneRect.left();
         a1 = visibleSceneRect.right();
@@ -2126,7 +2134,7 @@ DocumentView::invalidateVisiblePagesCache() noexcept
 void
 DocumentView::clearLinksForPage(int pageno) noexcept
 {
-    if (!m_page_links_hash.contains(pageno))
+    if (m_model->supports_links() && !m_page_links_hash.contains(pageno))
         return;
 
     auto links = m_page_links_hash.take(pageno); // removes from hash
@@ -2146,7 +2154,7 @@ DocumentView::clearLinksForPage(int pageno) noexcept
 void
 DocumentView::clearSearchItemsForPage(int pageno) noexcept
 {
-    if (!m_search_items.contains(pageno))
+    if (!m_model->supports_text_search() && !m_search_items.contains(pageno))
         return;
 
     QGraphicsPathItem *item
@@ -2163,21 +2171,20 @@ DocumentView::clearSearchItemsForPage(int pageno) noexcept
 void
 DocumentView::clearAnnotationsForPage(int pageno) noexcept
 {
-    if (!m_page_annotations_hash.contains(pageno))
+    if (!m_model->supports_annotations()
+        && !m_page_annotations_hash.contains(pageno))
         return;
 
     auto annotations
         = m_page_annotations_hash.take(pageno); // removes from hash
     for (auto *annotation : annotations)
     {
-        if (!annotation)
-            continue;
-
         // Remove from scene if still present
-        if (annotation->scene() == m_gscene)
+        if (annotation && annotation->scene() == m_gscene)
+        {
             m_gscene->removeItem(annotation);
-
-        delete annotation; // safe: we "own" these
+            delete annotation;
+        }
     }
 }
 
@@ -2556,7 +2563,7 @@ DocumentView::cachePageStride() noexcept
     }
     else
     {
-        const bool horizontal = (m_layout_mode == LayoutMode::LEFT_TO_RIGHT);
+        const bool horizontal = (m_layout_mode == LayoutMode::HORIZONTAL);
         for (int i = 0; i < N; ++i)
         {
             m_page_offsets[i] = cursor;
@@ -2626,7 +2633,7 @@ DocumentView::updateSceneRect() noexcept
         const double sceneH  = std::max(viewH, page.height());
         m_gview->setSceneRect(-xMargin, -yMargin, sceneW, sceneH);
     }
-    else if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    else if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
         const double totalWidth = totalPageExtent();
         const double sceneH     = std::max(viewH, m_max_page_cross_extent);
@@ -2739,10 +2746,10 @@ DocumentView::pageAtScenePos(QPointF scenePos, int &outPageIndex,
     }
 
     // ── Multi-page modes: binary search the prefix-sum array
-    // ───────────────── pageOffset(i) is the main-axis start of page i.
+    // pageOffset(i) is the main-axis start of page i.
     // upper_bound(coord) gives the first entry strictly greater than coord,
     // so the page that owns coord is one slot before that iterator.
-    const double coord = (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    const double coord = (m_layout_mode == LayoutMode::HORIZONTAL)
                              ? scenePos.x()
                              : scenePos.y();
 
@@ -2754,12 +2761,12 @@ DocumentView::pageAtScenePos(QPointF scenePos, int &outPageIndex,
     candidate = std::clamp(candidate, 0, N - 1);
 
     // ── Try candidate, then expand outward
-    // ─────────────────────────────────── With variable page sizes the
-    // binary search is exact for the main axis, but the cross-axis check
-    // (sceneBoundingRect) can still miss e.g. during a zoom animation
-    // frame. Expanding ±1 covers that transient case without ever needing
-    // more — the binary search already pins the main-axis page correctly,
-    // so ±1 is now a genuine safety net rather than the primary mechanism.
+    // With variable page sizes the binary search is exact for the main axis,
+    // but the cross-axis check (sceneBoundingRect) can still miss e.g. during a
+    // zoom animation frame. Expanding ±1 covers that transient case without
+    // ever needing more — the binary search already pins the main-axis page
+    // correctly, so ±1 is now a genuine safety net rather than the primary
+    // mechanism.
 
     std::vector<int> candidates;
     if (m_layout_mode == LayoutMode::BOOK)
@@ -2823,6 +2830,8 @@ DocumentView::clearVisiblePages() noexcept
 void
 DocumentView::clearVisibleLinks() noexcept
 {
+    if (!m_model->supports_links())
+        return;
     QList<int> trackedPages = m_page_links_hash.keys();
     for (int pageno : trackedPages)
     {
@@ -2838,6 +2847,8 @@ DocumentView::clearVisibleLinks() noexcept
 void
 DocumentView::clearVisibleAnnotations() noexcept
 {
+    if (!m_model->supports_annotations())
+        return;
     QList<int> trackedPages = m_page_annotations_hash.keys();
     for (int pageno : trackedPages)
     {
@@ -3015,11 +3026,11 @@ DocumentView::updateCurrentPage() noexcept
         return;
     }
 
-    const int viewportHalf = (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    const int viewportHalf = (m_layout_mode == LayoutMode::HORIZONTAL)
                                  ? m_gview->viewport()->width() / 2
                                  : m_gview->viewport()->height() / 2;
 
-    const int scrollPos = (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    const int scrollPos = (m_layout_mode == LayoutMode::HORIZONTAL)
                               ? m_hscroll->value()
                               : m_vscroll->value();
 
@@ -3168,7 +3179,7 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
     const double pageH = logicalSize.height();
     const QRectF sr    = m_gview->sceneRect();
 
-    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
         const double yOffset = (m_max_page_cross_extent - pageH) / 2.0;
         const double xPos    = pageOffset(pageno);
@@ -3208,7 +3219,7 @@ DocumentView::createAndAddPageItem(int pageno, const QImage &img) noexcept
     const double pageH       = logicalSize.height();
     const QRectF sr          = m_gview->sceneRect();
 
-    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
         const double yPos = (m_max_page_cross_extent - pageH) / 2.0;
         item->setPos(pageOffset(pageno), yPos);
@@ -3233,7 +3244,8 @@ DocumentView::renderLinks(int pageno,
                           const std::vector<Model::RenderLink> &links,
                           bool append) noexcept
 {
-    if (!append && m_page_links_hash.contains(pageno))
+    if (!m_model->supports_links() && !append
+        && m_page_links_hash.contains(pageno))
         return;
 
     GraphicsImageItem *pageItem = m_page_items_hash[pageno];
@@ -3381,7 +3393,8 @@ DocumentView::renderAnnotations(
     const int pageno,
     const std::vector<Model::RenderAnnotation> &annotations) noexcept
 {
-    if (m_page_annotations_hash.contains(pageno))
+    if (!m_model->supports_annotations()
+        && m_page_annotations_hash.contains(pageno))
         return;
 
     GraphicsImageItem *pageItem = m_page_items_hash[pageno];
@@ -3471,7 +3484,7 @@ DocumentView::renderAnnotations(
 void
 DocumentView::setModified(bool modified) noexcept
 {
-    if (m_is_modified == modified)
+    if (!m_model->supports_save() && m_is_modified == modified)
         return;
 
     m_is_modified = modified;
@@ -3506,6 +3519,9 @@ DocumentView::setModified(bool modified) noexcept
 bool
 DocumentView::EncryptDocument() noexcept
 {
+    if (!m_model->supports_encryption())
+        return false;
+
     Model::EncryptInfo encryptInfo;
     bool ok;
     QString password = QInputDialog::getText(
@@ -3520,6 +3536,9 @@ DocumentView::EncryptDocument() noexcept
 bool
 DocumentView::DecryptDocument() noexcept
 {
+    if (!m_model->supports_decryption())
+        return false;
+
     if (fz_needs_password(m_model->m_ctx, m_model->m_doc))
     {
         bool ok;
@@ -3591,6 +3610,9 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
 void
 DocumentView::renderSearchHitsInScrollbar() noexcept
 {
+    if (!m_model->supports_text_search())
+        return;
+
     m_vscroll->setSearchMarkers({});
     m_hscroll->setSearchMarkers({});
 
@@ -3607,7 +3629,7 @@ DocumentView::renderSearchHitsInScrollbar() noexcept
 
     std::vector<double> markers;
     markers.reserve(m_search_hit_flat_refs.size());
-    if (m_layout_mode == LayoutMode::TOP_TO_BOTTOM
+    if (m_layout_mode == LayoutMode::VERTICAL
         || m_layout_mode == LayoutMode::BOOK)
     {
         for (const auto &hitRef : m_search_hit_flat_refs)
@@ -3634,7 +3656,7 @@ DocumentView::renderSearchHitsInScrollbar() noexcept
 QGraphicsPathItem *
 DocumentView::ensureSearchItemForPage(int pageno) noexcept
 {
-    if (m_search_items.contains(pageno))
+    if (!m_model->supports_text_search() && m_search_items.contains(pageno))
         return m_search_items[pageno];
 
     auto *item = m_gscene->addPath(QPainterPath());
@@ -3649,7 +3671,11 @@ DocumentView::ensureSearchItemForPage(int pageno) noexcept
 void
 DocumentView::ReselectLastTextSelection() noexcept
 {
-    // TODO: Implement this!
+    if (!m_selection_path_item || m_selection_path_item->path().isEmpty())
+        return;
+
+    m_selection_path_item->setVisible(false);
+    m_selection_path_item->setVisible(true);
 }
 
 void
@@ -3842,12 +3868,14 @@ DocumentView::changeColorOfSelectedAnnotations(const QColor &color) noexcept
     if (selectedAnnots.empty())
         return;
 
+    // TODO: This should be an undoable command that changes the color of all
+    // selected annotations in one action, instead of multiple separate
+    // commands.
+
     for (const auto &[pageno, annot] : selectedAnnots)
     {
         m_model->annotChangeColor(pageno, annot->index(), color);
     }
-
-    // setModified(true);
 }
 
 // Returns the current location in the document
@@ -3866,9 +3894,7 @@ DocumentView::CurrentLocation() noexcept
     return {pageno, (float)pageLocalPos.x(), (float)pageLocalPos.y()};
 }
 
-namespace
-{
-bool
+static bool
 mapRegionToPageRects(QRectF area, GraphicsImageItem *pageItem,
                      QRectF &outLogical, QRect &outPixels) noexcept
 {
@@ -3896,11 +3922,12 @@ mapRegionToPageRects(QRectF area, GraphicsImageItem *pageItem,
     outPixels = clippedPixels.toRect();
     return true;
 }
-} // namespace
 
 void
 DocumentView::CopyTextFromRegion(QRectF area) noexcept
 {
+    if (!m_model->supports_text_selection())
+        return;
     int pageno;
     GraphicsImageItem *pageItem;
     if (!pageAtScenePos(area.center(), pageno, pageItem))
@@ -4245,15 +4272,35 @@ DocumentView::zoomHelper() noexcept
         }
     }
 
+    ClearTextSelection();
     // Commit zoom, rebuild stride cache and scene rect
     m_current_zoom = m_target_zoom;
-    m_model->setZoom(
-        m_current_zoom); // must be before cachePageStride/updateSceneRect
-                         // so pageSceneSize() uses the new zoom
+    m_model->setZoom(m_current_zoom);
+
     cachePageStride();
     updateSceneRect();
+
     m_gview->flashScrollbars();
 
+    repositionPages();
+
+    // Restore viewport to the same relative position within the anchor page
+    if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
+    {
+        GraphicsImageItem *pageItem = m_page_items_hash[anchorPageIndex];
+        const QRectF bounds         = pageItem->boundingRect();
+        if (!bounds.isEmpty())
+        {
+            const QPointF restoredLocal(anchorFrac.x() * bounds.width(),
+                                        anchorFrac.y() * bounds.height());
+            m_gview->centerOn(pageItem->mapToScene(restoredLocal));
+        }
+    }
+}
+
+void
+DocumentView::repositionPages() noexcept
+{
     // Reposition every live page item at the new zoom
     const QRectF sr = m_gview->sceneRect(); // constant for the whole loop
 
@@ -4294,6 +4341,7 @@ DocumentView::zoomHelper() noexcept
         {
             // Scale the existing image so its height matches the target
             // physical pixel height for *this* page at the new zoom level.
+
             const double targetPixelHeight
                 = m_model->page_dimension_pts(i).height_pts * m_model->DPR()
                   * m_current_zoom * m_model->DPI() / 72.0;
@@ -4314,7 +4362,7 @@ DocumentView::zoomHelper() noexcept
             pageHeightScene = item->boundingRect().height() * item->scale();
         }
 
-        if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+        if (m_layout_mode == LayoutMode::HORIZONTAL)
         {
             const double yOffset
                 = (m_max_page_cross_extent - pageHeightScene) / 2.0;
@@ -4343,23 +4391,7 @@ DocumentView::zoomHelper() noexcept
     }
 
     renderSearchHitsInScrollbar();
-
-    // Restore viewport to the same relative position within the anchor page
-    if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
-    {
-        GraphicsImageItem *pageItem = m_page_items_hash[anchorPageIndex];
-        const QRectF bounds         = pageItem->boundingRect();
-        if (!bounds.isEmpty())
-        {
-            const QPointF restoredLocal(anchorFrac.x() * bounds.width(),
-                                        anchorFrac.y() * bounds.height());
-            m_gview->centerOn(pageItem->mapToScene(restoredLocal));
-        }
-    }
-
-    ClearTextSelection();
-
-    m_hq_render_timer->start();
+    renderPages();
 }
 
 void
@@ -4624,6 +4656,14 @@ DocumentView::snap_visual_line(bool centerView) noexcept
 void
 DocumentView::set_visual_line_mode(bool state) noexcept
 {
+    if (!m_model->supports_text_selection())
+    {
+        QMessageBox::information(this, "Visual Line Mode",
+                                 "Document does not support visual "
+                                 "line mode.");
+        return;
+    }
+
     if (m_visual_line_mode == state)
         return;
 
@@ -4661,14 +4701,4 @@ DocumentView::handleReloadRequested(int pageno) noexcept
     // invalidateVisiblePagesCache();
     // removePageItem(pageno);
     requestPageRender(pageno, true);
-}
-
-void
-DocumentView::reloadDocument() noexcept
-{
-    // clearDocumentItems();
-    // cachePageStride();
-    // updateSceneRect();
-    // invalidateVisiblePagesCache();
-    renderPages();
 }
