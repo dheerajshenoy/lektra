@@ -355,7 +355,7 @@ signals:
                                 const BrowseLinkItem *linkItem);
     void requestFocus(DocumentView *view);
     void openFileFailed(DocumentView *doc);
-    void openFileFinished(DocumentView *doc);
+    void openFileFinished(DocumentView *doc, Model::FileType filetype);
     void searchBarSpinnerShow(bool state);
     void pageChanged(int pageno);
     void zoomChanged(double factor);
