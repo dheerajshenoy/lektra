@@ -379,6 +379,20 @@ Lektra::initMenubar() noexcept
     m_actionAnnotPopup->setCheckable(true);
     modeActionGroup->addAction(m_actionAnnotPopup);
 
+    // TODO: Store visual line mode state in config
+    m_actionVisualLineMode = m_modeMenu->addAction(
+        QString("Visual Line Mode\t%1")
+            .arg(m_config.shortcuts["visual_line_mode"]),
+        this, &Lektra::Toggle_visual_line_mode);
+    m_actionVisualLineMode->setCheckable(true);
+    modeActionGroup->addAction(m_actionVisualLineMode);
+
+    m_actionNoneMode = m_modeMenu->addAction(
+        QString("None\t%1").arg(m_config.shortcuts["none_mode"]), this,
+        &Lektra::Toggle_none_mode);
+    m_actionNoneMode->setCheckable(true);
+    modeActionGroup->addAction(m_actionNoneMode);
+
     switch (m_config.behavior.initial_mode)
     {
         case GraphicsView::Mode::RegionSelection:
@@ -399,6 +413,15 @@ Lektra::initMenubar() noexcept
         case GraphicsView::Mode::AnnotPopup:
             m_actionAnnotPopup->setChecked(true);
             break;
+
+        case GraphicsView::Mode::VisualLine:
+            m_actionVisualLineMode->setChecked(true);
+            break;
+
+        case GraphicsView::Mode::None:
+            m_actionNoneMode->setChecked(true);
+            break;
+
         default:
             break;
     }
@@ -1157,34 +1180,70 @@ Lektra::initGui() noexcept
 }
 
 // Updates the UI elements checking if valid
-// file is open or not
+// file is open or not (and if it's PDF or not, for PDF-specific actions)
 void
 Lektra::updateUiEnabledState() noexcept
 {
-    const bool hasOpenedFile = m_doc ? true : false;
+    const bool hasFile = m_doc != nullptr;
+    const Model::FileType filetype
+        = hasFile ? m_doc->model()->fileType() : Model::FileType::NONE;
 
-    m_actionOpenContainingFolder->setEnabled(hasOpenedFile);
-    m_actionZoomIn->setEnabled(hasOpenedFile);
-    m_actionZoomOut->setEnabled(hasOpenedFile);
-    m_actionGotoPage->setEnabled(hasOpenedFile);
-    m_actionFirstPage->setEnabled(hasOpenedFile);
-    m_actionPrevPage->setEnabled(hasOpenedFile);
-    m_actionNextPage->setEnabled(hasOpenedFile);
-    m_actionLastPage->setEnabled(hasOpenedFile);
-    m_actionFileProperties->setEnabled(hasOpenedFile);
-    m_actionCloseFile->setEnabled(hasOpenedFile);
-    m_fitMenu->setEnabled(hasOpenedFile);
-    // m_actionToggleOutline->setEnabled(hasOpenedFile);
-    m_modeMenu->setEnabled(hasOpenedFile);
-    m_actionInvertColor->setEnabled(hasOpenedFile);
-    m_actionSaveFile->setEnabled(hasOpenedFile);
-    m_actionSaveAsFile->setEnabled(hasOpenedFile);
-    m_actionPrevLocation->setEnabled(hasOpenedFile);
-    m_actionNextLocation->setEnabled(hasOpenedFile);
-    m_actionEncrypt->setEnabled(hasOpenedFile);
-    m_actionDecrypt->setEnabled(hasOpenedFile);
-    m_actionSessionSave->setEnabled(hasOpenedFile);
+    const bool isPDF = (filetype == Model::FileType::PDF);
+
+    // Text selection — supported for formats with a text layer
+    const bool hasTextLayer
+        = (filetype == Model::FileType::PDF || filetype == Model::FileType::EPUB
+           || filetype == Model::FileType::FB2
+           || filetype == Model::FileType::MOBI
+           || filetype == Model::FileType::XPS
+           || filetype == Model::FileType::OXPS);
+
+    // Format-agnostic — enabled whenever any file is open
+    m_actionOpenContainingFolder->setEnabled(hasFile);
+    m_actionZoomIn->setEnabled(hasFile);
+    m_actionZoomOut->setEnabled(hasFile);
+    m_actionGotoPage->setEnabled(hasFile);
+    m_actionFirstPage->setEnabled(hasFile);
+    m_actionPrevPage->setEnabled(hasFile);
+    m_actionNextPage->setEnabled(hasFile);
+    m_actionLastPage->setEnabled(hasFile);
+    m_actionCloseFile->setEnabled(hasFile);
+    m_fitMenu->setEnabled(hasFile);
+    m_modeMenu->setEnabled(hasFile);
+    m_actionInvertColor->setEnabled(hasFile);
+    m_actionPrevLocation->setEnabled(hasFile);
+    m_actionNextLocation->setEnabled(hasFile);
+    m_actionSessionSave->setEnabled(hasFile);
     m_actionSessionSaveAs->setEnabled(!m_session_name.isEmpty());
+    m_actionSetMark->setEnabled(hasFile);
+    m_actionGotoMark->setEnabled(hasFile);
+    m_actionDeleteMark->setEnabled(hasFile);
+    m_actionToggleHighlightAnnotSearch->setEnabled(hasFile);
+    m_actionVisualLineMode->setEnabled(hasFile);
+    m_actionRegionSelect->setEnabled(hasFile);
+
+    // Selection actions enabled only if text layer is present
+    m_actionTextSelect->setEnabled(hasTextLayer);
+
+    // PDF-only
+    m_actionSaveFile->setEnabled(isPDF);
+    m_actionSaveAsFile->setEnabled(isPDF);
+    m_actionEncrypt->setEnabled(isPDF);
+    m_actionDecrypt->setEnabled(isPDF);
+    m_actionAnnotRect->setEnabled(isPDF);
+    m_actionAnnotEdit->setEnabled(isPDF);
+    m_actionAnnotPopup->setEnabled(isPDF);
+    m_actionTextHighlight->setEnabled(isPDF);
+    m_actionFileProperties->setEnabled(isPDF);
+
+    // Undo/redo managed by canUndoChanged/canRedoChanged signals —
+    // only reset to false when no file is open
+    if (!hasFile)
+    {
+        m_actionUndo->setEnabled(false);
+        m_actionRedo->setEnabled(false);
+    }
+
     updateSelectionModeActions();
 }
 
@@ -1736,13 +1795,14 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
     const int tabIndex = m_tab_widget->currentIndex();
     // Update tab title once loaded
     connect(view, &DocumentView::openFileFinished, this,
-            [this, tabIndex](DocumentView *doc)
+            [this, tabIndex](DocumentView *doc, Model::FileType)
     {
         if (validTabIndex(tabIndex))
             m_tab_widget->tabBar()->setTabText(tabIndex, m_config.tabs.full_path
                                                              ? doc->filePath()
                                                              : doc->fileName());
         updatePanel();
+        updateUiEnabledState();
     }, Qt::SingleShotConnection);
 
     view->openAsync(filename);
@@ -1755,7 +1815,7 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
     if (callback)
     {
         connect(view, &DocumentView::openFileFinished, this,
-                [callback](DocumentView *) { callback(); },
+                [callback](DocumentView *, Model::FileType) { callback(); },
                 Qt::SingleShotConnection);
     }
 
@@ -1919,19 +1979,19 @@ Lektra::OpenFileInNewTab(const QString &filename,
             setCurrentDocumentView(newView);
     });
 
-    connect(container, &DocumentContainer::viewClosed, this,
-            [this](DocumentView *closedView)
-    {
-        // If the closed view was m_doc, update to current view
-        // if (m_doc == closedView)
-        // {
-        //     int currentTabIndex = m_tab_widget->currentIndex();
-        //     DocumentContainer *currentContainer
-        //         = m_tab_widget->rootContainer(currentTabIndex);
-        //     if (currentContainer)
-        //         setCurrentDocumentView(currentContainer->view());
-        // }
-    });
+    // connect(container, &DocumentContainer::viewClosed, this,
+    //         [this](DocumentView *closedView)
+    // {
+    // If the closed view was m_doc, update to current view
+    // if (m_doc == closedView)
+    // {
+    //     int currentTabIndex = m_tab_widget->currentIndex();
+    //     DocumentContainer *currentContainer
+    //         = m_tab_widget->rootContainer(currentTabIndex);
+    //     if (currentContainer)
+    //         setCurrentDocumentView(currentContainer->view());
+    // }
+    // });
 
     connect(container, &DocumentContainer::currentViewChanged, container,
             [this](DocumentView *newView) { setCurrentDocumentView(newView); });
@@ -1965,7 +2025,7 @@ Lektra::OpenFileInNewTab(const QString &filename,
     if (callback)
     {
         connect(view, &DocumentView::openFileFinished, this,
-                [callback](DocumentView *view)
+                [callback](DocumentView *view, Model::FileType)
         {
             Q_UNUSED(view);
             callback();
@@ -2035,7 +2095,7 @@ Lektra::openFileSplitHelper(const QString &filename,
     if (callback)
     {
         connect(newView, &DocumentView::openFileFinished, this,
-                [callback](DocumentView *) { callback(); },
+                [callback](DocumentView *, Model::FileType) { callback(); },
                 Qt::SingleShotConnection);
     }
 
@@ -2997,7 +3057,7 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
             [this](const QString &name) { m_statusbar->setFileName(name); });
 
     connect(docwidget, &DocumentView::openFileFinished, this,
-            [this](DocumentView *doc)
+            [this](DocumentView *doc, Model::FileType ft)
     {
         // Only update the panel if this view is the currently active one.
         // If it's a background split, don't clobber the active view's info.
@@ -3013,6 +3073,7 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
                     index, m_config.tabs.full_path ? doc->filePath()
                                                    : doc->fileName());
             }
+            updateUiEnabledState();
         }
     });
 
@@ -3111,53 +3172,6 @@ Lektra::insertFileToDB(const QString &fname, int pageno) noexcept
     m_recent_files_store.upsert(fname, pageno, now);
     if (!m_recent_files_store.save())
         qWarning() << "Failed to save recent files store";
-}
-
-// Update the menu actions based on the current document state
-void
-Lektra::updateMenuActions() noexcept
-{
-    const bool valid = m_doc != nullptr;
-
-    m_statusbar->hidePageInfo(!valid);
-    m_actionCloseFile->setEnabled(valid);
-
-    if (valid)
-    {
-        Model *model = m_doc->model();
-        if (model)
-        {
-            m_actionInvertColor->setEnabled(model->invertColor());
-            QUndoStack *undoStack = model->undoStack();
-            m_actionUndo->setEnabled(undoStack->canUndo());
-            m_actionRedo->setEnabled(undoStack->canRedo());
-        }
-        else
-            m_actionInvertColor->setEnabled(false);
-
-        m_actionAutoresize->setCheckable(true);
-        m_actionAutoresize->setChecked(m_doc->autoResize());
-        m_actionTextSelect->setChecked(false);
-        m_actionTextHighlight->setChecked(false);
-        m_actionAnnotEdit->setChecked(false);
-        m_actionAnnotRect->setChecked(false);
-        m_actionAnnotPopup->setChecked(false);
-        updateSelectionModeActions();
-    }
-    else
-    {
-        m_actionInvertColor->setEnabled(false);
-        m_actionAutoresize->setCheckable(false);
-
-        m_actionTextSelect->setChecked(false);
-        m_actionTextHighlight->setChecked(false);
-        m_actionAnnotEdit->setChecked(false);
-        m_actionAnnotRect->setChecked(false);
-        m_actionAnnotPopup->setChecked(false);
-        m_actionUndo->setEnabled(false);
-        m_actionRedo->setEnabled(false);
-        m_modeMenu->setEnabled(false);
-    }
 }
 
 // Update the panel info
@@ -3524,6 +3538,7 @@ Lektra::initCommands() noexcept
     m_command_manager.reg("visual_line_mode", "Toggle visual line mode",
                           [this](const QStringList &)
     { Toggle_visual_line_mode(); });
+
 #ifdef ENABLE_LLM_SUPPORT
     m_command_manager.reg("llm_widget", "Toggle LLM assistant widget",
                           [this](const QStringList &) { ToggleLLMWidget(); });
@@ -3648,6 +3663,8 @@ Lektra::initCommands() noexcept
     m_command_manager.reg("annot_highlight_mode", "Toggle text highlight mode",
                           [this](const QStringList &)
     { ToggleTextHighlight(); });
+    m_command_manager.reg("none_mode", "Toggle none interaction mode",
+                          [this](const QStringList &) { Toggle_none_mode(); });
 
     // Selection modes
     m_command_manager.reg(
@@ -4621,8 +4638,8 @@ Lektra::restoreSplitNode(DocumentContainer *container, DocumentView *targetView,
         targetView->openAsync(path);
 
         connect(targetView, &DocumentView::openFileFinished, this,
-                [applyState](DocumentView *doc) { applyState(doc); },
-                Qt::SingleShotConnection);
+                [applyState](DocumentView *doc, Model::FileType)
+        { applyState(doc); }, Qt::SingleShotConnection);
 
         return;
     }
@@ -4743,7 +4760,7 @@ Lektra::handleCtrlLinkClickRequested(DocumentView *view,
 
     // Fix for jump marker event loop not executing
     connect(newView, &DocumentView::openFileFinished, this,
-            [newView, target](DocumentView *)
+            [newView, target](DocumentView *, Model::FileType)
     {
         QTimer::singleShot(0, newView, [newView, target]()
         { newView->GotoLocation(target); });
@@ -5049,6 +5066,21 @@ Lektra::Toggle_visual_line_mode() noexcept
 
     if (m_doc->visual_line_mode())
         m_statusbar->setMode(GraphicsView::Mode::VisualLine);
+    else
+        m_statusbar->setMode(m_doc->graphicsView()->getDefaultMode());
+}
+
+void
+Lektra::Toggle_none_mode() noexcept
+{
+    if (!m_doc)
+        return;
+
+    bool oldState = m_doc->graphicsView()->mode() == GraphicsView::Mode::None;
+    m_doc->set_visual_line_mode(!oldState);
+
+    if (!oldState)
+        m_statusbar->setMode(GraphicsView::Mode::None);
     else
         m_statusbar->setMode(m_doc->graphicsView()->getDefaultMode());
 }
