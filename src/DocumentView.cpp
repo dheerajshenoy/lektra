@@ -3999,15 +3999,23 @@ DocumentView::openImageInExternalViewer(const QImage &img) noexcept
         return;
 
     // Save to a temporary file
-    QTemporaryFile tempFile;
-    tempFile.setAutoRemove(true);
-    if (!tempFile.open())
+    auto *tempFile
+        = new QTemporaryFile(QDir::tempPath() + "/lektra_XXXXXX.png", this);
+    tempFile->setAutoRemove(false);
+    if (!tempFile->open())
+    {
+        delete tempFile;
         return;
+    }
 
-    img.save(&tempFile, "PNG");
-    tempFile.close();
+    if (!img.save(tempFile, "PNG"))
+    {
+        delete tempFile;
+        return;
+    }
+    tempFile->close();
 
-    QDesktopServices::openUrl(QUrl::fromLocalFile(tempFile.fileName()));
+    QDesktopServices::openUrl(QUrl::fromLocalFile(tempFile->fileName()));
 }
 
 void
