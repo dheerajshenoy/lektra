@@ -1325,7 +1325,10 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
             = QString::fromStdString(argparser.get<std::string>("--config"));
     }
 
+    // This creates the UI and applies the initial user config file settings
     this->construct();
+
+    applyCommandLineOverrides(argparser);
 
     if (argparser.is_used("about"))
     {
@@ -1435,6 +1438,30 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
     if (m_tab_widget->count() == 0 && m_config.window.startup_tab)
         showStartupWidget();
     m_config.behavior.startpage_override = -1;
+}
+
+void
+Lektra::applyCommandLineOverrides(
+    const argparse::ArgumentParser &argparser) noexcept
+{
+    if (argparser.is_used("layout"))
+    {
+        DocumentView::LayoutMode mode;
+        const std::string str = argparser.get("--layout");
+
+        if (str == "vertical")
+            mode = DocumentView::LayoutMode::VERTICAL;
+        else if (str == "single")
+            mode = DocumentView::LayoutMode::SINGLE;
+        else if (str == "horizontal")
+            mode = DocumentView::LayoutMode::HORIZONTAL;
+        else if (str == "book")
+            mode = DocumentView::LayoutMode::BOOK;
+        else
+            mode = DocumentView::LayoutMode::VERTICAL;
+
+        m_config.layout.mode = mode;
+    }
 }
 
 // Populates the `QMenu` for recent files with

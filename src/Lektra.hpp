@@ -282,6 +282,7 @@ private:
     void deleteMark(const QString &key) noexcept;
     bool handleLinkHintEvent(QEvent *event) noexcept;
     bool handleTabContextMenu(QObject *object, QEvent *event) noexcept;
+    void applyCommandLineOverrides(const argparse::ArgumentParser &argparser) noexcept;
     QDir m_config_dir, m_session_dir;
     Statusbar *m_statusbar{nullptr};
 
