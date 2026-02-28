@@ -69,8 +69,8 @@ public:
     enum class LayoutMode
     {
         SINGLE = 0,
-        LEFT_TO_RIGHT,
-        TOP_TO_BOTTOM,
+        HORIZONTAL,
+        VERTICAL,
         BOOK,
         COUNT
     };
@@ -348,7 +348,7 @@ public:
     PageLocation CurrentLocation() noexcept;
     void Reshow_jump_marker() noexcept;
     void Copy_page_image() noexcept;
-    void reloadDocument() noexcept;
+    void rotateHelper() noexcept;
 
 signals:
     void ctrlLinkClickRequested(DocumentView *view,
@@ -463,7 +463,7 @@ private:
     void updateCurrentHitHighlight() noexcept;
     void scrollToCurrentHit() noexcept;
     void zoomHelper() noexcept;
-    void rotateHelper() noexcept;
+    void repositionPages() noexcept;
     void cachePageStride() noexcept;
     void updateSceneRect() noexcept;
     void initConnections() noexcept;
@@ -529,7 +529,7 @@ private:
     int m_loc_history_index{-1};
     bool m_is_modified{false};
     // fz_pixmap *m_hit_pixmap{nullptr};
-    LayoutMode m_layout_mode{LayoutMode::TOP_TO_BOTTOM};
+    LayoutMode m_layout_mode{LayoutMode::VERTICAL};
     WaitingSpinnerWidget *m_spinner{nullptr};
     bool m_visible_pages_dirty{true};
     bool m_deferred_fit{false};
