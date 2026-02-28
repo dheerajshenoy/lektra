@@ -1,5 +1,5 @@
-#include "argparse.hpp"
 #include "Lektra.hpp"
+#include "argparse.hpp"
 
 #include <QApplication>
 #include <fcntl.h>
