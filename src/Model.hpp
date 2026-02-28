@@ -21,6 +21,11 @@ extern "C"
 #include <mupdf/fitz/geometry.h>
 #include <mupdf/fitz/image.h>
 #include <mupdf/pdf.h>
+
+#ifdef HAS_DJVU
+#include <libdjvu/ddjvuapi.h>
+#include <libdjvu/miniexp.h>
+#endif
 }
 
 #define CSTR(x) x.toStdString().c_str()
@@ -50,6 +55,9 @@ public:
         TIFF,
         PNG,
         JPG,
+#ifdef HAS_DJVU
+        DJVU
+#endif
     };
 
     struct LinkInfo
@@ -162,11 +170,6 @@ public:
         return m_search_match_count;
     }
 
-    inline void setZoom(float zoom) noexcept
-    {
-        m_zoom = zoom;
-    }
-
     inline QString filePath() const noexcept
     {
         return m_filepath;
@@ -275,6 +278,7 @@ public:
         m_page_lru_cache.setCapacity(n);
     }
 
+    void setZoom(float zoom) noexcept;
     void setUrlLinkRegex(const QString &pattern) noexcept;
 
     // Clear page cache to free memory (e.g., when tab becomes inactive)
@@ -322,6 +326,11 @@ public:
         return m_annot_rect_color;
     }
 
+    [[nodiscard]] inline FileType fileType() const noexcept
+    {
+        return m_filetype;
+    }
+
     RenderJob createRenderJob(int pageno) const noexcept;
     void requestPageRender(
         const RenderJob &job,
@@ -335,12 +344,19 @@ public:
     fz_outline *getOutline() noexcept;
     void cancelOpen() noexcept;
     QFuture<void> openAsync(const QString &filePath) noexcept;
-    void _continueOpen(fz_context *ctx, fz_document *doc,
-                       FileType filetype) noexcept;
+
+    QFuture<void> openAsync_mupdf(const QString &canonicalPath) noexcept;
+#ifdef HAS_DJVU
+    QFuture<void> openAsync_djvu(const QString &canonicalPath) noexcept;
+#endif
+    void _continueOpen(fz_context *ctx, fz_document *doc) noexcept;
 
     QFuture<void> submitPassword(const QString &password) noexcept;
     void close() noexcept;
-    void cleanup() noexcept;
+    void cleanup_mupdf() noexcept;
+#ifdef HAS_DJVU
+    void cleanup_djvu() noexcept;
+#endif
     bool decrypt() noexcept;
     bool encrypt(const EncryptInfo &info) noexcept;
     void setPopupColor(const QColor &color) noexcept;
@@ -396,11 +412,6 @@ private:
     {
         if (m_render_future.isRunning())
             m_render_future.waitForFinished();
-    }
-
-    inline FileType fileType() const noexcept
-    {
-        return m_filetype;
     }
 
     struct CachedLink
@@ -494,6 +505,9 @@ private:
         PageDimension dimension{};
         std::vector<CachedLink> links;
         std::vector<CachedAnnotation> annotations;
+#ifdef HAS_DJVU
+        QImage cached_image; // for DJVU
+#endif
     };
 
     struct CachedTextChar
@@ -520,13 +534,11 @@ private:
     {
         fz_context *ctx{nullptr};
         fz_document *doc{nullptr};
-        FileType filetype{FileType::NONE};
 
         void clear() noexcept
         {
-            ctx      = nullptr;
-            doc      = nullptr;
-            filetype = FileType::NONE;
+            ctx = nullptr;
+            doc = nullptr;
         }
     };
     void initMuPDF() noexcept;
@@ -549,6 +561,9 @@ private:
     std::pair<fz_matrix, fz_matrix>
     buildPageTransforms(int pageno) const noexcept;
     void buildPageCache(int pageno) noexcept;
+#ifdef HAS_DJVU
+    void buildPageCache_djvu(int pageno) noexcept;
+#endif
     int addRectAnnotation(const int pageno, const fz_rect &rect) noexcept;
     int addHighlightAnnotation(const int pageno,
                                const std::vector<fz_quad> &quads) noexcept;
@@ -568,30 +583,24 @@ private:
     fz_point getFirstCharPos(const int pageno) noexcept;
     std::vector<Model::RenderLink>
     detectUrlLinksForPage(const RenderJob &job) noexcept;
+    FileType detectFileType(const QString &path) noexcept;
 
+    QUndoStack *m_undo_stack{nullptr};
     // std::optional<std::wstring>
     // get_paper_name_at_position(const int pageno, const fz_point) noexcept;
 
-    fz_context *m_ctx{nullptr};
-    fz_document *m_doc{nullptr};
-    pdf_document *m_pdf_doc{nullptr};
     float m_popup_color[4]{1.0f, 1.0f, 0.8f, 0.8f},
         m_highlight_color[4]{1.0f, 1.0f, 0.0f, 0.5f},
         m_selection_color[4]{0.0f, 0.0f, 1.0f, 0.3f},
         m_annot_rect_color[4]{1.0f, 0.0f, 0.0f, 0.5f};
-    QUndoStack *m_undo_stack{nullptr};
+    uint32_t m_bg_color{0};
+    uint32_t m_fg_color{0};
     bool m_success{false};
-    fz_colorspace *m_colorspace{nullptr};
-    fz_outline *m_outline{nullptr};
-    fz_locks_context m_fz_locks;
-    mutable std::recursive_mutex m_page_cache_mutex;
 
+    mutable std::recursive_mutex m_page_cache_mutex;
     LRUCache<int, PageCacheEntry> m_page_lru_cache;
     LRUCache<int, CachedTextPage> m_text_cache;
     LRUCache<int, fz_stext_page *> m_stext_page_cache;
-
-    uint32_t m_bg_color{0};
-    uint32_t m_fg_color{0};
 
     bool reloadDocument() noexcept;
     PageDimensionCache m_page_dim_cache{};
@@ -608,6 +617,21 @@ private:
     QRegularExpression m_url_link_re;
     FileType m_filetype{FileType::NONE};
     PendingOpen m_pending;
+
+    // MuPDF core objects
+    fz_locks_context m_fz_locks;
+    fz_context *m_ctx{nullptr};
+    fz_document *m_doc{nullptr};
+    pdf_document *m_pdf_doc{nullptr};
+    fz_colorspace *m_colorspace{nullptr};
+    fz_outline *m_outline{nullptr};
+
+#ifdef HAS_DJVU
+
+    // DJVU core objects
+    ddjvu_context_t *m_ddjvu_ctx{nullptr};
+    ddjvu_document_t *m_ddjvu_doc{nullptr};
+#endif
 
     // For use with visual line mode
     struct VisualLineInfo

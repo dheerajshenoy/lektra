@@ -57,7 +57,7 @@ Model::Model(QObject *parent) noexcept : QObject(parent)
 
 Model::~Model() noexcept
 {
-    cleanup();
+    cleanup_mupdf();
     fz_drop_context(m_ctx);
 }
 
@@ -90,7 +90,7 @@ Model::LRUEvictFunction(PageCacheEntry &entry) noexcept
 }
 
 void
-Model::cleanup() noexcept
+Model::cleanup_mupdf() noexcept
 {
     m_search_future.cancel();
     m_render_future.cancel();
@@ -114,6 +114,27 @@ Model::cleanup() noexcept
     }
 }
 
+#ifdef HAS_DJVU
+void
+Model::cleanup_djvu() noexcept
+{
+    m_search_future.cancel();
+    m_render_future.cancel();
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+        m_page_lru_cache.clear();
+        m_text_cache.clear();
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_page_dim_mutex);
+        m_page_dim_cache.reset(0);
+        m_default_page_dim = {};
+    }
+}
+#endif
+
 // Open file asynchronously to avoid blocking the UI, especially for large
 // documents or slow storage. The actual opening and page counting happens in a
 // background thread, and results are posted back to the main thread when done.
@@ -126,6 +147,97 @@ Model::openAsync(const QString &filePath) noexcept
     m_filepath              = QFileInfo(filePath).canonicalFilePath();
     const QString canonPath = m_filepath;
 
+    // Detect file type before launching the background task, so we can fail
+    // fast for unsupported types without incurring the overhead of starting a
+    // thread and cloning the context.
+    m_filetype = detectFileType(m_filepath);
+
+    if (m_filetype == FileType::NONE)
+    {
+        QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                  Qt::QueuedConnection);
+        return QtConcurrent::run([] {});
+    }
+
+#ifdef HAS_DJVU
+    if (m_filetype == FileType::DJVU)
+        return openAsync_djvu(canonPath);
+    else
+#endif
+        return openAsync_mupdf(canonPath);
+}
+
+#ifdef HAS_DJVU
+QFuture<void>
+Model::openAsync_djvu(const QString &canonPath) noexcept
+{
+    return QtConcurrent::run([this, canonPath]
+    {
+        ddjvu_context_t *ctx  = ddjvu_context_create("LEKTRA");
+        ddjvu_document_t *doc = ddjvu_document_create_by_filename(
+            ctx, canonPath.toUtf8().constData(), true);
+        if (!doc)
+        {
+            ddjvu_context_release(ctx);
+            QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                      Qt::QueuedConnection);
+            return;
+        }
+
+        // Pump until decoded
+        while (!ddjvu_document_decoding_done(doc))
+        {
+            ddjvu_message_t *msg = ddjvu_message_wait(ctx);
+            if (msg->m_any.tag == DDJVU_ERROR)
+            {
+                ddjvu_document_release(doc);
+                ddjvu_context_release(ctx);
+                QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                          Qt::QueuedConnection);
+                return;
+            }
+            ddjvu_message_pop(ctx);
+        }
+
+        const int page_count = ddjvu_document_get_pagenum(doc);
+
+        ddjvu_pageinfo_t info{};
+        ddjvu_document_get_pageinfo(doc, 0, &info);
+        const float w = static_cast<float>(info.width) / info.dpi * 72.0f;
+        const float h = static_cast<float>(info.height) / info.dpi * 72.0f;
+
+        QMetaObject::invokeMethod(this, [this, ctx, doc, page_count, w, h]()
+        {
+            waitForRenders();
+            cleanup_mupdf(); // drops MuPDF state
+            cleanup_djvu();  // drops any previous DjVu state
+
+            m_ddjvu_ctx  = ctx;
+            m_ddjvu_doc  = doc;
+            m_filetype   = FileType::DJVU;
+            m_page_count = page_count;
+            m_success    = true;
+            m_text_cache.setCapacity(std::min(page_count, 1024));
+
+            {
+                std::lock_guard<std::mutex> lk(m_page_dim_mutex);
+                m_default_page_dim = {w, h};
+                m_page_dim_cache.dimensions.assign(page_count,
+                                                   m_default_page_dim);
+                m_page_dim_cache.known.assign(page_count, 0);
+                if (page_count > 0)
+                    m_page_dim_cache.known[0] = true;
+            }
+
+            emit openFileFinished();
+        }, Qt::QueuedConnection);
+    });
+}
+#endif
+
+QFuture<void>
+Model::openAsync_mupdf(const QString &canonPath) noexcept
+{
     fz_context *bg_ctx = cloneContext();
     if (!bg_ctx)
     {
@@ -152,52 +264,8 @@ Model::openAsync(const QString &filePath) noexcept
             }
         } g{bg_ctx};
 
-        // --- detect type ---
-        FileType filetype = FileType::NONE;
-        fz_try(bg_ctx)
-        {
-            if (auto *h
-                = fz_recognize_document_content(bg_ctx, CSTR(canonPath)))
-            {
-                if (h->extensions)
-                {
-                    const QString ext = QString::fromUtf8(h->extensions[0]);
-                    if (ext == "pdf")
-                        filetype = FileType::PDF;
-
-                    else if (ext == "epub")
-                        filetype = FileType::EPUB;
-
-                    else if (ext == "cbt")
-                        filetype = FileType::CBZ;
-
-                    else if (ext == "svg")
-                        filetype = FileType::SVG;
-
-                    else if (ext == "xps")
-                        filetype = FileType::XPS;
-
-                    else if (ext == "fbz")
-                        filetype = FileType::FB2;
-
-                    else if (ext == "mobi")
-                        filetype = FileType::MOBI;
-
-                    else if (ext == "jpg" || ext == "jpeg")
-                        filetype = FileType::JPG;
-
-                    else if (ext == "png")
-                        filetype = FileType::PNG;
-
-                    else if (ext == "tif" || ext == "tiff")
-                        filetype = FileType::TIFF;
-
-                    else
-                        filetype = FileType::PDF;
-                }
-            }
-        }
-        fz_catch(bg_ctx) {}
+        cleanup_djvu();
+        cleanup_mupdf();
 
         // --- open ---
         fz_document *doc = nullptr;
@@ -216,12 +284,12 @@ Model::openAsync(const QString &filePath) noexcept
         g.doc = doc;
 
         // --- encrypted? park and stop ---
-        if (filetype == FileType::PDF && fz_needs_password(bg_ctx, doc))
+        if (m_filetype == FileType::PDF && fz_needs_password(bg_ctx, doc))
         {
             g.committed = true;
-            QMetaObject::invokeMethod(this, [this, bg_ctx, doc, filetype]
+            QMetaObject::invokeMethod(this, [this, bg_ctx, doc]
             {
-                m_pending = {bg_ctx, doc, filetype};
+                m_pending = {bg_ctx, doc};
                 emit passwordRequired();
             }, Qt::QueuedConnection);
             return;
@@ -229,7 +297,7 @@ Model::openAsync(const QString &filePath) noexcept
 
         // --- normal path ---
         g.committed = true;
-        _continueOpen(bg_ctx, doc, filetype);
+        _continueOpen(bg_ctx, doc);
     });
 }
 
@@ -238,34 +306,32 @@ Model::submitPassword(const QString &password) noexcept
 {
     auto ctx = m_pending.ctx;
     auto doc = m_pending.doc;
-    auto ft  = m_pending.filetype;
     m_pending.clear();
 
     if (!ctx || !doc)
         return QtConcurrent::run([] {});
 
-    return QtConcurrent::run([this, password, ctx, doc, ft]
+    return QtConcurrent::run([this, password, ctx, doc]
     {
         if (!fz_authenticate_password(ctx, doc, CSTR(password)))
         {
             // Wrong password — put it back so the user can retry
-            QMetaObject::invokeMethod(this, [this, ctx, doc, ft]
+            QMetaObject::invokeMethod(this, [this, ctx, doc]
             {
-                m_pending = {ctx, doc, ft};
+                m_pending = {ctx, doc};
                 emit wrongPassword();
             }, Qt::QueuedConnection);
             return;
         }
 
-        _continueOpen(ctx, doc, ft);
+        _continueOpen(ctx, doc);
     });
 }
 
 void
-Model::_continueOpen(fz_context *ctx, fz_document *doc,
-                     FileType filetype) noexcept
+Model::_continueOpen(fz_context *ctx, fz_document *doc) noexcept
 {
-    auto _ = QtConcurrent::run([this, ctx, doc, filetype]
+    auto _ = QtConcurrent::run([this, ctx, doc]
     {
         struct Guard
         {
@@ -307,19 +373,16 @@ Model::_continueOpen(fz_context *ctx, fz_document *doc,
 
         g.committed = true;
 
-        QMetaObject::invokeMethod(this,
-                                  [this, ctx, doc, page_count, w, h, filetype]
+        QMetaObject::invokeMethod(this, [this, ctx, doc, page_count, w, h]
         {
             waitForRenders();
-            cleanup();
-
+            cleanup_mupdf();
             fz_drop_context(m_ctx);
 
             m_ctx        = ctx;
             m_doc        = doc;
             m_pdf_doc    = pdf_specifics(m_ctx, m_doc);
             m_page_count = page_count;
-            m_filetype   = filetype;
             m_success    = true;
             m_text_cache.setCapacity(std::min(page_count, 1024));
 
@@ -342,7 +405,7 @@ void
 Model::close() noexcept
 {
     m_filepath.clear();
-    cleanup();
+    cleanup_mupdf();
 }
 
 void
@@ -369,11 +432,116 @@ Model::ensurePageCached(int pageno) noexcept
     buildPageCache(pageno);
 }
 
+#ifdef HAS_DJVU
+void
+Model::buildPageCache_djvu(int pageno) noexcept
+{
+    if (!m_ddjvu_doc || m_ddjvu_ctx == nullptr)
+        return;
+
+    // DjVuLibre is NOT thread-safe for the same context — serialize
+    std::lock_guard<std::mutex> lock(m_doc_mutex);
+
+    ddjvu_page_t *page = ddjvu_page_create_by_pageno(m_ddjvu_doc, pageno);
+    if (!page)
+        return;
+
+    // Pump until page is ready
+    ddjvu_message_t *msg;
+    while (!ddjvu_page_decoding_done(page))
+    {
+        msg = ddjvu_message_wait(m_ddjvu_ctx);
+        if (msg->m_any.tag == DDJVU_ERROR)
+        {
+            ddjvu_page_release(page);
+            return;
+        }
+        ddjvu_message_pop(m_ddjvu_ctx);
+    }
+
+    // DjVu page native DPI and dimensions
+    const int native_dpi = ddjvu_page_get_resolution(page);
+    const int pw_px      = ddjvu_page_get_width(page); // at native DPI
+    const int ph_px      = ddjvu_page_get_height(page);
+
+    // Store dimensions in pts (1/72 inch) for the rest of the pipeline
+    const float w_pts = static_cast<float>(pw_px) / native_dpi * 72.0f;
+    const float h_pts = static_cast<float>(ph_px) / native_dpi * 72.0f;
+
+    {
+        std::lock_guard<std::mutex> dimlock(m_page_dim_mutex);
+        m_page_dim_cache.set(pageno, w_pts, h_pts);
+    }
+
+    // Render at m_zoom * m_dpi — same scale logic as the MuPDF path
+    const float render_dpi = m_zoom * m_dpi * m_dpr;
+    const float scale      = render_dpi / native_dpi;
+    const int rw           = static_cast<int>(pw_px * scale);
+    const int rh           = static_cast<int>(ph_px * scale);
+
+    ddjvu_rect_t prect{0, 0, static_cast<unsigned>(rw),
+                       static_cast<unsigned>(rh)};
+    ddjvu_rect_t rrect = prect;
+
+    // BGRA format maps cleanly to QImage::Format_RGB32
+    const int stride = rw * 4;
+    QByteArray buf(stride * rh, 0);
+
+    ddjvu_format_t *fmt
+        = ddjvu_format_create(DDJVU_FORMAT_RGBMASK32, 0, nullptr);
+    // DjVuLibre RGBMASK32: specify R/G/B masks and white background
+    const unsigned int masks[3] = {0x00FF0000, 0x0000FF00, 0x000000FF};
+    fmt                         = ddjvu_format_create(DDJVU_FORMAT_RGBMASK32, 3,
+                                                      const_cast<unsigned int *>(masks));
+    ddjvu_format_set_row_order(fmt, 1); // top-to-bottom
+
+    const int ok = ddjvu_page_render(page, DDJVU_RENDER_COLOR, &prect, &rrect,
+                                     fmt, stride, buf.data());
+
+    ddjvu_format_release(fmt);
+    ddjvu_page_release(page);
+
+    if (!ok)
+        return;
+
+    QImage image(reinterpret_cast<const uchar *>(buf.constData()), rw, rh,
+                 stride, QImage::Format_RGB32);
+    image = image.copy(); // detach from buf's lifetime
+    image.setDotsPerMeterX(static_cast<int>(render_dpi * 1000.0 / 25.4));
+    image.setDotsPerMeterY(static_cast<int>(render_dpi * 1000.0 / 25.4));
+    image.setDevicePixelRatio(m_dpr);
+
+    // DjVu has no PDF links or annotations — build a minimal cache entry
+    // with the pre-rendered image stored as a display-list substitute.
+    // We abuse PageCacheEntry by storing the image directly and handling
+    // it in renderPageWithExtrasAsync.
+    PageCacheEntry entry;
+    entry.pageno       = pageno;
+    entry.bounds       = {0, 0, w_pts, h_pts};
+    entry.display_list = nullptr; // signals "DjVu pre-rendered" path
+    entry.cached_image = image;   // add this field to PageCacheEntry
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+        if (!m_page_lru_cache.has(pageno))
+            m_page_lru_cache.put(pageno, std::move(entry));
+    }
+}
+#endif
+
 void
 Model::buildPageCache(int pageno) noexcept
 {
     if (m_page_lru_cache.has(pageno))
         return;
+
+#ifdef HAS_DJVU
+    if (m_filetype == FileType::DJVU)
+    {
+        buildPageCache_djvu(pageno);
+        return;
+    }
+#endif
 
     PageCacheEntry entry;
 
@@ -691,7 +859,7 @@ Model::reloadDocument() noexcept
     }
 
     waitForRenders();
-    cleanup();
+    cleanup_mupdf();
 
     // Flush the MuPDF store so cloned contexts won't serve stale entries
     // from the old document's object graph to buildPageCache.
@@ -718,6 +886,10 @@ Model::reloadDocument() noexcept
 bool
 Model::SaveChanges() noexcept
 {
+#ifdef HAS_DJVU
+    if (m_filetype == FileType::DJVU)
+        return false;
+#endif
 
     fz_try(m_ctx)
     {
@@ -779,6 +951,11 @@ std::vector<QPolygonF>
 Model::computeTextSelectionQuad(int pageno, QPointF devStart,
                                 QPointF devEnd) noexcept
 {
+#ifdef HAS_DJVU
+    if (m_filetype == FileType::DJVU)
+        return {};
+#endif
+
     std::vector<QPolygonF> out;
     constexpr int MAX_HITS{1024};
     thread_local std::array<fz_quad, MAX_HITS> hits;
@@ -1142,6 +1319,34 @@ Model::PageRenderResult
 Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 {
     PageRenderResult result;
+
+#ifdef HAS_DJVU
+    if (m_filetype == FileType::DJVU)
+    {
+        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+        const PageCacheEntry *entry = m_page_lru_cache.get(job.pageno);
+        if (!entry || entry->cached_image.isNull())
+        {
+            qWarning() << "DjVu page not cached:" << job.pageno;
+            return result;
+        }
+
+        QImage image = entry->cached_image;
+
+        if (job.invert_color)
+            image.invertPixels();
+
+        image.setDotsPerMeterX(static_cast<int>((job.dpi * 1000) / 25.4));
+        image.setDotsPerMeterY(static_cast<int>((job.dpi * 1000) / 25.4));
+        image.setDevicePixelRatio(job.dpr);
+
+        result.image = std::move(image);
+        // DjVu has no links or annotations — result.links/annotations stay
+        // empty
+        return result;
+    }
+#endif
+
     fz_context *ctx = cloneContext();
     if (!ctx)
         return result;
@@ -2327,6 +2532,8 @@ Model::buildTextCacheForPages(const std::set<int> &pagenos) noexcept
     if (pagenos.empty())
         return;
 
+    // TODO: Support text selection for DJVU
+
     fz_context *ctx = cloneContext();
     if (!ctx)
         return;
@@ -2835,7 +3042,7 @@ Model::cancelOpen() noexcept
         m_pending.clear();
     }
 
-    cleanup();
+    cleanup_mupdf();
 
     emit openFileFailed();
 }
@@ -2948,9 +3155,62 @@ Model::visual_line_index_at_pos(
     return closest;
 }
 
-#ifdef HAS_DJVU
-void
-Model::openDJVUAsync(const QString &filePath) noexcept
+Model::FileType
+Model::detectFileType(const QString &path) noexcept
 {
-}
+    const QString ext = QFileInfo(path).suffix().toLower();
+
+    if (ext.isEmpty())
+        return FileType::NONE;
+
+    // ---- core formats ----
+    if (ext == "pdf")
+        return FileType::PDF;
+    if (ext == "epub")
+        return FileType::EPUB;
+    if (ext == "svg")
+        return FileType::SVG;
+    if (ext == "xps")
+        return FileType::XPS;
+    if (ext == "oxps")
+        return FileType::OXPS;
+    if (ext == "mobi")
+        return FileType::MOBI;
+
+    // ---- ebooks / archives ----
+    if (ext == "cbz" || ext == "cbt")
+        return FileType::CBZ;
+
+    if (ext == "fb2" || ext == "fbz")
+        return FileType::FB2;
+
+    // ---- images ----
+    if (ext == "jpg" || ext == "jpeg")
+        return FileType::JPG;
+
+    if (ext == "png")
+        return FileType::PNG;
+
+    if (ext == "tif" || ext == "tiff")
+        return FileType::TIFF;
+
+#ifdef HAS_DJVU
+    if (ext == "djvu" || ext == "djv")
+        return FileType::DJVU;
 #endif
+
+    return FileType::NONE;
+}
+
+void
+Model::setZoom(float zoom) noexcept
+{
+    m_zoom = zoom;
+
+#ifdef HAS_DJVU
+    if (m_filetype == FileType::DJVU)
+    {
+        invalidatePageCaches();
+    }
+#endif
+}

@@ -5,7 +5,7 @@
 ### End User Features
 
 - Support for running shell scripts
-
+- Support for DJVU files (limited, only basic rendering and navigation, no text selection and searching)
 
 ### Core Features
 

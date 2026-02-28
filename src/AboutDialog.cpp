@@ -13,6 +13,9 @@ extern "C"
 #ifdef HAS_SYNCTEX
 #include <synctex/synctex_version.h>
 #endif
+#ifdef HAS_DJVU
+#include <libdjvu/ddjvuapi.h>
+#endif
 }
 
 AboutDialog::AboutDialog(QWidget *parent)
@@ -101,6 +104,11 @@ AboutDialog::softwaresUsedSection() noexcept
 #ifdef HAS_SYNCTEX
     layout->addRow("SyncTeX", new QLabel(QString(SYNCTEX_VERSION_STRING)));
 #endif
+#ifdef HAS_DJVU
+    layout->addRow(
+        "DjVuLibre",
+        new QLabel(QString(ddjvu_get_version_string()).split("-").last()));
+#endif
 
     outerLayout->addLayout(layout, Qt::AlignCenter);
     widget->setLayout(outerLayout);
@@ -116,8 +124,10 @@ AboutDialog::authorsSection() noexcept
     QFormLayout *layout = new QFormLayout(widget);
     layout->addRow("Version", new QLabel(APP_VERSION));
     layout->addRow("Created by", new QLabel("Dheeraj Vittal Shenoy"));
-    layout->addRow("Github",
-                   new QLabel("<a href='https://codeberg.org/lektra/lektra'>https://codeberg.org/lektra/lektra</a>"));
+    layout->addRow(
+        "Github", new QLabel("<a "
+                             "href='https://codeberg.org/lektra/lektra'>https:/"
+                             "/codeberg.org/lektra/lektra</a>"));
     widget->setLayout(layout);
 
     return widget;

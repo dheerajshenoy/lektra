@@ -39,6 +39,18 @@ find_library(SYNCTEX_LIBRARY
     NAMES synctex synctex_parser
 )
 
+find_library(DJVU_LIBRARY
+    NAMES djvulibre ddjvuapi
+)
+
+if(DJVU_LIBRARY)
+    message(STATUS "Found DjVuLibre. Compiling with DJVU support.")
+    set(DJVU_FOUND TRUE)
+else()
+    message(WARNING "DjVuLibre not found, disabling DjVu support")
+    set(DJVU_FOUND FALSE)
+endif()
+
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/Lektra.cpp
@@ -101,6 +113,9 @@ add_executable(${PROJECT_NAME}
     src/Commands/DeleteAnnotationsCommand.hpp
 )
 
+if (DJVU_FOUND)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_DJVU=1)
+endif()
 
 if (ENABLE_LLM_SUPPORT)
     message(STATUS "LLM support enabled.")
@@ -150,6 +165,12 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/external/mupdf/build/release/libmupdf-third.a
 )
 
+
+if (DJVU_FOUND)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${DJVU_INCLUDE_DIRS})
+    target_link_libraries(${PROJECT_NAME} PRIVATE djvulibre)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_DJVU=1)
+endif()
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 #Install icons to correct freedesktop - compliant locations

@@ -85,7 +85,7 @@ DocumentView::~DocumentView() noexcept
     synctex_scanner_free(m_synctex_scanner);
 #endif
 
-    m_model->cleanup();
+    m_model->cleanup_mupdf();
 
     m_gscene->removeItem(m_jump_marker);
     m_gscene->removeItem(m_selection_path_item);
@@ -283,6 +283,11 @@ DocumentView::openAsync(const QString &filePath) noexcept
 void
 DocumentView::handleOpenFileFinished() noexcept
 {
+#ifndef NDEBUG
+    qDebug()
+        << "DocumentView::handleOpenFileFinished(): File opened successfully";
+#endif
+
     m_spinner->stop();
     m_spinner->hide();
 
@@ -307,7 +312,7 @@ DocumentView::handleOpenFileFinished() noexcept
                        [this]() { setFitMode(m_config.layout.initial_fit); });
 
     setAutoReload(m_config.behavior.auto_reload);
-    emit openFileFinished(this);
+    emit openFileFinished(this, m_model->fileType());
 }
 
 void
@@ -774,6 +779,24 @@ DocumentView::handleTextHighlightRequested() noexcept
 void
 DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
 {
+    Model::FileType ft = m_model->fileType();
+    switch (ft)
+    {
+
+        case Model::FileType::NONE:
+        case Model::FileType::CBZ:
+        case Model::FileType::MOBI:
+        case Model::FileType::SVG:
+        case Model::FileType::XPS:
+        case Model::FileType::EPUB:
+        case Model::FileType::FB2:
+        case Model::FileType::TIFF:
+        case Model::FileType::PNG:
+        case Model::FileType::JPG:
+        case Model::FileType::DJVU:
+            return;
+    }
+
     int startPage                    = -1;
     int endPage                      = -1;
     GraphicsImageItem *startPageItem = nullptr;
@@ -850,34 +873,6 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
             quads = m_model->computeTextSelectionQuad(p, docStart, docEnd);
         }
 
-        // std::vector<QPolygonF> quads;
-        // if (p == startPage && p == endPage)
-        // {
-        //     // Single page selection (existing logic)
-        //     quads = m_model->computeTextSelectionQuad(
-        //         p, item->mapFromScene(start), item->mapFromScene(end));
-        // }
-        // else if (p == startPage)
-        // {
-        //     // Selection from start point to end of page
-        //     quads = m_model->computeTextSelectionQuad(
-        //         p, item->mapFromScene(start), QPointF(1e6, 1e6));
-        //     // QPointF(item->boundingRect().bottomRight()));
-        // }
-        // else if (p == endPage)
-        // {
-        //     // Selection from start of page to end point
-        //     quads = m_model->computeTextSelectionQuad(p, QPointF(0, 0),
-        //                                               item->mapFromScene(end));
-        // }
-        // else
-        // {
-        //     // Full page selection
-        //     quads = m_model->computeTextSelectionQuad(p, QPointF(0, 0),
-        //                                               QPointF(1e6, 1e6));
-        //     // QPointF(item->boundingRect().bottomRight()));
-        // }
-
         const QTransform toScene = item->sceneTransform();
         for (const QPolygonF &poly : quads)
         {
@@ -887,7 +882,6 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
 
     m_selection_path_item->setPath(totalPath);
 
-    // add these two lines to keep metadata in sync
     m_selection_start = start;
     m_selection_end   = end;
 
