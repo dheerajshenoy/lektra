@@ -71,6 +71,7 @@ public:
     void Show_highlight_search() noexcept;
     void Show_command_picker() noexcept;
 
+    void Toggle_none_mode() noexcept;
     void Toggle_visual_line_mode() noexcept;
     void Toggle_presentation_mode() noexcept;
     void ToggleAutoResize() noexcept;
@@ -259,7 +260,6 @@ private:
     void handleCurrentTabChanged(int index) noexcept;
     void openInExplorerForIndex(int index) noexcept;
     void filePropertiesForIndex(int index) noexcept;
-    void updateMenuActions() noexcept;
     void updatePanel() noexcept;
     QStringList getSessionFiles() noexcept;
     void insertFileToDB(const QString &fname, int pageno) noexcept;
@@ -284,7 +284,9 @@ private:
     bool handleTabContextMenu(QObject *object, QEvent *event) noexcept;
     QDir m_config_dir, m_session_dir;
     Statusbar *m_statusbar{nullptr};
+
     QMenuBar *m_menuBar{nullptr};
+
     QMenu *m_fitMenu{nullptr};
     QMenu *m_recentFilesMenu{nullptr};
     QMenu *m_navMenu{nullptr};
@@ -317,7 +319,8 @@ private:
     QAction *m_actionFitWindow{nullptr};
     QAction *m_actionAutoresize{nullptr};
     QAction *m_actionToggleMenubar{nullptr};
-    QAction *m_actionToggleVisualLineMode{nullptr};
+    QAction *m_actionNoneMode{nullptr};
+    QAction *m_actionVisualLineMode{nullptr};
     QAction *m_actionTogglePanel{nullptr};
     QAction *m_actionToggleOutline{nullptr};
     QAction *m_actionToggleHighlightAnnotSearch{nullptr};
