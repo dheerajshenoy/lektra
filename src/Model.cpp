@@ -264,7 +264,9 @@ Model::openAsync_mupdf(const QString &canonPath) noexcept
             }
         } g{bg_ctx};
 
+#ifdef HAS_DJVU
         cleanup_djvu();
+#endif
         cleanup_mupdf();
 
         // --- open ---

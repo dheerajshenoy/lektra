@@ -85,9 +85,11 @@ DocumentView::~DocumentView() noexcept
     synctex_scanner_free(m_synctex_scanner);
 #endif
 
+#ifdef HAS_DJVU
     if (m_model->fileType() == Model::FileType::DJVU)
         m_model->cleanup_djvu();
     else
+#endif
         m_model->cleanup_mupdf();
 
     m_gscene->removeItem(m_jump_marker);
