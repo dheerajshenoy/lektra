@@ -186,7 +186,15 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         return;
     }
 
+    // Necessary to check mode before button, otherwise right-click context menu
+    // won’t work
     if (event->button() != Qt::LeftButton)
+    {
+        QGraphicsView::mousePressEvent(event);
+        return;
+    }
+
+    if (m_mode == Mode::None)
     {
         QGraphicsView::mousePressEvent(event);
         return;
@@ -428,6 +436,12 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
         return;
     }
 
+    if (m_mode == Mode::None)
+    {
+        QGraphicsView::mouseMoveEvent(event);
+        return;
+    }
+
     // If we are selecting text/highlight, throttle signals
     if ((m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
         && m_selecting)
@@ -494,7 +508,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     }
 
     // Early exit if not selecting/dragging
-    if (!m_selecting)
+    if (m_mode == Mode::None || !m_selecting)
     {
         QGraphicsView::mouseReleaseEvent(event);
         return;
