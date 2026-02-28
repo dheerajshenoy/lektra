@@ -131,6 +131,57 @@ public:
         std::vector<RenderAnnotation> annotations;
     };
 
+    inline bool supports_links() const noexcept
+    {
+        return (m_filetype == FileType::PDF || m_filetype == FileType::EPUB
+                || m_filetype == FileType::XPS || m_filetype == FileType::FB2);
+    }
+
+    inline bool supports_text_selection() const noexcept
+    {
+        return m_filetype == FileType::PDF || m_filetype == FileType::EPUB
+               || m_filetype == FileType::XPS || m_filetype == FileType::FB2
+               || m_filetype == FileType::MOBI;
+    }
+
+    inline bool supports_text_search() const noexcept
+    {
+        return supports_text_selection();
+    }
+
+    inline bool supports_outline() const noexcept
+    {
+        return m_filetype == FileType::PDF || m_filetype == FileType::EPUB
+               || m_filetype == FileType::XPS || m_filetype == FileType::FB2 ||
+#ifdef HAS_DJVU
+               m_filetype == FileType::DJVU ||
+#endif
+               m_filetype == FileType::MOBI;
+    }
+
+    inline bool supports_metadata() const noexcept
+    {
+        return supports_outline();
+    }
+
+    inline bool supports_annotations() const noexcept
+    {
+        return m_filetype == FileType::PDF;
+    }
+
+    inline bool supports_save()
+    {
+        return supports_annotations();
+    }
+    inline bool supports_encryption()
+    {
+        return supports_annotations();
+    }
+    inline bool supports_decryption()
+    {
+        return supports_annotations();
+    }
+
     inline fz_context *cloneContext() const noexcept
     {
         return fz_clone_context(m_ctx);
@@ -144,20 +195,6 @@ public:
     inline float rotation() const noexcept
     {
         return m_rotation;
-    }
-
-    inline void rotateClock() noexcept
-    {
-        m_rotation += 90;
-        if (m_rotation >= 360)
-            m_rotation = 0;
-    }
-
-    inline void rotateAnticlock() noexcept
-    {
-        m_rotation -= 90;
-        if (m_rotation < 0)
-            m_rotation = 270;
     }
 
     inline float zoom() const noexcept
@@ -278,6 +315,8 @@ public:
         m_page_lru_cache.setCapacity(n);
     }
 
+    void rotateClock() noexcept;
+    void rotateAnticlock() noexcept;
     void setZoom(float zoom) noexcept;
     void setUrlLinkRegex(const QString &pattern) noexcept;
 
@@ -392,7 +431,6 @@ public:
     std::vector<HighlightText> collectHighlightTexts(bool groupByLine
                                                      = true) noexcept;
     void annotChangeColor(int pageno, int index, const QColor &color) noexcept;
-    void reload() noexcept;
 
 signals:
     void undoStackCleanChanged(bool clean);
