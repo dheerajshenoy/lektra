@@ -1203,8 +1203,7 @@ Lektra::updateUiEnabledState() noexcept
         = (filetype == Model::FileType::PDF || filetype == Model::FileType::EPUB
            || filetype == Model::FileType::FB2
            || filetype == Model::FileType::MOBI
-           || filetype == Model::FileType::XPS
-           || filetype == Model::FileType::OXPS);
+           || filetype == Model::FileType::XPS);
 
     // Format-agnostic — enabled whenever any file is open
     m_actionOpenContainingFolder->setEnabled(hasFile);

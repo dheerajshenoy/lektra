@@ -19,6 +19,7 @@
     - `indent_width` (int)
 ### `dim_inactive` in `[portal]` - Dim inactive for portal views too
 ### `description` in `[command_palette]` - Show command description in the command palette if available
+### New interaction mode `initial_mode="none"` in `[behavior]`, doesn't do anything.
 
 
 ### Optimizations
@@ -26,6 +27,8 @@
 - Pass `struct` const reference of only the respective members instead of the whole `Config` struct.
 
 ### New Commands
+
+- `none_mode` - Switch to none interaction mode where no interaction mode is active
 
 ### Breaking Changes
 

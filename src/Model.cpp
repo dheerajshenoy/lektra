@@ -3170,10 +3170,8 @@ Model::detectFileType(const QString &path) noexcept
         return FileType::EPUB;
     if (ext == "svg")
         return FileType::SVG;
-    if (ext == "xps")
+    if (ext == "xps" || ext == "oxps")
         return FileType::XPS;
-    if (ext == "oxps")
-        return FileType::OXPS;
     if (ext == "mobi")
         return FileType::MOBI;
 
