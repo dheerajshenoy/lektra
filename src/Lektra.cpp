@@ -470,11 +470,19 @@ Lektra::initMenubar() noexcept
         QString("Next Location\t%1").arg(m_config.shortcuts["location_next"]),
         this, &Lektra::GoForwardHistory);
 
-    // QMenu *markMenu = m_navMenu->addMenu("Marks");
+    QMenu *markMenu = m_navMenu->addMenu("Marks");
 
-    // m_actionSetMark = markMenu->addAction(
-    //     QString("Set Mar\t%1").arg(m_config.shortcuts["set_mark"]), this,
-    //     &Lektra::SetMark);
+    m_actionSetMark = markMenu->addAction(
+        QString("Set Mar\t%1").arg(m_config.shortcuts["set_mark"]), this,
+        &Lektra::SetMark);
+
+    m_actionGotoMark = markMenu->addAction(
+        QString("Goto Mark\t%1").arg(m_config.shortcuts["goto_mark"]), this,
+        &Lektra::GotoMark);
+
+    m_actionDeleteMark = markMenu->addAction(
+        QString("Delete Mark\t%1").arg(m_config.shortcuts["delete_mark"]), this,
+        &Lektra::DeleteMark);
 
     /* Help Menu */
     QMenu *helpMenu = m_menuBar->addMenu("&Help");
