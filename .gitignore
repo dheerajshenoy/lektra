@@ -10,3 +10,4 @@ _deb_pkg/
 _deb_stage/
 dist/
 scripts/*.pdf
+TAGS
