@@ -122,6 +122,11 @@ init_args(argparse::ArgumentParser &program)
         .metavar("SYNCTEX_FORMAT");
 #endif
 
+    program.add_argument("--layout")
+        .help("Set initial layout (single, vertical, horizontal, book)")
+        .default_value(std::string{"vertical"})
+        .metavar("LAYOUT");
+
     program.add_argument("files").remaining().metavar("FILE_PATH(s)");
 }
 
