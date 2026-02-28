@@ -2026,6 +2026,9 @@ Model::invalidatePageCaches() noexcept
     m_page_lru_cache.clear();
     m_text_cache.clear();
     m_stext_page_cache.clear();
+
+    std::lock_guard<std::mutex> lk(m_page_dim_mutex);
+    m_page_dim_cache.reset(m_page_count);
 }
 
 std::vector<QPolygonF>
