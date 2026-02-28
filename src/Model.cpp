@@ -459,6 +459,22 @@ Model::buildPageCache_djvu(int pageno) noexcept
         ddjvu_message_pop(m_ddjvu_ctx);
     }
 
+    const ddjvu_page_rotation_t djvu_rot = [&]() -> ddjvu_page_rotation_t
+    {
+        switch (((static_cast<int>(m_rotation) % 360) + 360) % 360)
+        {
+            case 90:
+                return DDJVU_ROTATE_90;
+            case 180:
+                return DDJVU_ROTATE_180;
+            case 270:
+                return DDJVU_ROTATE_270;
+            default:
+                return DDJVU_ROTATE_0;
+        }
+    }();
+    ddjvu_page_set_rotation(page, djvu_rot);
+
     // DjVu page native DPI and dimensions
     const int native_dpi = ddjvu_page_get_resolution(page);
     const int pw_px      = ddjvu_page_get_width(page); // at native DPI
@@ -3204,6 +3220,35 @@ void
 Model::setZoom(float zoom) noexcept
 {
     m_zoom = zoom;
+
+#ifdef HAS_DJVU
+    if (m_filetype == FileType::DJVU)
+    {
+        invalidatePageCaches();
+    }
+#endif
+}
+
+void
+Model::rotateClock() noexcept
+{
+    m_rotation += 90;
+    if (m_rotation >= 360)
+        m_rotation = 0;
+
+#ifdef HAS_DJVU
+    if (m_filetype == FileType::DJVU)
+    {
+        invalidatePageCaches();
+    }
+#endif
+}
+void
+Model::rotateAnticlock() noexcept
+{
+    m_rotation -= 90;
+    if (m_rotation < 0)
+        m_rotation = 270;
 
 #ifdef HAS_DJVU
     if (m_filetype == FileType::DJVU)
