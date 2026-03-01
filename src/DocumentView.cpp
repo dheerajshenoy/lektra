@@ -10,7 +10,6 @@
 #include "Commands/TextAnnotationCommand.hpp"
 #include "Config.hpp"
 #include "GraphicsImageItem.hpp"
-#include "GraphicsPixmapItem.hpp"
 #include "GraphicsView.hpp"
 #include "LinkHint.hpp"
 #include "PropertiesWidget.hpp"
@@ -3994,10 +3993,11 @@ DocumentView::SaveRegionAsImage(QRectF area) noexcept
 
     QFileDialog fd(this);
     const QString fileName
-        = fd.getSaveFileName(this, "Save Image", "",
-                             "PNG Image (*.png), "
-                             "JPEG Image (*.jpg *.jpeg), "
-                             "BMP Image (*.bmp);; All Files (*)");
+        = fd.getSaveFileName(this, tr("Save Image"), "",
+                             tr("PNG Image") + " (*.png), " +
+                             tr("JPEG Image") + " (*.jpg *.jpeg), " +
+                             tr("BMP Image") + " (*.bmp);; All Files (*)"
+    );
     if (fileName.isEmpty())
         return;
     QString format;

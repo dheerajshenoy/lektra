@@ -27,10 +27,11 @@ set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address -fno-omit-frame-pointer -ggdb3 -O0
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -fno-omit-frame-pointer -DNDEBUG")
 
-find_package(Qt6 REQUIRED COMPONENTS Gui Widgets Core Concurrent) #OpenGLWidgets )
+find_package(Qt6 REQUIRED COMPONENTS Gui Widgets Core Concurrent LinguistTools) #OpenGLWidgets )
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(DJVU ddjvuapi)
+include(GNUInstallDirs)
 
 # SyncTeX
 find_path(SYNCTEX_INCLUDE_DIR
@@ -142,6 +143,7 @@ qt_add_resources(RESOURCES resources.qrc)
 # Add MuPDF headers
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/external/mupdf/include
+    ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
 target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
@@ -155,6 +157,49 @@ else()
     target_link_libraries(${PROJECT_NAME} PRIVATE synctex)
 endif()
 
+
+
+# ------------------------------
+# Translations
+# ------------------------------
+set(TRANSLATION_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/Translations")
+file(GLOB TRANSLATION_FILES "${TRANSLATION_SRC_DIR}/*.ts")
+
+# Configure translationsdir.hpp
+set(TRANSLATIONS_DIR "${CMAKE_INSTALL_FULL_DATADIR}/locale")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/TranslationsDir.hpp.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/include/TranslationsDir.hpp"
+    @ONLY
+)
+
+# Generate .qm files immediately without creating target dependencies
+qt_add_translations(
+    TARGETS ${PROJECT_NAME}            # Target that will use the .qm files
+    TS_FILES ${TRANSLATION_FILES}   # Explicit .ts files
+    QM_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/translations"
+    QM_FILES_OUTPUT_VARIABLE QM_FILES
+)
+
+# Install each .qm into locale/<lang>/LC_MESSAGES/
+foreach(qm_file ${QM_FILES})
+    get_filename_component(qm_name "${qm_file}" NAME)
+    string(REGEX REPLACE "\\.qm$" "" qm_name "${qm_name}")
+
+    string(REPLACE "lektra." "" lang "${qm_name}")
+
+    if(lang STREQUAL "${qm_name}")
+        set(lang "en")
+    endif()
+
+    install(
+        FILES "${qm_file}"
+        DESTINATION "${TRANSLATIONS_DIR}/${lang}/LC_MESSAGES"
+        RENAME "lektra.qm"
+    )
+endforeach()
+
+# -----
 
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

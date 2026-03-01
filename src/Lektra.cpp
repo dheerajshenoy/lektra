@@ -20,12 +20,11 @@
 #include <QJsonObject>
 #include <QJsonParseError>
 #include <QMimeData>
+#include <QObject>
 #include <QProcess>
 #include <QSplitter>
 #include <QStyleHints>
 #include <QWindow>
-#include <algorithm>
-#include <qobject.h>
 #include <variant>
 
 namespace
@@ -116,111 +115,111 @@ void
 Lektra::initMenubar() noexcept
 {
     // --- File Menu ---
-    QMenu *fileMenu = m_menuBar->addMenu("&File");
+    QMenu *fileMenu = m_menuBar->addMenu(tr("&File"));
 
     fileMenu->addAction(
-        QString("Open File\t%1").arg(m_config.shortcuts["file_open_tab"]), this,
+        tr("Open File\t%1").arg(m_config.shortcuts["file_open_tab"]), this,
         [&]() { OpenFileInNewTab(); });
 
-    fileMenu->addAction(QString("Open File In VSplit\t%1")
+    fileMenu->addAction(tr("Open File In VSplit\t%1")
                             .arg(m_config.shortcuts["file_open_vsplit"]),
                         this, [&]() { OpenFileVSplit(); });
 
-    fileMenu->addAction(QString("Open File In HSplit\t%1")
+    fileMenu->addAction(tr("Open File In HSplit\t%1")
                             .arg(m_config.shortcuts["file_open_hsplit"]),
                         this, [&]() { OpenFileHSplit(); });
 
-    m_recentFilesMenu = fileMenu->addMenu("Recent Files");
+    m_recentFilesMenu = fileMenu->addMenu(tr("Recent Files"));
 
     m_actionFileProperties
-        = fileMenu->addAction(QString("File Properties\t%1")
+        = fileMenu->addAction(tr("File Properties\t%1")
                                   .arg(m_config.shortcuts["file_properties"]),
                               this, &Lektra::FileProperties);
 
     m_actionOpenContainingFolder = fileMenu->addAction(
-        QString("Open Containing Folder\t%1")
+        tr("Open Containing Folder\t%1")
             .arg(m_config.shortcuts["open_containing_folder"]),
         this, &Lektra::OpenContainingFolder);
     m_actionOpenContainingFolder->setEnabled(false);
 
     m_actionSaveFile = fileMenu->addAction(
-        QString("Save File\t%1").arg(m_config.shortcuts["file_save"]), this,
+        tr("Save File\t%1").arg(m_config.shortcuts["file_save"]), this,
         &Lektra::SaveFile);
 
     m_actionSaveAsFile = fileMenu->addAction(
-        QString("Save As File\t%1").arg(m_config.shortcuts["file_save_as"]),
+        tr("Save As File\t%1").arg(m_config.shortcuts["file_save_as"]),
         this, &Lektra::SaveAsFile);
 
-    QMenu *sessionMenu = fileMenu->addMenu("Session");
+    QMenu *sessionMenu = fileMenu->addMenu(tr("Session"));
 
     m_actionSessionSave = sessionMenu->addAction(
-        QString("Save\t%1").arg(m_config.shortcuts["session_save"]), this,
+        tr("Save\t%1").arg(m_config.shortcuts["session_save"]), this,
         [&]() { SaveSession(); });
     m_actionSessionSaveAs = sessionMenu->addAction(
-        QString("Save As\t%1").arg(m_config.shortcuts["session_save_as"]), this,
+        tr("Save As\t%1").arg(m_config.shortcuts["session_save_as"]), this,
         [&]() { SaveAsSession(); });
     m_actionSessionLoad = sessionMenu->addAction(
-        QString("Load\t%1").arg(m_config.shortcuts["session_load"]), this,
+        tr("Load\t%1").arg(m_config.shortcuts["session_load"]), this,
         [&]() { LoadSession(); });
 
     m_actionSessionSaveAs->setEnabled(false);
 
     m_actionCloseFile = fileMenu->addAction(
-        QString("Close File\t%1").arg(m_config.shortcuts["file_close"]), this,
+        tr("Close File\t%1").arg(m_config.shortcuts["file_close"]), this,
         [this]() { Tab_close(); });
 
     fileMenu->addSeparator();
-    fileMenu->addAction("Quit", this, &QMainWindow::close);
+    fileMenu->addAction(tr("Quit"), this, &QMainWindow::close);
 
-    QMenu *editMenu = m_menuBar->addMenu("&Edit");
+    QMenu *editMenu = m_menuBar->addMenu(tr("&Edit"));
     m_actionUndo    = editMenu->addAction(
-        QString("Undo\t%1").arg(m_config.shortcuts["undo"]), this,
+        tr("Undo\t%1").arg(m_config.shortcuts["undo"]), this,
         &Lektra::Undo);
     m_actionRedo = editMenu->addAction(
-        QString("Redo\t%1").arg(m_config.shortcuts["redo"]), this,
+        tr("Redo\t%1").arg(m_config.shortcuts["redo"]), this,
         &Lektra::Redo);
     m_actionUndo->setEnabled(false);
     m_actionRedo->setEnabled(false);
     editMenu->addAction(
-        QString("Last Pages\t%1").arg(m_config.shortcuts["edit_last_pages"]),
+        tr("Last Pages\t%1").arg(m_config.shortcuts["edit_last_pages"]),
         this, &Lektra::editLastPages);
 
     // --- View Menu ---
-    m_viewMenu         = m_menuBar->addMenu("&View");
+    m_viewMenu         = m_menuBar->addMenu(tr("&View"));
     m_actionFullscreen = m_viewMenu->addAction(
-        QString("Fullscreen\t%1").arg(m_config.shortcuts["fullscreen"]), this,
+        tr("Fullscreen\t%1").arg(m_config.shortcuts["fullscreen"]), this,
         &Lektra::ToggleFullscreen);
     m_actionFullscreen->setCheckable(true);
     m_actionFullscreen->setChecked(m_config.window.fullscreen);
 
     m_actionZoomIn = m_viewMenu->addAction(
-        QString("Zoom In\t%1").arg(m_config.shortcuts["zoom_in"]), this,
+        tr("Zoom In\t%1").arg(m_config.shortcuts["zoom_in"]), this,
         &Lektra::ZoomIn);
     m_actionZoomOut = m_viewMenu->addAction(
-        QString("Zoom Out\t%1").arg(m_config.shortcuts["zoom_out"]), this,
+        tr("Zoom Out\t%1").arg(m_config.shortcuts["zoom_out"]), this,
         &Lektra::ZoomOut);
 
     m_viewMenu->addSeparator();
 
-    m_fitMenu = m_viewMenu->addMenu("Fit");
+    m_fitMenu = m_viewMenu->addMenu(tr("Fit"));
 
     m_actionFitWidth = m_fitMenu->addAction(
-        QString("Width\t%1").arg(m_config.shortcuts["fit_width"]), this,
+        tr("Width\t%1").arg(m_config.shortcuts["fit_width"]), this,
         &Lektra::Fit_width);
 
     m_actionFitHeight = m_fitMenu->addAction(
-        QString("Height\t%1").arg(m_config.shortcuts["fit_height"]), this,
+        tr("Height\t%1").arg(m_config.shortcuts["fit_height"]), this,
         &Lektra::Fit_height);
 
     m_actionFitWindow = m_fitMenu->addAction(
-        QString("Page\t%1").arg(m_config.shortcuts["fit_page"]), this,
+        tr("Page\t%1").arg(m_config.shortcuts["fit_page"]), this,
         &Lektra::Fit_page);
 
     m_fitMenu->addSeparator();
 
     // Auto Resize toggle (independent)
     m_actionAutoresize = m_viewMenu->addAction(
-        QString("Auto Fit\t%1").arg(m_config.shortcuts["fit_auto"]), this,
+        tr("Auto Fit\t%1").arg(m_config.shortcuts["fit_auto"]), this,
         &Lektra::ToggleAutoResize);
     m_actionAutoresize->setCheckable(true);
     m_actionAutoresize->setChecked(
@@ -229,26 +228,26 @@ Lektra::initMenubar() noexcept
     // --- Layout Menu ---
 
     m_viewMenu->addSeparator();
-    m_layoutMenu                    = m_viewMenu->addMenu("Layout");
+    m_layoutMenu                    = m_viewMenu->addMenu(tr("Layout"));
     QActionGroup *layoutActionGroup = new QActionGroup(this);
     layoutActionGroup->setExclusive(true);
 
     m_actionLayoutSingle = m_layoutMenu->addAction(
-        QString("Single Page\t%1").arg(m_config.shortcuts["layout_single"]),
+        tr("Single Page\t%1").arg(m_config.shortcuts["layout_single"]),
         this, [&]() { SetLayoutMode(DocumentView::LayoutMode::SINGLE); });
 
     m_actionLayoutLeftToRight = m_layoutMenu->addAction(
-        QString("Left to Right Page\t%1")
+        tr("Left to Right Page\t%1")
             .arg(m_config.shortcuts["layout_horizontal"]),
         this, [&]() { SetLayoutMode(DocumentView::LayoutMode::HORIZONTAL); });
 
     m_actionLayoutTopToBottom = m_layoutMenu->addAction(
-        QString("Top to Bottom Page\t%1")
+        tr("Top to Bottom Page\t%1")
             .arg(m_config.shortcuts["layout_vertical"]),
         this, [&]() { SetLayoutMode(DocumentView::LayoutMode::VERTICAL); });
 
     m_actionLayoutBook = m_layoutMenu->addAction(
-        QString("Book\t%1").arg(m_config.shortcuts["layout_book"]), this,
+        tr("Book\t%1").arg(m_config.shortcuts["layout_book"]), this,
         [&]() { SetLayoutMode(DocumentView::LayoutMode::BOOK); });
 
     layoutActionGroup->addAction(m_actionLayoutSingle);
@@ -273,29 +272,29 @@ Lektra::initMenubar() noexcept
     // --- Toggle Menu ---
 
     m_viewMenu->addSeparator();
-    m_toggleMenu = m_viewMenu->addMenu("Show/Hide");
+    m_toggleMenu = m_viewMenu->addMenu(tr("Show/Hide"));
 
 #ifdef ENABLE_LLM_SUPPORT
     m_actionToggleLLMWidget = m_toggleMenu->addAction(
-        QString("LLM Widget\t%1").arg(m_config.shortcuts["llm_widget"]), this,
+        tr("LLM Widget\t%1").arg(m_config.shortcuts["llm_widget"]), this,
         &Lektra::ToggleLLMWidget);
     m_actionToggleLLMWidget->setCheckable(true);
     m_actionToggleLLMWidget->setChecked(m_config.llm_widget.visible);
 #endif
 
     m_actionCommandPicker = m_toggleMenu->addAction(
-        QString("Command Picker\t%1").arg(m_config.shortcuts["command_picker"]),
+        tr("Command Picker\t%1").arg(m_config.shortcuts["command_picker"]),
         this, &Lektra::Show_command_picker);
 
     m_actionToggleOutline = m_toggleMenu->addAction(
-        QString("Outline\t%1").arg(m_config.shortcuts["picker_outline"]), this,
+        tr("Outline\t%1").arg(m_config.shortcuts["picker_outline"]), this,
         &Lektra::Show_outline);
     m_actionToggleOutline->setCheckable(true);
     m_actionToggleOutline->setChecked(m_outline_picker
                                       && !m_outline_picker->isHidden());
 
     m_actionToggleHighlightAnnotSearch = m_toggleMenu->addAction(
-        QString("Highlight Annotation Search\t%1")
+        tr("Highlight Annotation Search\t%1")
             .arg(m_config.shortcuts["picker_highlight_search"]),
         this, &Lektra::Show_highlight_search);
     m_actionToggleHighlightAnnotSearch->setCheckable(true);
@@ -303,75 +302,75 @@ Lektra::initMenubar() noexcept
         m_highlight_search_picker && !m_highlight_search_picker->isHidden());
 
     m_actionToggleMenubar = m_toggleMenu->addAction(
-        QString("Menubar\t%1").arg(m_config.shortcuts["menubar"]), this,
+        tr("Menubar\t%1").arg(m_config.shortcuts["menubar"]), this,
         &Lektra::ToggleMenubar);
     m_actionToggleMenubar->setCheckable(true);
     m_actionToggleMenubar->setChecked(!m_menuBar->isHidden());
 
     m_actionToggleTabBar = m_toggleMenu->addAction(
-        QString("Tabs\t%1").arg(m_config.shortcuts["tabs"]), this,
+        tr("Tabs\t%1").arg(m_config.shortcuts["tabs"]), this,
         &Lektra::ToggleTabBar);
     m_actionToggleTabBar->setCheckable(true);
     m_actionToggleTabBar->setChecked(!m_tab_widget->tabBar()->isHidden());
 
     m_actionTogglePanel = m_toggleMenu->addAction(
-        QString("Statusbar\t%1").arg(m_config.shortcuts["statusbar"]), this,
+        tr("Statusbar\t%1").arg(m_config.shortcuts["statusbar"]), this,
         &Lektra::TogglePanel);
     m_actionTogglePanel->setCheckable(true);
     m_actionTogglePanel->setChecked(!m_statusbar->isHidden());
 
     m_actionInvertColor = m_viewMenu->addAction(
-        QString("Invert Color\t%1").arg(m_config.shortcuts["invert_color"]),
+        tr("Invert Color\t%1").arg(m_config.shortcuts["invert_color"]),
         this, &Lektra::InvertColor);
     m_actionInvertColor->setCheckable(true);
     m_actionInvertColor->setChecked(m_config.behavior.invert_mode);
 
     // --- Tools Menu ---
 
-    QMenu *toolsMenu = m_menuBar->addMenu("Tools");
+    QMenu *toolsMenu = m_menuBar->addMenu(tr("Tools"));
 
-    m_modeMenu = toolsMenu->addMenu("Mode");
+    m_modeMenu = toolsMenu->addMenu(tr("Mode"));
 
     QActionGroup *modeActionGroup = new QActionGroup(this);
     modeActionGroup->setExclusive(true);
 
     m_actionRegionSelect = m_modeMenu->addAction(
-        QString("Region Selection\t%1")
+        tr("Region Selection\t%1")
             .arg(m_config.shortcuts["selection_mode_region"]),
         this, &Lektra::ToggleRegionSelect);
     m_actionRegionSelect->setCheckable(true);
     modeActionGroup->addAction(m_actionRegionSelect);
 
     m_actionTextSelect = m_modeMenu->addAction(
-        QString("Text Selection\t%1")
+        tr("Text Selection\t%1")
             .arg(m_config.shortcuts["selection_mode_text"]),
         this, &Lektra::ToggleTextSelection);
     m_actionTextSelect->setCheckable(true);
     modeActionGroup->addAction(m_actionTextSelect);
 
     m_actionTextHighlight = m_modeMenu->addAction(
-        QString("Text Highlight\t%1")
+        tr("Text Highlight\t%1")
             .arg(m_config.shortcuts["annot_highlight_mode"]),
         this, &Lektra::ToggleTextHighlight);
     m_actionTextHighlight->setCheckable(true);
     modeActionGroup->addAction(m_actionTextHighlight);
 
     m_actionAnnotRect
-        = m_modeMenu->addAction(QString("Annotate Rectangle\t%1")
+        = m_modeMenu->addAction(tr("Annotate Rectangle\t%1")
                                     .arg(m_config.shortcuts["annot_rect_mode"]),
                                 this, &Lektra::ToggleAnnotRect);
     m_actionAnnotRect->setCheckable(true);
     modeActionGroup->addAction(m_actionAnnotRect);
 
     m_actionAnnotEdit
-        = m_modeMenu->addAction(QString("Edit Annotations\t%1")
+        = m_modeMenu->addAction(tr("Edit Annotations\t%1")
                                     .arg(m_config.shortcuts["annot_edit_mode"]),
                                 this, &Lektra::ToggleAnnotSelect);
     m_actionAnnotEdit->setCheckable(true);
     modeActionGroup->addAction(m_actionAnnotEdit);
 
     m_actionAnnotPopup = m_modeMenu->addAction(
-        QString("Annotate Popup\t%1")
+        tr("Annotate Popup\t%1")
             .arg(m_config.shortcuts["annot_popup_mode"]),
         this, &Lektra::ToggleAnnotPopup);
     m_actionAnnotPopup->setCheckable(true);
@@ -379,14 +378,14 @@ Lektra::initMenubar() noexcept
 
     // TODO: Store visual line mode state in config
     m_actionVisualLineMode = m_modeMenu->addAction(
-        QString("Visual Line Mode\t%1")
+        tr("Visual Line Mode\t%1")
             .arg(m_config.shortcuts["visual_line_mode"]),
         this, &Lektra::Toggle_visual_line_mode);
     m_actionVisualLineMode->setCheckable(true);
     modeActionGroup->addAction(m_actionVisualLineMode);
 
     m_actionNoneMode = m_modeMenu->addAction(
-        QString("None\t%1").arg(m_config.shortcuts["none_mode"]), this,
+        tr("None\t%1").arg(m_config.shortcuts["none_mode"]), this,
         &Lektra::Toggle_none_mode);
     m_actionNoneMode->setCheckable(true);
     modeActionGroup->addAction(m_actionNoneMode);
@@ -425,71 +424,71 @@ Lektra::initMenubar() noexcept
     }
 
     m_actionEncrypt = toolsMenu->addAction(
-        QString("Encrypt Document\t%1").arg(m_config.shortcuts["file_encrypt"]),
+        tr("Encrypt Document\t%1").arg(m_config.shortcuts["file_encrypt"]),
         this, &Lektra::EncryptDocument);
     m_actionEncrypt->setEnabled(false);
 
     m_actionDecrypt = toolsMenu->addAction(
-        QString("Decrypt Document\t%1").arg(m_config.shortcuts["file_decrypt"]),
+        tr("Decrypt Document\t%1").arg(m_config.shortcuts["file_decrypt"]),
         this, &Lektra::DecryptDocument);
     m_actionDecrypt->setEnabled(false);
 
     // --- Navigation Menu ---
-    m_navMenu = m_menuBar->addMenu("&Navigation");
+    m_navMenu = m_menuBar->addMenu(tr("&Navigation"));
 
     m_navMenu->addAction(
-        QString("StartPage\t%1").arg(m_config.shortcuts["show_startup_widget"]),
+        tr("StartPage\t%1").arg(m_config.shortcuts["show_startup_widget"]),
         this, &Lektra::showStartupWidget);
 
     m_actionGotoPage = m_navMenu->addAction(
-        QString("Goto Page\t%1").arg(m_config.shortcuts["page_goto"]), this,
+        tr("Goto Page\t%1").arg(m_config.shortcuts["page_goto"]), this,
         &Lektra::Goto_page);
 
     m_actionFirstPage = m_navMenu->addAction(
-        QString("First Page\t%1").arg(m_config.shortcuts["page_first"]), this,
+        tr("First Page\t%1").arg(m_config.shortcuts["page_first"]), this,
         &Lektra::FirstPage);
 
     m_actionPrevPage = m_navMenu->addAction(
-        QString("Previous Page\t%1").arg(m_config.shortcuts["page_prev"]), this,
+        tr("Previous Page\t%1").arg(m_config.shortcuts["page_prev"]), this,
         &Lektra::PrevPage);
 
     m_actionNextPage = m_navMenu->addAction(
-        QString("Next Page\t%1").arg(m_config.shortcuts["page_next"]), this,
+        tr("Next Page\t%1").arg(m_config.shortcuts["page_next"]), this,
         &Lektra::NextPage);
     m_actionLastPage = m_navMenu->addAction(
-        QString("Last Page\t%1").arg(m_config.shortcuts["page_last"]), this,
+        tr("Last Page\t%1").arg(m_config.shortcuts["page_last"]), this,
         &Lektra::LastPage);
 
     m_actionPrevLocation
-        = m_navMenu->addAction(QString("Previous Location\t%1")
+        = m_navMenu->addAction(tr("Previous Location\t%1")
                                    .arg(m_config.shortcuts["location_prev"]),
                                this, &Lektra::GoBackHistory);
     m_actionNextLocation = m_navMenu->addAction(
-        QString("Next Location\t%1").arg(m_config.shortcuts["location_next"]),
+        tr("Next Location\t%1").arg(m_config.shortcuts["location_next"]),
         this, &Lektra::GoForwardHistory);
 
-    QMenu *markMenu = m_navMenu->addMenu("Marks");
+    QMenu *markMenu = m_navMenu->addMenu(tr("Marks"));
 
     m_actionSetMark = markMenu->addAction(
-        QString("Set Mar\t%1").arg(m_config.shortcuts["set_mark"]), this,
+        tr("Set Mark\t%1").arg(m_config.shortcuts["set_mark"]), this,
         &Lektra::SetMark);
 
     m_actionGotoMark = markMenu->addAction(
-        QString("Goto Mark\t%1").arg(m_config.shortcuts["goto_mark"]), this,
+        tr("Goto Mark\t%1").arg(m_config.shortcuts["goto_mark"]), this,
         &Lektra::GotoMark);
 
     m_actionDeleteMark = markMenu->addAction(
-        QString("Delete Mark\t%1").arg(m_config.shortcuts["delete_mark"]), this,
+        tr("Delete Mark\t%1").arg(m_config.shortcuts["delete_mark"]), this,
         &Lektra::DeleteMark);
 
     /* Help Menu */
-    QMenu *helpMenu = m_menuBar->addMenu("&Help");
+    QMenu *helpMenu = m_menuBar->addMenu(tr("&Help"));
     m_actionAbout   = helpMenu->addAction(
-        QString("About\t%1").arg(m_config.shortcuts["show_about"]), this,
+        tr("About\t%1").arg(m_config.shortcuts["show_about"]), this,
         &Lektra::ShowAbout);
 
     m_actionShowTutorialFile = helpMenu->addAction(
-        QString("Open Tutorial File\t%1")
+        tr("Open Tutorial File\t%1")
             .arg(m_config.shortcuts["show_tutorial_file"]),
         this, &Lektra::showTutorialFile);
 }
@@ -533,7 +532,7 @@ Lektra::initConfig() noexcept
     {
         QMessageBox::critical(
             this, "Error in configuration file",
-            QString("There are one or more error(s) in your config "
+            tr("There are one or more error(s) in your config "
                     "file:\n%1\n\nLoading default config.")
                 .arg(e.what()));
         return;
@@ -1119,7 +1118,7 @@ Lektra::warnShortcutConflicts() noexcept
             keyDisplay = it.key();
 
         const QString actions = it.value().join(", ");
-        conflicts.append(QString("%1 -> %2").arg(keyDisplay, actions));
+        conflicts.append(tr("%1 -> %2").arg(keyDisplay, actions));
     }
 
     if (conflicts.isEmpty())
@@ -1129,11 +1128,11 @@ Lektra::warnShortcutConflicts() noexcept
     QString message;
     if (conflicts.size() <= maxItems)
     {
-        message = QString("Shortcut conflict(s): %1").arg(conflicts.join("; "));
+        message = tr("Shortcut conflict(s): %1").arg(conflicts.join("; "));
     }
     else
     {
-        message = QString("Shortcut conflict(s): %1; and %2 more")
+        message = tr("Shortcut conflict(s): %1; and %2 more")
                       .arg(conflicts.mid(0, maxItems).join("; "))
                       .arg(conflicts.size() - maxItems);
     }
@@ -1176,7 +1175,7 @@ Lektra::initGui() noexcept
         const auto it = m_actionMap.find(action);
         if (it == m_actionMap.end())
         {
-            m_message_bar->showMessage(QStringLiteral("LLM: Unknown action"));
+            m_message_bar->showMessage(tr("LLM: Unknown action"));
             return;
         }
         it.value()(args);
@@ -1621,7 +1620,7 @@ Lektra::Goto_page() noexcept
 
     bool ok;
     int pageno = QInputDialog::getInt(
-        this, "Goto Page", QString("Enter page number (1 to %1)").arg(total),
+        this, "Goto Page", tr("Enter page number (1 to %1)").arg(total),
         m_doc->pageNo() + 1, 0, m_doc->numPages(), 1, &ok);
 
     if (!ok)
@@ -1630,7 +1629,7 @@ Lektra::Goto_page() noexcept
     if (pageno <= 0 || pageno > total)
     {
         QMessageBox::critical(this, "Goto Page",
-                              QString("Page %1 is out of range").arg(pageno));
+                              tr("Page %1 is out of range").arg(pageno));
         return;
     }
 
@@ -1820,7 +1819,7 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
     {
         QFileDialog dialog(this);
         dialog.setFileMode(QFileDialog::ExistingFile);
-        dialog.setNameFilter(tr("PDF Files (*.pdf);;All Files (*)"));
+        dialog.setNameFilter(tr("PDF Files") + " " + "(*.pdf)" + ";;" + tr("All Files") + " " + "(*)");
         if (dialog.exec())
         {
             const QStringList selected = dialog.selectedFiles();
@@ -1991,7 +1990,7 @@ Lektra::OpenFileInNewTab(const QString &filename,
         // Show file picker
         QFileDialog dialog(this);
         dialog.setFileMode(QFileDialog::ExistingFile);
-        dialog.setNameFilter(tr("PDF Files (*.pdf);;All Files (*)"));
+        dialog.setNameFilter(tr("PDF Files") + " " + "(*.pdf)" + ";;" + tr("All Files") + " " + "(*)");
 
         if (dialog.exec())
         {
@@ -2109,7 +2108,7 @@ Lektra::openFileSplitHelper(const QString &filename,
         // Show file picker
         QFileDialog dialog(this);
         dialog.setFileMode(QFileDialog::ExistingFile);
-        dialog.setNameFilter(tr("PDF Files (*.pdf);;All Files (*)"));
+        dialog.setNameFilter(tr("PDF Files") + " " + "(*.pdf)" + ";;" + tr("All Files") + " " + "(*)");
 
         if (dialog.exec())
         {
@@ -2200,7 +2199,7 @@ Lektra::OpenFileInNewWindow(const QString &filePath,
     {
         QStringList files;
         files = QFileDialog::getOpenFileNames(
-            this, "Open File", "", "PDF Files (*.pdf);; All Files (*)");
+            this, tr("Open File"), "", tr("PDF Files") + " " + "(*.pdf)" + ";;" + tr("All Files") + " " + "(*)");
         if (files.empty())
             return false;
         else
@@ -2237,7 +2236,7 @@ Lektra::OpenFileInNewWindow(const QString &filePath,
     if (!QFile::exists(fp))
     {
         QMessageBox::warning(this, "Open File",
-                             QString("Unable to find %1").arg(fp));
+                             tr("Unable to find %1").arg(fp));
         return false;
     }
 
@@ -2782,7 +2781,7 @@ Lektra::closeEvent(QCloseEvent *e)
             {
                 int ret = QMessageBox::warning(
                     this, "Unsaved Changes",
-                    QString("File %1 has unsaved changes. Do you want to save "
+                    tr("File %1 has unsaved changes. Do you want to save "
                             "them?")
                         .arg(m_tab_widget->tabText(i)),
                     QMessageBox::Save | QMessageBox::Discard
@@ -2805,7 +2804,7 @@ Lektra::closeEvent(QCloseEvent *e)
     if (m_config.behavior.confirm_on_quit)
     {
         int ret = QMessageBox::question(
-            this, "Confirm Quit", "Are you sure you want to quit Lektra?",
+            this, tr("Confirm Quit"), tr("Are you sure you want to quit Lektra?"),
             QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
 
         if (ret == QMessageBox::No)
@@ -2922,19 +2921,19 @@ Lektra::handleTabContextMenu(QObject *object, QEvent *event) noexcept
         return true;
 
     QMenu menu;
-    menu.addAction("Open Location", this,
+    menu.addAction(tr("Open Location"), this,
                    [this, index]() { openInExplorerForIndex(index); });
-    menu.addAction("File Properties", this,
+    menu.addAction(tr("File Properties"), this,
                    [this, index]() { filePropertiesForIndex(index); });
     menu.addSeparator();
-    menu.addAction("Move Tab to New Window", this, [this, index]()
+    menu.addAction(tr("Move Tab to New Window"), this, [this, index]()
     {
         TabBar::TabData data;
         handleTabDataRequested(index, &data);
         if (!data.filePath.isEmpty())
             handleTabDetachedToNewWindow(index, data);
     });
-    menu.addAction("Close Tab", this,
+    menu.addAction(tr("Close Tab"), this,
                    [this, index]() { m_tab_widget->tabCloseRequested(index); });
 
     menu.exec(contextEvent->globalPos());
@@ -3285,7 +3284,7 @@ Lektra::LoadSession(QString sessionName) noexcept
     QStringList existingSessions = getSessionFiles();
     if (existingSessions.empty())
     {
-        QMessageBox::information(this, "Load Session", "No sessions found");
+        QMessageBox::information(this, tr("Load Session"), tr("No sessions found"));
         return;
     }
 
@@ -3293,8 +3292,8 @@ Lektra::LoadSession(QString sessionName) noexcept
     {
         bool ok;
         sessionName = QInputDialog::getItem(
-            this, "Load Session",
-            "Session to load (existing sessions are listed): ",
+            this, tr("Load Session"),
+            tr("Session to load (existing sessions are listed): "),
             existingSessions, 0, true, &ok);
     }
 
@@ -3307,20 +3306,20 @@ Lektra::LoadSession(QString sessionName) noexcept
 
         if (err.error != QJsonParseError::NoError)
         {
-            QMessageBox::critical(this, "Session File Parse Error",
+            QMessageBox::critical(this, tr("Session File Parse Error"),
                                   err.errorString());
 #ifndef NDEBUG
-            qDebug() << "JSON parse error:" << err.errorString();
+            qDebug() << tr("JSON parse error:") << err.errorString();
 #endif
             return;
         }
 
         if (!doc.isArray())
         {
-            QMessageBox::critical(this, "Session File Parse Error",
-                                  "Session file root is not an array");
+            QMessageBox::critical(this, tr("Session File Parse Error"),
+                                  tr("Session file root is not an array"));
 #ifndef NDEBUG
-            qDebug() << "Session file root is not an array";
+            qDebug() << tr("Session file root is not an array");
 #endif
             return;
         }
@@ -3342,8 +3341,8 @@ Lektra::LoadSession(QString sessionName) noexcept
     {
 
         QMessageBox::critical(
-            this, "Open Session",
-            QStringLiteral("Could not open session: %1").arg(sessionName));
+            this, tr("Open Session"),
+            tr("Could not open session: %1").arg(sessionName));
     }
 }
 
@@ -3358,8 +3357,8 @@ Lektra::getSessionFiles() noexcept
         if (!m_session_dir.mkpath("."))
         {
             QMessageBox::warning(
-                this, "Session Directory",
-                "Unable to create sessions directory for some reason");
+                this, tr("Session Directory"),
+                tr("Unable to create sessions directory due to an unknown error."));
             return sessions;
         }
     }
@@ -3377,8 +3376,8 @@ Lektra::SaveSession() noexcept
 {
     if (!m_doc)
     {
-        QMessageBox::information(this, "Save Session",
-                                 "No files in session to save the session");
+        QMessageBox::information(this, tr("Save Session"),
+                                 tr("No files in session to save the session"));
         return;
     }
 
@@ -3395,8 +3394,8 @@ Lektra::SaveSession() noexcept
 
         if (sessionName.isEmpty())
         {
-            QMessageBox::information(this, "Save Session",
-                                     "Session name cannot be empty");
+            QMessageBox::information(this, tr("Save Session"),
+                                     tr("Session name cannot be empty"));
             return;
         }
 
@@ -3406,8 +3405,8 @@ Lektra::SaveSession() noexcept
             if (existingSessions.contains(sessionName))
             {
                 auto choice = QMessageBox::warning(
-                    this, "Overwrite Session",
-                    QString("Session named \"%1\" already exists. Do you "
+                    this, tr("Overwrite Session"),
+                    tr("Session named \"%1\" already exists. Do you "
                             "want to "
                             "overwrite it?")
                         .arg(sessionName),
@@ -3454,8 +3453,8 @@ Lektra::writeSessionToFile() noexcept
     if (!file.open(QIODevice::WriteOnly))
     {
         QMessageBox::critical(
-            this, "Save Session",
-            QStringLiteral("Could not save session: %1").arg(m_session_name));
+            this, tr("Save Session"),
+            tr("Could not save session: %1").arg(m_session_name));
         return;
     }
     file.write(QJsonDocument(sessionArray).toJson());
@@ -3470,16 +3469,17 @@ Lektra::SaveAsSession(const QString &sessionPath) noexcept
     if (m_session_name.isEmpty())
     {
         QMessageBox::information(
-            this, "Save As Session",
-            "Cannot save session as you are not currently in a session");
+            this, tr("Save As Session"),
+            tr("Cannot save session as you are not currently in a session")
+        );
         return;
     }
 
     QStringList existingSessions = getSessionFiles();
 
     QString selectedPath = QFileDialog::getSaveFileName(
-        this, "Save As Session", m_session_dir.absolutePath(),
-        "Lektra session files (*.json); All Files (*.*)");
+        this, tr("Save As Session"), m_session_dir.absolutePath(),
+        tr("Lektra session files") + " " + "(*.json);" + tr("All Files") + " " + "(*.*)");
 
     if (selectedPath.isEmpty())
         return;
@@ -3487,8 +3487,8 @@ Lektra::SaveAsSession(const QString &sessionPath) noexcept
     if (QFile::exists(selectedPath))
     {
         auto choice = QMessageBox::warning(
-            this, "Overwrite Session",
-            QString("Session named \"%1\" already exists. Do you want to "
+            this, tr("Overwrite Session"),
+            tr("Session named \"%1\" already exists. Do you want to "
                     "overwrite it?")
                 .arg(QFileInfo(selectedPath).fileName()),
             QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
@@ -3502,8 +3502,8 @@ Lektra::SaveAsSession(const QString &sessionPath) noexcept
         = m_session_dir.filePath(m_session_name + ".json");
     if (!QFile::copy(currentSessionPath, selectedPath))
     {
-        QMessageBox::critical(this, "Save As Session",
-                              "Failed to save session.");
+        QMessageBox::critical(this, tr("Save As Session"),
+                              tr("Failed to save session."));
     }
 }
 
@@ -3530,9 +3530,9 @@ Lektra::showStartupWidget() noexcept
                 m_tab_widget->tabCloseRequested(index);
         });
     });
-    int index = m_tab_widget->addTab(m_startup_widget, "Startup");
+    int index = m_tab_widget->addTab(m_startup_widget, tr("Startup"));
     m_tab_widget->setCurrentIndex(index);
-    m_statusbar->setFileName("Start Page");
+    m_statusbar->setFileName(tr("Start Page"));
 }
 
 // Update actions and stuff for system tabs
@@ -3541,7 +3541,7 @@ Lektra::updateActionsAndStuffForSystemTabs() noexcept
 {
     m_statusbar->hidePageInfo(true);
     updateUiEnabledState();
-    m_statusbar->setFileName("Start Page");
+    m_statusbar->setFileName(tr("Start Page"));
 }
 
 // Undo operation
@@ -3573,301 +3573,301 @@ Lektra::initCommands() noexcept
 {
     // Selection
     m_command_manager.reg("selection_copy",
-                          "Copy current selection to clipboard",
+                          tr("Copy current selection to clipboard"),
                           [this](const QStringList &) { Selection_copy(); });
     m_command_manager.reg("selection_cancel",
-                          "Cancel and clear current selection",
+                          tr("Cancel and clear current selection"),
                           [this](const QStringList &) { Selection_cancel(); });
-    m_command_manager.reg("selection_last", "Reselect the last text selection",
+    m_command_manager.reg("selection_last", tr("Reselect the last text selection"),
                           [this](const QStringList &)
     { ReselectLastTextSelection(); });
 
     // Toggles
-    m_command_manager.reg("presentation_mode", "Toggle presentation mode",
+    m_command_manager.reg("presentation_mode", tr("Toggle presentation mode"),
                           [this](const QStringList &)
     { Toggle_presentation_mode(); });
-    m_command_manager.reg("fullscreen", "Toggle fullscreen",
+    m_command_manager.reg("fullscreen", tr("Toggle fullscreen"),
                           [this](const QStringList &) { ToggleFullscreen(); });
-    m_command_manager.reg("command_palette", "Open command palette",
+    m_command_manager.reg("command_palette", tr("Open command palette"),
                           [this](const QStringList &)
     { Show_command_picker(); });
-    m_command_manager.reg("tabs", "Toggle tab bar",
+    m_command_manager.reg("tabs", tr("Toggle tab bar"),
                           [this](const QStringList &) { ToggleTabBar(); });
-    m_command_manager.reg("menubar", "Toggle menu bar",
+    m_command_manager.reg("menubar", tr("Toggle menu bar"),
                           [this](const QStringList &) { ToggleMenubar(); });
-    m_command_manager.reg("statusbar", "Toggle status bar",
+    m_command_manager.reg("statusbar", tr("Toggle status bar"),
                           [this](const QStringList &) { TogglePanel(); });
-    m_command_manager.reg("focus_mode", "Toggle focus mode",
+    m_command_manager.reg("focus_mode", tr("Toggle focus mode"),
                           [this](const QStringList &) { ToggleFocusMode(); });
-    m_command_manager.reg("visual_line_mode", "Toggle visual line mode",
+    m_command_manager.reg("visual_line_mode", tr("Toggle visual line mode"),
                           [this](const QStringList &)
     { Toggle_visual_line_mode(); });
 
 #ifdef ENABLE_LLM_SUPPORT
-    m_command_manager.reg("llm_widget", "Toggle LLM assistant widget",
+    m_command_manager.reg("llm_widget", tr("Toggle LLM assistant widget"),
                           [this](const QStringList &) { ToggleLLMWidget(); });
 #endif
 
     // Link hints
-    m_command_manager.reg("link_hint_visit", "Open link using keyboard hint",
+    m_command_manager.reg("link_hint_visit", tr("Open link using keyboard hint"),
                           [this](const QStringList &) { VisitLinkKB(); });
-    m_command_manager.reg("link_hint_copy", "Copy link URL using keyboard hint",
+    m_command_manager.reg("link_hint_copy", tr("Copy link URL using keyboard hint"),
                           [this](const QStringList &) { CopyLinkKB(); });
 
     // Page navigation
-    m_command_manager.reg("page_first", "Go to first page",
+    m_command_manager.reg("page_first", tr("Go to first page"),
                           [this](const QStringList &) { FirstPage(); });
-    m_command_manager.reg("page_last", "Go to last page",
+    m_command_manager.reg("page_last", tr("Go to last page"),
                           [this](const QStringList &) { LastPage(); });
-    m_command_manager.reg("page_next", "Go to next page",
+    m_command_manager.reg("page_next", tr("Go to next page"),
                           [this](const QStringList &) { NextPage(); });
-    m_command_manager.reg("page_prev", "Go to previous page",
+    m_command_manager.reg("page_prev", tr("Go to previous page"),
                           [this](const QStringList &) { PrevPage(); });
-    m_command_manager.reg("page_goto", "Jump to a specific page number",
+    m_command_manager.reg("page_goto", tr("Jump to a specific page number"),
                           [this](const QStringList &) { Goto_page(); });
 
     // Marks
-    m_command_manager.reg("mark_set", "Set a named mark at current position",
+    m_command_manager.reg("mark_set", tr("Set a named mark at current position"),
                           [this](const QStringList &) { SetMark(); });
-    m_command_manager.reg("mark_delete", "Delete a named mark",
+    m_command_manager.reg("mark_delete", tr("Delete a named mark"),
                           [this](const QStringList &) { DeleteMark(); });
-    m_command_manager.reg("mark_goto", "Jump to a named mark",
+    m_command_manager.reg("mark_goto", tr("Jump to a named mark"),
                           [this](const QStringList &) { GotoMark(); });
 
     // Scrolling
-    m_command_manager.reg("scroll_down", "Scroll down",
+    m_command_manager.reg("scroll_down", tr("Scroll down"),
                           [this](const QStringList &) { ScrollDown(); });
-    m_command_manager.reg("scroll_up", "Scroll up",
+    m_command_manager.reg("scroll_up", tr("Scroll up"),
                           [this](const QStringList &) { ScrollUp(); });
-    m_command_manager.reg("scroll_left", "Scroll left",
+    m_command_manager.reg("scroll_left", tr("Scroll left"),
                           [this](const QStringList &) { ScrollLeft(); });
-    m_command_manager.reg("scroll_right", "Scroll right",
+    m_command_manager.reg("scroll_right", tr("Scroll right"),
                           [this](const QStringList &) { ScrollRight(); });
 
     // Rotation
-    m_command_manager.reg("rotate_clock", "Rotate page clockwise",
+    m_command_manager.reg("rotate_clock", tr("Rotate page clockwise"),
                           [this](const QStringList &) { RotateClock(); });
-    m_command_manager.reg("rotate_anticlock", "Rotate page counter-clockwise",
+    m_command_manager.reg("rotate_anticlock", tr("Rotate page counter-clockwise"),
                           [this](const QStringList &) { RotateAnticlock(); });
 
     // Location history
-    m_command_manager.reg("location_prev", "Go back in location history",
+    m_command_manager.reg("location_prev", tr("Go back in location history"),
                           [this](const QStringList &) { GoBackHistory(); });
-    m_command_manager.reg("location_next", "Go forward in location history",
+    m_command_manager.reg("location_next", tr("Go forward in location history"),
                           [this](const QStringList &) { GoForwardHistory(); });
 
     // Zoom
-    m_command_manager.reg("zoom_in", "Zoom in",
+    m_command_manager.reg("zoom_in", tr("Zoom in"),
                           [this](const QStringList &) { ZoomIn(); });
-    m_command_manager.reg("zoom_out", "Zoom out",
+    m_command_manager.reg("zoom_out", tr("Zoom out"),
                           [this](const QStringList &) { ZoomOut(); });
-    m_command_manager.reg("zoom_reset", "Reset zoom to default",
+    m_command_manager.reg("zoom_reset", tr("Reset zoom to default"),
                           [this](const QStringList &) { ZoomReset(); });
-    m_command_manager.reg("zoom_set", "Set zoom to a specific level",
+    m_command_manager.reg("zoom_set", tr("Set zoom to a specific level"),
                           [this](const QStringList &) { Zoom_set(); });
 
     // Splits
-    m_command_manager.reg("split_horizontal", "Split view horizontally",
+    m_command_manager.reg("split_horizontal", tr("Split view horizontally"),
                           [this](const QStringList &) { VSplit(); });
-    m_command_manager.reg("split_vertical", "Split view vertically",
+    m_command_manager.reg("split_vertical", tr("Split view vertically"),
                           [this](const QStringList &) { HSplit(); });
-    m_command_manager.reg("split_close", "Close current split",
+    m_command_manager.reg("split_close", tr("Close current split"),
                           [this](const QStringList &) { Close_split(); });
-    m_command_manager.reg("split_focus_right", "Focus split to the right",
+    m_command_manager.reg("split_focus_right", tr("Focus split to the right"),
                           [this](const QStringList &) { Focus_split_right(); });
-    m_command_manager.reg("split_focus_left", "Focus split to the left",
+    m_command_manager.reg("split_focus_left", tr("Focus split to the left"),
                           [this](const QStringList &) { Focus_split_left(); });
-    m_command_manager.reg("split_focus_up", "Focus split above",
+    m_command_manager.reg("split_focus_up", tr("Focus split above"),
                           [this](const QStringList &) { Focus_split_up(); });
-    m_command_manager.reg("split_focus_down", "Focus split below",
+    m_command_manager.reg("split_focus_down", tr("Focus split below"),
                           [this](const QStringList &) { Focus_split_down(); });
     m_command_manager.reg(
-        "split_close_others", "Close all splits except current",
+        "split_close_others", tr("Close all splits except current"),
         [this](const QStringList &) { Close_other_splits(); });
 
     // Portal
-    m_command_manager.reg("portal", "Create or focus portal",
+    m_command_manager.reg("portal", tr("Create or focus portal"),
                           [this](const QStringList &)
     { Create_or_focus_portal(); });
 
     // File operations
-    m_command_manager.reg("file_open_tab", "Open file in new tab",
+    m_command_manager.reg("file_open_tab", tr("Open file in new tab"),
                           [this](const QStringList &) { OpenFileInNewTab(); });
-    m_command_manager.reg("file_open_vsplit", "Open file in vertical split",
+    m_command_manager.reg("file_open_vsplit", tr("Open file in vertical split"),
                           [this](const QStringList &) { OpenFileVSplit(); });
-    m_command_manager.reg("file_open_hsplit", "Open file in horizontal split",
+    m_command_manager.reg("file_open_hsplit", tr("Open file in horizontal split"),
                           [this](const QStringList &) { OpenFileHSplit(); });
-    m_command_manager.reg("file_open_dwim", "Open file (do what I mean)",
+    m_command_manager.reg("file_open_dwim", tr("Open file (do what I mean)"),
                           [this](const QStringList &) { OpenFileDWIM(); });
-    m_command_manager.reg("file_close", "Close current file",
+    m_command_manager.reg("file_close", tr("Close current file"),
                           [this](const QStringList &) { CloseFile(); });
-    m_command_manager.reg("file_save", "Save current file",
+    m_command_manager.reg("file_save", tr("Save current file"),
                           [this](const QStringList &) { SaveFile(); });
-    m_command_manager.reg("file_save_as", "Save current file as a new name",
+    m_command_manager.reg("file_save_as", tr("Save current file as a new name"),
                           [this](const QStringList &) { SaveAsFile(); });
-    m_command_manager.reg("file_encrypt", "Encrypt current document",
+    m_command_manager.reg("file_encrypt", tr("Encrypt current document"),
                           [this](const QStringList &) { EncryptDocument(); });
-    m_command_manager.reg("file_decrypt", "Decrypt current document",
+    m_command_manager.reg("file_decrypt", tr("Decrypt current document"),
                           [this](const QStringList &) { DecryptDocument(); });
-    m_command_manager.reg("file_reload", "Reload current file from disk",
+    m_command_manager.reg("file_reload", tr("Reload current file from disk"),
                           [this](const QStringList &) { reloadDocument(); });
-    m_command_manager.reg("file_properties", "Show file properties",
+    m_command_manager.reg("file_properties", tr("Show file properties"),
                           [this](const QStringList &) { FileProperties(); });
-    m_command_manager.reg("files_recent", "Show recently opened files",
+    m_command_manager.reg("files_recent", tr("Show recently opened files"),
                           [this](const QStringList &)
     { Show_recent_files_picker(); });
 
     // Annotation modes
-    m_command_manager.reg("annot_edit_mode", "Toggle annotation select mode",
+    m_command_manager.reg("annot_edit_mode", tr("Toggle annotation select mode"),
                           [this](const QStringList &) { ToggleAnnotSelect(); });
-    m_command_manager.reg("annot_popup_mode", "Toggle annotation popup mode",
+    m_command_manager.reg("annot_popup_mode", tr("Toggle annotation popup mode"),
                           [this](const QStringList &) { ToggleAnnotPopup(); });
-    m_command_manager.reg("annot_rect_mode", "Toggle rectangle annotation mode",
+    m_command_manager.reg("annot_rect_mode", tr("Toggle rectangle annotation mode"),
                           [this](const QStringList &) { ToggleAnnotRect(); });
-    m_command_manager.reg("annot_highlight_mode", "Toggle text highlight mode",
+    m_command_manager.reg("annot_highlight_mode", tr("Toggle text highlight mode"),
                           [this](const QStringList &)
     { ToggleTextHighlight(); });
-    m_command_manager.reg("none_mode", "Toggle none interaction mode",
+    m_command_manager.reg("none_mode", tr("Toggle none interaction mode"),
                           [this](const QStringList &) { Toggle_none_mode(); });
 
     // Selection modes
     m_command_manager.reg(
-        "selection_mode_text", "Switch to text selection mode",
+        "selection_mode_text", tr("Switch to text selection mode"),
         [this](const QStringList &) { ToggleTextSelection(); });
     m_command_manager.reg(
-        "selection_mode_region", "Switch to region selection mode",
+        "selection_mode_region", tr("Switch to region selection mode"),
         [this](const QStringList &) { ToggleRegionSelect(); });
 
     // Fit modes
-    m_command_manager.reg("fit_width", "Fit page to window width",
+    m_command_manager.reg("fit_width", tr("Fit page to window width"),
                           [this](const QStringList &) { Fit_width(); });
-    m_command_manager.reg("fit_height", "Fit page to window height",
+    m_command_manager.reg("fit_height", tr("Fit page to window height"),
                           [this](const QStringList &) { Fit_height(); });
-    m_command_manager.reg("fit_page", "Fit entire page in window",
+    m_command_manager.reg("fit_page", tr("Fit entire page in window"),
                           [this](const QStringList &) { Fit_page(); });
-    m_command_manager.reg("fit_auto", "Toggle automatic resize to fit",
+    m_command_manager.reg("fit_auto", tr("Toggle automatic resize to fit"),
                           [this](const QStringList &) { ToggleAutoResize(); });
 
     // Sessions
-    m_command_manager.reg("session_save", "Save current session",
+    m_command_manager.reg("session_save", tr("Save current session"),
                           [this](const QStringList &) { SaveSession(); });
     m_command_manager.reg("session_save_as",
-                          "Save current session under a new name",
+                          tr("Save current session under a new name"),
                           [this](const QStringList &) { SaveAsSession(); });
-    m_command_manager.reg("session_load", "Load a saved session",
+    m_command_manager.reg("session_load", tr("Load a saved session"),
                           [this](const QStringList &) { LoadSession(); });
 
     // Tabs
-    m_command_manager.reg("tabs_close_left", "Close all tabs to the left",
+    m_command_manager.reg("tabs_close_left", tr("Close all tabs to the left"),
                           [this](const QStringList &) { TabsCloseLeft(); });
-    m_command_manager.reg("tabs_close_right", "Close all tabs to the right",
+    m_command_manager.reg("tabs_close_right", tr("Close all tabs to the right"),
                           [this](const QStringList &) { TabsCloseRight(); });
-    m_command_manager.reg("tabs_close_others", "Close all tabs except current",
+    m_command_manager.reg("tabs_close_others", tr("Close all tabs except current"),
                           [this](const QStringList &) { TabsCloseOthers(); });
-    m_command_manager.reg("tab_move_right", "Move current tab right",
+    m_command_manager.reg("tab_move_right", tr("Move current tab right"),
                           [this](const QStringList &) { TabMoveRight(); });
-    m_command_manager.reg("tab_move_left", "Move current tab left",
+    m_command_manager.reg("tab_move_left", tr("Move current tab left"),
                           [this](const QStringList &) { TabMoveLeft(); });
-    m_command_manager.reg("tab_first", "Switch to first tab",
+    m_command_manager.reg("tab_first", tr("Switch to first tab"),
                           [this](const QStringList &) { Tab_first(); });
-    m_command_manager.reg("tab_last", "Switch to last tab",
+    m_command_manager.reg("tab_last", tr("Switch to last tab"),
                           [this](const QStringList &) { Tab_last(); });
-    m_command_manager.reg("tab_next", "Switch to next tab",
+    m_command_manager.reg("tab_next", tr("Switch to next tab"),
                           [this](const QStringList &) { Tab_next(); });
-    m_command_manager.reg("tab_prev", "Switch to previous tab",
+    m_command_manager.reg("tab_prev", tr("Switch to previous tab"),
                           [this](const QStringList &) { Tab_prev(); });
-    m_command_manager.reg("tab_close", "Close current tab",
+    m_command_manager.reg("tab_close", tr("Close current tab"),
                           [this](const QStringList &) { Tab_close(); });
-    m_command_manager.reg("tab_goto", "Go to tab by number",
+    m_command_manager.reg("tab_goto", tr("Go to tab by number"),
                           [this](const QStringList &) { Tab_goto(); });
-    m_command_manager.reg("tab_1", "Switch to tab 1",
+    m_command_manager.reg("tab_1", tr("Switch to tab 1"),
                           [this](const QStringList &) { Tab_goto(1); });
-    m_command_manager.reg("tab_2", "Switch to tab 2",
+    m_command_manager.reg("tab_2", tr("Switch to tab 2"),
                           [this](const QStringList &) { Tab_goto(2); });
-    m_command_manager.reg("tab_3", "Switch to tab 3",
+    m_command_manager.reg("tab_3", tr("Switch to tab 3"),
                           [this](const QStringList &) { Tab_goto(3); });
-    m_command_manager.reg("tab_4", "Switch to tab 4",
+    m_command_manager.reg("tab_4", tr("Switch to tab 4"),
                           [this](const QStringList &) { Tab_goto(4); });
-    m_command_manager.reg("tab_5", "Switch to tab 5",
+    m_command_manager.reg("tab_5", tr("Switch to tab 5"),
                           [this](const QStringList &) { Tab_goto(5); });
-    m_command_manager.reg("tab_6", "Switch to tab 6",
+    m_command_manager.reg("tab_6", tr("Switch to tab 6"),
                           [this](const QStringList &) { Tab_goto(6); });
-    m_command_manager.reg("tab_7", "Switch to tab 7",
+    m_command_manager.reg("tab_7", tr("Switch to tab 7"),
                           [this](const QStringList &) { Tab_goto(7); });
-    m_command_manager.reg("tab_8", "Switch to tab 8",
+    m_command_manager.reg("tab_8", tr("Switch to tab 8"),
                           [this](const QStringList &) { Tab_goto(8); });
-    m_command_manager.reg("tab_9", "Switch to tab 9",
+    m_command_manager.reg("tab_9", tr("Switch to tab 9"),
                           [this](const QStringList &) { Tab_goto(9); });
 
     // Pickers
-    m_command_manager.reg("picker_outline", "Open document outline picker",
+    m_command_manager.reg("picker_outline", tr("Open document outline picker"),
                           [this](const QStringList &) { Show_outline(); });
-    m_command_manager.reg("picker_highlight_search", "Search within highlights",
+    m_command_manager.reg("picker_highlight_search", tr("Search within highlights"),
                           [this](const QStringList &)
     { Show_highlight_search(); });
 
     // Search
     m_command_manager.reg("search", "Search document",
                           [this](const QStringList &) { Search(); });
-    m_command_manager.reg("search_regex", "Search document using regex",
+    m_command_manager.reg("search_regex", tr("Search document using regex"),
                           [this](const QStringList &) { Search_regex(); });
-    m_command_manager.reg("search_next", "Jump to next search result",
+    m_command_manager.reg("search_next", tr("Jump to next search result"),
                           [this](const QStringList &) { NextHit(); });
-    m_command_manager.reg("search_prev", "Jump to previous search result",
+    m_command_manager.reg("search_prev", tr("Jump to previous search result"),
                           [this](const QStringList &) { PrevHit(); });
-    m_command_manager.reg("search_args", "Search with inline query argument",
+    m_command_manager.reg("search_args", tr("Search with inline query argument"),
                           [this](const QStringList &args)
     { search(args.join(" ")); });
 
     // Layout modes
-    m_command_manager.reg("layout_single", "Single page layout",
+    m_command_manager.reg("layout_single", tr("Single page layout"),
                           [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::SINGLE); });
     m_command_manager.reg("layout_horizontal",
-                          "Horizontal (left to right) layout",
+                          tr("Horizontal (left to right) layout"),
                           [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::HORIZONTAL); });
-    m_command_manager.reg("layout_vertical", "Vertical (top to bottom) layout",
+    m_command_manager.reg("layout_vertical", tr("Vertical (top to bottom) layout"),
                           [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::VERTICAL); });
-    m_command_manager.reg("layout_book", "Book (two page spread) layout",
+    m_command_manager.reg("layout_book", tr("Book (two page spread) layout"),
                           [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::BOOK); });
 
     // Miscellaneous
-    m_command_manager.reg("set_dpr", "Set device pixel ratio",
+    m_command_manager.reg("set_dpr", tr("Set device pixel ratio"),
                           [this](const QStringList &) { SetDPR(); });
     m_command_manager.reg(
-        "open_containing_folder", "Open folder containing current file",
+        "open_containing_folder", tr("Open folder containing current file"),
         [this](const QStringList &) { OpenContainingFolder(); });
-    m_command_manager.reg("undo", "Undo last action",
+    m_command_manager.reg("undo", tr("Undo last action"),
                           [this](const QStringList &) { Undo(); });
-    m_command_manager.reg("redo", "Redo last undone action",
+    m_command_manager.reg("redo", tr("Redo last undone action"),
                           [this](const QStringList &) { Redo(); });
     m_command_manager.reg(
-        "highlight_selection", "Highlight current text selection",
+        "highlight_selection", tr("Highlight current text selection"),
         [this](const QStringList &) { TextHighlightCurrentSelection(); });
-    m_command_manager.reg("invert_color", "Toggle inverted colour rendering",
+    m_command_manager.reg("invert_color", tr("Toggle inverted colour rendering"),
                           [this](const QStringList &) { InvertColor(); });
-    m_command_manager.reg("reshow_jump_marker", "Re-show the last jump marker",
+    m_command_manager.reg("reshow_jump_marker", tr("Re-show the last jump marker"),
                           [this](const QStringList &)
     { Reshow_jump_marker(); });
-    m_command_manager.reg("reopen_last_closed_file", "Reopen last closed file",
+    m_command_manager.reg("reopen_last_closed_file", tr("Reopen last closed file"),
                           [this](const QStringList &)
     { Reopen_last_closed_file(); });
-    m_command_manager.reg("copy_page_image", "Copy current page as image",
+    m_command_manager.reg("copy_page_image", tr("Copy current page as image"),
                           [this](const QStringList &) { Copy_page_image(); });
 #ifndef NDEBUG
-    m_command_manager.reg("debug_command", "Run debug command",
+    m_command_manager.reg("debug_command", tr("Run debug command"),
                           [this](const QStringList &) { debug_command(); });
 #endif
 
     // Help / About
-    m_command_manager.reg("show_startup_widget", "Show startup screen",
+    m_command_manager.reg("show_startup_widget", tr("Show startup screen"),
                           [this](const QStringList &) { showStartupWidget(); });
-    m_command_manager.reg("show_tutorial_file", "Open tutorial document",
+    m_command_manager.reg("show_tutorial_file", tr("Open tutorial document"),
                           [this](const QStringList &) { showTutorialFile(); });
-    m_command_manager.reg("show_about", "Show about dialog",
+    m_command_manager.reg("show_about", tr("Show about dialog"),
                           [this](const QStringList &) { ShowAbout(); });
 }
 
@@ -3882,7 +3882,7 @@ Lektra::trimRecentFilesDatabase() noexcept
 
     m_recent_files_store.trim(m_config.behavior.num_recent_files);
     if (!m_recent_files_store.save())
-        qWarning() << "Failed to trim recent files store";
+        qWarning() << tr("Failed to trim recent files store");
 }
 
 // Sets the DPR of the current document
@@ -3894,12 +3894,12 @@ Lektra::SetDPR() noexcept
         QInputDialog id;
         bool ok;
         float dpr = id.getDouble(
-            this, "Set DPR", "Enter the Device Pixel Ratio (DPR) value: ", 1.0,
+            this, tr("Set DPR"), tr("Enter the Device Pixel Ratio (DPR) value: "), 1.0,
             0.0, 10.0, 2, &ok);
         if (ok)
             m_doc->setDPR(dpr);
         else
-            QMessageBox::critical(this, "Set DPR", "Invalid DPR value");
+            QMessageBox::critical(this, tr("Set DPR"), ("Invalid DPR value"));
     }
 }
 
@@ -3963,14 +3963,14 @@ Lektra::Tab_goto(int index) noexcept
 {
     if (index == -1)
     {
-        index = QInputDialog::getInt(this, "Go to Tab", "Enter tab number: ", 1,
+        index = QInputDialog::getInt(this, tr("Go to Tab"), tr("Enter tab number: "), 1,
                                      1, m_tab_widget->count());
     }
 
     if (index > 0 || index < m_tab_widget->count())
         m_tab_widget->setCurrentIndex(index - 1);
     else
-        m_message_bar->showMessage("Invalid Tab Number");
+        m_message_bar->showMessage(tr("Invalid Tab Number"));
 }
 
 // Close the current tab
@@ -4280,7 +4280,7 @@ Lektra::modeColorChangeRequested(const GraphicsView::Mode mode) noexcept
     // FIXME: Make this a function
     QColorDialog colorDialog(this);
     colorDialog.setOption(QColorDialog::ShowAlphaChannel, true);
-    colorDialog.setWindowTitle("Select Color");
+    colorDialog.setWindowTitle(tr("Select Color"));
     if (colorDialog.exec() == QDialog::Accepted)
     {
         QColor color = colorDialog.selectedColor();
@@ -4317,7 +4317,7 @@ void
 Lektra::handleEscapeKeyPressed() noexcept
 {
 #ifndef NDEBUG
-    qDebug() << "Escape key pressed handled";
+    qDebug() << tr("Escape key pressed handled");
 #endif
 
     m_lockedInputBuffer.clear();
@@ -4361,11 +4361,11 @@ Lektra::showTutorialFile() noexcept
                                  .arg("/share/doc/Lektra/tutorial.pdf");
     OpenFileInNewTab(doc_path);
 #elif defined(__APPLE__) && defined(__MACH__)
-    QMessageBox::warning(this, "Show Tutorial File",
-                         "Not yet implemented for Macintosh");
+    QMessageBox::warning(this, tr("Show Tutorial File"),
+                         tr("Not yet implemented for Mac"));
 #elif defined(_WIN64)
     QMessageBox::warning(this, "Show Tutorial File",
-                         "Not yet implemented for Windows");
+                         tr("Not yet implemented for Windows"));
 #endif
 }
 
@@ -4960,8 +4960,8 @@ Lektra::Show_recent_files_picker() noexcept
 
     if (entries.empty())
     {
-        QMessageBox::information(this, "Recent Files",
-                                 "No recent files found.");
+        QMessageBox::information(this, tr("Recent Files"),
+                                 tr("No recent files found."));
         return;
     }
 
@@ -5019,7 +5019,7 @@ Lektra::Reopen_last_closed_file() noexcept
 
     if (!QFile::exists(target->file_path))
     {
-        qWarning() << "Reopen_last_file: file no longer exists:"
+        qWarning() << tr("Reopen_last_file: file no longer exists:")
                    << target->file_path;
         return;
     }
@@ -5037,11 +5037,11 @@ Lektra::SetMark() noexcept
         return;
 
     const QString key = QInputDialog::getText(
-        this, "Set Mark", "Enter mark key (a-z for local, A-Z for global):");
+        this, tr("Set Mark"), tr("Enter mark key (a-z for local, A-Z for global):"));
 
     if (key.isEmpty())
     {
-        QMessageBox::critical(this, "Set Mark", "Mark key cannot be empty");
+        QMessageBox::critical(this, tr("Set Mark"), tr("Mark key cannot be empty"));
         return;
     }
 
@@ -5061,11 +5061,11 @@ Lektra::DeleteMark() noexcept
 
     const QStringList existingMarks = m_marks_manager->allKeys(m_doc->id());
     const QString key               = QInputDialog::getItem(
-        this, "Delete Mark", "Mark to delete:", existingMarks, 0);
+        this, tr("Delete Mark"), tr("Mark to delete:"), existingMarks, 0);
 
     if (key.isEmpty())
     {
-        QMessageBox::critical(this, "Delete Mark", "Mark key cannot be empty");
+        QMessageBox::critical(this, tr("Delete Mark"), tr("Mark key cannot be empty"));
         return;
     }
 
@@ -5087,11 +5087,11 @@ Lektra::GotoMark() noexcept
 
     const QStringList existingMarks = m_marks_manager->allKeys(m_doc->id());
     const QString key               = QInputDialog::getItem(
-        this, "Goto Mark", "Mark to go to:", existingMarks, 0);
+        this, tr("Goto Mark"), tr("Mark to go to:"), existingMarks, 0);
 
     if (key.isEmpty())
     {
-        QMessageBox::critical(this, "Goto Mark", "Mark key cannot be empty");
+        QMessageBox::critical(this, tr("Goto Mark"), tr("Mark key cannot be empty"));
         return;
     }
 

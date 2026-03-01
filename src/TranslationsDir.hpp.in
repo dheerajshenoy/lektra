@@ -1,0 +1,3 @@
+#pragma once
+
+#define TRANSLATIONS_DIR "@TRANSLATIONS_DIR@"
