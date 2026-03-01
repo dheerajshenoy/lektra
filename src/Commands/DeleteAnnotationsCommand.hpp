@@ -36,11 +36,12 @@ public:
             switch (d.type)
             {
                 case PDF_ANNOT_HIGHLIGHT:
-                    d.objNum
-                        = m_model->addHighlightAnnotation(m_pageno, d.quads);
+                    d.objNum = m_model->addHighlightAnnotation(
+                        m_pageno, d.quads, d.contents);
                     break;
                 case PDF_ANNOT_SQUARE:
-                    d.objNum = m_model->addRectAnnotation(m_pageno, d.rect);
+                    d.objNum = m_model->addRectAnnotation(m_pageno, d.rect,
+                                                          d.contents);
                     break;
                 case PDF_ANNOT_TEXT:
                     d.objNum = m_model->addTextAnnotation(m_pageno, d.rect,
@@ -49,6 +50,10 @@ public:
                 default:
                     break;
             }
+
+            // Restore the comment if there was one
+            if (!d.contents.isEmpty())
+                m_model->addAnnotComment(m_pageno, d.objNum, d.contents);
         }
     }
 
@@ -88,9 +93,11 @@ private:
         if (!pdf)
             return;
 
+        pdf_page *page{nullptr};
+
         fz_try(ctx)
         {
-            pdf_page *page = pdf_load_page(ctx, pdf, m_pageno);
+            page = pdf_load_page(ctx, pdf, m_pageno);
             if (!page)
                 fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
@@ -127,8 +134,6 @@ private:
                         pdf_annot_color(ctx, a, &n, d.color);
                         d.color[3] = d.opacity;
                         d.rect     = pdf_annot_rect(ctx, a);
-                        if (const char *c = pdf_annot_contents(ctx, a))
-                            d.contents = QString::fromUtf8(c);
                         break;
 
                     default:
@@ -136,10 +141,16 @@ private:
                         break;
                 }
 
+                // Guard against null or empty contents
+                if (const char *c = pdf_annot_contents(ctx, a); c && *c)
+                    d.contents = QString::fromUtf8(c);
+
                 m_annotations.push_back(std::move(d));
             }
-
-            fz_drop_page(ctx, (fz_page *)page);
+        }
+        fz_always(ctx)
+        {
+            pdf_drop_page(ctx, page);
         }
         fz_catch(ctx)
         {
