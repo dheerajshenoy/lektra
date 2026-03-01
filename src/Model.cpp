@@ -2,6 +2,7 @@
 
 #include "BrowseLinkItem.hpp"
 #include "Commands/TextHighlightAnnotationCommand.hpp"
+#include "Config.hpp"
 #include "utils.hpp"
 
 #include <QtConcurrent/QtConcurrent>
@@ -30,7 +31,8 @@ mupdf_unlock_mutex(void *user, int lock)
     m[lock].unlock();
 }
 
-Model::Model(QObject *parent) noexcept : QObject(parent)
+Model::Model(const Config &config, QObject *parent) noexcept
+    : QObject(parent), m_config(config)
 {
     initMuPDF();
     m_undo_stack = new QUndoStack(this);
@@ -603,44 +605,48 @@ Model::buildPageCache(int pageno) noexcept
         }
 
         // Extract links and cache them
-        head = fz_load_links(ctx, page);
-        for (fz_link *link = head; link; link = link->next)
+        if (m_config.links.enabled)
         {
-            if (!link->uri || !link->uri[0])
-                continue;
-
-            CachedLink cl;
-            cl.rect = link->rect;
-            cl.uri  = QString::fromUtf8(link->uri);
-
-            // Store source location for all link types (where the link is
-            // located)
-            cl.source_loc.x = link->rect.x0;
-            cl.source_loc.y = link->rect.y0;
-
-            if (fz_is_external_link(ctx, link->uri))
+            head = fz_load_links(ctx, page);
+            for (fz_link *link = head; link; link = link->next)
             {
-                cl.type = BrowseLinkItem::LinkType::External;
-            }
-            else if (cl.uri.startsWith("#page"))
-            {
-                float xp, yp;
-                fz_location loc
-                    = fz_resolve_link(ctx, m_doc, link->uri, &xp, &yp);
-                cl.type        = BrowseLinkItem::LinkType::Page;
-                cl.target_page = loc.page;
-            }
-            else
-            {
-                fz_link_dest dest = fz_resolve_link_dest(ctx, m_doc, link->uri);
-                cl.type           = BrowseLinkItem::LinkType::Location;
-                cl.target_page    = dest.loc.page;
-                cl.target_loc.x   = dest.x;
-                cl.target_loc.y   = dest.y;
-                cl.zoom           = dest.zoom;
-            }
+                if (!link->uri || !link->uri[0])
+                    continue;
 
-            entry.links.push_back(std::move(cl));
+                CachedLink cl;
+                cl.rect = link->rect;
+                cl.uri  = QString::fromUtf8(link->uri);
+
+                // Store source location for all link types (where the link is
+                // located)
+                cl.source_loc.x = link->rect.x0;
+                cl.source_loc.y = link->rect.y0;
+
+                if (fz_is_external_link(ctx, link->uri))
+                {
+                    cl.type = BrowseLinkItem::LinkType::External;
+                }
+                else if (cl.uri.startsWith("#page"))
+                {
+                    float xp, yp;
+                    fz_location loc
+                        = fz_resolve_link(ctx, m_doc, link->uri, &xp, &yp);
+                    cl.type        = BrowseLinkItem::LinkType::Page;
+                    cl.target_page = loc.page;
+                }
+                else
+                {
+                    fz_link_dest dest
+                        = fz_resolve_link_dest(ctx, m_doc, link->uri);
+                    cl.type         = BrowseLinkItem::LinkType::Location;
+                    cl.target_page  = dest.loc.page;
+                    cl.target_loc.x = dest.x;
+                    cl.target_loc.y = dest.y;
+                    cl.zoom         = dest.zoom;
+                }
+
+                entry.links.push_back(std::move(cl));
+            }
         }
 
         pdf_page *pdfPage = pdf_page_from_fz_page(ctx, page);
@@ -660,12 +666,9 @@ Model::buildPageCache(int pageno) noexcept
                 ca.type = pdf_annot_type(ctx, annot);
 
                 // Only get text for annotations that typically have it
-                if (ca.type == PDF_ANNOT_TEXT || ca.type == PDF_ANNOT_POPUP)
-                {
-                    const char *contents = pdf_annot_contents(ctx, annot);
-                    if (contents)
-                        ca.text = QString::fromUtf8(contents);
-                }
+                const char *contents = pdf_annot_contents(ctx, annot);
+                if (contents)
+                    ca.text = QString::fromUtf8(contents);
 
                 ca.index   = pdf_to_num(ctx, pdf_annot_obj(ctx, annot));
                 ca.opacity = pdf_annot_opacity(ctx, annot);
@@ -1200,7 +1203,8 @@ Model::populatePDFProperties(
                                      .arg(m_pdf_doc->version % 10)));
 }
 
-// Returns page dimensions in points (1/72 inch) if known, otherwise (-1, -1)
+// Returns page dimensions in points (1/72 inch) if known, otherwise (-1,
+// -1)
 std::tuple<float, float>
 Model::getPageDimensions(int pageno) const noexcept
 {
@@ -1708,7 +1712,8 @@ Model::highlight_text_selection(int pageno, QPointF start, QPointF end) noexcept
 
 int
 Model::addHighlightAnnotation(const int pageno,
-                              const std::vector<fz_quad> &quads) noexcept
+                              const std::vector<fz_quad> &quads,
+                              const QString &content) noexcept
 {
     int objNum{-1};
 
@@ -1741,6 +1746,8 @@ Model::addHighlightAnnotation(const int pageno,
         pdf_set_annot_quad_points(m_ctx, annot, quads.size(), &quads[0]);
         pdf_set_annot_color(m_ctx, annot, 3, m_highlight_color);
         pdf_set_annot_opacity(m_ctx, annot, m_highlight_color[3]);
+        pdf_set_annot_contents(m_ctx, annot, content.toUtf8().constData());
+
         pdf_update_annot(m_ctx, annot);
         pdf_update_page(m_ctx, page);
 
@@ -1748,9 +1755,6 @@ Model::addHighlightAnnotation(const int pageno,
         pdf_obj *obj = pdf_annot_obj(m_ctx, annot);
         if (obj)
             objNum = pdf_to_num(m_ctx, obj);
-
-        invalidatePageCache(pageno);
-        emit reloadRequested(pageno);
     }
     fz_always(m_ctx)
     {
@@ -1760,6 +1764,13 @@ Model::addHighlightAnnotation(const int pageno,
     fz_catch(m_ctx)
     {
         qWarning() << "Redo failed:" << fz_caught_message(m_ctx);
+        return objNum;
+    }
+
+    if (objNum >= 0)
+    {
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
     }
 
 #ifndef NDEBUG
@@ -1770,7 +1781,8 @@ Model::addHighlightAnnotation(const int pageno,
 }
 
 int
-Model::addRectAnnotation(const int pageno, const fz_rect &rect) noexcept
+Model::addRectAnnotation(const int pageno, const fz_rect &rect,
+                         const QString &content) noexcept
 {
     int objNum{-1};
     pdf_annot *annot{nullptr};
@@ -1793,6 +1805,10 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect) noexcept
         pdf_set_annot_interior_color(m_ctx, annot, 3, m_annot_rect_color);
         pdf_set_annot_color(m_ctx, annot, 3, m_annot_rect_color);
         pdf_set_annot_opacity(m_ctx, annot, m_annot_rect_color[3]);
+
+        if (!content.isEmpty())
+            pdf_set_annot_contents(m_ctx, annot, content.toUtf8().constData());
+
         pdf_update_annot(m_ctx, annot);
         pdf_update_page(m_ctx, page);
 
@@ -1803,10 +1819,7 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect) noexcept
                      "Failed to get annotation object");
 
         objNum = pdf_to_num(m_ctx, obj);
-        // pdf_drop_obj(m_ctx, obj);
-
-        invalidatePageCache(pageno);
-        emit reloadRequested(pageno);
+        // TODO: pdf_drop_obj(m_ctx, obj); (CHECK)
     }
     fz_always(m_ctx)
     {
@@ -1815,8 +1828,14 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect) noexcept
     }
     fz_catch(m_ctx)
     {
-
         qWarning() << "Redo failed:" << fz_caught_message(m_ctx);
+        return objNum;
+    }
+
+    if (objNum >= 0)
+    {
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
     }
 
 #ifndef NDEBUG
@@ -1871,9 +1890,6 @@ Model::addTextAnnotation(const int pageno, const fz_rect &rect,
         pdf_obj *obj = pdf_annot_obj(m_ctx, annot);
         if (obj)
             objNum = pdf_to_num(m_ctx, obj);
-
-        invalidatePageCache(pageno);
-        emit reloadRequested(pageno);
     }
     fz_always(m_ctx)
     {
@@ -1886,6 +1902,12 @@ Model::addTextAnnotation(const int pageno, const fz_rect &rect,
         qWarning() << "addTextAnnotation failed:" << fz_caught_message(m_ctx);
     }
 
+    if (objNum >= 0)
+    {
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
+    }
+
 #ifndef NDEBUG
     qDebug() << "Adding text annotation on page" << pageno
              << " ObjNum:" << objNum;
@@ -1893,15 +1915,46 @@ Model::addTextAnnotation(const int pageno, const fz_rect &rect,
     return objNum;
 }
 
-void
-Model::setTextAnnotationContents(const int pageno, const int objNum,
-                                 const QString &text) noexcept
+const char *
+Model::getAnnotComment(const int pageno, const int objNum) noexcept
 {
-    bool changed = false;
-
+    const char *comment{nullptr};
     fz_try(m_ctx)
     {
         pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        for (pdf_annot *annot = pdf_first_annot(m_ctx, page); annot;
+             annot            = pdf_next_annot(m_ctx, annot))
+        {
+            if (pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot)) != objNum)
+                continue;
+
+            comment = pdf_annot_contents(m_ctx, annot);
+            break;
+        }
+
+        pdf_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "getAnnotComment failed:" << fz_caught_message(m_ctx);
+    }
+
+    return comment;
+}
+
+void
+Model::addAnnotComment(const int pageno, const int objNum,
+                       const QString &text) noexcept
+{
+    bool changed{false};
+    pdf_page *page{nullptr};
+
+    fz_try(m_ctx)
+    {
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
@@ -1918,19 +1971,21 @@ Model::setTextAnnotationContents(const int pageno, const int objNum,
             changed = true;
             break;
         }
-
+    }
+    fz_always(m_ctx)
+    {
         pdf_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
     {
-        qWarning() << "setTextAnnotationContents failed:"
-                   << fz_caught_message(m_ctx);
+        qWarning() << "addAnnotComment failed:" << fz_caught_message(m_ctx);
         return;
     }
 
     if (changed)
     {
         invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
     }
 }
 
@@ -2653,6 +2708,7 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
     if (changed)
     {
         invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
     }
 }
 
@@ -3248,6 +3304,7 @@ Model::rotateClock() noexcept
     }
 #endif
 }
+
 void
 Model::rotateAnticlock() noexcept
 {
@@ -3261,4 +3318,27 @@ Model::rotateAnticlock() noexcept
         invalidatePageCaches();
     }
 #endif
+}
+
+int
+Model::get_obj_num_at_rect(int pageno, fz_rect targetRect) noexcept
+{
+    pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+    pdf_annot *annot{nullptr};
+    int foundObjNum{-1};
+
+    for (annot = pdf_first_annot(m_ctx, page); annot;
+         annot = pdf_next_annot(m_ctx, annot))
+    {
+        fz_rect currentRect = pdf_annot_rect(m_ctx, annot);
+        // Compare coordinates (with a tiny epsilon for float precision)
+        if (std::abs(currentRect.x0 - targetRect.x0) < 0.001f
+            && std::abs(currentRect.y0 - targetRect.y0) < 0.001f)
+        {
+            foundObjNum = pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot));
+            break;
+        }
+    }
+    pdf_drop_page(m_ctx, page);
+    return foundObjNum;
 }
