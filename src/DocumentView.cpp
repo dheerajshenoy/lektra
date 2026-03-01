@@ -1,9 +1,10 @@
 #include "DocumentView.hpp"
 
 #include "Annotations/HighlightAnnotation.hpp"
+#include "Annotations/PopupAnnotation.hpp"
 #include "Annotations/RectAnnotation.hpp"
-#include "Annotations/TextAnnotation.hpp"
 #include "BrowseLinkItem.hpp"
+#include "Commands/AnnotCommentCommand.hpp"
 #include "Commands/DeleteAnnotationsCommand.hpp"
 #include "Commands/RectAnnotationCommand.hpp"
 #include "Commands/TextAnnotationCommand.hpp"
@@ -58,7 +59,7 @@ DocumentView::DocumentView(const Config &config, QWidget *parent) noexcept
     qDebug() << "DocumentView::DocumentView(): Initializing DocumentView";
 #endif
 
-    m_model = new Model(this);
+    m_model = new Model(m_config, this);
     connect(m_model, &Model::openFileFailed, this,
             [this]() { emit openFileFailed(this); });
 
@@ -397,7 +398,7 @@ DocumentView::initConnections() noexcept
     //                                      m_rotation);
     // });
     connect(m_model, &Model::undoStackCleanChanged, this,
-            [this](bool state) { setModified(!state); });
+            [this](bool clean) { setModified(!clean); });
 
     connect(m_model, &Model::searchResultsReady, this,
             &DocumentView::handleSearchResults);
@@ -1709,7 +1710,7 @@ DocumentView::FileProperties() noexcept
 void
 DocumentView::SaveFile() noexcept
 {
-    if (!m_model->hasUnsavedChanges() || m_model->supports_save())
+    if (!m_model->hasUnsavedChanges() || !m_model->supports_save())
         return;
 
 #ifndef NDEBUG
@@ -1729,7 +1730,6 @@ DocumentView::SaveFile() noexcept
             renderPages();
         }
         m_model->undoStack()->setClean();
-        setModified(false);
     }
     else
     {
@@ -3395,11 +3395,14 @@ DocumentView::renderAnnotations(
     const int pageno,
     const std::vector<Model::RenderAnnotation> &annotations) noexcept
 {
-    if (!m_model->supports_annotations()
-        && m_page_annotations_hash.contains(pageno))
+    if (!m_model->supports_annotations())
         return;
 
-    GraphicsImageItem *pageItem = m_page_items_hash[pageno];
+    clearAnnotationsForPage(pageno);
+    // if (m_page_annotations_hash.contains(pageno))
+    //     return;
+
+    const GraphicsImageItem *pageItem = m_page_items_hash[pageno];
     if (!pageItem)
         return;
 
@@ -3462,7 +3465,6 @@ DocumentView::renderAnnotations(
         {
             m_model->undoStack()->push(new DeleteAnnotationsCommand(
                 m_model, pageno, {annot_item->index()}));
-            // setModified(true);
         });
 
         connect(annot_item, &Annotation::annotColorChangeRequested,
@@ -3474,9 +3476,6 @@ DocumentView::renderAnnotations(
             if (color.isValid())
             {
                 m_model->annotChangeColor(pageno, annot_item->index(), color);
-                // setModified(true);
-                // requestPageRender(pageno);
-            }
         });
 
         m_page_annotations_hash[pageno].push_back(annot_item);
@@ -4698,9 +4697,5 @@ DocumentView::handleReloadRequested(int pageno) noexcept
     qDebug() << "DocumentView::handleReloadRequested(): Reload requested for "
              << "page:" << pageno;
 #endif
-    // removePageItem(pageno);
-    // // m_pending_renders.remove(pageno);
-    // invalidateVisiblePagesCache();
-    // removePageItem(pageno);
     requestPageRender(pageno, true);
 }
