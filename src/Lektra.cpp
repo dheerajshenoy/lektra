@@ -3877,7 +3877,6 @@ Lektra::reloadDocument() noexcept
 {
     if (m_doc)
     {
-        m_doc->reloadDocument();
     }
 }
 
