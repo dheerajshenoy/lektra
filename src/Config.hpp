@@ -93,6 +93,94 @@ struct Config
     } colors{};
     // @endsection
 
+    // @section Annotations
+    // @section_desc Annotation options struct
+    // @section_type struct
+    struct Annotations
+    {
+        // @section Popup
+        // @section_desc Popup annotation options struct
+        // @section_type struct
+        struct Popup
+        {
+            // @desc Enable hover effect (e.g., glow on highlight)
+            // @type bool
+            // @default true
+            bool hover_glow{true};
+
+            // @desc Glow width in pixels
+            // @type int
+            // @default 5
+            int glow_width{5};
+
+            // @desc { Show comment text in tooltip on hover (if comment
+            // exists) }
+            // @type bool
+            // @default true
+            bool show_comment{true};
+        } popup{};
+        // @endsection
+
+        // @section Rect
+        // @section_desc Rect annotation options struct
+        // @section_type struct
+        struct Rect
+        {
+            // @desc Enable hover effect (e.g., glow on highlight)
+            // @type bool
+            // @default true
+            bool hover_glow{true};
+
+            // @desc Glow width in pixels
+            // @type int
+            // @default 5
+            int glow_width{5};
+
+            // @desc { Show comment text in tooltip on hover (if comment
+            // exists) }
+            // @type bool
+            // @default true
+            bool show_comment{true};
+
+            // @desc Show marker in the corner of the rect (if comment exists)
+            // @type bool
+            // @default true
+            bool show_comment_marker{true};
+        } rect{};
+        // @endsection
+
+        // @section Highlight
+        // @section_desc Highlight annotation options struct
+        // @section_type struct
+        struct Highlight
+        {
+            // @desc { Show comment text in tooltip on hover (if commentb
+            // exists) }
+            // @type bool
+            // @default true
+            bool show_comment{true};
+
+            // @desc Glow width in pixels
+            // @type int
+            // @default 5
+            int glow_width{5};
+
+            // @desc Enable hover effect (e.g., glow on highlight)
+            // @type bool
+            // @default true
+            bool hover_glow{true};
+
+            // @desc Show marker at the highlight (if comment exists)
+            // @type bool
+            // @default true
+            bool show_comment_marker{true};
+
+        } highlight{};
+        // @endsection
+
+    } annotations{};
+    // @endsection
+
     struct Portal
     {
         // @desc Enable portal ability
@@ -347,6 +435,11 @@ struct Config
     // @section_type struct
     struct Links
     {
+        // @desc Enable link support (both pdf links and detected URLs)
+        // @type bool
+        // @default true
+        bool enabled{true};
+
         // @desc Show the rect boundary for links
         // @type bool
         // @default false
