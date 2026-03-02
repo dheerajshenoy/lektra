@@ -2954,7 +2954,8 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
 void
 DocumentView::updateCurrentHitHighlight() noexcept
 {
-    if (m_search_index < 0 || m_search_index >= m_search_hit_flat_refs.size())
+    if (m_search_index < 0
+        || m_search_index >= (int)m_search_hit_flat_refs.size())
     {
         m_current_search_hit_item->setPath(QPainterPath());
         return;
@@ -2989,7 +2990,8 @@ DocumentView::updateCurrentHitHighlight() noexcept
 void
 DocumentView::scrollToCurrentHit() noexcept
 {
-    if (m_search_index < 0 || m_search_index >= m_search_hit_flat_refs.size())
+    if (m_search_index < 0
+        || m_search_index >= (int)m_search_hit_flat_refs.size())
         return;
 
     const QPainterPath &path = m_current_search_hit_item->path();
@@ -4425,7 +4427,7 @@ DocumentView::handleHScrollValueChanged(int value) noexcept
 }
 
 void
-DocumentView::handleVScrollValueChanged(int value) noexcept
+DocumentView::handleVScrollValueChanged(int /*value */) noexcept
 {
     // During fast scrolling, only invalidate cache, don't trigger render
     invalidateVisiblePagesCache();
@@ -4586,7 +4588,7 @@ DocumentView::visual_line_move(Direction direction) noexcept
         case DOWN:
         {
             if (m_visual_lines.empty()
-                || m_visual_line_index == m_visual_lines.size() - 1)
+                || m_visual_line_index == (int)m_visual_lines.size() - 1)
             {
                 GotoNextPage();
                 return;
