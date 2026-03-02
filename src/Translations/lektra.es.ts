@@ -58,7 +58,7 @@
     <message>
         <location filename="../DocumentView.cpp" line="3453"/>
         <source>Enter annotation comment:</source>
-        <translation>Escribir comenntario de la anotación:</translation>
+        <translation>Escribir comentario de la anotación:</translation>
     </message>
     <message>
         <location filename="../DocumentView.cpp" line="3996"/>
