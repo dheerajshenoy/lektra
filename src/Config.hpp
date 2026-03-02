@@ -13,84 +13,38 @@ struct Config
 {
     QHash<QString, QString> shortcuts{};
 
-    // @section Colors
-    // @section_note {
-    // Colors can be specified in hex format (e.g. #RRGGBBAA) or as a color name
-    // }
-    // @section_desc Color options struct
-    // @section_type struct
-    struct Colors
+    // *NOTE*: Colors can be specified in hex format (e.g. #RRGGBBAA) or as a
+    // color name
+
+    struct Page
     {
-        // @desc Accent color
-        // @type str
-        // @default "#3daee9FF"
-        uint32_t accent{0x3daee9FF};
-
-        // @desc Background color
-        // @type str
-        // @default "#00000000"
-        uint32_t background{0x00000000};
-
         // @desc Page background color
         // @type str
         // @default "#FFFFFFFF"
-        uint32_t page_background{0xFFFFFFFF};
+        uint32_t bg{0xFFFFFFFF};
 
         // @desc Page foreground color
         // @type str
         // @default "#000000FF"
-        uint32_t page_foreground{0x000000FF};
+        uint32_t fg{0x000000FF};
+    } page{};
+
+    // @section Search
+    // @section_desc Search options struct
+    // @section_type struct
+    struct Search
+    {
 
         // @desc Search match count color
         // @type str
         // @default "#55500033"
-        uint32_t search_match{0x55500033};
+        uint32_t match_color{0x55500033};
 
         // @desc Search match index color
         // @type str
         // @default "#55FF0055"
-        uint32_t search_index{0x55FF0055};
-
-        // @desc Link hint background color
-        // @type str
-        // @default "#000000FF"
-        uint32_t link_hint_bg{0x000000FF};
-
-        // @desc Link hint foreground color
-        // @type str
-        // @default "#ea3ee9FF"
-        uint32_t link_hint_fg{0xea3ee9FF};
-
-        // @desc Selection color
-        // @type str
-        // @default "#0000FF55"
-        uint32_t selection{0x0000FF55};
-
-        // @desc Highlight annotation color
-        // @type str
-        // @default "#55FF0055"
-        uint32_t highlight{0x55FF0055};
-
-        // @desc Jump marker color
-        // @type str
-        // @default "#FF0000FF"
-        uint32_t jump_marker{0xFF0000FF};
-
-        // @desc Rect annotation color
-        // @type str
-        // @default "#55FF5588"
-        uint32_t annot_rect{0x55FF5588};
-
-        // @desc Popup annotation color
-        // @type str
-        // @default "#FFFFFFAA"
-        uint32_t annot_popup{0xFFFFFFAA};
-
-        // @desc Portal border color
-        // @type str
-        // @default "#FFFFFFAA"
-        uint32_t portal_border{0xFFFFFFAA};
-    } colors{};
+        uint32_t index_color{0x55FF0055};
+    } search{};
     // @endsection
 
     // @section Annotations
@@ -108,6 +62,11 @@ struct Config
             // @default true
             bool hover_glow{true};
 
+            // @desc Annotation glow color (on hover)
+            // @type str
+            // @default "#FF5000AA"
+            uint32_t glow_color{0xFF5000AA};
+
             // @desc Glow width in pixels
             // @type int
             // @default 5
@@ -117,7 +76,13 @@ struct Config
             // exists) }
             // @type bool
             // @default true
-            bool show_comment{true};
+            bool comment{true};
+
+            // @desc Font size for the comment tooltip (in points)
+            // @type int
+            // @default 12
+            int comment_font_size{12};
+
         } popup{};
         // @endsection
 
@@ -131,6 +96,16 @@ struct Config
             // @default true
             bool hover_glow{true};
 
+            // @desc Annotation glow color (on hover)
+            // @type str
+            // @default "#FF5000AA"
+            uint32_t glow_color{0xFF5000AA};
+
+            // @desc Rect annotation color
+            // @type str
+            // @default "#55FF5588"
+            uint32_t color{0x55FF5588};
+
             // @desc Glow width in pixels
             // @type int
             // @default 5
@@ -140,12 +115,18 @@ struct Config
             // exists) }
             // @type bool
             // @default true
-            bool show_comment{true};
+            bool comment{true};
+
+            // @desc Font size for the comment tooltip (in points)
+            // @type int
+            // @default 12
+            int comment_font_size{12};
 
             // @desc Show marker in the corner of the rect (if comment exists)
             // @type bool
             // @default true
-            bool show_comment_marker{true};
+            bool comment_marker{true};
+
         } rect{};
         // @endsection
 
@@ -158,7 +139,22 @@ struct Config
             // exists) }
             // @type bool
             // @default true
-            bool show_comment{true};
+            bool comment{true};
+
+            // @desc Font size for the comment tooltip (in points)
+            // @type int
+            // @default 12
+            int comment_font_size{12};
+
+            // @desc Annotation glow color (on hover)
+            // @type str
+            // @default "#FF5000AA"
+            uint32_t glow_color{0xFF5000AA};
+
+            // @desc Highlight annotation color
+            // @type str
+            // @default "#55FF0055"
+            uint32_t color{0x55FF0055};
 
             // @desc Glow width in pixels
             // @type int
@@ -173,7 +169,7 @@ struct Config
             // @desc Show marker at the highlight (if comment exists)
             // @type bool
             // @default true
-            bool show_comment_marker{true};
+            bool comment_marker{true};
 
         } highlight{};
         // @endsection
@@ -183,6 +179,11 @@ struct Config
 
     struct Portal
     {
+        // @desc Portal border color
+        // @type str
+        // @default "#FFFFFFAA"
+        uint32_t border_color{0xFFFFFFAA};
+
         // @desc Enable portal ability
         // @type bool
         // @default true
@@ -212,6 +213,16 @@ struct Config
     // @type struct
     struct Window
     {
+        // @desc Background color
+        // @type str
+        // @default "#00000000"
+        uint32_t bg{0x00000000};
+
+        // @desc Accent color
+        // @type str
+        // @default "#3daee9FF"
+        uint32_t accent{0x3daee9FF};
+
         // @desc Set the window fullscreen
         // @type bool
         // @default false
@@ -351,6 +362,12 @@ struct Config
         // @type bool
         // @default false
         bool copy_on_select{false};
+
+        // @desc Selection color
+        // @type str
+        // @default "#0000FF55"
+        uint32_t color{0x0000FF55};
+
     } selection{};
     // @endsection
 
@@ -418,16 +435,22 @@ struct Config
     } scrollbars{};
     // @endsection
 
-    // @section Markers
+    // @section Jump Marker
     // @section_desc Jump marker options struct
     // @section_type struct
-    struct Markers
+    struct JumpMarker
     {
         // @desc Show the jump marker
         // @type bool
         // @default true
-        bool jump_marker{true};
-    } markers{};
+        bool enabled{true};
+
+        // @desc Jump marker color
+        // @type str
+        // @default "#FF0000FF"
+        uint32_t color{0xFF0000FF};
+
+    } jump_marker{};
     // @endsection
 
     // @section Links
@@ -466,6 +489,17 @@ struct Config
         // @type float
         // @default 0.5f
         float size{0.5f};
+
+        // @desc Link hint background color
+        // @type str
+        // @default "#000000FF"
+        uint32_t bg{0x000000FF};
+
+        // @desc Link hint foreground color
+        // @type str
+        // @default "#ea3ee9FF"
+        uint32_t fg{0xea3ee9FF};
+
     } link_hints{};
     // @endsection
 
