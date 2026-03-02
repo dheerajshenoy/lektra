@@ -78,7 +78,7 @@
 
 Check out [CONTRIBUTING.md](CONTRIBUTING.md)
 
-# Thanks to all the contributors who have helped (and helping) make this project better:
+### Thanks to all the contributors who have helped (and helping) make this project better (in no particular order):
 
 - [techmanwalker](https://github.com/techmanwalker) - For initiating translations and contributing the Spanish translation.
 - [linwaytin](https://codeberg.org/linwaytin) - For providing valuable feedback and bug reports and feature-requesting annotation comment.
