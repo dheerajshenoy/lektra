@@ -134,6 +134,7 @@ SearchBar::search(const QString &term) noexcept
     if (term.isEmpty())
     {
         this->hide();
+        emit searchRequested("", false);
         return;
     }
 
