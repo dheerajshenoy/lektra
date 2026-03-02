@@ -12,8 +12,32 @@ read PREFIX
 PREFIX=${PREFIX:-/usr/local}
 
 # ---------------------------------------------------------
+# File list (POSIX array = space-separated variable)
+# ---------------------------------------------------------
+FILES="
+bin/lektra
+share/applications/lektra.desktop
+share/icons/hicolor/16x16/apps/lektra.png
+share/icons/hicolor/32x32/apps/lektra.png
+share/icons/hicolor/48x48/apps/lektra.png
+share/icons/hicolor/64x64/apps/lektra.png
+share/icons/hicolor/128x128/apps/lektra.png
+share/icons/hicolor/256x256/apps/lektra.png
+share/icons/hicolor/512x512/apps/lektra.png
+"
+
+# Find all lektra.qm files in the locale directory and add them to a list
+TRANS_FILES=$(find "$PREFIX/share/locale" -name "lektra.qm" 2>/dev/null)
+
+FILES="$FILES $TRANS_FILES"
+
+# ---------------------------------------------------------
 # Confirm uninstall
 # ---------------------------------------------------------
+printf "This will remove the following files from $PREFIX:\n"
+for file in $FILES; do
+    printf "  - $PREFIX/$file\n"
+done
 printf "Are you sure you want to uninstall 'lektra' and all associated files? [y/N]: "
 read confirm
 
@@ -36,21 +60,6 @@ if ! command -v lektra >/dev/null 2>&1; then
 else
     echo "lektra binary found in PATH: $(command -v lektra)"
 fi
-
-# ---------------------------------------------------------
-# File list (POSIX array = space-separated variable)
-# ---------------------------------------------------------
-FILES="
-bin/lektra
-share/applications/lektra.desktop
-share/icons/hicolor/16x16/apps/lektra.png
-share/icons/hicolor/32x32/apps/lektra.png
-share/icons/hicolor/48x48/apps/lektra.png
-share/icons/hicolor/64x64/apps/lektra.png
-share/icons/hicolor/128x128/apps/lektra.png
-share/icons/hicolor/256x256/apps/lektra.png
-share/icons/hicolor/512x512/apps/lektra.png
-"
 
 # ---------------------------------------------------------
 # Remove files
