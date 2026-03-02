@@ -16,8 +16,6 @@
 <a href="https://codeberg.org/lektra/lektra/releases"><img alt="Gitea Release" src="https://img.shields.io/gitea/v/release/lektra/lektra?gitea_url=https%3A%2F%2Fcodeberg.org&include_prereleases&sort=date&style=for-the-badge"></a>
 <a href="https://isocpp.org"><img src="https://img.shields.io/badge/LANGUAGE-C%2B%2B-blue?style=for-the-badge"></a>
 <a href="https://codeberg.org/lektra/lektra/src/branch/main/LICENSE"><img alt="Static Badge" src="https://img.shields.io/badge/LICENSE-AGPL--3.0-darkgreen?style=for-the-badge"></a>
-<a href="https://buymeacoffee.com/dheerajshenoy"><img alt="Buy me a coffee" src="https://img.shields.io/badge/buy_me_a_coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black"></a>
-
 
 > [!WARNING]
 > **lektra** is still in alpha, bugs and crashes expected.
@@ -80,5 +78,11 @@
 
 Check out [CONTRIBUTING.md](CONTRIBUTING.md)
 
+# Thanks to all the contributors who have helped (and helping) make this project better:
+
+- [techmanwalker](https://github.com/techmanwalker) - For initiating translations and contributing the Spanish translation.
+- [linwaytin](https://codeberg.org/linwaytin) - For providing valuable feedback and bug reports and feature-requesting annotation comment.
+- [douglarek](https://github.com/douglarek) - For packaging lektra to [gentoo-zh](https://github.com/microcai/gentoo-zh).
+
 ## If you want to support me
-<a href="https://www.buymeacoffee.com/dheerajshenoy" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>
+<a href="https://buymeacoffee.com/dheerajshenoy"><img alt="Buy me a coffee" src="https://img.shields.io/badge/buy_me_a_coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black"></a>
