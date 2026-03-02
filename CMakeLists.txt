@@ -23,7 +23,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
-set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address -fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra")
+set(CMAKE_CXX_FLAGS_DEBUG "-fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra -fsanitize=address -Werror")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -fno-omit-frame-pointer -DNDEBUG")
 
@@ -158,7 +158,7 @@ endif()
 
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    Qt6::Gui Qt6::Widgets Qt6::Core Qt6::Concurrent
+    Qt6::Gui Qt6::Widgets Qt6::Core Qt6::Concurrent #mupdf mupdf-third
     ${CMAKE_SOURCE_DIR}/external/mupdf/build/release/libmupdf.a
     ${CMAKE_SOURCE_DIR}/external/mupdf/build/release/libmupdf-third.a
 )
