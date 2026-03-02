@@ -128,6 +128,7 @@ protected:
     // tooltip helpers
     void showTooltip(const QPoint &screenPos);
     void moveTooltip(const QPoint &screenPos);
+    void setTooltipFontSize(int pointSize);
     void hideTooltip();
 
     // ------------------------------------------------------------------ data

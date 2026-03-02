@@ -206,6 +206,18 @@ Annotation::moveTooltip(const QPoint &screenPos)
 }
 
 void
+Annotation::setTooltipFontSize(int pointSize)
+{
+    if (m_tooltip)
+    {
+        QFont font = m_tooltip->font();
+        font.setPointSize(pointSize);
+        m_tooltip->setFont(font);
+        m_tooltip->adjustSize();
+    }
+}
+
+void
 Annotation::hideTooltip()
 {
     if (m_tooltip)
