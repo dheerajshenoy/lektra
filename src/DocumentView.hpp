@@ -462,7 +462,7 @@ private:
     void updateCurrentHitHighlight() noexcept;
     void scrollToCurrentHit() noexcept;
     void zoomHelper() noexcept;
-    void repositionPages() noexcept;
+    void repositionPages();
     void cachePageStride() noexcept;
     void updateSceneRect() noexcept;
     void initConnections() noexcept;
