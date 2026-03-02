@@ -16,6 +16,7 @@
 #include "WaitingSpinnerWidget.hpp"
 #include "mupdf/pdf/annot.h"
 #include "utils.hpp"
+#include "DocumentContainer.hpp"
 
 #include <QClipboard>
 #include <QColorDialog>
@@ -3950,7 +3951,7 @@ DocumentView::CopyTextFromRegion(QRectF area) noexcept
 
     const std::string text = m_model->getTextInArea(pageno, pageStart, pageEnd);
 
-    QClipboard *clip = QApplication::clipboard();
+    QClipboard *clip = QGuiApplication::clipboard();
     clip->setText(QString::fromStdString(text));
 }
 
@@ -3971,7 +3972,7 @@ DocumentView::CopyRegionAsImage(QRectF area) noexcept
 
     if (!img.isNull())
     {
-        QClipboard *clip = QApplication::clipboard();
+        QClipboard *clip = QGuiApplication::clipboard();
         clip->setImage(img);
     }
 }
@@ -4503,7 +4504,7 @@ DocumentView::Copy_page_image() noexcept
 
     if (!img.isNull())
     {
-        QClipboard *clip = QApplication::clipboard();
+        QClipboard *clip = QGuiApplication::clipboard();
         clip->setImage(img);
     }
 }
