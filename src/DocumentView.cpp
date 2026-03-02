@@ -9,6 +9,7 @@
 #include "Commands/RectAnnotationCommand.hpp"
 #include "Commands/TextAnnotationCommand.hpp"
 #include "Config.hpp"
+#include "DocumentContainer.hpp"
 #include "GraphicsImageItem.hpp"
 #include "GraphicsView.hpp"
 #include "LinkHint.hpp"
@@ -16,7 +17,6 @@
 #include "WaitingSpinnerWidget.hpp"
 #include "mupdf/pdf/annot.h"
 #include "utils.hpp"
-#include "DocumentContainer.hpp"
 
 #include <QClipboard>
 #include <QColorDialog>
@@ -4310,12 +4310,12 @@ DocumentView::zoomHelper() noexcept
     }
 }
 
+// Reposition every live page item at the new zoom
 void
-DocumentView::repositionPages() noexcept
+DocumentView::repositionPages()
 {
-    // Reposition every live page item at the new zoom
-    const QRectF sr = m_gview->sceneRect(); // constant for the whole loop
 
+    const QRectF sr = m_gview->sceneRect();
     // For TOP_TO_BOTTOM, each page may have a different width so we must
     // compute the centering offset per-page inside the loop. Using a single
     // offset based on m_pageno mispositions all pages that differ in width.
@@ -4360,13 +4360,23 @@ DocumentView::repositionPages() noexcept
 
             const QImage &img = item->image();
             if (img.isNull() || img.height() == 0 || img.width() == 0)
+            {
+                qWarning() << "DocumentView::repositionPages(): Current image "
+                           << "is null or has zero width/height for page" << i
+                           << "- skipping scaling to avoid errors.";
                 continue;
+            }
 
             const double currentImageHeight
                 = static_cast<double>(item->height());
 
             if (currentImageHeight <= 0.0)
+            {
+                qWarning() << "DocumentView::repositionPages(): Current image "
+                           << "height is zero or negative for page" << i
+                           << "- skipping scaling to avoid division by zero.";
                 continue; // avoid division by zero
+            }
 
             item->setScale(targetPixelHeight / currentImageHeight);
 
@@ -4391,15 +4401,11 @@ DocumentView::repositionPages() noexcept
             item->setPos(pageXOffset(i, pageWidthScene, sr.width()),
                          pageOffset(i));
         }
-    }
 
-    // Invalidate render caches for all repositioned pages
-    for (const int pageno : m_page_items_hash.keys())
-    {
-        m_model->invalidatePageCache(pageno);
-        clearLinksForPage(pageno);
-        clearAnnotationsForPage(pageno);
-        clearSearchItemsForPage(pageno);
+        m_model->invalidatePageCache(i);
+        clearLinksForPage(i);
+        clearAnnotationsForPage(i);
+        clearSearchItemsForPage(i);
     }
 
     renderSearchHitsInScrollbar();
