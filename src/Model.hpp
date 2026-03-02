@@ -135,15 +135,31 @@ public:
 
     inline bool supports_links() const noexcept
     {
-        return (m_filetype == FileType::PDF || m_filetype == FileType::EPUB
-                || m_filetype == FileType::XPS || m_filetype == FileType::FB2);
+        switch (m_filetype)
+        {
+            case FileType::PDF:
+            case FileType::EPUB:
+            case FileType::XPS:
+            case FileType::FB2:
+                return true;
+            default:
+                return false;
+        }
     }
 
     inline bool supports_text_selection() const noexcept
     {
-        return m_filetype == FileType::PDF || m_filetype == FileType::EPUB
-               || m_filetype == FileType::XPS || m_filetype == FileType::FB2
-               || m_filetype == FileType::MOBI;
+        switch (m_filetype)
+        {
+            case FileType::PDF:
+            case FileType::EPUB:
+            case FileType::XPS:
+            case FileType::FB2:
+            case FileType::MOBI:
+                return true;
+            default:
+                return false;
+        }
     }
 
     inline bool supports_text_search() const noexcept
