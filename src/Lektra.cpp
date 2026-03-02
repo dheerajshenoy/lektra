@@ -1307,18 +1307,18 @@ Lektra::setupKeybinding(const QString &action, const QString &key) noexcept
     }
 }
 
-void
-Lektra::setupMousebinding(const QString &action,
-                          const QString &trigger) noexcept
-{
-    if (const Command *command = m_command_manager.find(action))
-    {
-#ifndef NDEBUG
-        qDebug() << "Mousebinding set:" << action << "->" << trigger;
-#endif
-        m_config.mousebinds[action] = trigger;
-    }
-}
+// void
+// Lektra::setupMousebinding(const QString &action,
+//                           const QString &trigger) noexcept
+// {
+//     if (const Command *command = m_command_manager.find(action))
+//     {
+// #ifndef NDEBUG
+//         qDebug() << "Mousebinding set:" << action << "->" << trigger;
+// #endif
+//         m_config.mousebinds[action] = trigger;
+//     }
+// }
 
 // Toggles the fullscreen mode
 void
