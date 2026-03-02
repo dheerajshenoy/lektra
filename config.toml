@@ -4,6 +4,12 @@ menubar = false
 startup_tab = false
 window_title = "{} - lektra" # '{}' replaced with base file name
 initial_size = { width = 1200, height = 800 }
+accent = "#3daee9FF"
+bg = "#00000000"
+
+[page]
+bg = "#FFFFFF"
+fg = "#000000"
 
 [statusbar]
 visible = true
@@ -16,14 +22,38 @@ show_progress = true
 
 [portal]
 enabled = true
-border_width = 20
+border_color = "#3daee9FF"
+border_width = 5
 respect_parent = true
 
 [split]
 mouse_follows_focus = false
-focus_follows_mouse = false
-dim_inactive = true
+focus_follows_mouse = true
+dim_inactive = false
 dim_inactive_opacity = 0.5
+
+[annotations.popup]
+hover_glow = true
+glow_color = "#FF5000FF"
+glow_width = 5
+comment = true
+comment_marker = true
+
+[annotations.highlight]
+color = "#55FF0055"
+hover_glow = true
+glow_color = "#FF5000FF"
+glow_width = 5
+comment = true
+comment_marker = true
+
+[annotations.rect]
+color = "#55FF5588"
+hover_glow = true
+glow_color = "#FF5000FF"
+glow_width = 5
+comment = true
+comment_marker = true
 
 [picker]
 border = true
@@ -46,7 +76,7 @@ dismiss = "escape"
 # bottom = "G"
 
 [command_palette]
-show_shortcuts = false
+show_shortcuts = true
 height = 400
 width = 600
 
@@ -55,7 +85,7 @@ visible = false
 panel_width = 400
 
 [layout]
-mode = "top_to_bottom" # "single", "top_to_bottom", "left_to_right", "book"
+mode = "left_to_right" # "single", "top_to_bottom", "left_to_right", "book"
 initial_fit = "none" # "none", "width", "height", "window"
 auto_resize = false # fit document to window
 spacing = 9
@@ -67,6 +97,7 @@ factor = 1.25 # factor for zoom in/out
 [selection]
 drag_threshold = 100
 copy_on_select = false
+color = "#3297fd66"
 
 [scrollbars]
 horizontal = true
@@ -76,8 +107,9 @@ search_hits = true # show/hide search hits on scrollbar
 size = 12 # scrollbar thickness in pixels
 hide_timeout = 4000 # time in ms to hide scrollbars when auto_hide is true
 
-[markers]
-jump_marker = true
+[jump_marker]
+enabled = true
+color  = "#FF0000FF"
 
 [links]
 boundary = false # show link boundary box
@@ -86,9 +118,11 @@ url_regex = "(https?://|www\\.)[^\\s<>()\\\"']+" # regex for URL detection (if d
 
 [link_hints]
 size = 0.25 # relative scale for link hint labels
+bg = "#000000FF"
+fg = "#ea3ee9FF"
 
 [tabs]
-visible = true
+visible = false
 auto_hide = false
 closable = true
 movable = true
@@ -97,21 +131,11 @@ location = "top" # "top", "bottom", "left", "right"
 full_path = false # show full file path in tab title
 lazy_load = true # load tab content only when activated
 
-# ===== Colors (RGBA) =====
+[search]
+match_color = "#55500033"
+index_color = "#55FF0055"
+
 [colors]
-accent = "#3daee9FF"
-background = "#00000000"
-search_match = "#55500033"
-search_index = "#55FF0055"
-link_hint_bg = "#000000FF"
-link_hint_fg = "#ea3ee9FF"
-selection = "#3297fd66"
-highlight = "#55FF0055"
-jump_marker = "#FF0000FF"
-annot_rect = "#55FF5588"
-annot_popup = "#FFFFFFAA"
-page_background = "#FFFFFF"
-page_foreground = "#000000"
 
 # ===== Rendering =====
 [rendering]
@@ -143,6 +167,8 @@ provider = "ollama"
 model = "llama3.2:3b"
 max_tokens = 512
 
+[scripts]
+name_of_script = "path_to_shell_script"
 
 # ===== Shortcuts =====
 [keybindings]
@@ -211,8 +237,12 @@ picker_highlight_search = "Alt+Shift+H"
 completion_next = "Ctrl+n"
 completion_prev = "Ctrl+p"
 llm_widget = "Ctrl+Shift+L"
-statusbar = "Ctrl+Shift+S"
 split_focus_next = "Ctrl+Alt+Right"
 split_focus_prev = "Ctrl+Alt+Left"
 split_close = "Ctrl+w,c"
 visual_line_mode = "v"
+layout_single = "Ctrl+Shift+1"
+layout_top_to_bottom = "Ctrl+Shift+2"
+layout_left_to_right = "Ctrl+Shift+3"
+layout_book = "Ctrl+Shift+4"
+
