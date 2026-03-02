@@ -23,8 +23,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
-set(CMAKE_CXX_FLAGS_DEBUG "-fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra -fsanitize=address -Werror")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+
+set(DEBUG_FLAGS -fno-omit-frame-pointer -ggdb3 -O0 -fsanitize=address -Wall -Wextra)
+set(RELEASE_FLAGS -O3 -DNDEBUG)
+set(REL_WITH_DEB_INFO -O2 -g -fno-omit-frame-pointer -DNDEBUG)
+
+# set(CMAKE_CXX_FLAGS_DEBUG "-fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra -fsanitize=address -Werror")
+# set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -fno-omit-frame-pointer -DNDEBUG")
 
 find_package(Qt6 REQUIRED COMPONENTS Gui Widgets Core Concurrent LinguistTools) #OpenGLWidgets )
@@ -214,6 +219,18 @@ if (DJVU_FOUND)
     target_link_libraries(${PROJECT_NAME} PRIVATE djvulibre)
     target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_DJVU=1)
 endif()
+
+target_compile_options(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
+    $<$<CONFIG:Release>:${RELEASE_FLAGS}>
+    $<$<CONFIG:RelWithDebInfo>:${REL_WITH_DEBINFO_FLAGS}>
+)
+
+target_link_options(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
+    $<$<CONFIG:Release>:${RELEASE_FLAGS}>
+    $<$<CONFIG:RelWithDebInfo>:${REL_WITH_DEBINFO_FLAGS}>
+)
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 #Install icons to correct freedesktop - compliant locations
