@@ -45,7 +45,7 @@ private:
     CircleLabel *m_mode_color_label = new CircleLabel();
     QLabel *m_pageno_label          = new QLabel();
     QLabel *m_totalpage_label       = new QLabel();
-    QLabel *m_pageno_separator      = new QLabel(" of ");
+    QLabel *m_pageno_separator      = new QLabel(" " + tr("of") + " ");
     QLabel *m_progress_label        = new QLabel();
     QLabel *m_portal_label          = new QLabel("P");
     QPushButton *m_session_label    = new QPushButton();

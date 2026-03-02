@@ -13,11 +13,11 @@ EditLastPagesWidget::EditLastPagesWidget(RecentFilesStore *store,
     else
         m_model->setEntries({});
 
-    m_autoremove_btn     = new QPushButton("Remove unfound files");
-    m_revert_changes_btn = new QPushButton("Revert Changes");
-    m_delete_row_btn     = new QPushButton("Delete row");
-    m_apply_btn          = new QPushButton("Apply");
-    m_close_btn          = new QPushButton("Close");
+    m_autoremove_btn     = new QPushButton(tr("Remove unfound files"));
+    m_revert_changes_btn = new QPushButton(tr("Revert Changes"));
+    m_delete_row_btn     = new QPushButton(tr("Delete row"));
+    m_apply_btn          = new QPushButton(tr("Apply"));
+    m_close_btn          = new QPushButton(tr("Close"));
 
     initConnections();
 
@@ -65,7 +65,7 @@ EditLastPagesWidget::initConnections() noexcept
     connect(m_apply_btn, &QPushButton::clicked, this, [&]()
     {
         auto confirm = QMessageBox::question(
-            this, "Apply Changes", "Do you want to apply the changes ?");
+            this, tr("Apply Changes"), tr("Do you want to apply the changes ?"));
         if (confirm == QMessageBox::Yes)
         {
             if (m_store)
@@ -73,8 +73,8 @@ EditLastPagesWidget::initConnections() noexcept
                 m_store->setEntries(m_model->entries());
                 if (!m_store->save())
                 {
-                    QMessageBox::warning(this, "Apply Changes",
-                                         "Failed to save recent files");
+                    QMessageBox::warning(this, tr("Apply Changes"),
+                                         tr("Failed to save recent files"));
                     return;
                 }
             }
@@ -118,12 +118,12 @@ EditLastPagesWidget::revertChanges() noexcept
 {
     if (!m_model->isDirty())
     {
-        QMessageBox::information(this, "Revert Changes",
-                                 "There are no changes to revert to");
+        QMessageBox::information(this, tr("Revert Changes"),
+                                 tr("There are no changes to revert to"));
         return;
     }
     auto confirm = QMessageBox::question(
-        this, "Revert Changes", "Do you really want to revert the changes ?");
+        this, tr("Revert Changes"), tr("Do you really want to revert the changes ?"));
     if (confirm == QMessageBox::Yes)
         m_model->revertAll();
 }

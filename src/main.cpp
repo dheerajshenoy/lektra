@@ -1,7 +1,10 @@
 #include "Lektra.hpp"
 #include "argparse.hpp"
+#include "TranslationsDir.hpp"
 
 #include <QApplication>
+#include <QLocale>
+#include <QTranslator>
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/resource.h>
@@ -156,6 +159,44 @@ main(int argc, char *argv[])
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon(":/resources/png/lektra.png"));
+
+    // Load correct localization file
+    QString baseDir = QStringLiteral(TRANSLATIONS_DIR);
+    QString fullLocale = QLocale::system().name();     // ex. "es_MX"
+    QString langOnly = fullLocale.left(2);             // ex: "es"
+
+    QTranslator* translator = new QTranslator(&app);
+
+    auto tryLoad = [&](const QString& localeDir) -> bool {
+        QString path = baseDir + "/" + localeDir + "/LC_MESSAGES/";
+        return translator->load("lektra", path);
+    };
+
+    // Using es_MX code for explanation
+
+    // Try full locale (es_MX)
+    if (tryLoad(fullLocale)) {
+        app.installTranslator(translator);
+    }
+    // Try language only (es)
+    else if (tryLoad(langOnly)) {
+        app.installTranslator(translator);
+    }
+    // Search for any directory beginning with es_ ...
+    else {
+        QDir dir(baseDir);
+        QStringList candidates = dir.entryList(
+            QStringList() << (langOnly + "_*"),
+            QDir::Dirs | QDir::NoDotAndDotDot
+        );
+
+        for (const QString& candidate : candidates) {
+            if (tryLoad(candidate)) {
+                app.installTranslator(translator);
+                break;
+            }
+        }
+    }
 
     Lektra d;
     d.Read_args_parser(program);

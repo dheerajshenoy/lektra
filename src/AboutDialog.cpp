@@ -23,7 +23,7 @@ AboutDialog::AboutDialog(QWidget *parent)
       closeButton(new QPushButton("Close"))
 {
 
-    setWindowTitle("About");
+    setWindowTitle(tr("About"));
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint
                    & ~Qt::WindowMaximizeButtonHint);
 
@@ -82,11 +82,11 @@ AboutDialog::AboutDialog(QWidget *parent)
     connect(closeButton, &QPushButton::clicked, this, &QDialog::accept);
 
     QWidget *authorWidget = authorsSection();
-    m_tabWidget->addTab(authorWidget, "About");
+    m_tabWidget->addTab(authorWidget, tr("About"));
 
     QWidget *softwaresUsed = softwaresUsedSection();
-    m_tabWidget->addTab(softwaresUsed, "Libraries Used");
-    m_tabWidget->addTab(licenseTextEdit, "License");
+    m_tabWidget->addTab(softwaresUsed, tr("Libraries Used"));
+    m_tabWidget->addTab(licenseTextEdit, tr("License"));
     setWindowModality(Qt::NonModal);
 }
 
@@ -122,10 +122,10 @@ AboutDialog::authorsSection() noexcept
     QWidget *widget = new QWidget(this);
 
     QFormLayout *layout = new QFormLayout(widget);
-    layout->addRow("Version", new QLabel(APP_VERSION));
-    layout->addRow("Created by", new QLabel("Dheeraj Vittal Shenoy"));
+    layout->addRow(tr("Version"), new QLabel(APP_VERSION));
+    layout->addRow(tr("Created by"), new QLabel("Dheeraj Vittal Shenoy"));
     layout->addRow(
-        "Github", new QLabel("<a "
+        "GitHub", new QLabel("<a "
                              "href='https://codeberg.org/lektra/lektra'>https:/"
                              "/codeberg.org/lektra/lektra</a>"));
     widget->setLayout(layout);

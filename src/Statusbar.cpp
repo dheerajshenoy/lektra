@@ -117,49 +117,49 @@ Statusbar::setMode(GraphicsView::Mode mode) noexcept
     {
         case GraphicsView::Mode::RegionSelection:
         {
-            m_mode_label->setText("Region Selection");
+            m_mode_label->setText(tr("Region Selection"));
             show_color = false;
         }
         break;
 
         case GraphicsView::Mode::TextSelection:
         {
-            m_mode_label->setText("Text Selection");
+            m_mode_label->setText(tr("Text Selection"));
             show_color = false;
         }
         break;
 
         case GraphicsView::Mode::TextHighlight:
         {
-            m_mode_label->setText("Text Highlight");
+            m_mode_label->setText(tr("Text Highlight"));
             show_color = true;
         }
         break;
 
         case GraphicsView::Mode::AnnotSelect:
         {
-            m_mode_label->setText("Annot Select");
+            m_mode_label->setText(tr("Annot Select"));
             show_color = false;
         }
         break;
 
         case GraphicsView::Mode::AnnotRect:
         {
-            m_mode_label->setText("Annot Rect");
+            m_mode_label->setText(tr("Annot Rect"));
             show_color = true;
         }
         break;
 
         case GraphicsView::Mode::AnnotPopup:
         {
-            m_mode_label->setText("Annot Popup");
+            m_mode_label->setText(tr("Annot Popup"));
             show_color = true;
         }
         break;
 
         case GraphicsView::Mode::VisualLine:
         {
-            m_mode_label->setText("Visual Line");
+            m_mode_label->setText(tr("Visual Line"));
             show_color = false;
         }
         break;
