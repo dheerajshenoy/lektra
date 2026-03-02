@@ -4,6 +4,7 @@
 
 ### End User Features
 
+- Add support for language translation and localization
 - Support for running shell scripts
 - Support for DJVU files (limited, only basic rendering and navigation, no text selection and searching)
 - New command line argument `--layout` to specify the default layout mode on file open (e.g. `--layout=book` to open in book layout mode)
