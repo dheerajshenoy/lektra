@@ -2482,9 +2482,9 @@ Model::searchHelperRegex(int pageno, const QRegularExpression &re) noexcept
 
     for (int i = 0; i < n; ++i)
     {
-        const uint32_t r = text[i].rune;
+        const char32_t r = text[i].rune;
         const QString ch
-            = (r == '\n') ? QStringLiteral("\n") : QString::fromUcs4(&r, 1);
+            = (r == '\n') ? QStringLiteral("\n") : QString::fromUcs4(&r);
         for (QChar qc : ch)
         {
             flat.append(qc);
