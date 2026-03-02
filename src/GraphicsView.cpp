@@ -213,8 +213,9 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                 event->accept();
                 return;
             }
-            // [[fallthrough]];
 #endif
+            [[fallthrough]];
+
         case Mode::TextHighlight:
         {
             // Link check
