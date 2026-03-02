@@ -121,13 +121,13 @@ DocumentView::initGui() noexcept
     m_selection_path_item = m_gscene->addPath(QPainterPath());
 
     m_selection_path_item->setBrush(
-        QBrush(rgbaToQColor(m_config.colors.selection)));
+        QBrush(rgbaToQColor(m_config.selection.color)));
     m_selection_path_item->setPen(Qt::NoPen);
     m_selection_path_item->setZValue(ZVALUE_TEXT_SELECTION);
 
     m_current_search_hit_item = m_gscene->addPath(QPainterPath());
     m_current_search_hit_item->setBrush(
-        rgbaToQColor(m_config.colors.search_index));
+        rgbaToQColor(m_config.search.index_color));
     m_current_search_hit_item->setPen(Qt::NoPen);
     m_current_search_hit_item->setZValue(ZVALUE_SEARCH_HITS + 1);
 
@@ -145,18 +145,18 @@ DocumentView::initGui() noexcept
     connect(m_resize_timer, &QTimer::timeout, this,
             &DocumentView::handleDeferredResize);
 
-    m_jump_marker = new JumpMarker(rgbaToQColor(m_config.colors.jump_marker));
+    m_jump_marker = new JumpMarker(rgbaToQColor(m_config.jump_marker.color));
     m_jump_marker->setZValue(ZVALUE_JUMP_MARKER);
     m_gscene->addItem(m_jump_marker);
 
     m_gview->setAlignment(Qt::AlignCenter);
     m_gview->setDefaultMode(m_config.behavior.initial_mode);
     m_gview->setMode(m_config.behavior.initial_mode);
-    m_gview->setBackgroundBrush(rgbaToQColor(m_config.colors.background));
+    m_gview->setBackgroundBrush(rgbaToQColor(m_config.window.bg));
     m_model->setAnnotRectColor(
-        rgbaToQColor(m_config.colors.annot_rect).toRgb());
-    m_model->setSelectionColor(rgbaToQColor(m_config.colors.selection));
-    m_model->setHighlightColor(rgbaToQColor(m_config.colors.highlight));
+        rgbaToQColor(m_config.annotations.rect.color).toRgb());
+    m_model->setSelectionColor(rgbaToQColor(m_config.selection.color));
+    m_model->setHighlightColor(rgbaToQColor(m_config.annotations.highlight.color));
     // m_model->setAntialiasingBits(m_config.rendering.antialiasing_bits);
     m_model->undoStack()->setUndoLimit(m_config.behavior.undo_limit);
 
@@ -167,8 +167,8 @@ DocumentView::initGui() noexcept
     // if (m_config.rendering.icc_color_profile)
     //     m_model->enableICC();
     m_model->setCacheCapacity(m_config.behavior.cache_pages);
-    m_model->setBackgroundColor(m_config.colors.page_background);
-    m_model->setForegroundColor(m_config.colors.page_foreground);
+    m_model->setBackgroundColor(m_config.page.bg);
+    m_model->setForegroundColor(m_config.page.fg);
 
     m_hscroll = new ScrollBar(Qt::Horizontal, this);
     m_vscroll = new ScrollBar(Qt::Vertical, this);
@@ -1572,8 +1572,8 @@ DocumentView::LinkKB() noexcept
     font.setPointSizeF(fontSize);
     QFontMetricsF metrics(font);
 
-    const QColor bg = rgbaToQColor(m_config.colors.link_hint_bg);
-    const QColor fg = rgbaToQColor(m_config.colors.link_hint_fg);
+    const QColor bg = rgbaToQColor(m_config.link_hints.bg);
+    const QColor fg = rgbaToQColor(m_config.link_hints.fg);
 
     for (const auto &entry : visibleLinks)
     {
@@ -3614,7 +3614,7 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
 
     // Set colors
     item->setPath(allPath);
-    item->setBrush(rgbaToQColor(m_config.colors.search_match));
+    item->setBrush(rgbaToQColor(m_config.search.match_color));
 }
 
 void

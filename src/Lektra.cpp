@@ -542,6 +542,7 @@ Lektra::initConfig() noexcept
     // Portals
     if (auto portal = toml["portal"])
     {
+        set_color(portal["portal_border"], m_config.portal.border_color);
         set(portal["enabled"], m_config.portal.enabled);
         set(portal["border_width"], m_config.portal.border_width);
         set(portal["dim_inactive"], m_config.portal.dim_inactive);
@@ -615,6 +616,8 @@ Lektra::initConfig() noexcept
         set(window["startup_tab"], m_config.window.startup_tab);
         set(window["menubar"], m_config.window.menubar);
         set(window["fullscreen"], m_config.window.fullscreen);
+        set_color(window["accent"], m_config.window.accent);
+        set_color(window["bg"], m_config.window.bg);
 
         if (window["initial_size"].is_table())
         {
@@ -644,32 +647,46 @@ Lektra::initConfig() noexcept
     // Annotations
     if (auto annots = toml["annotations"])
     {
+
         if (auto highlight = annots["highlight"])
         {
+            set_color(highlight["color"], m_config.annotations.highlight.color);
             set(highlight["hover_glow"],
                 m_config.annotations.highlight.hover_glow);
-            set(highlight["show_comment"],
-                m_config.annotations.highlight.show_comment);
-            set(highlight["show_comment_marker"],
-                m_config.annotations.highlight.show_comment_marker);
+            set(highlight["comment"],
+                m_config.annotations.highlight.comment);
+            set(highlight["comment_marker"],
+                m_config.annotations.highlight.comment_marker);
             set(highlight["glow_width"],
                 m_config.annotations.highlight.glow_width);
+            set_color(highlight["glow_color"],
+                      m_config.annotations.highlight.glow_color);
+            set(highlight["comment_font_size"],
+                m_config.annotations.highlight.comment_font_size);
         }
 
         if (auto rect = annots["rect"])
         {
+            set_color(rect["color"], m_config.annotations.rect.color);
             set(rect["hover_glow"], m_config.annotations.rect.hover_glow);
-            set(rect["show_comment"], m_config.annotations.rect.show_comment);
-            set(rect["show_comment_marker"],
-                m_config.annotations.rect.show_comment_marker);
+            set(rect["comment"], m_config.annotations.rect.comment);
+            set(rect["comment_marker"],
+                m_config.annotations.rect.comment_marker);
             set(rect["glow_width"], m_config.annotations.rect.glow_width);
+            set_color(rect["glow_color"], m_config.annotations.rect.glow_color);
+            set(rect["comment_font_size"],
+                m_config.annotations.rect.comment_font_size);
         }
 
         if (auto popup = annots["popup"])
         {
             set(popup["hover_glow"], m_config.annotations.popup.hover_glow);
-            set(popup["show_comment"], m_config.annotations.popup.show_comment);
+            set(popup["comment"], m_config.annotations.popup.comment);
             set(popup["glow_width"], m_config.annotations.popup.glow_width);
+            set_color(popup["glow_color"],
+                      m_config.annotations.popup.glow_color);
+            set(popup["comment_font_size"],
+                m_config.annotations.popup.comment_font_size);
         }
     }
 
@@ -757,6 +774,7 @@ Lektra::initConfig() noexcept
     {
         set(selection["drag_threshold"], m_config.selection.drag_threshold);
         set(selection["copy_on_select"], m_config.selection.copy_on_select);
+        set_color(selection["color"], m_config.selection.color);
     }
     /* scrollbars */
     if (auto scrollbars = toml["scrollbars"])
@@ -834,9 +852,10 @@ Lektra::initConfig() noexcept
     }
 
     // Markers
-    if (auto markers = toml["markers"])
+    if (auto jump_marker = toml["jump_marker"])
     {
-        set(markers["jump_marker"], m_config.markers.jump_marker);
+        set(jump_marker["enabled"], m_config.jump_marker.enabled);
+        set_color(jump_marker["jump_marker"], m_config.jump_marker.color);
     }
 
     // Links
@@ -851,6 +870,8 @@ Lektra::initConfig() noexcept
     if (auto link_hints = toml["link_hints"])
     {
         set(link_hints["size"], m_config.link_hints.size);
+        set_color(link_hints["bg"], m_config.link_hints.bg);
+        set_color(link_hints["fg"], m_config.link_hints.fg);
     }
 
     // Outline
@@ -884,23 +905,21 @@ Lektra::initConfig() noexcept
     }
 #endif
 
+    // Search
+    if (auto search = toml["search"])
+    {
+        // set(search["case_sensitive"], m_config.search.case_sensitive);
+        // set(search["whole_words"], m_config.search.whole_words);
+        // set(search["regex"], m_config.search.regex);
+        // set(search["highlight_results"], m_config.search.highlight_results);
+
+        set_color(search["match_color"], m_config.search.match_color);
+        set_color(search["index_color"], m_config.search.index_color);
+    }
+
     // Colors
     if (auto colors = toml["colors"])
     {
-        set_color(colors["accent"], m_config.colors.accent);
-        set_color(colors["background"], m_config.colors.background);
-        set_color(colors["search_match"], m_config.colors.search_match);
-        set_color(colors["search_index"], m_config.colors.search_index);
-        set_color(colors["link_hint_bg"], m_config.colors.link_hint_bg);
-        set_color(colors["link_hint_fg"], m_config.colors.link_hint_fg);
-        set_color(colors["selection"], m_config.colors.selection);
-        set_color(colors["highlight"], m_config.colors.highlight);
-        set_color(colors["jump_marker"], m_config.colors.jump_marker);
-        set_color(colors["annot_rect"], m_config.colors.annot_rect);
-        set_color(colors["annot_popup"], m_config.colors.annot_popup);
-        set_color(colors["page_background"], m_config.colors.page_background);
-        set_color(colors["page_foreground"], m_config.colors.page_foreground);
-        set_color(colors["portal_border"], m_config.colors.portal_border);
     }
 
     // Rendering

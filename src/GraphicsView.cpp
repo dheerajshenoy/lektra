@@ -1052,7 +1052,7 @@ GraphicsView::paintEvent(QPaintEvent *event)
         && m_is_portal)
     {
         painter.setRenderHint(QPainter::Antialiasing, true);
-        QPen pen(QColor(m_config.colors.portal_border),
+        QPen pen(QColor(m_config.portal.border_color),
                  m_config.portal.border_width);
         painter.setPen(pen);
         painter.drawRect(viewport()->rect().adjusted(1, 1, -1, -1));
