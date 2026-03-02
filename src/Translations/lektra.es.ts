@@ -1014,8 +1014,7 @@ Cargando configuración predeterminada.</translation>
     <message>
         <location filename="../Lektra.cpp" line="3700"/>
         <source>Open file (do what I mean)</source>
-        <translatorcomment>[lito] what does this even mean??????</translatorcomment>
-        <translation>Abrir archivo (haz lo que te digo)</translation>
+        <translation>Abrir archivo (paneles inteligentes)</translation>
     </message>
     <message>
         <location filename="../Lektra.cpp" line="3702"/>
