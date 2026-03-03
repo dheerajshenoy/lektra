@@ -251,7 +251,7 @@ DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
     m_pageno = std::clamp(m_pageno, 0, m_model->numPages() - 1);
 
     GotoPage(m_pageno);
-    renderPages();
+    // renderPages();
 }
 
 #ifdef HAS_SYNCTEX
