@@ -2398,6 +2398,10 @@ DocumentView::startNextRenderJob() noexcept
                     scrollToCurrentHit();
                 }
             }
+            else
+            {
+                qWarning() << "Failed to render page" << pageno;
+            }
 
             startNextRenderJob();
         });
