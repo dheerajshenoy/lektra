@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CommentSearchPicker.hpp"
 #include "CommandPicker.hpp"
 #include "Config.hpp"
 #include "DocumentView.hpp"
@@ -69,6 +70,7 @@ public:
     void Search_regex() noexcept;
     void Search_in_page() noexcept;
     void Show_highlight_search() noexcept;
+    void Show_annot_comment_search() noexcept;
     void Show_command_picker() noexcept;
 
     void Toggle_none_mode() noexcept;
@@ -379,6 +381,7 @@ private:
     Picker::Keybindings m_picker_keybinds{};
     OutlinePicker *m_outline_picker{nullptr};
     HighlightSearchPicker *m_highlight_search_picker{nullptr};
+    CommentSearchPicker *m_comment_search_picker{nullptr};
     RecentFilesPicker *m_recent_file_picker{nullptr};
     MarkManager *m_marks_manager{nullptr};
 
