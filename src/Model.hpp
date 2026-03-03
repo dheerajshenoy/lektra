@@ -87,6 +87,13 @@ public:
         fz_quad quad;
     };
 
+    struct AnnotCommentInfo
+    {
+        int page;
+        QString comment;
+        fz_rect rect;
+    };
+
     struct EncryptInfo
     {
         QString user_password;
@@ -451,6 +458,8 @@ public:
 
     std::vector<HighlightText> collectHighlightTexts(bool groupByLine
                                                      = true) noexcept;
+
+    std::vector<AnnotCommentInfo> collect_annot_comments() noexcept;
     void annotChangeColor(int pageno, int index, const QColor &color) noexcept;
     void removeAnnotComment(const int pageno, const int objNum) noexcept;
     void addAnnotComment(const int pageno, const int objNum,
