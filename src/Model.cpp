@@ -36,14 +36,15 @@ Model::Model(const Config &config, QObject *parent) noexcept
 {
     initMuPDF();
     m_undo_stack = new QUndoStack(this);
-    setUrlLinkRegex(QString::fromUtf8(R"((https?://|www\.)[^\s<>()\"']+)"));
+    setUrlLinkRegex(m_config.links.url_regex);
 
     // Eviction for LRU Cache
+    m_page_lru_cache.setCapacity(m_config.behavior.cache_pages);
     m_page_lru_cache.setCallback([this](PageCacheEntry &entry)
     { LRUEvictFunction(entry); });
 
-    m_text_cache.setCapacity(512);
-    m_stext_page_cache.setCapacity(10);
+    m_text_cache.setCapacity(512);      // TODO: make this configurable
+    m_stext_page_cache.setCapacity(10); // TODO: make this configurable
     m_stext_page_cache.setCallback([this](fz_stext_page *stext_page)
     {
         if (!stext_page)
