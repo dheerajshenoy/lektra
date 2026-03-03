@@ -17,10 +17,11 @@ class HighlightSearchPicker : public Picker
 public:
     explicit HighlightSearchPicker(QWidget *parent) noexcept;
 
-    void setModel(Model *model) noexcept
+    inline void setModel(Model *model) noexcept
     {
         m_model = model;
     }
+
     void refresh() noexcept;
     void launch() noexcept;
 
