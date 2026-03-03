@@ -59,8 +59,16 @@ Model::Model(const Config &config, QObject *parent) noexcept
 
 Model::~Model() noexcept
 {
-    cleanup_mupdf();
-    fz_drop_context(m_ctx);
+    if (m_filetype == FileType::DJVU)
+    {
+        cleanup_djvu();
+        ddjvu_context_release(m_ddjvu_ctx);
+    }
+    else
+    {
+        cleanup_mupdf();
+        fz_drop_context(m_ctx);
+    }
 }
 
 void
@@ -122,6 +130,8 @@ Model::cleanup_djvu() noexcept
 {
     m_search_future.cancel();
     m_render_future.cancel();
+
+    ddjvu_document_release(m_ddjvu_doc);
 
     {
         std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
@@ -507,8 +517,7 @@ Model::buildPageCache_djvu(int pageno) noexcept
     const int stride = rw * 4;
     QByteArray buf(stride * rh, 0);
 
-    ddjvu_format_t *fmt
-        = ddjvu_format_create(DDJVU_FORMAT_RGBMASK32, 0, nullptr);
+    ddjvu_format_t *fmt{nullptr};
     // DjVuLibre RGBMASK32: specify R/G/B masks and white background
     const unsigned int masks[3] = {0x00FF0000, 0x0000FF00, 0x000000FF};
     fmt                         = ddjvu_format_create(DDJVU_FORMAT_RGBMASK32, 3,
