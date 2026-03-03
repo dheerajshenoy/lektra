@@ -23,7 +23,6 @@
 #include "LLM/LLMWidget.hpp"
 #endif
 #include "CommandManager.hpp"
-
 #include "toml.hpp"
 
 #include <QActionGroup>
@@ -229,6 +228,8 @@ private:
     void initDefaultKeybinds() noexcept;
     void warnShortcutConflicts() noexcept;
     void setupKeybinding(const QString &action, const QString &key) noexcept;
+    void setupMousebinding(const QString &action,
+                           const QString &trigger) noexcept;
     void populateRecentFiles() noexcept;
     void updateUiEnabledState() noexcept;
     void editLastPages() noexcept;

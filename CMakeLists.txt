@@ -84,6 +84,7 @@ add_executable(${PROJECT_NAME}
     src/OutlinePicker.cpp
     src/CommentSearchPicker.cpp
 
+    src/MouseBindKey.hpp
     src/Config.hpp
     src/MarkManager.hpp
     src/GraphicsPixmapItem.hpp

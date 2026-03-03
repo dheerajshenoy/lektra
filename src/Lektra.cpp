@@ -24,6 +24,7 @@
 #include <QProcess>
 #include <QSplitter>
 #include <QStyleHints>
+#include <QWheelEvent>
 #include <QWindow>
 #include <variant>
 
@@ -1023,6 +1024,19 @@ Lektra::initConfig() noexcept
         }
     }
 
+    if (auto mbs = toml["mousebindings"])
+    {
+        for (auto &[action, value] : *mbs.as_table())
+        {
+            if (value.is_value())
+            {
+                setupMousebinding(
+                    QString::fromStdString(std::string(action.str())),
+                    QString::fromStdString(value.value_or<std::string>("")));
+            }
+        }
+    }
+
 #ifndef NDEBUG
     qDebug() << "Finished reading config file:" << m_config_file_path;
 #endif
@@ -1313,18 +1327,60 @@ Lektra::setupKeybinding(const QString &action, const QString &key) noexcept
     }
 }
 
-// void
-// Lektra::setupMousebinding(const QString &action,
-//                           const QString &trigger) noexcept
-// {
-//     if (const Command *command = m_command_manager.find(action))
-//     {
-// #ifndef NDEBUG
-//         qDebug() << "Mousebinding set:" << action << "->" << trigger;
-// #endif
-//         m_config.mousebinds[action] = trigger;
-//     }
-// }
+// Convert a mouse binding string from the config file into a MouseBindKey
+// struct
+static MouseBindKey
+get_mouse_bind_key(const QString &trigger) noexcept
+{
+    // Format: "Ctrl+Shift+LMB" — modifiers first, button last
+    QStringList parts = trigger.split('+', Qt::SkipEmptyParts);
+    if (parts.isEmpty())
+        return {};
+
+    Qt::KeyboardModifiers modifiers{Qt::NoModifier};
+    for (int i = 0; i < parts.size() - 1; ++i)
+    {
+        const QString &mod = parts[i];
+        if (mod == "Ctrl")
+            modifiers |= Qt::ControlModifier;
+        else if (mod == "Shift")
+            modifiers |= Qt::ShiftModifier;
+        else if (mod == "Alt")
+            modifiers |= Qt::AltModifier;
+        else if (mod == "Meta")
+            modifiers |= Qt::MetaModifier;
+    }
+
+    const QString &buttonPart = parts.last();
+    if (buttonPart == "LeftButton")
+        return {modifiers, Qt::LeftButton};
+    if (buttonPart == "RightButton")
+        return {modifiers, Qt::RightButton};
+    if (buttonPart == "MiddleButton")
+        return {modifiers, Qt::MiddleButton};
+
+    return {}; // invalid button
+}
+
+void
+Lektra::setupMousebinding(const QString &action,
+                          const QString &trigger) noexcept
+{
+    if (auto _ = m_command_manager.find(action))
+    {
+#ifndef NDEBUG
+        qDebug() << "Mousebinding set:" << action << "->" << trigger;
+#endif
+        MouseBindKey key = get_mouse_bind_key(trigger);
+        if (key.button == Qt::NoButton)
+        {
+            qWarning() << "Invalid mouse binding for action" << action << ": "
+                       << trigger;
+            return;
+        }
+        m_config.mousebinds[key] = action;
+    }
+}
 
 // Toggles the fullscreen mode
 void
@@ -2899,6 +2955,38 @@ Lektra::eventFilter(QObject *object, QEvent *event)
     if ((object == m_tab_widget->tabBar() || object == m_tab_widget)
         && type == QEvent::ContextMenu)
         return handleTabContextMenu(object, event);
+
+    if (type == QEvent::Wheel)
+    {
+        QWheelEvent *wheel = static_cast<QWheelEvent *>(event);
+        MouseBindKey key{wheel->modifiers(), Qt::NoButton,
+                         wheel->angleDelta().y() > 0 ? MouseAction::WheelUp
+                                                     : MouseAction::WheelDown};
+
+        if (auto it = m_config.mousebinds.find(key);
+            it != m_config.mousebinds.end())
+        {
+            if (auto *cmd = m_command_manager.find(it.value())) {
+                cmd->action({});
+                PPRINT("Executed mousebind command: ", it.value());
+            }
+            return true;
+        }
+    }
+
+    if (type == QEvent::MouseButtonPress)
+    {
+        auto *mouse = static_cast<QMouseEvent *>(event);
+        MouseBindKey key{mouse->modifiers(), mouse->button()};
+
+        if (auto it = m_config.mousebinds.find(key);
+            it != m_config.mousebinds.end())
+        {
+            if (auto *cmd = m_command_manager.find(it.value()))
+                cmd->action({});
+            return true;
+        }
+    }
 
     // Let other events pass through
     return QObject::eventFilter(object, event);

@@ -246,3 +246,7 @@ layout_top_to_bottom = "Ctrl+Shift+2"
 layout_left_to_right = "Ctrl+Shift+3"
 layout_book = "Ctrl+Shift+4"
 
+[mousebindings]
+zoom_in = "Ctrl+WheelUp"
+zoom_out = "Ctrl+WheelDown"
+
