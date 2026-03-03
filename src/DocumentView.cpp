@@ -1055,20 +1055,18 @@ DocumentView::setZoom(double factor) noexcept
 
     factor = std::clamp(factor, MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
 
-    m_target_zoom  = factor;
-    m_current_zoom = factor;
+    PageLocation loc = CurrentLocation();
 
-    cachePageStride();
-    updateSceneRect();
+    m_current_zoom = factor;
 
     // 2. IMPORTANT: Invalidate the visibility cache so we don't
     // render pages that were visible at the PREVIOUS zoom level.
     invalidateVisiblePagesCache();
 
-    GotoPage(m_pageno);
-    renderPages();
+    // GotoPage(m_pageno);
+    // renderPages();
 
-    zoomHelper();
+    zoomHelper(loc);
 }
 
 void
@@ -1317,11 +1315,11 @@ DocumentView::SearchInPage(const int pageno, const QString &term) noexcept
 void
 DocumentView::ZoomIn() noexcept
 {
-    if (m_target_zoom >= MAX_ZOOM_FACTOR)
+    if (m_current_zoom >= MAX_ZOOM_FACTOR)
         return;
 
-    m_target_zoom = std::clamp(m_target_zoom * m_config.zoom.factor,
-                               MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
+    m_current_zoom = std::clamp(m_current_zoom * m_config.zoom.factor,
+                                MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
     zoomHelper();
 }
 
@@ -1329,11 +1327,11 @@ DocumentView::ZoomIn() noexcept
 void
 DocumentView::ZoomOut() noexcept
 {
-    if (m_target_zoom <= MIN_ZOOM_FACTOR)
+    if (m_current_zoom <= MIN_ZOOM_FACTOR)
         return;
 
-    m_target_zoom = std::clamp(m_current_zoom / m_config.zoom.factor,
-                               MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
+    m_current_zoom = std::clamp(m_current_zoom / m_config.zoom.factor,
+                                MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
     zoomHelper();
 }
 
@@ -1342,7 +1340,6 @@ void
 DocumentView::ZoomReset() noexcept
 {
     m_current_zoom = 1.0f;
-    m_target_zoom  = 1.0f;
     zoomHelper();
 }
 
@@ -4260,71 +4257,39 @@ DocumentView::Reshow_jump_marker() noexcept
 }
 
 void
-DocumentView::zoomHelper() noexcept
+DocumentView::zoomHelper(const PageLocation &loc) noexcept
 {
 #ifndef NDEBUG
-    qDebug() << "DocumentView::zoomHelper(): Zooming from" << m_current_zoom
-             << "to" << m_target_zoom;
+    qDebug() << "DocumentView::zoomHelper(): Zooming to" << m_current_zoom;
 #endif
-
-    // ── Anchor: remember which fraction of the centre page we're looking
-    // at ──
-    int anchorPageIndex           = -1;
-    GraphicsImageItem *anchorItem = nullptr;
-    QPointF anchorFrac{0.0, 0.0};
-    bool hasAnchor = false;
-
-    const QPointF centerScene
-        = m_gview->mapToScene(m_gview->viewport()->rect().center());
-
-    if (pageAtScenePos(centerScene, anchorPageIndex, anchorItem))
-    {
-        const QPointF localPos = anchorItem->mapFromScene(centerScene);
-        const QRectF bounds    = anchorItem->boundingRect();
-        if (!bounds.isEmpty())
-        {
-            anchorFrac = QPointF(localPos.x() / bounds.width(),
-                                 localPos.y() / bounds.height());
-            hasAnchor  = true;
-        }
-    }
-
     ClearTextSelection();
-    // Commit zoom, rebuild stride cache and scene rect
-    m_current_zoom = m_target_zoom;
     m_model->setZoom(m_current_zoom);
 
     cachePageStride();
     updateSceneRect();
 
     m_gview->flashScrollbars();
-
     repositionPages();
+    // renderPages();
 
-    // Restore viewport to the same relative position within the anchor page
-    if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
-    {
-        GraphicsImageItem *pageItem = m_page_items_hash[anchorPageIndex];
-        const QRectF bounds         = pageItem->boundingRect();
-        if (!bounds.isEmpty())
-        {
-            const QPointF restoredLocal(anchorFrac.x() * bounds.width(),
-                                        anchorFrac.y() * bounds.height());
-            m_gview->centerOn(pageItem->mapToScene(restoredLocal));
-        }
-    }
+    // 2. Restore the exact viewport position
+    if (loc.pageno != -1)
+        GotoLocation(loc);
+    else
+        // Fallback if we were out of bounds
+        GotoPage(m_pageno);
 }
 
 // Reposition every live page item at the new zoom
 void
 DocumentView::repositionPages()
 {
-
     const QRectF sr = m_gview->sceneRect();
 
     // For VERTICAL, each page may have a different width so we must
     // compute the centering offset per-page inside the loop. Using a single
     // offset based on m_pageno mispositions all pages that differ in width.
+
     for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
          ++it)
     {
