@@ -2393,6 +2393,27 @@ Lektra::Show_highlight_search() noexcept
     m_highlight_search_picker->launch();
 }
 
+void
+Lektra::Show_annot_comment_search() noexcept
+{
+    if (!m_doc && !m_doc->model()->supports_annotations())
+        return;
+
+    if (!m_comment_search_picker)
+    {
+        m_comment_search_picker = new CommentSearchPicker(this);
+        m_comment_search_picker->setKeybindings(m_picker_keybinds);
+
+        connect(m_comment_search_picker,
+                &CommentSearchPicker::gotoLocationRequested, this,
+                [this](int page, float x, float y)
+        { GotoLocation(page, x, y); });
+    }
+
+    m_comment_search_picker->setModel(m_doc->model());
+    m_comment_search_picker->launch();
+}
+
 // Invert colors of the document
 void
 Lektra::InvertColor() noexcept
@@ -3847,6 +3868,9 @@ Lektra::initCommands() noexcept
     m_command_manager.reg(
         "picker_highlight_search", tr("Search within highlights"),
         [this](const QStringList &) { Show_highlight_search(); });
+    m_command_manager.reg(
+        "picker_annot_comment_search", tr("Search annotation comments"),
+        [this](const QStringList &) { Show_annot_comment_search(); });
 
     // Search
     m_command_manager.reg("search", "Search document",
