@@ -34,20 +34,17 @@ public:
 
     ~Annotation() override;
 
-    // ------------------------------------------------------------------ index
     int index() const noexcept
     {
         return m_index;
     }
 
-    // ------------------------------------------------------------------ brush
-    // / pen
     /** Restore brush and pen to the values they had at construction time. */
     void restoreBrushPen() noexcept;
 
-    // ------------------------------------------------------------------ glow
     /** Enable or disable the hover glow outline. */
     void setGlowEnabled(bool enable) noexcept;
+
     bool isGlowEnabled() const noexcept
     {
         return m_glow_enabled;
@@ -55,27 +52,24 @@ public:
 
     /** Width of the glow outline in pixels. */
     void setGlowWidth(int width) noexcept;
+
     int glowWidth() const noexcept
     {
         return m_glow_width;
     }
 
-    /**
-     * @brief Set the glow colour from a packed ARGB value.
-     * @param rgba  A 32-bit ARGB colour, e.g. 0xFFFFFF00 for opaque yellow.
-     */
     void setGlowColor(uint32_t color) noexcept;
+
     const QColor &glowColor() const noexcept
     {
         return m_glow_color;
     }
 
-    // ------------------------------------------------------------------
-    // comment / tooltip
     const QString &comment() const noexcept
     {
         return m_comment;
     }
+
     bool hasComment() const noexcept
     {
         return !m_comment.isEmpty();
@@ -84,7 +78,6 @@ public:
     /** Set the annotation comment; also updates the tooltip text if visible. */
     virtual void setComment(const QString &comment);
 
-    // ------------------------------------------------------------------
     // QGraphicsItem interface
     /**
      * Returns a null rect. Concrete subclasses must override and expand
@@ -103,7 +96,6 @@ signals:
     void annotCommentRequested();
 
 protected:
-    // ------------------------------------------------------------------ hover
     void hoverEnterEvent(QGraphicsSceneHoverEvent *event) override;
     void hoverMoveEvent(QGraphicsSceneHoverEvent *event) override;
     void hoverLeaveEvent(QGraphicsSceneHoverEvent *event) override;
@@ -116,23 +108,13 @@ protected:
     // that override this MUST call Annotation::contextMenuEvent, or replicate
     // the m_context_menu_open bracketing themselves.
     void contextMenuEvent(QGraphicsSceneContextMenuEvent *event) override;
-
-    // ------------------------------------------------------------------
-    // drawing helpers
-    /** Draw an outer glow halo around @p rect using the current glow settings.
-     */
     void drawGlow(QPainter *painter, const QRectF &rect,
                   qreal width) const noexcept;
-
-    // ------------------------------------------------------------------
-    // tooltip helpers
     void showTooltip(const QPoint &screenPos);
     void moveTooltip(const QPoint &screenPos);
     void setTooltipFontSize(int pointSize);
     void hideTooltip();
 
-    // ------------------------------------------------------------------ data
-    // members
     int m_index{-1};
     QBrush m_brush{Qt::transparent};
     QPen m_pen{Qt::NoPen};
