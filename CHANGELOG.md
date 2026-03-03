@@ -76,6 +76,8 @@ NOTE: This is just a convenience table to increase the readability of the config
 
 ### Bug Fix
 
+- Fix color setting in the wrong format (ARGB instead of RGBA)
+- Fix not able to save after adding comment
 - Fix search results not clearing when searching for empty string
 - Fix `-p,--page` command line argument not working
 - Fix non-exsistent files trying to be opened
