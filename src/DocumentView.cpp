@@ -2658,7 +2658,8 @@ DocumentView::updateSceneRect() noexcept
                               totalHeight + 2.0 * yMargin);
     }
     else
-    { // TOP_TO_BOTTOM
+    {
+        // VERTICAL
         const double totalHeight = totalPageExtent();
         const double sceneW      = std::max(viewW, m_max_page_cross_extent);
         const double yMargin
@@ -3140,6 +3141,11 @@ DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
     // item, since createAndAddPageItem overwrites the hash entry.  Without
     // this, re-renders after zoom leave orphaned items in the scene
     // (visible stale pages and unbounded memory growth).
+#ifndef NDEBUG
+    qDebug()
+        << "DocumentView::renderPageFromImage(): Rendering page from image "
+        << "for pageno = " << pageno;
+#endif
     auto it = m_page_items_hash.find(pageno);
     if (it != m_page_items_hash.end())
     {
@@ -3153,7 +3159,6 @@ DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
     }
 
     createAndAddPageItem(pageno, image);
-
     clearLinksForPage(pageno);
     clearAnnotationsForPage(pageno);
     clearSearchItemsForPage(pageno);
@@ -4316,7 +4321,8 @@ DocumentView::repositionPages()
 {
 
     const QRectF sr = m_gview->sceneRect();
-    // For TOP_TO_BOTTOM, each page may have a different width so we must
+
+    // For VERTICAL, each page may have a different width so we must
     // compute the centering offset per-page inside the loop. Using a single
     // offset based on m_pageno mispositions all pages that differ in width.
     for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
