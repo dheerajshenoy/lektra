@@ -3463,6 +3463,7 @@ DocumentView::renderAnnotations(
             // annot_item->setComment(newComment);
 
             m_model->addAnnotComment(pageno, annot_item->index(), newComment);
+            setModified(true);
             // m_model->undoStack()->push(new AnnotCommentCommand(
             //     m_model, pageno, annot_item->index(), oldComment,
             //     newComment));
