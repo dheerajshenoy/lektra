@@ -700,7 +700,6 @@ private:
     fz_colorspace *m_colorspace{nullptr};
     fz_outline *m_outline{nullptr};
 
-
 #ifdef HAS_DJVU
 
     // DJVU core objects
