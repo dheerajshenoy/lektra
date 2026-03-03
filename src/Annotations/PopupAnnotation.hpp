@@ -27,7 +27,7 @@ public:
         setGlowEnabled(m_config.hover_glow);
         setGlowWidth(m_config.glow_width);
         setFlags(flags() | QGraphicsItem::ItemIsFocusable);
-
+        setTooltipFontSize(m_config.comment_font_size);
         if (!m_comment.isEmpty())
         {
             setTooltipFontSize(m_config.comment_font_size);
