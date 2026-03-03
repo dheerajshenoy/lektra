@@ -326,8 +326,8 @@ parseHexColor(std::string_view s, uint32_t &out)
             return false;
     }
 
-    out = (uint32_t(a) << 24) | (uint32_t(r) << 16) | (uint32_t(g) << 8)
-          | uint32_t(b);
+    out = (uint32_t(r) << 24) | (uint32_t(g) << 16) | (uint32_t(b) << 8)
+          | uint32_t(a);
     return true;
 }
 
