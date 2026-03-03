@@ -64,7 +64,7 @@ public:
      * @brief Set the glow colour from a packed ARGB value.
      * @param rgba  A 32-bit ARGB colour, e.g. 0xFFFFFF00 for opaque yellow.
      */
-    void setGlowColor(QRgb rgba) noexcept;
+    void setGlowColor(uint32_t color) noexcept;
     const QColor &glowColor() const noexcept
     {
         return m_glow_color;
@@ -157,4 +157,6 @@ private:
 
     // QPointer so we never dangle if the widget is destroyed externally.
     QLabel *m_tooltip{nullptr};
+
+    int m_tooltip_font_size{12};
 };
