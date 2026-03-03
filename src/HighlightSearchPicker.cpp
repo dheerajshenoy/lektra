@@ -11,6 +11,8 @@
 HighlightSearchPicker::HighlightSearchPicker(QWidget *parent) noexcept
     : Picker(parent)
 {
+    setColumns({{.header = "Highlight", .stretch = 1}}); // ← add this first
+
     // --- Extra controls ---
     m_spinner = new WaitingSpinnerWidget(this, false, false);
     m_spinner->setInnerRadius(5);
@@ -50,7 +52,7 @@ void
 HighlightSearchPicker::launch() noexcept
 {
     Picker::launch();
-    if (m_entries.empty() && !m_watcher.isRunning())
+    if (!m_watcher.isRunning())
         refresh();
 }
 
@@ -65,6 +67,10 @@ QList<Picker::Item>
 HighlightSearchPicker::buildItems(const QString & /*term*/) const noexcept
 {
     QList<Item> items;
+
+    if (m_entries.empty())
+        return items;
+
     items.reserve(static_cast<int>(m_entries.size()));
 
     for (size_t i = 0; i < m_entries.size(); ++i)
@@ -75,14 +81,9 @@ HighlightSearchPicker::buildItems(const QString & /*term*/) const noexcept
         const double cy
             = (e.quad.ul.y + e.quad.ur.y + e.quad.ll.y + e.quad.lr.y) * 0.25;
 
-        items.push_back({
-            .columns = {QString("p%1: %2").arg(e.page + 1).arg(e.text)},
-            .data    = QVariant::fromValue(
-                QPersistentModelIndex{}), // unused, we store below
-        });
-
-        // Store page + position as a QVariantList for retrieval
-        items.back().data = QVariantList{e.page, QPointF(cx, cy)};
+        items.push_back(
+            {.columns = {QString("p%1: %2").arg(e.page + 1).arg(e.text)},
+             .data    = QVariantList{e.page, QPointF(cx, cy)}});
     }
     return items;
 }

@@ -46,7 +46,7 @@ private:
     void setLoading(bool state) noexcept;
     QList<Item> buildItems(const QString &term) const noexcept;
 
-    QPointer<Model> m_model;
+    Model* m_model{nullptr};
     QFutureWatcher<std::vector<Model::HighlightText>> m_watcher;
     std::vector<Model::HighlightText> m_entries;
 
