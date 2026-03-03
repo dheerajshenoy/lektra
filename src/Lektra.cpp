@@ -2375,7 +2375,7 @@ Lektra::Show_outline() noexcept
 void
 Lektra::Show_highlight_search() noexcept
 {
-    if (!m_doc)
+    if (!m_doc && !m_doc->model()->supports_annotations())
         return;
 
     if (!m_highlight_search_picker)
