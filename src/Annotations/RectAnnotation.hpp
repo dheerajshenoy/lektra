@@ -28,6 +28,7 @@ public:
         setGlowWidth(m_config.glow_width);
         setGlowColor(m_config.glow_color);
         setFlags(flags() | QGraphicsItem::ItemIsFocusable);
+        setTooltipFontSize(m_config.comment_font_size);
 
         if (m_config.comment_marker)
         {
@@ -36,10 +37,6 @@ public:
             connect(m_comment_marker, &CommentPopupButton::clicked, this,
                     [this] { emit annotCommentRequested(); });
             updateButtonVisibility();
-        }
-
-        if (!m_comment.isEmpty()) {
-            setTooltipFontSize(m_config.comment_font_size);
         }
     }
 
