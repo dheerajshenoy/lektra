@@ -4684,3 +4684,45 @@ DocumentView::handleReloadRequested(int pageno) noexcept
 #endif
     requestPageRender(pageno, true);
 }
+
+void
+DocumentView::Toggle_comment_markers() noexcept
+{
+    if (!m_model->supports_annotations())
+        return;
+
+    if (m_page_annotations_hash.isEmpty())
+        return;
+
+    for (auto it = m_page_annotations_hash.begin();
+         it != m_page_annotations_hash.end(); ++it)
+    {
+        auto &annotations = it.value();
+        for (Annotation *annot : annotations)
+        {
+            if (!annot)
+                continue;
+
+            switch (annot->atype())
+            {
+                case Annotation::Type::Highlight:
+                {
+                    annot->setCommentMarkerVisible(
+                        m_config.annotations.highlight.comment_marker);
+                }
+                break;
+                case Annotation::Type::Rect:
+                {
+                    annot->setCommentMarkerVisible(
+                        m_config.annotations.rect.comment_marker);
+                }
+                break;
+
+                default:
+                    break;
+            }
+
+            annot->updateCommentMarker();
+        }
+    }
+}
