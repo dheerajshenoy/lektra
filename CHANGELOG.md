@@ -78,6 +78,7 @@ NOTE: This is just a convenience table to increase the readability of the config
 
 ### Bug Fix
 
+- Fix last page number loading
 - Fix `[links]` section causing pages to not render in non-link supported files
 - Fix page stride when zooming in DJVU files
 - Fix zoom locking on the center of the viewport instead of the actual location
