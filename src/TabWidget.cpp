@@ -12,8 +12,8 @@ g_newId() noexcept
 
 TabWidget::TabWidget(QWidget *parent) : QWidget(parent), m_id(g_newId())
 {
-    m_tab_bar        = new TabBar();
-    m_stacked_widget = new QStackedWidget();
+    m_tab_bar        = new TabBar(this);
+    m_stacked_widget = new QStackedWidget(this);
 
     setTabPosition(QTabWidget::TabPosition::North);
     setTabsClosable(true);
