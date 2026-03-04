@@ -93,11 +93,9 @@ DocumentContainer::split(DocumentView *view, Qt::Orientation orientation,
     }
 
     // Set up the new view
-    m_current_view = newView;
-    newView->setFocus();
-
     emit viewCreated(newView);
-    emit currentViewChanged(newView);
+    focusView(newView);
+    newView->setFocus();
 
     return newView;
 }
@@ -348,8 +346,8 @@ DocumentContainer::createViewFromTemplate(DocumentView *templateView) noexcept
     newView->setDPR(templateView->dpr());
     newView->setInvertColor(templateView->invertColor());
     newView->setAutoResize(templateView->autoResize());
-    newView->setLayoutMode(templateView->layoutMode());
-    newView->setFitMode(templateView->fitMode());
+    // Don't set layout/fit mode here - they will be set in
+    // handleOpenFileFinished() after the document loads
     return newView;
 }
 
