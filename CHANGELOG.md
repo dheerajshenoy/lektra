@@ -74,7 +74,6 @@ NOTE: This is just a convenience table to increase the readability of the config
 - Renamed `[markers]` to `[jump_marker]`
 - Removed `[color]` section from config and moved all colors to thier respective sections (e.g. annotation colors are now in `[annotations]` section, search hit colors are now in `[search]` section, etc.) for better organization and maintainability of the config file.
 
-#### Renamed Commands:
 
 ### Bug Fix
 
