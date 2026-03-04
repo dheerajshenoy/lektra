@@ -961,6 +961,8 @@ DocumentView::setFitMode(FitMode mode) noexcept
 #ifndef NDEBUG
     qDebug() << "setFitMode(): Setting fit mode to:" << static_cast<int>(mode);
 #endif
+    if (mode == m_fit_mode)
+        return;
 
     m_fit_mode = mode;
 
