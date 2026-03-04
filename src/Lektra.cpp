@@ -1965,6 +1965,19 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
 
     setCurrentDocumentView(view); // immediate, like OpenFileInNewTab
 
+    // Restore saved page number after file loads (if remember_last_visited is
+    // enabled)
+    if (m_config.behavior.remember_last_visited)
+    {
+        const int savedPage = m_recent_files_store.pageNumber(filename);
+        if (savedPage > 0)
+        {
+            connect(view, &DocumentView::openFileFinished, this,
+                    [view, savedPage](DocumentView *, Model::FileType)
+            { view->GotoPage(savedPage - 1); }, Qt::SingleShotConnection);
+        }
+    }
+
     if (callback)
     {
         connect(view, &DocumentView::openFileFinished, this,
@@ -1972,7 +1985,6 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
                 Qt::SingleShotConnection);
     }
 
-    insertFileToDB(filename, 1);
     return true;
 }
 
@@ -2133,19 +2145,17 @@ Lektra::OpenFileInNewTab(const QString &filename,
             setCurrentDocumentView(newView);
     });
 
-    // connect(container, &DocumentContainer::viewClosed, this,
-    //         [this](DocumentView *closedView)
-    // {
-    // If the closed view was m_doc, update to current view
-    // if (m_doc == closedView)
-    // {
-    //     int currentTabIndex = m_tab_widget->currentIndex();
-    //     DocumentContainer *currentContainer
-    //         = m_tab_widget->rootContainer(currentTabIndex);
-    //     if (currentContainer)
-    //         setCurrentDocumentView(currentContainer->view());
-    // }
-    // });
+    // Save page number when a split view is closed
+    connect(container, &DocumentContainer::viewClosed, this,
+            [this](DocumentView *closedView)
+    {
+        if (m_config.behavior.remember_last_visited && closedView
+            && !closedView->filePath().isEmpty() && !closedView->is_portal())
+        {
+            const int page = closedView->pageNo() + 1;
+            insertFileToDB(closedView->filePath(), page > 0 ? page : 1);
+        }
+    });
 
     connect(container, &DocumentContainer::currentViewChanged, container,
             [this](DocumentView *newView) { setCurrentDocumentView(newView); });
@@ -2173,8 +2183,18 @@ Lektra::OpenFileInNewTab(const QString &filename,
     // Update current view reference
     setCurrentDocumentView(view);
 
-    // Add to recent files
-    insertFileToDB(filename, 1);
+    // Restore saved page number after file loads (if remember_last_visited is
+    // enabled)
+    if (m_config.behavior.remember_last_visited)
+    {
+        const int savedPage = m_recent_files_store.pageNumber(filename);
+        if (savedPage > 0)
+        {
+            connect(view, &DocumentView::openFileFinished, this,
+                    [view, savedPage](DocumentView *, Model::FileType)
+            { view->GotoPage(savedPage - 1); }, Qt::SingleShotConnection);
+        }
+    }
 
     if (callback)
     {
@@ -2245,7 +2265,19 @@ Lektra::openFileSplitHelper(const QString &filename,
 
     m_tab_widget->tabBar()->set_split_count(tabIndex,
                                             container->getViewCount());
-    insertFileToDB(filename, 1);
+
+    // Restore saved page number after file loads (if remember_last_visited is
+    // enabled)
+    if (m_config.behavior.remember_last_visited)
+    {
+        const int savedPage = m_recent_files_store.pageNumber(filename);
+        if (savedPage > 0)
+        {
+            connect(newView, &DocumentView::openFileFinished, this,
+                    [newView, savedPage](DocumentView *, Model::FileType)
+            { newView->GotoPage(savedPage - 1); }, Qt::SingleShotConnection);
+        }
+    }
 
     if (callback)
     {
@@ -2717,6 +2749,40 @@ Lektra::initConnections() noexcept
             }
         }
 
+        // Save page numbers for all views in this tab before closing
+        if (m_config.behavior.remember_last_visited)
+        {
+            DocumentContainer *container = m_tab_widget->rootContainer(index);
+#ifndef NDEBUG
+            qDebug() << "tabCloseRequested: remember_last_visited enabled, "
+                        "container:"
+                     << container;
+#endif
+            if (container)
+            {
+                const auto views = container->getAllViews();
+#ifndef NDEBUG
+                qDebug() << "tabCloseRequested: found" << views.size()
+                         << "views";
+#endif
+                for (DocumentView *view : views)
+                {
+#ifndef NDEBUG
+                    qDebug()
+                        << "tabCloseRequested: view:" << view
+                        << "filePath:" << (view ? view->filePath() : "null")
+                        << "is_portal:" << (view ? view->is_portal() : false);
+#endif
+                    if (view && !view->filePath().isEmpty()
+                        && !view->is_portal())
+                    {
+                        const int page = view->pageNo() + 1;
+                        insertFileToDB(view->filePath(), page > 0 ? page : 1);
+                    }
+                }
+            }
+        }
+
         m_tab_widget->removeTab(index);
         if (m_tab_widget->count() == 0)
         {
@@ -2881,11 +2947,16 @@ Lektra::closeEvent(QCloseEvent *e)
     // handled
     for (int i = 0; i < m_tab_widget->count(); i++)
     {
-        DocumentView *doc
-            = qobject_cast<DocumentView *>(m_tab_widget->widget(i));
-        if (doc)
+        DocumentContainer *container = m_tab_widget->rootContainer(i);
+        if (!container)
+            continue;
+
+        for (DocumentView *doc : container->getAllViews())
         {
-            if (m_config.behavior.remember_last_visited)
+            if (!doc)
+                continue;
+
+            if (m_config.behavior.remember_last_visited && !doc->is_portal())
             {
                 const int page = doc->pageNo() + 1;
                 insertFileToDB(doc->filePath(), page > 0 ? page : 1);
@@ -5105,13 +5176,14 @@ Lektra::Show_recent_files_picker() noexcept
     if (!m_recent_file_picker)
     {
         m_recent_file_picker = new RecentFilesPicker(this);
-        m_recent_file_picker->setRecentFiles(recentFiles);
         m_recent_file_picker->setKeybindings(m_picker_keybinds);
 
         connect(m_recent_file_picker, &RecentFilesPicker::fileRequested, this,
                 [this](const QString &file) { OpenFileInNewTab(file); });
     }
 
+    // Always update the recent files list before launching
+    m_recent_file_picker->setRecentFiles(recentFiles);
     m_recent_file_picker->launch();
 }
 
