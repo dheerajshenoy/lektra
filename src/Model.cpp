@@ -1338,7 +1338,7 @@ Model::requestPageRender(
 
         // URL detection runs as a fire-and-forget second pass
         // It doesn't block the jump marker or page display at all
-        if (m_detect_url_links)
+        if (supports_links() && m_detect_url_links)
         {
             const int pageno = job.pageno;
             QFuture<void> _  = QtConcurrent::run([this, job, pageno]()

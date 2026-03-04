@@ -78,6 +78,8 @@ NOTE: This is just a convenience table to increase the readability of the config
 
 ### Bug Fix
 
+- Fix `[links]` section causing pages to not render in non-link supported files
+- Fix page stride when zooming in DJVU files
 - Fix zoom locking on the center of the viewport instead of the actual location
 - Fix user shortcuts fighting with default shortcuts
 - Fix zoom jumping to different page after zooming in/out.
