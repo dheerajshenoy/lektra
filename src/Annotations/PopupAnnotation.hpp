@@ -22,29 +22,26 @@ public:
         : Annotation(index, color, parent), m_rect(rect), m_config(config)
     {
         m_comment = text;
-
         setGlowColor(m_config.glow_color);
         setGlowEnabled(m_config.hover_glow);
         setGlowWidth(m_config.glow_width);
         setFlags(flags() | QGraphicsItem::ItemIsFocusable);
         setTooltipFontSize(m_config.comment_font_size);
         if (!m_comment.isEmpty())
-        {
             setTooltipFontSize(m_config.comment_font_size);
-        }
-        // setGlowColor(m_config.glow_color);
     }
 
-    // ------------------------------------------------------------------
-    // geometry
+    inline Type atype() const noexcept override
+    {
+        return Type::Popup;
+    }
+
     QRectF boundingRect() const override
     {
         const qreal margin = m_glow_width + 2.0;
         return m_iconRect().adjusted(-margin, -margin, margin, margin);
     }
 
-    // ------------------------------------------------------------------
-    // painting
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
                QWidget *widget) override
     {
@@ -62,7 +59,7 @@ public:
             painter->restore();
         }
 
-        // 2. Note icon body.
+        // Note icon body.
         constexpr qreal foldSize = 6.0;
 
         QPainterPath notePath;
@@ -81,7 +78,7 @@ public:
 
         painter->fillPath(notePath, fillColor);
 
-        // 3. Folded corner.
+        // Folded corner.
         QPainterPath foldPath;
         foldPath.moveTo(iconR.topRight() - QPointF(foldSize, 0));
         foldPath.lineTo(iconR.topRight() - QPointF(foldSize, -foldSize));
