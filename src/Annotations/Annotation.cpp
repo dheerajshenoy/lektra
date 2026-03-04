@@ -185,6 +185,7 @@ Annotation::showTooltip(const QPoint &screenPos)
     if (!m_tooltip)
     {
         m_tooltip = new QLabel(m_comment);
+        m_tooltip->setWordWrap(true);
         m_tooltip->setWindowFlags(Qt::ToolTip | Qt::FramelessWindowHint);
         m_tooltip->setAttribute(Qt::WA_TranslucentBackground, false);
         m_tooltip->setStyleSheet("QLabel {"
