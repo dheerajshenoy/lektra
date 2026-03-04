@@ -311,8 +311,11 @@ DocumentView::handleOpenFileFinished() noexcept
     m_hscroll->blockSignals(false);
 
     // Always defer fitmode to next event loop tick so geometry is settled
-    QTimer::singleShot(0, this,
-                       [this]() { setFitMode(m_config.layout.initial_fit); });
+    QTimer::singleShot(0, this, [this]()
+    {
+        setFitMode(m_config.layout.initial_fit);
+        renderPages();
+    });
 
     setAutoReload(m_config.behavior.auto_reload);
     emit openFileFinished(this, m_model->fileType());
@@ -961,8 +964,6 @@ DocumentView::setFitMode(FitMode mode) noexcept
 #ifndef NDEBUG
     qDebug() << "setFitMode(): Setting fit mode to:" << static_cast<int>(mode);
 #endif
-    if (mode == m_fit_mode)
-        return;
 
     m_fit_mode = mode;
 
