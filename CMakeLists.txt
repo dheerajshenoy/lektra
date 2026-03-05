@@ -33,25 +33,18 @@ set(REL_WITH_DEB_INFO -O2 -g -fno-omit-frame-pointer -DNDEBUG)
 # set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -fno-omit-frame-pointer -DNDEBUG")
 
-find_package(Qt6 REQUIRED COMPONENTS Gui Widgets Core Concurrent LinguistTools) #OpenGLWidgets )
+find_package(Qt6 REQUIRED COMPONENTS Gui Widgets Core Concurrent LinguistTools OpenGLWidgets)
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(DJVU ddjvuapi)
+pkg_check_modules(DJVULIBRE QUIET ddjvuapi)
+pkg_check_modules(LIBSYNCTEX QUIET synctex)
+
 include(GNUInstallDirs)
 
-# SyncTeX
-find_path(SYNCTEX_INCLUDE_DIR
-    NAMES synctex_parser.h synctex/synctex_parser.h
-    PATH_SUFFIXES synctex
-)
-find_library(SYNCTEX_LIBRARY
-    NAMES synctex synctex_parser
-)
-
-if(DJVU_FOUND)
+if(DJVULIBRE_FOUND)
     message(STATUS "Found DjVuLibre. Compiling with DJVU support.")
 else()
-    message(WARNING "DjVuLibre not found, disabling DjVu support")
+    message(STATUS "DjVuLibre not found, disabling DjVu support")
 endif()
 
 add_executable(${PROJECT_NAME}
@@ -121,7 +114,7 @@ add_executable(${PROJECT_NAME}
     src/Commands/AnnotCommentCommand.hpp
 )
 
-if (DJVU_FOUND)
+if (DJVULIBRE_FOUND)
     target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_DJVU=1)
 endif()
 
@@ -157,13 +150,20 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 
-if(NOT SYNCTEX_INCLUDE_DIR OR NOT SYNCTEX_LIBRARY)
-    message(STATUS "SyncTeX not found.")
-else()
+if(LIBSYNCTEX_FOUND)
     message(STATUS "Found SyncTex: ${synctex_VERSION}. Compiling with SyncTeX support.")
     target_include_directories(${PROJECT_NAME} PRIVATE "${SYNCTEX_INCLUDE_DIR}")
     target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_SYNCTEX=1)
     target_link_libraries(${PROJECT_NAME} PRIVATE synctex)
+else()
+    message(STATUS "SyncTeX not found.")
+endif()
+
+
+if (DJVULIBRE_FOUND)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${DJVU_INCLUDE_DIRS})
+    target_link_libraries(${PROJECT_NAME} PRIVATE djvulibre)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_DJVU=1)
 endif()
 
 
@@ -216,13 +216,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/external/mupdf/build/release/libmupdf.a
     ${CMAKE_SOURCE_DIR}/external/mupdf/build/release/libmupdf-third.a
 )
-
-
-if (DJVU_FOUND)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${DJVU_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME} PRIVATE djvulibre)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_DJVU=1)
-endif()
 
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:Debug>:${DEBUG_FLAGS}>

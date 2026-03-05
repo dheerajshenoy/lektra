@@ -10,6 +10,8 @@
 ### Bug Fixes
 
 - Fix opening tutorial file not working due to wrong file path
+- Fix djvu code under non-djvu builds causing compilation errors
+- Fix optional dependency locator in `CMakeLists.txt`
 
 ## 0.6.5
 
