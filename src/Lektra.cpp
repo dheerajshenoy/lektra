@@ -4566,9 +4566,9 @@ void
 Lektra::showTutorialFile() noexcept
 {
 #if defined(__linux__)
-    const QString doc_path = QString("%1%2")
+    const QString doc_path = QString("%1/share/doc/%2/tutorial.pdf")
                                  .arg(APP_INSTALL_PREFIX)
-                                 .arg("/share/doc/Lektra/tutorial.pdf");
+                                 .arg(APP_NAME);
     OpenFileInNewTab(doc_path);
 #elif defined(__APPLE__) && defined(__MACH__)
     QMessageBox::warning(this, tr("Show Tutorial File"),
