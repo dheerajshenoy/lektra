@@ -782,7 +782,8 @@ Lektra::initConfig() noexcept
         set(command_palette["height"], m_config.command_palette.height);
         set(command_palette["width"], m_config.command_palette.width);
         set(command_palette["vscrollbar"], m_config.command_palette.vscrollbar);
-        set(command_palette["show_grid"], m_config.command_palette.grid);
+        // set(command_palette["show_grid"], m_config.command_palette.grid);
+        // TODO: Implement grid in command palette
         set(command_palette["show_shortcuts"],
             m_config.command_palette.shortcuts);
 
@@ -794,6 +795,9 @@ Lektra::initConfig() noexcept
     if (auto picker = toml["picker"])
     {
         set(picker["border"], m_config.picker.border);
+        // set(picker["alternate_row_color"],
+        // m_config.picker.alternate_row_color); TODO: Implement alternate row
+        // color in pickers
 
         if (auto picker_shadow = picker["shadow"])
         {
