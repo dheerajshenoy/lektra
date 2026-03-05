@@ -4,6 +4,13 @@
 
 ### Features
 
+- Add `backend` option in `[rendering]` section of the config to choose between "auto", "opengl" and "raster" rendering backends. The "auto" option will choose the best available backend based on the system capabilities, with a preference for OpenGL when available for better performance.
+
+```toml
+[rendering]
+backend = "auto" # "auto", "opengl", "raster"
+```
+
 - Add `--tutorial` command line argument to open the tutorial PDF file directly from the command line without having to open the command palette and search for the command. This is useful for new users who want to quickly access the tutorial file and learn how to use LEKTRA.
 - Add touchpad gesture support for zooming (pinch to zoom)
 
