@@ -9,6 +9,7 @@
 
 ### Bug Fixes
 
+- Fix the QPainterPath pixel max limit error when text selection is too large by using page local coordinates instead of viewport coordinates for the selection path, which should allow for larger selections without hitting the pixel limit.
 - Fix opening tutorial file not working due to wrong file path
 - Fix djvu code under non-djvu builds causing compilation errors
 - Fix optional dependency locator in `CMakeLists.txt`
