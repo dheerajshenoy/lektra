@@ -1,6 +1,6 @@
 #include "Lektra.hpp"
-#include "argparse.hpp"
 #include "TranslationsDir.hpp"
+#include "argparse.hpp"
 
 #include <QApplication>
 #include <QLocale>
