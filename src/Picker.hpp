@@ -193,6 +193,7 @@ protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
     PickerFilterProxy *m_proxy{nullptr};
+    QTreeView *m_listView{nullptr};
 
 private slots:
     void onSearchChanged(const QString &text);
@@ -210,7 +211,6 @@ private:
 
     QFrame *m_frame{nullptr};
     QLineEdit *m_searchBox;
-    QTreeView *m_listView;
     QStandardItemModel *m_model;
     Keybindings m_keys;
     FrameStyle m_frame_style{};
