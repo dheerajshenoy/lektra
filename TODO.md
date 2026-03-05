@@ -12,7 +12,6 @@
 - [ ] Mouse bindings
 
 ## MEDIUM PRIORITY
-- [ ] Touchpad gestures
 - [ ] Drag and drop tabs not working, also get it to work with splits
 - [ ] Export highlight annotations
 
