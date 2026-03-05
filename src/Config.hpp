@@ -65,7 +65,7 @@ struct Config
     struct Annotations
     {
 
-        // @section Popup
+        // @section Annotations.Popup
         // @section_desc Popup annotation options struct
         // @section_type struct
         // @section_added 0.6.5
@@ -105,7 +105,7 @@ struct Config
         } popup{};
         // @endsection
 
-        // @section Rect
+        // @section Annotations.Rect
         // @section_desc Rect annotation options struct
         // @section_type struct
         // @section_added 0.6.5
@@ -157,7 +157,7 @@ struct Config
         } rect{};
         // @endsection
 
-        // @section Highlight
+        // @section Annotations.Highlight
         // @section_desc Highlight annotation options struct
         // @section_type struct
         // @section_added 0.6.5
