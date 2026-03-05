@@ -663,15 +663,18 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
 
     QPainterPath totalPath;
 
-    const QTransform toScene = pageItem->sceneTransform();
     for (const QPolygonF &poly : quads)
     {
-        totalPath.addPolygon(toScene.map(poly));
+        totalPath.addPolygon(poly);
     }
     m_selection_path_item->setPath(totalPath);
+    m_selection_path_item->setPos(pageItem->pos());
+    m_selection_path_item->setRotation(pageItem->rotation());
+    m_selection_path_item->setScale(pageItem->scale());
 
     // MuPDF quad winding: [top-left, top-right, bottom-right, bottom-left]
 
+    const QTransform toScene  = pageItem->sceneTransform();
     const QPolygonF firstQuad = toScene.map(quads.front());
     const QPolygonF lastQuad  = toScene.map(quads.back());
 
@@ -880,14 +883,23 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
             quads = m_model->computeTextSelectionQuad(p, docStart, docEnd);
         }
 
-        const QTransform toScene = item->sceneTransform();
+        // const QTransform toScene = item->sceneTransform();
+        // for (const QPolygonF &poly : quads)
+        // {
+        //     totalPath.addPolygon(toScene.map(poly));
+        // }
+        QTransform toPrimary = item->sceneTransform()
+                               * startPageItem->sceneTransform().inverted();
         for (const QPolygonF &poly : quads)
         {
-            totalPath.addPolygon(toScene.map(poly));
+            totalPath.addPolygon(toPrimary.map(poly));
         }
     }
 
     m_selection_path_item->setPath(totalPath);
+    m_selection_path_item->setPos(startPageItem->pos());
+    m_selection_path_item->setRotation(startPageItem->rotation());
+    m_selection_path_item->setScale(startPageItem->scale());
 
     m_selection_start = start;
     m_selection_end   = end;
