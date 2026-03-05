@@ -1,5 +1,15 @@
 # LEKTRA CHANGELOG
 
+## 0.6.6
+
+### Features
+
+- Add `--tutorial` command line argument to open the tutorial PDF file directly from the command line without having to open the command palette and search for the command. This is useful for new users who want to quickly access the tutorial file and learn how to use LEKTRA.
+
+### Bug Fixes
+
+- Fix opening tutorial file not working due to wrong file path
+
 ## 0.6.5
 
 ### End User Features
