@@ -13,7 +13,7 @@
 #include <QRegularExpression>
 #include <QString>
 #include <QUndoStack>
-#include <unordered_map>
+#include <set>
 
 extern "C"
 {
