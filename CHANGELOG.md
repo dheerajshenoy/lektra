@@ -16,6 +16,7 @@ backend = "auto" # "auto", "opengl", "raster"
 
 ### Bug Fixes
 
+- Fix link hints mode not intercepting key presses properly
 - Add all supported file types to the file open dialog filter
 - Fix the QPainterPath pixel max limit error when text selection is too large by using page local coordinates instead of viewport coordinates for the selection path, which should allow for larger selections without hitting the pixel limit.
 - Fix opening tutorial file not working due to wrong file path
