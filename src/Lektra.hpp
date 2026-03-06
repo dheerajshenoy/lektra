@@ -1,17 +1,15 @@
 #pragma once
 
-#include "CommentSearchPicker.hpp"
 #include "CommandPicker.hpp"
+#include "CommentSearchPicker.hpp"
 #include "Config.hpp"
 #include "DocumentView.hpp"
-#include "FloatingOverlayWidget.hpp"
 #include "HighlightSearchPicker.hpp"
 #include "MarkManager.hpp"
 #include "MessageBar.hpp"
 #include "TabBar.hpp"
 // #include "OutlineWidget.hpp"
 #include "OutlinePicker.hpp"
-#include "PropertiesWidget.hpp"
 #include "RecentFilesPicker.hpp"
 #include "RecentFilesStore.hpp"
 #include "SearchBar.hpp"
@@ -23,7 +21,6 @@
 #include "LLM/LLMWidget.hpp"
 #endif
 #include "CommandManager.hpp"
-#include "toml.hpp"
 
 #include <QActionGroup>
 #include <QApplication>
@@ -288,11 +285,12 @@ private:
     bool handleTabContextMenu(QObject *object, QEvent *event) noexcept;
     void applyCommandLineOverrides(
         const argparse::ArgumentParser &argparser) noexcept;
+    DocumentView *create_portal(DocumentView *sourceView,
+                                const QString &filePath) noexcept;
+
     QDir m_config_dir, m_session_dir;
     Statusbar *m_statusbar{nullptr};
-
     QMenuBar *m_menuBar{nullptr};
-
     QMenu *m_fitMenu{nullptr};
     QMenu *m_recentFilesMenu{nullptr};
     QMenu *m_navMenu{nullptr};
@@ -353,7 +351,6 @@ private:
 #ifdef ENABLE_LLM_SUPPORT
     QAction *m_actionToggleLLMWidget{nullptr};
 #endif
-    QTabWidget *m_side_panel_tabs{nullptr};
     Config m_config;
     float m_dpr{1.0f};
     QMap<QString, float> m_screen_dpr_map; // DPR per screen
@@ -374,23 +371,20 @@ private:
     QString m_session_name;
     MessageBar *m_message_bar{nullptr};
     SearchBar *m_search_bar{nullptr};
-    DocumentView *create_portal(DocumentView *sourceView,
-                                const QString &filePath) noexcept;
 
-    std::vector<Picker *> m_pickers;
-    CommandPicker *m_command_picker{nullptr}; // Technically a picker
     Picker::Keybindings m_picker_keybinds{};
+
     OutlinePicker *m_outline_picker{nullptr};
+    CommandPicker *m_command_picker{nullptr};
     HighlightSearchPicker *m_highlight_search_picker{nullptr};
     CommentSearchPicker *m_comment_search_picker{nullptr};
     RecentFilesPicker *m_recent_file_picker{nullptr};
-    MarkManager *m_marks_manager{nullptr};
 
     // Used for lifetime management of portal-source
     struct PortalPair
     {
-        DocumentView *source;
-        DocumentView *portal;
+        DocumentView *source{nullptr};
+        DocumentView *portal{nullptr};
     };
 
     CommandManager m_command_manager;
