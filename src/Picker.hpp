@@ -32,7 +32,12 @@ public:
         if (m_modes == modes)
             return;
         m_modes = modes;
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
         endFilterChange();
+#else
+        invalidateFilter();
+#endif
     }
 
     SearchModes searchModes() const noexcept
@@ -65,7 +70,11 @@ public:
             m_tokens = text.split(' ', Qt::SkipEmptyParts);
         }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
         endFilterChange();
+#else
+        invalidateFilter();
+#endif
     }
 
 protected:
