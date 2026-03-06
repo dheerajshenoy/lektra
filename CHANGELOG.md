@@ -23,6 +23,7 @@ backend = "auto" # "auto", "opengl", "raster"
 
 ### Breaking Changes
 
+- libMuPDF is now a required dependency and is dynamically linked instead of statically linked. This means that you need to have MuPDF development files (libmupdf >= 1.25.0) installed on your system to run LEKTRA, and it will use the system's MuPDF library instead of a bundled version.
 - Removed `grid` option from `[command_palette]` section of the config as it was not implemented.
 
 ## 0.6.5
