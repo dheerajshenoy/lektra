@@ -387,7 +387,8 @@ private:
         DocumentView *portal{nullptr};
     };
 
-    CommandManager m_command_manager;
+    std::unique_ptr<MarkManager> m_marks_manager;
+    std::unique_ptr<CommandManager> m_command_manager;
 
 #ifdef ENABLE_LLM_SUPPORT
     // LLM Support
