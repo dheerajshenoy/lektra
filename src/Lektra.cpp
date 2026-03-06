@@ -31,6 +31,24 @@
 namespace
 {
 
+static inline QString
+supportedFormats()
+{
+    return "PDF (*.pdf);;"
+           "XPS (*.oxps *.xps);;"
+           "CBZ (*.cbz *.cbt);;"
+           "FB2 (*.fbz);;"
+           "EPUB (*.epub);;"
+           "FictionBook (*.fb2 *.fbz);;"
+           "Mobi (*.mobi);;"
+           "Images (*.jpg *.jpeg *.png *.tiff *.tif);;"
+           "SVG (*.svg);;"
+#ifdef HAS_DJVU
+           "DjVu (*.djvu *.djv);;"
+#endif
+           "All Files (*.*)";
+}
+
 static inline void
 set_title_format_if_present(toml::node_view<toml::node> n,
                             QString &title_format)
@@ -1944,8 +1962,7 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
     {
         QFileDialog dialog(this);
         dialog.setFileMode(QFileDialog::ExistingFile);
-        dialog.setNameFilter(tr("PDF Files") + " " + "(*.pdf)" + ";;"
-                             + tr("All Files") + " " + "(*)");
+        dialog.setNameFilter(supportedFormats());
         if (dialog.exec())
         {
             const QStringList selected = dialog.selectedFiles();
@@ -2128,8 +2145,7 @@ Lektra::OpenFileInNewTab(const QString &filename,
         // Show file picker
         QFileDialog dialog(this);
         dialog.setFileMode(QFileDialog::ExistingFile);
-        dialog.setNameFilter(tr("PDF Files") + " " + "(*.pdf)" + ";;"
-                             + tr("All Files") + " " + "(*)");
+        dialog.setNameFilter(supportedFormats());
 
         if (dialog.exec())
         {
@@ -2255,8 +2271,7 @@ Lektra::openFileSplitHelper(const QString &filename,
         // Show file picker
         QFileDialog dialog(this);
         dialog.setFileMode(QFileDialog::ExistingFile);
-        dialog.setNameFilter(tr("PDF Files") + " " + "(*.pdf)" + ";;"
-                             + tr("All Files") + " " + "(*)");
+        dialog.setNameFilter(supportedFormats());
 
         if (dialog.exec())
         {
