@@ -9,23 +9,23 @@ set -e
 
 BUILD_TYPE="Release"
 LLM="OFF"
-PREFIX="/usr/local"
+PREFIX="/usr"
 
 print_help() {
     cat <<EOF
 Usage: ./configure [OPTIONS]
 
 Options:
-  --build-type TYPE     Set the CMake build type [default: Release]
-                        Valid values: Debug, Release, RelWithDebInfo
-  --with-llm            Enable LLM support
-  --without-llm         Disable LLM support [default]
-  -h, --help            Show this help message and exit
+    --prefix PATH           Set the installation prefix [default: /usr]
+    --build-type TYPE       Set the CMake build type [default: Release]
+                            Valid values: Debug, Release, RelWithDebInfo
+    --with-llm              Enable LLM support
+    --without-llm           Disable LLM support [default]
+    -h, --help              Show this help message and exit
 
 Examples:
-  ./configure
-  ./configure --build-type Debug
-  ./configure --build-type Release --with-llm
+    ./configure
+    ./configure --prefix /usr/local --build-type Release --with-llm
 EOF
 }
 
@@ -43,6 +43,10 @@ while [ "$#" -gt 0 ]; do
         --without-llm)
             LLM="OFF"
             shift 1
+            ;;
+        --prefix)
+            PREFIX="$2"
+            shift 2
             ;;
         -h|--help)
             print_help
@@ -71,6 +75,6 @@ if command -v ninja > /dev/null 2>&1; then
 fi
 
 # Run cmake with the specified options
-cmake -S . -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DENABLE_LLM_SUPPORT="$LLM"
+cmake -S . -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DENABLE_LLM_SUPPORT="$LLM" -DCMAKE_PREFIX_PATH="$PREFIX"
 
 # vim:ft=bash
