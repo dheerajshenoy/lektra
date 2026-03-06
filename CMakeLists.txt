@@ -28,7 +28,7 @@ set(CMAKE_AUTOUIC ON)
 
 # set(DEBUG_FLAGS -fno-omit-frame-pointer -ggdb3 -O0 -fsanitize=address -Wall -Wextra)
 set(DEBUG_FLAGS -fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra)
-set(RELEASE_FLAGS -O3 -DNDEBUG -march=native -flto -fno-rtti)
+set(RELEASE_FLAGS -O3 -DNDEBUG -fno-rtti)
 set(REL_WITH_DEB_INFO -O2 -g -fno-omit-frame-pointer -DNDEBUG)
 
 # set(CMAKE_CXX_FLAGS_DEBUG "-fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra -fsanitize=address -Werror")
@@ -38,14 +38,14 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -fno-omit-frame-pointer -DNDEBUG")
 find_package(Qt6 REQUIRED COMPONENTS Gui Widgets Core Concurrent LinguistTools OpenGLWidgets)
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(MUPDF REQUIRED mupdf>=1.25.0)
+pkg_check_modules(MUPDF REQUIRED mupdf>=1.19.0)
 pkg_check_modules(DJVULIBRE QUIET ddjvuapi)
 pkg_check_modules(SYNCTEX QUIET synctex)
 
 if (MUPDF_FOUND)
     message(STATUS "Found MuPDF: ${MUPDF_VERSION}. Compiling with MuPDF support.")
 else()
-    message(FATAL_ERROR "MuPDF not found. Please install MuPDF (>=1.25.0) development files to enable PDF support.")
+    message(FATAL_ERROR "MuPDF not found. Please install MuPDF (>=1.19.0) development files to enable PDF support.")
 endif()
 
 if(DJVULIBRE_FOUND)
@@ -199,12 +199,27 @@ configure_file(
 )
 
 # Generate .qm files immediately without creating target dependencies
-qt_add_translations(
-    TARGETS ${PROJECT_NAME}         # Target that will use the .qm files
-    TS_FILES ${TRANSLATION_FILES}   # Explicit .ts files
-    QM_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/translations"
-    QM_FILES_OUTPUT_VARIABLE QM_FILES
-)
+if(Qt6LinguistTools_VERSION VERSION_GREATER_EQUAL "6.7")
+    qt_add_translations(
+        TARGETS ${PROJECT_NAME}
+        TS_FILES ${TRANSLATION_FILES}
+        QM_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/translations"
+        QM_FILES_OUTPUT_VARIABLE QM_FILES
+    )
+else()
+    qt_add_translations(${PROJECT_NAME}
+        TS_FILES ${TRANSLATION_FILES}
+        QM_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/translations"
+        QM_FILES_OUTPUT_VARIABLE QM_FILES
+    )
+endif()
+
+# qt_add_translations(
+#     TARGETS ${PROJECT_NAME}         # Target that will use the .qm files
+#     TS_FILES ${TRANSLATION_FILES}   # Explicit .ts files
+#     QM_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/translations"
+#     QM_FILES_OUTPUT_VARIABLE QM_FILES
+# )
 
 # Install each .qm into locale/<lang>/LC_MESSAGES/
 foreach(qm_file ${QM_FILES})
@@ -234,13 +249,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
     $<$<CONFIG:Release>:${RELEASE_FLAGS}>
-    $<$<CONFIG:RelWithDebInfo>:${REL_WITH_DEBINFO_FLAGS}>
+    $<$<CONFIG:RelWithDebInfo>:${REL_WITH_DEB_INFO_FLAGS}>
 )
 
 target_link_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
     $<$<CONFIG:Release>:${RELEASE_FLAGS}>
-    $<$<CONFIG:RelWithDebInfo>:${REL_WITH_DEBINFO_FLAGS}>
+    $<$<CONFIG:RelWithDebInfo>:${REL_WITH_DEB_INFO_FLAGS}>
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
