@@ -75,6 +75,11 @@ if command -v ninja > /dev/null 2>&1; then
 fi
 
 # Run cmake with the specified options
-cmake -S . -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DENABLE_LLM_SUPPORT="$LLM" -DCMAKE_INSTALL_PREFIX="$PREFIX"
+cmake -S . -B build \
+  -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+  -DENABLE_LLM_SUPPORT="$LLM" \
+  -DCMAKE_INSTALL_PREFIX="$PREFIX"
+
+cmake --build build
 
 # vim:ft=bash
