@@ -1,6 +1,13 @@
 # Contributing
 
-Thanks for your interest in contributing. This project is actively developed and maintained.
+Thanks for your interest in contributing. You can contribute in many ways, including:
+
+- Reporting bugs
+- Suggesting features
+- Help in UI language translation
+- Writing documentation
+
+This project is actively developed and maintained.
 Please read this document carefully before opening an issue or pull request.
 
 ---
@@ -29,20 +36,6 @@ When reporting a bug, include:
 - Platform (OS, compiler, library versions)
 - Relevant logs or screenshots if applicable
 
----
-
-## Feature requests
-
-Feature requests should explain:
-
-- The problem you are trying to solve
-- Why existing functionality is insufficient
-- Why the feature belongs in this project
-
-"I want X" without justification is not enough.
-
----
-
 ## Development setup
 
 Clone the repository:
@@ -50,12 +43,8 @@ Clone the repository:
 ```bash
 git clone https://codeberg.org/lektra/lektra.git
 cd lektra
-```
 
-### Building
-
-```bash
-mkdir build && cd build
-cmake .. -G Ninja -DCMAKE_INSTALL_TYPE=Debug
-ninja && ./lektra
+mkdir -p build
+cmake -S . -B build -DCMAKE_INSTALL_TYPE=Debug
+cmake --install build --prefix build/debug
 ```
