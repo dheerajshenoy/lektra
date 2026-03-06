@@ -9,6 +9,7 @@ set -e
 
 BUILD_TYPE="Release"
 LLM="OFF"
+PREFIX="/usr/local"
 
 print_help() {
     cat <<EOF
