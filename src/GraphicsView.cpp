@@ -680,6 +680,10 @@ GraphicsView::wheelEvent(QWheelEvent *event)
         return; // do NOT call base
     }
 
+    // MouseBindKey key{event->modifiers(), Qt::NoButton,
+    //              event->angleDelta().y() > 0 ? MouseAction::WheelUp
+    //                                          : MouseAction::WheelDown};
+
     // const int delta = !event->pixelDelta().isNull() ? event->pixelDelta().y()
     //                                                 :
     //                                                 event->angleDelta().y();

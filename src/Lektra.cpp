@@ -1051,18 +1051,19 @@ Lektra::initConfig() noexcept
         }
     }
 
-    if (auto mbs = toml["mousebindings"])
-    {
-        for (auto &[action, value] : *mbs.as_table())
-        {
-            if (value.is_value())
-            {
-                setupMousebinding(
-                    QString::fromStdString(std::string(action.str())),
-                    QString::fromStdString(value.value_or<std::string>("")));
-            }
-        }
-    }
+    // TODO: Mousebindings in config (if we decide to support that)
+    // if (auto mbs = toml["mousebindings"])
+    // {
+    //     for (auto &[action, value] : *mbs.as_table())
+    //     {
+    //         if (value.is_value())
+    //         {
+    //             setupMousebinding(
+    //                 QString::fromStdString(std::string(action.str())),
+    //                 QString::fromStdString(value.value_or<std::string>("")));
+    //         }
+    //     }
+    // }
 
 #ifndef NDEBUG
     qDebug() << "Finished reading config file:" << m_config_file_path;
@@ -1365,58 +1366,58 @@ Lektra::setupKeybinding(const QString &action, const QString &key) noexcept
 
 // Convert a mouse binding string from the config file into a MouseBindKey
 // struct
-static MouseBindKey
-get_mouse_bind_key(const QString &trigger) noexcept
-{
-    // Format: "Ctrl+Shift+LMB" — modifiers first, button last
-    QStringList parts = trigger.split('+', Qt::SkipEmptyParts);
-    if (parts.isEmpty())
-        return {};
+// static MouseBindKey
+// get_mouse_bind_key(const QString &trigger) noexcept
+// {
+//     // Format: "Ctrl+Shift+LMB" — modifiers first, button last
+//     QStringList parts = trigger.split('+', Qt::SkipEmptyParts);
+//     if (parts.isEmpty())
+//         return {};
+//
+//     Qt::KeyboardModifiers modifiers{Qt::NoModifier};
+//     for (int i = 0; i < parts.size() - 1; ++i)
+//     {
+//         const QString &mod = parts[i];
+//         if (mod == "Ctrl")
+//             modifiers |= Qt::ControlModifier;
+//         else if (mod == "Shift")
+//             modifiers |= Qt::ShiftModifier;
+//         else if (mod == "Alt")
+//             modifiers |= Qt::AltModifier;
+//         else if (mod == "Meta")
+//             modifiers |= Qt::MetaModifier;
+//     }
+//
+//     const QString &buttonPart = parts.last();
+//     if (buttonPart == "LeftButton")
+//         return {modifiers, Qt::LeftButton};
+//     if (buttonPart == "RightButton")
+//         return {modifiers, Qt::RightButton};
+//     if (buttonPart == "MiddleButton")
+//         return {modifiers, Qt::MiddleButton};
+//
+//     return {}; // invalid button
+// }
 
-    Qt::KeyboardModifiers modifiers{Qt::NoModifier};
-    for (int i = 0; i < parts.size() - 1; ++i)
-    {
-        const QString &mod = parts[i];
-        if (mod == "Ctrl")
-            modifiers |= Qt::ControlModifier;
-        else if (mod == "Shift")
-            modifiers |= Qt::ShiftModifier;
-        else if (mod == "Alt")
-            modifiers |= Qt::AltModifier;
-        else if (mod == "Meta")
-            modifiers |= Qt::MetaModifier;
-    }
-
-    const QString &buttonPart = parts.last();
-    if (buttonPart == "LeftButton")
-        return {modifiers, Qt::LeftButton};
-    if (buttonPart == "RightButton")
-        return {modifiers, Qt::RightButton};
-    if (buttonPart == "MiddleButton")
-        return {modifiers, Qt::MiddleButton};
-
-    return {}; // invalid button
-}
-
-void
-Lektra::setupMousebinding(const QString &action,
-                          const QString &trigger) noexcept
-{
-    if (auto _ = m_command_manager.find(action))
-    {
-#ifndef NDEBUG
-        qDebug() << "Mousebinding set:" << action << "->" << trigger;
-#endif
-        MouseBindKey key = get_mouse_bind_key(trigger);
-        if (key.button == Qt::NoButton)
-        {
-            qWarning() << "Invalid mouse binding for action" << action << ": "
-                       << trigger;
-            return;
-        }
-        m_config.mousebinds[key] = action;
-    }
-}
+// void
+// Lektra::setupMousebinding(const QString &action,
+//                           const QString &trigger) noexcept
+// {
+//     if (auto _ = m_command_manager.find(action))
+//     {
+// #ifndef NDEBUG
+//         qDebug() << "Mousebinding set:" << action << "->" << trigger;
+// #endif
+//         MouseBindKey key = get_mouse_bind_key(trigger);
+//         if (key.button == Qt::NoButton)
+//         {
+//             qWarning() << "Invalid mouse binding for action" << action << ": "
+//                        << trigger;
+//             return;
+//         }
+//         m_config.mousebinds[key] = action;
+//     }
+// }
 
 // Toggles the fullscreen mode
 void

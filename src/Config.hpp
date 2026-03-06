@@ -2,7 +2,7 @@
 
 #include "DocumentView.hpp"
 #include "GraphicsView.hpp"
-#include "MouseBindKey.hpp"
+// #include "MouseBindKey.hpp"
 
 #include <QColor>
 #include <QHash>
@@ -12,7 +12,7 @@
 struct Config
 {
     QHash<QString, QString> keybinds{};
-    QHash<MouseBindKey, QString> mousebinds{};
+    // QHash<MouseBindKey, QString> mousebinds{};
 
     // *NOTE*: Colors can be specified in hex format (e.g. #RRGGBBAA) or as a
     // color name
