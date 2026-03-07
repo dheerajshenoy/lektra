@@ -62,10 +62,7 @@ Model::~Model() noexcept
 {
 #ifdef HAS_DJVU
     if (m_filetype == FileType::DJVU)
-    {
         cleanup_djvu();
-        ddjvu_context_release(m_ddjvu_ctx);
-    }
     else
 #endif
     {
