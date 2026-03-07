@@ -21,6 +21,8 @@ backend = "auto" # "auto", "opengl", "raster"
 
 ### Bug Fixes
 
+- Fix portals and preview docs appearing blurry due to not using the correct DPR for rendering
+- Fix remove item 0 warning in QGraphicsScene when closing document
 - Fix double memory free crash on DJVU files
 - Fix link hints mode not intercepting key presses properly
 - Add all supported file types to the file open dialog filter
