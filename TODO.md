@@ -3,17 +3,19 @@
 ## This is a list of features and improvements that I want to implement in the future. The list is not exhaustive and is subject to change based on user feedback and my own priorities.
 
 ## HIGH PRIORITY
+- [ ] Text selection change pos on resize event
 - [ ] Picker strong key grab
 - [ ] Visual line mode index resetting after zoom
 - [ ] Bug fixes and performance improvements
 - [ ] History for pickers
 - [ ] Undo/Redo operations for annotation color
 - [ ] Don't add connection to annotation when in non-annotatable mode
-- [ ] Mouse bindings
 
 ## MEDIUM PRIORITY
 - [ ] Drag and drop tabs not working, also get it to work with splits
 - [ ] Export highlight annotations
+- [ ] Persistent bookmarks, recent files
+- [ ] Shell Scripting
 
 ## LOW PRIORITY
 
@@ -43,6 +45,5 @@
 - [ ] Ruler
 - [ ] Preview window
 - [ ] Try to generate outline if not present somehow
-- [ ] Don't link mupdf statically
 - [ ] Visual line mode, if starting fresh, enable at the viewport
 - [ ] Custom source DPI region copy to clipboard
