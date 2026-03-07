@@ -86,10 +86,10 @@ DocumentView::~DocumentView() noexcept
     synctex_scanner_free(m_synctex_scanner);
 #endif
 
-    m_gscene->removeItem(m_jump_marker);
-    m_gscene->removeItem(m_selection_path_item);
-    m_gscene->removeItem(m_current_search_hit_item);
-    m_gscene->removeItem(m_visual_line_item);
+    // m_gscene->removeItem(m_jump_marker);
+    // m_gscene->removeItem(m_selection_path_item);
+    // m_gscene->removeItem(m_current_search_hit_item);
+    // m_gscene->removeItem(m_visual_line_item);
 
     clearDocumentItems();
 
