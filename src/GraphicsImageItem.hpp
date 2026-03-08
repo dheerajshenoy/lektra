@@ -25,8 +25,8 @@ public:
         // cause rendering issues. Use NoCache for OpenGL compatibility.
         // If not using OpenGL, DeviceCoordinateCache provides better scroll
         // performance.
-        // setCacheMode(QGraphicsItem::NoCache);
-        setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+        setCacheMode(QGraphicsItem::NoCache);
+        // setCacheMode(QGraphicsItem::DeviceCoordinateCache);
     }
 
     // Set image (copy)
@@ -60,7 +60,7 @@ public:
 
     inline qreal devicePixelRatio() const noexcept
     {
-        return m_image.isNull() ? 1.0 : m_image.devicePixelRatio();
+        return m_image.isNull() ? 1.0 : m_image.devicePixelRatioF();
     }
 
     // Returns pixel width (not logical width)
@@ -70,7 +70,10 @@ public:
     }
 
     // Returns pixel height (not logical height)
-    inline int height() const { return m_image.isNull() ? 0 : m_image.height(); }
+    inline int height() const
+    {
+        return m_image.isNull() ? 0 : m_image.height();
+    }
 
     QRectF boundingRect() const override
     {
@@ -87,8 +90,8 @@ public:
             return;
 
         // Draw the image scaled to its logical size (accounting for DPR)
-        painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
-        painter->setRenderHint(QPainter::Antialiasing, true);
+        // painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
+        // painter->setRenderHint(QPainter::Antialiasing, true);
         painter->drawImage(m_bounding_rect, m_image);
     }
 
