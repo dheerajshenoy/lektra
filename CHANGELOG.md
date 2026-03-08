@@ -4,6 +4,19 @@
 
 ### Features
 
+- Ability to "preview" links by executing a mouse binding (Alt+LeftClick by default) on a link to open a temporary view of the link target without actually navigating to it in the current view in a floating window.
+
+<!-- TODO: Add a demo GIF for this feature -->
+
+- "preview" config section
+```toml
+[preview]
+size_ratio = {0.5, 0.5} # width and height ratio of the preview window compared to the main window
+border_radius = 8 # border radius of the preview window in pixels
+close_on_click_outside = true # whether to close the preview window when clicking outside of it
+```
+- Add `preview` command, which shows the preview window (if it was created already) for the current link target. The preview window will be created on the fly when the mouse binding is executed on a link for the first time, and will be reused for subsequent previews of the same link target.
+
 - Add mousebindings to allow users to configure mouse interactions (e.g. mouse click, double click, right click, mouse wheel, etc.) with different modifiers (e.g. Ctrl, Shift, Alt) to trigger different mouse related commands.
     **Mouse commands**:
     - `portal` - open link in portal (ctrl + click on link)
