@@ -110,8 +110,9 @@ auto_resize = false # fit document to window
 spacing = 9
 
 [zoom]
-level = 1.0 # default zoom factor
-factor = 1.25 # factor for zoom in/out
+anchor_to_mouse = false
+level = 1.0
+factor = 1.25
 
 [selection]
 drag_threshold = 100
