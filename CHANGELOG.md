@@ -6,7 +6,9 @@
 
 - Ability to "preview" links by executing a mouse binding (Alt+LeftClick by default) on a link to open a temporary view of the link target without actually navigating to it in the current view in a floating window.
 
-<!-- TODO: Add a demo GIF for this feature -->
+<p align="center">
+  <img src="./images/preview.gif" alt="Preview Demo" width="600">
+</p>
 
 - "preview" config section
 ```toml
