@@ -223,6 +223,10 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
             {
                 if (action == MouseAction::Portal)
                     emit linkCtrlClickRequested(scenePos);
+                else if (action == MouseAction::Preview)
+                {
+                    emit linkPreviewRequested(scenePos);
+                }
                 else
                     QGraphicsView::mousePressEvent(event);
                 event->accept();

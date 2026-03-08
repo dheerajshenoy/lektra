@@ -490,6 +490,42 @@ DocumentView::initConnections() noexcept
 
     connect(m_gview, &GraphicsView::linkCtrlClickRequested, this,
             &DocumentView::handleLinkCtrlClickRequested);
+
+    connect(m_gview, &GraphicsView::linkPreviewRequested, this,
+            &DocumentView::handleLinkPreviewRequested);
+}
+
+void
+DocumentView::handleLinkPreviewRequested(QPointF scenePos) noexcept
+{
+    if (!m_model->supports_links())
+        return;
+
+    int pageIndex               = -1;
+    GraphicsImageItem *pageItem = nullptr;
+
+    if (!pageAtScenePos(scenePos, pageIndex, pageItem))
+        return;
+
+    const std::vector<BrowseLinkItem *> links_in_page
+        = m_page_links_hash[pageIndex];
+    if (links_in_page.empty())
+        return;
+
+    // Get the link item at the clicked position, if any
+    BrowseLinkItem *clicked_link{nullptr};
+    for (BrowseLinkItem *link : links_in_page)
+    {
+        if (link->contains(scenePos))
+        {
+            clicked_link = link;
+            break;
+        }
+    }
+
+    if (!clicked_link)
+        return;
+    emit linkPreviewRequested(this, clicked_link);
 }
 
 void
@@ -2703,12 +2739,12 @@ DocumentView::updateSceneRect() noexcept
 void
 DocumentView::enterEvent(QEnterEvent *e)
 {
+    QWidget::enterEvent(e);
     if (m_config.split.focus_follows_mouse)
     {
-        container()->focusView(this);
+        if (auto cont = container())
+            cont->focusView(this);
     }
-
-    QWidget::enterEvent(e);
 }
 
 void
@@ -3626,7 +3662,7 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
     const auto &hits = m_search_hits.value(pageno); // Local copy
 
     // 2. Validate the Page Item still exists in the scene
-    GraphicsImageItem *pageItem = m_page_items_hash[pageno];
+    const GraphicsImageItem *pageItem = m_page_items_hash[pageno];
 
     if (!pageItem)
         return;

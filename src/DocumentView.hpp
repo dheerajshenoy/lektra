@@ -155,7 +155,7 @@ public:
         return QFileInfo(m_model->filePath()).fileName();
     }
 
-    inline const QString& filePath() const noexcept
+    inline const QString &filePath() const noexcept
     {
         return m_model->filePath();
     }
@@ -278,11 +278,9 @@ public:
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
     void createAndAddPageItem(int pageno, const QImage &image) noexcept;
-
     void renderPages() noexcept;
     void renderPage() noexcept;
     void handleTextHighlightRequested() noexcept;
-
     void setFitMode(FitMode mode) noexcept;
     void GotoPage(int pageno) noexcept;
     void GotoLocation(const PageLocation &targetlocation) noexcept;
@@ -337,6 +335,8 @@ public:
     void rotateHelper() noexcept;
 
 signals:
+    void linkPreviewRequested(DocumentView *view,
+                              const BrowseLinkItem *linkItem);
     void ctrlLinkClickRequested(DocumentView *view,
                                 const BrowseLinkItem *linkItem);
     void requestFocus(DocumentView *view);
@@ -363,6 +363,7 @@ private slots:
     void handle_password_required() noexcept;
     void handle_wrong_password() noexcept;
     void handleLinkCtrlClickRequested(QPointF scenePos) noexcept;
+    void handleLinkPreviewRequested(QPointF scenePos) noexcept;
     void handleTextSelection(QPointF start, QPointF end) noexcept;
     void handleClickSelection(int clickType, QPointF scenePos) noexcept;
     void handleSearchResults(

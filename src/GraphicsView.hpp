@@ -35,6 +35,7 @@ public:
         None,
         SynctexJump, // e.g. Shift+click in TextSelection mode
         Portal,      // e.g. Ctrl+click on a link item
+        Preview,     // e.g. Alt+click on a link item
     };
 
     explicit GraphicsView(const Config &config, QWidget *parent = nullptr);
@@ -138,6 +139,7 @@ signals:
     void textSelectionRequested(QPointF a, QPointF b);
     void textHighlightRequested(QPointF a, QPointF b);
     void linkCtrlClickRequested(QPointF scenePos);
+    void linkPreviewRequested(QPointF scenePos);
     void annotRectRequested(QRectF sceneRect);
     void annotPopupRequested(QPointF scenePos);
     void regionSelectRequested(QRectF sceneRect);

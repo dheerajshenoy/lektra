@@ -11,6 +11,7 @@
 
 struct Config
 {
+
     struct MouseBinding
     {
         Qt::MouseButton button           = Qt::NoButton;
@@ -1016,7 +1017,6 @@ struct Config
     } behavior{};
     // @endsection
 
-
     // Just for documentation parsing, do not remove
 
     // @section MouseBindings
@@ -1026,8 +1026,11 @@ struct Config
     // Mouse binding options struct<br>
     // <p>Valid commands are:
     // <ul>
-    // <li><code class="inline">synctex_jump</code> - Takes to the source code if opened in SyncTeX mode</li>
-    // <li><code class="inline">portal</code> - Opens a portal pointing to the clicked link</li>
+    // <li><code class="inline">preview</code> - Shows a preview of the link
+    // location in a floating window</li> <li><code
+    // class="inline">synctex_jump</code> - Takes to the source code if opened
+    // in SyncTeX mode</li> <li><code class="inline">portal</code> - Opens a
+    // portal pointing to the clicked link</li>
     // </ul>
     // Example of how to define a mouse binding in the config file:</p>
     // <pre><code class="language-toml">
@@ -1038,4 +1041,42 @@ struct Config
     // }
     // @endsection
 
+    // @section Preview
+    // @section_desc Preview options struct
+    // @section_type struct
+    // @section_added 0.6.6
+    struct Preview
+    {
+        // Required for documentation parsing, do not remove
+        using WindowRatio = std::array<float, 2>;
+
+        // @desc {
+        // Size of the preview window as a ratio of the main window size
+        // (width, height)
+        // }
+        // @type table
+        // @default { width = 0.6, height = 0.7 }
+        // @added 0.6.6
+        WindowRatio size_ratio{0.6, 0.7};
+
+        // @desc Border radius of the preview window in pixels
+        // @type int
+        // @default 8
+        // @added 0.6.6
+        int border_radius{8};
+
+        // @desc Close the preview window when clicking outside of it
+        // @type bool
+        // @default true
+        // @added 0.6.6
+        bool close_on_click_outside{true};
+
+        // @desc Opacity of the preview window (0.0 to 1.0)
+        // @type float
+        // @default 0.95
+        // @added 0.6.6
+        float opacity{0.95f};
+
+    } preview;
+    // @endsection
 };

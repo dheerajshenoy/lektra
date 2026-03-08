@@ -244,6 +244,8 @@ private:
                                       const TabBar::TabData &data) noexcept;
     void handleCtrlLinkClickRequested(DocumentView *view,
                                       const BrowseLinkItem *linkItem) noexcept;
+    void handleLinkPreviewRequested(DocumentView *view,
+                                    const BrowseLinkItem *linkItem) noexcept;
 
     void gotoPage(int pageno) noexcept;
     void setFocusMode(bool state) noexcept;
@@ -379,6 +381,8 @@ private:
     HighlightSearchPicker *m_highlight_search_picker{nullptr};
     CommentSearchPicker *m_comment_search_picker{nullptr};
     RecentFilesPicker *m_recent_file_picker{nullptr};
+    DocumentView *m_preview_view{nullptr}; // For link preview (Alt+click)
+    QWidget *m_preview_overlay{nullptr}; // Overlay for link preview
 
     // Used for lifetime management of portal-source
     struct PortalPair

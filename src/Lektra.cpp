@@ -555,6 +555,30 @@ Lektra::initConfig() noexcept
         set(portal["dim_inactive"], m_config.portal.dim_inactive);
     }
 
+    // Preview
+    if (auto preview = toml["preview"])
+    {
+        set(preview["border_radius"], m_config.preview.border_radius);
+        set(preview["close_on_click_outside"],
+            m_config.preview.close_on_click_outside);
+        if (preview["size_ratio"].is_table())
+        {
+            float width{0.6}, height{0.7};
+
+            const auto &size_table = *preview["size_ratio"].as_table();
+
+            if (auto toml_width = size_table["width"].value<int>())
+                width = *toml_width;
+            if (auto toml_height = size_table["height"].value<int>())
+                height = *toml_height;
+
+            if (width > 0 && height > 0)
+            {
+                m_config.preview.size_ratio = {width, height};
+            }
+        }
+    }
+
     // Scripts
     if (auto scripts = toml["scripts"].as_table())
     {
@@ -1463,6 +1487,10 @@ Lektra::setupMousebinding(const QString &action_str,
     {
         action = GraphicsView::MouseAction::SynctexJump;
     }
+    else if (action_str == "preview")
+    {
+        action = GraphicsView::MouseAction::Preview;
+    }
     else
     {
         qWarning() << "Unknown action for mouse binding:" << action_str;
@@ -2144,33 +2172,6 @@ Lektra::OpenFilesInNewTab(const QStringList &files) noexcept
         OpenFileInNewTab(file);
     m_batch_opening = was_batch_opening;
 }
-
-// Opens a file given the DocumentView pointer
-// bool
-// Lektra::OpenFile(DocumentView *view) noexcept
-// {
-//     initTabConnections(view);
-//     view->setDPR(m_dpr);
-
-//     const QString title
-//         = m_config.tabs.full_path ? m_doc->filePath() :
-//         m_doc->fileName();
-//     m_tab_widget->addTab(view, title);
-
-//     // Switch to already opened filepath, if it's open.
-//     auto it = m_path_tab_map.find(fileName);
-//     if (it != m_path_tab_map.end())
-//     {
-//         int existingIndex = m_tab_widget->indexOf(it.value());
-//         if (existingIndex != -1)
-//         {
-//             m_tab_widget->setCurrentIndex(existingIndex);
-//             return true;
-//         }
-//     }
-
-//     return false;
-// }
 
 DocumentView *
 Lektra::OpenFileInNewTab(const QString &filename,
@@ -3105,6 +3106,45 @@ Lektra::eventFilter(QObject *object, QEvent *event)
 {
     const QEvent::Type type = event->type();
 
+    // Close preview window on Escape
+    if (type == QEvent::KeyRelease && m_preview_view)
+    {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        if (keyEvent->key() == Qt::Key_Escape)
+        {
+            // if (QWidget *overlay = m_preview_view->parentWidget())
+            //     overlay->deleteLater();
+            // m_preview_view = nullptr;
+            // TODO: maybe add config option ?
+            m_preview_overlay->hide();
+            return true;
+        }
+    }
+
+    // Close preview when clicking outside the inner container
+    if (type == QEvent::MouseButtonPress && m_preview_overlay
+        && m_preview_overlay->isVisible()
+        && m_config.preview.close_on_click_outside)
+    {
+        // Check if click is on the overlay background (not the inner container)
+        if (object == m_preview_overlay)
+        {
+            QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(event);
+            QWidget *innerContainer
+                = m_preview_overlay->findChild<QWidget *>("linkPreviewInner");
+            if (innerContainer)
+            {
+                QPoint posInOverlay = mouseEvent->pos();
+                QRect innerRect     = innerContainer->geometry();
+                if (!innerRect.contains(posInOverlay))
+                {
+                    m_preview_overlay->hide();
+                    return true;
+                }
+            }
+        }
+    }
+
     // Link Hint Handle Key Press
     if (m_link_hint_mode)
         return handleLinkHintEvent(event);
@@ -3296,61 +3336,6 @@ Lektra::handleLinkHintEvent(QEvent *event) noexcept
     return false;
 }
 
-// Used for waiting input events like marks etc.
-// bool
-// Lektra::handleGetInputEvent(QEvent *event) noexcept
-// {
-//     const QEvent::Type type = event->type();
-//     switch (type)
-//     {
-//         case QEvent::KeyPress:
-//         {
-//             QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-//             switch (keyEvent->key())
-//             {
-//                 case Qt::Key_Escape:
-//                     handleEscapeKeyPressed();
-//                     return true;
-
-//                 case Qt::Key_Backspace:
-// #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-//                     m_lockedInputBuffer.removeLast();
-// #else
-//                     if (!m_lockedInputBuffer.isEmpty())
-//                         m_lockedInputBuffer.chop(1);
-// #endif
-//                     return true;
-//                 default:
-//                     break;
-//             }
-
-//             QString text = keyEvent->text();
-
-//             bool appended = false;
-//             if (text.size() == 1 && text.at(0).isDigit())
-//             {
-//                 m_lockedInputBuffer += text;
-//                 appended = true;
-//             }
-
-//             if (!appended)
-//                 return true;
-
-//             int num = m_lockedInputBuffer.toInt();
-//             keyEvent->accept();
-//             return true;
-//         }
-
-//         case QEvent::ShortcutOverride:
-//             event->accept();
-//             return true;
-//         default:
-//             break;
-//     }
-
-//     return false;
-// }
-
 // Opens the file of tab with index `index`
 // in file manager program
 void
@@ -3487,6 +3472,9 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
 
     connect(docwidget, &DocumentView::ctrlLinkClickRequested, this,
             &Lektra::handleCtrlLinkClickRequested);
+
+    connect(docwidget, &DocumentView::linkPreviewRequested, this,
+            &Lektra::handleLinkPreviewRequested);
 }
 
 // Insert file to store when tab is closed to track
@@ -4126,6 +4114,15 @@ Lektra::initCommands() noexcept
     { SetLayoutMode(DocumentView::LayoutMode::BOOK); });
 
     // Miscellaneous
+    m_command_manager->reg("preview", tr("Show the preview window"),
+                           [this](const QStringList &)
+    {
+        if (m_preview_overlay)
+        {
+            m_preview_overlay->show();
+        }
+    });
+
     m_command_manager->reg("set_dpr", tr("Set device pixel ratio"),
                            [this](const QStringList &) { SetDPR(); });
     m_command_manager->reg(
@@ -5124,6 +5121,95 @@ Lektra::handleCtrlLinkClickRequested(DocumentView *view,
     }, Qt::SingleShotConnection);
 }
 
+void
+Lektra::handleLinkPreviewRequested(DocumentView *view,
+                                   const BrowseLinkItem *linkItem) noexcept
+{
+    if (!view || !linkItem)
+        return;
+
+    if (!linkItem->isInternal())
+    {
+        if (!linkItem->link().isEmpty())
+            QDesktopServices::openUrl(QUrl(linkItem->URI()));
+        return;
+    }
+
+    DocumentView::PageLocation target{
+        linkItem->gotoPageNo(), linkItem->location().x, linkItem->location().y};
+    if (std::isnan(target.x))
+        target.x = 0;
+    if (std::isnan(target.y))
+        target.y = 0;
+
+    // Create overlay + preview once, reuse after
+    if (!m_preview_overlay)
+    {
+        // Full-window overlay with semi-transparent background
+        m_preview_overlay = new QWidget(this);
+        m_preview_overlay->setAttribute(Qt::WA_StyledBackground, true);
+        m_preview_overlay->setStyleSheet("background: rgba(0, 0, 0, 50);");
+
+        // Inner container for the actual preview content
+        auto *innerContainer = new QWidget(m_preview_overlay);
+        innerContainer->setObjectName("linkPreviewInner");
+        innerContainer->setAttribute(Qt::WA_StyledBackground, true);
+        innerContainer->setStyleSheet(
+            QString("background: rgba(0, 0, 0, 50); border-radius: %1px;")
+                .arg(m_config.preview.border_radius));
+
+        m_preview_view = new DocumentView(m_config, m_dpr, innerContainer);
+
+        auto *innerLayout = new QVBoxLayout(innerContainer);
+        innerLayout->setContentsMargins(2, 2, 2, 2);
+        innerLayout->addWidget(m_preview_view);
+
+        // Center the inner container within the overlay
+        auto *overlayLayout = new QGridLayout(m_preview_overlay);
+        overlayLayout->setContentsMargins(0, 0, 0, 0);
+        overlayLayout->addWidget(innerContainer, 0, 0, Qt::AlignCenter);
+
+        // Close when clicking on the overlay background (outside inner
+        // container)
+        m_preview_overlay->installEventFilter(this);
+    }
+
+    // Resize overlay to fill window, inner container sized proportionally
+    m_preview_overlay->resize(size());
+    m_preview_overlay->move(0, 0);
+
+    // Resize inner container
+    QWidget *innerContainer
+        = m_preview_overlay->findChild<QWidget *>("linkPreviewInner");
+    if (innerContainer)
+    {
+        const QSize innerSize(width() * m_config.preview.size_ratio[0],
+                              height() * m_config.preview.size_ratio[1]);
+        innerContainer->setFixedSize(innerSize);
+    }
+
+    m_preview_overlay->raise();
+    m_preview_overlay->show();
+
+    auto navigateTo = [this, target]()
+    {
+        m_preview_view->setZoom(m_doc->zoom());
+        m_preview_view->GotoLocation(target);
+    };
+
+    if (m_preview_view->filePath() != view->filePath())
+    {
+        connect(m_preview_view, &DocumentView::openFileFinished, this,
+                [navigateTo](DocumentView *, Model::FileType)
+        { QTimer::singleShot(0, navigateTo); }, Qt::SingleShotConnection);
+        m_preview_view->openAsync(view->filePath());
+    }
+    else
+    {
+        navigateTo();
+    }
+}
+
 /*
  * NOTE: This is problematic to move into the DocumentView class (because
  * the splitting related stuff are here and in the future we have to
@@ -5459,4 +5545,26 @@ Lektra::Toggle_comment_markers() noexcept
         = !m_config.annotations.rect.comment_marker;
 
     m_doc->Toggle_comment_markers();
+}
+
+void
+Lektra::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+
+    if (m_preview_overlay && m_preview_overlay->isVisible())
+    {
+        // Resize overlay to fill window
+        m_preview_overlay->resize(size());
+
+        // Resize inner container
+        QWidget *innerContainer
+            = m_preview_overlay->findChild<QWidget *>("linkPreviewInner");
+        if (innerContainer)
+        {
+            const QSize innerSize(width() * m_config.preview.size_ratio[0],
+                                  height() * m_config.preview.size_ratio[1]);
+            innerContainer->setFixedSize(innerSize);
+        }
+    }
 }
