@@ -434,7 +434,7 @@ struct Config
         // @desc Anchor zoom to mouse position (instead of center of the view)
         // @type bool
         // @default true
-        // @added 0.6.5
+        // @added 0.6.7
         bool anchor_to_mouse{true};
 
     } zoom{};
