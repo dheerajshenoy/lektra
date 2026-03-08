@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(lektra VERSION 0.6.6 LANGUAGES CXX)
+project(lektra VERSION 0.6.7 LANGUAGES CXX)
 
 option(ENABLE_LLM_SUPPORT "Enable LLM support for advanced features" OFF)
 
