@@ -1537,8 +1537,17 @@ Lektra::ToggleMenubar() noexcept
 void
 Lektra::ShowAbout() noexcept
 {
-    AboutDialog *abw = new AboutDialog(this);
+    static AboutDialog *abw = new AboutDialog(this);
+
+    if (!abw)
+    {
+        abw = new AboutDialog(this);
+        connect(abw, &QObject::destroyed, []() { abw = nullptr; });
+    }
+
     abw->show();
+    abw->raise();
+    abw->activateWindow();
 }
 
 // Reads the arguments passed with `Lektra` from the
