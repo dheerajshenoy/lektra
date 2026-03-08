@@ -39,6 +39,11 @@
 </p>
 
 <p align="center">
+  <img src="./images/preview.gif" alt="Preview" width="800"><br>
+  <strong>Preview</strong>
+</p>
+
+<p align="center">
   <img src="./images/Layouts.gif" alt="Layouts" width="800"><br>
   <strong>Layouts</strong>
 </p>
