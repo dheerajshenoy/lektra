@@ -141,6 +141,24 @@ public:
         std::vector<RenderAnnotation> annotations;
     };
 
+    // Capability queries
+
+    // This is useful for `dont_invert_images` config option.
+    inline bool supports_image_blocks() const noexcept
+    {
+        switch (m_filetype)
+        {
+            case FileType::PDF:
+            case FileType::EPUB:
+            case FileType::XPS:
+            case FileType::FB2:
+            case FileType::MOBI:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     inline bool supports_links() const noexcept
     {
         switch (m_filetype)

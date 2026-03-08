@@ -958,6 +958,16 @@ struct Config
         // @added 0.3.0
         bool invert_mode{false};
 
+        // @desc {
+        // Preserve images when in invert color mode. When enabled, images in
+        // the PDF will retain their original colors even when invert mode is
+        // active. This prevents photos and diagrams from appearing inverted.
+        // }
+        // @type bool
+        // @default true
+        // @added 0.6.6
+        bool dont_invert_images{true};
+
         // @desc Open last visited file when launching new instance
         // @type bool
         // @default false

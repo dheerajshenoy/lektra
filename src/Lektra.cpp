@@ -1070,6 +1070,8 @@ Lektra::initConfig() noexcept
             m_config.behavior.always_open_in_new_window);
         set(behavior["page_history"], m_config.behavior.page_history_limit);
         set(behavior["invert_mode"], m_config.behavior.invert_mode);
+        set(behavior["dont_invert_images"],
+            m_config.behavior.dont_invert_images);
         set(behavior["auto_reload"], m_config.behavior.auto_reload);
         set(behavior["recent_files"], m_config.behavior.recent_files);
         set(behavior["num_recent_files"], m_config.behavior.num_recent_files);

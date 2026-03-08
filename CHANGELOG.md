@@ -4,6 +4,7 @@
 
 ### Features
 
+- Add ability to not invert images in invert mode (valid in PDF, EPUB, MOBI, XPS, FB2) . Useful for users who want to use the invert mode for dark mode but don't want their images to be inverted. This can be configured in the settings with the `dont_invert_images` option under the `[behavior]` section of the config.
 - Add search history to the search bar, allowing users to easily access their previous search queries and results. The search history can be navigated using the `up` and `down` arrow keys when the search bar is focused, and selecting a previous search query from the history will re-run that search and show the results.
 - Ability to "preview" links by executing a mouse binding (Alt+LeftClick by default) on a link to open a temporary view of the link target without actually navigating to it in the current view in a floating window.
 

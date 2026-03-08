@@ -309,6 +309,403 @@ highlight_selection(fz_stext_page *stext_page, fz_point a, fz_point b,
     return count;
 }
 
+// ============================================================================
+// Image Tracking Device for Selective Inversion
+// ============================================================================
+// This device wraps a draw device and records bounding boxes of all images
+// rendered to the page. After inversion, these regions can be restored.
+
+struct ImageRect
+{
+    fz_irect bbox;   // Pixel bounding box of the image
+    fz_image *image; // Reference to the image (for re-rendering)
+    fz_matrix ctm;   // Transform matrix used for this image
+    float alpha;     // Alpha value
+    fz_color_params color_params;
+};
+
+struct fz_image_tracker_device
+{
+    fz_device super;          // Must be first - base device
+    fz_device *target;        // The actual draw device to forward calls to
+    fz_matrix page_transform; // Page transform to convert to pixel coords
+    ImageRect *rects;         // Dynamic array of image rectangles
+    int rect_count;
+    int rect_cap;
+};
+
+static void
+image_tracker_fill_image(fz_context *ctx, fz_device *dev_, fz_image *image,
+                         fz_matrix ctm, float alpha,
+                         fz_color_params color_params)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+
+    // Calculate the bounding box of this image in pixel coordinates
+    // Images are rendered into unit rect [0,0,1,1] transformed by ctm
+    fz_rect img_rect = fz_transform_rect(fz_unit_rect, ctm);
+    // fz_rect transformed = fz_transform_rect(img_rect, dev->page_transform);
+    fz_irect bbox = fz_round_rect(img_rect);
+
+    // Grow array if needed
+    if (dev->rect_count >= dev->rect_cap)
+    {
+        int new_cap     = dev->rect_cap == 0 ? 16 : dev->rect_cap * 2;
+        auto *new_rects = static_cast<ImageRect *>(
+            fz_realloc(ctx, dev->rects, new_cap * sizeof(ImageRect)));
+        dev->rects    = new_rects;
+        dev->rect_cap = new_cap;
+    }
+
+    // Store image info for later re-rendering
+    ImageRect &ir   = dev->rects[dev->rect_count++];
+    ir.bbox         = bbox;
+    ir.image        = fz_keep_image(ctx, image); // Keep reference
+    ir.ctm          = ctm;
+    ir.alpha        = alpha;
+    ir.color_params = color_params;
+
+    // Forward to target device
+    if (dev->target)
+        fz_fill_image(ctx, dev->target, image, ctm, alpha, color_params);
+}
+
+// Forward all other calls to target device
+static void
+image_tracker_fill_path(fz_context *ctx, fz_device *dev_, const fz_path *path,
+                        int even_odd, fz_matrix ctm, fz_colorspace *colorspace,
+                        const float *color, float alpha, fz_color_params cp)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_fill_path(ctx, dev->target, path, even_odd, ctm, colorspace, color,
+                     alpha, cp);
+}
+
+static void
+image_tracker_stroke_path(fz_context *ctx, fz_device *dev_, const fz_path *path,
+                          const fz_stroke_state *stroke, fz_matrix ctm,
+                          fz_colorspace *colorspace, const float *color,
+                          float alpha, fz_color_params cp)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_stroke_path(ctx, dev->target, path, stroke, ctm, colorspace, color,
+                       alpha, cp);
+}
+
+static void
+image_tracker_clip_path(fz_context *ctx, fz_device *dev_, const fz_path *path,
+                        int even_odd, fz_matrix ctm, fz_rect scissor)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_clip_path(ctx, dev->target, path, even_odd, ctm, scissor);
+}
+
+static void
+image_tracker_clip_stroke_path(fz_context *ctx, fz_device *dev_,
+                               const fz_path *path,
+                               const fz_stroke_state *stroke, fz_matrix ctm,
+                               fz_rect scissor)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_clip_stroke_path(ctx, dev->target, path, stroke, ctm, scissor);
+}
+
+static void
+image_tracker_fill_text(fz_context *ctx, fz_device *dev_, const fz_text *text,
+                        fz_matrix ctm, fz_colorspace *colorspace,
+                        const float *color, float alpha, fz_color_params cp)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_fill_text(ctx, dev->target, text, ctm, colorspace, color, alpha, cp);
+}
+
+static void
+image_tracker_stroke_text(fz_context *ctx, fz_device *dev_, const fz_text *text,
+                          const fz_stroke_state *stroke, fz_matrix ctm,
+                          fz_colorspace *colorspace, const float *color,
+                          float alpha, fz_color_params cp)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_stroke_text(ctx, dev->target, text, stroke, ctm, colorspace, color,
+                       alpha, cp);
+}
+
+static void
+image_tracker_clip_text(fz_context *ctx, fz_device *dev_, const fz_text *text,
+                        fz_matrix ctm, fz_rect scissor)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_clip_text(ctx, dev->target, text, ctm, scissor);
+}
+
+static void
+image_tracker_clip_stroke_text(fz_context *ctx, fz_device *dev_,
+                               const fz_text *text,
+                               const fz_stroke_state *stroke, fz_matrix ctm,
+                               fz_rect scissor)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_clip_stroke_text(ctx, dev->target, text, stroke, ctm, scissor);
+}
+
+static void
+image_tracker_ignore_text(fz_context *ctx, fz_device *dev_, const fz_text *text,
+                          fz_matrix ctm)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_ignore_text(ctx, dev->target, text, ctm);
+}
+
+static void
+image_tracker_fill_shade(fz_context *ctx, fz_device *dev_, fz_shade *shade,
+                         fz_matrix ctm, float alpha, fz_color_params cp)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_fill_shade(ctx, dev->target, shade, ctm, alpha, cp);
+}
+
+static void
+image_tracker_fill_image_mask(fz_context *ctx, fz_device *dev_, fz_image *image,
+                              fz_matrix ctm, fz_colorspace *colorspace,
+                              const float *color, float alpha,
+                              fz_color_params cp)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_fill_image_mask(ctx, dev->target, image, ctm, colorspace, color,
+                           alpha, cp);
+}
+
+static void
+image_tracker_clip_image_mask(fz_context *ctx, fz_device *dev_, fz_image *image,
+                              fz_matrix ctm, fz_rect scissor)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_clip_image_mask(ctx, dev->target, image, ctm, scissor);
+}
+
+static void
+image_tracker_pop_clip(fz_context *ctx, fz_device *dev_)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_pop_clip(ctx, dev->target);
+}
+
+static void
+image_tracker_begin_mask(fz_context *ctx, fz_device *dev_, fz_rect area,
+                         int luminosity, fz_colorspace *colorspace,
+                         const float *bc, fz_color_params cp)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_begin_mask(ctx, dev->target, area, luminosity, colorspace, bc, cp);
+}
+
+static void
+image_tracker_end_mask(fz_context *ctx, fz_device *dev_, fz_function *fn)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_end_mask_tr(ctx, dev->target, fn);
+}
+
+static void
+image_tracker_begin_group(fz_context *ctx, fz_device *dev_, fz_rect area,
+                          fz_colorspace *cs, int isolated, int knockout,
+                          int blendmode, float alpha)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_begin_group(ctx, dev->target, area, cs, isolated, knockout,
+                       blendmode, alpha);
+}
+
+static void
+image_tracker_end_group(fz_context *ctx, fz_device *dev_)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_end_group(ctx, dev->target);
+}
+
+static int
+image_tracker_begin_tile(fz_context *ctx, fz_device *dev_, fz_rect area,
+                         fz_rect view, float xstep, float ystep, fz_matrix ctm,
+                         int id, int doc_id)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        return fz_begin_tile_tid(ctx, dev->target, area, view, xstep, ystep,
+                                 ctm, id, doc_id);
+    return 0;
+}
+
+static void
+image_tracker_end_tile(fz_context *ctx, fz_device *dev_)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_end_tile(ctx, dev->target);
+}
+
+static void
+image_tracker_close_device(fz_context *ctx, fz_device *dev_)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+    if (dev->target)
+        fz_close_device(ctx, dev->target);
+}
+
+static void
+image_tracker_drop_device(fz_context *ctx, fz_device *dev_)
+{
+    auto *dev = reinterpret_cast<fz_image_tracker_device *>(dev_);
+
+    // Drop all kept image references
+    for (int i = 0; i < dev->rect_count; ++i)
+        fz_drop_image(ctx, dev->rects[i].image);
+
+    fz_free(ctx, dev->rects);
+    // Note: target device is dropped separately by caller
+}
+
+static fz_device *
+new_image_tracker_device(fz_context *ctx, fz_device *target,
+                         fz_matrix page_transform)
+{
+    auto *dev = fz_new_derived_device(ctx, fz_image_tracker_device);
+
+    dev->super.close_device = image_tracker_close_device;
+    dev->super.drop_device  = image_tracker_drop_device;
+
+    dev->super.fill_path        = image_tracker_fill_path;
+    dev->super.stroke_path      = image_tracker_stroke_path;
+    dev->super.clip_path        = image_tracker_clip_path;
+    dev->super.clip_stroke_path = image_tracker_clip_stroke_path;
+
+    dev->super.fill_text        = image_tracker_fill_text;
+    dev->super.stroke_text      = image_tracker_stroke_text;
+    dev->super.clip_text        = image_tracker_clip_text;
+    dev->super.clip_stroke_text = image_tracker_clip_stroke_text;
+    dev->super.ignore_text      = image_tracker_ignore_text;
+
+    dev->super.fill_shade      = image_tracker_fill_shade;
+    dev->super.fill_image      = image_tracker_fill_image;
+    dev->super.fill_image_mask = image_tracker_fill_image_mask;
+    dev->super.clip_image_mask = image_tracker_clip_image_mask;
+
+    dev->super.pop_clip    = image_tracker_pop_clip;
+    dev->super.begin_mask  = image_tracker_begin_mask;
+    dev->super.end_mask    = image_tracker_end_mask;
+    dev->super.begin_group = image_tracker_begin_group;
+    dev->super.end_group   = image_tracker_end_group;
+    dev->super.begin_tile  = image_tracker_begin_tile;
+    dev->super.end_tile    = image_tracker_end_tile;
+
+    dev->target         = target;
+    dev->page_transform = page_transform;
+    dev->rects          = nullptr;
+    dev->rect_count     = 0;
+    dev->rect_cap       = 0;
+
+    return reinterpret_cast<fz_device *>(dev);
+}
+
+// Helper to restore image regions after inversion
+static void
+restore_image_regions(fz_context *ctx, fz_pixmap *pix,
+                      fz_image_tracker_device *tracker,
+                      fz_colorspace *colorspace)
+{
+    if (tracker->rect_count == 0)
+        return;
+
+    // For each tracked image, render it directly to the pixmap region
+    for (int i = 0; i < tracker->rect_count; ++i)
+    {
+
+        ImageRect &ir = tracker->rects[i];
+
+        // Clip bbox to pixmap bounds
+        fz_irect clipped
+            = fz_intersect_irect(ir.bbox, fz_pixmap_bbox(ctx, pix));
+        if (fz_is_empty_irect(clipped))
+            continue;
+
+        // Create a sub-pixmap for just this region
+        fz_pixmap *sub{nullptr};
+        fz_device *draw_dev{nullptr};
+
+        fz_try(ctx)
+        {
+            // Create a temporary pixmap for this region
+            sub = fz_new_pixmap_with_bbox(ctx, colorspace, clipped, nullptr, 1);
+            fz_clear_pixmap_with_value(ctx, sub, 255);
+
+            // The draw device needs a translation to map from device coords
+            // to sub-pixmap coords (which start at 0,0)
+            draw_dev = fz_new_draw_device(ctx, fz_identity, sub);
+
+            // ir.ctm is already the full transformation that was used during
+            // the original render (page coords -> device coords), so use it
+            // directly
+            fz_fill_image(ctx, draw_dev, ir.image, ir.ctm, ir.alpha,
+                          ir.color_params);
+
+            fz_close_device(ctx, draw_dev);
+
+            // Copy pixels from sub back to main pixmap
+            int n          = fz_pixmap_components(ctx, pix);
+            int sub_stride = fz_pixmap_stride(ctx, sub);
+            int pix_stride = fz_pixmap_stride(ctx, pix);
+
+            unsigned char *sub_samples = fz_pixmap_samples(ctx, sub);
+            unsigned char *pix_samples = fz_pixmap_samples(ctx, pix);
+
+            // Calculate offset in main pixmap
+            int pix_x0 = fz_pixmap_x(ctx, pix);
+            int pix_y0 = fz_pixmap_y(ctx, pix);
+
+            for (int y = clipped.y0; y < clipped.y1; ++y)
+            {
+                int sub_row = y - clipped.y0;
+                int pix_row = y - pix_y0;
+
+                unsigned char *src = sub_samples + sub_row * sub_stride;
+                unsigned char *dst = pix_samples + pix_row * pix_stride
+                                     + (clipped.x0 - pix_x0) * n;
+
+                std::memcpy(dst, src, (clipped.x1 - clipped.x0) * n);
+            }
+        }
+        fz_always(ctx)
+        {
+            fz_drop_device(ctx, draw_dev);
+            fz_drop_pixmap(ctx, sub);
+        }
+        fz_catch(ctx)
+        {
+            // Log error but continue with other images
+            fz_warn(ctx, "Failed to restore image region: %s",
+                    fz_caught_message(ctx));
+        }
+    }
+}
+
+// ============================================================================
+
 static void
 mupdf_lock_mutex(void *user, int lock)
 {
@@ -1697,6 +2094,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     fz_link *head{nullptr};
     fz_pixmap *pix{nullptr};
     fz_device *dev{nullptr};
+    fz_device *tracker{nullptr};
 
     fz_try(ctx)
     {
@@ -1706,12 +2104,22 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
         // // --- Render page to QImage ---
         pix = fz_new_pixmap_with_bbox(ctx, job.colorspace, bbox, nullptr, 1);
+        fz_clear_pixmap_with_value(ctx, pix, 255);
 
         dev = fz_new_draw_device(ctx, fz_identity, pix);
 
-        fz_clear_pixmap_with_value(ctx, pix, 255);
-        fz_run_display_list(ctx, dlist, dev, transform,
-                            fz_rect_from_irect(bbox), nullptr);
+        if (m_config.behavior.dont_invert_images && supports_image_blocks())
+        {
+            tracker = new_image_tracker_device(ctx, dev, transform);
+
+            fz_run_display_list(ctx, dlist, tracker, transform,
+                                fz_rect_from_irect(bbox), nullptr);
+        }
+        else
+        {
+            fz_run_display_list(ctx, dlist, dev, transform,
+                                fz_rect_from_irect(bbox), nullptr);
+        }
 
         const int fg = (m_fg_color >> 8) & 0xFFFFFF;
         const int bg = (m_bg_color >> 8) & 0xFFFFFF;
@@ -1720,7 +2128,18 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             fz_tint_pixmap(ctx, pix, fg, bg);
 
         if (job.invert_color)
-            fz_invert_pixmap_luminance(ctx, pix);
+        {
+            fz_invert_pixmap(ctx, pix);
+
+            if (m_config.behavior.dont_invert_images && supports_image_blocks()
+                && tracker)
+            {
+                restore_image_regions(
+                    ctx, pix,
+                    reinterpret_cast<fz_image_tracker_device *>(tracker),
+                    m_colorspace);
+            }
+        }
 
         // fz_gamma_pixmap(ctx, pix, 1.0f);
 
@@ -1915,7 +2334,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     }
     fz_always(ctx)
     {
-        fz_close_device(ctx, dev);
+        fz_close_device(ctx, tracker);
         fz_drop_device(ctx, dev);
         fz_drop_link(ctx, head);
         fz_drop_pixmap(ctx, pix);
