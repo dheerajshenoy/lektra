@@ -3,6 +3,7 @@
 #include <QHBoxLayout>
 #include <QMessageBox>
 #include <QRegularExpression>
+#include <QShortcut>
 #include <QStyle>
 
 SearchBar::SearchBar(QWidget *parent) : QWidget(parent)
@@ -101,6 +102,43 @@ SearchBar::initConnections() noexcept
         if (!m_searchInput->text().isEmpty())
             search(m_searchInput->text());
     });
+
+    QShortcut *history_up   = new QShortcut(QKeySequence("Up"), this);
+    QShortcut *history_down = new QShortcut(QKeySequence("Down"), this);
+
+    connect(history_up, &QShortcut::activated, this,
+            &SearchBar::navigateHistoryUp);
+    connect(history_down, &QShortcut::activated, this,
+            &SearchBar::navigateHistoryDown);
+}
+
+void
+SearchBar::navigateHistoryDown() noexcept
+{
+    if (m_history.empty())
+        return;
+
+    if (m_history_index == -1)
+        m_history_index = 0;
+    else
+        m_history_index = std::min(static_cast<int>(m_history.size()) - 1,
+                                   m_history_index + 1);
+
+    m_searchInput->setText(m_history[m_history_index]);
+}
+
+void
+SearchBar::navigateHistoryUp() noexcept
+{
+    if (m_history.empty())
+        return;
+
+    if (m_history_index == -1)
+        m_history_index = static_cast<int>(m_history.size()) - 1;
+    else
+        m_history_index = std::max(0, m_history_index - 1);
+
+    m_searchInput->setText(m_history[m_history_index]);
 }
 
 void
@@ -153,4 +191,5 @@ SearchBar::search(const QString &term) noexcept
     m_searchInput->setStyleSheet("");
     m_searchInput->setToolTip("");
     emit searchRequested(term, m_regexButton->isChecked());
+    m_history.push_back(term);
 }

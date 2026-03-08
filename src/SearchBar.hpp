@@ -48,19 +48,18 @@ public:
         }
     }
 
-private:
-    QLabel *m_label;
-    QLabel *m_searchSeparator{new QLabel("of")};
-    QLineEdit *m_searchInput;
-    QLineEdit *m_searchIndexLabel;
-    QLabel *m_searchCountLabel;
-    QPushButton *m_prevButton;
-    QPushButton *m_nextButton;
-    QPushButton *m_closeButton;
-    WaitingSpinnerWidget *m_spinner;
-    QPushButton *m_regexButton{new QPushButton(".*", this)};
+    inline void setHistory(const std::vector<QString> &history) noexcept
+    {
+        m_history = history;
+    }
 
-    void initConnections() noexcept;
+    inline const std::vector<QString> &history() const noexcept
+    {
+        return m_history;
+    }
+
+    void navigateHistoryUp() noexcept;
+    void navigateHistoryDown() noexcept;
 
 protected:
     void showEvent(QShowEvent *event) override;
@@ -80,4 +79,19 @@ signals:
     void searchIndexChangeRequested(int index);
     void nextHitRequested();
     void prevHitRequested();
+
+private:
+    QLabel *m_label;
+    QLabel *m_searchSeparator{new QLabel("of")};
+    QLineEdit *m_searchInput;
+    QLineEdit *m_searchIndexLabel;
+    QLabel *m_searchCountLabel;
+    QPushButton *m_prevButton;
+    QPushButton *m_nextButton;
+    QPushButton *m_closeButton;
+    WaitingSpinnerWidget *m_spinner;
+    QPushButton *m_regexButton{new QPushButton(".*", this)};
+    std::vector<QString> m_history;
+    int m_history_index{-1};
+    void initConnections() noexcept;
 };
