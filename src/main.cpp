@@ -1,5 +1,5 @@
+#include "AppPaths.hpp"
 #include "Lektra.hpp"
-#include "TranslationsDir.hpp"
 #include "argparse.hpp"
 
 #include <QApplication>
@@ -165,7 +165,7 @@ main(int argc, char *argv[])
     app.setWindowIcon(QIcon(":/resources/png/lektra.png"));
 
     // Load correct localization file
-    QString baseDir    = QStringLiteral(TRANSLATIONS_DIR);
+    QString baseDir    = appTranslationsPath();
     QString fullLocale = QLocale::system().name(); // ex. "es_MX"
     QString langOnly   = fullLocale.left(2);       // ex: "es"
 

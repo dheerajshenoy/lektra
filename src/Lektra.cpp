@@ -1,3 +1,4 @@
+#include "AppPaths.hpp"
 #include "Lektra.hpp"
 
 #include "AboutDialog.hpp"
@@ -4659,14 +4660,16 @@ Lektra::ToggleLLMWidget() noexcept
 void
 Lektra::showTutorialFile() noexcept
 {
-#if defined(__linux__)
-    const QString doc_path = QString("%1/share/doc/%2/tutorial.pdf")
-                                 .arg(APP_INSTALL_PREFIX)
-                                 .arg(APP_NAME);
-    OpenFileInNewTab(doc_path);
-#elif defined(__APPLE__) && defined(__MACH__)
+    const QString doc_path = appTutorialPath();
+    if (!doc_path.isEmpty() && QFileInfo::exists(doc_path))
+    {
+        OpenFileInNewTab(doc_path);
+        return;
+    }
+
+#if defined(__linux__) || defined(__APPLE__) && defined(__MACH__)
     QMessageBox::warning(this, tr("Show Tutorial File"),
-                         tr("Not yet implemented for Mac"));
+                         tr("Tutorial file could not be found."));
 #elif defined(_WIN64)
     QMessageBox::warning(this, "Show Tutorial File",
                          tr("Not yet implemented for Windows"));

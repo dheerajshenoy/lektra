@@ -13,6 +13,7 @@
 #include <QRegularExpression>
 #include <QString>
 #include <QUndoStack>
+#include <mutex>
 #include <set>
 
 extern "C"

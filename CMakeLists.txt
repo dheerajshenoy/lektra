@@ -114,6 +114,7 @@ add_executable(${PROJECT_NAME}
     src/Model.cpp
     src/PropertiesWidget.cpp
     src/AboutDialog.cpp
+    src/AppPaths.cpp
     src/GraphicsView.cpp
     src/GraphicsScene.cpp
     src/DocumentView.cpp
@@ -141,6 +142,7 @@ add_executable(${PROJECT_NAME}
     # src/MouseBindKey.hpp
     src/Config.hpp
     src/MarkManager.hpp
+    src/AppPaths.hpp
     src/GraphicsPixmapItem.hpp
     src/BrowseLinkItem.hpp
     src/OutlineWidget.hpp
@@ -173,6 +175,19 @@ add_executable(${PROJECT_NAME}
     src/Commands/DeleteAnnotationsCommand.hpp
     src/Commands/AnnotCommentCommand.hpp
 )
+
+if(APPLE)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_BUNDLE_NAME "Lektra"
+        MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+        MACOSX_BUNDLE_COPYRIGHT "Copyright 2026 Lektra contributors"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "org.lektra.lektra"
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Info.plist.in"
+        MACOSX_BUNDLE_LONG_VERSION_STRING "${PROJECT_NAME} ${PROJECT_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
+    )
+endif()
 
 if (DJVULIBRE_FOUND)
     target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_DJVU=1)
@@ -278,6 +293,45 @@ if(TARGET lektra_lrelease)
     add_dependencies(${PROJECT_NAME} lektra_lrelease)
 endif()
 
+if(APPLE)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/tutorial.pdf"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/tutorial.pdf"
+        VERBATIM
+    )
+
+    foreach(qm_file ${QM_FILES})
+        get_filename_component(qm_name "${qm_file}" NAME)
+        string(REGEX REPLACE "\\.qm$" "" qm_name "${qm_name}")
+        string(REPLACE "lektra." "" lang "${qm_name}")
+
+        if(lang STREQUAL "${qm_name}")
+            set(lang "en")
+        endif()
+
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/locale/${lang}/LC_MESSAGES"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${qm_file}"
+                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/locale/${lang}/LC_MESSAGES/lektra.qm"
+            VERBATIM
+        )
+    endforeach()
+
+    if(ENABLE_LLM_SUPPORT)
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_CURRENT_SOURCE_DIR}/src/llm/role.txt"
+                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/role.txt"
+            VERBATIM
+        )
+    endif()
+endif()
+
 # qt_add_translations(
 #     TARGETS ${PROJECT_NAME}         # Target that will use the .qm files
 #     TS_FILES ${TRANSLATION_FILES}   # Explicit .ts files
@@ -324,7 +378,11 @@ target_link_options(${PROJECT_NAME} PRIVATE
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 
-install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+if(APPLE)
+    install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION .)
+else()
+    install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+endif()
 #Install icons to correct freedesktop - compliant locations
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/lektra-template.desktop.in
