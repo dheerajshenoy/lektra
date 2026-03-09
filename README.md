@@ -88,6 +88,7 @@ Check out [CONTRIBUTING.md](CONTRIBUTING.md)
 - [techmanwalker](https://github.com/techmanwalker) - For initiating translations and contributing the Spanish translation.
 - [linwaytin](https://codeberg.org/linwaytin) - For providing valuable feedback and bug reports and feature-requesting annotation comment.
 - [douglarek](https://github.com/douglarek) - For packaging lektra to [gentoo-zh](https://github.com/microcai/gentoo-zh).
+- [Zou Yonghe](https://codeberg.org/budingZou) - For creating macOS app bundle.
 
 ## If you want to support me
 <a href="https://buymeacoffee.com/dheerajshenoy"><img alt="Buy me a coffee" src="https://img.shields.io/badge/buy_me_a_coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black"></a>
