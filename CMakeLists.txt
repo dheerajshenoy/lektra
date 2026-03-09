@@ -159,6 +159,7 @@ add_executable(${PROJECT_NAME}
     src/CommandPicker.hpp
     src/JumpMarker.hpp
     src/OutlinePicker.hpp
+    src/InputDialog.hpp
 
     # Annotations
     src/Annotations/RectAnnotation.hpp

@@ -12,6 +12,7 @@
 #include "DocumentContainer.hpp"
 #include "GraphicsImageItem.hpp"
 #include "GraphicsView.hpp"
+#include "InputDialog.hpp"
 #include "LinkHint.hpp"
 #include "PropertiesWidget.hpp"
 #include "WaitingSpinnerWidget.hpp"
@@ -3613,9 +3614,9 @@ DocumentView::renderAnnotations(
         {
             const QString oldComment = annot_item->comment();
             bool ok;
-            const QString newComment = QInputDialog::getMultiLineText(
-                this, tr("Add Comment"), tr("Enter annotation comment:"),
-                oldComment, &ok);
+            const QString newComment = InputDialog::getText(
+                tr("Add Comment"), tr("Enter annotation comment:"), "",
+                oldComment, ok, this);
 
             if (!ok)
                 return;
@@ -4395,8 +4396,9 @@ DocumentView::handleAnnotPopupRequested(QPointF scenePos) noexcept
 
     // Show input dialog for annotation text
     bool ok;
-    QString text = QInputDialog::getMultiLineText(
-        this, tr("Add Note"), tr("Enter annotation text:"), QString(), &ok);
+    QString text
+        = InputDialog::getText(tr("Add Note"), tr("Enter annotation text:"),
+                               "Enter text here", "", ok, this);
 
     if (!ok || text.isEmpty())
         return;

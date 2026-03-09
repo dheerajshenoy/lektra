@@ -6,6 +6,7 @@
 
 - Config option for `[zoom]` to choose whether zoom should be anchored at mouse position or center of the viewport. This can be configured with the `anchor_to_mouse` option. Otherwise, zoom will be anchored to the center of the viewport as it was before.
 - Added macOS support for LEKTRA. Check out [installation](https://dheerajshenoy.github.io/lektra/installation.html) instructions for more details. (Thanks to [@budingZou](https://codeberg.org/budingZou) for the PR!)
+- Added custom input dialog with text wrapping for annotation comment input, which allows for better user experience when adding comments to annotations, especially for longer comments that require more space. The dialog will automatically adjust its size based on the content and provide a more comfortable interface for entering annotation comments.
 
 ### Bug Fixes
 
