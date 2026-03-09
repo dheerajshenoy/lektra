@@ -1,7 +1,7 @@
-#include "AppPaths.hpp"
 #include "Lektra.hpp"
 
 #include "AboutDialog.hpp"
+#include "AppPaths.hpp"
 #include "DocumentContainer.hpp"
 #include "DocumentView.hpp"
 #include "EditLastPagesWidget.hpp"
