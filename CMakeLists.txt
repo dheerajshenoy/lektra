@@ -114,7 +114,6 @@ add_executable(${PROJECT_NAME}
     src/Model.cpp
     src/PropertiesWidget.cpp
     src/AboutDialog.cpp
-    src/AppPaths.cpp
     src/GraphicsView.cpp
     src/GraphicsScene.cpp
     src/DocumentView.cpp
@@ -139,7 +138,6 @@ add_executable(${PROJECT_NAME}
     src/OutlinePicker.cpp
     src/CommentSearchPicker.cpp
 
-    # src/MouseBindKey.hpp
     src/Config.hpp
     src/MarkManager.hpp
     src/AppPaths.hpp

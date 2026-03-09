@@ -165,7 +165,7 @@ main(int argc, char *argv[])
     app.setWindowIcon(QIcon(":/resources/png/lektra.png"));
 
     // Load correct localization file
-    QString baseDir    = appTranslationsPath();
+    QString baseDir    = AppPaths::appTranslationsPath();
     QString fullLocale = QLocale::system().name(); // ex. "es_MX"
     QString langOnly   = fullLocale.left(2);       // ex: "es"
 

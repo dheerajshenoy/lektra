@@ -4660,7 +4660,7 @@ Lektra::ToggleLLMWidget() noexcept
 void
 Lektra::showTutorialFile() noexcept
 {
-    const QString doc_path = appTutorialPath();
+    const QString doc_path = AppPaths::appTutorialPath();
     if (!doc_path.isEmpty() && QFileInfo::exists(doc_path))
     {
         OpenFileInNewTab(doc_path);
