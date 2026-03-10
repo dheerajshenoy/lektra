@@ -1,0 +1,36 @@
+name: Feature Request
+about: Suggest a new feature or enhancement.
+labels: ["enhancement"]
+body:
+  - type: checkboxes
+    attributes:
+      label: Searched existing issues
+      description: Search existing issues to avoid duplicates.
+      options:
+        - label: I have searched existing issues for duplicates.
+          required: true
+
+  - type: checkboxes
+    attributes:
+      label: Willing to contribute
+      options:
+        - label: I am willing to submit a pull request for this.
+          required: false
+
+  - type: textarea
+    attributes:
+      label: Problem
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
