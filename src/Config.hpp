@@ -2,7 +2,6 @@
 
 #include "DocumentView.hpp"
 #include "GraphicsView.hpp"
-// #include "MouseBindKey.hpp"
 
 #include <QColor>
 #include <QHash>
@@ -1044,9 +1043,11 @@ struct Config
     // <p>Valid commands are:
     // <ul>
     // <li><code class="inline">preview</code> - Shows a preview of the link
-    // location in a floating window</li> <li><code
+    // location in a floating window</li>
+    // <li><code
     // class="inline">synctex_jump</code> - Takes to the source code if opened
-    // in SyncTeX mode</li> <li><code class="inline">portal</code> - Opens a
+    // in SyncTeX mode</li>
+    // <li><code class="inline">portal</code> - Opens a
     // portal pointing to the clicked link</li>
     // </ul>
     // Example of how to define a mouse binding in the config file:</p>
