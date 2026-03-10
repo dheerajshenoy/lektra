@@ -3070,11 +3070,12 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
     const bool annotModeActive
         = m_gview->mode() == GraphicsView::Mode::AnnotSelect
           || m_gview->mode() == GraphicsView::Mode::AnnotPopup;
-    const auto selectedAnnots = annotModeActive
-                                    ? getSelectedAnnotations()
-                                    : decltype(getSelectedAnnotations()){};
-    const bool hasAnnots      = !selectedAnnots.empty();
-    bool hasActions           = false;
+    const auto selectedAnnots
+        = annotModeActive && m_model->supports_annotations()
+              ? getSelectedAnnotations()
+              : decltype(getSelectedAnnotations()){};
+    const bool hasAnnots = !selectedAnnots.empty();
+    bool hasActions      = false;
 
     // if (selectionActive &&
     // m_selection_path_item->path().contains(scenePos))
@@ -3084,8 +3085,11 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
     {
         addAction("Copy Text", [this]() { YankSelection(true); });
         addAction("Copy Unformatted Text", [this]() { YankSelection(false); });
-        addAction("Highlight Text",
-                  &DocumentView::handleTextHighlightRequested);
+        if (m_model->supports_annotations())
+        {
+            addAction("Highlight Text",
+                      &DocumentView::handleTextHighlightRequested);
+        }
         hasActions = true;
     }
 
