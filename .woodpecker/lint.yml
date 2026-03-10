@@ -1,0 +1,13 @@
+when:
+  - event: pull_request
+
+steps:
+  - name: clang-format
+    image: silkeh/clang:19
+    commands:
+      - find src -name '*.cpp' -o -name '*.hpp' | xargs clang-format --dry-run --Werror
+
+  - name: prettier
+    image: node:22-alpine
+    commands:
+      - npx --yes prettier --check '**/*.md'

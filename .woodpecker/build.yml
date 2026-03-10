@@ -1,0 +1,17 @@
+when:
+  - event: pull_request
+
+steps:
+  - name: build
+    image: ubuntu:24.04
+    commands:
+      - apt-get update -qq
+      - >-
+        apt-get install -y -qq --no-install-recommends
+        build-essential cmake pkg-config git
+        python3 unzip
+        qt6-base-dev qt6-tools-dev qt6-l10n-tools libgl-dev
+        libdjvulibre-dev zlib1g-dev libsynctex-dev
+      - git submodule update --init --recursive
+      - cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - cmake --build build -j$(nproc)
