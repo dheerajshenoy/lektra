@@ -1808,13 +1808,60 @@ Model::get_selected_text(int pageno, QPointF start, QPointF end,
     return QString::fromStdString(result);
 }
 
-std::vector<std::pair<QString, QString>>
+Model::Properties
 Model::properties() noexcept
 {
+#ifdef HAS_DJVU
+    if (m_filetype == FileType::DJVU)
+    {
+        if (!m_ddjvu_ctx || !m_ddjvu_doc)
+            return {};
+
+        Properties djvu_props;
+        djvu_props.reserve(5); // typical number of metadata entries
+
+        /* Fetch document-wide annotations.
+           compat=1 also searches the shared annotation chunk
+           so metadata is found in older files too. */
+        miniexp_t anno;
+        while ((anno = ddjvu_document_get_anno(m_ddjvu_doc, 1))
+               == miniexp_dummy)
+            handle_messages(m_ddjvu_ctx, 1);
+
+        if (anno == miniexp_nil || anno == miniexp_symbol("failed")
+            || anno == miniexp_symbol("stopped"))
+        {
+            return djvu_props;
+        }
+
+        /* Key/value metadata pairs */
+        miniexp_t *keys = ddjvu_anno_get_metadata_keys(anno);
+        if (keys)
+        {
+            for (int i = 0; keys[i]; i++)
+            {
+                const char *key = miniexp_to_name(keys[i]);
+                const char *val = ddjvu_anno_get_metadata(anno, keys[i]);
+                if (key && val)
+                    djvu_props.emplace_back(key, val);
+            }
+            free(keys);
+        }
+
+        /* XMP metadata blob (if present) */
+        const char *xmp = ddjvu_anno_get_xmp(anno);
+        if (xmp)
+            djvu_props.emplace_back("XMP", xmp);
+
+        ddjvu_miniexp_release(m_ddjvu_doc, anno);
+        return djvu_props;
+    }
+#endif
+
     if (!m_ctx || !m_doc)
         return {};
 
-    std::vector<std::pair<QString, QString>> props;
+    Properties props;
     props.reserve(16); // Typical number of PDF properties
 
     props.push_back(qMakePair("File Path", m_filepath));

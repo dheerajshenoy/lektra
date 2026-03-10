@@ -42,6 +42,8 @@ class Model : public QObject
 {
     Q_OBJECT
 public:
+    using Properties = std::vector<std::pair<QString, QString>>;
+
     Model(const Config &config, QObject *parent = nullptr) noexcept;
     ~Model() noexcept;
 
@@ -206,7 +208,7 @@ public:
 
     inline bool supports_metadata() const noexcept
     {
-        return supports_outline();
+        return supports_outline() || m_filetype == FileType::DJVU;
     }
 
     inline bool supports_annotations() const noexcept
@@ -426,7 +428,8 @@ public:
         const RenderJob &job,
         const std::function<void(PageRenderResult)> &callback) noexcept;
     PageRenderResult renderPageWithExtrasAsync(const RenderJob &job) noexcept;
-    std::vector<std::pair<QString, QString>> properties() noexcept;
+
+    Properties properties() noexcept;
     fz_outline *getOutline() noexcept;
     void cancelOpen() noexcept;
     QFuture<void> openAsync(const QString &filePath) noexcept;
@@ -671,8 +674,7 @@ private:
     fz_stext_page *get_or_build_stext_page(fz_context *ctx,
                                            int pageno) noexcept;
 
-    void populatePDFProperties(
-        std::vector<std::pair<QString, QString>> &props) noexcept;
+    void populatePDFProperties(Properties &props) noexcept;
     fz_point getFirstCharPos(const int pageno) noexcept;
     std::vector<Model::RenderLink>
     detectUrlLinksForPage(const RenderJob &job) noexcept;
