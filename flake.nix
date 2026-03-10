@@ -1,10 +1,14 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    mupdf-src = {
+      url = "git+https://github.com/ArtifexSoftware/mupdf?ref=refs/tags/1.27.0&submodules=1";
+      flake = false;
+    };
   };
 
   outputs =
-    { self, nixpkgs }:
+    { self, nixpkgs, mupdf-src }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
@@ -15,10 +19,18 @@
 
         src = self;
 
+        postUnpack = ''
+          mkdir -p $sourceRoot/thirdparty
+          cp -r ${mupdf-src} $sourceRoot/thirdparty/mupdf
+          chmod -R u+w $sourceRoot/thirdparty/mupdf
+        '';
+
         nativeBuildInputs = with pkgs; [
           cmake
           pkg-config
           gnumake
+          python3
+          unzip
           qt6.wrapQtAppsHook
         ];
 

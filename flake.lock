@@ -1,5 +1,24 @@
 {
   "nodes": {
+    "mupdf-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1765497607,
+        "narHash": "sha256-QUPI7Y27AZY7HL4SessNBydeoiA+3pUPxw0njo3nAP4=",
+        "ref": "refs/tags/1.27.0",
+        "rev": "d3b7556577b790e9761868c314ad6fd9b6dd86a9",
+        "revCount": 12325,
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/ArtifexSoftware/mupdf"
+      },
+      "original": {
+        "ref": "refs/tags/1.27.0",
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/ArtifexSoftware/mupdf"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1772773019,
@@ -18,6 +37,7 @@
     },
     "root": {
       "inputs": {
+        "mupdf-src": "mupdf-src",
         "nixpkgs": "nixpkgs"
       }
     }

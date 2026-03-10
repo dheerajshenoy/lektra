@@ -48,3 +48,12 @@ mkdir -p build
 cmake -S . -B build -DCMAKE_INSTALL_TYPE=Debug
 cmake --install build --prefix build/debug
 ```
+
+### Nix
+
+A flake is provided that handles all dependencies including mupdf:
+
+```bash
+nix develop
+nix build
+```
