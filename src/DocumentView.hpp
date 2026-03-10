@@ -394,6 +394,7 @@ private slots:
     void handleSynctexJumpRequested(QPointF scenePos) noexcept;
 #endif
     void handleOpenFileFinished() noexcept;
+    void handleOpenFileFailed() noexcept;
 
 protected:
     void handleContextMenuRequested(const QPoint &globalPos,

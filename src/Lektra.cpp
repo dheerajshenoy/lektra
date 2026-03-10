@@ -3405,6 +3405,36 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
         }
     });
 
+    connect(docwidget, &DocumentView::openFileFailed, this,
+            [this](DocumentView *doc)
+    {
+        const bool wasCurrentView = (m_doc == doc);
+        doc->CloseFile();
+        DocumentContainer *container = doc->container();
+        if (!container)
+            return;
+
+        // If this is the only view in the container, remove the entire tab
+        // Otherwise just close this view within the split
+        if (container->getViewCount() <= 1)
+        {
+            const int tabIndex = m_tab_widget->indexOf(container);
+            if (tabIndex != -1)
+                m_tab_widget->removeTab(tabIndex);
+        }
+        else
+        {
+            container->closeView(doc);
+        }
+
+        // Update UI state if this was the current view
+        if (wasCurrentView)
+        {
+            updatePanel();
+            updateUiEnabledState();
+        }
+    });
+
     connect(docwidget, &DocumentView::currentPageChanged, this,
             [this, docwidget](int pageno)
     {

@@ -65,7 +65,7 @@ DocumentView::DocumentView(const Config &config, float dpr,
     m_model->setDPR(dpr);
 
     connect(m_model, &Model::openFileFailed, this,
-            [this]() { emit openFileFailed(this); });
+            &DocumentView::handleOpenFileFailed);
 
     connect(m_model, &Model::openFileFinished, this,
             &DocumentView::handleOpenFileFinished);
@@ -285,6 +285,19 @@ DocumentView::openAsync(const QString &filePath) noexcept
     QFuture<void> future = m_model->openAsync(QDir::cleanPath(filePath));
 
     m_open_future_watcher.setFuture(future);
+}
+
+void
+DocumentView::handleOpenFileFailed() noexcept
+{
+    m_spinner->stop();
+    m_spinner->hide();
+
+    QMessageBox::critical(this, tr("Error"),
+                          tr("Failed to open the file. Please check if the "
+                             "file exists and is a supported format."));
+
+    emit openFileFailed(this);
 }
 
 void
