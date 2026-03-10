@@ -1880,6 +1880,14 @@ DocumentView::FileProperties() noexcept
     if (!m_model->success() || !m_model->supports_metadata())
         return;
 
+    const auto props = m_model->properties();
+    if (props.empty())
+    {
+        QMessageBox::information(
+            this, "No properties",
+            "No metadata properties available for this file.");
+        return;
+    }
     PropertiesWidget *propsWidget = new PropertiesWidget(this);
     const auto props              = m_model->properties();
     propsWidget->setProperties(props);
