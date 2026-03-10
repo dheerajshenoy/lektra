@@ -1889,7 +1889,6 @@ DocumentView::FileProperties() noexcept
         return;
     }
     PropertiesWidget *propsWidget = new PropertiesWidget(this);
-    const auto props              = m_model->properties();
     propsWidget->setProperties(props);
     propsWidget->exec();
 }
