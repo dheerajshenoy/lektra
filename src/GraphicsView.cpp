@@ -462,6 +462,30 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
 void
 GraphicsView::wheelEvent(QWheelEvent *event)
 {
+    // Ctrl + Wheel for zooming (mouse wheel)
+    if (Qt::KeyboardModifiers(Qt::ControlModifier) & event->modifiers())
+    {
+        const QPointF anchorScenePos = mapToScene(event->position().toPoint());
+
+        // Touchpad sends pixelDelta, mouse wheel sends angleDelta
+        float factor = 1.0f;
+        if (!event->pixelDelta().isNull())
+        {
+            // Touchpad: smooth zoom based on pixel delta
+            factor = 1.0f + event->pixelDelta().y() * 0.001f;
+        }
+        else
+        {
+            // Mouse wheel: use zoom factor from config as a multiplier
+            // angleDelta is typically 120 per wheel notch
+            const float steps = event->angleDelta().y() / 120.0f;
+            factor            = std::pow(m_config.zoom.factor, steps);
+        }
+
+        emit zoomRequested(factor, anchorScenePos);
+        event->accept();
+        return;
+    }
     QGraphicsView::wheelEvent(event);
 }
 
