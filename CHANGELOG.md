@@ -22,6 +22,7 @@
 
 ### Core Changes
 
+- Add man pages for command line usage documentation `man lektra`
 - Rename `panel` to `statusbar`
 
 ## 0.6.6
