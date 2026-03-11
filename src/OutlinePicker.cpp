@@ -119,5 +119,4 @@ OutlinePicker::selectCurrentPage() noexcept
     QModelIndex proxy_idx  = m_proxy->mapFromSource(source_idx);
     m_listView->setCurrentIndex(proxy_idx);
     m_listView->scrollTo(proxy_idx, QAbstractItemView::PositionAtCenter);
-    m_listView->setFocus();
 }
