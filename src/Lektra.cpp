@@ -4506,10 +4506,16 @@ Lektra::searchInPage(const int pageno, const QString &term) noexcept
 void
 Lektra::Search() noexcept
 {
-    if (m_doc)
+    if (m_doc && m_doc->model()->supports_text_search())
     {
         m_search_bar->setVisible(true);
         m_search_bar->focusSearchInput();
+    }
+    else
+    {
+        QMessageBox::information(
+            this, tr("Search Not Supported"),
+            tr("The current document does not support text search."));
     }
 }
 

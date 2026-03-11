@@ -11,6 +11,7 @@
 
 ### Bug Fixes
 
+- Don't allow searching in unsearchable file type (e.g. DJVU)
 - Fix `selection_last` not working properly.
 - Handle failed to open file properly by showing an error message and closing the tab cleanly.
 - Fix file not focusing when opened from the recent files picker.
