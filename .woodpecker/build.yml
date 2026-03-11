@@ -14,4 +14,4 @@ steps:
         libdjvulibre-dev zlib1g-dev libsynctex-dev
       - git submodule update --init --recursive
       - cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-      - cmake --build build -j$(nproc)
+      - cmake --build build --parallel
