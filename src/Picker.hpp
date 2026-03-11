@@ -183,7 +183,7 @@ public:
     virtual QList<Item> collectItems()            = 0;
     virtual void onItemAccepted(const Item &item) = 0;
 
-    void launch() noexcept;
+    virtual void launch() noexcept;
 
     void repopulate() noexcept;
 
@@ -203,6 +203,9 @@ protected:
     void keyPressEvent(QKeyEvent *event) override;
     PickerFilterProxy *m_proxy{nullptr};
     QTreeView *m_listView{nullptr};
+    QLineEdit *m_searchBox;
+    void populate(const QList<Item> &items);
+    void reposition();
 
 private slots:
     void onSearchChanged(const QString &text);
@@ -213,13 +216,10 @@ private slots:
     }
 
 private:
-    void populate(const QList<Item> &items); // , bool hierarchical = false);
-    void reposition();
     void applyFrameStyle() noexcept;
     Item itemAtProxyIndex(const QModelIndex &index) const;
 
     QFrame *m_frame{nullptr};
-    QLineEdit *m_searchBox;
     QStandardItemModel *m_model;
     Keybindings m_keys;
     FrameStyle m_frame_style{};
