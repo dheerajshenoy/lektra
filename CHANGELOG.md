@@ -4,6 +4,7 @@
 
 ### Features
 
+- `OutlinePicker` now highlights the current page in the outline for better visual feedback on the current location in the document when navigating with the outline.
 - Add `--list-commands` command line argument to print the list of available commands with their descriptions to the console and exit.
 - Added `fade_duration` to `[jump_marker]` config section to configure the duration of the fade out effect for the jump marker in seconds.
 - Finally added `Ctrl + Mouse Wheel` zooming!
@@ -13,6 +14,7 @@
 
 ### Bug Fixes
 
+- Fix dismiss key not working in Pickers
 - Don't allow searching in unsearchable file type (e.g. DJVU)
 - Fix `selection_last` not working properly.
 - Handle failed to open file properly by showing an error message and closing the tab cleanly.
