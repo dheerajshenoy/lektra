@@ -165,8 +165,10 @@ main(int argc, char *argv[])
 
     if (!foreground && !listCommands)
         return spawn_detached_child(argc, argv);
+
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon(":/resources/png/lektra.png"));
 
