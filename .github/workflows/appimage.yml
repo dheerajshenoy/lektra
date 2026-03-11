@@ -1,0 +1,132 @@
+name: Build AppImage
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "!**"
+
+jobs:
+  build:
+    name: Build AppImage
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            qt6-base-dev qt6-tools-dev qt6-tools-dev-tools \
+            libgl1-mesa-dev libxcb-cursor0 libxcb1 \
+            libfuse2 wget patchelf file
+
+      - name: Configure and build
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build --parallel
+
+      - name: Install into AppDir
+        run: DESTDIR=$GITHUB_WORKSPACE/AppDir cmake --install build
+
+      - name: Bundle Qt6 libs and plugins
+        run: |
+          APPDIR=$GITHUB_WORKSPACE/AppDir
+          QT_LIB_DIR=$(qmake6 -query QT_INSTALL_LIBS)
+          QT_PLUGIN_DIR=$(qmake6 -query QT_INSTALL_PLUGINS)
+
+          mkdir -p $APPDIR/usr/lib
+          mkdir -p $APPDIR/usr/plugins/{platforms,xcbglintegrations,imageformats,iconengines}
+
+          for lib in Qt6Core Qt6Gui Qt6Widgets Qt6XcbQpa Qt6WaylandQpa Qt6OpenGL; do
+            cp -P $QT_LIB_DIR/lib${lib}.so* $APPDIR/usr/lib/ 2>/dev/null || true
+          done
+
+          cp $QT_PLUGIN_DIR/platforms/libqxcb.so $APPDIR/usr/plugins/platforms/
+          cp $QT_PLUGIN_DIR/platforms/libqwayland-generic.so $APPDIR/usr/plugins/platforms/ 2>/dev/null || true
+          cp $QT_PLUGIN_DIR/xcbglintegrations/*.so $APPDIR/usr/plugins/xcbglintegrations/ 2>/dev/null || true
+          cp $QT_PLUGIN_DIR/imageformats/*.so $APPDIR/usr/plugins/imageformats/ 2>/dev/null || true
+          cp $QT_PLUGIN_DIR/iconengines/*.so $APPDIR/usr/plugins/iconengines/ 2>/dev/null || true
+
+      - name: Bundle system libs with patchelf
+        run: |
+          APPDIR=$GITHUB_WORKSPACE/AppDir
+          mkdir -p $APPDIR/usr/lib
+
+          find $APPDIR/usr -type f \( -name "*.so*" -o -executable \) | head -100 | while read bin; do
+            ldd "$bin" 2>/dev/null | grep "=> /" | awk '{print $3}' | while read dep; do
+              basename=$(basename $dep)
+              case $basename in
+                libc.so*|libm.so*|libpthread.so*|libdl.so*|librt.so*|ld-linux*) continue ;;
+              esac
+              [ ! -f "$APPDIR/usr/lib/$basename" ] && cp -P "$dep" $APPDIR/usr/lib/ 2>/dev/null || true
+            done
+          done
+
+          find $APPDIR/usr -type f -name "*.so*" -exec patchelf --set-rpath '$ORIGIN' {} \; 2>/dev/null || true
+          find $APPDIR/usr/bin -type f -exec patchelf --set-rpath '$ORIGIN/../lib' {} \; 2>/dev/null || true
+
+      - name: Write AppRun script
+        run: |
+          APPDIR=$GITHUB_WORKSPACE/AppDir
+          cat > $APPDIR/AppRun << 'EOF'
+#!/bin/bash
+HERE="$(dirname "$(readlink -f "$0")")"
+export LD_LIBRARY_PATH="$HERE/usr/lib:$LD_LIBRARY_PATH"
+export QT_PLUGIN_PATH="$HERE/usr/plugins"
+export QT_QPA_PLATFORM_PLUGIN_PATH="$HERE/usr/plugins/platforms"
+export XDG_DATA_DIRS="$HERE/usr/share:$XDG_DATA_DIRS"
+exec "$HERE/usr/bin/lektra" "$@"
+EOF
+          chmod +x $APPDIR/AppRun
+
+      - name: Add .desktop and icon
+        run: |
+          APPDIR=$GITHUB_WORKSPACE/AppDir
+          mkdir -p $APPDIR/usr/share/applications $APPDIR/usr/share/icons/hicolor/256x256/apps
+
+          cp $APPDIR/usr/share/applications/lektra.desktop $APPDIR/ 2>/dev/null || cat > $APPDIR/lektra.desktop << 'EOF'
+[Desktop Entry]
+Name=Lektra
+Exec=lektra
+Icon=lektra
+Type=Application
+Categories=Office;Viewer;
+EOF
+
+          cp $APPDIR/usr/share/icons/hicolor/256x256/apps/lektra.png $APPDIR/ 2>/dev/null || true
+
+      - name: Set version string
+        id: version
+        run: |
+          # Use tag if available, otherwise short commit SHA
+          VERSION="${GITHUB_REF_NAME}"
+          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
+            VERSION="dev-$(git rev-parse --short HEAD)"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download appimagetool and package
+        run: |
+          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          ARCH=x86_64 ./appimagetool-x86_64.AppImage \
+            --comp zstd \
+            $GITHUB_WORKSPACE/AppDir \
+            Lektra-${{ steps.version.outputs.version }}-x86_64.AppImage
+
+      - name: Upload as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lektra-appimage-${{ steps.version.outputs.version }}
+          path: "Lektra-*.AppImage"
+          retention-days: 14
