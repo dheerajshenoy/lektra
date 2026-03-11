@@ -2579,8 +2579,7 @@ Lektra::Show_outline() noexcept
 
     if (m_outline_picker->hasOutline())
     {
-        m_outline_picker->setCurrentPage(m_doc->pageNo()
-                                         + 1); // pageNo is 0-based
+        m_outline_picker->setCurrentPage(m_doc->pageNo() + 1);
         m_outline_picker->launch();
         m_outline_picker->selectCurrentPage();
     }

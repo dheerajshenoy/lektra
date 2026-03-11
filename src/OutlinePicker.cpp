@@ -106,13 +106,18 @@ OutlinePicker::selectCurrentPage() noexcept
     if (m_entries.empty() || m_current_page < 0)
         return;
 
-    int best_idx = 0;
+    int best_idx  = 0;
+
+    // Find the entry with the largest page number that is <= current page
     for (size_t i = 0; i < m_entries.size(); ++i)
     {
-        if (m_entries[i].page <= m_current_page)
+        if (m_entries[i].page < m_current_page)
+        {
             best_idx = static_cast<int>(i);
-        else
-            break;
+        }
+        else        {
+            break; // Since entries are in order, we can stop here
+        }
     }
 
     QModelIndex source_idx = m_proxy->sourceModel()->index(best_idx, 0);
