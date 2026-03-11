@@ -14,6 +14,7 @@
 - [ ] Undo/Redo operations for annotation color
 - [ ] Don't add connection to annotation when in non-annotatable mode
 - [ ] External search engine configuration
+- [ ] Search hits not updating when zooming in and out
 - [ ] Crash when zoom out too much and then in
 - [ ] Search from current position instead of top of document
 
