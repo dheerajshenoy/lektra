@@ -29,6 +29,9 @@ Command line options are described below:
 \f[CR]FILE_PATH(s)\f[R]
 One or more PDF files to open on startup.
 .TP
+\f[CR]\-\-list\-commands\f[R]
+Print a list of all available commands and exit.
+.TP
 \f[CR]\-p PAGE_NUMBER\f[R], \f[CR]\-\-page PAGE_NUMBER\f[R]
 Jump to the given page number immediately after opening the file.
 Defaults to \f[CR]\-1\f[R] (no override; reopen at last remembered
@@ -163,9 +166,9 @@ Load a saved session:
 lektra \-\-session research
 .EE
 .SS SEE ALSO
-\f[B]lektra\-config(5)\f[R] \[em] configuration file format and all
-keybindings/commands \f[B]lektra\-commands(7)\f[R] \[em] list of all
-available commands
+For configuration options, check the webpage at \c
+.UR https://dheerajshenoy.github.io/lektra/configuration
+.UE \c
 .SS BUGS
 Please report bugs at: \c
 .UR https://github.com/dheerajshenoy/lektra/issues

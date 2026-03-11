@@ -27,6 +27,9 @@ Command line options are described below:
 `FILE_PATH(s)`
 : One or more PDF files to open on startup.
 
+`--list-commands`
+: Print a list of all available commands and exit.
+
 `-p PAGE_NUMBER`, `--page PAGE_NUMBER`
 : Jump to the given page number immediately after opening the file.
   Defaults to `-1` (no override; reopen at last remembered position).
@@ -136,8 +139,7 @@ lektra --session research
 
 ## SEE ALSO
 
-**lektra-config(5)** — configuration file format and all keybindings/commands
-**lektra-commands(7)** — list of all available commands
+For configuration options, check the webpage at <https://dheerajshenoy.github.io/lektra/configuration>
 
 ## BUGS
 
