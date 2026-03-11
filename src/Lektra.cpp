@@ -1559,6 +1559,31 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
         exit(0);
     }
 
+    if (argparser.is_used("list-commands"))
+    {
+        qInfo().noquote() << "Available commands:\n";
+
+        initCommands();
+
+        // Calculate the maximum width of command names for alignment
+        int max_width = 0;
+
+        for (const auto &cmd : m_command_manager->commands())
+        {
+            max_width = std::max(max_width, static_cast<int>(cmd.name.size()));
+        }
+
+        for (const auto &cmd : m_command_manager->commands())
+        {
+            QString line = QString("  %1  %2")
+                               .arg(cmd.name, -max_width)
+                               .arg(cmd.description);
+            qInfo().noquote() << line;
+        }
+
+        exit(0);
+    }
+
     if (argparser.is_used("config"))
     {
         m_config_file_path
