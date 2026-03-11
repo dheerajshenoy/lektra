@@ -1,0 +1,71 @@
+when:
+  event: tag
+
+steps:
+  - name: checkout
+    image: alpine/git
+    commands:
+      - git submodule update --init --recursive
+
+  - name: install-deps
+    image: ubuntu:22.04
+    commands:
+      - apt-get update
+      - apt-get install -y
+          libxkbcommon-dev
+          libwayland-dev
+          libdjvulibre-dev
+          libsynctex-dev
+          qt6-wayland
+          qt6-wayland-dev
+          build-essential pkgconf cmake ninja-build
+          qt6-base-dev qt6-tools-dev qt6-tools-dev-tools
+          qt6-l10n-tools
+          qt6-tools-private-dev
+          libgl1-mesa-dev libxcb-cursor0 libxcb1
+          libfuse2 wget patchelf file
+
+  - name: download-linuxdeploy
+    image: ubuntu:22.04
+    commands:
+      - wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+      - wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+      - chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-qt-x86_64.AppImage
+
+  - name: build
+    image: ubuntu:22.04
+    commands:
+      - cmake -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_INSTALL_PREFIX=/usr
+      - cmake --build build --parallel
+
+  - name: install-appdir
+    image: ubuntu:22.04
+    commands:
+      - DESTDIR=$(pwd)/AppDir cmake --install build
+
+  - name: build-appimage
+    image: ubuntu:22.04
+    environment:
+      OUTPUT: Lektra-${CI_COMMIT_TAG}-x86_64.AppImage
+      QMAKE: qmake6
+      EXTRA_PLATFORM_PLUGINS: "libqwayland-egl.so;libqwayland-generic.so"
+      EXTRA_QT_PLUGINS: "wayland-graphics-integration-client"
+    commands:
+      - sed -i 's|^Exec=.*|Exec=lektra|' $(pwd)/AppDir/usr/share/applications/lektra.desktop
+      - ./linuxdeploy-x86_64.AppImage
+          --appdir $(pwd)/AppDir
+          --plugin qt
+          --output appimage
+
+  - name: release
+    image: woodpeckerci/plugin-gitea-release
+    settings:
+      api_key:
+        from_secret: gitea_token
+      base_url: https://codeberg.org
+      files:
+        - "Lektra-*.AppImage"
+      title: ${CI_COMMIT_TAG}
+      note: "AppImage build for ${CI_COMMIT_TAG}"
