@@ -64,7 +64,7 @@ jobs:
         env:
           OUTPUT: Lektra-${{ steps.version.outputs.version }}-x86_64.AppImage
           QMAKE: qmake6
-          EXTRA_PLATFORM_PLUGINS: "libqwayland-generic.so;libqwayland-generic.so"
+          EXTRA_PLATFORM_PLUGINS: "libqwayland.so;libqeglfs.so"
           EXTRA_QT_PLUGINS: "waylandcompositor"
         run: |
           sed -i 's|^Exec=.*|Exec=lektra|' $GITHUB_WORKSPACE/AppDir/usr/share/applications/lektra.desktop
