@@ -88,6 +88,10 @@ init_args(argparse::ArgumentParser &program)
         .default_value(-1)
         .metavar("PAGE_NUMBER");
 
+    program.add_argument("--list-commands")
+        .help("List available commands and exit")
+        .flag();
+
     program.add_argument("-c", "--config")
         .help("Path to config.toml file")
         .nargs(1)
@@ -156,8 +160,10 @@ main(int argc, char *argv[])
     // Zed-style behavior: by default, detach from the terminal so the shell
     // returns immediately. Use --foreground to disable this (useful for
     // debugging/logging).
-    const bool foreground = program.get<bool>("--foreground");
-    if (!foreground)
+    const bool foreground   = program.get<bool>("--foreground");
+    const bool listCommands = program.get<bool>("--list-commands");
+
+    if (!foreground && !listCommands)
         return spawn_detached_child(argc, argv);
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
