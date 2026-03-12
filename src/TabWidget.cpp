@@ -108,6 +108,8 @@ TabWidget::setTabPosition(QTabWidget::TabPosition position) noexcept
         }
     }
 
+    m_main_layout->setContentsMargins(0, 0, 0, 0);
+    m_tab_bar->setContentsMargins(0, 0, 0, 0);
     setLayout(m_main_layout);
 }
 
