@@ -4,6 +4,7 @@
 
 ## HIGH PRIORITY
 
+- [ ] Mult-click drag select word, line, paragraph, etc. based on number of clicks before dragging
 - [ ] Exiting picker disables shortcut
 - [ ] Scissor mode for cropping and copying specific regions of the PDF when zoomed in to a high level (high performance gain)
 - [ ] Text selection change pos on resize event
@@ -19,6 +20,7 @@
 - [ ] Search from current position instead of top of document
 
 ## MEDIUM PRIORITY
+
 - [ ] Show text highlight brush cursor when highlighting text
 - [ ] Drag and drop tabs not working, also get it to work with splits
 - [ ] Export highlight annotations
@@ -45,9 +47,8 @@
 - [ ] Suspend unused tabs when inactive for a given time
 - [ ] Separate dark and light mode colors ability
 - [ ] Don't refresh highlights search each time
-    - [ ] Search engine configuration
+- [ ] Search engine configuration
 - [ ] Smart jump under cursor (eg. jump to citation if on citation)
-    - [ ] Use OpenGL for rendering using GPU for performance boost instead of QGraphicsView
 - [ ] Fix open containing folder
 - [ ] Navigate chapters, sections, subsections, etc. in the document
 - [ ] Narrow to region
