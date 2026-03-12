@@ -1,5 +1,15 @@
 # LEKTRA CHANGELOG
 
+## 0.6.8
+
+### Features
+
+### Optimizations
+
+### Bug Fixes
+
+- For real this time, fix the statusbar 0 padding
+
 ## 0.6.7
 
 ### Features
