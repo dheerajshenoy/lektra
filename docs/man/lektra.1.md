@@ -1,4 +1,4 @@
-% LEKTRA(1) — User Commands
+% LEKTRA(1) — User Manual
 
 # NAME
 
