@@ -25,6 +25,8 @@ share/icons/hicolor/128x128/apps/lektra.png
 share/icons/hicolor/256x256/apps/lektra.png
 share/icons/hicolor/512x512/apps/lektra.png
 share/doc/lektra/tutorial.pdf
+share/man/man1/lektra.1
+share/man/man1/lektra.1.gz
 "
 
 # Find all lektra.qm files in the locale directory and add them to a list
