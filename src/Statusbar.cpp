@@ -24,9 +24,12 @@ Statusbar::initConnections() noexcept
 void
 Statusbar::initGui() noexcept
 {
-    const auto padding = m_config.padding;
-    setContentsMargins(padding[0], padding[1], padding[2], padding[3]);
+    const auto &padding = m_config.padding;
+    setContentsMargins(0, 0, 0, 0);
+    // setContentsMargins(padding[0], padding[1], padding[2], padding[3]);
     m_layout->setContentsMargins(0, 0, 0, 0);
+
+    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     setLayout(m_layout);
 
@@ -53,9 +56,9 @@ Statusbar::initGui() noexcept
     rightLayout->addWidget(m_mode_color_label);
     rightLayout->addWidget(m_mode_label);
 
-    m_layout->addLayout(leftLayout, 0, 0, Qt::AlignLeft);
-    m_layout->addLayout(centerLayout, 0, 1, Qt::AlignCenter);
-    m_layout->addLayout(rightLayout, 0, 2, Qt::AlignRight);
+    m_layout->addLayout(leftLayout, 0, 0, Qt::AlignLeft | Qt::AlignVCenter);
+    m_layout->addLayout(centerLayout, 0, 1, Qt::AlignCenter | Qt::AlignVCenter);
+    m_layout->addLayout(rightLayout, 0, 2, Qt::AlignRight | Qt::AlignVCenter);
 
     // Stretch the columns correctly
     m_layout->setColumnStretch(0, 1); // left can expand
@@ -74,6 +77,20 @@ Statusbar::initGui() noexcept
     m_mode_color_label->setVisible(m_config.show_mode);
     m_mode_label->setVisible(m_config.show_mode);
     m_progress_label->setVisible(m_config.show_progress);
+
+    // Default spacing between items within each sub-layout (usually 6px)
+    leftLayout->setSpacing(0);
+    centerLayout->setSpacing(0);
+    rightLayout->setSpacing(0);
+
+    leftLayout->setContentsMargins(0, 0, 0, 0);
+    centerLayout->setContentsMargins(0, 0, 0, 0);
+    rightLayout->setContentsMargins(0, 0, 0, 0);
+
+    // Spacing between the three column layouts in the grid
+    m_layout->setSpacing(0);
+    m_layout->setHorizontalSpacing(0);
+    m_layout->setVerticalSpacing(0);
 }
 
 void
