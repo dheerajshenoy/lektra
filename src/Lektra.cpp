@@ -4193,6 +4193,9 @@ Lektra::initCommands() noexcept
         }
     });
 
+    m_command_manager->reg("open_config", tr("Open configuration file"),
+                           [this](const QStringList &) { OpenConfigFile(); });
+
     m_command_manager->reg("set_dpr", tr("Set device pixel ratio"),
                            [this](const QStringList &) { SetDPR(); });
     m_command_manager->reg(
@@ -5645,5 +5648,20 @@ Lektra::resizeEvent(QResizeEvent *event)
                                   height() * m_config.preview.size_ratio[1]);
             innerContainer->setFixedSize(innerSize);
         }
+    }
+}
+
+void
+Lektra::OpenConfigFile() noexcept
+{
+    if (QFile::exists(m_config_file_path))
+    {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(m_config_file_path));
+    }
+    else
+    {
+        QMessageBox::critical(
+            this, tr("Error"),
+            tr("Config file not found at:\n%1").arg(m_config_file_path));
     }
 }
