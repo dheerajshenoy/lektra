@@ -967,9 +967,7 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
     m_selection_path_item->show();
 
     if (m_config.selection.copy_on_select)
-    {
         YankSelection();
-    }
 }
 
 // Rotate page clockwise
