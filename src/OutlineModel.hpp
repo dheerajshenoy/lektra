@@ -40,10 +40,16 @@ public:
             while (current)
             {
                 const bool isHeading = current->down != nullptr;
-                QString titleText    = QString::fromUtf8(
-                    current->title ? current->title : "<no title>");
+                // QString titleText    = QString::fromUtf8(
+                //     current->title ? current->title : "<no title>");
+                QByteArray rawData(current->title ? current->title
+                                                  : "Untitled");
+                QString titleText = QString::fromUtf8(rawData).trimmed();
                 if (depth > 0)
                     titleText.prepend(QString(depth * 2, ' '));
+
+                titleText.remove(QChar::ParagraphSeparator); // Remove newlines
+                titleText.remove(QChar::LineSeparator);      // Remove newlines
 
                 QStandardItem *titleItem = new QStandardItem(titleText);
                 QStandardItem *pageItem  = new QStandardItem(
