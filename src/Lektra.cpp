@@ -1246,6 +1246,8 @@ Lektra::initGui() noexcept
     m_layout = new QVBoxLayout(widget);
     m_layout->setContentsMargins(0, 0, 0, 0);
     widget->setLayout(m_layout);
+    widget->setContentsMargins(0, 0, 0, 0);
+    m_layout->setSpacing(0);
 
     m_menuBar    = this->menuBar();
     m_tab_widget = new TabWidget(centralWidget());
@@ -1310,6 +1312,9 @@ Lektra::initGui() noexcept
     initMenubar();
 
     m_marks_manager = std::make_unique<MarkManager>(this);
+
+    m_layout->setContentsMargins(0, 0, 0, 0);
+    setContentsMargins(0, 0, 0, 0);
 }
 
 // Updates the UI elements checking if valid
