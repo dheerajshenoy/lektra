@@ -16,7 +16,6 @@
 <a href="https://codeberg.org/lektra/lektra/releases"><img alt="Gitea Release" src="https://img.shields.io/gitea/v/release/lektra/lektra?gitea_url=https%3A%2F%2Fcodeberg.org&include_prereleases&sort=date&style=for-the-badge"></a>
 <a href="https://isocpp.org"><img src="https://img.shields.io/badge/LANGUAGE-C%2B%2B-blue?style=for-the-badge"></a>
 <a href="https://codeberg.org/lektra/lektra/src/branch/main/LICENSE"><img alt="Static Badge" src="https://img.shields.io/badge/LICENSE-AGPL--3.0-darkgreen?style=for-the-badge"></a>
-<img alt="Lines of Code" src="https://img.shields.io/badge/Lines%20of%20Code-~20k-blue?style=for-the-badge">
 
 > [!WARNING]
 > **lektra** is still in alpha, bugs and crashes expected.
