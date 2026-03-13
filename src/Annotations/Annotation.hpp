@@ -64,6 +64,11 @@ public:
         return m_glow_enabled;
     }
 
+    inline QColor color() const noexcept
+    {
+        return m_brush.color();
+    }
+
     void setGlowWidth(int width) noexcept;
 
     inline int glowWidth() const noexcept
