@@ -9,6 +9,7 @@
 
 ### Bug Fixes
 
+- Fix picker hide on mainwindow with no tabs open. It caused no shortcuts to work because the mainwindow was no longer focused after the picker was shown once and then hidden.
 - For real this time, fix the statusbar 0 padding
 
 ## 0.6.7

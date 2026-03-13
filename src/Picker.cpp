@@ -109,6 +109,9 @@ Picker::eventFilter(QObject *watched, QEvent *event)
                 if (keyEvent->keyCombination() == m_keys.dismiss)
                 {
                     hide();
+                    // Focus the parent
+                    if (parentWidget())
+                        parentWidget()->setFocus();
                     return true;
                 }
             }
