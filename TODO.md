@@ -4,8 +4,8 @@
 
 ## HIGH PRIORITY
 
+- [ ] Search hits not updating when zooming in and out
 - [ ] Mult-click drag select word, line, paragraph, etc. based on number of clicks before dragging
-- [ ] Exiting picker disables shortcut
 - [ ] Scissor mode for cropping and copying specific regions of the PDF when zoomed in to a high level (high performance gain)
 - [ ] Text selection change pos on resize event
 - [ ] Picker strong key grab
