@@ -12,7 +12,6 @@
 - [ ] Visual line mode index resetting after zoom
 - [ ] Bug fixes and performance improvements
 - [ ] History for pickers
-- [ ] Undo/Redo operations for annotation color
 - [ ] Don't add connection to annotation when in non-annotatable mode
 - [ ] External search engine configuration
 - [ ] Search hits not updating when zooming in and out
