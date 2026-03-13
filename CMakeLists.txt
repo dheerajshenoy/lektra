@@ -144,7 +144,6 @@ add_executable(${PROJECT_NAME}
     src/GraphicsPixmapItem.hpp
     src/BrowseLinkItem.hpp
     src/OutlineWidget.hpp
-    src/OutlineModel.hpp
     src/ElidableLabel.hpp
     src/FloatingOverlayWidget.hpp
     src/HighlightSearchPicker.hpp
