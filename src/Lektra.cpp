@@ -1126,6 +1126,8 @@ Lektra::initDefaultKeybinds() noexcept
         {"scroll_down", "j"},
         {"scroll_up", "k"},
         {"scroll_right", "l"},
+        {"scroll_down_half_page", "Ctrl+d"},
+        {"scroll_up_half_page", "Ctrl+u"},
         {"page_next", "Shift+j"},
         {"page_prev", "Shift+k"},
         {"page_first", "g,g"},
@@ -1958,6 +1960,20 @@ Lektra::ScrollDown() noexcept
 {
     if (m_doc)
         m_doc->ScrollDown();
+}
+
+void
+Lektra::ScrollDown_HalfPage() noexcept
+{
+    if (m_doc)
+        m_doc->ScrollDown_HalfPage();
+}
+
+void
+Lektra::ScrollUp_HalfPage() noexcept
+{
+    if (m_doc)
+        m_doc->ScrollUp_HalfPage();
 }
 
 // Rotates the file in clockwise direction
@@ -3977,6 +3993,12 @@ Lektra::initCommands() noexcept
                            [this](const QStringList &) { ScrollLeft(); });
     m_command_manager->reg("scroll_right", tr("Scroll right"),
                            [this](const QStringList &) { ScrollRight(); });
+    m_command_manager->reg("scroll_down_half_page", tr("Scroll down"),
+                           [this](const QStringList &)
+    { ScrollDown_HalfPage(); });
+    m_command_manager->reg("scroll_up_half_page", tr("Scroll up"),
+                           [this](const QStringList &)
+    { ScrollUp_HalfPage(); });
 
     // Rotation
     m_command_manager->reg("rotate_clock", tr("Rotate page clockwise"),
