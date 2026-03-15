@@ -60,12 +60,11 @@ public:
     DocumentView(const Config &config, const float dpr = 1.0f,
                  QWidget *parent = nullptr) noexcept;
 
-
-    DocumentView(const DocumentView &) = delete;
+    DocumentView(const DocumentView &)            = delete;
     DocumentView &operator=(const DocumentView &) = delete;
-    DocumentView(DocumentView &&) = delete;
-    DocumentView &operator=(DocumentView &&) = delete;
-    DocumentView(DocumentView* sourceView) = delete;
+    DocumentView(DocumentView &&)                 = delete;
+    DocumentView &operator=(DocumentView &&)      = delete;
+    DocumentView(DocumentView *sourceView)        = delete;
 
     ~DocumentView() noexcept;
 
