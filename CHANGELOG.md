@@ -4,7 +4,15 @@
 
 ### Features
 - Annotation color change is now **undo-able**.
-- Add `open_config` command to open the config file in the default text editor for easy editing and customization of settings.
+- `--version` and `--list-commands` now output to stdout instead of stderr to be more consistent with standard command line tool behavior and to allow for easier parsing of the output when using these commands in scripts or other command line workflows.
+- Commands now accept arguments directly from the command line when using `--command` argument, allowing for more flexible and powerful command execution. For example, you can now execute a command with specific arguments directly from the command line like this: `lektra --command="page_goto 5;"` to go to page 5 immediately after launching LEKTRA.
+
+#### Commands:
+    - `open_config` command to open the config file in the default text editor for easy editing and customization of settings.
+    - `scroll_down_half_page`, `scroll_up_half_page`, commands for more precise scrolling control, allowing users to scroll by half a page in the specified direction for better navigation through documents.
+    - Command line argument:
+    - `--command` to execute one or more commands directly from the command line when launching LEKTRA. This allows users to quickly perform specific actions or set up their workspace with predefined commands without having to open the command palette after launch. Multiple commands can be executed by separating them with a semicolon (e.g. `lektra --command="toggle_fullscreen;search 'hello'"` to launch in fullscreen mode and open the config file immediately).
+
 
 ### Optimizations
 
