@@ -50,6 +50,9 @@
 #include <qpolygon.h>
 #include <qstyle.h>
 
+#define HSCROLL_STEP 50
+#define VSCROLL_STEP 50
+
 static DocumentView::Id nextId{0};
 
 static DocumentView::Id
@@ -1645,7 +1648,7 @@ DocumentView::ScrollLeft() noexcept
     else
     {
         m_hscroll->setUpdatesEnabled(false);
-        m_hscroll->setValue(m_hscroll->value() - 50);
+        m_hscroll->setValue(m_hscroll->value() - HSCROLL_STEP);
         m_hscroll->setUpdatesEnabled(true);
     }
 }
@@ -1661,7 +1664,7 @@ DocumentView::ScrollRight() noexcept
     else
     {
         m_hscroll->setUpdatesEnabled(false);
-        m_hscroll->setValue(m_hscroll->value() + 50);
+        m_hscroll->setValue(m_hscroll->value() + HSCROLL_STEP);
         m_hscroll->setUpdatesEnabled(true);
     }
 }
@@ -1677,9 +1680,25 @@ DocumentView::ScrollUp() noexcept
     else
     {
         m_vscroll->setUpdatesEnabled(false);
-        m_vscroll->setValue(m_vscroll->value() - 50);
+        m_vscroll->setValue(m_vscroll->value() - VSCROLL_STEP);
         m_vscroll->setUpdatesEnabled(true);
     }
+}
+
+void
+DocumentView::ScrollDown_HalfPage() noexcept
+{
+    m_vscroll->setUpdatesEnabled(false);
+    m_vscroll->setValue(m_vscroll->value() + m_page_items_hash[m_pageno]->height() / 2);
+    m_vscroll->setUpdatesEnabled(true);
+}
+
+void
+DocumentView::ScrollUp_HalfPage() noexcept
+{
+    m_vscroll->setUpdatesEnabled(false);
+    m_vscroll->setValue(m_vscroll->value() - m_page_items_hash[m_pageno]->height() / 2);
+    m_vscroll->setUpdatesEnabled(true);
 }
 
 // Scroll down by a fixed amount
@@ -1693,7 +1712,7 @@ DocumentView::ScrollDown() noexcept
     else
     {
         m_vscroll->setUpdatesEnabled(false);
-        m_vscroll->setValue(m_vscroll->value() + 50);
+        m_vscroll->setValue(m_vscroll->value() + VSCROLL_STEP);
         m_vscroll->setUpdatesEnabled(true);
     }
 }
