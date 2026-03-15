@@ -134,6 +134,8 @@ public:
     void RotateAnticlock() noexcept;
     void ScrollDown() noexcept;
     void ScrollUp() noexcept;
+    void ScrollDown_HalfPage() noexcept;
+    void ScrollUp_HalfPage() noexcept;
     void ScrollLeft() noexcept;
     void ScrollRight() noexcept;
     void NextHit() noexcept;
