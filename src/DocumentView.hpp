@@ -313,6 +313,8 @@ public:
     void ScrollRight() noexcept;
     void ScrollUp() noexcept;
     void ScrollDown() noexcept;
+    void ScrollDown_HalfPage() noexcept;
+    void ScrollUp_HalfPage() noexcept;
     void RotateClock() noexcept;
     void RotateAnticlock() noexcept;
     QMap<int, Model::LinkInfo> LinkKB() noexcept;
