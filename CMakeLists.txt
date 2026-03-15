@@ -47,8 +47,8 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/mupdf/include/mupdf/fitz/versi
 endif()
 
 # set(DEBUG_FLAGS -fno-omit-frame-pointer -ggdb3 -O0 -fsanitize=address -Wall -Wextra)
-set(DEBUG_FLAGS -fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra)
-set(RELEASE_FLAGS -O3 -DNDEBUG -fno-rtti)
+set(DEBUG_FLAGS -fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra -fmodules)
+set(RELEASE_FLAGS -O3 -DNDEBUG -fno-rtti -fmodules)
 set(REL_WITH_DEB_INFO -O2 -g -fno-omit-frame-pointer -DNDEBUG)
 
 # set(CMAKE_CXX_FLAGS_DEBUG "-fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra -fsanitize=address -Werror")
@@ -137,7 +137,10 @@ add_executable(${PROJECT_NAME}
     src/RecentFilesPicker.cpp
     src/OutlinePicker.cpp
     src/CommentSearchPicker.cpp
+    src/BookmarkManager.cpp
+    src/BookmarkPicker.cpp
 
+    src/PageLocation.hpp
     src/Config.hpp
     src/MarkManager.hpp
     src/AppPaths.hpp
@@ -159,6 +162,10 @@ add_executable(${PROJECT_NAME}
     src/JumpMarker.hpp
     src/OutlinePicker.hpp
     src/InputDialog.hpp
+    src/BookmarkManager.hpp
+    src/BookmarkPicker.hpp
+    src/Bookmark.hpp
+
 
     # Annotations
     src/Annotations/RectAnnotation.hpp
@@ -375,7 +382,7 @@ target_link_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:RelWithDebInfo>:${REL_WITH_DEB_INFO_FLAGS}>
 )
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+# set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 if(APPLE)
     install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION .)
