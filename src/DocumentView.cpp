@@ -1688,7 +1688,8 @@ void
 DocumentView::ScrollDown_HalfPage() noexcept
 {
     m_vscroll->setUpdatesEnabled(false);
-    m_vscroll->setValue(m_vscroll->value() + m_page_items_hash[m_pageno]->height() / 2);
+    m_vscroll->setValue(m_vscroll->value()
+                        + m_page_items_hash[m_pageno]->height() / 2);
     m_vscroll->setUpdatesEnabled(true);
 }
 
@@ -1696,7 +1697,8 @@ void
 DocumentView::ScrollUp_HalfPage() noexcept
 {
     m_vscroll->setUpdatesEnabled(false);
-    m_vscroll->setValue(m_vscroll->value() - m_page_items_hash[m_pageno]->height() / 2);
+    m_vscroll->setValue(m_vscroll->value()
+                        - m_page_items_hash[m_pageno]->height() / 2);
     m_vscroll->setUpdatesEnabled(true);
 }
 
