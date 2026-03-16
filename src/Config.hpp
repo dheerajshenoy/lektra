@@ -369,9 +369,10 @@ struct Config
         using Padding = std::array<int, 4>;
         // @desc Padding
         // @type table
-        // @default [5, 5, 5, 5]
+        // @note { Order is left, top, right, down }
+        // @default [2, 2, 2, 2]
         // @added 0.5.5
-        Padding padding{5, 5, 5, 5}; // top, right, bottom, left
+        Padding padding{2, 2, 2, 2};
 
         // @desc Show session name (if in session)
         // @type bool
