@@ -296,6 +296,8 @@ public:
     void setZoomAnchored(double factor, QPointF anchorScenePos) noexcept;
     void Search(const QString &term, bool useRegex) noexcept;
     void SearchInPage(int pageno, const QString &term) noexcept;
+    void SearchFromHere(const QString &term, bool useRegex) noexcept;
+    void SearchCancel() noexcept;
     void ZoomIn() noexcept;
     void ZoomOut() noexcept;
     void ZoomReset() noexcept;
