@@ -4,22 +4,24 @@
 
 ### Features
 - Add **progressive searching** for search results. When a search query is entered, the search results will start showing up immediately as they are found, instead of waiting for the entire search to complete before showing any results. **This is enabled by default**.
-- Add `progressive` (bool) option in the `[search]` section of the config to enable/disable progressive searching.
-- Add `highlight_matches` (bool) option in the `[search]` section of the config to enable/disable highlighting of search matches in the document. When enabled, all search matches will be highlighted in the document, otherwise only the current search match will be highlighted.
-- New command `search_from_here` to start a search from the current page and position instead of the beginning of the document, which is useful for long documents when you want to search for something that appears after your current location without having to scroll all the way back to the beginning to start the search.
-- New command `search_cancel` to cancel an ongoing search operation
-
 - Annotation color change is now **undo-able**.
+
+### Config Option
+- `progressive` (bool) option in the `[search]` section of the config to enable/disable progressive searching.
+- `highlight_matches` (bool) option in the `[search]` section of the config to enable/disable highlighting of search matches in the document. When enabled, all search matches will be highlighted in the document, otherwise only the current search match will be highlighted.
+- `load_defaults` (bool) in `[keybindings]` section to load default keybindings. This allows users to choose whether they want to start with the default keybindings or start with an empty keybindings configuration, which can be useful for users who want to fully customize their keybindings without having to override the defaults.
+
+### Command line argument:
+- `--command` to execute one or more commands directly from the command line when launching LEKTRA. This allows users to quickly perform specific actions or set up their workspace with predefined commands without having to open the command palette after launch. Multiple commands can be executed by separating them with a semicolon (e.g. `lektra --command="toggle_fullscreen;search 'hello'"` to launch in fullscreen mode and open the config file immediately).
+- `--list-commands` command line argument now prints the lektra commands in sorted order
 - `--version` and `--list-commands` now output to stdout instead of stderr to be more consistent with standard command line tool behavior and to allow for easier parsing of the output when using these commands in scripts or other command line workflows.
-- Commands now accept arguments directly from the command line when using `--command` argument, allowing for more flexible and powerful command execution. For example, you can now execute a command with specific arguments directly from the command line like this: `lektra --command="page_goto 5;"` to go to page 5 immediately after launching LEKTRA.
-- `--list-commands` command line argument now prints the command in sorted order
+- Lektra can now accept arguments directly from the command line when using `--command` argument, allowing for more flexible and powerful command execution. For example, you can now execute a command with specific arguments directly from the command line like this: `lektra --command="page_goto 5;"` to go to page 5 immediately after launching LEKTRA.
 
-#### Commands:
-    - `open_config` command to open the config file in the default text editor for easy editing and customization of settings.
-    - `scroll_down_half_page`, `scroll_up_half_page`, commands for more precise scrolling control, allowing users to scroll by half a page in the specified direction for better navigation through documents.
-    - Command line argument:
-    - `--command` to execute one or more commands directly from the command line when launching LEKTRA. This allows users to quickly perform specific actions or set up their workspace with predefined commands without having to open the command palette after launch. Multiple commands can be executed by separating them with a semicolon (e.g. `lektra --command="toggle_fullscreen;search 'hello'"` to launch in fullscreen mode and open the config file immediately).
-
+### Commands:
+- `open_config` command to open the config file in the default text editor for easy editing and customization of settings.
+- `scroll_down_half_page`, `scroll_up_half_page`, commands for more precise scrolling control, allowing users to scroll by half a page in the specified direction for better navigation through documents.
+- `search_from_here` to start a search from the current page and position instead of the beginning of the document, which is useful for long documents when you want to search for something that appears after your current location without having to scroll all the way back to the beginning to start the search.
+- `search_cancel` to cancel an ongoing search operation
 
 ### Optimizations
 
