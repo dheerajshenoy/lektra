@@ -4255,7 +4255,10 @@ Lektra::initCommands() noexcept
                            [this](const QStringList &args) { Search(args); });
     m_command_manager->reg("search_regex", tr("Search document using regex"),
                            [this](const QStringList &args)
-    { Search_regex(args); });
+    { SearchRegex(args); });
+    m_command_manager->reg(
+        "search_from_here", tr("Search from current position"),
+        [this](const QStringList &args) { SearchFromHere(args); });
     m_command_manager->reg("search_next", tr("Jump to next search result"),
                            [this](const QStringList &) { NextHit(); });
     m_command_manager->reg("search_prev", tr("Jump to previous search result"),
