@@ -942,9 +942,8 @@ Lektra::initConfig() noexcept
     {
         // set(search["case_sensitive"], m_config.search.case_sensitive);
         // set(search["whole_words"], m_config.search.whole_words);
-        // set(search["regex"], m_config.search.regex);
-        // set(search["highlight_results"], m_config.search.highlight_results);
-
+        set(search["highlight_matches"], m_config.search.highlight_matches);
+        set(search["progressive"], m_config.search.progressive);
         set_color(search["match_color"], m_config.search.match_color);
         set_color(search["index_color"], m_config.search.index_color);
     }
@@ -2631,7 +2630,6 @@ Lektra::ToggleAutoResize() noexcept
     if (m_doc)
         m_doc->ToggleAutoResize();
 }
-
 
 // Show or hide the outline panel
 void
