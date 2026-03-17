@@ -15,3 +15,4 @@ TAGS
 .direnv/
 pkg/
 *.tar.gz
+cmake/
