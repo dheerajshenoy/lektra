@@ -64,8 +64,9 @@ public:
     void Read_args_parser(const argparse::ArgumentParser &argparser) noexcept;
     // bool OpenFile(DocumentView *view) noexcept;
     void Search(const QStringList &args = {}) noexcept;
-    void Search_regex(const QStringList &args = {}) noexcept;
-    void Search_in_page(const QStringList &args = {}) noexcept;
+    void SearchRegex(const QStringList &args = {}) noexcept;
+    void SearchInPage(const QStringList &args = {}) noexcept;
+    void SearchFromHere(const QStringList &args = {}) noexcept;
     void Show_highlight_search() noexcept;
     void Show_annot_comment_search() noexcept;
     void Show_command_picker() noexcept;
@@ -253,6 +254,9 @@ private:
     void setFocusMode(bool state) noexcept;
     void search(const QString &term = {}, bool use_regex = false) noexcept;
     void searchInPage(const int pageno, const QString &term = {}) noexcept;
+    void searchFromHere(const QString &term = {},
+                        bool use_regex      = false) noexcept;
+    void searchCancel() noexcept;
     void writeSessionToFile() noexcept;
 
     // private helpers
