@@ -143,16 +143,6 @@ public:
         Qt::Alignment alignment{Qt::AlignLeft | Qt::AlignVCenter};
     };
 
-    struct FrameStyle
-    {
-        bool border{true};
-        bool shadow{true};
-        int shadow_blur_radius{18};
-        int shadow_offset_x{0};
-        int shadow_offset_y{6};
-        int shadow_opacity{120};
-    };
-
     struct Item
     {
         QList<QString> columns;
@@ -236,9 +226,8 @@ private:
     Item itemAtProxyIndex(const QModelIndex &index) const;
 
     QFrame *m_frame{nullptr};
-    QStandardItemModel *m_model;
+    QStandardItemModel *m_model{nullptr};
     Keybindings m_keys;
-    FrameStyle m_frame_style{};
     QVector<Column> m_columns{};
     class QGraphicsDropShadowEffect *m_shadow_effect{nullptr};
 };

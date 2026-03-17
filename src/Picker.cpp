@@ -48,6 +48,7 @@ Picker::Picker(const Config::Picker &config, QWidget *parent) noexcept
     m_listView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_listView->setFrameShape(QFrame::NoFrame);
     m_listView->header()->setStretchLastSection(true);
+    m_listView->setAlternatingRowColors(m_config.alternating_row_color);
     innerLayout->addWidget(m_listView);
 
     // Models parented to this — they outlive any layout changes
@@ -273,7 +274,7 @@ Picker::applyFrameStyle() noexcept
     if (!m_frame)
         return;
 
-    if (m_frame_style.border)
+    if (m_config.border)
     {
         m_frame->setObjectName("overlayFrameBorder");
         m_frame->setStyleSheet("QFrame#overlayFrameBorder {"
@@ -291,14 +292,14 @@ Picker::applyFrameStyle() noexcept
     if (!m_shadow_effect)
         return;
 
-    m_shadow_effect->setEnabled(m_frame_style.shadow);
-    if (!m_frame_style.shadow)
-        return;
-
-    const int blur  = std::max(0, m_frame_style.shadow_blur_radius);
-    const int alpha = std::clamp(m_frame_style.shadow_opacity, 0, 255);
-    m_shadow_effect->setBlurRadius(blur);
-    m_shadow_effect->setOffset(m_frame_style.shadow_offset_x,
-                               m_frame_style.shadow_offset_y);
-    m_shadow_effect->setColor(QColor(0, 0, 0, alpha));
+    if (auto &enabled = m_config.shadow.enabled)
+    {
+        m_shadow_effect->setEnabled(enabled);
+        const int blur  = std::max(0, m_config.shadow.blur_radius);
+        const int alpha = std::clamp(m_config.shadow.opacity, 0, 255);
+        m_shadow_effect->setBlurRadius(blur);
+        m_shadow_effect->setOffset(m_config.shadow.offset_x,
+                                   m_config.shadow.offset_y);
+        m_shadow_effect->setColor(QColor(0, 0, 0, alpha));
+    }
 }
