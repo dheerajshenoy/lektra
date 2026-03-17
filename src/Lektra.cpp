@@ -1872,7 +1872,7 @@ Lektra::Zoom_set(const QStringList &args) noexcept
                                        "Enter zoom level (e.g. 1.5 for 150%):",
                                        m_doc->zoom(), 0.1, 10.0, 2, &ok);
     else
-        double temp = args.at(0).toDouble(&ok);
+        zoom = args.at(0).toDouble(&ok);
     if (!ok)
         return;
     m_doc->setZoom(zoom);
