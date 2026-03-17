@@ -12,7 +12,7 @@ class CommandPicker : public Picker
     Q_OBJECT
 public:
     using ShortcutMap = QHash<QString, QString>;
-    explicit CommandPicker(const Config::Command_palette &config,
+    explicit CommandPicker(const Config::CommandPalette &config,
                            const std::vector<Command> &commands,
                            const ShortcutMap &shortcuts,
                            QWidget *parent) noexcept;
@@ -25,7 +25,7 @@ public:
     void onItemAccepted(const Item &item) override;
 
 private:
-    const Config::Command_palette &m_config;
+    const Config::CommandPalette &m_config;
     const std::vector<Command> m_commands; // sorted, stable
     const ShortcutMap &m_shortcuts;
 };
