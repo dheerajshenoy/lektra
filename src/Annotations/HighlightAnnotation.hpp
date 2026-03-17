@@ -18,10 +18,9 @@ class HighlightAnnotation : public Annotation
     Q_OBJECT
 
 public:
-    HighlightAnnotation(const Config::Annotations::Highlight &config,
-                        const QRectF &rect, int index,
-                        const QString &comment = {},
-                        QGraphicsItem *parent  = nullptr)
+    HighlightAnnotation(const Config::Annotations::Highlight &config, const QRectF &rect,
+                        int index, const QString &comment = {},
+                        QGraphicsItem *parent = nullptr)
         : Annotation(index, QColor(Qt::transparent), parent), m_rect(rect),
           m_config(config)
     {
