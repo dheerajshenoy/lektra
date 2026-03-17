@@ -94,6 +94,8 @@ DocumentView::~DocumentView() noexcept
 {
     // Stop and WAIT for all renders to finish before touching anything
     stopPendingRenders();
+    resetConnections();
+
 #ifdef HAS_SYNCTEX
     synctex_scanner_free(m_synctex_scanner);
 #endif
@@ -623,14 +625,16 @@ void
 DocumentView::handlePartialSearchResults(
     const QMap<int, std::vector<Model::SearchHit>> &results) noexcept
 {
-    m_search_hits = results; // full accumulated map, just replace
+    // Merge new batch into existing results — don't replace
+    for (auto it = results.cbegin(); it != results.cend(); ++it)
+        m_search_hits.insert(it.key(), it.value());
 
     buildFlatSearchHitIndex();
 
+    emit searchCountChanged(m_model->searchMatchesCount());
+
     if (m_config.scrollbars.search_hits)
         renderSearchHitsInScrollbar();
-
-    emit searchCountChanged(m_model->searchMatchesCount());
 
     // Jump to first hit only on the very first partial result
     if (m_search_index == -1 && !m_search_hit_flat_refs.empty())
@@ -2535,26 +2539,25 @@ DocumentView::startNextRenderJob() noexcept
         int currentGen
             = m_generation; // capture current generation for this job
 
+        auto decrementAndNotify = [this]()
+        {
+            if (--m_renders_in_flight == 0)
+            {
+                emit allRendersFinished();
+            }
+        };
+
         m_model->requestPageRender(
-            job,
-            [this, pageno, currentGen](const Model::PageRenderResult &result)
+            job, [this, decrementAndNotify, pageno,
+                  currentGen](const Model::PageRenderResult &result)
         {
             if (currentGen != m_generation)
-                return; // discard results from old generations
-
-            struct RenderGuard
             {
-                std::atomic<int> &counter;
-                ~RenderGuard()
-                {
-                    --counter;
-                }
-            } guard(m_renders_in_flight);
+                decrementAndNotify();
+                return;
+            }
 
             m_pending_renders.remove(pageno);
-
-            // Use QImage directly - avoid expensive QPixmap::fromImage()
-            // conversion
             const QImage &image = result.image;
 
             if (!image.isNull())
@@ -2615,6 +2618,7 @@ DocumentView::startNextRenderJob() noexcept
                 qWarning() << "Failed to render page" << pageno;
             }
 
+            decrementAndNotify();
             startNextRenderJob();
         });
     }
@@ -3801,7 +3805,7 @@ DocumentView::DecryptDocument() noexcept
 void
 DocumentView::renderSearchHitsForPage(int pageno) noexcept
 {
-    if (!m_search_hits.contains(pageno))
+    if (!m_config.search.highlight_matches || !m_search_hits.contains(pageno))
         return;
 
 #ifndef NDEBUG
@@ -4657,7 +4661,12 @@ DocumentView::stopPendingRenders() noexcept
 {
     m_pending_renders.clear();
     m_render_queue.clear();
-    m_renders_in_flight.store(0);
+    if (m_renders_in_flight.load() == 0)
+        return;
+
+    QEventLoop loop;
+    connect(this, &DocumentView::allRendersFinished, &loop, &QEventLoop::quit);
+    loop.exec();
 }
 
 // Handle password for password-protected files
@@ -4980,5 +4989,6 @@ DocumentView::clear_portal() noexcept
         m_portal_view->m_gview->setPortal(false);
         m_portal_view = nullptr;
     }
+
     // TODO: Maybe notify views that the portal was cleared
 }
