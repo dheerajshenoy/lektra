@@ -14,6 +14,7 @@
 #include <QString>
 #include <QUndoStack>
 #include <mutex>
+#include <qfuturesynchronizer.h>
 #include <set>
 
 extern "C"
@@ -504,11 +505,7 @@ signals:
         const QMap<int, std::vector<Model::SearchHit>> &results);
 
 private:
-    inline void waitForRenders() noexcept
-    {
-        if (m_render_future.isRunning())
-            m_render_future.waitForFinished();
-    }
+    void waitForPendingRenders() noexcept;
 
     struct CachedLink
     {
@@ -703,10 +700,9 @@ private:
     PageDimension m_default_page_dim{};
 
     mutable std::mutex m_doc_mutex;
-    QFuture<PageRenderResult> m_render_future;
+    QFutureSynchronizer<PageRenderResult> m_render_synchronizer;
     QFuture<void> m_search_future;
     pdf_write_options m_pdf_write_options{pdf_default_write_options};
-    std::atomic<int> m_search_match_count{0};
     bool m_link_show_boundary{false};
     bool m_detect_url_links{false};
     QRegularExpression m_url_link_re;
@@ -743,6 +739,11 @@ private:
     friend class TextAnnotationCommand;
     friend class DeleteAnnotationsCommand;
     friend class DocumentView;
+
+    std::atomic<bool> m_render_cancelled{false};
+    std::atomic<int> m_search_match_count{0};
+    std::atomic<bool> m_search_cancelled{false};
+
 
     const Config &m_config;
 };
