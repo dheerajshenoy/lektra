@@ -1035,6 +1035,22 @@ struct Config
     // }
     // @endsection
 
+
+    // @section KeyBindings
+    // @section_type struct
+    // @section_added 0.3.0
+    // @section_desc {
+    // Keyboard binding options struct<br>
+    // By default, LEKTRA loads the default keybindings, which can be disabled by setting <code class="inline">load_defaults</code> to <code class="inline">false</code> in the config file.
+    // <p>Example of how to define a key binding in the config file:</p>
+    // <pre><code class="language-toml">
+    // [keybindings]&#10;
+    // # Format: command_name = "KeyCombination"&#10;
+    // open_outline = "Ctrl+O"&#10;
+    // </code></pre>
+    // Commands can be seen using the `--list-commands` command line option, or in the <a href="https://dheerajshenoy.github.io/lektra/commands">Commands Reference Webpage</a>, or in the command palette inside LEKTRA.
+    // @endsection
+
     // @section Preview
     // @section_desc Preview options struct
     // @section_type struct
