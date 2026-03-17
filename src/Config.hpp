@@ -87,6 +87,7 @@ struct Config
         // @default true
         // @added 0.6.8
         bool highlight_matches{true};
+
     } search{};
     // @endsection
 
