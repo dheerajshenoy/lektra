@@ -220,7 +220,9 @@ Picker::populate(const QList<Picker::Item> &items)
         {
             const QString text
                 = (col < item.columns.size()) ? item.columns[col] : QString{};
-            row.append(new QStandardItem(text));
+            auto *item = new QStandardItem(text);
+            item->setTextAlignment(m_columns[col].alignment);
+            row.append(item);
         }
 
         // All columns contribute to search
