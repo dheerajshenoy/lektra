@@ -1076,17 +1076,8 @@ Lektra::initConfig() noexcept
 
     if (auto keys = toml["keybindings"])
     {
-        // TODO: Config option to control whether to load default keybindings or
-        // not, and how to interact with custom keybindings (override, merge,
-        // etc.) For now we load default keybindings first, and then override
-        // with any user-defined keybindings from config. This allows users to
-        // only specify the keybindings they want to change, without having to
-        // redefine all of them.
-
         if (keys["load_defaults"].value_or(true))
-        {
             initDefaultKeybinds();
-        }
 
         for (auto &[action, value] : *keys.as_table())
         {
