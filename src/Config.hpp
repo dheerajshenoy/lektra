@@ -730,7 +730,7 @@ struct Config
     // @section_desc Highlight Search options struct
     // @section_type struct
     // @section_added 0.5.3
-    struct Highlight_search
+    struct HighlightSearch
     {
     } highlight_search{};
     // @endsection
@@ -739,7 +739,7 @@ struct Config
     // @section_desc Command Palette options struct
     // @section_type struct
     // @section_added 0.5.4
-    struct Command_palette
+    struct CommandPalette
     {
         // @desc Width of the command palette picker
         // @type int
