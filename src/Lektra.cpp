@@ -1083,6 +1083,11 @@ Lektra::initConfig() noexcept
         // only specify the keybindings they want to change, without having to
         // redefine all of them.
 
+        if (keys["load_defaults"].value_or(true))
+        {
+            initDefaultKeybinds();
+        }
+
         for (auto &[action, value] : *keys.as_table())
         {
             if (value.is_value())
