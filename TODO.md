@@ -8,7 +8,6 @@
 - [ ] Scissor mode for cropping and copying specific regions of the PDF when zoomed in to a high level (high performance gain)
 - [ ] Text selection change pos on resize event
 - [ ] Picker strong key grab
-- [ ] Visual line mode index resetting after zoom
 - [ ] Bug fixes and performance improvements
 - [ ] History for pickers
 - [ ] Don't add connection to annotation when in non-annotatable mode
