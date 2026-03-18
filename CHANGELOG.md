@@ -27,6 +27,7 @@
 
 ### Bug Fixes
 
+- Fix current search highlight not updating properly when zooming in/out or resizing the window, which caused the highlight to be in the wrong position or not visible after zooming or resizing.
 - Fix picker hide on mainwindow with no tabs open. It caused no shortcuts to work because the mainwindow was no longer focused after the picker was shown once and then hidden.
 - For real this time, fix the statusbar 0 padding
 

@@ -2632,6 +2632,7 @@ DocumentView::startNextRenderJob() noexcept
                     renderLinks(pageno, result.links);
                     renderAnnotations(pageno, result.annotations);
                     renderSearchHitsForPage(pageno);
+                    updateCurrentHitHighlight();
                 }
                 setUpdatesEnabled(true);
                 m_gscene->blockSignals(false);
