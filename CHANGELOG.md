@@ -27,6 +27,7 @@
 
 ### Bug Fixes
 
+- Fix page scrolling stuttering because of the `visual_line_mode` fix
 - Fix file drag and drop not working
 - Fix `visual_line_mode` rect offset when zooming in/out, which caused the visual line selection rectangle to be misaligned with the text when zoom level changes.
 - Fix current search highlight not updating properly when zooming in/out or resizing the window, which caused the highlight to be in the wrong position or not visible after zooming or resizing.
