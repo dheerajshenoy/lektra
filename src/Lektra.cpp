@@ -1167,6 +1167,12 @@ Lektra::initDefaultKeybinds() noexcept
         {"tab_7", "Alt+7"},
         {"tab_8", "Alt+8"},
         {"tab_9", "Alt+9"},
+        {"split_horizontal", "Ctrl+W,s"},
+        {"split_vertical", "Ctrl+W,v"},
+        {"split_focus_left", "Ctrl+W,h"},
+        {"split_focus_right", "Ctrl+W,l"},
+        {"split_focus_up", "Ctrl+W,k"},
+        {"split_focus_down", "Ctrl+W,j"},
     };
 
     for (const auto &binding : defaults)

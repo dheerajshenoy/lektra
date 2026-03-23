@@ -4,6 +4,14 @@
 
 ### Features
 
+- Default keybindings added for the following:
+  - `split_horizontal` => `Ctrl+W,s`
+  - `split_vertical` => `Ctrl+W,v`
+  - `split_focus_left` => `Ctrl+W,h`
+  - `split_focus_right` => `Ctrl+W,l`
+  - `split_focus_up` => `Ctrl+W,k`
+  - `split_focus_down` => `Ctrl+W,j`
+
 ### Config Options
 
 ### Breaking Changes
@@ -13,8 +21,6 @@
 ### Bug Fixes
 
 ### Core Changes
-
-
 
 ## 0.6.8
 
