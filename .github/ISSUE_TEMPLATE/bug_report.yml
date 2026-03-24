@@ -21,6 +21,26 @@ body:
           required: true
 
   - type: checkboxes
+    id: configuration_used
+    attributes:
+      label: Custom configuration used
+      options:
+        - label: I am using custom configuration.
+          required: true
+
+  - type: textarea
+    id: custom_config
+    attributes:
+      label: Custom configuration
+      description: |
+        Paste your custom configuration here, or provide a link (e.g. GitHub Gist).
+      placeholder: |
+        # Paste config here
+        # or https://gist.github.com/...
+    validations:
+      required: false
+
+  - type: checkboxes
     id: willing
     attributes:
       label: Willing to contribute
