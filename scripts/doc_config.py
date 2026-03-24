@@ -91,17 +91,21 @@ class Parser:
 
             elif line.startswith("//") and active_block_key:
                 content = line[2:].strip()
-                if content.endswith("}"):
-                    if current_section and active_block_key in section_keywords:
-                        current_section[active_block_key] += " " + content[:-1].strip()
-                    else:
-                        current_tags[active_block_key] += " " + content[:-1].strip()
+                closing = content.endswith("}")
+                chunk = content[:-1].strip() if closing else content
+
+                # Determine which dict we're accumulating into
+                target = current_section if (current_section and active_block_key in section_keywords) else current_tags
+
+                # Use newline separator inside <pre>, space otherwise
+                current_text = target[active_block_key]
+                in_pre = "<pre" in current_text and "</pre>" not in current_text
+                separator = "\n" if in_pre else " "
+
+                target[active_block_key] = (current_text + separator + chunk).strip()
+
+                if closing:
                     active_block_key = None
-                else:
-                    if current_section and active_block_key in section_keywords:
-                        current_section[active_block_key] += " " + content
-                    else:
-                        current_tags[active_block_key] += " " + content
                 continue
 
             if current_section and current_tags and not line.startswith("//"):
