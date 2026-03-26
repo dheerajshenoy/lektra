@@ -2052,17 +2052,23 @@ Model::requestPageRender(
     connect(watcher, &QFutureWatcher<PageRenderResult>::finished, this,
             [this, watcher, callback, job]()
     {
+        // TODO: This is a hack, this shouldn't actually happen, check why it
+        // happens, but for now, just guard against invalid futures.
+        if (!watcher->future().isValid())
+        {
+            watcher->deleteLater();
+            return;
+        }
+
+        PageRenderResult result = watcher->result();
         watcher->deleteLater();
+
         if (m_render_cancelled.load())
             return;
-        PageRenderResult result = watcher->result();
 
-        // Deliver pixels + PDF links immediately — this fires GotoLocation
         if (callback)
             callback(result);
 
-        // URL detection runs as a fire-and-forget second pass
-        // It doesn't block the jump marker or page display at all
         if (supports_links() && m_detect_url_links)
         {
             const int pageno = job.pageno;
@@ -2450,8 +2456,8 @@ Model::highlight_text_selection(int pageno, QPointF start, QPointF end) noexcept
         page_to_dev      = fz_pre_rotate(page_to_dev, m_rotation);
 
         const fz_rect dev_bounds = fz_transform_rect(bounds, page_to_dev);
-        page_to_dev = fz_concat(page_to_dev,
-                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+        page_to_dev              = fz_concat(page_to_dev,
+                                             fz_translate(-dev_bounds.x0, -dev_bounds.y0));
 
         const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
 

@@ -36,6 +36,8 @@ command_palette = [ ":", "Ctrl+P" ]
 
 ### Bug Fixes
 
+- Crash when trying to save file after adding annotation.
+
 ### Core Changes
 
 ## 0.6.8
