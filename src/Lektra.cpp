@@ -575,6 +575,13 @@ Lektra::initConfig() noexcept
         }
     }
 
+    if (auto thumbnail_panel = toml["thumbnail_panel"])
+    {
+        set(thumbnail_panel["show_page_numbers"],
+            m_config.thumbnail.show_page_numbers);
+        set(thumbnail_panel["panel_width"], m_config.thumbnail.panel_width);
+    }
+
     // Scripts
     if (auto scripts = toml["scripts"].as_table())
     {
