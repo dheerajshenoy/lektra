@@ -40,13 +40,13 @@ struct Config
         // @type str
         // @default "#FFFFFFFF"
         // @added 0.6.4
-        uint32_t bg{0xFFFFFFFF};
+        uint32_t bg = 0xFFFFFFFF;
 
         // @desc Page foreground color
         // @type str
         // @default "#000000FF"
         // @added 0.6.4
-        uint32_t fg{0x000000FF};
+        uint32_t fg = 0x000000FF;
     } page{};
     // @endsection
 
@@ -61,13 +61,13 @@ struct Config
         // @type str
         // @default "#55500033"
         // @added 0.6.5
-        uint32_t match_color{0x55500033};
+        uint32_t match_color = 0x55500033;
 
         // @desc Search match index color
         // @type str
         // @default "#55FF0055"
         // @added 0.6.5
-        uint32_t index_color{0x55FF0055};
+        uint32_t index_color = 0x55FF0055;
 
         // @desc {
         // Progressive search (renders results progressively when enabled,
@@ -76,7 +76,7 @@ struct Config
         // @type bool
         // @default true
         // @added 0.6.8
-        bool progressive{true};
+        bool progressive = true;
 
         // @desc {
         // Highlight all search matches (if false, only the current match
@@ -85,7 +85,7 @@ struct Config
         // @type bool
         // @default true
         // @added 0.6.8
-        bool highlight_matches{true};
+        bool highlight_matches = true;
 
     } search{};
     // @endsection
@@ -108,32 +108,32 @@ struct Config
             // @type bool
             // @default true
             // @added 0.6.5
-            bool hover_glow{true};
+            bool hover_glow = true;
 
             // @desc Annotation glow color (on hover)
             // @type str
             // @default "#FF5000AA"
             // @added 0.6.5
-            uint32_t glow_color{0xFF5000AA};
+            uint32_t glow_color = 0xFF5000AA;
 
             // @desc Glow width in pixels
             // @type int
             // @default 5
             // @added 0.6.5
-            int glow_width{5};
+            int glow_width = 5;
 
             // @desc { Show comment text in tooltip on hover (if comment
             // exists) }
             // @type bool
             // @default true
             // @added 0.6.5
-            bool comment{true};
+            bool comment = true;
 
             // @desc Font size for the comment tooltip (in points)
             // @type int
             // @default 12
             // @added 0.6.5
-            int comment_font_size{12};
+            int comment_font_size = 12;
         };
         // @endsection
 
@@ -156,13 +156,13 @@ struct Config
             // @type bool
             // @default true
             // @added 0.6.5
-            bool comment_marker{true};
+            bool comment_marker = true;
 
             // @desc Fill color for rect annotations
             // @type str
             // @default "#55FF5588"
             // @added 0.6.5
-            uint32_t color{0x55FF5588};
+            uint32_t color = 0x55FF5588;
         } rect{};
         // @endsection
 
@@ -176,17 +176,38 @@ struct Config
             // @type bool
             // @default true
             // @added 0.6.5
-            bool comment_marker{true};
+            bool comment_marker = true;
 
             // @desc Fill color for rect annotations
             // @type str
             // @default "#55FF5588"
             // @added 0.6.5
-            uint32_t color{0x55FF5588};
+            uint32_t color = 0x55FF5588;
         } highlight{};
         // @endsection
 
     } annotations{};
+    // @endsection
+
+    // @section ThumbnailPanel
+    // @section_desc Thumbnail panel options struct
+    // @section_type struct
+    // @section_added 0.6.9
+    struct ThumbnailPanel
+    {
+        // @desc Show page number below page thumbnail
+        // @type bool
+        // @default true
+        // @added 0.6.9
+        bool show_page_numbers = true;
+
+        // @desc Relative width of the thumbnail panel (compared to the main
+        // view)
+        // @type float
+        // @default 0.15
+        // @added 0.6.9
+        float panel_width = 0.15;
+    } thumbnail{};
     // @endsection
 
     // @section Portal
@@ -199,19 +220,19 @@ struct Config
         // @type str
         // @default "#FFFFFFAA"
         // @added 0.6.4
-        uint32_t border_color{0xFFFFFFAA};
+        uint32_t border_color = 0xFFFFFFAA;
 
         // @desc Enable portal ability
         // @type bool
         // @default true
         // @added 0.6.4
-        bool enabled{true};
+        bool enabled = true;
 
         // @desc Portal border width
         // @type int
         // @default 5
         // @added 0.6.4
-        int border_width{5};
+        int border_width = 5;
 
         // @desc {
         // Respect parent's destruction (if parent closes, close the
@@ -220,13 +241,13 @@ struct Config
         // @type bool
         // @default true
         // @added 0.6.4
-        bool respect_parent{true};
+        bool respect_parent = true;
 
         // @desc Dim inactive for portal views too
         // @type bool
         // @default false
         // @added 0.6.5
-        bool dim_inactive{false};
+        bool dim_inactive = false;
     } portal{};
     // @endsection
 
@@ -240,37 +261,37 @@ struct Config
         // @type str
         // @default "#00000000"
         // @added 0.3.0
-        uint32_t bg{0x00000000};
+        uint32_t bg = 0x00000000;
 
         // @desc Accent color
         // @type str
         // @default "#3daee9FF"
         // @added 0.3.0
-        uint32_t accent{0x3daee9FF};
+        uint32_t accent = 0x3daee9FF;
 
         // @desc Set the window fullscreen
         // @type bool
         // @default false
         // @added 0.3.0
-        bool fullscreen{false};
+        bool fullscreen = false;
 
         // @desc Show the menubar
         // @type bool
         // @default true
         // @added 0.3.0
-        bool menubar{true};
+        bool menubar = true;
 
         // @desc Show startup widget tab
         // @type bool
         // @default true
         // @added 0.3.0
-        bool startup_tab{false};
+        bool startup_tab = false;
 
         // @desc Title format for the window title
         // @type str
         // @default "{} - lektra"
         // @added 0.3.0
-        QString title_format{"{} - lektra"};
+        QString title_format = "{} - lektra";
 
         // Required for documentation parsing, do not remove
         using WindowSize = std::array<int, 2>;
@@ -279,7 +300,7 @@ struct Config
         // @type table
         // @default 600,400
         // @added 0.6.3
-        WindowSize initial_size{600, 400}; // width, height; -1 for default
+        WindowSize initial_size = {600, 400}; // width, height; -1 for default
     } window{};
     // @endsection
 
@@ -295,25 +316,25 @@ struct Config
         // @choice vertical, horizontal, single, book
         // @default vertical
         // @added 0.5.1
-        DocumentView::LayoutMode mode{DocumentView::LayoutMode::VERTICAL};
+        DocumentView::LayoutMode mode = DocumentView::LayoutMode::VERTICAL;
 
         // @desc Initial page fit mode
         // @default width
         // @choice width, height, window
         // @added 0.5.1
-        DocumentView::FitMode initial_fit{DocumentView::FitMode::Width};
+        DocumentView::FitMode initial_fit = DocumentView::FitMode::Width;
 
         // @desc Apply auto fit when resizing window
         // @type bool
         // @default false
         // @added 0.5.1
-        bool auto_resize{false};
+        bool auto_resize = false;
 
         // @desc Page spacing in pixels
         // @type int
         // @default 10
         // @added 0.5.1
-        int spacing{10};
+        int spacing = 10;
     } layout{};
     // @endsection
 
@@ -327,51 +348,51 @@ struct Config
         // @type bool
         // @default true
         // @added 0.5.5
-        bool visible{true};
+        bool visible = true;
 
-        using Padding = std::array<int, 4>;
+        using Padding   = std::array<int, 4>;
         // @desc Padding
         // @type table
         // @note { Order is left, top, right, down }
         // @default [2, 2, 2, 2]
         // @added 0.5.5
-        Padding padding{2, 2, 2, 2};
+        Padding padding = {2, 2, 2, 2};
 
         // @desc Show session name (if in session)
         // @type bool
         // @default true
         // @added 0.5.5
-        bool show_session_name{true};
+        bool show_session_name = true;
 
         // @desc Show file name only (as opposed to full path)
         // @type bool
         // @default false
         // @added 0.5.5
-        bool file_name_only{false};
+        bool file_name_only = false;
 
         // @desc Show file info
         // @type bool
         // @default true
         // @added 0.5.5
-        bool show_file_info{true};
+        bool show_file_info = true;
 
         // @desc Show page number
         // @type bool
         // @default true
         // @added 0.5.5
-        bool show_page_number{true};
+        bool show_page_number = true;
 
         // @desc Show interaction mode
         // @type bool
         // @default true
         // @added 0.5.5
-        bool show_mode{true};
+        bool show_mode = true;
 
         // @desc Show page read progress
         // @type bool
         // @default true
         // @added 0.5.5
-        bool show_progress{true};
+        bool show_progress = true;
     } statusbar{};
     // @endsection
 
@@ -386,19 +407,19 @@ struct Config
         // @type float
         // @default 0.5f
         // @added 0.3.0
-        float level{0.5f};
+        float level = 0.5f;
 
         // @desc Zoom factor
         // @type float
         // @default 1.25f
         // @added 0.3.0
-        float factor{1.25f};
+        float factor = 1.25f;
 
         // @desc Anchor zoom to mouse position (instead of center of the view)
         // @type bool
         // @default true
         // @added 0.6.7
-        bool anchor_to_mouse{true};
+        bool anchor_to_mouse = true;
 
     } zoom{};
     // @endsection
@@ -413,19 +434,19 @@ struct Config
         // @type int
         // @default 50
         // @added 0.5.1
-        int drag_threshold{50};
+        int drag_threshold = 50;
 
         // @desc Copy on text selection
         // @type bool
         // @default false
         // @added 0.6.3
-        bool copy_on_select{false};
+        bool copy_on_select = false;
 
         // @desc Selection color
         // @type str
         // @default "#0000FF55"
         // @added 0.5.1
-        uint32_t color{0x0000FF55};
+        uint32_t color = 0x0000FF55;
 
     } selection{};
     // @endsection
@@ -440,25 +461,25 @@ struct Config
         // @type bool
         // @default true
         // @added 0.6.2
-        bool focus_follows_mouse{true};
+        bool focus_follows_mouse = true;
 
         // @desc Moving mouse changes the focus
         // @type bool
         // @default true
         // @added 0.6.2
-        bool mouse_follows_focus{true};
+        bool mouse_follows_focus = true;
 
         // @desc Dims splits that are not currently focused
         // @type bool
-        // @default true
+        // @default false
         // @added 0.6.2
-        bool dim_inactive{false};
+        bool dim_inactive = false;
 
         // @desc Set the inactive split dim opacity [0-1]
         // @type float
         // @default 0.5f
         // @added 0.6.2
-        float dim_inactive_opacity{0.5f}; // 0.0 (no dim) to 1.0 (fully dimmed)
+        float dim_inactive_opacity = 0.5f; // 0.0 (no dim) to 1.0 (fully dimmed)
     } split{};
     // @endsection
 
@@ -472,37 +493,37 @@ struct Config
         // @type bool
         // @default true
         // @added 0.5.4
-        bool horizontal{true};
+        bool horizontal = true;
 
         // @desc Show the vertical scrollbar
         // @type bool
         // @default true
         // @added 0.5.4
-        bool vertical{true};
+        bool vertical = true;
 
         // @desc Show the search hits in scrollbar
         // @type bool
         // @default true
         // @added 0.5.1
-        bool search_hits{true};
+        bool search_hits = true;
 
         // @desc Auto hide after timeout
         // @type bool
         // @default true
         // @added 0.5.4
-        bool auto_hide{true};
+        bool auto_hide = true;
 
         // @desc Size of the scrollbar in pixels
         // @type int
         // @default 12
         // @added 0.5.4
-        int size{12};
+        int size = 12;
 
         // @desc Inactive timeout after which to hide the scrollbar
         // @type float
         // @default 1.5
         // @added 0.5.4
-        float hide_timeout{1.5}; // seconds of inactivity before hiding
+        float hide_timeout = 1.5; // seconds of inactivity before hiding
     } scrollbars{};
     // @endsection
 
@@ -516,19 +537,19 @@ struct Config
         // @type bool
         // @default true
         // @added 0.3.1
-        bool enabled{true};
+        bool enabled = true;
 
         // @desc Jump marker color
         // @type str
         // @default "#FF0000FF"
         // @added 0.3.1
-        uint32_t color{0xFF0000FF};
+        uint32_t color = 0xFF0000FF;
 
         // @desc Jump marker fade duration in seconds
         // @type float
         // @default 1.0
         // @added 0.6.7
-        float fade_duration{1.0f};
+        float fade_duration = 1.0f;
 
     } jump_marker{};
     // @endsection
@@ -543,25 +564,25 @@ struct Config
         // @type bool
         // @default true
         // @added 0.6.5
-        bool enabled{true};
+        bool enabled = true;
 
         // @desc Show the rect boundary for links
         // @type bool
         // @default false
         // @added 0.3.1
-        bool boundary{false};
+        bool boundary = false;
 
         // @desc Detect non-pdf link objects that are valid links
         // @type bool
         // @default false
         // @added 0.5.3
-        bool detect_urls{false};
+        bool detect_urls = false;
 
         // @desc Valid regular expression that detects URLs
         // @type str
         // @default R"((https?://|www\.)[^\s<>()\"']+)"
         // @added 0.5.3
-        QString url_regex{R"((https?://|www\.)[^\s<>()\"']+)"};
+        QString url_regex = R"((https?://|www\.)[^\s<>()\"']+)";
     } links{};
     // @endsection
 
@@ -575,19 +596,19 @@ struct Config
         // @type float
         // @default 0.5f
         // @added 0.3.0
-        float size{0.5f};
+        float size = 0.5f;
 
         // @desc Link hint background color
         // @type str
         // @default "#000000FF"
         // @added 0.6.4
-        uint32_t bg{0x000000FF};
+        uint32_t bg = 0x000000FF;
 
         // @desc Link hint foreground color
         // @type str
         // @default "#ea3ee9FF"
         // @added 0.6.4
-        uint32_t fg{0xea3ee9FF};
+        uint32_t fg = 0xea3ee9FF;
 
     } link_hints{};
     // @endsection
@@ -602,51 +623,51 @@ struct Config
         // @type bool
         // @default true
         // @added 0.3.0
-        bool visible{true};
+        bool visible = true;
 
         // @desc Auto hide tabs when tab count equals 1
         // @type bool
         // @default false
         // @added 0.3.0
-        bool auto_hide{false};
+        bool auto_hide = false;
 
         // @desc Show the tab close buttons
         // @type bool
         // @default true
         // @added 0.3.0
-        bool closable{true};
+        bool closable = true;
 
         // @desc Tabs can be rearranged
         // @type bool
         // @default true
         // @added 0.3.0
-        bool movable{true};
+        bool movable = true;
 
         // @desc Text elide mode when text can't fit in the tab fully
         // @type str
         // @choice right, left, middle, none
         // @default right
         // @added 0.3.0
-        Qt::TextElideMode elide_mode{Qt::TextElideMode::ElideRight};
+        Qt::TextElideMode elide_mode = Qt::TextElideMode::ElideRight;
 
         // @desc Location of the tabs in the window
         // @type str
         // @choice top, bottom, left, right
         // @default top
         // @added 0.3.0
-        QTabWidget::TabPosition location{QTabWidget::TabPosition::North};
+        QTabWidget::TabPosition location = QTabWidget::TabPosition::North;
 
         // @desc Show full file path
         // @type bool
         // @default false
         // @added 0.3.0
-        bool full_path{false};
+        bool full_path = false;
 
         // @desc Lazy load tabs
         // @type bool
         // @default true
         // @added 0.6.0
-        bool lazy_load{true};
+        bool lazy_load = true;
     } tabs{};
     // @endsection
 
@@ -660,13 +681,13 @@ struct Config
         // @type bool
         // @default true
         // @added 0.6.0
-        bool border{true};
+        bool border = true;
 
         // @desc Enable alternating row colors in the picker list
         // @type bool
         // @default true
         // @added 0.6.8
-        bool alternating_row_color{true};
+        bool alternating_row_color = true;
 
         // clang-format off
         // @section Picker.Keys
@@ -696,6 +717,7 @@ struct Config
         // @type str
         //
         // @endsection
+        // clang-format on
 
         // @section Picker.Shadow
         // @section_desc Picker shadow struct
@@ -707,31 +729,31 @@ struct Config
             // @type bool
             // @default true
             // @added 0.6.0
-            bool enabled{true};
+            bool enabled = true;
 
             // @desc Blur radius of shadow in pixels
             // @type int
             // @default 18
             // @added 0.6.0
-            int blur_radius{18};
+            int blur_radius = 18;
 
             // @desc X-offset of the shadow
             // @type int
             // @default 0
             // @added 0.6.0
-            int offset_x{0};
+            int offset_x = 0;
 
             // @desc Y-offset of the shadow
             // @type int
             // @default 6
             // @added 0.6.0
-            int offset_y{6};
+            int offset_y = 6;
 
             // @desc Opacity of the shadow
             // @type int
             // @default 120
             // @added 0.6.0
-            int opacity{120};
+            int opacity = 120;
         } shadow{};
     } picker{};
     // @endsection
@@ -746,13 +768,13 @@ struct Config
         // @type int
         // @default 10
         // @added 0.6.5
-        int indent_width{10};
+        int indent_width = 10;
 
         // @desc Show page numbers
         // @type bool
         // @default true
         // @added 0.6.5
-        bool show_page_number{true};
+        bool show_page_number = true;
     } outline{};
     // @endsection
 
@@ -775,37 +797,37 @@ struct Config
         // @type int
         // @default 500
         // @added 0.5.4
-        int width{500};
+        int width = 500;
 
         // @desc Height of the command palette picker
         // @type int
         // @default 300
         // @added 0.5.4
-        int height{300};
+        int height = 300;
 
         // @desc Placeholder text for the input field
         // @type str
         // @default "Type a command..."
         // @added 0.5.4
-        QString placeholder_text{"Type a command..."};
+        QString placeholder_text = "Type a command...";
 
         // @desc Show the vertical scrollbar in the picker
         // @type bool
         // @default true
         // @added 0.5.4
-        bool vscrollbar{true};
+        bool vscrollbar = true;
 
         // @desc Show shortcuts
         // @type bool
         // @default true
         // @added 0.5.4
-        bool shortcuts{true};
+        bool shortcuts = true;
 
         // @desc Show command description
         // @type bool
         // @default false
         // @added 0.6.5
-        bool description{false};
+        bool description = false;
     } command_palette{};
     // @endsection
 
@@ -824,20 +846,20 @@ struct Config
         // @type bool
         // @default false
         // @added 0.5.4
-        bool visible{false};
+        bool visible = false;
 
         // @desc LLM Widget Panel position
         // @type str
         // @choice left, right, top, bottom
         // @default right
         // @added 0.5.4
-        QString panel_position{"right"};
+        QString panel_position = "right";
 
         // @desc LLM Widget Panel width
         // @type int
         // @default 400
         // @added 0.5.4
-        int panel_width{400};
+        int panel_width = 400;
     } llm_widget{};
     // @endsection
 
@@ -855,20 +877,20 @@ struct Config
         // @type str
         // @default ollama
         // @added 0.5.4
-        std::string provider{"ollama"};
+        std::string provider = "ollama";
 
         // @desc LLM Model to use
         // @type str
         // @default "llama2-7b-chat"
         // @added 0.5.4
-        std::string model{"llama2-7b-chat"};
+        std::string model = "llama2-7b-chat";
 
         // @desc Max tokens
         // @type int
         // @default 512
         // @added 0.5.4
-        int max_tokens{512};
-        // float temperature{0.7f}; //
+        int max_tokens = 512;
+        // float temperature= 0.7f; //
     } llm{};
 // @endsection
 #endif
@@ -884,31 +906,31 @@ struct Config
         // @type float or table
         // @default 1.0
         // @added 0.3.0
-        DPR dpr{1.0f};
+        DPR dpr   = 1.0f;
 
         // @desc Enable Antialiasing
         // @type bool
         // @default true
         // @added 0.6.3
-        bool antialiasing{true};
+        bool antialiasing = true;
 
         // @desc Antialiasing bits
         // @type int
         // @default 8
         // @added 0.3.0
-        int antialiasing_bits{8};
+        int antialiasing_bits = 8;
 
         // @desc Enable text antialiasing
         // @type bool
         // @default true
         // @added 0.6.3
-        bool text_antialiasing{true};
+        bool text_antialiasing = true;
 
         // @desc Smooth pixmap transform
         // @type bool
         // @default true
         // @added 0.6.3
-        bool smooth_pixmap_transform{true};
+        bool smooth_pixmap_transform = true;
 
         enum class Backend
         {
@@ -922,7 +944,7 @@ struct Config
         // @choice auto, raster, opengl
         // @added 0.6.6
         // @default auto
-        Backend backend{Backend::Raster};
+        Backend backend = Backend::Raster;
 
     } rendering{};
     // @endsection
@@ -935,39 +957,39 @@ struct Config
     {
         // @desc Confirm before quitting
         // @type bool
-        // @default true
+        // @default false
         // @added 0.3.0
-        bool confirm_on_quit{true};
+        bool confirm_on_quit = false;
 
         // @desc Undo limit
         // @type int
         // @default 25
         // @added 0.3.1
-        int undo_limit{25};
+        int undo_limit = 25;
 
         // @desc Number of pages to cache page
         // @type int
         // @default 10
         // @added 0.5.3
-        int cache_pages{10};
+        int cache_pages = 10;
 
         // @desc Preload pages
         // @type int
         // @default 2
         // @added 0.6.3
-        int preload_pages{2};
+        int preload_pages = 2;
 
         // @desc Auto-reload file upon detecting file change
         // @type bool
         // @default true
         // @added 0.3.0
-        bool auto_reload{true};
+        bool auto_reload = true;
 
         // @desc Invert color mode (aka dark mode)
         // @type bool
         // @default false
         // @added 0.3.0
-        bool invert_mode{false};
+        bool invert_mode = false;
 
         // @desc {
         // Preserve images when in invert color mode. When enabled, images in
@@ -977,43 +999,43 @@ struct Config
         // @type bool
         // @default true
         // @added 0.6.6
-        bool dont_invert_images{true};
+        bool dont_invert_images = true;
 
         // @desc Open last visited file when launching new instance
         // @type bool
         // @default false
         // @added 0.3.0
-        bool open_last_visited{false};
+        bool open_last_visited = false;
 
         // @desc Always open files in new window
         // @type bool
         // @default false
         // @added 0.5.3
-        bool always_open_in_new_window{false};
+        bool always_open_in_new_window = false;
 
         // @desc Remembers last visited page number
         // @type bool
         // @default true
         // @added 0.3.0
-        bool remember_last_visited{true};
+        bool remember_last_visited = true;
 
         // @desc Keep track of recent files
         // @type bool
         // @default true
         // @added 0.3.0
-        bool recent_files{true};
+        bool recent_files = true;
 
         // @desc Max number of recent files to keep track
         // @type int
         // @default 10
         // @added 0.3.0
-        int num_recent_files{10};
+        int num_recent_files = 10;
 
         // @desc Page history location limit to keep track
         // @type int
         // @default 5
         // @added 0.3.0
-        int page_history_limit{5};
+        int page_history_limit = 5;
 
         // Don't document this as it's for internal use
         int startpage_override{-1};
@@ -1026,14 +1048,14 @@ struct Config
         // }
         // @default text_selection
         // @added 0.3.0
-        GraphicsView::Mode initial_mode{GraphicsView::Mode::TextSelection};
+        GraphicsView::Mode initial_mode = GraphicsView::Mode::TextSelection;
 #ifdef HAS_SYNCTEX
 
         // @desc Synctex editor command
         // @type str
         // @default ""
         // @added 0.3.0
-        QString synctex_editor_command{QString()};
+        QString synctex_editor_command = QString();
 #endif
     } behavior{};
     // @endsection
@@ -1112,25 +1134,25 @@ struct Config
         // @type table
         // @default { width = 0.6, height = 0.7 }
         // @added 0.6.6
-        WindowRatio size_ratio{0.6, 0.7};
+        WindowRatio size_ratio = {0.6, 0.7};
 
         // @desc Border radius of the preview window in pixels
         // @type int
         // @default 8
         // @added 0.6.6
-        int border_radius{8};
+        int border_radius = 8;
 
         // @desc Close the preview window when clicking outside of it
         // @type bool
         // @default true
         // @added 0.6.6
-        bool close_on_click_outside{true};
+        bool close_on_click_outside = true;
 
         // @desc Opacity of the preview window (0.0 to 1.0)
         // @type float
         // @default 0.95
         // @added 0.6.6
-        float opacity{0.95f};
+        float opacity = 0.95f;
 
     } preview;
     // @endsection
