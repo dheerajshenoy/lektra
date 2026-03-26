@@ -4,6 +4,10 @@
 
 ### Features
 
+- Thumbnail panel for quick navigation and visual overview of the document pages. The thumbnail panel can be toggled with
+the `thumbnail_panel` command and will show a scrollable list of page thumbnails on the side of the window.
+Clicking on a thumbnail will navigate to that page in the main view.
+
 - Default keybindings added for the following:
   - `split_horizontal` => `Ctrl+W,s`
   - `split_vertical` => `Ctrl+W,v`
@@ -15,6 +19,9 @@
 
 ### Config Options
 
+- `[thumbnail_panel]` section for thumbnail panel related settings
+    - `show_page_number` (bool): Whether to show page numbers on the thumbnails
+    - `panel_width` (float): Width of the thumbnail panel as a ratio of the main window width (e.g. 0.2 for 20% of the main window width)
 - Ability to define multiple keybindings for same action using [TOML array](https://toml.io/en/v1.0.0#array)
 
 Example: 
@@ -34,6 +41,7 @@ command_palette = [ ":", "Ctrl+P" ]
 ### Breaking Changes
 
 - `dim_inactive` is now disabled by default (which was enabled previously out of the box)
+- `confirm_on_quit` is now false by default (I feel it was annoying).
 
 ### Bug Fixes
 
