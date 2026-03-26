@@ -1,13 +1,13 @@
+# -*- mode: yaml; -*-
+
 BasedOnStyle: LLVM
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
-
 BreakBeforeBraces: Allman
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
-
 MaxEmptyLinesToKeep: 1
 IndentCaseLabels: true
 AlwaysBreakAfterReturnType: TopLevel
@@ -19,15 +19,20 @@ DerivePointerAlignment: false
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: false
 AlignTrailingComments: true
-
 Cpp11BracedListStyle: true
-
 AllowShortLambdasOnASingleLine: Inline
 LambdaBodyIndentation: OuterScope
 SpacesInAngles: false
+SpaceBeforeAssignmentOperators: true
 SpaceBeforeParens: ControlStatements
 AccessModifierOffset: -4
 IndentAccessModifiers: false
 BreakBeforeBinaryOperators: true
 AlignOperands: true
-ColumnLimit: 80  # Or whatever high value fits your code style
+ColumnLimit: 80
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: true
+SpaceBeforeDesignatedInitializerEquals: true 
+SpacesInContainerLiterals: true
