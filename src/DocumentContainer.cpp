@@ -1,5 +1,7 @@
 #include "DocumentContainer.hpp"
 
+#include "utils.hpp"
+
 #include <QEvent>
 #include <QJsonArray>
 #include <QSplitter>
@@ -337,7 +339,8 @@ DocumentContainer::createViewFromTemplate(DocumentView *templateView) noexcept
     if (!templateView)
         return nullptr;
 
-    DocumentView *newView = new DocumentView(templateView->config(), templateView->dpr(), this);
+    DocumentView *newView
+        = new DocumentView(templateView->config(), templateView->dpr(), this);
     newView->setContainer(this);
     newView->setDPR(templateView->dpr());
     newView->setInvertColor(templateView->invertColor());
@@ -409,36 +412,47 @@ DocumentContainer::equalizeStretch(QSplitter *splitter) noexcept
     if (!splitter || splitter->count() == 0)
         return;
 
-    // 1. Get the current total size of the splitter
-    int totalSize = 0;
-    for (int size : splitter->sizes())
-    {
-        totalSize += size;
-    }
-
-    // 2. If total size is 0 (not yet rendered), use a fallback
-    // to ensure they aren't initialized to 0px
+    QList<int> sizes = splitter->sizes();
+    int totalSize    = 0;
+    for (int s : sizes)
+        totalSize += s;
     if (totalSize <= 0)
-    {
         totalSize = 1000;
-    }
 
-    // 3. Create a list where every widget gets an equal share
-    int share = totalSize / splitter->count();
-    QList<int> newSizes;
     for (int i = 0; i < splitter->count(); ++i)
     {
-        newSizes << share;
+        QWidget *w = splitter->widget(i);
+        // If it's the thumbnail view, give it a stretch of 0 (fixed)
+        if (w == m_thumbnail_view
+            || (qobject_cast<DocumentView *>(w)
+                && qobject_cast<DocumentView *>(w)->isThumbnailView()))
+        {
+            splitter->setStretchFactor(i, 0);
+        }
+        else
+        {
+            splitter->setStretchFactor(i, 1);
+        }
     }
 
-    // 4. Force the splitter to apply these sizes immediately
-    splitter->setSizes(newSizes);
+    // Distribute actual pixels
+    int thumbIdx = splitter->indexOf(m_thumbnail_view);
+    int remainingCount
+        = (thumbIdx != -1) ? splitter->count() - 1 : splitter->count();
 
-    // 5. Keep the stretch factors so they stay equal when the window is
-    // resized
-    for (int i = 0; i < splitter->count(); ++i)
+    if (remainingCount > 0)
     {
-        splitter->setStretchFactor(i, 1);
+        int thumbSize = (thumbIdx != -1) ? sizes[thumbIdx] : 0;
+        if (thumbSize <= 0 && thumbIdx != -1)
+            thumbSize = totalSize * 0.15; // fallback
+
+        int share = (totalSize - thumbSize) / remainingCount;
+        QList<int> newSizes;
+        for (int i = 0; i < splitter->count(); ++i)
+        {
+            newSizes << (i == thumbIdx ? thumbSize : share);
+        }
+        splitter->setSizes(newSizes);
     }
 }
 
@@ -482,7 +496,7 @@ DocumentContainer::focusSplit(Direction direction) noexcept
             case Direction::Left:
                 inDirection = dx < 0;
                 // Prefer closer in x, penalise vertical drift
-                score = -dx + std::abs(dy) * 2;
+                score       = -dx + std::abs(dy) * 2;
                 break;
             case Direction::Right:
                 inDirection = dx > 0;
