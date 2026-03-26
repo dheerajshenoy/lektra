@@ -45,6 +45,17 @@ public:
         return m_current_view;
     }
 
+    inline void toggleThumbnailView() noexcept
+    {
+        if (m_thumbnail_view)
+            m_thumbnail_view->setVisible(!m_thumbnail_view->isVisible());
+    }
+
+    inline DocumentView *thumbnailView() const noexcept
+    {
+        return m_thumbnail_view;
+    }
+
     DocumentView *split(DocumentView *view,
                         Qt::Orientation orientation
                         = Qt::Orientation::Horizontal) noexcept;
@@ -62,6 +73,12 @@ public:
     DocumentView *get_child_view_by_id(DocumentView::Id id) const noexcept;
     void close_other_views(DocumentView *view) noexcept;
 
+    // Thumbnail view management
+    void createThumbnailView(DocumentView *view) noexcept;
+    void closeThumbnailView() noexcept;
+    void resizeThumbnailView(float relWidth) noexcept;
+    void focusThumbnailView() noexcept;
+
 signals:
     void viewCreated(DocumentView *view);
     void viewClosed(DocumentView *view);
@@ -77,8 +94,9 @@ private:
     void collectViews(QWidget *widget,
                       QList<DocumentView *> &views) const noexcept;
 
-    static void equalizeStretch(QSplitter *splitter) noexcept;
+    void equalizeStretch(QSplitter *splitter) noexcept;
     DocumentView *createViewFromTemplate(DocumentView *templateView) noexcept;
     QVBoxLayout *m_layout{nullptr};
     DocumentView *m_current_view{nullptr};
+    DocumentView *m_thumbnail_view{nullptr};
 };
