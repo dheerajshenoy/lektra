@@ -95,6 +95,33 @@ public:
         painter->drawImage(m_bounding_rect, m_image);
     }
 
+    // Inside GraphicsImageItem or a subclass
+    void setPageNumber(int pageno)
+    {
+        if (!m_label)
+        {
+            // 'this' is the parent. Child positions are relative to (0,0) of
+            // the image.
+            m_label = new QGraphicsSimpleTextItem(this);
+        }
+        m_label->setText(QString::number(pageno + 1));
+
+        // Position it once. Because it's a child, it stays here
+        // even if the parent GraphicsImageItem is moved via setPos()
+        updateLabelPosition();
+    }
+
+    void updateLabelPosition()
+    {
+        if (m_label)
+        {
+            const QRectF br = this->boundingRect();
+            const QRectF lr = m_label->boundingRect();
+            // Center horizontally, 5px below the image
+            m_label->setPos((br.width() - lr.width()) / 2.0, br.height() + 5.0);
+        }
+    }
+
 private:
     void updateBoundingRect()
     {
@@ -111,6 +138,7 @@ private:
         }
     }
 
+    QGraphicsSimpleTextItem *m_label{nullptr}; // For page number labels
     QImage m_image;
     QRectF m_bounding_rect;
 };
