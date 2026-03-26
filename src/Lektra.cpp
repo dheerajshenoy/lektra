@@ -296,6 +296,7 @@ Lektra::initMenubar() noexcept
         tr("LLM Widget\t%1").arg(m_config.shortcuts["llm_widget"]), this,
         &Lektra::ToggleLLMWidget);
     m_actionToggleLLMWidget->setCheckable(true);
+
     m_actionToggleLLMWidget->setChecked(m_config.llm_widget.visible);
 #endif
 
