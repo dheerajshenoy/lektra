@@ -124,8 +124,8 @@ class Parser:
 def main():
     parser = Parser()
     docobjs = parser.parse("../src/Config.hpp")
-
-    with open("/home/dheeraj/Gits/dheerajshenoy.github.io/lektra/files/config.json", 'w') as f:
+    USER = os.getenv("USER")
+    with open(f"/home/{USER}/Gits/dheerajshenoy.github.io/lektra/files/config.json", 'w') as f:
         json.dump(docobjs, f, indent=4)
 
 
