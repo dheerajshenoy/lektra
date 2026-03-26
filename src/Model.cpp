@@ -361,7 +361,7 @@ image_tracker_fill_image(fz_context *ctx, fz_device *dev_, fz_image *image,
     // Images are rendered into unit rect [0,0,1,1] transformed by ctm
     fz_rect img_rect = fz_transform_rect(fz_unit_rect, ctm);
     // fz_rect transformed = fz_transform_rect(img_rect, dev->page_transform);
-    fz_irect bbox = fz_round_rect(img_rect);
+    fz_irect bbox    = fz_round_rect(img_rect);
 
     // Grow array if needed
     if (dev->rect_count >= dev->rect_cap)
@@ -1215,8 +1215,8 @@ Model::buildPageCache_djvu(int pageno) noexcept
     ddjvu_format_t *fmt{nullptr};
     // DjVuLibre RGBMASK32: specify R/G/B masks and white background
     const unsigned int masks[3] = {0x00FF0000, 0x0000FF00, 0x000000FF};
-    fmt = ddjvu_format_create(DDJVU_FORMAT_RGBMASK32, 3,
-                              const_cast<unsigned int *>(masks));
+    fmt                         = ddjvu_format_create(DDJVU_FORMAT_RGBMASK32, 3,
+                                                      const_cast<unsigned int *>(masks));
     ddjvu_format_set_row_order(fmt, 1); // top-to-bottom
 
     const int ok = ddjvu_page_render(page, DDJVU_RENDER_COLOR, &prect, &rrect,
@@ -1709,8 +1709,8 @@ Model::computeTextSelectionQuad(int pageno, QPointF devStart,
         page_to_dev = fz_pre_rotate(page_to_dev, m_rotation);
 
         const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
-        page_to_dev = fz_concat(page_to_dev,
-                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+        page_to_dev              = fz_concat(page_to_dev,
+                                             fz_translate(-dev_bounds.x0, -dev_bounds.y0));
 
         const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
 
@@ -1790,8 +1790,8 @@ Model::get_selected_text(int pageno, QPointF start, QPointF end,
         page_to_dev      = fz_pre_rotate(page_to_dev, m_rotation);
 
         const fz_rect dev_bounds = fz_transform_rect(bounds, page_to_dev);
-        page_to_dev = fz_concat(page_to_dev,
-                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+        page_to_dev              = fz_concat(page_to_dev,
+                                             fz_translate(-dev_bounds.x0, -dev_bounds.y0));
 
         const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
 
@@ -2997,11 +2997,11 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
             bounds = {0, 0, w, h};
         }
 
-        fz_matrix page_to_dev    = fz_scale(scale, scale);
-        page_to_dev              = fz_pre_rotate(page_to_dev, m_rotation);
-        const fz_rect dev_bounds = fz_transform_rect(bounds, page_to_dev);
-        page_to_dev = fz_concat(page_to_dev,
-                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+        fz_matrix page_to_dev       = fz_scale(scale, scale);
+        page_to_dev                 = fz_pre_rotate(page_to_dev, m_rotation);
+        const fz_rect dev_bounds    = fz_transform_rect(bounds, page_to_dev);
+        page_to_dev                 = fz_concat(page_to_dev,
+                                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
         const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
         fz_point page_pt            = fz_transform_point(pt, dev_to_page);
         fz_stext_page *stext_page   = get_or_build_stext_page(m_ctx, pageno);
@@ -3688,8 +3688,8 @@ Model::getTextInArea(const int pageno, QPointF start, QPointF end) noexcept
         fz_matrix page_to_dev     = fz_scale(scale, scale);
         page_to_dev               = fz_pre_rotate(page_to_dev, m_rotation);
         const fz_rect dev_bounds  = fz_transform_rect(page_bounds, page_to_dev);
-        page_to_dev = fz_concat(page_to_dev,
-                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+        page_to_dev               = fz_concat(page_to_dev,
+                                              fz_translate(-dev_bounds.x0, -dev_bounds.y0));
         const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
 
         fz_point p1 = fz_transform_point(
