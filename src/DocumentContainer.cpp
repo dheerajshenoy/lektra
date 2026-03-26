@@ -671,3 +671,154 @@ DocumentContainer::close_other_views(DocumentView *view) noexcept
             closeView(v);
     }
 }
+
+void
+DocumentContainer::createThumbnailView(DocumentView *view) noexcept
+{
+    if (!view)
+        return;
+
+    DocumentView *thumbView
+        = new DocumentView(view->config(), view->dpr(), this, true);
+    thumbView->setContainer(this);
+    thumbView->setDPR(view->dpr());
+    thumbView->setInvertColor(view->invertColor());
+    thumbView->setAutoResize(view->autoResize());
+
+    connect(thumbView, &DocumentView::openFileFinished,
+            this, [view, thumbView]() {
+        thumbView->GotoLocation(view->CurrentLocation());
+    }, Qt::SingleShotConnection);
+
+    connect(thumbView->graphicsView(), &GraphicsView::clickRequested, this,
+            [view, thumbView](int /*count */, QPointF scenePos)
+    {
+        GraphicsImageItem *item{nullptr};
+        int pageno{-1};
+        thumbView->pageAtScenePos(scenePos, pageno, item);
+        view->GotoPage(pageno);
+    });
+
+    thumbView->openAsync(view->filePath());
+
+    // Find the leftmost top-level widget
+    QWidget *root
+        = m_layout->count() > 0 ? m_layout->itemAt(0)->widget() : nullptr;
+
+    if (!root)
+        return;
+
+    QSplitter *topSplitter = qobject_cast<QSplitter *>(root);
+
+    if (!topSplitter)
+    {
+        // Root is a bare DocumentView — wrap it in a horizontal splitter
+        // with the thumb panel on the left
+        int layoutIndex = m_layout->indexOf(root);
+        QRect geom      = root->geometry();
+
+        QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
+        splitter->setChildrenCollapsible(false);
+        splitter->setHandleWidth(1);
+        splitter->setStyleSheet(
+            "QSplitter::handle { background-color: palette(mid); }");
+
+        splitter->addWidget(thumbView); // index 0 = left
+        splitter->addWidget(root);      // existing view pushed right
+
+        m_layout->insertWidget(layoutIndex, splitter);
+        splitter->setGeometry(geom);
+        equalizeStretch(splitter);
+    }
+    else if (topSplitter->orientation() == Qt::Horizontal)
+    {
+        // Already a horizontal splitter — prepend at index 0
+        topSplitter->insertWidget(0, thumbView);
+        topSplitter->refresh();
+        equalizeStretch(topSplitter);
+    }
+    else
+    {
+        // Top splitter is vertical — wrap it in a new horizontal splitter
+        // with the thumb panel on the left
+        int layoutIndex = m_layout->indexOf(topSplitter);
+        QRect geom      = topSplitter->geometry();
+
+        QSplitter *hSplitter = new QSplitter(Qt::Horizontal, this);
+        hSplitter->setChildrenCollapsible(false);
+        hSplitter->setHandleWidth(1);
+        hSplitter->setStyleSheet(
+            "QSplitter::handle { background-color: palette(mid); }");
+
+        hSplitter->addWidget(thumbView);   // left
+        hSplitter->addWidget(topSplitter); // existing vertical stack on right
+
+        m_layout->insertWidget(layoutIndex, hSplitter);
+        hSplitter->setGeometry(geom);
+        equalizeStretch(hSplitter);
+    }
+
+    emit viewCreated(thumbView);
+    focusView(thumbView);
+
+    m_thumbnail_view = thumbView;
+
+    connect(this, &DocumentContainer::viewClosed, this,
+            [this](DocumentView *view)
+    {
+        if (view == m_thumbnail_view)
+            m_thumbnail_view = nullptr;
+    });
+
+    m_thumbnail_view->setAutoResize(true);
+    m_thumbnail_view->setLayoutMode(DocumentView::LayoutMode::VERTICAL);
+    resizeThumbnailView(
+        0.15f); // TODO: make this configurable or dynamic based on content
+}
+
+void
+DocumentContainer::closeThumbnailView() noexcept
+{
+    if (!m_thumbnail_view)
+        return;
+}
+
+void
+DocumentContainer::focusThumbnailView() noexcept
+{
+    if (!m_thumbnail_view)
+        return;
+}
+
+void
+DocumentContainer::resizeThumbnailView(float relWidth) noexcept
+{
+    if (!m_thumbnail_view)
+        return;
+
+    QSplitter *parent
+        = qobject_cast<QSplitter *>(m_thumbnail_view->parentWidget());
+    if (!parent)
+        return;
+
+    int total = 0;
+    for (int s : parent->sizes())
+        total += s;
+
+    if (total <= 0)
+        return;
+
+    int index = parent->indexOf(m_thumbnail_view);
+    int count = parent->count();
+
+    QList<int> sizes;
+    for (int i = 0; i < count; ++i)
+    {
+        if (i == index)
+            sizes << static_cast<int>(total * relWidth);
+        else
+            sizes << static_cast<int>(total * (1.0f - relWidth) / (count - 1));
+    }
+
+    parent->setSizes(sizes);
+}
