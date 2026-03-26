@@ -5008,8 +5008,8 @@ Lektra::splitHelper(Qt::Orientation orientation) noexcept
         return;
 
     DocumentView *currentView = container->view();
-    if (!currentView)
-        return nullptr;
+    if (!currentView || currentView == container->thumbnailView())
+        return;
 
     // Perform vertical split (top/bottom)
     container->split(currentView, orientation);
