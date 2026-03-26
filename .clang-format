@@ -16,7 +16,6 @@ IncludeBlocks: Regroup
 IndentPPDirectives: AfterHash
 PointerAlignment: Right
 DerivePointerAlignment: false
-AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: false
 AlignTrailingComments: true
 Cpp11BracedListStyle: true
@@ -34,5 +33,4 @@ AlignConsecutiveAssignments:
   Enabled: true
   AcrossEmptyLines: false
   AcrossComments: true
-SpaceBeforeDesignatedInitializerEquals: true 
 SpacesInContainerLiterals: true
