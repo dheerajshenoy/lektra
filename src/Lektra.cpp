@@ -2492,7 +2492,8 @@ Lektra::openFileSplitHelper(const QString &filename,
         throw std::runtime_error("No container found for current tab");
 
     DocumentView *currentView = container->view();
-    if (!currentView)
+
+    if (!currentView || currentView == container->thumbnailView())
         return nullptr;
 
     DocumentView *newView
@@ -4044,6 +4045,10 @@ Lektra::initCommands() noexcept
         [this](const QStringList &) { ReselectLastTextSelection(); });
 
     // Toggles
+    m_command_manager->reg("thumbnail_panel", tr("Toggle thumbnail panel"),
+                           [this](const QStringList &)
+    { ToggleThumbnailPanel(); });
+
     m_command_manager->reg("presentation_mode", tr("Toggle presentation mode"),
                            [this](const QStringList &)
     { TogglePresentationMode(); });
