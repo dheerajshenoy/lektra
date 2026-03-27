@@ -4,6 +4,8 @@
 
 ## HIGH PRIORITY
 
+- [ ] Grow/Shrink scrollbar when hovering for easy clicking and dragging
+- [ ] Grow/Shrink splitter handle when hovering over it for easy dragging
 - [ ] Show visually, and identifier for split files (if they remain as original file) next to their name. Maybe, a numbered gutter badge, small [1], [2] badge in the corner of each split — same number means same file. Simple and non-intrusive.
 - [ ] Do not show thumbnail panel in the total split count of tab
 - [ ] Statusbar don't show info for thumbnail panel
