@@ -2619,6 +2619,8 @@ Lektra::FileProperties() noexcept
 {
     if (!m_doc)
         return;
+
+    m_doc->FileProperties();
 }
 
 // Saves the current file

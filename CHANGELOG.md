@@ -45,7 +45,8 @@ command_palette = [ ":", "Ctrl+P" ]
 
 ### Bug Fixes
 
-- Crash when trying to save file after adding annotation.
+- Fix file properties not working
+- Fix crash when trying to save file after adding annotation.
 
 ### Core Changes
 
