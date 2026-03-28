@@ -216,8 +216,12 @@ DocumentContainer::collectViews(QWidget *widget,
     if (!widget)
         return;
 
-    if (DocumentView *view = qobject_cast<DocumentView *>(widget))
+    if (auto *view = qobject_cast<DocumentView *>(widget))
     {
+        // Don't count the thumbnail view as a "regular" view
+        if (view == m_thumbnail_view)
+            return;
+
         views.append(view);
     }
     else if (QSplitter *splitter = qobject_cast<QSplitter *>(widget))

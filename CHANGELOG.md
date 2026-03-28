@@ -45,6 +45,7 @@ command_palette = [ ":", "Ctrl+P" ]
 
 ### Bug Fixes
 
+- Don't count thumbnail view in a container as a regular split when showing the total count of the splits in a container
 - Fix file properties not working
 - Fix crash when trying to save file after adding annotation.
 
