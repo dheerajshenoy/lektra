@@ -4,6 +4,7 @@
 
 ### Features
 
+- Absolute vs Relative search hit jump
 - Thumbnail panel for quick navigation and visual overview of the document pages. The thumbnail panel can be toggled with
 the `thumbnail_panel` command and will show a scrollable list of page thumbnails on the side of the window.
 Clicking on a thumbnail will navigate to that page in the main view.

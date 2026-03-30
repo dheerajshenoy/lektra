@@ -87,6 +87,16 @@ struct Config
         // @added 0.6.8
         bool highlight_matches = true;
 
+        // @desc {
+        // When true, the "next" match is always the next index in the results
+        // list. When false, the "next" match is the one physically closest to
+        // the cursor.
+        // }
+        // @type bool
+        // @default false
+        // @added 0.6.9
+        bool absolute_jump = false;
+
     } search{};
     // @endsection
 
