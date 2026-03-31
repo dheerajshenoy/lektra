@@ -1676,7 +1676,7 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
     }
 
     if (argparser.is_used("page"))
-        m_config.behavior.startpage_override = argparser.get<int>("--page");
+        m_config.behavior._startpage_override = argparser.get<int>("--page");
 
 #ifdef HAS_SYNCTEX
     if (argparser.is_used("synctex-forward"))
