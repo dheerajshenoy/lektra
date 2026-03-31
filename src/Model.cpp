@@ -744,11 +744,22 @@ Model::Model(const Config &config, QObject *parent) noexcept
     setUrlLinkRegex(m_config.links.url_regex);
 
     // Eviction for LRU Cache
+    m_text_cache.setCapacity(512); // TODO: make this configurable
     m_page_lru_cache.setCapacity(m_config.behavior.cache_pages);
     m_page_lru_cache.setCallback([this](PageCacheEntry &entry)
-    { LRUEvictFunction(entry); });
+    {
+        const int pageno = entry.pageno;
+        if (entry.display_list)
+        {
+            fz_drop_display_list(m_ctx, entry.display_list);
+            entry.display_list = nullptr;
+            // fz_drop_context(ctx);
+        }
 
-    m_text_cache.setCapacity(512);      // TODO: make this configurable
+        if (m_text_cache.has(pageno))
+            m_text_cache.remove(pageno);
+    });
+
     m_stext_page_cache.setCapacity(10); // TODO: make this configurable
     m_stext_page_cache.setCallback([this](fz_stext_page *stext_page)
     {
@@ -761,8 +772,6 @@ Model::Model(const Config &config, QObject *parent) noexcept
 
     connect(m_undo_stack, &QUndoStack::cleanChanged, this,
             [this](bool isClean) { emit undoStackCleanChanged(isClean); });
-
-    // m_render_synchronizer.setCancelOnWait(true);
 }
 
 Model::~Model() noexcept
@@ -776,7 +785,6 @@ Model::~Model() noexcept
 
     m_render_cancelled.store(true);
     waitForPendingRenders();
-    m_render_synchronizer.waitForFinished();
 
 #ifdef HAS_DJVU
     if (m_filetype == FileType::DJVU)
@@ -785,8 +793,10 @@ Model::~Model() noexcept
 #endif
     {
         cleanup_mupdf();
-        fz_drop_context(m_ctx);
     }
+
+    if (m_ctx)
+        fz_drop_context(m_ctx);
 }
 
 void
@@ -802,22 +812,6 @@ Model::initMuPDF() noexcept
 }
 
 void
-Model::LRUEvictFunction(PageCacheEntry &entry) noexcept
-{
-    std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-    if (entry.display_list)
-    {
-        fz_drop_display_list(m_ctx, entry.display_list);
-        entry.display_list = nullptr;
-        // fz_drop_context(ctx);
-    }
-
-    // Also clear text cache for this page to save memory
-    if (m_text_cache.has(entry.pageno))
-        m_text_cache.remove(entry.pageno);
-}
-
-void
 Model::cleanup_mupdf() noexcept
 {
     fz_drop_outline(m_ctx, m_outline);
@@ -830,6 +824,7 @@ Model::cleanup_mupdf() noexcept
         std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
         m_page_lru_cache.clear();
         m_text_cache.clear();
+        m_stext_page_cache.clear();
     }
 
     {
@@ -837,6 +832,8 @@ Model::cleanup_mupdf() noexcept
         m_page_dim_cache.reset(0);
         m_default_page_dim = {};
     }
+
+    fz_empty_store(m_ctx);
 }
 
 #ifdef HAS_DJVU
@@ -934,6 +931,7 @@ Model::openAsync_djvu(const QString &canonPath) noexcept
         QMetaObject::invokeMethod(this, [this, ctx, doc, page_count, w, h]()
         {
             waitForPendingRenders();
+            m_render_cancelled.store(false, std::memory_order_release);
             cleanup_mupdf(); // drops MuPDF state
             cleanup_djvu();  // drops any previous DjVu state
 
@@ -1083,6 +1081,7 @@ Model::_continueOpen(fz_context *ctx, fz_document *doc) noexcept
     QMetaObject::invokeMethod(this, [this, ctx, doc, page_count, w, h]
     {
         waitForPendingRenders();
+        m_render_cancelled.store(false, std::memory_order_release);
         cleanup_mupdf();
         fz_drop_context(m_ctx);
 
@@ -1215,8 +1214,8 @@ Model::buildPageCache_djvu(int pageno) noexcept
     ddjvu_format_t *fmt{nullptr};
     // DjVuLibre RGBMASK32: specify R/G/B masks and white background
     const unsigned int masks[3] = {0x00FF0000, 0x0000FF00, 0x000000FF};
-    fmt                         = ddjvu_format_create(DDJVU_FORMAT_RGBMASK32, 3,
-                                                      const_cast<unsigned int *>(masks));
+    fmt = ddjvu_format_create(DDJVU_FORMAT_RGBMASK32, 3,
+                              const_cast<unsigned int *>(masks));
     ddjvu_format_set_row_order(fmt, 1); // top-to-bottom
 
     const int ok = ddjvu_page_render(page, DDJVU_RENDER_COLOR, &prect, &rrect,
@@ -1418,7 +1417,7 @@ Model::buildPageCache(int pageno) noexcept
         fz_drop_page(ctx, page);
         if (!success && dlist)
             fz_drop_display_list(ctx, dlist);
-        fz_drop_context(ctx);
+        // fz_drop_context(ctx);
     }
     fz_catch(ctx)
     {
@@ -1436,8 +1435,8 @@ Model::buildPageCache(int pageno) noexcept
         {
             m_page_lru_cache.put(pageno, std::move(entry));
         }
-        // else
-        //     fz_drop_display_list(ctx, dlist);
+        else
+            fz_drop_display_list(ctx, dlist);
     }
 }
 
@@ -1585,6 +1584,7 @@ Model::reloadDocument() noexcept
     }
 
     waitForPendingRenders();
+    m_render_cancelled.store(false, std::memory_order_release);
     cleanup_mupdf();
 
     // Flush the MuPDF store so cloned contexts won't serve stale entries
@@ -2081,21 +2081,48 @@ Model::requestPageRender(
         }
     });
 
-    auto future = QtConcurrent::run([this, job, callback]() -> PageRenderResult
+    // auto future
+    //     = QtConcurrent::run([this, job /*, callback */]() -> PageRenderResult
+    // {
+    //     if (m_render_cancelled.load())
+    //         return {};
+    //
+    //     ensurePageCached(job.pageno);
+    //
+    //     if (m_render_cancelled.load())
+    //         return {};
+    //
+    //     return renderPageWithExtrasAsync(job);
+    // });
+    //
+    // watcher->setFuture(future);
+
+    // In requestPageRender - worker lambda:
+    auto future = QtConcurrent::run([this, job]() -> PageRenderResult
     {
-        if (m_render_cancelled.load())
+        m_active_renders.fetch_add(1, std::memory_order_relaxed);
+
+        struct Guard
+        {
+            Model *m;
+            ~Guard()
+            {
+                if (m->m_active_renders.fetch_sub(1, std::memory_order_acq_rel)
+                    == 1)
+                    m->m_renders_cv.notify_all();
+            }
+        } guard{this};
+
+        if (m_render_cancelled.load(std::memory_order_acquire))
             return {};
-
         ensurePageCached(job.pageno);
-
-        if (m_render_cancelled.load())
+        if (m_render_cancelled.load(std::memory_order_acquire))
             return {};
 
         return renderPageWithExtrasAsync(job);
     });
 
-    m_render_synchronizer.addFuture(future);
-    watcher->setFuture(future);
+    watcher->setFuture(future); // no synchronizer, just the watcher
 }
 
 Model::PageRenderResult
@@ -2139,6 +2166,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     std::vector<CachedLink> links;
     std::vector<CachedAnnotation> annotations;
 
+    fz_try(ctx)
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
 
@@ -2146,7 +2174,6 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         {
             qWarning() << "Model::PageRenderResult() Page not cached:"
                        << job.pageno;
-            fz_drop_context(ctx);
             return result;
         }
 
@@ -2155,7 +2182,6 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         {
             qWarning() << "Model::PageRenderResult() Missing display list for:"
                        << job.pageno;
-            fz_drop_context(ctx);
             return result;
         }
 
@@ -2167,6 +2193,19 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         links = entry->links;
         annotations.reserve(entry->annotations.size());
         annotations = entry->annotations;
+    }
+    fz_always(ctx)
+    {
+        // We will drop the context at the end of this function, which will
+        // also drop the display list reference we just kept. If we failed to
+        // keep the display list, dropping a null pointer is safe.
+    }
+    fz_catch(ctx)
+    {
+        qWarning() << "Failed to retrieve page cache for rendering:"
+                   << job.pageno << ":" << fz_caught_message(ctx);
+        fz_drop_context(ctx);
+        return result;
     }
 
     fz_link *head{nullptr};
@@ -2413,10 +2452,15 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     fz_always(ctx)
     {
         fz_close_device(ctx, tracker);
+        fz_drop_device(ctx, tracker);
+
+        fz_close_device(ctx, dev);
         fz_drop_device(ctx, dev);
+
         fz_drop_link(ctx, head);
         fz_drop_pixmap(ctx, pix);
         fz_drop_display_list(ctx, dlist);
+
         // fz_drop_page(ctx, text_page);
         fz_drop_context(ctx);
     }
@@ -2542,11 +2586,7 @@ Model::addHighlightAnnotation(const int pageno,
     fz_always(m_ctx)
     {
         pdf_drop_annot(m_ctx, annot);
-#if FZ_VERSION_MINOR >= 19
         pdf_drop_page(m_ctx, page);
-#else
-        fz_drop_page(m_ctx, (fz_page *)page);
-#endif
     }
     fz_catch(m_ctx)
     {
@@ -2611,11 +2651,7 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect,
     fz_always(m_ctx)
     {
         pdf_drop_annot(m_ctx, annot);
-#if FZ_VERSION_MINOR >= 19
         pdf_drop_page(m_ctx, page);
-#else
-        fz_drop_page(m_ctx, (fz_page *)page);
-#endif
     }
     fz_catch(m_ctx)
     {
@@ -2685,11 +2721,7 @@ Model::addTextAnnotation(const int pageno, const fz_rect &rect,
     fz_always(m_ctx)
     {
         pdf_drop_annot(m_ctx, annot);
-#if FZ_VERSION_MINOR >= 19
         pdf_drop_page(m_ctx, page);
-#else
-        fz_drop_page(m_ctx, (fz_page *)page);
-#endif
     }
     fz_catch(m_ctx)
     {
@@ -2714,9 +2746,10 @@ const char *
 Model::getAnnotComment(const int pageno, const int objNum) noexcept
 {
     const char *comment{nullptr};
+    pdf_page *page{nullptr};
     fz_try(m_ctx)
     {
-        pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
@@ -2729,12 +2762,10 @@ Model::getAnnotComment(const int pageno, const int objNum) noexcept
             comment = pdf_annot_contents(m_ctx, annot);
             break;
         }
-
-#if FZ_VERSION_MINOR >= 19
+    }
+    fz_always(m_ctx)
+    {
         pdf_drop_page(m_ctx, page);
-#else
-        fz_drop_page(m_ctx, (fz_page *)page);
-#endif
     }
     fz_catch(m_ctx)
     {
@@ -2773,11 +2804,7 @@ Model::addAnnotComment(const int pageno, const int objNum,
     }
     fz_always(m_ctx)
     {
-#if FZ_VERSION_MINOR >= 19
         pdf_drop_page(m_ctx, page);
-#else
-        fz_drop_page(m_ctx, (fz_page *)page);
-#endif
     }
     fz_catch(m_ctx)
     {
@@ -2822,9 +2849,11 @@ Model::removeAnnotations(int pageno, const std::vector<int> &objNums) noexcept
     for (int n : objNums)
         to_delete.insert(n);
 
+    pdf_page *page{nullptr};
+
     fz_try(m_ctx)
     {
-        pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
@@ -2859,12 +2888,10 @@ Model::removeAnnotations(int pageno, const std::vector<int> &objNums) noexcept
             invalidatePageCache(pageno);
             emit reloadRequested(pageno);
         }
-
-#if FZ_VERSION_MINOR >= 19
+    }
+    fz_always(m_ctx)
+    {
         pdf_drop_page(m_ctx, page);
-#else
-        fz_drop_page(m_ctx, (fz_page *)page);
-#endif
     }
     fz_catch(m_ctx)
     {
@@ -2881,6 +2908,10 @@ Model::invalidatePageCache(int pageno) noexcept
         // m_page_cache.erase(pageno);
         m_page_lru_cache.remove(pageno);
     }
+
+    // Also clear text cache for this page to save memory
+    if (m_text_cache.has(pageno))
+        m_text_cache.remove(pageno);
 }
 
 void
@@ -2997,11 +3028,11 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
             bounds = {0, 0, w, h};
         }
 
-        fz_matrix page_to_dev       = fz_scale(scale, scale);
-        page_to_dev                 = fz_pre_rotate(page_to_dev, m_rotation);
-        const fz_rect dev_bounds    = fz_transform_rect(bounds, page_to_dev);
-        page_to_dev                 = fz_concat(page_to_dev,
-                                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+        fz_matrix page_to_dev    = fz_scale(scale, scale);
+        page_to_dev              = fz_pre_rotate(page_to_dev, m_rotation);
+        const fz_rect dev_bounds = fz_transform_rect(bounds, page_to_dev);
+        page_to_dev = fz_concat(page_to_dev,
+                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
         const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
         fz_point page_pt            = fz_transform_point(pt, dev_to_page);
         fz_stext_page *stext_page   = get_or_build_stext_page(m_ctx, pageno);
@@ -3115,9 +3146,9 @@ Model::search(const QString &term, bool caseSensitive, int pageFrom,
     // Copy everything the lambda needs — no 'this' access in the thread
 
     m_search_future
-        = QtConcurrent::run([this, &pageFrom, page_count = m_page_count,
+        = QtConcurrent::run([this, pageFrom, page_count = m_page_count,
                              progressive = m_config.search.progressive,
-                             use_regex, term, caseSensitive]()
+                             use_regex, term, caseSensitive]() mutable
     {
         if (m_search_cancelled.load())
             return;
@@ -3397,11 +3428,7 @@ Model::collect_annot_comments() noexcept
         }
         fz_always(m_ctx)
         {
-#if FZ_VERSION_MINOR >= 19
             pdf_drop_page(m_ctx, pdfPage);
-#else
-            fz_drop_page(m_ctx, (fz_page *)pdfPage);
-#endif
         }
         fz_catch(m_ctx)
         {
@@ -3484,11 +3511,7 @@ Model::collectHighlightTexts(bool groupByLine) noexcept
         }
         fz_always(m_ctx)
         {
-#if FZ_VERSION_MINOR >= 19
             pdf_drop_page(m_ctx, pdfPage);
-#else
-            fz_drop_page(m_ctx, (fz_page *)pdfPage);
-#endif
             fz_drop_stext_page(m_ctx, stext_page);
         }
         fz_catch(m_ctx)
@@ -3559,9 +3582,11 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
 
     bool changed = false;
 
+    pdf_page *page{nullptr};
+
     fz_try(m_ctx)
     {
-        pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
@@ -3591,15 +3616,13 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
             break;
         }
 
-#if FZ_VERSION_MINOR >= 19
-        pdf_drop_page(m_ctx, page);
-#else
-        fz_drop_page(m_ctx, (fz_page *)page);
-#endif
-
         if (!changed)
             qWarning() << "annotChangeColor: annotation not found, index:"
                        << index;
+    }
+    fz_always(m_ctx)
+    {
+        pdf_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
     {
@@ -3618,10 +3641,11 @@ QColor
 Model::getAnnotColor(const int pageno, const int objNum) noexcept
 {
     QColor color;
+    pdf_page *page{nullptr};
 
     fz_try(m_ctx)
     {
-        pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
@@ -3649,12 +3673,10 @@ Model::getAnnotColor(const int pageno, const int objNum) noexcept
             color.setRgbF(rgb[0], rgb[1], rgb[2], alpha);
             break;
         }
-
-#if FZ_VERSION_MINOR >= 19
+    }
+    fz_always(m_ctx)
+    {
         pdf_drop_page(m_ctx, page);
-#else
-        fz_drop_page(m_ctx, (fz_page *)page);
-#endif
     }
     fz_catch(m_ctx)
     {
@@ -3688,8 +3710,8 @@ Model::getTextInArea(const int pageno, QPointF start, QPointF end) noexcept
         fz_matrix page_to_dev     = fz_scale(scale, scale);
         page_to_dev               = fz_pre_rotate(page_to_dev, m_rotation);
         const fz_rect dev_bounds  = fz_transform_rect(page_bounds, page_to_dev);
-        page_to_dev               = fz_concat(page_to_dev,
-                                              fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+        page_to_dev = fz_concat(page_to_dev,
+                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
         const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
 
         fz_point p1 = fz_transform_point(
@@ -3911,6 +3933,8 @@ Model::getFirstCharPos(const int pageno) noexcept
                     {
                         // Return the origin of the first character in the
                         // first span
+                        fz_drop_page(m_ctx, page);
+                        fz_drop_stext_page(m_ctx, stext_page);
                         return span->origin;
                     }
                 }
@@ -4285,17 +4309,16 @@ Model::get_obj_num_at_rect(int pageno, fz_rect targetRect) noexcept
             break;
         }
     }
-#if FZ_VERSION_MINOR >= 19
+
     pdf_drop_page(m_ctx, page);
-#else
-    fz_drop_page(m_ctx, (fz_page *)page);
-#endif
     return foundObjNum;
 }
 
 void
 Model::waitForPendingRenders() noexcept
 {
-    for (auto &f : m_render_synchronizer.futures())
-        f.cancel();
+    m_render_cancelled.store(true, std::memory_order_release);
+    std::unique_lock<std::mutex> lock(m_renders_mutex);
+    m_renders_cv.wait(lock, [this]
+    { return m_active_renders.load(std::memory_order_acquire) == 0; });
 }

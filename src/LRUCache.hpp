@@ -2,7 +2,6 @@
 
 #include <functional>
 #include <list>
-#include <stdexcept>
 #include <unordered_map>
 
 template <typename K, typename V> class LRUCache
@@ -11,11 +10,6 @@ public:
     using EvictCallback = std::function<void(V &)>;
 
     LRUCache() {}
-
-    // LRUCache(size_t capacity, EvictCallback onEvict)
-    //     : m_capacity(capacity), m_onEvict(onEvict)
-    // {
-    // }
 
     inline void setCapacity(const size_t capacity)
     {
@@ -46,18 +40,9 @@ public:
     {
         if (m_capacity == 0)
             return;
-
-        auto it = m_map.find(key);
-        if (it != m_map.end())
-        {
-            it->second.first = std::move(value);
-            m_list.splice(m_list.begin(), m_list, it->second.second);
-            return;
-        }
-
+        remove(key);
         if (m_map.size() >= m_capacity)
             evict();
-
         m_list.push_front(key);
         m_map[key] = {std::move(value), m_list.begin()};
     }

@@ -46,6 +46,10 @@ command_palette = [ ":", "Ctrl+P" ]
 
 ### Bug Fixes
 
+- **Fix memory leak due to not clearing up the `tracker` custom image device in MuPDF after rendering,
+  which caused memory usage to grow indefinitely when navigating through pages.**
+- **Fix memory leak due to wrong usage of `QFutureSynchronizer` which caused huge memory usage and
+  slowdown when scrolling through pages.**
 - Don't count thumbnail view in a container as a regular split when showing the total count of the splits in a container
 - Fix file properties not working
 - Fix crash when trying to save file after adding annotation.

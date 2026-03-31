@@ -14,7 +14,6 @@
 #include <QString>
 #include <QUndoStack>
 #include <mutex>
-#include <qfuturesynchronizer.h>
 #include <set>
 
 extern "C"
@@ -25,8 +24,8 @@ extern "C"
 #include <mupdf/pdf.h>
 
 #ifdef HAS_DJVU
-#include <libdjvu/ddjvuapi.h>
-#include <libdjvu/miniexp.h>
+#    include <libdjvu/ddjvuapi.h>
+#    include <libdjvu/miniexp.h>
 #endif
 }
 
@@ -510,8 +509,6 @@ signals:
         const QMap<int, std::vector<Model::SearchHit>> &results);
 
 private:
-    void waitForPendingRenders() noexcept;
-
     struct CachedLink
     {
         fz_rect rect; // page space
@@ -672,10 +669,8 @@ private:
     void removeAnnotations(const int pageno,
                            const std::vector<int> &objNums) noexcept;
     void buildTextCacheForPages(const std::set<int> &pagenos) noexcept;
-    void LRUEvictFunction(PageCacheEntry &entry) noexcept;
     fz_stext_page *get_or_build_stext_page(fz_context *ctx,
                                            int pageno) noexcept;
-
     void populatePDFProperties(Properties &props) noexcept;
     fz_point getFirstCharPos(const int pageno) noexcept;
     std::vector<Model::RenderLink>
@@ -705,7 +700,6 @@ private:
     PageDimension m_default_page_dim{};
 
     mutable std::mutex m_doc_mutex;
-    QFutureSynchronizer<PageRenderResult> m_render_synchronizer;
     QFuture<void> m_search_future;
     pdf_write_options m_pdf_write_options{pdf_default_write_options};
     bool m_link_show_boundary{false};
@@ -744,6 +738,11 @@ private:
     friend class TextAnnotationCommand;
     friend class DeleteAnnotationsCommand;
     friend class DocumentView;
+
+    void waitForPendingRenders() noexcept;
+    std::atomic<int> m_active_renders{0};
+    std::mutex m_renders_mutex;
+    std::condition_variable m_renders_cv;
 
     std::atomic<bool> m_render_cancelled{false};
     std::atomic<int> m_search_match_count{0};
