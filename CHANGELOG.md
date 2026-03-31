@@ -43,6 +43,8 @@ command_palette = [ ":", "Ctrl+P" ]
 
 - `dim_inactive` is now disabled by default (which was enabled previously out of the box)
 - `confirm_on_quit` is now false by default (I feel it was annoying).
+- Renamed config options:
+    - `window_title` -> `title_format` in `[window]` section
 
 ### Bug Fixes
 
@@ -55,6 +57,8 @@ command_palette = [ ":", "Ctrl+P" ]
 - Fix crash when trying to save file after adding annotation.
 
 ### Core Changes
+
+- Renamed `CommandPalette.shortcuts` to `CommandPalette.show_shortcuts` for better clarity of what the option does.
 
 ## 0.6.8
 
