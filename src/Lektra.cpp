@@ -98,11 +98,23 @@ Lektra::Lektra() noexcept
     setAttribute(Qt::WA_NativeWindow,
                  true); // This is necessary for DPI updates
     setAcceptDrops(true);
+
+    m_config_dir = QDir(
+        QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
+
+    if (m_config_file_path.isEmpty())
+        m_config_file_path = m_config_dir.filePath("config.toml");
 }
 
 Lektra::Lektra(const QString &sessionName,
                const QJsonArray &sessionArray) noexcept
 {
+    m_config_dir = QDir(
+        QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
+
+    if (m_config_file_path.isEmpty())
+        m_config_file_path = m_config_dir.filePath("config.toml");
+
     setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
     setAcceptDrops(true);
     construct();
@@ -512,12 +524,6 @@ Lektra::initDB() noexcept
 void
 Lektra::initConfig() noexcept
 {
-    m_config_dir = QDir(
-        QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
-
-    // If config file path is not set, use the default one
-    if (m_config_file_path.isEmpty())
-        m_config_file_path = m_config_dir.filePath("config.toml");
 
     auto primaryScreen                      = QGuiApplication::primaryScreen();
     m_screen_dpr_map[primaryScreen->name()] = primaryScreen->devicePixelRatio();
@@ -1624,6 +1630,26 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
     {
         QTextStream out(stdout);
         out << "Lektra version: " << APP_VERSION;
+        exit(0);
+    }
+
+    if (argparser.is_used("check-config"))
+    {
+        QString config_file_path;
+
+        try
+        {
+            config_file_path = QString::fromStdString(
+                argparser.get<std::string>("--check-config"));
+        }
+        catch (const std::exception &e)
+        {
+            qWarning() << "No config file path provided, using default path:"
+                       << m_config_file_path;
+            config_file_path = m_config_file_path;
+        }
+
+        checkConfigFile(config_file_path);
         exit(0);
     }
 
@@ -5870,4 +5896,147 @@ Lektra::ToggleThumbnailPanel() noexcept
         return;
 
     m_doc->ToggleThumbnailPanel();
+}
+
+// Check if the config file exists and is a valid TOML file and contains only
+// known keys. Print warnings for any issues found. Return true if no issues
+// found, false otherwise.
+bool
+Lektra::checkConfigFile(const QString &path) const noexcept
+{
+
+    bool ok         = true;
+    const auto warn = [&](const QString &msg)
+    {
+        std::cerr << "[lektra --check-config] " << msg.toStdString() << "\n";
+        ok = false;
+    };
+
+    if (!QFile::exists(path))
+    {
+        warn(QString("Config file not found at: %1").arg(path));
+        return ok;
+    }
+
+    toml::table toml;
+    try
+    {
+        toml = toml::parse_file(path.toStdString());
+    }
+    catch (const std::exception &e)
+    {
+        warn(QString("TOML parse error: %1").arg(e.what()));
+        return false;
+    }
+    std::cout << "[lektra --check-config] TOML syntax OK\n";
+
+    static const QHash<QString, QSet<QString>> knownKeys = {
+        {"page", {"bg", "fg"}},
+
+        {"synctex", {"enabled", "editor_command"}},
+
+        {"portal",
+         {"border_color", "enabled", "border_width", "respect_parent",
+          "dim_inactive"}},
+
+        {"preview",
+         {"border_radius", "close_on_click_outside", "size_ratio", "opacity"}},
+
+        {"thumbnail_panel",
+         {"show_page_numbers", "panel_width", "highlight_current_page",
+          "vscrollbar", "hscrollbar"}},
+
+        {"tabs",
+         {"visible", "auto_hide", "closable", "movable", "elide_mode",
+          "location", "full_path", "lazy_load"}},
+
+        {"window",
+         {"startup_tab", "menubar", "fullscreen", "accent", "bg",
+          "initial_size", "title_format"}},
+
+        {"annotations", {"highlight", "rect", "popup"}},
+
+        {"statusbar",
+         {"visible", "padding", "show_progress", "file_name_only",
+          "show_file_info", "show_page_number", "show_mode",
+          "show_session_name"}},
+
+        {"layout", {"mode", "initial_fit", "auto_resize", "spacing"}},
+
+        {"zoom", {"level", "factor", "anchor_to_mouse"}},
+
+        {"selection", {"drag_threshold", "copy_on_select", "color"}},
+
+        {"scrollbars",
+         {"vertical", "horizontal", "search_hits", "auto_hide", "size",
+          "hide_timeout"}},
+
+        {"command_palette",
+         {"description", "height", "width", "vscrollbar", "show_shortcuts",
+          "border", "alternating_row_color", "placeholder_text"}},
+
+        {"picker", {"border", "alternating_row_color", "shadow", "keys"}},
+
+        {"jump_marker", {"enabled", "color", "fade_duration"}},
+
+        {"links", {"enabled", "boundary", "detect_urls", "url_regex"}},
+
+        {"link_hints", {"size", "bg", "fg"}},
+
+        {"outline", {"indent_width", "show_page_numbers"}},
+
+        {"search",
+         {"highlight_matches", "progressive", "match_color", "index_color",
+          "absolute_jump"}},
+
+        {"rendering",
+         {"backend", "antialiasing", "text_antialiasing",
+          "smooth_pixmap_transform", "antialiasing_bits", "dpr", "cache_pages",
+          "icc_color_profile"}},
+
+        {"split",
+         {"mouse_follows_focus", "focus_follows_mouse", "dim_inactive",
+          "dim_inactive_opacity"}},
+
+        {"behavior",
+         {"preload_pages", "confirm_on_quit", "undo_limit",
+          "remember_last_visited", "always_open_in_new_window",
+          "page_history_limit", "invert_mode", "dont_invert_images",
+          "auto_reload", "recent_files", "num_recent_files", "initial_mode",
+          "open_last_visited", "file_name_only", "cache_pages"}},
+
+#ifdef ENABLE_LLM_SUPPORT
+        {"llm_widget", {"visible", "panel_position", "panel_width"}},
+
+        {"llm", {"provider", "model", "max_tokens"}},
+#endif
+    };
+
+    for (auto &[key, _] : toml)
+    {
+        const QString section = QString::fromStdString(std::string(key.str()));
+
+        if (!knownKeys.contains(section))
+        {
+            warn(QString("Unknown section: [%1]").arg(section));
+            continue;
+        }
+
+        const auto *table = toml.get(key.str());
+        if (!table || !table->is_table())
+            continue;
+
+        for (auto &[k, _] : *table->as_table())
+        {
+            const QString field = QString::fromStdString(std::string(k.str()));
+            if (!knownKeys[section].contains(field))
+                warn(QString("Unknown key '%1' in [%2]").arg(field, section));
+        }
+    }
+
+    if (ok)
+        std::cout << "[lektra --check-config] All keys valid. Config looks "
+                     "good!\n";
+
+    return ok;
 }

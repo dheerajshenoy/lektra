@@ -214,6 +214,7 @@ private:
                           std::function<void()> onAllDone) noexcept;
     void focusSplitHelper(DocumentContainer::Direction direction) noexcept;
     void splitHelper(Qt::Orientation orientation) noexcept;
+    bool checkConfigFile(const QString &path) const noexcept;
 
     DocumentView *
     openFileSplitHelper(const QString &filename               = {},

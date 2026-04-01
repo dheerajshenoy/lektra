@@ -18,6 +18,8 @@ Clicking on a thumbnail will navigate to that page in the main view.
   - `split_focus_down` => `Ctrl+W,j`
   - `split_close` => `Ctrl+W,c`
 
+- Add `--check-config` command line argument to check the validity of the config file and print any errors or warnings without launching the application.
+
 ### Config Options
 
 - Move synctex settings to their own section `[synctex]` for better organization and maintainability of the config file
