@@ -26,7 +26,7 @@ body:
       label: Custom configuration used
       options:
         - label: I am using custom configuration.
-          required: true
+          required: false
 
   - type: textarea
     id: custom_config
