@@ -48,6 +48,7 @@ command_palette = [ ":", "Ctrl+P" ]
 
 ### Bug Fixes
 
+- Fix `setZoom` and `setZoomAnchored` recursive calls which caused stack overflow and crashing when zooming in/out rapidly.
 - **Fix memory leak due to not clearing up the `tracker` custom image device in MuPDF after rendering,
   which caused memory usage to grow indefinitely when navigating through pages.**
 - **Fix memory leak due to wrong usage of `QFutureSynchronizer` which caused huge memory usage and

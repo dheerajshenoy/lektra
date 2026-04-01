@@ -1224,8 +1224,9 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
     }
     else
     {
-        // Fallback: no page at anchor, use regular zoom
-        setZoom(factor);
+        m_current_zoom = factor;
+        invalidateVisiblePagesCache();
+        zoomHelper(PageLocation{-1, 0, 0});
     }
 }
 
