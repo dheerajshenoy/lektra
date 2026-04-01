@@ -13,7 +13,7 @@ IndentCaseLabels: true
 AlwaysBreakAfterReturnType: TopLevel
 SortIncludes: true
 IncludeBlocks: Regroup
-IndentPPDirectives: AfterHash
+IndentPPDirectives: BeforeHash
 PointerAlignment: Right
 DerivePointerAlignment: false
 AlignConsecutiveDeclarations: false
