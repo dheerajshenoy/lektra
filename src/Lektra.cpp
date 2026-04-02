@@ -683,7 +683,6 @@ Lektra::initConfig() noexcept
         if (m_config.window.fullscreen)
             this->showFullScreen();
 
-        // Only override title format if key exists
         set_title_format_if_present(window["title_format"],
                                     m_config.window.title_format);
     }

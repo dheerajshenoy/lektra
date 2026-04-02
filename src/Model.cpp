@@ -1647,11 +1647,10 @@ Model::SaveChanges() noexcept
         const std::string pathStr = m_filepath.toStdString();
         std::lock_guard<std::mutex> lock(m_doc_mutex);
         pdf_write_options opts = m_pdf_write_options;
-        // opts.do_incremental    = 1;
+        opts.do_incremental    = 1;
         pdf_save_document(m_ctx, m_pdf_doc, pathStr.c_str(), &opts);
 
-        if (m_undo_stack)
-            m_undo_stack->setClean();
+        m_undo_stack->setClean();
 
         return true;
     }
