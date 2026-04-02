@@ -545,7 +545,6 @@ private:
         std::thread::hardware_concurrency() > 1
             ? std::thread::hardware_concurrency() - 1
             : 1};
-    std::atomic<int> m_renders_in_flight{0};
     std::shared_ptr<std::atomic<bool>> m_cancelled{
         std::make_shared<std::atomic<bool>>(false)};
 

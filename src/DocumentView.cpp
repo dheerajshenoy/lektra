@@ -34,6 +34,7 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPainter>
+#include <QPointer>
 #include <QProcess>
 #include <QTextCursor>
 #include <QTransform>
@@ -1988,7 +1989,6 @@ DocumentView::SaveFile() noexcept
     qDebug() << "DocumentView::SaveFile(): Saving file with unsaved changes.";
 #endif
 
-    m_generation++;
     stopPendingRenders();
 
     if (m_model->SaveChanges())
@@ -2000,7 +2000,9 @@ DocumentView::SaveFile() noexcept
             invalidateVisiblePagesCache();
             renderPages();
         }
+
         m_model->undoStack()->setClean();
+
 #ifndef NDEBUG
         qDebug() << "DocumentView::SaveFile(): Save successful, updated "
                     "generation to"
@@ -2040,6 +2042,7 @@ DocumentView::SaveAsFile() noexcept
 void
 DocumentView::CloseFile() noexcept
 {
+    stopPendingRenders();
     clearDocumentItems();
     resetConnections();
     m_model->close();
@@ -2583,8 +2586,7 @@ DocumentView::startNextRenderJob() noexcept
     // Get current visible pages for prioritization
     const std::set<int> &visiblePages = getVisiblePages();
 
-    while (m_renders_in_flight < static_cast<int>(MAX_CONCURRENT_RENDERS)
-           && !m_render_queue.isEmpty())
+    while (!m_render_queue.isEmpty())
     {
         // Prioritize visible pages first
         int pageno = -1;
@@ -2610,89 +2612,84 @@ DocumentView::startNextRenderJob() noexcept
         // if (!m_pending_renders.contains(pageno))
         //     continue;
 
-        ++m_renders_in_flight;
         auto job = m_model->createRenderJob(pageno);
 
         int currentGen
             = m_generation; // capture current generation for this job
 
-        auto decrementAndNotify = [this]()
-        {
-            if (--m_renders_in_flight == 0)
-            {
-                emit allRendersFinished();
-            }
-        };
-
+        QPointer<DocumentView> self(this);
         m_model->requestPageRender(
-            job, [this, decrementAndNotify, pageno,
-                  currentGen](const Model::PageRenderResult &result)
+            job,
+            [self, pageno, currentGen](const Model::PageRenderResult &result)
         {
-            if (currentGen != m_generation)
-            {
-                decrementAndNotify();
+            if (!self)
                 return;
-            }
 
-            m_pending_renders.remove(pageno);
+            DocumentView *view = self.data();
+            if (currentGen != view->m_generation)
+                return;
+
+            view->m_pending_renders.remove(pageno);
             const QImage &image = result.image;
 
             if (!image.isNull())
             {
-                if (m_layout_mode == LayoutMode::SINGLE && pageno != m_pageno)
+                if (view->m_layout_mode == LayoutMode::SINGLE
+                    && pageno != view->m_pageno)
                 {
                     // Store as a hidden preload item in the scene for
                     // instant display later
-                    m_gscene->blockSignals(true);
-                    setUpdatesEnabled(false);
+                    view->m_gscene->blockSignals(true);
+                    view->setUpdatesEnabled(false);
                     {
-                        renderPageFromImage(pageno, image);
+                        view->renderPageFromImage(pageno, image);
                         // tag it as preload and hide it
-                        if (m_page_items_hash.contains(pageno))
+                        if (view->m_page_items_hash.contains(pageno))
                         {
-                            m_page_items_hash[pageno]->setData(
+                            view->m_page_items_hash[pageno]->setData(
                                 0, QStringLiteral("preload_page"));
-                            m_page_items_hash[pageno]->hide();
+                            view->m_page_items_hash[pageno]->hide();
                         }
                     }
-                    setUpdatesEnabled(true);
-                    if (!m_thumbnail_mode)
-                        renderLinks(pageno, result.links);
-                    m_gscene->blockSignals(false);
-                    startNextRenderJob();
+                    view->setUpdatesEnabled(true);
+                    if (!view->m_thumbnail_mode)
+                        view->renderLinks(pageno, result.links);
+                    view->m_gscene->blockSignals(false);
+                    view->startNextRenderJob();
                     return;
                 }
 
-                m_gscene->blockSignals(true);
-                setUpdatesEnabled(false);
+                view->m_gscene->blockSignals(true);
+                view->setUpdatesEnabled(false);
                 {
-                    renderPageFromImage(pageno, image);
-                    if (!m_thumbnail_mode)
+                    view->renderPageFromImage(pageno, image);
+                    if (!view->m_thumbnail_mode)
                     {
-                        renderLinks(pageno, result.links);
-                        renderAnnotations(pageno, result.annotations);
-                        renderSearchHitsForPage(pageno);
+                        view->renderLinks(pageno, result.links);
+                        view->renderAnnotations(pageno, result.annotations);
+                        view->renderSearchHitsForPage(pageno);
                     }
-                    updateCurrentHitHighlight();
+                    view->updateCurrentHitHighlight();
                 }
-                setUpdatesEnabled(true);
-                m_gscene->blockSignals(false);
+                view->setUpdatesEnabled(true);
+                view->m_gscene->blockSignals(false);
                 // m_gview->viewport()->update();
 
-                if (m_pending_jump.pageno == pageno)
-                    GotoLocation(m_pending_jump);
+                if (view->m_pending_jump.pageno == pageno)
+                    view->GotoLocation(view->m_pending_jump);
 
-                if (m_scroll_to_hit_pending && m_search_index >= 0
-                    && !m_search_hit_flat_refs.empty()
-                    && m_search_hit_flat_refs[m_search_index].page == pageno)
+                if (view->m_scroll_to_hit_pending && view->m_search_index >= 0
+                    && !view->m_search_hit_flat_refs.empty()
+                    && view->m_search_hit_flat_refs[view->m_search_index].page
+                           == pageno)
                 {
-                    m_scroll_to_hit_pending = false;
-                    updateCurrentHitHighlight();
+                    view->m_scroll_to_hit_pending = false;
+                    view->updateCurrentHitHighlight();
                     // Stop timers before centerOn so the scroll signal it
                     // generates doesn't trigger another renderPages.
-                    m_scroll_page_update_timer->stop();
-                    m_hq_render_timer->stop();
-                    scrollToCurrentHit();
+                    view->m_scroll_page_update_timer->stop();
+                    view->m_hq_render_timer->stop();
+                    view->scrollToCurrentHit();
                 }
             }
             else
@@ -2700,8 +2697,7 @@ DocumentView::startNextRenderJob() noexcept
                 qWarning() << "Failed to render page" << pageno;
             }
 
-            decrementAndNotify();
-            startNextRenderJob();
+            view->startNextRenderJob();
         });
     }
 }
@@ -3445,7 +3441,6 @@ DocumentView::clearDocumentItems() noexcept
     }
 
     ClearTextSelection();
-    m_renders_in_flight = 0;
     m_gscene->setSceneRect(QRectF()); // Reset scene bounds
 }
 
@@ -4779,14 +4774,12 @@ DocumentView::handleVScrollValueChanged(int /*value */) noexcept
 void
 DocumentView::stopPendingRenders() noexcept
 {
+    ++m_generation;
     m_pending_renders.clear();
     m_render_queue.clear();
-    if (m_renders_in_flight.load() == 0)
-        return;
 
-    QEventLoop loop;
-    connect(this, &DocumentView::allRendersFinished, &loop, &QEventLoop::quit);
-    loop.exec();
+    if (m_model)
+        m_model->waitForPendingRenders();
 }
 
 // Handle password for password-protected files
