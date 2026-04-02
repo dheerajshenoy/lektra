@@ -47,8 +47,6 @@ extern "C"
 #define MIN_ZOOM_FACTOR 0.01
 #define MAX_ZOOM_FACTOR 100.0
 
-#define CSTR(x) x.toStdString().c_str()
-
 struct Config;
 class DocumentContainer; // Forward declaration to avoid circular dependency
 

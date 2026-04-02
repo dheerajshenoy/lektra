@@ -286,8 +286,10 @@ DocumentView::initSynctex() noexcept
         synctex_scanner_free(m_synctex_scanner);
         m_synctex_scanner = nullptr;
     }
-    m_synctex_scanner = synctex_scanner_new_with_output_file(
-        CSTR(m_model->filePath()), nullptr, 1);
+
+    const std::string filePathStr = m_model->filePath().toStdString();
+    m_synctex_scanner
+        = synctex_scanner_new_with_output_file(filePathStr.c_str(), nullptr, 1);
     if (!m_synctex_scanner)
         return;
 }

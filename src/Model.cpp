@@ -992,37 +992,43 @@ Model::openAsync_mupdf(const QString &canonPath) noexcept
 #endif
         cleanup_mupdf();
 
-        // --- open ---
-        fz_document *doc = nullptr;
+        fz_document *doc          = nullptr;
+        const std::string pathStr = canonPath.toStdString();
         fz_try(bg_ctx)
         {
-            doc = fz_open_document(bg_ctx, CSTR(canonPath));
-        }
-        fz_catch(bg_ctx) {}
-
-        if (!doc)
-        {
-            QMetaObject::invokeMethod(this, &Model::openFileFailed,
-                                      Qt::QueuedConnection);
-            return;
-        }
-        g.doc = doc;
-
-        // --- encrypted? park and stop ---
-        if (m_filetype == FileType::PDF && fz_needs_password(bg_ctx, doc))
-        {
-            g.committed = true;
-            QMetaObject::invokeMethod(this, [this, bg_ctx, doc]
+            doc = fz_open_document(bg_ctx, pathStr.c_str());
+            if (!doc)
             {
-                m_pending = {bg_ctx, doc};
-                emit passwordRequired();
-            }, Qt::QueuedConnection);
+                fz_warn(bg_ctx, "Failed to open document: Unknown error");
+                QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                          Qt::QueuedConnection);
+                return;
+            }
+            g.doc = doc;
+
+            // --- encrypted? park and stop ---
+            if (m_filetype == FileType::PDF && fz_needs_password(bg_ctx, doc))
+            {
+                g.committed = true;
+                QMetaObject::invokeMethod(this, [this, bg_ctx, doc]
+                {
+                    clearPending();
+                    m_pending = {bg_ctx, doc};
+                    emit passwordRequired();
+                }, Qt::QueuedConnection);
+                return;
+            }
+
+            // --- normal path ---
+            g.committed = true;
+            _continueOpen(bg_ctx, doc);
+        }
+        fz_catch(bg_ctx)
+        {
+            fz_warn(bg_ctx, "Failed to open document: %s",
+                    fz_caught_message(bg_ctx));
             return;
         }
-
-        // --- normal path ---
-        g.committed = true;
-        _continueOpen(bg_ctx, doc);
     });
 }
 
@@ -1038,7 +1044,8 @@ Model::submitPassword(const QString &password) noexcept
 
     return QtConcurrent::run([this, password, ctx, doc]
     {
-        if (!fz_authenticate_password(ctx, doc, CSTR(password)))
+        const std::string passwordStr = password.toStdString();
+        if (!fz_authenticate_password(ctx, doc, passwordStr.c_str()))
         {
             // Wrong password — put it back so the user can retry
             QMetaObject::invokeMethod(this, [this, ctx, doc]
@@ -1488,7 +1495,10 @@ Model::decrypt() noexcept
         opts.do_encrypt        = PDF_ENCRYPT_NONE;
 
         if (m_pdf_doc)
-            pdf_save_document(m_ctx, m_pdf_doc, CSTR(m_filepath), &opts);
+        {
+            const std::string filePathStr = m_filepath.toStdString();
+            pdf_save_document(m_ctx, m_pdf_doc, filePathStr.c_str(), &opts);
+        }
     }
     fz_catch(m_ctx)
     {
@@ -1548,7 +1558,8 @@ Model::reloadDocument() noexcept
     fz_try(m_ctx)
     {
         std::lock_guard<std::mutex> lock(m_doc_mutex);
-        new_doc = fz_open_document(m_ctx, CSTR(m_filepath));
+        const std::string filePathStr = m_filepath.toStdString();
+        new_doc = fz_open_document(m_ctx, filePathStr.c_str());
         if (!new_doc)
             return false;
     }
@@ -1619,11 +1630,11 @@ Model::SaveChanges() noexcept
 
     fz_try(m_ctx)
     {
-        // Use incremental save to keep the current handle valid
+        const std::string pathStr = m_filepath.toStdString();
         std::lock_guard<std::mutex> lock(m_doc_mutex);
-        m_pdf_write_options.do_incremental = 1;
-        pdf_save_document(m_ctx, m_pdf_doc, CSTR(m_filepath),
-                          &m_pdf_write_options);
+        pdf_write_options opts = m_pdf_write_options;
+        // opts.do_incremental    = 1;
+        pdf_save_document(m_ctx, m_pdf_doc, pathStr.c_str(), &opts);
 
         if (m_undo_stack)
             m_undo_stack->setClean();
@@ -1644,11 +1655,13 @@ Model::SaveAs(const QString &newFilePath) noexcept
     if (!m_doc || !m_pdf_doc)
         return false;
 
+    const std::string pathStr = newFilePath.toStdString();
     fz_try(m_ctx)
     {
         std::lock_guard<std::mutex> lock(m_doc_mutex);
-        pdf_save_document(m_ctx, m_pdf_doc, CSTR(newFilePath), nullptr);
-        // TODO: Explore write options!
+        pdf_write_options opts = m_pdf_write_options;
+
+        pdf_save_document(m_ctx, m_pdf_doc, pathStr.c_str(), &opts);
     }
     fz_catch(m_ctx)
     {
@@ -2741,10 +2754,10 @@ Model::addTextAnnotation(const int pageno, const fz_rect &rect,
     return objNum;
 }
 
-const char *
+QString
 Model::getAnnotComment(const int pageno, const int objNum) noexcept
 {
-    const char *comment{nullptr};
+    QString comment;
     pdf_page *page{nullptr};
     fz_try(m_ctx)
     {
@@ -2758,7 +2771,7 @@ Model::getAnnotComment(const int pageno, const int objNum) noexcept
             if (pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot)) != objNum)
                 continue;
 
-            comment = pdf_annot_contents(m_ctx, annot);
+            comment = QString::fromUtf8(pdf_annot_contents(m_ctx, annot));
             break;
         }
     }

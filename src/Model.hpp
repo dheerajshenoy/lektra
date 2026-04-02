@@ -29,8 +29,6 @@ extern "C"
 #endif
 }
 
-#define CSTR(x) x.toStdString().c_str()
-
 // Forward declaration
 class TextHighlightAnnotationCommand;
 class TextAnnotationCommand;
