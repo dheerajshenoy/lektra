@@ -31,6 +31,14 @@ public:
         return &(it->second.first);
     }
 
+    V *find(const K &key)
+    {
+        auto it = m_map.find(key);
+        if (it == m_map.end())
+            return nullptr;
+        return &(it->second.first);
+    }
+
     inline bool has(const K &key) const
     {
         return m_map.find(key) != m_map.end();
