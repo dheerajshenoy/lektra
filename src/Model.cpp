@@ -756,8 +756,7 @@ Model::Model(const Config &config, QObject *parent) noexcept
             // fz_drop_context(ctx);
         }
 
-        if (m_text_cache.has(pageno))
-            m_text_cache.remove(pageno);
+        m_text_cache.remove(pageno);
     });
 
     m_stext_page_cache.setCapacity(10); // TODO: make this configurable
@@ -1439,9 +1438,7 @@ Model::buildPageCache(int pageno) noexcept
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
         if (!m_page_lru_cache.has(pageno))
-        {
             m_page_lru_cache.put(pageno, std::move(entry));
-        }
         else
             fz_drop_display_list(ctx, dlist);
     }
@@ -2182,14 +2179,14 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
 
-        if (!m_page_lru_cache.has(job.pageno))
+        const PageCacheEntry *entry = m_page_lru_cache.find(job.pageno);
+        if (!entry)
         {
             qWarning() << "Model::PageRenderResult() Page not cached:"
                        << job.pageno;
             return result;
         }
 
-        const PageCacheEntry *entry = m_page_lru_cache.get(job.pageno);
         if (!entry->display_list)
         {
             qWarning() << "Model::PageRenderResult() Missing display list for:"
@@ -2915,15 +2912,8 @@ void
 Model::invalidatePageCache(int pageno) noexcept
 {
     std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-    if (m_page_lru_cache.has(pageno))
-    {
-        // m_page_cache.erase(pageno);
-        m_page_lru_cache.remove(pageno);
-    }
-
-    // Also clear text cache for this page to save memory
-    if (m_text_cache.has(pageno))
-        m_text_cache.remove(pageno);
+    m_page_lru_cache.remove(pageno);
+    m_text_cache.remove(pageno);
 }
 
 void
@@ -3300,9 +3290,12 @@ Model::searchHelper(int pageno, const QString &term,
     std::vector<CachedTextChar> text;
     {
         std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
-        if (!m_text_cache.has(pageno))
+
+        auto chars = m_text_cache.find(pageno);
+        if (!chars)
             return results;
-        text = m_text_cache.get(pageno)->chars;
+
+        text = chars->chars;
     }
     const int n = text.size();
     const int m = term.size();
@@ -3359,9 +3352,11 @@ Model::searchHelperRegex(int pageno, const QRegularExpression &re) noexcept
     std::vector<CachedTextChar> text;
     {
         std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
-        if (!m_text_cache.has(pageno))
+        auto chars = m_text_cache.find(pageno);
+        if (!chars)
             return results;
-        text = m_text_cache.get(pageno)->chars;
+
+        text = chars->chars;
     }
 
     const int n = static_cast<int>(text.size());
