@@ -1,0 +1,292 @@
+[window]
+fullscreen = false
+menubar = false
+startup_tab = false
+title_format = "{} - lektra"
+initial_size = { width = 1200, height = 800 }
+accent = "#3daee9FF"
+bg = "#00000000"
+
+[preview]
+size_ratio = { width = 0.25, height = 0.25 }
+border_radius = 0
+close_on_click_outside = true
+opacity = 0.9
+
+[page]
+bg = "#FFFFFF"
+fg = "#000000"
+
+[outline]
+indent_width = 4
+show_page_numbers = true
+
+[statusbar]
+visible = true
+padding = [ 2, 0, 2, 0 ]
+show_session_name = true
+show_mode = true
+show_page_number = true
+show_progress = true
+file_name_only = true
+show_file_info = true
+
+[portal]
+enabled = true
+border_color = "#3daee9FF"
+border_width = 5
+respect_parent = true
+dim_inactive = false
+
+[split]
+mouse_follows_focus = false
+focus_follows_mouse = true
+dim_inactive = false
+dim_inactive_opacity = 0.5
+
+[annotations.popup]
+hover_glow = true
+glow_color = "#FF5000FF"
+glow_width = 5
+comment = true
+comment_marker = true
+comment_font_size = 12
+
+[annotations.highlight]
+color = "#55FF0055"
+hover_glow = true
+glow_color = "#FF5000FF"
+glow_width = 5
+comment = true
+comment_marker = true
+comment_font_size = 12
+
+[annotations.rect]
+color = "#55FF5588"
+hover_glow = true
+glow_color = "#FF5000FF"
+glow_width = 3
+comment = true
+comment_marker = true
+comment_font_size = 12
+
+[thumbnail_panel]
+show_page_numbers = true
+panel_width = 0.15
+highlight_current_page = true
+vscrollbar = false
+hscrollbar = false
+
+[picker]
+border = true
+alternating_row_color = true
+
+[picker.shadow]
+enabled = true
+blur_radius = 18
+offset_x = 0
+offset_y = 6
+opacity = 120
+
+
+[picker.keys]
+up = [ "Ctrl+k", "Up" ]
+down = [ "Ctrl+j", "Down" ]
+accept = "Return"
+dismiss = "escape"
+# page_up = ""
+# page_down = ""
+
+# top = "g,g"
+# bottom = "G"
+
+[command_palette]
+show_shortcuts = true
+height = 400
+width = 600
+placeholder_text = "Type a command..."
+vscrollbar = true
+description = true
+border = true
+alternating_row_color = true
+
+# [llm_widget]
+# visible = false
+# panel_width = 400
+
+[layout]
+mode = "vertical"
+initial_fit = "width"
+auto_resize = false 
+spacing = 9
+
+[zoom]
+anchor_to_mouse = false
+level = 1.0
+factor = 1.25
+
+[selection]
+drag_threshold = 100
+copy_on_select = false
+color = "#FF500055"
+
+[scrollbars]
+horizontal = true
+vertical = true
+auto_hide = true
+search_hits = true
+size = 10
+hide_timeout = 4
+
+[jump_marker]
+enabled = true
+color  = "#FF0000FF"
+fade_duration = 2.0
+
+[links]
+enabled = true
+boundary = false
+detect_urls = true
+url_regex = "(https?://|www\\.)[^\\s<>()\\\"']+"
+
+[link_hints]
+size = 0.25
+bg = "#000000FF"
+fg = "#ea3ee9FF"
+
+[tabs]
+visible = false
+auto_hide = false
+closable = true
+movable = true
+elide_mode = "middle"
+location = "top"
+full_path = true
+lazy_load = true
+
+[search]
+highlight_matches = true
+progressive = true
+match_color = "#55500033"
+index_color = "#55FF0055"
+absolute_jump = true
+
+[rendering]
+dpr = { "eDP-1" = 1.25, "DP-5" = 1.0, "DP-7" = 1.0 }
+antialiasing = true
+text_antialiasing = true
+smooth_pixmap_transform = true
+cache_pages = 0
+antialiasing_bits = 4
+icc_color_profile = true
+backend = "raster"
+
+[behavior]
+initial_mode = "text_select_mode"
+always_open_in_new_window = false
+remember_last_visited = true
+confirm_on_quit = false
+invert_mode = false
+dont_invert_images = true
+auto_reload = true
+recent_files = true
+num_recent_files = 25
+undo_limit = 25
+synctex_editor_command = "zeditor %f:+%l"
+preload_pages = 1
+open_last_visited = true
+file_name_only = true
+page_history_limit = 100
+
+# Works only if compiled with LLM support
+# [llm]
+# provider = "ollama"
+# model = "llama3.2:3b"
+# max_tokens = 512
+
+# [scripts] (Work in progress, not implemented yet)
+# name_of_script = "path_to_shell_script"
+
+[keybindings]
+load_defaults = true
+command_palette = [ ":", "Ctrl+P" ]
+file_open_tab = "o"
+link_hint_visit = "f"
+link_hint_copy = "Shift+F"
+scroll_left = "h"
+scroll_down = "j"
+scroll_up = "k"
+scroll_right = "l"
+location_prev = "Ctrl+o"
+location_next = "Ctrl+i"
+page_next = "Shift+J"
+page_prev = "Shift+K"
+page_first = "g,g"
+page_last = "Shift+G"
+page_goto = "b"
+picker_outline = "t"
+search = "/"
+search_this_page = "?" # TODO
+search_next = "n"
+search_prev = "Shift+N"
+zoom_reset = "0"
+zoom_in = "="
+zoom_out = "-"
+tab_1 = "Alt+1"
+tab_2 = "Alt+2"
+tab_3 = "Alt+3"
+tab_4 = "Alt+4"
+tab_5 = "Alt+5"
+tab_6 = "Alt+6"
+tab_7 = "Alt+7"
+tab_8 = "Alt+8"
+tab_9 = "Alt+9"
+tab_next = "Ctrl+Period"
+tab_prev = "Ctrl+Comma"
+tab_close = "Ctrl+w,t"
+selection_mode_text = "1"
+selection_mode_region = "2"
+annot_highlight_mode = "3"
+annot_rect_mode = "4"
+annot_edit_mode = "5"
+annot_pen_mode = "6"
+annot_popup_mode = "7"
+invert_color = "i"
+fullscreen = "F11"
+fit_height = "Ctrl+Shift+H"
+fit_width = "Ctrl+Shift+W"
+fit_page = "Ctrl+Shift+="
+fit_auto = "Ctrl+Shift+R"
+menubar = "Ctrl+Shift+M"
+statusbar = "Ctrl+Shift+B"
+tabs = "Ctrl+Shift+T"
+selection_cancel = "escape"
+selection_copy = "y"
+show_about = "F12"
+file_save = "Ctrl+S"
+rotate_clock = ">"
+rotate_anticlock = "<"
+undo = "u"
+redo = "Ctrl+R"
+focus_mode = "Ctrl+Space"
+selection_last = "g,v"
+picker_highlight_search = "Alt+Shift+H"
+completion_next = "Ctrl+n"
+completion_prev = "Ctrl+p"
+llm_widget = "Ctrl+Shift+L"
+split_focus_next = "Ctrl+Alt+Right"
+split_focus_prev = "Ctrl+Alt+Left"
+split_close = "Ctrl+w,c"
+visual_line_mode = "v"
+layout_single = "Ctrl+Shift+1"
+layout_top_to_bottom = "Ctrl+Shift+2"
+layout_left_to_right = "Ctrl+Shift+3"
+layout_book = "Ctrl+Shift+4"
+highlight_selection = "x"
+files_recent = "Ctrl+Shift+O"
+
+[mousebindings]
+# LeftButton, RightButton, MiddleButton
+portal = "Ctrl+LeftButton"
+synctex_jump = "Shift+LeftButton"
+preview = "Alt+LeftButton"

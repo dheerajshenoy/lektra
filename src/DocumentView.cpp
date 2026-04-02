@@ -818,7 +818,7 @@ void
 DocumentView::synctexLocateInDocument(const char *texFileName,
                                       int line) noexcept
 {
-    QString tmp = m_config.behavior.synctex_editor_command;
+    QString tmp = m_config.synctex.editor_command;
     if (!tmp.contains("%f") || !tmp.contains("%l"))
     {
         QMessageBox::critical(this, "SyncTeX error",

@@ -207,6 +207,9 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
 #ifdef HAS_SYNCTEX
     if (action == MouseAction::SynctexJump && m_mode == Mode::TextSelection)
     {
+        if (!m_config.synctex.enabled)
+            return; // bound, but disabled in config, so ignore
+
         emit synctexJumpRequested(scenePos);
         m_ignore_next_release = true;
         event->accept();

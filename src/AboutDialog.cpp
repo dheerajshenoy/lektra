@@ -11,10 +11,10 @@ extern "C"
 {
 #include <mupdf/fitz.h>
 #ifdef HAS_SYNCTEX
-#include <synctex/synctex_version.h>
+    #include <synctex/synctex_version.h>
 #endif
 #ifdef HAS_DJVU
-#include <libdjvu/ddjvuapi.h>
+    #include <libdjvu/ddjvuapi.h>
 #endif
 }
 

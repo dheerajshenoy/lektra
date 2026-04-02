@@ -143,6 +143,14 @@ init_args(argparse::ArgumentParser &program)
         .default_value(std::string{})
         .metavar("COMMAND(s)");
 
+    // This can take optional argument.
+    program.add_argument("--check-config")
+        .help("Check the validity of the config file and exit with non-zero "
+              "code if invalid. Optionally specify a config file path to check "
+              "(defaults to searching for config.toml in standard locations)")
+        .nargs(0, 1)
+        .metavar("CONFIG_PATH");
+
     program.add_argument("files").remaining().metavar("FILE_PATH(s)");
 }
 
@@ -165,10 +173,11 @@ main(int argc, char *argv[])
     // Zed-style behavior: by default, detach from the terminal so the shell
     // returns immediately. Use --foreground to disable this (useful for
     // debugging/logging).
-    const bool foreground   = program.get<bool>("--foreground");
-    const bool listCommands = program.get<bool>("--list-commands");
+    bool foreground   = program.is_used("--foreground");
+    bool listCommands = program.is_used("--list-commands");
+    bool check_config = program.is_used("--check-config");
 
-    if (!foreground && !listCommands)
+    if (!(foreground || listCommands || check_config))
         return spawn_detached_child(argc, argv);
 
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(

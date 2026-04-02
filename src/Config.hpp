@@ -50,6 +50,25 @@ struct Config
     } page{};
     // @endsection
 
+    // @section Synctex
+    // @section_desc Synctex options struct
+    // @section_type struct
+    // @section_added 0.6.9
+    struct Synctex
+    {
+        // @desc Enable synctex support
+        // @type bool
+        // @default true
+        // @added 0.6.9
+        bool enabled = true;
+
+        // @desc Synctex editor command
+        // @type str
+        // @default ""
+        // @added 0.3.0
+        QString editor_command = QString();
+    } synctex{};
+
     // @section Search
     // @section_desc Search options struct
     // @section_type struct
@@ -1059,14 +1078,6 @@ struct Config
         // @default text_selection
         // @added 0.3.0
         GraphicsView::Mode initial_mode = GraphicsView::Mode::TextSelection;
-#ifdef HAS_SYNCTEX
-
-        // @desc Synctex editor command
-        // @type str
-        // @default ""
-        // @added 0.3.0
-        QString synctex_editor_command = QString();
-#endif
     } behavior{};
     // @endsection
 
