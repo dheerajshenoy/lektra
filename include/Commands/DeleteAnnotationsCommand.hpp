@@ -5,7 +5,7 @@
 // inheriting from QUndoCommand. The command stores the necessary information to
 // recreate all deleted annotations on undo.
 
-#include "../Model.hpp"
+#include "Model.hpp"
 
 #include <QSet>
 #include <QUndoCommand>

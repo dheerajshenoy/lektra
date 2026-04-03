@@ -1,6 +1,6 @@
 #include "Annotation.hpp"
 
-#include "../utils.hpp"
+#include "utils.hpp"
 
 #include <QGuiApplication>
 #include <QMenu>

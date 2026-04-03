@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../Config.hpp"
 #include "Annotation.hpp"
+#include "CommentPopupButton.hpp"
+#include "Config.hpp"
 
 #include <QAction>
 #include <QGraphicsItem>
@@ -12,15 +13,17 @@
 #include <QObject>
 #include <QPainter>
 
-class RectAnnotation : public Annotation
+class HighlightAnnotation : public Annotation
 {
     Q_OBJECT
 
 public:
-    RectAnnotation(const Config::Annotations::Rect &config, const QRectF &rect,
-                   int index, const QString &comment, const QColor &color,
-                   QGraphicsItem *parent = nullptr)
-        : Annotation(index, color, parent), m_config(config), m_rect(rect)
+    HighlightAnnotation(const Config::Annotations::Highlight &config,
+                        const QRectF &rect, int index,
+                        const QString &comment = {},
+                        QGraphicsItem *parent  = nullptr)
+        : Annotation(index, QColor(Qt::transparent), parent), m_rect(rect),
+          m_config(config)
     {
         m_comment = comment;
         setGlowEnabled(m_config.hover_glow);
@@ -34,12 +37,13 @@ public:
 
     inline Type atype() const noexcept override
     {
-        return Type::Rect;
+        return Type::Highlight;
     }
 
     QRectF boundingRect() const override
     {
-        // Extend outward to contain the full outer glow stroke + AA cushion.
+        // Must extend outward enough to contain the full outer glow stroke
+        // plus a 2px antialiasing cushion.
         const qreal margin = m_glow_width + 2.0;
         return m_rect.adjusted(-margin, -margin, margin, margin);
     }
@@ -55,13 +59,10 @@ public:
             painter->restore();
         }
 
-        // Filled rect.
+        // Filled highlight rectangle.
         painter->setPen(m_pen);
         painter->setBrush(m_brush);
         painter->drawRect(m_rect);
-
-        // if (m_comment_marker && hasComment())
-        //     m_comment_marker->setAnnotationRect(m_rect);
 
         // Selection indicator.
         if (option->state & QStyle::State_Selected)
@@ -80,6 +81,16 @@ public:
     }
 
 protected:
+    void mousePressEvent(QGraphicsSceneMouseEvent *e) override
+    {
+        if (e->button() == Qt::LeftButton)
+        {
+            setSelected(true);
+            emit annotSelectRequested();
+        }
+        QGraphicsItem::mousePressEvent(e);
+    }
+
     void contextMenuEvent(QGraphicsSceneContextMenuEvent *e) override
     {
         QMenu menu;
@@ -96,14 +107,14 @@ protected:
                 [this] { emit annotCommentRequested(); });
 
         // Bracket exec() with the flag so hoverLeaveEvent (fired by Qt when
-        // the menu grabs the mouse) does not clear m_hovered and extinguish
-        // the glow while the user reads the menu.
+        // the menu window grabs the mouse) does not clear m_hovered and
+        // extinguish the glow while the user reads the menu.
         m_context_menu_open = true;
         menu.exec(e->screenPos());
         m_context_menu_open = false;
 
         // If the cursor genuinely left the item while the menu was open,
-        // honour that now.
+        // honour that now that we are back in control.
         if (!isUnderMouse())
         {
             m_hovered = false;
@@ -121,6 +132,6 @@ protected:
     }
 
 private:
-    const Config::Annotations::Rect &m_config;
     QRectF m_rect;
+    const Config::Annotations::Highlight &m_config;
 };

@@ -6,7 +6,7 @@
 // create and remove the annotation, including the page number, quad points,
 // color, and object numbers.
 
-#include "../Model.hpp"
+#include "Model.hpp"
 
 #include <QUndoCommand>
 

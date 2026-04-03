@@ -9,6 +9,17 @@
 #include <QTabWidget>
 #include <QVBoxLayout>
 
+extern "C"
+{
+#include <mupdf/fitz.h>
+#ifdef HAS_SYNCTEX
+    #include <synctex/synctex_version.h>
+#endif
+#ifdef HAS_DJVU
+    #include <libdjvu/ddjvuapi.h>
+#endif
+}
+
 class AboutDialog : public QDialog
 {
     Q_OBJECT
@@ -20,7 +31,8 @@ private:
     QWidget *softwaresUsedSection() noexcept;
     QWidget *authorsSection() noexcept;
 
-    QLabel *infoLabel;
-    QPushButton *closeButton;
-    QTabWidget *m_tabWidget;
+private:
+    QLabel *infoLabel        = nullptr;
+    QPushButton *closeButton = nullptr;
+    QTabWidget *m_tabWidget  = nullptr;
 };

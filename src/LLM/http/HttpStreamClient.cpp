@@ -1,4 +1,4 @@
-#include "HttpStreamClient.hpp"
+#include "LLM/http/HttpStreamClient.hpp"
 
 #include <QDebug>
 #include <QMetaObject>

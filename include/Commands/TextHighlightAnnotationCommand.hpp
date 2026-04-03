@@ -7,7 +7,7 @@
 // color, and object numbers. Each quad creates a separate annotation to avoid
 // visual issues with multi-line highlights.
 
-#include "../Model.hpp"
+#include "Model.hpp"
 
 #include <QUndoCommand>
 #include <vector>

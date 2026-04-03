@@ -2,9 +2,13 @@
 
 #include <QObject>
 #include <atomic>
-#include <curl/curl.h>
 #include <string>
 #include <thread>
+
+extern "C"
+{
+#include <curl/curl.h>
+}
 
 class HttpStreamClient : public QObject
 {
@@ -33,8 +37,8 @@ signals:
 
 private:
     std::string m_url;
-    struct curl_slist *m_headers{nullptr};
+    curl_slist *m_headers = nullptr;
     std::string m_buffer;
     std::thread m_worker;
-    std::atomic<bool> m_in_flight{false};
+    std::atomic<bool> m_in_flight = false;
 };

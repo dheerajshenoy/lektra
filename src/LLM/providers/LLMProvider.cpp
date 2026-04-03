@@ -1,4 +1,4 @@
-#include "LLMProvider.hpp"
+#include "LLM/providers/LLMProvider.hpp"
 
 namespace LLM
 {

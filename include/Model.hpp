@@ -2,7 +2,7 @@
 
 // Wrapper for MuPDF Model
 
-#include "Annotations/Annotation.hpp"
+#include "Annotation.hpp"
 #include "BrowseLinkItem.hpp"
 #include "LRUCache.hpp"
 

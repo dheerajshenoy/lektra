@@ -305,7 +305,7 @@ Lektra::initMenubar() noexcept
 
 #ifdef ENABLE_LLM_SUPPORT
     m_actionToggleLLMWidget = m_toggleMenu->addAction(
-        tr("LLM Widget\t%1").arg(m_config.shortcuts["llm_widget"]), this,
+        tr("LLM Widget\t%1").arg(m_config.keybinds["llm_widget"]), this,
         &Lektra::ToggleLLMWidget);
     m_actionToggleLLMWidget->setCheckable(true);
 
@@ -1332,13 +1332,8 @@ Lektra::initGui() noexcept
     {
         if (action.isEmpty() || action == QStringLiteral("noop"))
             return;
-        const auto it = m_actionMap.find(action);
-        if (it == m_actionMap.end())
-        {
-            m_message_bar->showMessage(tr("LLM: Unknown action"));
-            return;
-        }
-        it.value()(args);
+        auto *it = m_command_manager->find(action);
+        it->action(args);
     });
 
     QSplitter *llm_splitter = new QSplitter(Qt::Horizontal, this);

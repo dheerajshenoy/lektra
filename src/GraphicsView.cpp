@@ -250,8 +250,8 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
             const QPointF d    = event->pos() - m_lastClickPos;
             const double dist2 = d.x() * d.x() + d.y() * d.y();
             m_clickCount       = (timerOk
-                            && dist2 < CLICK_DISTANCE_THRESHOLD
-                                           * CLICK_DISTANCE_THRESHOLD)
+                                  && dist2 < CLICK_DISTANCE_THRESHOLD
+                                                 * CLICK_DISTANCE_THRESHOLD)
                                      ? qMin(m_clickCount + 1, 4)
                                      : 1;
             m_lastClickPos     = event->pos();

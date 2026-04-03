@@ -1,6 +1,6 @@
-#include "LLMWidget.hpp"
+#include "LLM/LLMWidget.hpp"
 
-#include "providers/ollama/OllamaProvider.hpp"
+#include "LLM/providers/ollama/OllamaProvider.hpp"
 
 #include <QDir>
 #include <QFile>

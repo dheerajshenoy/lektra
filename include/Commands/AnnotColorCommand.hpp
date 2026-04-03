@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Model.hpp"
+#include "Model.hpp"
 
 #include <QUndoCommand>
 

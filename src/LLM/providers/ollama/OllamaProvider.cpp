@@ -1,6 +1,6 @@
-#include "OllamaProvider.hpp"
+#include "LLM/providers/ollama/OllamaProvider.hpp"
 
-#include "../../../json.hpp"
+#include "json.hpp"
 
 #include <QDebug>
 
@@ -108,7 +108,7 @@ OllamaProvider::chat_stream(const LLM::Request &request)
     for (const auto &msg : m_history)
         j["messages"].push_back({{"role", msg.role}, {"content", msg.content}});
 
-    j["max_tokens"] = request.max_tokens;
+    j["max_tokens"]        = request.max_tokens;
     // j["temperature"] = request.temperature;
     const std::string data = j.dump();
 

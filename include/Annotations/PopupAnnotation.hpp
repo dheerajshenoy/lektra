@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Config.hpp"
 #include "Annotation.hpp"
+#include "Config.hpp"
 
 #include <QAction>
 #include <QGraphicsSceneContextMenuEvent>
