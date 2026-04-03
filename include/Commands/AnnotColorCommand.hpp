@@ -4,19 +4,14 @@
 
 #include <QUndoCommand>
 
-extern "C"
-{
-#include <mupdf/pdf.h>
-}
-
 class AnnotColorCommand : public QUndoCommand
 {
 public:
     AnnotColorCommand(Model *model, int pageno, int objNum,
                       const QColor &oldColor, const QColor &newColor,
                       QUndoCommand *parent = nullptr)
-        : QUndoCommand(parent), m_model(model), m_pageno(pageno),
-          m_objNum(objNum), m_oldColor(oldColor), m_newColor(newColor)
+        : QUndoCommand(parent), m_model(model), m_oldColor(oldColor),
+          m_newColor(newColor), m_pageno(pageno), m_objNum(objNum)
     {
     }
 
@@ -31,9 +26,9 @@ public:
     }
 
 private:
+    Model *m_model = nullptr;
     QColor m_oldColor;
     QColor m_newColor;
-    Model *m_model{nullptr};
-    int m_pageno{-1};
-    int m_objNum{-1};
+    int m_pageno = -1;
+    int m_objNum = -1;
 };

@@ -582,12 +582,12 @@ private:
         fz_display_list *display_list{nullptr};
         fz_rect bounds{};
 
-        PageDimension dimension{};
-        std::vector<CachedLink> links;
-        std::vector<CachedAnnotation> annotations;
 #ifdef HAS_DJVU
         QImage cached_image; // for DJVU
 #endif
+        PageDimension dimension{};
+        std::vector<CachedLink> links;
+        std::vector<CachedAnnotation> annotations;
     };
 
     struct CachedTextChar

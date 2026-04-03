@@ -99,9 +99,9 @@ protected:
     }
 
 private:
-    SearchModes m_modes{Orderless};
+    SearchModes m_modes = SearchMode::Orderless;
     QString m_raw;
-    Qt::CaseSensitivity m_cs{Qt::CaseInsensitive};
+    Qt::CaseSensitivity m_cs = Qt::CaseInsensitive;
     QRegularExpression m_regex;
     QStringList m_tokens;
 };
@@ -165,13 +165,6 @@ public:
         m_columns = columns;
     }
 
-    virtual QList<Item> collectItems()            = 0;
-    virtual void onItemAccepted(const Item &item) = 0;
-
-    virtual void launch() noexcept;
-
-    void repopulate() noexcept;
-
     virtual Qt::CaseSensitivity caseSensitivity(const QString &term) const
     {
         for (QChar c : term)
@@ -191,14 +184,19 @@ public:
         m_listView->setAlternatingRowColors(enabled);
     }
 
+    virtual QList<Item> collectItems()            = 0;
+    virtual void onItemAccepted(const Item &item) = 0;
+    virtual void launch() noexcept;
+    void repopulate() noexcept;
+
 signals:
     void itemSelected(const Item &item);
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
-    PickerFilterProxy *m_proxy{nullptr};
-    QTreeView *m_listView{nullptr};
+    PickerFilterProxy *m_proxy = nullptr;
+    QTreeView *m_listView      = nullptr;
     QLineEdit *m_searchBox;
     void populate(const QList<Item> &items);
     void reposition();
@@ -215,9 +213,12 @@ private slots:
 private:
     void applyFrameStyle() noexcept;
     Item itemAtProxyIndex(const QModelIndex &index) const;
+
+private:
     QFrame *m_frame{nullptr};
-    QStandardItemModel *m_model{nullptr};
+    QStandardItemModel *m_model = nullptr;
     Keybindings m_keys;
-    QVector<Column> m_columns{};
-    class QGraphicsDropShadowEffect *m_shadow_effect{nullptr};
+    QVector<Column> m_columns;
+
+    class QGraphicsDropShadowEffect *m_shadow_effect = nullptr;
 };
