@@ -65,6 +65,9 @@ command_palette = [ ":", "Ctrl+P" ]
 
 ### Core Changes
 
+- Moved `Translations` directory to the root of the project (preivously it was in `src` directory).
+- Moved `.hpp` header files into `include` directory (previously they were in `src` directory) for better organization
+  of the codebase and to follow common C++ project structure conventions.
 - Renamed `CommandPalette.shortcuts` to `CommandPalette.show_shortcuts` for better clarity of what the option does.
 
 ## 0.6.8
