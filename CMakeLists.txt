@@ -304,7 +304,6 @@ if(APPLE)
         if(lang STREQUAL "")
             continue()
         endif()
-
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E make_directory
             "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/locale/${lang}/LC_MESSAGES"
@@ -314,7 +313,6 @@ if(APPLE)
             VERBATIM
         )
     endforeach()
-
     if(ENABLE_LLM_SUPPORT)
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -331,15 +329,12 @@ foreach(qm_file ${QM_FILES})
     if(lang STREQUAL "")
         continue()
     endif()
-
     install(
         FILES "${qm_file}"
         DESTINATION "${TRANSLATIONS_DIR}/${lang}/LC_MESSAGES"
         RENAME "lektra.qm"
     )
 endforeach()
-
-# -----
 
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
