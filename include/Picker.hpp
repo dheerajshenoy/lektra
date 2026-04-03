@@ -8,10 +8,6 @@
 #include <QTreeView>
 #include <QWidget>
 
-// ---------------------------------------------------------------------------
-// PickerFilterProxy — replaces QSortFilterProxyModel inside Picker.
-// Supports three search modes that can be combined via flags.
-// ---------------------------------------------------------------------------
 class PickerFilterProxy : public QSortFilterProxyModel
 {
     Q_OBJECT
@@ -47,8 +43,6 @@ public:
         return m_modes;
     }
 
-    // Call this instead of setFilterFixedString / setFilterRegularExpression.
-    // It recompiles the internal regex / token list so filterAcceptsRow works.
     void setFilterText(const QString &text, Qt::CaseSensitivity cs)
     {
         m_raw = text;
@@ -101,7 +95,6 @@ protected:
             return true;
         }
 
-        // Fixed (default)
         return haystack.contains(m_raw, m_cs);
     }
 
@@ -119,26 +112,25 @@ class Picker : public QWidget
 {
     Q_OBJECT
 public:
-    explicit Picker(
-        const Config::Picker &config,
-        QWidget *parent) noexcept; // parent is REQUIRED — must be the main
-                                   // window's central widget
+    explicit Picker(const Config::Picker &config, QWidget *parent) noexcept;
 
     struct Keybindings
     {
-        QList<QKeyCombination> moveDown = {Qt::Key_Down};
+        QList<QKeyCombination> moveDown
+            = {Qt::Key_Down, Qt::ControlModifier | Qt::Key_J};
         QList<QKeyCombination> pageDown = {Qt::Key_PageDown};
-        QList<QKeyCombination> moveUp   = {Qt::Key_Up};
-        QList<QKeyCombination> pageUp   = {Qt::Key_PageUp};
-        QList<QKeyCombination> accept   = {Qt::Key_Return};
-        QList<QKeyCombination> dismiss  = {Qt::Key_Escape};
+        QList<QKeyCombination> moveUp
+            = {Qt::Key_Up, Qt::ControlModifier | Qt::Key_K};
+        QList<QKeyCombination> pageUp  = {Qt::Key_PageUp};
+        QList<QKeyCombination> accept  = {Qt::Key_Return};
+        QList<QKeyCombination> dismiss = {Qt::Key_Escape};
     };
 
     struct Column
     {
         QString header;
-        int role{Qt::DisplayRole}; // which data role to display
-        int stretch{1};            // relative width weight
+        int role{Qt::DisplayRole};
+        int stretch{1};
         Qt::Alignment alignment{Qt::AlignLeft | Qt::AlignVCenter};
     };
 
@@ -223,7 +215,6 @@ private slots:
 private:
     void applyFrameStyle() noexcept;
     Item itemAtProxyIndex(const QModelIndex &index) const;
-
     QFrame *m_frame{nullptr};
     QStandardItemModel *m_model{nullptr};
     Keybindings m_keys;
