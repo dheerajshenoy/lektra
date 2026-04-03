@@ -14,6 +14,7 @@ AlwaysBreakAfterReturnType: TopLevel
 SortIncludes: true
 IncludeBlocks: Regroup
 IndentPPDirectives: BeforeHash
+IndentExternBlock: AfterExternBlock
 PointerAlignment: Right
 DerivePointerAlignment: false
 AlignConsecutiveDeclarations: false
