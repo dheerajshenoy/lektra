@@ -60,30 +60,30 @@ ExternalProject_Add(mupdf_external
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/mupdf"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND
-        make -C <SOURCE_DIR>
-        build=release
-        shared=no
-        HAVE_TESSERACT=no
-        HAVE_CURL=no
-        HAVE_X11=no
-        HAVE_GLUT=no
-        HAVE_LIBCRYPTO=no
-        LIB_CFLAGS=-fPIC
-        libs
+    make -C <SOURCE_DIR>
+    build=release
+    shared=no
+    HAVE_TESSERACT=no
+    HAVE_CURL=no
+    HAVE_X11=no
+    HAVE_GLUT=no
+    HAVE_LIBCRYPTO=no
+    LIB_CFLAGS=-fPIC
+    libs
     INSTALL_COMMAND
-        make -C <SOURCE_DIR>
-        build=release
-        shared=no
-        HAVE_TESSERACT=no
-        HAVE_CURL=no
-        HAVE_X11=no
-        HAVE_GLUT=no
-        HAVE_LIBCRYPTO=no
-        prefix="${MUPDF_INSTALL_DIR}"
-        install-libs
+    make -C <SOURCE_DIR>
+    build=release
+    shared=no
+    HAVE_TESSERACT=no
+    HAVE_CURL=no
+    HAVE_X11=no
+    HAVE_GLUT=no
+    HAVE_LIBCRYPTO=no
+    prefix="${MUPDF_INSTALL_DIR}"
+    install-libs
     BUILD_BYPRODUCTS
-        "${MUPDF_INSTALL_DIR}/lib/libmupdf.a"
-        "${MUPDF_INSTALL_DIR}/lib/libmupdf-third.a"
+    "${MUPDF_INSTALL_DIR}/lib/libmupdf.a"
+    "${MUPDF_INSTALL_DIR}/lib/libmupdf-third.a"
     UPDATE_COMMAND ""
 )
 add_library(mupdf_lib STATIC IMPORTED GLOBAL)
@@ -188,7 +188,6 @@ if (ENABLE_LLM_SUPPORT)
     message(STATUS "LLM support enabled.")
     target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_LLM_SUPPORT=1)
 
-
     file(GLOB_RECURSE LEKTRA_LLM_HEADERS
         CONFIGURE_DEPENDS
         ${CMAKE_CURRENT_SOURCE_DIR}/include/LLM/*.hpp
@@ -257,7 +256,7 @@ configure_file(
     @ONLY
 )
 
-# Generate .qm files immediately without creating target dependencies
+# Generate .qm files
 if(Qt6LinguistTools_VERSION VERSION_GREATER_EQUAL "6.7")
     qt_add_translations(
         TARGETS ${PROJECT_NAME}
@@ -281,31 +280,37 @@ if(TARGET lektra_lrelease)
     add_dependencies(${PROJECT_NAME} lektra_lrelease)
 endif()
 
+# Helper macro to extract lang from qm filename, sets lang to "" for base file
+macro(get_qm_lang qm_file out_lang)
+    get_filename_component(_qm_name "${qm_file}" NAME)
+    string(REGEX REPLACE "\\.qm$" "" _qm_name "${_qm_name}")
+    string(REPLACE "lektra." "" ${out_lang} "${_qm_name}")
+    if(${out_lang} STREQUAL "${_qm_name}" OR ${out_lang} STREQUAL "")
+        set(${out_lang} "")
+    endif()
+endmacro()
+
 if(APPLE)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory
-            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/tutorial.pdf"
-            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/tutorial.pdf"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tutorial.pdf"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/tutorial.pdf"
         VERBATIM
     )
-
     foreach(qm_file ${QM_FILES})
-        get_filename_component(qm_name "${qm_file}" NAME)
-        string(REGEX REPLACE "\\.qm$" "" qm_name "${qm_name}")
-        string(REPLACE "lektra." "" lang "${qm_name}")
-
-        if(lang STREQUAL "${qm_name}")
-            set(lang "en")
+        get_qm_lang("${qm_file}" lang)
+        if(lang STREQUAL "")
+            continue()
         endif()
 
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E make_directory
-                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/locale/${lang}/LC_MESSAGES"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/locale/${lang}/LC_MESSAGES"
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${qm_file}"
-                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/locale/${lang}/LC_MESSAGES/lektra.qm"
+            "${qm_file}"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/locale/${lang}/LC_MESSAGES/lektra.qm"
             VERBATIM
         )
     endforeach()
@@ -313,29 +318,18 @@ if(APPLE)
     if(ENABLE_LLM_SUPPORT)
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${CMAKE_CURRENT_SOURCE_DIR}/src/llm/role.txt"
-                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/role.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/llm/role.txt"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/role.txt"
             VERBATIM
         )
     endif()
 endif()
 
-# qt_add_translations(
-#     TARGETS ${PROJECT_NAME}         # Target that will use the .qm files
-#     TS_FILES ${TRANSLATION_FILES}   # Explicit .ts files
-#     QM_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/translations"
-#     QM_FILES_OUTPUT_VARIABLE QM_FILES
-# )
-
 # Install each .qm into locale/<lang>/LC_MESSAGES/
 foreach(qm_file ${QM_FILES})
-    get_filename_component(qm_name "${qm_file}" NAME)
-    string(REGEX REPLACE "\\.qm$" "" qm_name "${qm_name}")
-
-    string(REPLACE "lektra." "" lang "${qm_name}")
-
-    if(lang STREQUAL "${qm_name}")
-        set(lang "en")
+    get_qm_lang("${qm_file}" lang)
+    if(lang STREQUAL "")
+        continue()
     endif()
 
     install(
@@ -376,9 +370,9 @@ endif()
 if(LINUX)
     qt_import_plugins(${CMAKE_PROJECT_NAME}
         INCLUDE
-            Qt6::QWaylandIntegrationPlugin      # Wayland support (libqwayland.so)
-            Qt6::QXcbIntegrationPlugin          # X11 support
-            Qt6::QEglFSIntegrationPlugin        # Embedded GL support
+        Qt6::QWaylandIntegrationPlugin      # Wayland support (libqwayland.so)
+        Qt6::QXcbIntegrationPlugin          # X11 support
+        Qt6::QEglFSIntegrationPlugin        # Embedded GL support
     )
 endif()
 

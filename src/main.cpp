@@ -6,6 +6,7 @@
 #include <QLocale>
 #include <QTranslator>
 #include <fcntl.h>
+#include <print>
 #include <signal.h>
 #include <sys/resource.h>
 #include <unistd.h>
@@ -139,7 +140,9 @@ init_args(argparse::ArgumentParser &program)
         .flag();
 
     program.add_argument("--command")
-        .help("Execute one or more valid lektra command (see `--list-commands`) on startup (separate multiple commands with ';')")
+        .help(
+            "Execute one or more valid lektra command (see `--list-commands`) "
+            "on startup (separate multiple commands with ';')")
         .default_value(std::string{})
         .metavar("COMMAND(s)");
 
@@ -187,47 +190,22 @@ main(int argc, char *argv[])
     app.setWindowIcon(QIcon(":/resources/png/lektra.png"));
 
     // Load correct localization file
-    QString baseDir    = AppPaths::appTranslationsPath();
-    QString fullLocale = QLocale::system().name(); // ex. "es_MX"
-    QString langOnly   = fullLocale.left(2);       // ex: "es"
-
     QTranslator *translator = new QTranslator(&app);
 
-    auto tryLoad = [&](const QString &localeDir) -> bool
-    {
-        QString path = baseDir + "/" + localeDir + "/LC_MESSAGES/";
-        return translator->load("lektra", path);
-    };
+    QLocale locale = QLocale::system();
 
-    // Using es_MX code for explanation
+    bool loaded = translator->load(QString("lektra_%1").arg(locale.name()));
 
-    // Try full locale (es_MX)
-    if (tryLoad(fullLocale))
+    if (loaded)
     {
         app.installTranslator(translator);
     }
-    // Try language only (es)
-    else if (tryLoad(langOnly))
-    {
-        app.installTranslator(translator);
-    }
-    // Search for any directory beginning with es_ ...
     else
     {
-        QDir dir(baseDir);
-        QStringList candidates
-            = dir.entryList(QStringList() << (langOnly + "_*"),
-                            QDir::Dirs | QDir::NoDotAndDotDot);
-
-        for (const QString &candidate : candidates)
-        {
-            if (tryLoad(candidate))
-            {
-                app.installTranslator(translator);
-                break;
-            }
-        }
+        delete translator;
     }
+
+    qDebug() << "Loaded language: " << translator->language();
 
     Lektra d;
     d.Read_args_parser(program);
