@@ -648,6 +648,7 @@ private:
                           const QString &content = {}) noexcept;
     int addHighlightAnnotation(const int pageno,
                                const std::vector<fz_quad> &quads,
+                               const QColor &color    = QColor(),
                                const QString &content = {}) noexcept;
     int addTextAnnotation(const int pageno, const fz_rect &rect,
                           const QString &text) noexcept;
