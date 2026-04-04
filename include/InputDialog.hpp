@@ -18,8 +18,8 @@ public:
 
         QHBoxLayout *btnLayout = new QHBoxLayout();
         btnLayout->addStretch();
-        QPushButton *okBtn     = new QPushButton("OK", this);
-        QPushButton *cancelBtn = new QPushButton("Cancel", this);
+        QPushButton *okBtn     = new QPushButton(tr("Ok"), this);
+        QPushButton *cancelBtn = new QPushButton(tr("Cancel"), this);
         btnLayout->addWidget(okBtn);
         btnLayout->addWidget(cancelBtn);
 
@@ -54,6 +54,6 @@ public:
     }
 
 private:
-    QLabel *m_infoLabel;
-    QTextEdit *m_commentBox;
+    QLabel *m_infoLabel     = nullptr;
+    QTextEdit *m_commentBox = nullptr;
 };
