@@ -24,20 +24,20 @@ public:
                        parent),
           m_model(model), m_pageno(pageno)
     {
-        // Capture annotation data up front so undo can recreate them
         captureAnnotationsData(objNums);
     }
 
     void undo() override
     {
-        // Recreate each deleted annotation via Model and record the new objNums
         for (AnnotData &d : m_annotations)
         {
+            QColor color(d.color[0] * 255, d.color[1] * 255, d.color[2] * 255,
+                         d.color[3] * 255);
             switch (d.type)
             {
                 case PDF_ANNOT_HIGHLIGHT:
                     d.objNum = m_model->addHighlightAnnotation(
-                        m_pageno, d.quads, d.contents);
+                        m_pageno, d.quads, color, d.contents);
                     break;
                 case PDF_ANNOT_SQUARE:
                     d.objNum = m_model->addRectAnnotation(m_pageno, d.rect,
@@ -71,14 +71,14 @@ public:
 private:
     struct AnnotData
     {
-        int objNum{-1};
+        int objNum = -1;
         enum pdf_annot_type type
         {
             PDF_ANNOT_UNKNOWN
         };
-        fz_rect rect{};
-        float color[4]{0, 0, 0, 1};
-        float opacity{1.0f};
+        float color[4] = {0, 0, 0, 1};
+        float opacity  = 1.0f;
+        fz_rect rect;
         std::vector<fz_quad> quads;
         QString contents;
     };
@@ -93,7 +93,7 @@ private:
         if (!pdf)
             return;
 
-        pdf_page *page{nullptr};
+        pdf_page *page = nullptr;
 
         fz_try(ctx)
         {
@@ -150,11 +150,7 @@ private:
         }
         fz_always(ctx)
         {
-#if FZ_VERSION_MINOR >= 19
             pdf_drop_page(ctx, page);
-#else
-            fz_drop_page(m_ctx, (fz_page *)page);
-#endif
         }
         fz_catch(ctx)
         {
@@ -163,7 +159,7 @@ private:
         }
     }
 
-    Model *m_model;
-    int m_pageno;
+    Model *m_model = nullptr;
+    int m_pageno   = -1;
     std::vector<AnnotData> m_annotations;
 };
