@@ -54,7 +54,9 @@ class DocumentView : public QWidget
 {
     Q_OBJECT
 public:
-    using Id = uint32_t;
+    using Id                  = uint32_t;
+    using SelectedAnnotations = std::vector<std::pair<int, Annotation *>>;
+
     DocumentView(const Config &config, const float dpr = 1.0f,
                  QWidget *parent    = nullptr,
                  bool thumbnailMode = false) noexcept;
@@ -410,6 +412,14 @@ private:
         int indexInPage;
     };
 
+    enum Direction
+    {
+        LEFT = 0,
+        RIGHT,
+        UP,
+        DOWN
+    };
+
     // Total scene-axis extent across all pages
     inline double totalPageExtent() const noexcept
     {
@@ -480,100 +490,80 @@ private:
                                                 QRectF area) noexcept;
     Annotation *annotationAtPoint(int pageno, QPointF point) noexcept;
     void openImageInExternalViewer(const QImage &image) noexcept;
-    std::vector<std::pair<int, Annotation *>> getSelectedAnnotations() noexcept;
-    void changeColorOfSelectedAnnotations(const QColor &color) noexcept;
+    SelectedAnnotations getSelectedAnnotations() noexcept;
     void stopPendingRenders() noexcept;
     int pageAtAxisCoord(double coord) const noexcept;
     void updatePageLabels(int pageno, qreal xPos, qreal yPos, qreal pageW,
                           qreal pageH) noexcept;
+    void visual_line_move(Direction direction) noexcept;
+    void snapVisualLine(bool centerView = true) noexcept;
 
 #ifdef HAS_SYNCTEX
     void initSynctex() noexcept;
     void synctexLocateInDocument(const char *fileName, int line) noexcept;
 #endif
 
-    Id m_id{0};
-    Model *m_model{nullptr};
-    GraphicsView *m_gview{nullptr};
-    GraphicsScene *m_gscene{nullptr};
     const Config &m_config;
-    FitMode m_fit_mode{FitMode::COUNT};
-    int m_pageno{-1};
-    double m_spacing{10.0f};
-    double m_current_zoom{MIN_ZOOM_FACTOR};
-    bool m_auto_resize{false}, m_auto_reload{false};
-    ScrollBar *m_hscroll{nullptr};
-    ScrollBar *m_vscroll{nullptr};
+    Id m_id                                  = 0;
+    Model *m_model                           = nullptr;
+    GraphicsView *m_gview                    = nullptr;
+    GraphicsScene *m_gscene                  = nullptr;
+    FitMode m_fit_mode                       = FitMode::COUNT;
+    int m_pageno                             = -1;
+    double m_spacing                         = 10.0f;
+    double m_current_zoom                    = MIN_ZOOM_FACTOR;
+    bool m_auto_resize                       = false;
+    bool m_auto_reload                       = false;
+    ScrollBar *m_hscroll                     = nullptr;
+    ScrollBar *m_vscroll                     = nullptr;
+    JumpMarker *m_jump_marker                = nullptr;
+    QTimer *m_scroll_page_update_timer       = nullptr;
+    QTimer *m_resize_timer                   = nullptr;
+    PageLocation m_pending_jump              = {-1, 0, 0};
+    int m_search_index                       = -1;
+    int m_selection_start_page               = -1;
+    int m_selection_end_page                 = -1;
+    int m_last_selection_page                = -1;
+    QGraphicsPathItem *m_selection_path_item = nullptr;
+    QTimer *m_hq_render_timer                = nullptr;
+    int m_loc_history_index                  = -1;
+    bool m_is_modified                       = false;
+    LayoutMode m_layout_mode                 = LayoutMode::VERTICAL;
+    WaitingSpinnerWidget *m_spinner          = nullptr;
+    bool m_visible_pages_dirty               = true;
+    bool m_deferred_fit                      = false;
+    bool m_scroll_to_hit_pending             = false;
+    QFileSystemWatcher *m_file_watcher       = nullptr;
+    DocumentContainer *m_container           = nullptr;
+    // max cross-axis page size, cached by cachePageStride()
+    double m_max_page_cross_extent           = 0.0;
+    // Portal
+    DocumentView *m_source_view              = nullptr;
+    DocumentView *m_portal_view              = nullptr;
+    // Visual Line Mode
+    QGraphicsPathItem *m_visual_line_item    = nullptr;
+    int m_visual_line_index                  = -1;
+    bool m_visual_line_mode                  = false;
+    bool m_thumbnail_mode                    = false;
+#ifdef HAS_SYNCTEX
+    synctex_scanner_p m_synctex_scanner = nullptr;
+#endif
+
     QHash<int, GraphicsImageItem *> m_page_items_hash;
     QHash<int, std::vector<BrowseLinkItem *>> m_page_links_hash;
     QHash<int, std::vector<Annotation *>> m_page_annotations_hash;
     QSet<int> m_pending_renders;
     QQueue<int> m_render_queue;
-    JumpMarker *m_jump_marker{nullptr};
-    QTimer *m_scroll_page_update_timer{nullptr};
-    QTimer *m_resize_timer{nullptr};
-    PageLocation m_pending_jump{-1, 0, 0};
-    int m_search_index{-1};
     QMap<int, std::vector<Model::SearchHit>> m_search_hits;
     std::vector<HitRef> m_search_hit_flat_refs;
     QHash<int, QGraphicsPathItem *> m_search_items;
     QPointF m_selection_start, m_selection_end;
-    int m_selection_start_page{-1}, m_selection_end_page{-1};
     QPointF m_last_selection_start, m_last_selection_end;
-    int m_last_selection_page{-1};
-    QGraphicsPathItem *m_selection_path_item{nullptr};
-    QTimer *m_hq_render_timer{nullptr};
     std::vector<PageLocation> m_loc_history;
-    int m_loc_history_index{-1};
-    bool m_is_modified{false};
-    LayoutMode m_layout_mode{LayoutMode::VERTICAL};
-    WaitingSpinnerWidget *m_spinner{nullptr};
-    bool m_visible_pages_dirty{true};
-    bool m_deferred_fit{false};
-    bool m_scroll_to_hit_pending{false};
     QFutureWatcher<void> m_open_future_watcher;
-    QFileSystemWatcher *m_file_watcher{nullptr};
-    DocumentContainer *m_container{nullptr};
-    std::vector<LinkHint *> m_kb_link_hints{};
-    std::vector<double> m_page_offsets{};
+    std::vector<LinkHint *> m_kb_link_hints;
+    std::vector<double> m_page_offsets;
     std::set<int> m_visible_pages_cache;
-
-    // max cross-axis page size, cached by cachePageStride()
-    double m_max_page_cross_extent{0.0};
-
-    unsigned int MAX_CONCURRENT_RENDERS{
-        std::thread::hardware_concurrency() > 1
-            ? std::thread::hardware_concurrency() - 1
-            : 1};
-    std::shared_ptr<std::atomic<bool>> m_cancelled{
-        std::make_shared<std::atomic<bool>>(false)};
-
-    QPointF m_old_jump_marker_pos{};
-
-#ifdef HAS_SYNCTEX
-    synctex_scanner_p m_synctex_scanner{nullptr};
-#endif
-
-    // Portal
-    DocumentView *m_source_view{nullptr};
-    DocumentView *m_portal_view{nullptr};
-
-    enum Direction
-    {
-        LEFT = 0,
-        RIGHT,
-        UP,
-        DOWN
-    };
-
-    // Visual Line Mode
-    QGraphicsPathItem *m_visual_line_item{nullptr};
-    int m_visual_line_index{-1};
-    bool m_visual_line_mode{false};
-    std::vector<Model::VisualLineInfo> m_visual_lines{};
-    void visual_line_move(Direction direction) noexcept;
-    void snapVisualLine(bool centerView = true) noexcept;
-
-    int m_generation = 0;
-    bool m_thumbnail_mode{false};
+    QPointF m_old_jump_marker_pos;
+    std::vector<Model::VisualLineInfo> m_visual_lines;
 };
