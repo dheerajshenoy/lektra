@@ -25,7 +25,6 @@
 #include "utils.hpp"
 
 #include <QClipboard>
-#include <QColorDialog>
 #include <QDesktopServices>
 #include <QFileDialog>
 #include <QFontMetricsF>
@@ -803,13 +802,14 @@ DocumentView::handleSynctexJumpRequested(QPointF scenePos) noexcept
         }
         else
         {
-            QMessageBox::warning(this, "SyncTeX Error",
-                                 "No matching source found!");
+            QMessageBox::warning(this, tr("SyncTeX Error"),
+                                 tr("No matching source found!"));
         }
     }
     else
     {
-        QMessageBox::warning(this, "SyncTex", "Not a valid synctex document");
+        QMessageBox::warning(this, tr("SyncTex"),
+                             tr("Not a valid synctex document"));
     }
 }
 #endif
@@ -822,9 +822,9 @@ DocumentView::synctexLocateInDocument(const char *texFileName,
     QString tmp = m_config.synctex.editor_command;
     if (!tmp.contains("%f") || !tmp.contains("%l"))
     {
-        QMessageBox::critical(this, "SyncTeX error",
-                              "Invalid SyncTeX editor command: missing "
-                              "placeholders (%l and/or %f).");
+        QMessageBox::critical(this, tr("SyncTeX error"),
+                              tr("Invalid SyncTeX editor command: missing "
+                                 "placeholders (%l and/or %f)."));
         return;
     }
 
@@ -851,7 +851,8 @@ DocumentView::handleTextHighlightRequested() noexcept
     for (int p = startP; p <= endP; ++p)
     {
         GraphicsImageItem *item = m_page_items_hash.value(p, nullptr);
-        assert(item && "Page is not yet in the hash map");
+        if (!item)
+            continue;
 
         if (p == startP && p == endP)
         {
@@ -914,7 +915,8 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
     for (int p = startPage; p <= endPage; ++p)
     {
         GraphicsImageItem *item = m_page_items_hash.value(p, nullptr);
-        assert(item && "Page is not yet in the hash map");
+        if (!item)
+            continue;
         QRectF bounds = item->boundingRect();
 
         // Define logical anchors based on the current visual rotation
@@ -1969,8 +1971,8 @@ DocumentView::FileProperties() noexcept
     if (props.empty())
     {
         QMessageBox::information(
-            this, "No properties",
-            "No metadata properties available for this file.");
+            this, tr("No properties"),
+            tr("No metadata properties available for this file."));
         return;
     }
     PropertiesWidget *propsWidget = new PropertiesWidget(this);
@@ -2010,8 +2012,8 @@ DocumentView::SaveFile() noexcept
     else
     {
         QMessageBox::critical(
-            this, "Saving failed",
-            "Could not save the current file. Try 'Save As' instead.");
+            this, tr("Saving failed"),
+            tr("Could not save the current file. Try 'Save As' instead."));
     }
 }
 
@@ -2031,8 +2033,8 @@ DocumentView::SaveAsFile() noexcept
     if (!m_model->SaveAs(filename))
     {
         QMessageBox::critical(
-            this, "Saving as failed",
-            "Could not perform save as operation on the file");
+            this, tr("Saving as failed"),
+            tr("Could not perform save as operation on the file"));
     }
 }
 
@@ -2440,11 +2442,10 @@ DocumentView::clearLinksForPage(int pageno) noexcept
         if (!link)
             continue;
 
-        // Remove from scene if still present
         if (link->scene() == m_gscene)
             m_gscene->removeItem(link);
 
-        delete link; // safe: we "own" these
+        delete link;
     }
 }
 
@@ -2612,20 +2613,14 @@ DocumentView::startNextRenderJob() noexcept
 
         auto job = m_model->createRenderJob(pageno);
 
-        int currentGen
-            = m_generation; // capture current generation for this job
-
         QPointer<DocumentView> self(this);
         m_model->requestPageRender(
-            job,
-            [self, pageno, currentGen](const Model::PageRenderResult &result)
+            job, [self, pageno](const Model::PageRenderResult &result)
         {
             if (!self)
                 return;
 
             DocumentView *view = self.data();
-            if (currentGen != view->m_generation)
-                return;
 
             view->m_pending_renders.remove(pageno);
             const QImage &image = result.image;
@@ -3207,10 +3202,11 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
     const bool annotModeActive
         = m_gview->mode() == GraphicsView::Mode::AnnotSelect
           || m_gview->mode() == GraphicsView::Mode::AnnotPopup;
-    const auto selectedAnnots
+    SelectedAnnotations selectedAnnots
         = annotModeActive && m_model->supports_annotations()
               ? getSelectedAnnotations()
-              : decltype(getSelectedAnnotations()){};
+              : SelectedAnnotations{};
+
     const bool hasAnnots = !selectedAnnots.empty();
     bool hasActions      = false;
 
@@ -3220,11 +3216,12 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
 
     if (selectionActive)
     {
-        addAction("Copy Text", [this]() { YankSelection(true); });
-        addAction("Copy Unformatted Text", [this]() { YankSelection(false); });
+        addAction(tr("Copy Text"), [this]() { YankSelection(true); });
+        addAction(tr("Copy Unformatted Text"),
+                  [this]() { YankSelection(false); });
         if (m_model->supports_annotations())
         {
-            addAction("Highlight Text",
+            addAction(tr("Highlight Text"),
                       &DocumentView::handleTextHighlightRequested);
         }
         hasActions = true;
@@ -3236,7 +3233,7 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
             menu->addSeparator();
 
         // Delete selected annotations
-        addAction("Delete Annotations", [this, selectedAnnots]()
+        addAction(tr("Delete Annotations"), [this, selectedAnnots]()
         {
             QHash<int, QSet<int>> objNumsByPage;
             for (const auto &[pageno, annot] : selectedAnnots)
@@ -3257,7 +3254,7 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
 
         // Change color of the selected annotations
         // TODO: Put this under a undo command
-        addAction("Change Color", [this]()
+        addAction(tr("Change Color"), [this, selectedAnnots]()
         {
             auto newColor = QColorDialog::getColor(
                 Qt::white, this, "Annotation Color",
@@ -3270,12 +3267,17 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
     }
 
     if (!hasActions)
+    {
+        delete menu;
         return;
+    }
 
     if (handled)
         *handled = true;
 
-    menu->popup(globalPos);
+    menu->exec(globalPos);
+
+    menu->deleteLater(); // Schedule menu for deletion after it closes
 }
 
 void
@@ -3883,8 +3885,8 @@ DocumentView::EncryptDocument() noexcept
     Model::EncryptInfo encryptInfo;
     bool ok;
     QString password = QInputDialog::getText(
-        this, "Encrypt Document", "Enter password:", QLineEdit::Password,
-        QString(), &ok);
+        this, tr("Encrypt Document"), tr("Enter password:"),
+        QLineEdit::Password, QString(), &ok);
     if (!ok || password.isEmpty())
         return false;
     encryptInfo.user_password = password;
@@ -3905,8 +3907,8 @@ DocumentView::DecryptDocument() noexcept
         while (true)
         {
             password = QInputDialog::getText(
-                this, "Decrypt Document",
-                "Enter password:", QLineEdit::Password, QString(), &ok);
+                this, tr("Decrypt Document"), tr("Enter password:"),
+                QLineEdit::Password, QString(), &ok);
             if (!ok)
                 return false;
 
@@ -4215,23 +4217,6 @@ DocumentView::getSelectedAnnotations() noexcept
     return selectedAnnotations;
 }
 
-void
-DocumentView::changeColorOfSelectedAnnotations(const QColor &color) noexcept
-{
-    const auto selectedAnnots = getSelectedAnnotations();
-    if (selectedAnnots.empty())
-        return;
-
-    // TODO: This should be an undoable command that changes the color of all
-    // selected annotations in one action, instead of multiple separate
-    // commands.
-
-    for (const auto &[pageno, annot] : selectedAnnots)
-    {
-        m_model->annotChangeColor(pageno, annot->index(), color);
-    }
-}
-
 // Returns the current location in the document that the user is viewing
 PageLocation
 DocumentView::CurrentLocation() noexcept
@@ -4352,22 +4337,29 @@ DocumentView::SaveRegionAsImage(QRectF area) noexcept
         return;
 
     QFileDialog fd(this);
+
     const QString fileName = fd.getSaveFileName(
         this, tr("Save Image"), "",
         tr("PNG Image") + " (*.png), " + tr("JPEG Image") + " (*.jpg *.jpeg), "
             + tr("BMP Image") + " (*.bmp);; All Files (*)");
     if (fileName.isEmpty())
         return;
+
     QString format;
+
     if (fileName.endsWith(".png", Qt::CaseInsensitive))
         format = "PNG";
+
     else if (fileName.endsWith(".jpg", Qt::CaseInsensitive)
              || fileName.endsWith(".jpeg", Qt::CaseInsensitive))
         format = "JPEG";
+
     else if (fileName.endsWith(".bmp", Qt::CaseInsensitive))
         format = "BMP";
+
     else
-        format = "PNG"; // Default to PNG
+        format = "PNG";
+
     img.save(fileName, format.toStdString().c_str());
 }
 
@@ -4474,8 +4466,8 @@ DocumentView::tryReloadLater(int attempt) noexcept
 {
     if (attempt > 15) // ~15 * 100ms = 1.5s
     {
-        QMessageBox::warning(this, "Auto-reload failed",
-                             "Could not reload the document.");
+        QMessageBox::warning(this, tr("Auto-reload failed"),
+                             tr("Could not reload the document."));
         return;
     }
 
@@ -4522,13 +4514,13 @@ DocumentView::handleRegionSelectRequested(QRectF area) noexcept
         m_gview->clearRubberBand();
         menu->deleteLater();
     });
-    menu->addAction("Copy Region as Image",
+    menu->addAction(tr("Copy Region as Image"),
                     [this, area]() { CopyRegionAsImage(area); });
-    menu->addAction("Save Region as Image",
+    menu->addAction(tr("Save Region as Image"),
                     [this, area]() { SaveRegionAsImage(area); });
-    menu->addAction("Open Region in external viewer",
+    menu->addAction(tr("Open Region in external viewer"),
                     [this, area]() { OpenRegionInExternalViewer(area); });
-    menu->addAction("Copy Text from Region",
+    menu->addAction(tr("Copy Text from Region"),
                     [this, area]() { CopyTextFromRegion(area); });
 
     menu->popup(QCursor::pos());
@@ -4578,7 +4570,7 @@ DocumentView::handleAnnotPopupRequested(QPointF scenePos) noexcept
     bool ok;
     QString text
         = InputDialog::getText(tr("Add Note"), tr("Enter annotation text:"),
-                               "Enter text here", "", ok, this);
+                               tr("Enter text here"), "", ok, this);
 
     if (!ok || text.isEmpty())
         return;
@@ -4777,7 +4769,6 @@ DocumentView::handleVScrollValueChanged(int /*value */) noexcept
 void
 DocumentView::stopPendingRenders() noexcept
 {
-    ++m_generation;
     m_pending_renders.clear();
     m_render_queue.clear();
 
@@ -4903,7 +4894,6 @@ DocumentView::visual_line_move(Direction direction) noexcept
     {
         case LEFT:
         case RIGHT:
-            PPRINT("Not yet implemented");
             break;
 
         case UP:
@@ -5019,9 +5009,9 @@ DocumentView::set_visual_line_mode(bool state) noexcept
 {
     if (!m_model->supports_text_selection())
     {
-        QMessageBox::information(this, "Visual Line Mode",
-                                 "Document does not support visual "
-                                 "line mode.");
+        QMessageBox::information(this, tr("Visual Line Mode"),
+                                 tr("Document does not support visual "
+                                    "line mode."));
         return;
     }
 
