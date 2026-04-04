@@ -2565,6 +2565,7 @@ Model::highlight_text_selection(int pageno, QPointF start, QPointF end) noexcept
 int
 Model::addHighlightAnnotation(const int pageno,
                               const std::vector<fz_quad> &quads,
+                              const QColor &color,
                               const QString &content) noexcept
 {
     int objNum{-1};
@@ -2577,8 +2578,8 @@ Model::addHighlightAnnotation(const int pageno,
     if (quads.empty())
         return objNum;
 
-    pdf_annot *annot{nullptr};
-    pdf_page *page{nullptr};
+    pdf_annot *annot = nullptr;
+    pdf_page *page   = nullptr;
 
     fz_try(m_ctx)
     {
@@ -2589,15 +2590,30 @@ Model::addHighlightAnnotation(const int pageno,
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-        // Create a separate highlight annotation for each quad
-        // This looks better visually for multi-line selections
         annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_HIGHLIGHT);
         if (!annot)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to create annotation");
 
         pdf_set_annot_quad_points(m_ctx, annot, quads.size(), &quads[0]);
-        pdf_set_annot_color(m_ctx, annot, 3, m_highlight_color);
-        pdf_set_annot_opacity(m_ctx, annot, m_highlight_color[3]);
+
+        float mucolor[4] = {};
+        if (color.isValid())
+        {
+            mucolor[0] = color.redF();
+            mucolor[1] = color.greenF();
+            mucolor[2] = color.blueF();
+            mucolor[3] = color.alphaF();
+        }
+        else
+        {
+            mucolor[0] = m_highlight_color[0];
+            mucolor[1] = m_highlight_color[1];
+            mucolor[2] = m_highlight_color[2];
+            mucolor[3] = m_highlight_color[3];
+        }
+
+        pdf_set_annot_color(m_ctx, annot, 3, mucolor);
+        pdf_set_annot_opacity(m_ctx, annot, mucolor[3]);
         pdf_set_annot_contents(m_ctx, annot, content.toUtf8().constData());
 
         pdf_update_annot(m_ctx, annot);
@@ -3604,9 +3620,8 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
     if (!m_pdf_doc)
         return;
 
-    bool changed = false;
-
-    pdf_page *page{nullptr};
+    bool changed   = false;
+    pdf_page *page = nullptr;
 
     fz_try(m_ctx)
     {
