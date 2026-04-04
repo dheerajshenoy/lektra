@@ -14,12 +14,12 @@ SaveSessionDialog::SaveSessionDialog(const QStringList &existingSessions,
                                      QWidget *parent)
     : QDialog(parent), m_existingSessions(existingSessions)
 {
-    setWindowTitle("Save Session");
+    setWindowTitle(tr("Save Session"));
     setModal(true);
 
     auto *mainLayout = new QVBoxLayout(this);
 
-    auto *label = new QLabel("Enter session name:", this);
+    auto *label = new QLabel(tr("Enter session name:"), this);
     mainLayout->addWidget(label);
 
     m_lineEdit = new QLineEdit(this);
@@ -30,8 +30,8 @@ SaveSessionDialog::SaveSessionDialog(const QStringList &existingSessions,
     mainLayout->addWidget(m_existingList);
 
     auto *buttonLayout = new QHBoxLayout();
-    m_saveButton       = new QPushButton("Save", this);
-    auto *cancelButton = new QPushButton("Cancel", this);
+    m_saveButton       = new QPushButton(tr("Save"), this);
+    auto *cancelButton = new QPushButton(tr("Cancel"), this);
     buttonLayout->addStretch();
     buttonLayout->addWidget(m_saveButton);
     buttonLayout->addWidget(cancelButton);
