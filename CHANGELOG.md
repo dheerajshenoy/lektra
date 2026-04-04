@@ -4,6 +4,7 @@
 
 ### Features
 
+- Add some more spanish translations.
 - Absolute vs Relative search hit jump
 - Thumbnail panel for quick navigation and visual overview of the document pages. The thumbnail panel can be toggled with
 the `thumbnail_panel` command and will show a scrollable list of page thumbnails on the side of the window.
@@ -72,6 +73,7 @@ command_palette = [ ":", "Ctrl+P" ]
 
 ### Bug Fixes
 
+- Delete Annotation Command now remembers the annotation color (if set) or defaults to the current color.
 - Fix `setZoom` and `setZoomAnchored` recursive calls which caused stack overflow and crashing when zooming in/out rapidly.
 - **Fix memory leak due to not clearing up the `tracker` custom image device in MuPDF after rendering,
   which caused memory usage to grow indefinitely when navigating through pages.**
