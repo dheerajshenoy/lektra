@@ -22,9 +22,9 @@ private slots:
     void onDoubleClickExistingItem();
 
 private:
-    QLineEdit *m_lineEdit;
-    QListWidget *m_existingList;
-    QPushButton *m_saveButton;
+    QLineEdit *m_lineEdit       = nullptr;
+    QListWidget *m_existingList = nullptr;
+    QPushButton *m_saveButton   = nullptr;
     QStringList m_existingSessions;
     QString m_sessionName;
 };
