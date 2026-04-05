@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(lektra VERSION 0.6.9 LANGUAGES CXX)
+project(lektra VERSION 0.7.0 LANGUAGES CXX)
 
 option(ENABLE_LLM_SUPPORT "Enable LLM support for advanced features" OFF)
 
@@ -23,6 +23,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -46,13 +47,11 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/mupdf/include/mupdf/fitz/versi
     )
 endif()
 
-# set(DEBUG_FLAGS -fno-omit-frame-pointer -ggdb3 -O0 -fsanitize=address -Wall -Wextra)
-set(DEBUG_FLAGS -fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra)
+set(DEBUG_FLAGS -fno-omit-frame-pointer -ggdb3 -O0 -fsanitize=address -Wall -Wextra)
+# set(DEBUG_FLAGS -fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra)
 set(RELEASE_FLAGS -O3 -DNDEBUG -fno-rtti)
 set(REL_WITH_DEB_INFO -O2 -g -fno-omit-frame-pointer -DNDEBUG)
 
-# set(CMAKE_CXX_FLAGS_DEBUG "-fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra -fsanitize=address -Werror")
-# set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -fno-omit-frame-pointer -DNDEBUG")
 
 include(ExternalProject)
