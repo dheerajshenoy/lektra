@@ -154,6 +154,7 @@ add_executable(${PROJECT_NAME}
     src/OutlinePicker.cpp
     src/CommentSearchPicker.cpp
     src/ScrollBar.cpp
+    src/ColorDialog.cpp
 
     ${LEKTRA_CORE_HEADERS}
     ${LEKTRA_ANNOTATION_HEADERS}
