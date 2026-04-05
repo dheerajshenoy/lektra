@@ -3256,12 +3256,18 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
         // TODO: Put this under a undo command
         addAction(tr("Change Color"), [this, selectedAnnots]()
         {
-            auto newColor = QColorDialog::getColor(
-                Qt::white, this, "Annotation Color",
-                QColorDialog::ColorDialogOption::ShowAlphaChannel);
+            ColorDialog cp(this);
+            cp.setWindowTitle(tr("Select Annotation Color"));
 
-            if (newColor.isValid())
-                changeColorOfSelectedAnnotations(newColor);
+            if (cp.exec() == QDialog::Accepted)
+            {
+                QColor c = cp.selectedColor();
+                if (c.isValid())
+                {
+                    for (const auto &[pageno, annot] : selectedAnnots)
+                        m_model->annotChangeColor(pageno, annot->index(), c);
+                }
+            }
         });
         hasActions = true;
     }
@@ -3817,14 +3823,19 @@ DocumentView::renderAnnotations(
         connect(annot_item, &Annotation::annotColorChangeRequested, this,
                 [this, annot_item, pageno]()
         {
-            const auto newColor = QColorDialog::getColor(
-                annot_item->color(), this, "Highlight Color",
-                QColorDialog::ColorDialogOption::ShowAlphaChannel);
-            if (newColor.isValid())
+            ColorDialog colorDialog(this);
+            QColor oldColor = annot_item->color();
+            colorDialog.setWindowTitle(tr("Select Annotation Color"));
+
+            if (colorDialog.exec() == QDialog::Accepted)
             {
-                m_model->undoStack()->push(
-                    new AnnotColorCommand(m_model, pageno, annot_item->index(),
-                                          annot_item->color(), newColor));
+                QColor newColor = colorDialog.selectedColor();
+                if (newColor.isValid())
+                {
+                    m_model->undoStack()->push(new AnnotColorCommand(
+                        m_model, pageno, annot_item->index(), oldColor,
+                        newColor));
+                }
             }
         });
 

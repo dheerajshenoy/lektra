@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AboutDialog.hpp"
+#include "ColorDialog.hpp"
 #include "GraphicsImageItem.hpp"
 #include "GraphicsScene.hpp"
 #include "GraphicsView.hpp"
