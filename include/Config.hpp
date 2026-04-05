@@ -30,7 +30,7 @@ struct Config
          GraphicsView::MouseAction::Portal},
     };
 
-    // @section Page
+    // @section page
     // @section_desc Page options struct
     // @section_type struct
     // @section_added 0.6.4
@@ -50,7 +50,7 @@ struct Config
     } page{};
     // @endsection
 
-    // @section Synctex
+    // @section synctex
     // @section_desc Synctex options struct
     // @section_type struct
     // @section_added 0.6.9
@@ -69,7 +69,7 @@ struct Config
         QString editor_command = QString();
     } synctex{};
 
-    // @section Search
+    // @section search
     // @section_desc Search options struct
     // @section_type struct
     // @section_added 0.6.0
@@ -119,7 +119,7 @@ struct Config
     } search{};
     // @endsection
 
-    // @section Annotations
+    // @section annotations
     // @section_desc Annotation options struct
     // @section_type struct
     // @section_added 0.6.5
@@ -166,7 +166,7 @@ struct Config
         };
         // @endsection
 
-        // @section Annotations.Popup
+        // @section annotations.popup
         // @section_desc Popup annotation options struct
         // @section_type struct
         // @section_added 0.6.5
@@ -195,7 +195,7 @@ struct Config
         } rect{};
         // @endsection
 
-        // @section Annotations.Highlight
+        // @section annotations.highlight
         // @section_desc Highlight annotation options struct
         // @section_type struct
         // @section_added 0.6.5
@@ -218,7 +218,7 @@ struct Config
     } annotations{};
     // @endsection
 
-    // @section ThumbnailPanel
+    // @section thumbnail_panel
     // @section_desc Thumbnail panel options struct
     // @section_type struct
     // @section_added 0.6.9
@@ -239,7 +239,7 @@ struct Config
     } thumbnail{};
     // @endsection
 
-    // @section Portal
+    // @section portal
     // @section_desc Portal options struct
     // @section_type struct
     // @section_added 0.6.4
@@ -280,7 +280,7 @@ struct Config
     } portal{};
     // @endsection
 
-    // @section Window
+    // @section window
     // @section_desc Window options struct
     // @section_type struct
     // @section_added 0.3.0
@@ -333,7 +333,7 @@ struct Config
     } window{};
     // @endsection
 
-    // @section Layout
+    // @section layout
     // @section_desc Layout options struct
     // @section_type struct
     // @section_added 0.5.1
@@ -367,7 +367,7 @@ struct Config
     } layout{};
     // @endsection
 
-    // @section Statusbar
+    // @section statusbar
     // @section_desc Statusbar options struct
     // @section_type struct
     // @section_added 0.5.5
@@ -425,7 +425,7 @@ struct Config
     } statusbar{};
     // @endsection
 
-    // @section Zoom
+    // @section zoom
     // @section_desc Zoom options struct
     // @section_type struct
     // @section_added 0.3.0
@@ -453,7 +453,7 @@ struct Config
     } zoom{};
     // @endsection
 
-    // @section Selection
+    // @section selection
     // @section_desc Selection options struct
     // @section_type struct
     // @section_added 0.5.1
@@ -480,7 +480,7 @@ struct Config
     } selection{};
     // @endsection
 
-    // @section Split
+    // @section split
     // @section_desc Split options struct
     // @section_type struct
     // @section_added 0.6.2
@@ -512,7 +512,7 @@ struct Config
     } split{};
     // @endsection
 
-    // @section Scrollbars
+    // @section scrollbars
     // @section_desc Scrollbars options struct
     // @section_type struct
     // @section_added 0.5.1
@@ -556,7 +556,7 @@ struct Config
     } scrollbars{};
     // @endsection
 
-    // @section Jump Marker
+    // @section jump_marker
     // @section_desc Jump marker options struct
     // @section_type struct
     // @section_added 0.3.1
@@ -583,7 +583,7 @@ struct Config
     } jump_marker{};
     // @endsection
 
-    // @section Links
+    // @section links
     // @section_desc Links options struct
     // @section_type struct
     // @section_added 0.3.1
@@ -615,7 +615,7 @@ struct Config
     } links{};
     // @endsection
 
-    // @section Link Hints
+    // @section link_hints
     // @section_desc Link hint options struct
     // @section_type struct
     // @section_added 0.3.0
@@ -642,7 +642,7 @@ struct Config
     } link_hints{};
     // @endsection
 
-    // @section Tabs
+    // @section tabs
     // @section_desc Tab options struct
     // @section_type struct
     // @section_added 0.3.0
@@ -700,7 +700,7 @@ struct Config
     } tabs{};
     // @endsection
 
-    // @section Picker
+    // @section picker
     // @section_desc Picker options struct
     // @section_type struct
     // @section_added 0.6.0
@@ -766,7 +766,7 @@ struct Config
         // @endsection
         // clang-format on
 
-        // @section Picker.Shadow
+        // @section picker.shadow
         // @section_desc Picker shadow struct
         // @section_type struct
         // @section_added 0.6.0
@@ -805,7 +805,7 @@ struct Config
     } picker{};
     // @endsection
 
-    // @section Outline
+    // @section outline
     // @section_desc Outline options struct
     // @section_type struct
     // @section_added 0.5.3
@@ -835,7 +835,7 @@ struct Config
     } outline{};
     // @endsection
 
-    // @section Highlight
+    // @section highlight_search
     // @section_desc Highlight Search options struct
     // @section_type struct
     // @section_added 0.5.3
@@ -852,7 +852,7 @@ struct Config
     } highlight_search{};
     // @endsection
 
-    // @section Command Palette
+    // @section command_palette
     // @section_desc Command Palette options struct
     // @section_type struct
     // @section_added 0.5.4
@@ -885,7 +885,7 @@ struct Config
     // @endsection
 
 #ifdef ENABLE_LLM_SUPPORT
-    // @section LLM Widget
+    // @section llm_widget
     // @section_desc LLM widget options struct
     // @section_type struct
     // @section_note {
@@ -916,7 +916,7 @@ struct Config
     } llm_widget{};
     // @endsection
 
-    // @section LLM
+    // @section llm
     // @section_desc LLM options struct
     // @section_type struct
     // @section_added 0.5.4
@@ -948,7 +948,7 @@ struct Config
 // @endsection
 #endif
 
-    // @section Rendering
+    // @section rendering
     // @section_desc Rendering options struct
     // @section_type struct
     // @section_added 0.3.0
@@ -1002,7 +1002,7 @@ struct Config
     } rendering{};
     // @endsection
 
-    // @section Behavior
+    // @section behavior
     // @section_desc Behavior options struct
     // @section_type struct
     // @section_added 0.3.0
@@ -1108,7 +1108,7 @@ struct Config
     // Just for documentation parsing, do not remove
 
     // clang-format off
-    // @section MouseBindings
+    // @section mousebindings
     // @section_type struct
     // @section_added 0.6.6
     // @section_desc {
@@ -1133,7 +1133,7 @@ struct Config
     // clang-format on
 
     // clang-format off
-    // @section KeyBindings
+    // @section keybindings
     // @section_type struct
     // @section_added 0.3.0
     // @section_desc {
@@ -1162,7 +1162,7 @@ struct Config
     // @endsection
     // clang-format on
 
-    // @section Preview
+    // @section preview
     // @section_desc Preview options struct
     // @section_type struct
     // @section_added 0.6.6
