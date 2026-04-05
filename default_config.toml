@@ -20,6 +20,7 @@ fg = "#000000"
 [outline]
 indent_width = 4
 show_page_numbers = true
+flat_menu = false
 
 [statusbar]
 visible = true
@@ -80,6 +81,8 @@ hscrollbar = false
 [picker]
 border = true
 alternating_row_color = true
+height = 300
+width = 400
 
 [picker.shadow]
 enabled = true
@@ -163,6 +166,10 @@ elide_mode = "middle"
 location = "top"
 full_path = true
 lazy_load = true
+
+[highlight_search]
+flat_menu = false
+
 
 [search]
 highlight_matches = true
