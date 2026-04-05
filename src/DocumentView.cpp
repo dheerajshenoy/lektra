@@ -63,7 +63,7 @@ g_newId() noexcept
 
 DocumentView::DocumentView(const Config &config, float dpr, QWidget *parent,
                            bool thumbnailMode) noexcept
-    : QWidget(parent), m_id(g_newId()), m_config(config),
+    : QWidget(parent), m_config(config), m_id(g_newId()),
       m_thumbnail_mode(thumbnailMode)
 {
 #ifndef NDEBUG
