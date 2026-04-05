@@ -33,7 +33,7 @@ def main():
 
     out = [{"name": name, "description": desc} for name, desc in commands]
     with open(
-        "/home/dheeraj/Gits/dheerajshenoy.github.io/lektra/files/commands.json", "w"
+        "/home/neo/Gits/dheerajshenoy.github.io/lektra/files/commands.json", "w"
     ) as f:
         f.write(json.dumps(out, indent=2))
 
