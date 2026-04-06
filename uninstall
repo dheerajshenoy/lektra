@@ -16,6 +16,7 @@ PREFIX=${PREFIX:-/usr/local}
 # ---------------------------------------------------------
 FILES="
 bin/lektra
+share/lektra/
 share/applications/lektra.desktop
 share/icons/hicolor/16x16/apps/lektra.png
 share/icons/hicolor/32x32/apps/lektra.png
@@ -28,11 +29,6 @@ share/doc/lektra/tutorial.pdf
 share/man/man1/lektra.1
 share/man/man1/lektra.1.gz
 "
-
-# Find all lektra.qm files in the locale directory and add them to a list
-TRANS_FILES=$(find "$PREFIX/share/locale" -name "lektra.qm" 2>/dev/null)
-
-FILES="$FILES $TRANS_FILES"
 
 # ---------------------------------------------------------
 # Confirm uninstall
