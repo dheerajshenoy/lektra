@@ -91,3 +91,4 @@ Check out [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## If you want to support me
 <a href="https://github.com/sponsors/dheerajshenoy"><img alt="GitHub Sponsors" src="https://img.shields.io/badge/GitHub_Sponsors-FF5F5F?style=for-the-badge&logo=github-sponsors&logoColor=white"></a>
+<a href="https://liberapay.com/dheerajshenoy"><img alt="Liberapay" src="https://img.shields.io/badge/Liberapay-F6C915?style=for-the-badge&logo=liberapay&logoColor=black"></a>
