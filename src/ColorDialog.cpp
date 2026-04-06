@@ -38,7 +38,7 @@ ColorDialog::initUI()
             const QColor &c          = highlightColors[idx++];
             QPushButton *colorButton = new QPushButton(this);
             colorButton->setStyleSheet(QString(R"(
-            QPushButton { background-color: rgba(%1, %2, %3); }
+            QPushButton { background: rgb(%1, %2, %3); }
             QPushButton:focus { outline: 3px solid black; }
         )")
                                            .arg(c.red())
