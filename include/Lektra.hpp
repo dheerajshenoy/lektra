@@ -385,11 +385,13 @@ private:
     MessageBar *m_message_bar{nullptr};
     SearchBar *m_search_bar{nullptr};
     Picker::Keybindings m_picker_keybinds{};
+
     OutlinePicker *m_outline_picker{nullptr};
     CommandPicker *m_command_picker{nullptr};
     HighlightSearchPicker *m_highlight_search_picker{nullptr};
     CommentSearchPicker *m_comment_search_picker{nullptr};
     RecentFilesPicker *m_recent_file_picker{nullptr};
+
     DocumentView *m_preview_view{nullptr}; // For link preview (Alt+click)
     QWidget *m_preview_overlay{nullptr};   // Overlay for link preview
 
