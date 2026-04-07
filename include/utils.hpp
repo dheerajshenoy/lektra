@@ -154,12 +154,12 @@ __pprint(Ts &&...args)
 }
 
 #ifndef NDEBUG
-#define PPRINT(...) __pprint(__VA_ARGS__)
+    #define PPRINT(...) __pprint(__VA_ARGS__)
 #else
-#define PPRINT(...)                                                            \
-    do                                                                         \
-    {                                                                          \
-    } while (0)
+    #define PPRINT(...)                                                        \
+        do                                                                     \
+        {                                                                      \
+        } while (0)
 #endif
 
 template <typename... Args>
