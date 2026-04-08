@@ -7,6 +7,9 @@ Usage: python extract_commands.py <source_file>
 import re
 import sys
 import json
+import os
+
+HOME = os.getenv("HOME")
 
 
 def extract_commands(path: str) -> list[tuple[str, str]]:
@@ -33,7 +36,7 @@ def main():
 
     out = [{"name": name, "description": desc} for name, desc in commands]
     with open(
-        "/home/neo/Gits/dheerajshenoy.github.io/lektra/files/commands.json", "w"
+        f"{HOME}/Gits/dheerajshenoy.github.io/lektra/files/commands.json", "w"
     ) as f:
         f.write(json.dumps(out, indent=2))
 
