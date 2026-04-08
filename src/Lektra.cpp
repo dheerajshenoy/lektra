@@ -1257,6 +1257,7 @@ Lektra::initDefaultKeybinds() noexcept
         {"split_focus_up", "Ctrl+W,k"},
         {"split_focus_down", "Ctrl+W,j"},
         {"split_close", "Ctrl+W,c"},
+        {"files_recent", "Alt+Shift+o"},
     };
 
     for (const auto &binding : defaults)
