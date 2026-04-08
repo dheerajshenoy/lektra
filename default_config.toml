@@ -170,7 +170,6 @@ lazy_load = true
 [highlight_search]
 flat_menu = false
 
-
 [search]
 highlight_matches = true
 progressive = true
@@ -204,6 +203,9 @@ preload_pages = 1
 open_last_visited = true
 file_name_only = true
 page_history_limit = 100
+
+# [misc]
+# color_dialog_colors = [ "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF" ]
 
 # Works only if compiled with LLM support
 # [llm]
