@@ -638,29 +638,6 @@ Lektra::initConfig() noexcept
         set(thumbnail_panel["panel_width"], m_config.thumbnail.panel_width);
     }
 
-    // Scripts
-    // TODO: Implement script loading and execution, this is just a placeholder
-    // if (auto scripts = toml["scripts"].as_table())
-    // {
-    //     for (auto &&[key, value] : *scripts)
-    //     {
-    //         if (value.is_string())
-    //         {
-    //             const QString scriptName
-    //                 = QString::fromStdString(std::string(key.str()));
-    //             const QString scriptPath
-    //                 = QString::fromStdString(value.as_string()->get());
-    //         }
-    //         else
-    //         {
-    //             // Log a warning if the user put a number or boolean in the
-    //             // scripts table
-    //             std::cerr << "Warning: Script '" << key.str()
-    //                       << "' must be a string path." << std::endl;
-    //         }
-    //     }
-    // }
-
     // Tabs
     if (auto tabs = toml["tabs"])
     {
