@@ -77,20 +77,6 @@ Statusbar::initGui() noexcept
     m_mode_color_label->setVisible(m_config.show_mode);
     m_mode_label->setVisible(m_config.show_mode);
     m_progress_label->setVisible(m_config.show_progress);
-
-    // Default spacing between items within each sub-layout (usually 6px)
-    leftLayout->setSpacing(0);
-    centerLayout->setSpacing(0);
-    rightLayout->setSpacing(0);
-
-    leftLayout->setContentsMargins(0, 0, 0, 0);
-    centerLayout->setContentsMargins(0, 0, 0, 0);
-    rightLayout->setContentsMargins(0, 0, 0, 0);
-
-    // Spacing between the three column layouts in the grid
-    m_layout->setSpacing(0);
-    m_layout->setHorizontalSpacing(0);
-    m_layout->setVerticalSpacing(0);
 }
 
 void
