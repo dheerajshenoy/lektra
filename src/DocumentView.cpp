@@ -3856,7 +3856,7 @@ DocumentView::setModified(bool modified) noexcept
     m_is_modified = modified;
     QString title = m_config.window.title_format;
     QString fileName;
-    if (!m_config.statusbar.file_name_only)
+    if (m_config.statusbar.component.filename.full_path)
         fileName = filePath();
     else
         fileName = this->fileName();

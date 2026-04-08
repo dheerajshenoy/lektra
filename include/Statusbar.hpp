@@ -19,15 +19,23 @@ class Statusbar : public QWidget
 public:
     Statusbar(const Config::Statusbar &config, QWidget *parent = nullptr);
 
+    inline void setHighlightColor(const QColor &color) noexcept
+    {
+        m_mode_color_label->setColor(color);
+    }
+
+    inline void setTotalPageCount(int total) noexcept
+    {
+        m_totalpage_label->setText(QString::number(total));
+    }
+
     void hidePageInfo(bool state) noexcept;
-    void setTotalPageCount(int total) noexcept;
-    void setFileName(const QString &name) noexcept;
     void setPageNo(int pageno) noexcept;
     void setFitMode(DocumentView::FitMode mode) noexcept;
     void setMode(GraphicsView::Mode) noexcept;
-    void setHighlightColor(const QColor &color) noexcept;
     void setSessionName(const QString &name) noexcept;
     void setPortalMode(bool state) noexcept;
+    void setFilePath(const QString &name) noexcept;
 
 signals:
     void modeChangeRequested();

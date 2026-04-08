@@ -76,7 +76,7 @@ struct Config
         // @default "#000000FF"
         // @added 0.6.4
         uint32_t fg = 0x000000FF;
-    } page{};
+    } page;
     // @endsection
 
     // @section synctex
@@ -96,7 +96,7 @@ struct Config
         // @default ""
         // @added 0.3.0
         QString editor_command = QString();
-    } synctex{};
+    } synctex;
 
     // @section search
     // @section_desc Search options struct
@@ -145,7 +145,7 @@ struct Config
         // @added 0.6.9
         bool absolute_jump = false;
 
-    } search{};
+    } search;
     // @endsection
 
     // @section annotations
@@ -201,7 +201,7 @@ struct Config
         // @section_added 0.6.5
         struct Popup : public Base
         {
-        } popup{};
+        } popup;
         // @endsection
 
         // @section Annotations.Rect
@@ -221,7 +221,7 @@ struct Config
             // @default "#55FF5588"
             // @added 0.6.5
             uint32_t color = 0x55FF5588;
-        } rect{};
+        } rect;
         // @endsection
 
         // @section annotations.highlight
@@ -241,10 +241,10 @@ struct Config
             // @default "#55FF5588"
             // @added 0.6.5
             uint32_t color = 0x55FF5588;
-        } highlight{};
+        } highlight;
         // @endsection
 
-    } annotations{};
+    } annotations;
     // @endsection
 
     // @section thumbnail_panel
@@ -265,7 +265,7 @@ struct Config
         // @default 0.15
         // @added 0.6.9
         float panel_width = 0.15;
-    } thumbnail{};
+    } thumbnail;
     // @endsection
 
     // @section portal
@@ -306,7 +306,7 @@ struct Config
         // @default false
         // @added 0.6.5
         bool dim_inactive = false;
-    } portal{};
+    } portal;
     // @endsection
 
     // @section window
@@ -359,7 +359,7 @@ struct Config
         // @default 600,400
         // @added 0.6.3
         WindowSize initial_size = {600, 400}; // width, height; -1 for default
-    } window{};
+    } window;
     // @endsection
 
     // @section layout
@@ -393,7 +393,7 @@ struct Config
         // @default 10
         // @added 0.5.1
         int spacing = 10;
-    } layout{};
+    } layout;
     // @endsection
 
     // @section statusbar
@@ -416,42 +416,118 @@ struct Config
         // @added 0.5.5
         Padding padding = {2, 2, 2, 2};
 
-        // @desc Show session name (if in session)
-        // @type bool
-        // @default true
-        // @added 0.5.5
-        bool show_session_name = true;
+        // @section statusbar.component
+        // @section_desc {
+        // Statusbar component options struct. These are individual component
+        // in the statusbar that can be toggled on/off independently of the
+        // entire statusbar visibility.
+        // }
+        // @section_type struct
+        // @section_added 0.7.0
+        struct component
+        {
+            struct Session
+            {
+                // @desc Show session name in the statusbar (if in session)
+                // @type bool
+                // @default true
+                // @added 0.7.0
+                bool show = true;
+            } session;
 
-        // @desc Show file name only (as opposed to full path)
-        // @type bool
-        // @default false
-        // @added 0.5.5
-        bool file_name_only = false;
+            // @section statusbar.component.filename
+            // @section_desc File name component options struct
+            // @section_type struct
+            // @section_added 0.7.0
+            struct FileName
+            {
+                // @desc Show file info
+                // @type bool
+                // @default true
+                // @added 0.7.0
+                bool show = true;
 
-        // @desc Show file info
-        // @type bool
-        // @default true
-        // @added 0.5.5
-        bool show_file_info = true;
+                // @desc Show full path
+                // @type bool
+                // @default true
+                // @added 0.7.0
+                bool full_path = true;
+            } filename;
+            // @endsection
 
-        // @desc Show page number
-        // @type bool
-        // @default true
-        // @added 0.5.5
-        bool show_page_number = true;
+            // @section statusbar.component.pagenumber
+            // @section_desc Page number component options struct
+            // @section_type struct
+            // @section_added 0.7.0
+            struct PageNumber
+            {
+                // @desc Show page number
+                // @type bool
+                // @default true
+                // @added 0.7.0
+                bool show = true;
 
-        // @desc Show interaction mode
-        // @type bool
-        // @default true
-        // @added 0.5.5
-        bool show_mode = true;
+            } pagenumber;
+            // @endsection
 
-        // @desc Show page read progress
-        // @type bool
-        // @default true
-        // @added 0.5.5
-        bool show_progress = true;
-    } statusbar{};
+            // @section statusbar.component.zoom
+            // @section_desc Zoom component options struct
+            // @section_type struct
+            // @section_added 0.7.0
+            struct Zoom
+            {
+                // @desc Show page number
+                // @type bool
+                // @default true
+                // @added 0.7.0
+                bool show = true;
+
+            } zoom;
+            // @endsection
+
+            // @section statusbar.component.progress
+            // @section_desc Page progress component options struct
+            // @section_type struct
+            // @section_added 0.7.0
+            struct Progress
+            {
+                // @desc Show page progress
+                // @type bool
+                // @default true
+                // @added 0.7.0
+                bool show = true;
+
+            } progress;
+            // @endsection
+
+            // @section statusbar.component.mode
+            // @section_desc Interaction mode options struct
+            // @section_type struct
+            // @section_added 0.7.0
+            struct Mode
+            {
+                // @desc Show interaction mode in the statusbar
+                // @type bool
+                // @default true
+                // @added 0.7.0
+                bool show = true;
+
+                // @desc Show interaction mode in text (e.g., "Select", "Pan")
+                // @type bool
+                // @default true
+                // @added 0.7.0
+                bool text = true;
+
+                // @desc Show interaction mode as an icon
+                // @type bool
+                // @default false
+                // @added 0.7.0
+                bool icon = true;
+            } mode;
+
+        } component;
+
+    } statusbar;
     // @endsection
 
     // @section zoom
@@ -479,7 +555,7 @@ struct Config
         // @added 0.6.7
         bool anchor_to_mouse = true;
 
-    } zoom{};
+    } zoom;
     // @endsection
 
     // @section selection
@@ -506,7 +582,7 @@ struct Config
         // @added 0.5.1
         uint32_t color = 0x0000FF55;
 
-    } selection{};
+    } selection;
     // @endsection
 
     // @section split
@@ -538,7 +614,7 @@ struct Config
         // @default 0.5f
         // @added 0.6.2
         float dim_inactive_opacity = 0.5f; // 0.0 (no dim) to 1.0 (fully dimmed)
-    } split{};
+    } split;
     // @endsection
 
     // @section scrollbars
@@ -582,7 +658,7 @@ struct Config
         // @default 1.5
         // @added 0.5.4
         float hide_timeout = 1.5; // seconds of inactivity before hiding
-    } scrollbars{};
+    } scrollbars;
     // @endsection
 
     // @section jump_marker
@@ -609,7 +685,7 @@ struct Config
         // @added 0.6.7
         float fade_duration = 1.0f;
 
-    } jump_marker{};
+    } jump_marker;
     // @endsection
 
     // @section links
@@ -641,7 +717,7 @@ struct Config
         // @default R"((https?://|www\.)[^\s<>()\"']+)"
         // @added 0.5.3
         QString url_regex = R"((https?://|www\.)[^\s<>()\"']+)";
-    } links{};
+    } links;
     // @endsection
 
     // @section link_hints
@@ -668,7 +744,7 @@ struct Config
         // @added 0.6.4
         uint32_t fg = 0xea3ee9FF;
 
-    } link_hints{};
+    } link_hints;
     // @endsection
 
     // @section tabs
@@ -726,7 +802,7 @@ struct Config
         // @default true
         // @added 0.6.0
         bool lazy_load = true;
-    } tabs{};
+    } tabs;
     // @endsection
 
     // @section picker
@@ -830,8 +906,8 @@ struct Config
             // @default 120
             // @added 0.6.0
             int opacity = 120;
-        } shadow{};
-    } picker{};
+        } shadow;
+    } picker;
     // @endsection
 
     // @section outline
@@ -861,7 +937,7 @@ struct Config
         // @added 0.6.9
         bool flat_menu = true;
 
-    } outline{};
+    } outline;
     // @endsection
 
     // @section highlight_search
@@ -878,7 +954,7 @@ struct Config
         // @default true
         // @added 0.6.9
         bool flat_menu = true;
-    } highlight_search{};
+    } highlight_search;
     // @endsection
 
     // @section command_palette
@@ -910,7 +986,7 @@ struct Config
         // @default false
         // @added 0.6.5
         bool description = false;
-    } command_palette{};
+    } command_palette;
     // @endsection
 
 #ifdef ENABLE_LLM_SUPPORT
@@ -942,7 +1018,7 @@ struct Config
         // @default 400
         // @added 0.5.4
         int panel_width = 400;
-    } llm_widget{};
+    } llm_widget;
     // @endsection
 
     // @section llm
@@ -973,7 +1049,7 @@ struct Config
         // @added 0.5.4
         int max_tokens = 512;
         // float temperature= 0.7f; //
-    } llm{};
+    } llm;
 // @endsection
 #endif
 
@@ -1028,7 +1104,7 @@ struct Config
         // @default auto
         Backend backend = Backend::Raster;
 
-    } rendering{};
+    } rendering;
     // @endsection
 
     // @section behavior
@@ -1131,7 +1207,7 @@ struct Config
         // @default text_selection
         // @added 0.3.0
         GraphicsView::Mode initial_mode = GraphicsView::Mode::TextSelection;
-    } behavior{};
+    } behavior;
     // @endsection
 
     // Just for documentation parsing, do not remove

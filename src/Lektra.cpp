@@ -795,13 +795,45 @@ Lektra::initConfig() noexcept
             }
         }
 
-        set(statusbar["show_progress"], m_config.statusbar.show_progress);
-        set(statusbar["file_name_only"], m_config.statusbar.file_name_only);
-        set(statusbar["show_file_info"], m_config.statusbar.show_file_info);
-        set(statusbar["show_page_number"], m_config.statusbar.show_page_number);
-        set(statusbar["show_mode"], m_config.statusbar.show_mode);
-        set(statusbar["show_session_name"],
-            m_config.statusbar.show_session_name);
+        if (auto components = statusbar["components"])
+        {
+            if (auto mode = components["mode"])
+            {
+                set(mode["show"], m_config.statusbar.component.mode.show);
+                set(mode["text"], m_config.statusbar.component.mode.text);
+                set(mode["icon"], m_config.statusbar.component.mode.icon);
+            }
+
+            if (auto pagenumber = components["pagenumber"])
+            {
+                set(pagenumber["show"],
+                    m_config.statusbar.component.pagenumber.show);
+            }
+
+            if (auto session = components["session"])
+            {
+                set(session["show"], m_config.statusbar.component.session.show);
+            }
+
+            if (auto zoom = components["zoom"])
+            {
+                set(zoom["show"], m_config.statusbar.component.zoom.show);
+            }
+
+            if (auto filename = components["filename"])
+            {
+                set(filename["show"],
+                    m_config.statusbar.component.filename.show);
+                set(filename["full_path"],
+                    m_config.statusbar.component.filename.full_path);
+            }
+
+            if (auto progress = components["progress"])
+            {
+                set(progress["show"],
+                    m_config.statusbar.component.progress.show);
+            }
+        }
     }
 
     // Layout
@@ -3125,7 +3157,7 @@ Lektra::initConnections() noexcept
 void
 Lektra::handleFileNameChanged(const QString &name) noexcept
 {
-    m_statusbar->setFileName(name);
+    m_statusbar->setFilePath(name);
     this->setWindowTitle(name);
 }
 
@@ -3681,8 +3713,8 @@ Lektra::filePropertiesForIndex(int index) noexcept
 void
 Lektra::initTabConnections(DocumentView *docwidget) noexcept
 {
-    connect(docwidget, &DocumentView::statusbarNameChanged, this,
-            [this](const QString &name) { m_statusbar->setFileName(name); });
+    connect(docwidget, &DocumentView::statusbarNameChanged, m_statusbar,
+            &Statusbar::setFilePath);
 
     connect(docwidget, &DocumentView::openFileFinished, this,
             [this](DocumentView *doc, Model::FileType /* ft */)
@@ -3845,11 +3877,7 @@ Lektra::updateStatusbar() noexcept
         if (!model)
             return;
 
-        if (m_config.statusbar.file_name_only)
-            m_statusbar->setFileName(m_doc->fileName());
-        else
-            m_statusbar->setFileName(m_doc->filePath());
-
+        m_statusbar->setFilePath(m_doc->filePath());
         m_statusbar->setPortalMode(m_doc->portal());
         m_statusbar->setMode(m_doc->selectionMode());
         m_statusbar->setHighlightColor(model->highlightAnnotColor());
@@ -3870,7 +3898,7 @@ Lektra::updateStatusbar() noexcept
     else
     {
         m_statusbar->hidePageInfo(true);
-        m_statusbar->setFileName("");
+        m_statusbar->setFilePath("");
         m_statusbar->setHighlightColor("");
     }
 }
@@ -4131,7 +4159,7 @@ Lektra::showStartupWidget() noexcept
     });
     int index = m_tab_widget->addTab(m_startup_widget, tr("Startup"));
     m_tab_widget->setCurrentIndex(index);
-    m_statusbar->setFileName(tr("Start Page"));
+    m_statusbar->setFilePath(tr("Start Page"));
 }
 
 // Update actions and stuff for system tabs
@@ -4140,7 +4168,7 @@ Lektra::updateActionsAndStuffForSystemTabs() noexcept
 {
     m_statusbar->hidePageInfo(true);
     updateUiEnabledState();
-    m_statusbar->setFileName(tr("Start Page"));
+    m_statusbar->setFilePath(tr("Start Page"));
 }
 
 // Undo operation
