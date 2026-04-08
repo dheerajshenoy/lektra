@@ -18,7 +18,7 @@ class GraphicsView : public QGraphicsView
 public:
     enum class Mode
     {
-        None,
+        None = 0,
         VisualLine,
         RegionSelection,
         TextSelection,
@@ -26,7 +26,6 @@ public:
         AnnotSelect,
         AnnotRect,
         AnnotPopup,
-        AnnotPen,
         COUNT
     };
 
@@ -40,7 +39,7 @@ public:
 
     explicit GraphicsView(const Config &config, QWidget *parent = nullptr);
 
-    void set_visual_line_rect(const QRectF &sceneRect)
+    inline void set_visual_line_rect(const QRectF &sceneRect)
     {
         m_visual_line_rect = sceneRect;
         viewport()->update();
@@ -65,27 +64,33 @@ public:
     {
         return m_selection_start;
     }
+
     inline Mode mode() const noexcept
     {
         return m_mode;
     }
+
     inline void setSelectionDragThreshold(int value) noexcept
     {
         m_drag_threshold = value;
     }
+
     inline QPointF getCursorPos() const noexcept
     {
         return mapToScene(mapFromGlobal(QCursor::pos()));
     }
+
     inline Mode getNextMode() noexcept
     {
         return static_cast<Mode>((static_cast<int>(m_mode) + 1)
                                  % static_cast<int>(Mode::COUNT));
     }
+
     inline void setDefaultMode(Mode mode) noexcept
     {
         m_default_mode = mode;
     }
+
     inline Mode getDefaultMode() const noexcept
     {
         return m_default_mode;

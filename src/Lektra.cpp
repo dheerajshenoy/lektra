@@ -699,9 +699,7 @@ Lektra::initConfig() noexcept
                 height = *toml_height;
 
             if (width > 0 && height > 0)
-            {
                 m_config.window.initial_size = {width, height};
-            }
         }
 
         if (m_config.window.fullscreen)
@@ -5001,6 +4999,7 @@ Lektra::modeColorChangeRequested(const GraphicsView::Mode mode) noexcept
 {
     ColorDialog colorDialog(m_config.misc.color_dialog_colors, this);
     colorDialog.setWindowTitle(tr("Select Color"));
+
     if (colorDialog.exec() == QDialog::Accepted)
     {
         QColor color = colorDialog.selectedColor();
