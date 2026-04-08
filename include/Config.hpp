@@ -30,35 +30,6 @@ struct Config
          GraphicsView::MouseAction::Portal},
     };
 
-    // @section misc
-    // @section_desc Misc options struct (for options that don't fit in other
-    // categories)
-    // @section_type struct
-    // @section_added 0.7.0
-    struct Misc
-    {
-        // @desc Colors shown in the color dialog (when picking annotation
-        // colors, etc.)
-        // @type list[str]
-        // @default {
-        // ["#FFFF0080", "#FFA50080", "#FF000080", "#00FF0080",
-        // "#00C8FF80", "#8000FF80", "#FF69B480", "#0000FF80", "#FFFFFF80"]
-        // }
-        // @added 0.7.0
-        std::vector<QColor> color_dialog_colors = {
-            {255, 255, 0, 128},   // Yellow
-            {255, 165, 0, 128},   // Orange
-            {255, 0, 0, 128},     // Red
-            {0, 255, 0, 128},     // Green
-            {0, 200, 255, 128},   // Cyan
-            {128, 0, 255, 128},   // Purple
-            {255, 105, 180, 128}, // Pink
-            {0, 0, 255, 128},     // Blue
-            {255, 255, 255, 128}, // White
-        };
-    } misc;
-    // @endsection
-
     // @section page
     // @section_desc Page options struct
     // @section_type struct
@@ -1305,5 +1276,35 @@ struct Config
         float opacity = 0.95f;
 
     } preview;
+    // @endsection
+
+    // @section misc
+    // @section_desc Misc options struct (for options that don't fit in other
+    // categories)
+    // @section_type struct
+    // @section_added 0.7.0
+    struct Misc
+    {
+        // @desc {
+        // Colors shown in the color dialog
+        // }
+        // @type list[str]
+        // @default {
+        // ["#FFFF0080", "#FFA50080", "#FF000080", "#00FF0080",
+        // "#00C8FF80", "#8000FF80", "#FF69B480", "#0000FF80", "#FFFFFF80"]
+        // }
+        // @added 0.7.0
+        std::vector<QColor> color_dialog_colors = {
+            {255, 255, 0, 128},   // Yellow
+            {255, 165, 0, 128},   // Orange
+            {255, 0, 0, 128},     // Red
+            {0, 255, 0, 128},     // Green
+            {0, 200, 255, 128},   // Cyan
+            {128, 0, 255, 128},   // Purple
+            {255, 105, 180, 128}, // Pink
+            {0, 0, 255, 128},     // Blue
+            {255, 255, 255, 128}, // White
+        };
+    } misc;
     // @endsection
 };
