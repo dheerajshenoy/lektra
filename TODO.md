@@ -4,7 +4,7 @@
 
 ## HIGH PRIORITY
 
-- [ ] Escape key to exit search mode, close pickers, etc.
+- [ ] Color dialog add initial color and set selected
 - [ ] Don't hide scrollbars when search hits have been drawn
 - [ ] Grow/Shrink splitter handle when hovering over it for easy dragging
 - [ ] Show visually, and identifier for split files (if they remain as original file) next to their name. Maybe, a numbered gutter badge, small [1], [2] badge in the corner of each split — same number means same file. Simple and non-intrusive.
