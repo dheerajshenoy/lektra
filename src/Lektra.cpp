@@ -535,7 +535,11 @@ Lektra::initMenubar() noexcept
 void
 Lektra::initDB() noexcept
 {
-    m_recent_files_path = m_config_dir.filePath("last_pages.json");
+    QDir dataDir(
+        QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+    if (!dataDir.exists())
+        dataDir.mkpath(".");
+    m_recent_files_path = dataDir.filePath("last_pages.json");
     m_recent_files_store.setFilePath(m_recent_files_path);
     if (!m_recent_files_store.load())
         qWarning() << "Failed to load recent files store";
@@ -549,7 +553,11 @@ Lektra::initConfig() noexcept
     auto primaryScreen                      = QGuiApplication::primaryScreen();
     m_screen_dpr_map[primaryScreen->name()] = primaryScreen->devicePixelRatio();
 
-    m_session_dir = QDir(m_config_dir.filePath("sessions"));
+    QDir dataDir(
+        QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+    if (!dataDir.exists())
+        dataDir.mkpath(".");
+    m_session_dir = QDir(dataDir.filePath("sessions"));
 
     if (!QFile::exists(m_config_file_path))
         return;
@@ -2969,7 +2977,7 @@ Lektra::initConnections() noexcept
 
     QWindow *win = window()->windowHandle();
 
-    m_dpr = m_screen_dpr_map[win->screen()->name()];
+    m_dpr = m_screen_dpr_map.value(win->screen()->name(), 1.0f);
 
     connect(win, &QWindow::screenChanged, this, [&](QScreen *screen)
     {
@@ -6028,10 +6036,11 @@ Lektra::checkConfigFile(const QString &path) const noexcept
 
         {"outline",
          {"width", "height", "border", "alternating_row_color", "shadow",
-          "indent_width", "show_page_numbers"}},
+          "indent_width", "show_page_numbers", "flat_menu"}},
 
         {"highlight_search",
-         {"width", "height", "border", "alternating_row_color", "shadow"}},
+         {"width", "height", "border", "alternating_row_color", "shadow",
+          "flat_menu"}},
 
         {"search",
          {"highlight_matches", "progressive", "match_color", "index_color",
@@ -6052,6 +6061,29 @@ Lektra::checkConfigFile(const QString &path) const noexcept
           "page_history_limit", "invert_mode", "dont_invert_images",
           "auto_reload", "recent_files", "num_recent_files", "initial_mode",
           "open_last_visited", "file_name_only", "cache_pages"}},
+
+        {"keybindings",
+         {"load_defaults", "command_palette", "file_open_tab", "link_hint_visit",
+          "link_hint_copy", "scroll_left", "scroll_down", "scroll_up",
+          "scroll_right", "location_prev", "location_next", "page_next",
+          "page_prev", "page_first", "page_last", "page_goto", "picker_outline",
+          "search", "search_this_page", "search_next", "search_prev",
+          "zoom_reset", "zoom_in", "zoom_out", "tab_1", "tab_2", "tab_3",
+          "tab_4", "tab_5", "tab_6", "tab_7", "tab_8", "tab_9", "tab_next",
+          "tab_prev", "tab_close", "selection_mode_text", "selection_mode_region",
+          "annot_highlight_mode", "annot_rect_mode", "annot_edit_mode",
+          "annot_pen_mode", "annot_popup_mode", "invert_color", "fullscreen",
+          "fit_height", "fit_width", "fit_page", "fit_auto", "menubar",
+          "statusbar", "tabs", "selection_cancel", "selection_copy", "show_about",
+          "file_save", "rotate_clock", "rotate_anticlock", "undo", "redo",
+          "focus_mode", "selection_last", "picker_highlight_search",
+          "completion_next", "completion_prev", "llm_widget", "split_focus_next",
+          "split_focus_prev", "split_close", "visual_line_mode", "layout_single",
+          "layout_top_to_bottom", "layout_left_to_right", "layout_book",
+          "highlight_selection", "files_recent"}},
+
+        {"mousebindings",
+         {"portal", "synctex_jump", "pan", "preview"}},
 
     };
 

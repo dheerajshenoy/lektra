@@ -17,3 +17,15 @@ pkg/
 *.tar.gz
 cmake/
 compile_commands.json
+
+.lupdate/
+.qt/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+include/TranslationsDir.hpp
+lektra.desktop
+mupdf_external-prefix/
+resources.qrc.depends
+
