@@ -179,7 +179,6 @@ auto_reload = true
 recent_files = true
 num_recent_files = 25
 undo_limit = 25
-synctex_editor_command = "zeditor %f:+%l"
 preload_pages = 1
 open_last_visited = true
 file_name_only = true # show only file name in title/statusbar instead of full path
@@ -191,6 +190,10 @@ page_history_limit = 100
 provider = "ollama"
 model = "llama3.2:3b"
 max_tokens = 512
+
+[synctex]
+enabled = false
+editor_command = "zeditor %f:+%l"
 
 # [scripts] (Work in progress, not implemented yet)
 # name_of_script = "path_to_shell_script"
