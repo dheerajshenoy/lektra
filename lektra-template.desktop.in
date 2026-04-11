@@ -1,10 +1,13 @@
 [Desktop Entry]
 Name=lektra
-Exec=@CMAKE_INSTALL_PREFIX@/bin/lektra %f
+Comment=High-performance PDF reader that prioritizes screen space and control. 
+GenericName=PDF Viewer
+Exec=@CMAKE_INSTALL_PREFIX@/bin/lektra %U
 Icon=lektra
 Type=Application
-Categories=Office;Viewer;
-Keywords=pdf;viewer;research;
-MimeType=application/pdf;application/x-pdf;
+Categories=Office;Viewer;Qt;
+Keywords=pdf;viewer;research;mupdf;lektra;
+MimeType=application/pdf;application/vnd.djvu;application/oxps;application/vnd.ms-xpsdocument;application/x-cbz;application/x-cbt;application/epub+zip;application/x-fictionbook+xml;application/x-mobipocket-ebook;image/jpeg;image/png;image/tiff;image/svg+xml;
 Terminal=false
-StartupNotify=false
+StartupNotify=true
+StartupWMClass=lektra
