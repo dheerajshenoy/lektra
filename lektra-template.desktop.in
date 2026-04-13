@@ -9,5 +9,5 @@ Categories=Office;Viewer;Qt;
 Keywords=pdf;viewer;research;mupdf;lektra;
 MimeType=application/pdf;application/vnd.djvu;application/oxps;application/vnd.ms-xpsdocument;application/x-cbz;application/x-cbt;application/epub+zip;application/x-fictionbook+xml;application/x-mobipocket-ebook;image/jpeg;image/png;image/tiff;image/svg+xml;
 Terminal=false
-StartupNotify=true
+StartupNotify=false
 StartupWMClass=lektra
