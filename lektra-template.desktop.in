@@ -2,7 +2,7 @@
 Name=lektra
 Comment=High-performance PDF reader that prioritizes screen space and control. 
 GenericName=PDF Viewer
-Exec=@CMAKE_INSTALL_PREFIX@/bin/lektra %U
+Exec=@CMAKE_INSTALL_PREFIX@/bin/lektra %f
 Icon=lektra
 Type=Application
 Categories=Office;Viewer;Qt;
