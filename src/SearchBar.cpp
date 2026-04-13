@@ -11,7 +11,6 @@ SearchBar::SearchBar(QWidget *parent) : QWidget(parent)
     m_spinner = new WaitingSpinnerWidget(this, false, true);
     m_spinner->setInnerRadius(5);
 
-    // Set color based on the current palette's text color
     m_spinner->setColor(palette().color(QPalette::Text));
     m_label            = new QLabel(tr("Search:"), this);
     m_searchInput      = new QLineEdit(this);
@@ -52,7 +51,7 @@ SearchBar::SearchBar(QWidget *parent) : QWidget(parent)
                                       QSizePolicy::Preferred);
     m_searchInput->setSizePolicy(QSizePolicy::Expanding,
                                  QSizePolicy::Preferred);
-    m_searchInput->setPlaceholderText(tr("Search query…"));
+    m_searchInput->setPlaceholderText(tr("Search"));
     m_searchIndexLabel->hide();
     m_searchSeparator->hide();
     m_searchCountLabel->hide();
@@ -103,8 +102,13 @@ SearchBar::initConnections() noexcept
             search(m_searchInput->text());
     });
 
-    QShortcut *history_up   = new QShortcut(QKeySequence("Up"), this);
-    QShortcut *history_down = new QShortcut(QKeySequence("Down"), this);
+    QShortcut *history_up
+        = new QShortcut(QKeySequence(Qt::Key_Up), m_searchInput);
+    QShortcut *history_down
+        = new QShortcut(QKeySequence(Qt::Key_Down), m_searchInput);
+
+    history_up->setContext(Qt::WidgetShortcut);
+    history_down->setContext(Qt::WidgetShortcut);
 
     connect(history_up, &QShortcut::activated, this,
             &SearchBar::navigateHistoryUp);
