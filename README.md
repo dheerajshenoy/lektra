@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-    <b><i>High-performance PDF reader that prioritizes screen space and control.</i></b>
+    <b><i>High-performance document and image viewer that prioritizes screen space and control.</i></b>
 </p>
 
 <p align="center">
@@ -19,6 +19,22 @@
 </p>
 
 **NOTE: For the latest updates and breaking changes (if any), please check the [CHANGELOG.md](CHANGELOG.md), where the description of the latest changes in features, config, bug fixes etc. are updated frequently.**
+
+## Support file formats
+
+- PDF
+- XPS
+- CBZ
+- FB2
+- EPUB
+- FictionBook
+- Mobi
+- Images
+    - JPG
+    - PNG
+    - SVG
+    - TIFF
+- DjVu (if compiled)
 
 ## Screenshots
 
