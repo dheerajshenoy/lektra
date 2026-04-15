@@ -371,7 +371,6 @@ private:
     QVBoxLayout *m_layout   = nullptr;
     QClipboard *m_clipboard = QGuiApplication::clipboard();
     RecentFilesStore m_recent_files_store;
-    QString m_recent_files_path;
     QString m_session_name;
     MessageBar *m_message_bar = nullptr;
     SearchBar *m_search_bar   = nullptr;
