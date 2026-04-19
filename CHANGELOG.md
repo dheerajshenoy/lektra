@@ -21,6 +21,12 @@
     - `section_prev`: move to the previous section (e.g. previous chapter in the outline picker) (default: `Ctrl+Shift+k`)
     - `section_next`: move to the next section (e.g. next chapter in the outline picker) (default: `Ctrl+Shift+j`)
 
+- Default mouse bindings:
+    - `pan` => `Alt+LeftButton`
+    - `preview` => `Alt+Shift+LeftButton`
+    - `portal` => `Ctrl+LeftButton`
+    - `synctex_jump` => `Shift+LeftButton`
+
 ### Bug Fixes
 
 - Remove redundant file dialog formats

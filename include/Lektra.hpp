@@ -224,6 +224,7 @@ private:
     void initGui() noexcept;
     void initConfig() noexcept;
     void initDefaultKeybinds() noexcept;
+    void initDefaultMousebinds() noexcept;
     void warnShortcutConflicts() noexcept;
     void setupKeybinding(const QString &action, const QString &key) noexcept;
     void setupKeybinding(const QString &action,

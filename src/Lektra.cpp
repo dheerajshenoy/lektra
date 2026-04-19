@@ -156,6 +156,7 @@ Lektra::construct() noexcept
 {
     initCommands();
     initDefaultKeybinds();
+    initDefaultMousebinds();
     initConfig();
     initGui();
     warnShortcutConflicts();
@@ -1210,6 +1211,15 @@ Lektra::initConfig() noexcept
 #ifndef NDEBUG
     qDebug() << "Finished reading config file:" << m_config_file_path;
 #endif
+}
+
+void
+Lektra::initDefaultMousebinds() noexcept
+{
+    setupMousebinding("pan", "Alt+LeftButton");
+    setupMousebinding("preview", "Alt+Shift+LeftButton");
+    setupMousebinding("portal", "Ctrl+LeftButton");
+    setupMousebinding("synctex_jump", "Shift+LeftButton");
 }
 
 // Initialize the keybindings related stuff
