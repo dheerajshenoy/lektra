@@ -27,6 +27,8 @@
     - `portal` => `Ctrl+LeftButton`
     - `synctex_jump` => `Shift+LeftButton`
 
+- Searching now searches from the current page/location to the end of the document.
+
 ### Bug Fixes
 
 - Remove redundant file dialog formats
@@ -41,6 +43,7 @@
 
 ### Breaking Changes
 
+- Remove `search_from_here` command as it's not useful anymore since the default behavior is to search from the current location.
 - Move `sessions` and `last_pages.json` file to `QStandardPaths::AppDataLocation` for better compliance with platform standards for application data storage
   (previously stored in the `QStandardPaths::AppConfigLocation`, which is meant for configuration files).
 - Remove LLM support (current implementation was not good), but it will be added back in the future with a better implementation.

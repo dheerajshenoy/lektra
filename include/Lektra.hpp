@@ -63,7 +63,6 @@ public:
     void Search(const QStringList &args = {}) noexcept;
     void SearchRegex(const QStringList &args = {}) noexcept;
     void SearchInPage(const QStringList &args = {}) noexcept;
-    void SearchFromHere(const QStringList &args = {}) noexcept;
     void Show_highlight_search() noexcept;
     void Show_annot_comment_search() noexcept;
     void Show_command_picker() noexcept;

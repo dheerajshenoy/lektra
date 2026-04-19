@@ -3026,7 +3026,7 @@ Lektra::initConnections() noexcept
             [this](const QString &term, bool useRegex)
     {
         if (m_doc)
-            m_doc->Search(term, useRegex);
+            m_doc->SearchFromHere(term, useRegex);
     });
 
     connect(m_search_bar, &SearchBar::searchIndexChangeRequested, this,
@@ -4440,9 +4440,6 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("search_regex", tr("Search document using regex"),
                            [this](const QStringList &args)
     { SearchRegex(args); });
-    m_command_manager->reg(
-        "search_from_here", tr("Search from current position"),
-        [this](const QStringList &args) { SearchFromHere(args); });
     m_command_manager->reg("search_next", tr("Jump to next search result"),
                            [this](const QStringList &) { NextHit(); });
     m_command_manager->reg("search_prev", tr("Jump to previous search result"),
@@ -4870,23 +4867,6 @@ Lektra::SearchRegex(const QStringList &args) noexcept
     else
     {
         m_doc->Search(args.at(0), true);
-    }
-}
-
-void
-Lektra::SearchFromHere(const QStringList &args) noexcept
-{
-    if (!m_doc)
-        return;
-
-    if (args.isEmpty())
-    {
-        m_search_bar->setVisible(true);
-        m_search_bar->focusSearchInput();
-    }
-    else
-    {
-        m_doc->SearchFromHere(args.at(0), false);
     }
 }
 
