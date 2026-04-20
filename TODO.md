@@ -4,6 +4,7 @@
 
 ## HIGH PRIORITY
 
+- [ ] Fix Input dialog buttons looking weird
 - [ ] Color dialog add initial color and set selected
 - [ ] Don't hide scrollbars when search hits have been drawn
 - [ ] Grow/Shrink splitter handle when hovering over it for easy dragging

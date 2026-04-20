@@ -12,10 +12,14 @@ class InputDialog : public QDialog
 public:
     InputDialog(QWidget *parent = nullptr) : QDialog(parent)
     {
+        setMinimumWidth(400);
+
         QVBoxLayout *layout = new QVBoxLayout(this);
         m_infoLabel         = new QLabel(this);
         m_infoLabel->setWordWrap(true);
         m_commentBox = new QTextEdit(this);
+
+        m_commentBox->setMinimumHeight(100);
 
         QHBoxLayout *btnLayout = new QHBoxLayout();
         btnLayout->addStretch();

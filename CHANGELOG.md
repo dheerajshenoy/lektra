@@ -31,6 +31,7 @@
 
 ### Bug Fixes
 
+- Set minimum size for the `InputDialog` widget
 - Remove redundant file dialog formats
 - Picker `next`, `prev` navigation now goes through all the items instead of just the top level items when in `flat_mode = false` (hierarchical mode),
   which makes navigation in the picker more intuitive and consistent regardless of the mode.
@@ -50,7 +51,7 @@
 - Removed shell scripts support as it was never implemented and there are no current plans to implement it.
 
 #### Config changes:
- 
+
 - Organised `[statusbar]` components into it's own sections.
     - `[statusbar.component]` for the actual components to show in the statusbar and their order
         - `[statusbar.component.mode]` for the interaction mode component settings
@@ -119,7 +120,7 @@ clickable node structure
     - `panel_width` (float): Width of the thumbnail panel as a ratio of the main window width (e.g. 0.2 for 20% of the main window width)
 - Ability to define multiple keybindings for same action using [TOML array](https://toml.io/en/v1.0.0#array)
 
-Example: 
+Example:
 ```toml
 [picker.keys]
 up = [ "Ctrl+k", "Up" ]
