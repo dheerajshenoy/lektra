@@ -3,20 +3,19 @@ project(lektra VERSION 0.7.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
-if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+# ---------------------------------------------------------------------------
+# Build type default
+# ---------------------------------------------------------------------------
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type")
 endif()
 
-message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-add_compile_definitions(
-    APP_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
-    APP_INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}"
-    APP_VERSION="${PROJECT_VERSION}"
-    APP_NAME="${PROJECT_NAME}"
-)
-
+message(STATUS "Build type:          ${CMAKE_BUILD_TYPE}")
 message(STATUS "Installation prefix: ${CMAKE_INSTALL_PREFIX}")
-set(PREFIX "${CMAKE_INSTALL_PREFIX}")
+
+# ---------------------------------------------------------------------------
+# Compiler / language settings
+# ---------------------------------------------------------------------------
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_COLOR_DIAGNOSTICS ON)
@@ -26,112 +25,143 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-set(MUPDF_INSTALL_DIR "${CMAKE_BINARY_DIR}/mupdf-install")
+# ---------------------------------------------------------------------------
+# Per-config compile/link flags
+# NOTE: define the variable name that the generator expressions actually use.
+# ---------------------------------------------------------------------------
+if(MSVC)
+    set(DEBUG_FLAGS          /Od /Zi /RTC1 /W4 /fsanitize=address)
+    set(RELEASE_FLAGS        /O2 /DNDEBUG /GR- /W4)
+    set(REL_WITH_DEB_INFO_FLAGS /O2 /Zi /DNDEBUG /W4)
+    # MSVC standard-conforming preprocessor (needed for some C++23 headers)
+    add_compile_options(/Zc:__cplusplus /Zc:preprocessor)
+else()
+    set(DEBUG_FLAGS          -fno-omit-frame-pointer -ggdb3 -O0 -fsanitize=address -Wall -Wextra)
+    # set(DEBUG_FLAGS        -fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra)
+    set(RELEASE_FLAGS        -O3 -DNDEBUG -fno-rtti)
+    set(REL_WITH_DEB_INFO_FLAGS -O2 -g -fno-omit-frame-pointer -DNDEBUG)
+endif()
 
-# Get the version from the mupdf source if possible
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/mupdf/include/mupdf/fitz/version.h")
-    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/mupdf/include/mupdf/fitz/version.h" MUPDF_VERSION_CONTENTS)
-    string(REGEX MATCH "#define FZ_VERSION \"([^\"]+)\"" _ ${MUPDF_VERSION_CONTENTS})
-    if (CMAKE_MATCH_1)
+# Override CMake's built-in RelWithDebInfo flags so they match ours exactly.
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "" CACHE STRING "" FORCE)
+
+# ---------------------------------------------------------------------------
+# Platform helpers  (CMake does not define LINUX; derive it)
+# ---------------------------------------------------------------------------
+if(UNIX AND NOT APPLE)
+    set(PLATFORM_LINUX TRUE)
+endif()
+
+# ---------------------------------------------------------------------------
+# Compile-time definitions
+# ---------------------------------------------------------------------------
+add_compile_definitions(
+    APP_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
+    APP_INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}"
+    APP_VERSION="${PROJECT_VERSION}"
+    APP_NAME="${PROJECT_NAME}"
+)
+
+# ---------------------------------------------------------------------------
+# MuPDF (ExternalProject)
+# ---------------------------------------------------------------------------
+set(MUPDF_INSTALL_DIR "${CMAKE_BINARY_DIR}/mupdf-install")
+set(MUPDF_SOURCE_DIR  "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/mupdf")
+
+# Detect MuPDF version from source header
+set(MUPDF_VERSION_HEADER "${MUPDF_SOURCE_DIR}/include/mupdf/fitz/version.h")
+if(EXISTS "${MUPDF_VERSION_HEADER}")
+    file(READ "${MUPDF_VERSION_HEADER}" _mupdf_ver_contents)
+    string(REGEX MATCH "#define FZ_VERSION \"([^\"]+)\"" _ "${_mupdf_ver_contents}")
+    if(CMAKE_MATCH_1)
         set(MUPDF_VERSION "${CMAKE_MATCH_1}")
+        message(STATUS "MuPDF version: ${MUPDF_VERSION}")
     else()
-        message(FATAL_ERROR "Could not find MuPDF version in source. Please ensure the mupdf submodule is initialized and try again.")
+        message(FATAL_ERROR
+            "Could not parse MuPDF version from ${MUPDF_VERSION_HEADER}. "
+            "Ensure the mupdf submodule is initialised (git submodule update --init).")
     endif()
     set(MUPDF_FOUND TRUE)
-    set(MUPDF_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/mupdf/include")
-    set(MUPDF_LIBRARIES
-        "${MUPDF_INSTALL_DIR}/lib/libmupdf.a"
-    )
-endif()
-
-set(DEBUG_FLAGS -fno-omit-frame-pointer -ggdb3 -O0 -fsanitize=address -Wall -Wextra)
-# set(DEBUG_FLAGS -fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra)
-if(MSVC)
-    set(RELEASE_FLAGS /O2 /DNDEBUG /GR-)
-    set(REL_WITH_DEB_INFO /O2 /Zi /DNDEBUG)
+    set(MUPDF_INCLUDE_DIRS "${MUPDF_SOURCE_DIR}/include")
 else()
-    set(RELEASE_FLAGS -O3 -DNDEBUG -fno-rtti)
-    set(REL_WITH_DEB_INFO -O2 -g -fno-omit-frame-pointer -DNDEBUG)
+    message(FATAL_ERROR
+        "MuPDF source not found at ${MUPDF_SOURCE_DIR}. "
+        "Initialise the submodule: git submodule update --init thirdparty/mupdf")
 endif()
-
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -fno-omit-frame-pointer -DNDEBUG")
 
 include(ExternalProject)
 
 if(MSVC)
-    set(MUPDF_SLN "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/mupdf/platform/win32/mupdf.sln")
-    add_compile_options(/Zc:__cplusplus)
-    # Optional: adds standard-conforming preprocessor which is often # needed for advanced C++23 features/libraries
-    add_compile_options(/Zc:preprocessor)
+    set(MUPDF_SLN "${MUPDF_SOURCE_DIR}/platform/win32/mupdf.sln")
+    set(MUPDF_LIB_FILE "${MUPDF_INSTALL_DIR}/lib/libmupdf.lib")
+
     ExternalProject_Add(mupdf_external
-        SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/mupdf"
+        SOURCE_DIR "${MUPDF_SOURCE_DIR}"
         CONFIGURE_COMMAND ""
         BUILD_COMMAND
             MSBuild "${MUPDF_SLN}"
             /p:Configuration=Release
             /p:Platform=x64
             /t:libmupdf
-            /m:1
-        INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory "${MUPDF_INSTALL_DIR}/lib"
-        COMMAND ${CMAKE_COMMAND} -E copy
-            "<SOURCE_DIR>/platform/win32/x64/Release/libmupdf.lib"
-            "${MUPDF_INSTALL_DIR}/lib/libmupdf.lib"
-        BUILD_BYPRODUCTS
-            "${MUPDF_INSTALL_DIR}/lib/libmupdf.lib"
+            /m
+        INSTALL_COMMAND
+            ${CMAKE_COMMAND} -E make_directory "${MUPDF_INSTALL_DIR}/lib"
+            COMMAND ${CMAKE_COMMAND} -E copy
+                "${MUPDF_SOURCE_DIR}/platform/win32/x64/Release/libmupdf.lib"
+                "${MUPDF_LIB_FILE}"
+        BUILD_BYPRODUCTS "${MUPDF_LIB_FILE}"
         UPDATE_COMMAND ""
     )
-
-    set(MUPDF_LIB_FILE "${MUPDF_INSTALL_DIR}/lib/libmupdf.lib")
 else()
-    # Your original 'make' logic for Linux/macOS goes here
+    set(MUPDF_LIB_FILE "${MUPDF_INSTALL_DIR}/lib/libmupdf.a")
+
     ExternalProject_Add(mupdf_external
-        SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/mupdf"
+        SOURCE_DIR "${MUPDF_SOURCE_DIR}"
         CONFIGURE_COMMAND ""
-        BUILD_COMMAND make -C <SOURCE_DIR> build=release shared=no HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no LIB_CFLAGS=-fPIC libs
-        INSTALL_COMMAND make -C <SOURCE_DIR> build=release shared=no HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no prefix="${MUPDF_INSTALL_DIR}" install-libs
-        BUILD_BYPRODUCTS "${MUPDF_INSTALL_DIR}/lib/libmupdf.a"
+        BUILD_COMMAND
+            make -C <SOURCE_DIR> build=release shared=no
+            HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no
+            LIB_CFLAGS=-fPIC libs
+        INSTALL_COMMAND
+            make -C <SOURCE_DIR> build=release shared=no
+            HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no
+            prefix="${MUPDF_INSTALL_DIR}" install-libs
+        BUILD_BYPRODUCTS "${MUPDF_LIB_FILE}"
         UPDATE_COMMAND ""
     )
-    set(MUPDF_LIB_FILE "${MUPDF_INSTALL_DIR}/lib/libmupdf.a")  # add this
 endif()
-
 
 add_library(mupdf_lib STATIC IMPORTED GLOBAL)
 set_target_properties(mupdf_lib PROPERTIES
-    IMPORTED_LOCATION "${MUPDF_LIB_FILE}"
+    IMPORTED_LOCATION             "${MUPDF_LIB_FILE}"
     INTERFACE_INCLUDE_DIRECTORIES "${MUPDF_INCLUDE_DIRS}"
 )
 add_dependencies(mupdf_lib mupdf_external)
 
-find_package(Qt6 REQUIRED COMPONENTS Gui Widgets Core Concurrent LinguistTools OpenGLWidgets Network)
+# ---------------------------------------------------------------------------
+# Qt6 + optional system libraries
+# ---------------------------------------------------------------------------
+find_package(Qt6 REQUIRED COMPONENTS
+    Core Gui Widgets Concurrent LinguistTools OpenGLWidgets Network)
+
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(DJVULIBRE ddjvuapi)
-pkg_check_modules(SYNCTEX synctex)
+pkg_check_modules(SYNCTEX   synctex)
 
 if(NOT DJVULIBRE_FOUND)
-    message(STATUS "DjVuLibre not found, disabling DjVu support")
+    message(STATUS "DjVuLibre not found – DjVu support disabled")
+endif()
+if(NOT SYNCTEX_FOUND)
+    message(STATUS "SyncTeX not found – SyncTeX support disabled")
 endif()
 
-if (NOT SYNCTEX_FOUND)
-    message(STATUS "SyncTeX not found, disabling SyncTeX support.")
-endif()
-
-
-file(GLOB LEKTRA_CORE_HEADERS
-    CONFIGURE_DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
-)
-
-file(GLOB LEKTRA_ANNOTATION_HEADERS
-    CONFIGURE_DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/Annotations/*.hpp
-)
-
-file(GLOB LEKTRA_COMMAND_HEADERS
-    CONFIGURE_DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/Commands/*.hpp
-)
+# ---------------------------------------------------------------------------
+# Source files
+# ---------------------------------------------------------------------------
+file(GLOB LEKTRA_CORE_HEADERS       CONFIGURE_DEPENDS include/*.hpp)
+file(GLOB LEKTRA_ANNOTATION_HEADERS CONFIGURE_DEPENDS include/Annotations/*.hpp)
+file(GLOB LEKTRA_COMMAND_HEADERS    CONFIGURE_DEPENDS include/Commands/*.hpp)
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
@@ -172,76 +202,116 @@ add_executable(${PROJECT_NAME}
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-    include # Include project headers
-    ${CMAKE_CURRENT_BINARY_DIR}/include # Include generated headers like TranslationsDir.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty # Include third-party headers (MuPDF)
+    include
+    ${CMAKE_CURRENT_BINARY_DIR}/include   # generated headers (TranslationsDir.hpp etc.)
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty
 )
 
-
+# ---------------------------------------------------------------------------
+# macOS bundle properties
+# ---------------------------------------------------------------------------
 if(APPLE)
     set_target_properties(${PROJECT_NAME} PROPERTIES
-        MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_BUNDLE_NAME "Lektra"
-        MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-        MACOSX_BUNDLE_COPYRIGHT "Copyright 2026 Lektra contributors"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "org.lektra.lektra"
-        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Info.plist.in"
+        MACOSX_BUNDLE                    TRUE
+        MACOSX_BUNDLE_BUNDLE_NAME        "Lektra"
+        MACOSX_BUNDLE_BUNDLE_VERSION     ${PROJECT_VERSION}
+        MACOSX_BUNDLE_COPYRIGHT          "Copyright 2026 Lektra contributors"
+        MACOSX_BUNDLE_GUI_IDENTIFIER     "org.lektra.lektra"
+        MACOSX_BUNDLE_INFO_PLIST         "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Info.plist.in"
         MACOSX_BUNDLE_LONG_VERSION_STRING "${PROJECT_NAME} ${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
     )
 endif()
 
-if (DJVULIBRE_FOUND)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_DJVU=1)
-endif()
-
+# ---------------------------------------------------------------------------
+# Qt resources
+# ---------------------------------------------------------------------------
 qt_add_resources(RESOURCES resources.qrc)
-
-
 target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 
-# ------------------------------
-# Link Libraries
-# ------------------------------
+# ---------------------------------------------------------------------------
+# Link libraries
+# ---------------------------------------------------------------------------
 
-if (MUPDF_FOUND)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${MUPDF_INCLUDE_DIRS})
-    if (MSVC)
-        target_link_libraries(${PROJECT_NAME} PRIVATE
-            mupdf_lib
-        )
-    else()
-        target_link_libraries(${PROJECT_NAME} PRIVATE
-            mupdf_lib
-            "${MUPDF_INSTALL_DIR}/lib/libmupdf.a"
-            z      # zlib
-            m      # libm (math, also needed by mupdf)
-            dl     # libdl
-        )
-    endif()
-    target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_MUPDF=1)
-    add_dependencies(${PROJECT_NAME} mupdf_external)
+# --- MuPDF ---
+target_include_directories(${PROJECT_NAME} PRIVATE ${MUPDF_INCLUDE_DIRS})
+target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_MUPDF=1)
+add_dependencies(${PROJECT_NAME} mupdf_external)
+
+if(MSVC)
+    target_link_libraries(${PROJECT_NAME} PRIVATE mupdf_lib)
+else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        mupdf_lib
+        z       # zlib
+        m       # libm
+        dl      # libdl
+    )
 endif()
 
+# --- Qt ---
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    Qt6::Core Qt6::Gui Qt6::Widgets
+    Qt6::Concurrent Qt6::OpenGLWidgets Qt6::Network
+)
+
+# --- SyncTeX ---
 if(SYNCTEX_FOUND)
-    target_include_directories(${PROJECT_NAME} PRIVATE "${SYNCTEX_INCLUDE_DIR}")
+    target_include_directories(${PROJECT_NAME} PRIVATE "${SYNCTEX_INCLUDE_DIRS}")
     target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_SYNCTEX=1)
     target_link_libraries(${PROJECT_NAME} PRIVATE synctex)
 endif()
 
-if (DJVULIBRE_FOUND)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${DJVU_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME} PRIVATE djvulibre)
+# --- DjVuLibre ---
+if(DJVULIBRE_FOUND)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${DJVULIBRE_INCLUDE_DIRS})
     target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_DJVU=1)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${DJVULIBRE_LIBRARIES})
 endif()
 
-# ------------------------------
+# ---------------------------------------------------------------------------
+# Per-config compile/link options
+# NOTE: both use the same variable names so Debug -fsanitize=address is
+# applied consistently to both compile and link steps.
+# ---------------------------------------------------------------------------
+target_compile_options(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
+    $<$<CONFIG:Release>:${RELEASE_FLAGS}>
+    $<$<CONFIG:RelWithDebInfo>:${REL_WITH_DEB_INFO_FLAGS}>
+)
+
+target_link_options(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
+    $<$<CONFIG:Release>:${RELEASE_FLAGS}>
+    $<$<CONFIG:RelWithDebInfo>:${REL_WITH_DEB_INFO_FLAGS}>
+)
+
+# ---------------------------------------------------------------------------
+# Qt platform plugins
+# ---------------------------------------------------------------------------
+if(PLATFORM_LINUX)
+    qt_import_plugins(${PROJECT_NAME}
+        INCLUDE
+            Qt6::QWaylandIntegrationPlugin
+            Qt6::QXcbIntegrationPlugin
+            Qt6::QEglFSIntegrationPlugin
+    )
+elseif(APPLE)
+    qt_import_plugins(${PROJECT_NAME}
+        INCLUDE Qt6::QCocoaIntegrationPlugin
+    )
+elseif(WIN32)
+    qt_import_plugins(${PROJECT_NAME}
+        INCLUDE Qt6::QWindowsIntegrationPlugin
+    )
+endif()
+
+# ---------------------------------------------------------------------------
 # Translations
-# ------------------------------
+# ---------------------------------------------------------------------------
 set(TRANSLATION_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Translations")
 file(GLOB TRANSLATION_FILES "${TRANSLATION_SRC_DIR}/*.ts")
 
-# Configure translationsdir.hpp
 set(TRANSLATIONS_DIR "${CMAKE_INSTALL_FULL_DATADIR}/locale")
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/TranslationsDir.hpp.in"
@@ -249,7 +319,6 @@ configure_file(
     @ONLY
 )
 
-# Generate .qm files
 if(Qt6LinguistTools_VERSION VERSION_GREATER_EQUAL "6.7")
     qt_add_translations(
         TARGETS ${PROJECT_NAME}
@@ -273,28 +342,27 @@ if(TARGET lektra_lrelease)
     add_dependencies(${PROJECT_NAME} lektra_lrelease)
 endif()
 
-# Helper macro to extract lang from qm filename, sets lang to "" for base file
+# Helper macro: extracts the language code from a .qm filename.
+# e.g. lektra.es.qm -> "es",  lektra.qm -> "" (base/untranslated, skip)
 macro(get_qm_lang qm_file out_lang)
     get_filename_component(_qm_name "${qm_file}" NAME)
-    string(REGEX REPLACE "\\.qm$" "" _qm_name "${_qm_name}")
-    string(REPLACE "lektra." "" ${out_lang} "${_qm_name}")
+    string(REGEX REPLACE "\\.qm$"       "" _qm_name  "${_qm_name}")
+    string(REPLACE       "lektra."      "" ${out_lang} "${_qm_name}")
     if(${out_lang} STREQUAL "${_qm_name}" OR ${out_lang} STREQUAL "")
         set(${out_lang} "")
     endif()
 endmacro()
 
-# Apple Stuff
+# macOS: copy .qm files into the bundle
 if(APPLE)
-
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/tutorial.pdf"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/tutorial.pdf"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tutorial.pdf"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/tutorial.pdf"
         VERBATIM
     )
-
     foreach(qm_file ${QM_FILES})
         get_qm_lang("${qm_file}" lang)
         if(lang STREQUAL "")
@@ -302,17 +370,16 @@ if(APPLE)
         endif()
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E make_directory
-            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/translations"
+                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/translations"
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${qm_file}"
-            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/translations/"
+                "${qm_file}"
+                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/translations/"
             VERBATIM
         )
     endforeach()
-
 endif()
 
-# Install each .qm into translations/
+# Install .qm files
 foreach(qm_file ${QM_FILES})
     get_qm_lang("${qm_file}" lang)
     if(lang STREQUAL "")
@@ -324,57 +391,35 @@ foreach(qm_file ${QM_FILES})
     )
 endforeach()
 
-
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    Qt6::Gui Qt6::Widgets Qt6::Core Qt6::Concurrent Qt6::OpenGLWidgets Qt6::Network
-)
-
-target_compile_options(${PROJECT_NAME} PRIVATE
-    $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
-    $<$<CONFIG:Release>:${RELEASE_FLAGS}>
-    $<$<CONFIG:RelWithDebInfo>:${REL_WITH_DEB_INFO_FLAGS}>
-)
-
-if (MSVC)
-    target_compile_options(lektra PRIVATE /W4)
-endif()
-
-target_link_options(${PROJECT_NAME} PRIVATE
-    $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
-    $<$<CONFIG:Release>:${RELEASE_FLAGS}>
-    $<$<CONFIG:RelWithDebInfo>:${REL_WITH_DEB_INFO_FLAGS}>
-)
-
-# set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
-
+# ---------------------------------------------------------------------------
+# Install rules
+# ---------------------------------------------------------------------------
 if(APPLE)
     install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION .)
 else()
     install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 endif()
-#Install icons to correct freedesktop - compliant locations
 
-if(LINUX)
-    qt_import_plugins(${PROJECT_NAME}
-        INCLUDE
-        Qt6::QWaylandIntegrationPlugin      # Wayland support (libqwayland.so)
-        Qt6::QXcbIntegrationPlugin          # X11 support
-        Qt6::QEglFSIntegrationPlugin        # Embedded GL support
-    )
+# .desktop entry (Linux / freedesktop)
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/lektra-template.desktop.in
+    ${CMAKE_CURRENT_BINARY_DIR}/lektra.desktop
+    @ONLY
+)
+if(PLATFORM_LINUX)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/lektra.desktop
+        DESTINATION share/applications)
+    install(DIRECTORY resources/hicolor
+        DESTINATION share/icons
+        FILES_MATCHING PATTERN "*.png")
 endif()
 
-
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/lektra-template.desktop.in
-    ${CMAKE_CURRENT_BINARY_DIR}/lektra.desktop @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/lektra.desktop DESTINATION share/applications)
-
-install(DIRECTORY resources/hicolor DESTINATION share/icons FILES_MATCHING PATTERN "*.png")
-
-# Install docs
+# Docs
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/tutorial.pdf
     DESTINATION share/doc/${PROJECT_NAME})
 
-# Install man page
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/docs/man/lektra.1 DESTINATION share/man/man1)
-# install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/docs/man/lektra-config.5 DESTINATION share/man/man5)
-# install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/docs/man/lektra-commands.7 DESTINATION share/man/man7)
+# Man pages (Linux/Unix only — not applicable on Windows)
+if(NOT WIN32)
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/docs/man/lektra.1
+        DESTINATION share/man/man1)
+endif()
