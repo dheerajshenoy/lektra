@@ -31,6 +31,7 @@
 
 ### Bug Fixes
 
+- Fix linux `#ifdef`s
 - Set minimum size for the `InputDialog` widget
 - Remove redundant file dialog formats
 - Picker `next`, `prev` navigation now goes through all the items instead of just the top level items when in `flat_mode = false` (hierarchical mode),
