@@ -253,7 +253,12 @@ main(int argc, char *argv[])
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
     QApplication app(argc, argv);
+
+#ifdef _WIN32
+    app.setWindowIcon(QIcon(":/resources/lektra.ico"));
+#else
     app.setWindowIcon(QIcon(":/resources/png/lektra.png"));
+#endif
 
     // Load correct localization file
     QTranslator *translator = new QTranslator(&app);
