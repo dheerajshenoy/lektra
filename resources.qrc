@@ -8,6 +8,7 @@
         <file>resources/fonts/Outfit-Bold.ttf</file>
         <file>resources/fonts/Major-Mono-Display.ttf</file>
         <file>LICENSE</file>
+        <file>resources/lektra.ico</file>
     </qresource>
 </RCC>
 
