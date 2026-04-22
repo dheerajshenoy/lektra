@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(lektra VERSION 0.7.0 LANGUAGES CXX)
 
+option(WITH_IMAGEMAGICK "Enable ImageMagick support for image files" ON)
+
 include(GNUInstallDirs)
 
 # ---------------------------------------------------------------------------
@@ -152,8 +154,16 @@ find_package(Qt6 REQUIRED COMPONENTS
 
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(DJVULIBRE ddjvuapi)
-pkg_check_modules(SYNCTEX   synctex)
+if (WITH_IMAGEMAGICK)
+    add_definitions( -DMAGICKCORE_QUANTUM_DEPTH=16 )
+    add_definitions( -DMAGICKCORE_HDRI_ENABLE=0 )
+
+    find_package(ImageMagick COMPONENTS Magick++)
+    pkg_check_modules(MAGICKPP QUIET Magick++)
+endif()
+
+pkg_check_modules(DJVULIBRE QUIET ddjvuapi)
+pkg_check_modules(SYNCTEX QUIET synctex)
 
 if(NOT DJVULIBRE_FOUND)
     message(STATUS "DjVuLibre not found – DjVu support disabled")
@@ -256,6 +266,15 @@ target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 # ---------------------------------------------------------------------------
 # Link libraries
 # ---------------------------------------------------------------------------
+
+if (WITH_IMAGEMAGICK AND MAGICKPP_FOUND)
+    include_directories(${MAGICKPP_INCLUDE_DIRS})
+    link_directories(${MAGICKPP_LIBRARY_DIRS})
+    include_directories(${ImageMagick_INCLUDE_DIRS})
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        ${ImageMagick_LIBRARIES}
+        ${MAGICKPP_LIBRARIES})
+endif()
 
 # --- MuPDF ---
 target_include_directories(${PROJECT_NAME} PRIVATE ${MUPDF_INCLUDE_DIRS})

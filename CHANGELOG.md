@@ -4,6 +4,8 @@
 
 ### Features
 
+- Add optional `Imagemagick` image rendering library support for handling even more image file formats.
+    - pass `--with-imagemagick` to the `configure` script to enable it (make sure you have ImageMagick and its development headers installed on your system)
 - Add `Windows` operating system support
 - Add "pan" mouse action in `[mousebindings]` section.
     Used for panning around the page my clicking and dragging the mouse
