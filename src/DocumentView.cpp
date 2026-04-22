@@ -3442,6 +3442,42 @@ DocumentView::updateCurrentPage() noexcept
 void
 DocumentView::ensureVisiblePagePlaceholders() noexcept
 {
+    const auto isImageDoc = [this]() noexcept
+    {
+        switch (m_model->fileType())
+        {
+            case Model::FileType::JPG:
+            case Model::FileType::PNG:
+            case Model::FileType::SVG:
+            case Model::FileType::TIFF:
+#ifdef HAS_MAGICKPP
+            case Model::FileType::APNG:
+            case Model::FileType::BMP:
+            case Model::FileType::GIF:
+            case Model::FileType::WEBP:
+            case Model::FileType::AVIF:
+            case Model::FileType::HEIC:
+            case Model::FileType::JXL:
+            case Model::FileType::QOI:
+            case Model::FileType::PSD:
+            case Model::FileType::EXR:
+            case Model::FileType::HDR:
+            case Model::FileType::TGA:
+            case Model::FileType::ICO:
+            case Model::FileType::PPM:
+            case Model::FileType::PGM:
+            case Model::FileType::PBM:
+            case Model::FileType::PCX:
+#endif
+                return true;
+            default:
+                return false;
+        }
+    };
+
+    if (isImageDoc())
+        return;
+
     const std::set<int> &visiblePages = getVisiblePages();
 
     // Quick check - if we already have all pages, return early
@@ -3509,7 +3545,42 @@ DocumentView::requestPageRender(int pageno, bool force) noexcept
 
     m_pending_renders.insert(pageno);
     m_render_queue.enqueue(pageno);
-    createAndAddPlaceholderPageItem(pageno);
+
+    const auto isImageDoc = [this]() noexcept
+    {
+        switch (m_model->fileType())
+        {
+            case Model::FileType::JPG:
+            case Model::FileType::PNG:
+            case Model::FileType::SVG:
+            case Model::FileType::TIFF:
+#ifdef HAS_MAGICKPP
+            case Model::FileType::APNG:
+            case Model::FileType::BMP:
+            case Model::FileType::GIF:
+            case Model::FileType::WEBP:
+            case Model::FileType::AVIF:
+            case Model::FileType::HEIC:
+            case Model::FileType::JXL:
+            case Model::FileType::QOI:
+            case Model::FileType::PSD:
+            case Model::FileType::EXR:
+            case Model::FileType::HDR:
+            case Model::FileType::TGA:
+            case Model::FileType::ICO:
+            case Model::FileType::PPM:
+            case Model::FileType::PGM:
+            case Model::FileType::PBM:
+            case Model::FileType::PCX:
+#endif
+                return true;
+            default:
+                return false;
+        }
+    };
+
+    if (!isImageDoc())
+        createAndAddPlaceholderPageItem(pageno);
     startNextRenderJob();
 }
 

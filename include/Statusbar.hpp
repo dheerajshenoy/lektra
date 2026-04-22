@@ -33,6 +33,8 @@ public:
     void setPageNo(int pageno) noexcept;
     void setFitMode(DocumentView::FitMode mode) noexcept;
     void setMode(GraphicsView::Mode) noexcept;
+    void setModeVisible(bool visible) noexcept;
+    void setProgressVisible(bool visible) noexcept;
     void setSessionName(const QString &name) noexcept;
     void setPortalMode(bool state) noexcept;
     void setFilePath(const QString &name) noexcept;
@@ -59,4 +61,6 @@ private:
     QPushButton *m_session_label    = new QPushButton();
     QGridLayout *m_layout           = new QGridLayout(this);
     GraphicsView::Mode m_current_mode;
+    bool m_mode_forced_hidden{false};
+    bool m_progress_forced_hidden{false};
 };

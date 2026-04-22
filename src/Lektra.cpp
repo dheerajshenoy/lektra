@@ -1445,6 +1445,39 @@ Lektra::updateUiEnabledState() noexcept
 
     const bool isPDF = (filetype == Model::FileType::PDF);
 
+    const bool isImageDoc = [&]() noexcept
+    {
+        switch (filetype)
+        {
+            case Model::FileType::JPG:
+            case Model::FileType::PNG:
+            case Model::FileType::SVG:
+            case Model::FileType::TIFF:
+#ifdef HAS_MAGICKPP
+            case Model::FileType::APNG:
+            case Model::FileType::BMP:
+            case Model::FileType::GIF:
+            case Model::FileType::WEBP:
+            case Model::FileType::AVIF:
+            case Model::FileType::HEIC:
+            case Model::FileType::JXL:
+            case Model::FileType::QOI:
+            case Model::FileType::PSD:
+            case Model::FileType::EXR:
+            case Model::FileType::HDR:
+            case Model::FileType::TGA:
+            case Model::FileType::ICO:
+            case Model::FileType::PPM:
+            case Model::FileType::PGM:
+            case Model::FileType::PBM:
+            case Model::FileType::PCX:
+#endif
+                return true;
+            default:
+                return false;
+        }
+    }();
+
     // Text selection — supported for formats with a text layer
     const bool hasTextLayer
         = (filetype == Model::FileType::PDF || filetype == Model::FileType::EPUB
@@ -1453,17 +1486,35 @@ Lektra::updateUiEnabledState() noexcept
            || filetype == Model::FileType::XPS);
 
     // Format-agnostic — enabled whenever any file is open
+    if (m_layoutMenu)
+        m_layoutMenu->menuAction()->setVisible(!hasFile || !isImageDoc);
+    if (m_modeMenu)
+        m_modeMenu->menuAction()->setVisible(!hasFile || !isImageDoc);
+    if (m_navMenu)
+        m_navMenu->menuAction()->setVisible(!hasFile || !isImageDoc);
+
+    if (m_actionToggleOutline)
+        m_actionToggleOutline->setVisible(!hasFile || !isImageDoc);
+    if (m_actionToggleHighlightAnnotSearch)
+        m_actionToggleHighlightAnnotSearch->setVisible(!hasFile || !isImageDoc);
+    if (m_actionEncrypt)
+        m_actionEncrypt->setVisible(isPDF);
+    if (m_actionDecrypt)
+        m_actionDecrypt->setVisible(isPDF);
+
     m_actionOpenContainingFolder->setEnabled(hasFile);
     m_actionZoomIn->setEnabled(hasFile);
     m_actionZoomOut->setEnabled(hasFile);
-    m_actionGotoPage->setEnabled(hasFile);
-    m_actionFirstPage->setEnabled(hasFile);
-    m_actionPrevPage->setEnabled(hasFile);
-    m_actionNextPage->setEnabled(hasFile);
-    m_actionLastPage->setEnabled(hasFile);
+    m_actionGotoPage->setEnabled(hasFile && !isImageDoc);
+    m_actionFirstPage->setEnabled(hasFile && !isImageDoc);
+    m_actionPrevPage->setEnabled(hasFile && !isImageDoc);
+    m_actionNextPage->setEnabled(hasFile && !isImageDoc);
+    m_actionLastPage->setEnabled(hasFile && !isImageDoc);
     m_actionCloseFile->setEnabled(hasFile);
     m_fitMenu->setEnabled(hasFile);
-    m_modeMenu->setEnabled(hasFile);
+    m_modeMenu->setEnabled(hasFile && !isImageDoc);
+    m_layoutMenu->setEnabled(hasFile && !isImageDoc);
+    m_navMenu->setEnabled(hasFile && !isImageDoc);
     m_actionInvertColor->setEnabled(hasFile);
     m_actionPrevLocation->setEnabled(hasFile);
     m_actionNextLocation->setEnabled(hasFile);
@@ -1472,12 +1523,13 @@ Lektra::updateUiEnabledState() noexcept
     m_actionSetMark->setEnabled(hasFile);
     m_actionGotoMark->setEnabled(hasFile);
     m_actionDeleteMark->setEnabled(hasFile);
-    m_actionToggleHighlightAnnotSearch->setEnabled(hasFile);
-    m_actionVisualLineMode->setEnabled(hasFile);
-    m_actionRegionSelect->setEnabled(hasFile);
+    m_actionToggleOutline->setEnabled(hasFile && !isImageDoc);
+    m_actionToggleHighlightAnnotSearch->setEnabled(hasFile && !isImageDoc);
+    m_actionVisualLineMode->setEnabled(hasFile && !isImageDoc);
+    m_actionRegionSelect->setEnabled(hasFile && !isImageDoc);
 
     // Selection actions enabled only if text layer is present
-    m_actionTextSelect->setEnabled(hasTextLayer);
+    m_actionTextSelect->setEnabled(hasTextLayer && !isImageDoc);
 
     // PDF-only
     m_actionSaveFile->setEnabled(isPDF);
@@ -1498,7 +1550,19 @@ Lektra::updateUiEnabledState() noexcept
         m_actionRedo->setEnabled(false);
     }
 
-    updateSelectionModeActions();
+    if (hasFile && isImageDoc)
+    {
+        m_actionNoneMode->setChecked(true);
+        m_statusbar->setMode(GraphicsView::Mode::None);
+        m_statusbar->setModeVisible(false);
+        m_statusbar->setProgressVisible(false);
+    }
+    else
+    {
+        m_statusbar->setModeVisible(true);
+        m_statusbar->setProgressVisible(true);
+        updateSelectionModeActions();
+    }
 }
 
 // Helper function to construct `QShortcut` Qt shortcut
@@ -2861,8 +2925,9 @@ Lektra::InvertColor() noexcept
 {
     if (m_doc)
     {
-        m_doc->setInvertColor(!m_doc->invertColor());
-        m_actionInvertColor->setChecked(!m_actionInvertColor->isChecked());
+        const bool invert = !m_doc->invertColor();
+        m_doc->setInvertColor(invert);
+        m_actionInvertColor->setChecked(invert);
     }
 }
 
@@ -3135,8 +3200,6 @@ Lektra::initConnections() noexcept
             setCurrentDocumentView(nullptr);
         }
     });
-
-    connect(m_actionInvertColor, &QAction::triggered, [&]() { InvertColor(); });
 
     connect(m_navMenu, &QMenu::aboutToShow, this,
             &Lektra::updatePageNavigationActions);
@@ -4771,6 +4834,46 @@ Lektra::updateSelectionModeActions() noexcept
 {
     if (!m_doc)
         return;
+
+    const auto filetype = m_doc->model()->fileType();
+    const bool isImageDoc = [&]() noexcept
+    {
+        switch (filetype)
+        {
+            case Model::FileType::JPG:
+            case Model::FileType::PNG:
+            case Model::FileType::SVG:
+            case Model::FileType::TIFF:
+#ifdef HAS_MAGICKPP
+            case Model::FileType::APNG:
+            case Model::FileType::BMP:
+            case Model::FileType::GIF:
+            case Model::FileType::WEBP:
+            case Model::FileType::AVIF:
+            case Model::FileType::HEIC:
+            case Model::FileType::JXL:
+            case Model::FileType::QOI:
+            case Model::FileType::PSD:
+            case Model::FileType::EXR:
+            case Model::FileType::HDR:
+            case Model::FileType::TGA:
+            case Model::FileType::ICO:
+            case Model::FileType::PPM:
+            case Model::FileType::PGM:
+            case Model::FileType::PBM:
+            case Model::FileType::PCX:
+#endif
+                return true;
+            default:
+                return false;
+        }
+    }();
+
+    if (isImageDoc)
+    {
+        m_actionNoneMode->setChecked(true);
+        return;
+    }
 
     switch (m_doc->selectionMode())
     {

@@ -4,8 +4,11 @@
 
 ### Features
 
-- Add optional `Imagemagick` image rendering library support for handling even more image file formats.
-    - pass `--with-imagemagick` to the `configure` script to enable it (make sure you have ImageMagick and its development headers installed on your system)
+- Add optional `Imagemagick` image rendering library support for handling more image file formats.
+    - Automatically added support if `Imagemagick` is found on the system, otherwise it will fall back to the default rendering method which only supports basic image formats (e.g. PNG, JPEG, TIFF, SVG)
+
+- Hide unrelevant actions from the menu bar based on the file type of the currently opened document.
+
 - Add `Windows` operating system support
 - Add "pan" mouse action in `[mousebindings]` section.
     Used for panning around the page my clicking and dragging the mouse
@@ -33,6 +36,8 @@
 
 ### Bug Fixes
 
+- Hide mode, color and progress info in the statusbar when in non-supported file types (e.g. images) to avoid confusion
+- Fix `invert color` menu button not working
 - Make search behave more like in vim/emacs
 - Fix linux `#ifdef`s
 - Set minimum size for the `InputDialog` widget
