@@ -44,11 +44,38 @@ supportedFormats()
 #endif
            "XPS (*.oxps *.xps);;"
            "CBZ (*.cbz *.cbt);;"
-           "FB2 (*.fbz);;"
            "EPUB (*.epub);;"
            "FictionBook (*.fb2 *.fbz);;"
            "Mobi (*.mobi);;"
-           "Images (*.jpg *.jpeg *.png *.tiff *.tif *.svg);;"
+#ifdef HAS_MAGICKPP
+           "Images ("
+           "*.jpg *.jpeg "
+           "*.png *.apng "
+           "*.tiff *.tif "
+           "*.svg"
+           "*.bmp "
+           "*.gif "
+           "*.webp "
+           "*.avif "
+           "*.heic *.heif "
+           "*.jxl "
+           "*.qoi "
+           "*.psd "
+           "*.exr "
+           "*.hdr "
+           "*.tga "
+           "*.ico "
+           "*.ppm *.pgm *.pbm "
+           "*.pcx"
+           ");;"
+#else
+           "Images ("
+           "*.jpg *.jpeg "
+           "*.png *.apng "
+           "*.tiff *.tif "
+           "*.svg"
+           ");;"
+#endif
            "All Files (*.*)";
 }
 

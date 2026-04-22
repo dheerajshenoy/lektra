@@ -8,12 +8,47 @@
 #include <QtConcurrent/QtConcurrent>
 #include <algorithm>
 #include <array>
-
+#include <limits>
 #include <qbytearrayview.h>
 #include <qregularexpression.h>
 #include <qstyle.h>
 #include <qtextformat.h>
 #include <unordered_set>
+
+#ifdef HAS_MAGICKPP
+    #include <Magick++.h>
+static bool
+isImageFormat(Model::FileType ft) noexcept
+{
+    switch (ft)
+    {
+        case Model::FileType::JPG:
+        case Model::FileType::PNG:
+        case Model::FileType::APNG:
+        case Model::FileType::BMP:
+        case Model::FileType::GIF:
+        case Model::FileType::WEBP:
+        case Model::FileType::TIFF:
+        case Model::FileType::AVIF:
+        case Model::FileType::HEIC:
+        case Model::FileType::JXL:
+        case Model::FileType::QOI:
+        case Model::FileType::PSD:
+        case Model::FileType::EXR:
+        case Model::FileType::HDR:
+        case Model::FileType::TGA:
+        case Model::FileType::ICO:
+        case Model::FileType::PPM:
+        case Model::FileType::PGM:
+        case Model::FileType::PBM:
+        case Model::FileType::PCX:
+        case Model::FileType::SVG:
+            return true;
+        default:
+            return false;
+    }
+}
+#endif
 
 static std::array<std::mutex, FZ_LOCK_MAX> mupdf_mutexes;
 
@@ -788,6 +823,15 @@ Model::~Model() noexcept
 #ifdef HAS_DJVU
     if (m_filetype == FileType::DJVU)
         cleanup_djvu();
+#ifdef HAS_MAGICKPP
+    else if (isImageFormat(m_filetype))
+        cleanup_magick();
+#endif
+    else
+#endif
+#if !defined(HAS_DJVU) && defined(HAS_MAGICKPP)
+    if (isImageFormat(m_filetype))
+        cleanup_magick();
     else
 #endif
     {
@@ -834,6 +878,30 @@ Model::cleanup_mupdf() noexcept
 
     fz_empty_store(m_ctx);
 }
+
+#ifdef HAS_MAGICKPP
+void
+Model::cleanup_magick() noexcept
+{
+    {
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        m_magick_image.reset();
+    }
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+        m_page_lru_cache.clear();
+        m_text_cache.clear();
+        m_stext_page_cache.clear();
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_page_dim_mutex);
+        m_page_dim_cache.reset(0);
+        m_default_page_dim = {};
+    }
+}
+#endif
 
 #ifdef HAS_DJVU
 void
@@ -883,10 +951,68 @@ Model::openAsync(const QString &filePath) noexcept
 #ifdef HAS_DJVU
     if (m_filetype == FileType::DJVU)
         return openAsync_djvu(canonPath);
-    else
 #endif
-        return openAsync_mupdf(canonPath);
+#ifdef HAS_MAGICKPP
+    if (isImageFormat(m_filetype))
+        return openAsync_magick(canonPath);
+#endif
+    return openAsync_mupdf(canonPath);
 }
+
+#ifdef HAS_MAGICKPP
+QFuture<void>
+Model::openAsync_magick(const QString &canonPath) noexcept
+{
+    return QtConcurrent::run([this, canonPath]
+    {
+        Magick::Image image;
+        try
+        {
+            image.read(canonPath.toStdString());
+        }
+        catch (const std::exception &e)
+        {
+            qWarning() << "Failed to open image:" << e.what();
+            QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                      Qt::QueuedConnection);
+            return;
+        }
+
+        const int page_count = 1;
+        const float w
+            = static_cast<float>(image.columns()) / image.density().x() * 72.0f;
+        const float h
+            = static_cast<float>(image.rows()) / image.density().y() * 72.0f;
+
+        QMetaObject::invokeMethod(this, [this, image = std::move(image), w, h]()
+        {
+            waitForPendingRenders();
+            m_render_cancelled.store(false, std::memory_order_release);
+            cleanup_mupdf(); // drops MuPDF state
+#ifdef HAS_DJVU
+            cleanup_djvu();  // drops any previous DjVu state
+#endif
+            cleanup_magick();
+
+            m_magick_image = std::make_unique<Magick::Image>(std::move(image));
+            m_page_count = page_count;
+            m_success    = true;
+
+            {
+                std::lock_guard<std::mutex> lk(m_page_dim_mutex);
+                m_default_page_dim = {w, h};
+                m_page_dim_cache.dimensions.assign(page_count,
+                                                   m_default_page_dim);
+                m_page_dim_cache.known.assign(page_count, 0);
+                if (page_count > 0)
+                    m_page_dim_cache.known[0] = true;
+            }
+
+            emit openFileFinished();
+        }, Qt::QueuedConnection);
+    });
+}
+#endif
 
 #ifdef HAS_DJVU
 QFuture<void>
@@ -933,6 +1059,9 @@ Model::openAsync_djvu(const QString &canonPath) noexcept
             m_render_cancelled.store(false, std::memory_order_release);
             cleanup_mupdf(); // drops MuPDF state
             cleanup_djvu();  // drops any previous DjVu state
+#ifdef HAS_MAGICKPP
+            cleanup_magick();
+#endif
 
             m_ddjvu_ctx  = ctx;
             m_ddjvu_doc  = doc;
@@ -1106,6 +1235,12 @@ Model::_continueOpen(fz_context *ctx, fz_document *doc) noexcept
         waitForPendingRenders();
         m_render_cancelled.store(false, std::memory_order_release);
         cleanup_mupdf();
+#ifdef HAS_DJVU
+        cleanup_djvu();
+#endif
+#ifdef HAS_MAGICKPP
+        cleanup_magick();
+#endif
         fz_drop_context(m_ctx);
 
         m_ctx        = ctx;
@@ -1132,6 +1267,20 @@ void
 Model::close() noexcept
 {
     m_filepath.clear();
+#ifdef HAS_DJVU
+    if (m_filetype == FileType::DJVU)
+    {
+        cleanup_djvu();
+        return;
+    }
+#endif
+#ifdef HAS_MAGICKPP
+    if (isImageFormat(m_filetype))
+    {
+        cleanup_magick();
+        return;
+    }
+#endif
     cleanup_mupdf();
 }
 
@@ -1285,6 +1434,14 @@ Model::buildPageCache(int pageno) noexcept
     if (m_filetype == FileType::DJVU)
     {
         buildPageCache_djvu(pageno);
+        return;
+    }
+#endif
+
+#ifdef HAS_MAGICKPP
+    if (isImageFormat(m_filetype))
+    {
+        buildPageCache_magick(pageno);
         return;
     }
 #endif
@@ -1460,6 +1617,88 @@ Model::buildPageCache(int pageno) noexcept
             fz_drop_display_list(ctx, dlist);
     }
 }
+
+#ifdef HAS_MAGICKPP
+void
+Model::buildPageCache_magick(int pageno) noexcept
+{
+    if (pageno != 0)
+        return;
+
+    Magick::Image source;
+    {
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        if (!m_magick_image)
+            return;
+        source = *m_magick_image;
+    }
+
+    const double density_x = source.density().x();
+    const double density_y = source.density().y();
+    const double safe_density_x = density_x > 1.0 ? density_x : 72.0;
+    const double safe_density_y = density_y > 1.0 ? density_y : 72.0;
+
+    const float w_pts = static_cast<float>(source.columns() / safe_density_x * 72.0);
+    const float h_pts = static_cast<float>(source.rows() / safe_density_y * 72.0);
+
+    const double render_dpi = m_zoom * m_dpi * m_dpr;
+    const size_t rw = static_cast<size_t>(std::max(1.0, source.columns() * render_dpi / safe_density_x));
+    const size_t rh = static_cast<size_t>(std::max(1.0, source.rows() * render_dpi / safe_density_y));
+
+    QImage image;
+    try
+    {
+        Magick::Image frame = std::move(source);
+        frame.resize(Magick::Geometry(rw, rh));
+
+        if (rw > static_cast<size_t>(std::numeric_limits<int>::max())
+            || rh > static_cast<size_t>(std::numeric_limits<int>::max())
+            || rw > std::numeric_limits<size_t>::max() / 4
+            || rh > std::numeric_limits<size_t>::max() / (rw * 4))
+        {
+            qWarning() << "Image dimensions too large for rasterization:" << rw
+                       << "x" << rh;
+            return;
+        }
+
+        const size_t row_bytes  = rw * 4;
+        const size_t total_bytes = row_bytes * rh;
+        std::vector<unsigned char> rgba(total_bytes);
+
+        frame.write(0, 0, rw, rh, "RGBA", Magick::CharPixel, rgba.data());
+
+        QImage tmp(rgba.data(), static_cast<int>(rw), static_cast<int>(rh),
+                   static_cast<int>(row_bytes), QImage::Format_RGBA8888);
+        image = tmp.copy();
+    }
+    catch (const std::exception &e)
+    {
+        qWarning() << "Failed to rasterize image:" << e.what();
+        return;
+    }
+
+    image.setDotsPerMeterX(static_cast<int>(render_dpi * 1000.0 / 25.4));
+    image.setDotsPerMeterY(static_cast<int>(render_dpi * 1000.0 / 25.4));
+    image.setDevicePixelRatio(m_dpr);
+
+    {
+        std::lock_guard<std::mutex> dimlock(m_page_dim_mutex);
+        m_page_dim_cache.set(pageno, w_pts, h_pts);
+    }
+
+    PageCacheEntry entry;
+    entry.pageno       = pageno;
+    entry.bounds       = {0, 0, w_pts, h_pts};
+    entry.display_list = nullptr;
+    entry.cached_image = image;
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+        if (!m_page_lru_cache.has(pageno))
+            m_page_lru_cache.put(pageno, std::move(entry));
+    }
+}
+#endif
 
 void
 Model::setPopupColor(const QColor &color) noexcept
@@ -2178,6 +2417,29 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         result.image = std::move(image);
         // DjVu has no links or annotations — result.links/annotations stay
         // empty
+        return result;
+    }
+#endif
+
+#ifdef HAS_MAGICKPP
+    if (isImageFormat(m_filetype))
+    {
+        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+        const PageCacheEntry *entry = m_page_lru_cache.get(job.pageno);
+        if (!entry || entry->cached_image.isNull())
+        {
+            qWarning() << "Image page not cached:" << job.pageno;
+            return result;
+        }
+
+        QImage image = entry->cached_image;
+        if (job.invert_color)
+            image.invertPixels();
+
+        image.setDotsPerMeterX(static_cast<int>((job.dpi * 1000) / 25.4));
+        image.setDotsPerMeterY(static_cast<int>((job.dpi * 1000) / 25.4));
+        image.setDevicePixelRatio(job.dpr);
+        result.image = std::move(image);
         return result;
     }
 #endif
@@ -4254,12 +4516,11 @@ Model::getFileType(const QString &path) noexcept
         = QMimeDatabase().mimeTypeForFile(path, QMimeDatabase::MatchContent);
     const QString name = mime.name();
 
+    // Documents
     if (name == "application/pdf")
         return FileType::PDF;
     if (name == "application/epub+zip")
         return FileType::EPUB;
-    if (name == "image/svg+xml")
-        return FileType::SVG;
     if (name == "application/vnd.ms-xpsdocument" || name == "application/oxps")
         return FileType::XPS;
     if (name == "application/x-mobipocket-ebook")
@@ -4271,16 +4532,55 @@ Model::getFileType(const QString &path) noexcept
     if (name == "application/x-fictionbook+xml"
         || name == "application/x-fictionbook")
         return FileType::FB2;
-    if (name == "image/jpeg")
-        return FileType::JPG;
-    if (name == "image/png")
-        return FileType::PNG;
-    if (name == "image/tiff")
-        return FileType::TIFF;
 #ifdef HAS_DJVU
     if (name == "image/vnd.djvu" || name == "image/vnd.djvu+multipage"
         || name == "image/x-djvu")
         return FileType::DJVU;
+#endif
+
+    if (name == "image/jpeg")
+        return FileType::JPG;
+    if (name == "image/png" || name == "image/apng")
+        return FileType::PNG; // APNG shares PNG mime on most systems
+    if (name == "image/tiff")
+        return FileType::TIFF;
+    if (name == "image/svg+xml" || name == "image/svg")
+        return FileType::SVG;
+
+#ifdef HAS_MAGICKPP
+    // Images
+    if (name == "image/bmp" || name == "image/x-bmp")
+        return FileType::BMP;
+    if (name == "image/gif")
+        return FileType::GIF;
+    if (name == "image/webp")
+        return FileType::WEBP;
+    if (name == "image/avif")
+        return FileType::AVIF;
+    if (name == "image/heic" || name == "image/heif")
+        return FileType::HEIC;
+    if (name == "image/jxl")
+        return FileType::JXL;
+    if (name == "image/x-qoi")
+        return FileType::QOI;
+    if (name == "image/vnd.adobe.photoshop" || name == "image/x-photoshop")
+        return FileType::PSD;
+    if (name == "image/x-exr" || name == "image/x-openexr")
+        return FileType::EXR;
+    if (name == "image/vnd.radiance" || name == "image/x-hdr")
+        return FileType::HDR;
+    if (name == "image/x-tga" || name == "image/x-targa")
+        return FileType::TGA;
+    if (name == "image/vnd.microsoft.icon" || name == "image/x-ico")
+        return FileType::ICO;
+    if (name == "image/x-portable-pixmap")
+        return FileType::PPM;
+    if (name == "image/x-portable-graymap")
+        return FileType::PGM;
+    if (name == "image/x-portable-bitmap")
+        return FileType::PBM;
+    if (name == "image/x-pcx")
+        return FileType::PCX;
 #endif
 
     return FileType::NONE;
@@ -4291,11 +4591,19 @@ Model::setZoom(float zoom) noexcept
 {
     m_zoom = zoom;
 
+#if defined(HAS_DJVU) || defined(HAS_MAGICKPP)
 #ifdef HAS_DJVU
     if (m_filetype == FileType::DJVU)
     {
         invalidatePageCaches();
+        return;
     }
+#endif
+
+#ifdef HAS_MAGICKPP
+    if (isImageFormat(m_filetype))
+        invalidatePageCaches();
+#endif
 #endif
 }
 
@@ -4306,11 +4614,19 @@ Model::rotateClock() noexcept
     if (m_rotation >= 360)
         m_rotation = 0;
 
+#if defined(HAS_DJVU) || defined(HAS_MAGICKPP)
 #ifdef HAS_DJVU
     if (m_filetype == FileType::DJVU)
     {
         invalidatePageCaches();
+        return;
     }
+#endif
+
+#ifdef HAS_MAGICKPP
+    if (isImageFormat(m_filetype))
+        invalidatePageCaches();
+#endif
 #endif
 }
 
@@ -4321,11 +4637,19 @@ Model::rotateAnticlock() noexcept
     if (m_rotation < 0)
         m_rotation = 270;
 
+#if defined(HAS_DJVU) || defined(HAS_MAGICKPP)
 #ifdef HAS_DJVU
     if (m_filetype == FileType::DJVU)
     {
         invalidatePageCaches();
+        return;
     }
+#endif
+
+#ifdef HAS_MAGICKPP
+    if (isImageFormat(m_filetype))
+        invalidatePageCaches();
+#endif
 #endif
 }
 

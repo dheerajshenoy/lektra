@@ -13,6 +13,7 @@
 #include <QRegularExpression>
 #include <QString>
 #include <QUndoStack>
+#include <memory>
 #include <mutex>
 #include <set>
 
@@ -34,6 +35,13 @@ class TextHighlightAnnotationCommand;
 class TextAnnotationCommand;
 class DocumentView;
 
+#ifdef HAS_MAGICKPP
+namespace Magick
+{
+class Image;
+}
+#endif
+
 struct Config;
 
 class Model : public QObject
@@ -49,17 +57,42 @@ public:
     {
         NONE = 0,
         PDF,
-        CBZ,
-        MOBI,
-        SVG,
+#ifdef HAS_DJVU
+        DJVU,
+#endif
         XPS,
+        CBZ,
         EPUB,
         FB2,
-        TIFF,
-        PNG,
+        MOBI,
+    // Images
+#ifdef HAS_MAGICKPP
         JPG,
-#ifdef HAS_DJVU
-        DJVU
+        PNG,
+        SVG,
+        APNG,
+        BMP,
+        GIF,
+        WEBP,
+        TIFF,
+        AVIF,
+        HEIC,
+        JXL,
+        QOI,
+        PSD,
+        EXR,
+        HDR,
+        TGA,
+        ICO,
+        PPM,
+        PGM,
+        PBM,
+        PCX,
+#else
+        JPG,
+        PNG,
+        SVG,
+        TIFF,
 #endif
     };
 
@@ -427,6 +460,11 @@ public:
 #ifdef HAS_DJVU
     QFuture<void> openAsync_djvu(const QString &canonicalPath) noexcept;
 #endif
+#ifdef HAS_MAGICKPP
+    QFuture<void> openAsync_magick(const QString &canonicalPath) noexcept;
+    void buildPageCache_magick(int pageno) noexcept;
+    void cleanup_magick() noexcept;
+#endif
     void _continueOpen(fz_context *ctx, fz_document *doc) noexcept;
 
     QFuture<void> submitPassword(const QString &password) noexcept;
@@ -582,7 +620,7 @@ private:
         fz_display_list *display_list{nullptr};
         fz_rect bounds{};
 
-#ifdef HAS_DJVU
+#if defined(HAS_DJVU) || defined(HAS_MAGICKPP)
         QImage cached_image; // for DJVU
 #endif
         PageDimension dimension{};
@@ -705,6 +743,10 @@ private:
 #ifdef HAS_DJVU
     ddjvu_context_t *m_ddjvu_ctx{nullptr};
     ddjvu_document_t *m_ddjvu_doc{nullptr};
+#endif
+
+#ifdef HAS_MAGICKPP
+    std::unique_ptr<Magick::Image> m_magick_image;
 #endif
 
     // For use with visual line mode
