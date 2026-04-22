@@ -20,7 +20,7 @@
 
 **NOTE: For the latest updates and breaking changes (if any), please check the [CHANGELOG.md](CHANGELOG.md), where the description of the latest changes in features, config, bug fixes etc. are updated frequently.**
 
-## Support file formats
+## Supported file types
 
 - PDF, XPS, OXPS, CBZ, FB2, EPUB, FictionBook, Mobi, JPG, PNG, SVG, TIFF, DjVu (if compiled)
 
