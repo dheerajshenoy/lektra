@@ -2433,6 +2433,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         }
 
         QImage image = entry->cached_image;
+
         if (job.invert_color)
             image.invertPixels();
 
@@ -4591,7 +4592,6 @@ Model::setZoom(float zoom) noexcept
 {
     m_zoom = zoom;
 
-#if defined(HAS_DJVU) || defined(HAS_MAGICKPP)
 #ifdef HAS_DJVU
     if (m_filetype == FileType::DJVU)
     {
@@ -4603,7 +4603,6 @@ Model::setZoom(float zoom) noexcept
 #ifdef HAS_MAGICKPP
     if (isImageFormat(m_filetype))
         invalidatePageCaches();
-#endif
 #endif
 }
 
@@ -4614,7 +4613,6 @@ Model::rotateClock() noexcept
     if (m_rotation >= 360)
         m_rotation = 0;
 
-#if defined(HAS_DJVU) || defined(HAS_MAGICKPP)
 #ifdef HAS_DJVU
     if (m_filetype == FileType::DJVU)
     {
@@ -4626,7 +4624,6 @@ Model::rotateClock() noexcept
 #ifdef HAS_MAGICKPP
     if (isImageFormat(m_filetype))
         invalidatePageCaches();
-#endif
 #endif
 }
 
@@ -4637,7 +4634,6 @@ Model::rotateAnticlock() noexcept
     if (m_rotation < 0)
         m_rotation = 270;
 
-#if defined(HAS_DJVU) || defined(HAS_MAGICKPP)
 #ifdef HAS_DJVU
     if (m_filetype == FileType::DJVU)
     {
@@ -4649,7 +4645,6 @@ Model::rotateAnticlock() noexcept
 #ifdef HAS_MAGICKPP
     if (isImageFormat(m_filetype))
         invalidatePageCaches();
-#endif
 #endif
 }
 
