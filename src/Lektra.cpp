@@ -1542,6 +1542,39 @@ Lektra::updateUiEnabledState() noexcept
     m_actionTextHighlight->setEnabled(isPDF);
     m_actionFileProperties->setEnabled(isPDF);
 
+    if (m_actionFitWidth)
+        m_actionFitWidth->setVisible(!hasFile || !isImageDoc);
+    if (m_actionFitHeight)
+        m_actionFitHeight->setVisible(!hasFile || !isImageDoc);
+    if (m_actionFitWindow)
+        m_actionFitWindow->setVisible(!hasFile || !isImageDoc);
+    if (m_actionAutoresize)
+        m_actionAutoresize->setVisible(!hasFile || !isImageDoc);
+
+    if (m_actionTextSelect)
+        m_actionTextSelect->setVisible(!hasFile || !isImageDoc);
+    if (m_actionRegionSelect)
+        m_actionRegionSelect->setVisible(!hasFile || !isImageDoc);
+    if (m_actionTextHighlight)
+        m_actionTextHighlight->setVisible(!hasFile || !isImageDoc);
+    if (m_actionAnnotRect)
+        m_actionAnnotRect->setVisible(!hasFile || !isImageDoc);
+    if (m_actionAnnotEdit)
+        m_actionAnnotEdit->setVisible(!hasFile || !isImageDoc);
+    if (m_actionAnnotPopup)
+        m_actionAnnotPopup->setVisible(!hasFile || !isImageDoc);
+    if (m_actionVisualLineMode)
+        m_actionVisualLineMode->setVisible(!hasFile || !isImageDoc);
+    if (m_actionNoneMode)
+        m_actionNoneMode->setVisible(!hasFile || !isImageDoc);
+
+    if (m_actionGotoMark)
+        m_actionGotoMark->setVisible(!hasFile || !isImageDoc);
+    if (m_actionSetMark)
+        m_actionSetMark->setVisible(!hasFile || !isImageDoc);
+    if (m_actionDeleteMark)
+        m_actionDeleteMark->setVisible(!hasFile || !isImageDoc);
+
     // Undo/redo managed by canUndoChanged/canRedoChanged signals —
     // only reset to false when no file is open
     if (!hasFile)
