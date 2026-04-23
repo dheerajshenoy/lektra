@@ -35,6 +35,10 @@ extern "C"
 #include <qevent.h>
 #include <set>
 
+#ifdef HAS_MAGICKPP
+    #include <QMovie>
+#endif
+
 // Z-values for various overlay items
 #define ZVALUE_PAGE 0
 #define ZVALUE_ANNOTATION 5
@@ -499,6 +503,10 @@ private:
                           qreal pageH) noexcept;
     void visual_line_move(Direction direction) noexcept;
     void snapVisualLine(bool centerView = true) noexcept;
+#ifdef HAS_MAGICKPP
+    void startGifPlayback() noexcept;
+    void stopGifPlayback() noexcept;
+#endif
 
 #ifdef HAS_SYNCTEX
     void initSynctex() noexcept;
@@ -547,6 +555,9 @@ private:
     int m_visual_line_index                  = -1;
     bool m_visual_line_mode                  = false;
     bool m_thumbnail_mode                    = false;
+#ifdef HAS_MAGICKPP
+    QMovie *m_gif_movie                      = nullptr;
+#endif
 #ifdef HAS_SYNCTEX
     synctex_scanner_p m_synctex_scanner = nullptr;
 #endif

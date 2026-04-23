@@ -40,6 +40,8 @@ namespace Magick
 {
 class Image;
 }
+
+struct MagickDocument;
 #endif
 
 struct Config;
@@ -746,7 +748,7 @@ private:
 #endif
 
 #ifdef HAS_MAGICKPP
-    std::unique_ptr<Magick::Image> m_magick_image;
+    std::unique_ptr<MagickDocument> m_magick_doc;
 #endif
 
     // For use with visual line mode

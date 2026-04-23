@@ -55,6 +55,40 @@
 
 static DocumentView::Id nextId{0};
 
+static bool
+isImageFileType(Model::FileType ft) noexcept
+{
+    switch (ft)
+    {
+        case Model::FileType::JPG:
+        case Model::FileType::PNG:
+        case Model::FileType::SVG:
+        case Model::FileType::TIFF:
+#ifdef HAS_MAGICKPP
+        case Model::FileType::APNG:
+        case Model::FileType::BMP:
+        case Model::FileType::GIF:
+        case Model::FileType::WEBP:
+        case Model::FileType::AVIF:
+        case Model::FileType::HEIC:
+        case Model::FileType::JXL:
+        case Model::FileType::QOI:
+        case Model::FileType::PSD:
+        case Model::FileType::EXR:
+        case Model::FileType::HDR:
+        case Model::FileType::TGA:
+        case Model::FileType::ICO:
+        case Model::FileType::PPM:
+        case Model::FileType::PGM:
+        case Model::FileType::PBM:
+        case Model::FileType::PCX:
+#endif
+            return true;
+        default:
+            return false;
+    }
+}
+
 static DocumentView::Id
 g_newId() noexcept
 {
@@ -94,6 +128,10 @@ DocumentView::DocumentView(const Config &config, float dpr, QWidget *parent,
 
 DocumentView::~DocumentView() noexcept
 {
+#ifdef HAS_MAGICKPP
+    stopGifPlayback();
+#endif
+
     // Stop and WAIT for all renders to finish before touching anything
     stopPendingRenders();
     resetConnections();
@@ -335,6 +373,9 @@ DocumentView::handleOpenFileFinished() noexcept
 
     m_spinner->stop();
     m_spinner->hide();
+#ifdef HAS_MAGICKPP
+    stopGifPlayback();
+#endif
 
     m_pageno = 0;
 
@@ -346,7 +387,9 @@ DocumentView::handleOpenFileFinished() noexcept
     clearDocumentItems();
     invalidateVisiblePagesCache();
 
-    setLayoutMode(m_config.layout.mode);
+    const bool isImageDoc = isImageFileType(m_model->fileType());
+
+    setLayoutMode(isImageDoc ? LayoutMode::SINGLE : m_config.layout.mode);
     initConnections();
 
     m_vscroll->blockSignals(false);
@@ -361,7 +404,107 @@ DocumentView::handleOpenFileFinished() noexcept
 
     setAutoReload(m_config.behavior.auto_reload);
     emit openFileFinished(this, m_model->fileType());
+
+#ifdef HAS_MAGICKPP
+    if (m_model->fileType() == Model::FileType::GIF)
+        startGifPlayback();
+#endif
 }
+
+#ifdef HAS_MAGICKPP
+void
+DocumentView::startGifPlayback() noexcept
+{
+    if (m_thumbnail_mode)
+        return;
+
+    if (m_model->fileType() != Model::FileType::GIF)
+        return;
+
+    stopGifPlayback();
+
+    m_gif_movie = new QMovie(m_model->filePath());
+    if (!m_gif_movie || !m_gif_movie->isValid())
+    {
+        stopGifPlayback();
+        return;
+    }
+
+    connect(m_gif_movie, &QMovie::frameChanged, this, [this](int)
+    {
+        if (!m_gif_movie)
+            return;
+
+        const QImage frame = m_gif_movie->currentImage();
+        if (frame.isNull())
+            return;
+
+        QImage img = frame;
+        if (m_model->invertColor())
+            img.invertPixels();
+        img.setDevicePixelRatio(m_model->DPR());
+
+        if (m_page_items_hash.contains(0))
+            m_page_items_hash[0]->setImage(img);
+        else
+            createAndAddPageItem(0, img);
+
+        GraphicsImageItem *item = m_page_items_hash.value(0, nullptr);
+        if (!item)
+            return;
+
+        const QSizeF logicalSize = pageSceneSize(0);
+        if (!img.isNull() && img.width() > 0 && img.height() > 0
+            && logicalSize.width() > 0.0 && logicalSize.height() > 0.0)
+        {
+            const double imgLogicalW
+                = static_cast<double>(img.width())
+                  / std::max(1.0, static_cast<double>(img.devicePixelRatio()));
+            const double imgLogicalH
+                = static_cast<double>(img.height())
+                  / std::max(1.0, static_cast<double>(img.devicePixelRatio()));
+
+            item->setScale(1.0);
+            item->setTransform(
+                QTransform::fromScale(logicalSize.width() / imgLogicalW,
+                                      logicalSize.height() / imgLogicalH));
+        }
+
+        const QRectF sr = m_gview->sceneRect();
+        if (m_layout_mode == LayoutMode::HORIZONTAL)
+        {
+            const double yPos = (m_max_page_cross_extent - logicalSize.height())
+                                / 2.0;
+            item->setPos(pageOffset(0), yPos);
+        }
+        else if (m_layout_mode == LayoutMode::SINGLE)
+        {
+            item->setPos(sr.x() + (sr.width() - logicalSize.width()) / 2.0,
+                         sr.y() + (sr.height() - logicalSize.height()) / 2.0);
+        }
+        else
+        {
+            item->setPos(pageXOffset(0, logicalSize.width(), sr.width()),
+                         pageOffset(0));
+        }
+
+        updateCurrentHitHighlight();
+    });
+
+    m_gif_movie->start();
+}
+
+void
+DocumentView::stopGifPlayback() noexcept
+{
+    if (!m_gif_movie)
+        return;
+
+    m_gif_movie->stop();
+    m_gif_movie->deleteLater();
+    m_gif_movie = nullptr;
+}
+#endif
 
 void
 DocumentView::resetConnections() noexcept
@@ -2086,6 +2229,9 @@ DocumentView::SaveAsFile() noexcept
 void
 DocumentView::CloseFile() noexcept
 {
+#ifdef HAS_MAGICKPP
+    stopGifPlayback();
+#endif
     stopPendingRenders();
     clearDocumentItems();
     resetConnections();
@@ -2534,6 +2680,16 @@ DocumentView::clearAnnotationsForPage(int pageno) noexcept
 void
 DocumentView::renderPages() noexcept
 {
+#ifdef HAS_MAGICKPP
+    if (m_model->fileType() == Model::FileType::GIF)
+    {
+        updateSceneRect();
+        repositionPages();
+        updateCurrentHitHighlight();
+        return;
+    }
+#endif
+
     // Guard
     if (m_layout_mode == LayoutMode::SINGLE)
     {
@@ -2583,6 +2739,16 @@ DocumentView::renderPages() noexcept
 void
 DocumentView::renderPage() noexcept
 {
+#ifdef HAS_MAGICKPP
+    if (m_model->fileType() == Model::FileType::GIF)
+    {
+        updateSceneRect();
+        repositionPages();
+        updateCurrentHitHighlight();
+        return;
+    }
+#endif
+
     m_gview->setUpdatesEnabled(false);
     m_gscene->blockSignals(true);
     {
@@ -4192,6 +4358,14 @@ void
 DocumentView::setInvertColor(bool invert) noexcept
 {
     m_model->setInvertColor(invert);
+#ifdef HAS_MAGICKPP
+    if (m_model->fileType() == Model::FileType::GIF)
+    {
+        startGifPlayback();
+        return;
+    }
+#endif
+
     if (m_layout_mode == LayoutMode::SINGLE)
         renderPage();
     else
