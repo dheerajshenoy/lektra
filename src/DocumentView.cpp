@@ -421,9 +421,18 @@ DocumentView::startGifPlayback() noexcept
     if (m_model->fileType() != Model::FileType::GIF)
         return;
 
+    // 1. Clean up the previous movie if it exists
+    if (m_gif_movie)
+    {
+        m_gif_movie->stop();
+        delete m_gif_movie;
+        m_gif_movie = nullptr;
+    }
+
     stopGifPlayback();
 
-    m_gif_movie = new QMovie(m_model->filePath());
+    m_gif_movie = new QMovie(m_model->filePath(), QByteArray(), this);
+
     if (!m_gif_movie || !m_gif_movie->isValid())
     {
         stopGifPlayback();
@@ -473,8 +482,8 @@ DocumentView::startGifPlayback() noexcept
         const QRectF sr = m_gview->sceneRect();
         if (m_layout_mode == LayoutMode::HORIZONTAL)
         {
-            const double yPos = (m_max_page_cross_extent - logicalSize.height())
-                                / 2.0;
+            const double yPos
+                = (m_max_page_cross_extent - logicalSize.height()) / 2.0;
             item->setPos(pageOffset(0), yPos);
         }
         else if (m_layout_mode == LayoutMode::SINGLE)
@@ -1410,7 +1419,6 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         m_model->setZoom(m_current_zoom);
         cachePageStride();
         updateSceneRect();
-        m_gview->flashScrollbars();
         repositionPages();
 
         // Find where the anchor point is now in scene coordinates
@@ -1441,6 +1449,8 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         invalidateVisiblePagesCache();
         zoomHelper(PageLocation{-1, 0, 0});
     }
+
+    m_gview->flashScrollbars();
 }
 
 void
