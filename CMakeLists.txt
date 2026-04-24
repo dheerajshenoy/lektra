@@ -260,7 +260,13 @@ target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 # ---------------------------------------------------------------------------
 
 if(WITH_IMAGE)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_IMAGE=1)
+    PKG_CHECK_MODULES(MAGICK Magick++ REQUIRED)
+    if(MAGICK_FOUND)
+        target_include_directories(lektra PRIVATE ${MAGICK_INCLUDE_DIRS})
+        target_link_libraries(lektra PRIVATE ${MAGICK_LIBRARIES})
+        target_compile_options(lektra PRIVATE ${MAGICK_CFLAGS_OTHER})
+        target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_IMAGE=1)
+    endif()
 endif()
 
 # --- MuPDF ---
