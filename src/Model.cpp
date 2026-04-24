@@ -5,11 +5,11 @@
 #include "Config.hpp"
 #include "utils.hpp"
 
+#include <QImageReader>
 #include <QtConcurrent/QtConcurrent>
 #include <algorithm>
 #include <array>
 #include <limits>
-#include <QImageReader>
 #include <qbytearrayview.h>
 #include <qregularexpression.h>
 #include <qstyle.h>
@@ -979,7 +979,8 @@ Model::openAsync_image(const QString &canonPath) noexcept
             QImage firstFrame = reader.read();
             if (firstFrame.isNull())
             {
-                qWarning() << "Failed to decode first GIF frame:" << reader.errorString();
+                qWarning() << "Failed to decode first GIF frame:"
+                           << reader.errorString();
                 QMetaObject::invokeMethod(this, &Model::openFileFailed,
                                           Qt::QueuedConnection);
                 return;
@@ -988,21 +989,21 @@ Model::openAsync_image(const QString &canonPath) noexcept
             const float w = static_cast<float>(firstFrame.width());
             const float h = static_cast<float>(firstFrame.height());
 
-            QMetaObject::invokeMethod(this,
-                                      [this, base = std::move(firstFrame), w, h]() mutable
+            QMetaObject::invokeMethod(
+                this, [this, base = std::move(firstFrame), w, h]() mutable
             {
                 cleanup_image();
                 m_is_image         = true;
                 m_page_count       = 1;
                 m_success          = true;
                 m_default_page_dim = {w, h};
-                m_page_dim_cache.dimensions.assign(m_page_count, m_default_page_dim);
+                m_page_dim_cache.dimensions.assign(m_page_count,
+                                                   m_default_page_dim);
                 m_page_dim_cache.known.assign(m_page_count, false);
                 m_page_dim_cache.known[0] = true;
-                m_image_cache = std::move(base);
+                m_image_cache             = std::move(base);
                 emit openFileFinished();
-            },
-                                      Qt::QueuedConnection);
+            }, Qt::QueuedConnection);
             return;
         }
 
@@ -1028,8 +1029,8 @@ Model::openAsync_image(const QString &canonPath) noexcept
             return;
         }
 
-        const size_t iw = img.width();
-        const size_t ih = img.height();
+        const size_t iw       = img.width();
+        const size_t ih       = img.height();
         const size_t spectrum = img.spectrum();
         if (iw == 0 || ih == 0 || spectrum == 0)
         {
@@ -1050,7 +1051,7 @@ Model::openAsync_image(const QString &canonPath) noexcept
         {
             for (size_t x = 0; x < iw; ++x)
             {
-                const size_t dst = (y * iw + x) * 4;
+                const size_t dst      = (y * iw + x) * 4;
                 const unsigned char r = img((int)x, (int)y, 0, 0);
                 const unsigned char g
                     = spectrum > 1 ? img((int)x, (int)y, 0, 1) : r;
@@ -1074,17 +1075,17 @@ Model::openAsync_image(const QString &canonPath) noexcept
                                   [this, base = std::move(base), w, h]() mutable
         {
             cleanup_image();
-            m_is_image        = true;
-            m_page_count      = 1;
+            m_is_image         = true;
+            m_page_count       = 1;
             m_success          = true;
             m_default_page_dim = {w, h};
-            m_page_dim_cache.dimensions.assign(m_page_count, m_default_page_dim);
+            m_page_dim_cache.dimensions.assign(m_page_count,
+                                               m_default_page_dim);
             m_page_dim_cache.known.assign(m_page_count, false);
             m_page_dim_cache.known[0] = true;
             m_image_cache = std::move(base); // ready for renderImageDirect
             emit openFileFinished();
-        },
-                                  Qt::QueuedConnection);
+        }, Qt::QueuedConnection);
     });
 }
 
@@ -2304,17 +2305,18 @@ Model::requestImageRender(bool highQuality) noexcept
     int rw = std::max(1, (int)(m_image_cache.width() * m_zoom * m_dpr));
     int rh = std::max(1, (int)(m_image_cache.height() * m_zoom * m_dpr));
 
-    constexpr int MAX_RENDER_EDGE = 16384;
+    constexpr int MAX_RENDER_EDGE      = 16384;
     constexpr double MAX_RENDER_PIXELS = 64.0 * 1024.0 * 1024.0;
 
-    const double pixel_count = static_cast<double>(rw) * static_cast<double>(rh);
-    double cap_scale         = 1.0;
+    const double pixel_count
+        = static_cast<double>(rw) * static_cast<double>(rh);
+    double cap_scale = 1.0;
 
     if (rw > MAX_RENDER_EDGE || rh > MAX_RENDER_EDGE)
     {
         const double edge_scale_x = static_cast<double>(MAX_RENDER_EDGE) / rw;
         const double edge_scale_y = static_cast<double>(MAX_RENDER_EDGE) / rh;
-        cap_scale                 = std::min(cap_scale, std::min(edge_scale_x, edge_scale_y));
+        cap_scale = std::min(cap_scale, std::min(edge_scale_x, edge_scale_y));
     }
 
     if (pixel_count > MAX_RENDER_PIXELS)
