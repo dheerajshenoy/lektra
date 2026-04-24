@@ -47,7 +47,7 @@ supportedFormats()
            "EPUB (*.epub);;"
            "FictionBook (*.fb2 *.fbz);;"
            "Mobi (*.mobi);;"
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
            "Images ("
            "*.jpg *.jpeg "
            "*.png *.apng "
@@ -1403,7 +1403,7 @@ Lektra::initGui() noexcept
 
     // Statusbar
     m_statusbar = new Statusbar(m_config.statusbar, this);
-    m_statusbar->hidePageInfo(true);
+    m_statusbar->setPageInfoVisible(true);
     m_statusbar->setMode(GraphicsView::Mode::TextSelection);
     m_statusbar->setSessionName("");
     m_search_bar = new SearchBar(this);
@@ -1439,96 +1439,102 @@ Lektra::initGui() noexcept
 void
 Lektra::updateUiEnabledState() noexcept
 {
-    const bool hasFile = m_doc != nullptr;
-    const Model::FileType filetype
-        = hasFile ? m_doc->model()->fileType() : Model::FileType::NONE;
+    const bool hasFile = (m_doc != nullptr);
 
-    const bool isPDF = (filetype == Model::FileType::PDF);
+    // Initialize defaults for when no file is open
+    Model::FileType filetype = Model::FileType::NONE;
+    bool isPDF               = false;
+    bool hasTextLayer        = false;
+    bool isImageDoc          = false;
 
-    const bool isImageDoc = [&]() noexcept
+    // Only query the model if the document exists
+    if (hasFile)
     {
-        switch (filetype)
-        {
-            case Model::FileType::JPG:
-            case Model::FileType::PNG:
-            case Model::FileType::SVG:
-            case Model::FileType::TIFF:
-#ifdef HAS_MAGICKPP
-            case Model::FileType::APNG:
-            case Model::FileType::BMP:
-            case Model::FileType::GIF:
-            case Model::FileType::WEBP:
-            case Model::FileType::AVIF:
-            case Model::FileType::HEIC:
-            case Model::FileType::JXL:
-            case Model::FileType::QOI:
-            case Model::FileType::PSD:
-            case Model::FileType::EXR:
-            case Model::FileType::HDR:
-            case Model::FileType::TGA:
-            case Model::FileType::ICO:
-            case Model::FileType::PPM:
-            case Model::FileType::PGM:
-            case Model::FileType::PBM:
-            case Model::FileType::PCX:
-#endif
-                return true;
-            default:
-                return false;
-        }
-    }();
+        auto *model = m_doc->model();
+        filetype    = model->fileType();
+        isPDF       = (filetype == Model::FileType::PDF);
+        isImageDoc  = model->isImage();
 
-    // Text selection — supported for formats with a text layer
-    const bool hasTextLayer
-        = (filetype == Model::FileType::PDF || filetype == Model::FileType::EPUB
-           || filetype == Model::FileType::FB2
-           || filetype == Model::FileType::MOBI
-           || filetype == Model::FileType::XPS);
+        hasTextLayer = (filetype == Model::FileType::PDF
+                        || filetype == Model::FileType::EPUB
+                        || filetype == Model::FileType::FB2
+                        || filetype == Model::FileType::MOBI
+                        || filetype == Model::FileType::XPS);
+    }
 
-    // Format-agnostic — enabled whenever any file is open
-    if (m_layoutMenu)
-        m_layoutMenu->menuAction()->setVisible(!hasFile || !isImageDoc);
-    if (m_modeMenu)
-        m_modeMenu->menuAction()->setVisible(!hasFile || !isImageDoc);
-    if (m_navMenu)
-        m_navMenu->menuAction()->setVisible(!hasFile || !isImageDoc);
+    // --- Visibility Logic ---
+    // Rule: Most advanced tools are hidden if it's an image or no file is open
+    const bool showAdvancedTools = hasFile && !isImageDoc;
 
-    if (m_actionToggleOutline)
-        m_actionToggleOutline->setVisible(!hasFile || !isImageDoc);
-    if (m_actionToggleHighlightAnnotSearch)
-        m_actionToggleHighlightAnnotSearch->setVisible(!hasFile || !isImageDoc);
+    auto setAdvancedVisible = [&](auto *widget)
+    {
+        if (widget)
+            widget->setVisible(showAdvancedTools);
+    };
+
+    setAdvancedVisible(m_layoutMenu ? m_layoutMenu->menuAction() : nullptr);
+    setAdvancedVisible(m_modeMenu ? m_modeMenu->menuAction() : nullptr);
+    setAdvancedVisible(m_navMenu ? m_navMenu->menuAction() : nullptr);
+    setAdvancedVisible(m_actionToggleOutline);
+    setAdvancedVisible(m_actionToggleHighlightAnnotSearch);
+    setAdvancedVisible(m_actionGotoPage);
+    setAdvancedVisible(m_actionFitWidth);
+    setAdvancedVisible(m_actionFitHeight);
+    setAdvancedVisible(m_actionFitWindow);
+    setAdvancedVisible(m_actionAutoresize);
+    setAdvancedVisible(m_actionTextSelect);
+    setAdvancedVisible(m_actionRegionSelect);
+    setAdvancedVisible(m_actionTextHighlight);
+    setAdvancedVisible(m_actionAnnotRect);
+    setAdvancedVisible(m_actionAnnotEdit);
+    setAdvancedVisible(m_actionAnnotPopup);
+    setAdvancedVisible(m_actionVisualLineMode);
+    setAdvancedVisible(m_actionNoneMode);
+    setAdvancedVisible(m_actionGotoMark);
+    setAdvancedVisible(m_actionSetMark);
+    setAdvancedVisible(m_actionDeleteMark);
+
+    // PDF-specific visibility
     if (m_actionEncrypt)
         m_actionEncrypt->setVisible(isPDF);
     if (m_actionDecrypt)
         m_actionDecrypt->setVisible(isPDF);
 
+    // --- Enabled State Logic ---
+
+    // Global actions
     m_actionOpenContainingFolder->setEnabled(hasFile);
     m_actionZoomIn->setEnabled(hasFile);
     m_actionZoomOut->setEnabled(hasFile);
-    m_actionGotoPage->setEnabled(hasFile && !isImageDoc);
-    m_actionFirstPage->setEnabled(hasFile && !isImageDoc);
-    m_actionPrevPage->setEnabled(hasFile && !isImageDoc);
-    m_actionNextPage->setEnabled(hasFile && !isImageDoc);
-    m_actionLastPage->setEnabled(hasFile && !isImageDoc);
     m_actionCloseFile->setEnabled(hasFile);
     m_fitMenu->setEnabled(hasFile);
-    m_modeMenu->setEnabled(hasFile && !isImageDoc);
-    m_layoutMenu->setEnabled(hasFile && !isImageDoc);
-    m_navMenu->setEnabled(hasFile && !isImageDoc);
     m_actionInvertColor->setEnabled(hasFile);
     m_actionPrevLocation->setEnabled(hasFile);
     m_actionNextLocation->setEnabled(hasFile);
     m_actionSessionSave->setEnabled(hasFile);
     m_actionSessionSaveAs->setEnabled(!m_session_name.isEmpty());
-    m_actionSetMark->setEnabled(hasFile);
-    m_actionGotoMark->setEnabled(hasFile);
-    m_actionDeleteMark->setEnabled(hasFile);
-    m_actionToggleOutline->setEnabled(hasFile && !isImageDoc);
-    m_actionToggleHighlightAnnotSearch->setEnabled(hasFile && !isImageDoc);
-    m_actionVisualLineMode->setEnabled(hasFile && !isImageDoc);
-    m_actionRegionSelect->setEnabled(hasFile && !isImageDoc);
 
-    // Selection actions enabled only if text layer is present
+    // Navigation & Advanced (Disabled for Images)
+    m_actionGotoPage->setEnabled(showAdvancedTools);
+    m_actionFirstPage->setEnabled(showAdvancedTools);
+    m_actionPrevPage->setEnabled(showAdvancedTools);
+    m_actionNextPage->setEnabled(showAdvancedTools);
+    m_actionLastPage->setEnabled(showAdvancedTools);
+    if (m_modeMenu)
+        m_modeMenu->setEnabled(showAdvancedTools);
+    if (m_layoutMenu)
+        m_layoutMenu->setEnabled(showAdvancedTools);
+    if (m_navMenu)
+        m_navMenu->setEnabled(showAdvancedTools);
+    m_actionToggleOutline->setEnabled(showAdvancedTools);
+    m_actionToggleHighlightAnnotSearch->setEnabled(showAdvancedTools);
+    m_actionVisualLineMode->setEnabled(showAdvancedTools);
+    m_actionRegionSelect->setEnabled(showAdvancedTools);
+    m_actionSetMark->setEnabled(showAdvancedTools);
+    m_actionGotoMark->setEnabled(showAdvancedTools);
+    m_actionDeleteMark->setEnabled(showAdvancedTools);
+
+    // Text Selection
     m_actionTextSelect->setEnabled(hasTextLayer && !isImageDoc);
 
     // PDF-only
@@ -1542,59 +1548,30 @@ Lektra::updateUiEnabledState() noexcept
     m_actionTextHighlight->setEnabled(isPDF);
     m_actionFileProperties->setEnabled(isPDF);
 
-    if (m_actionFitWidth)
-        m_actionFitWidth->setVisible(!hasFile || !isImageDoc);
-    if (m_actionFitHeight)
-        m_actionFitHeight->setVisible(!hasFile || !isImageDoc);
-    if (m_actionFitWindow)
-        m_actionFitWindow->setVisible(!hasFile || !isImageDoc);
-    if (m_actionAutoresize)
-        m_actionAutoresize->setVisible(!hasFile || !isImageDoc);
-
-    if (m_actionTextSelect)
-        m_actionTextSelect->setVisible(!hasFile || !isImageDoc);
-    if (m_actionRegionSelect)
-        m_actionRegionSelect->setVisible(!hasFile || !isImageDoc);
-    if (m_actionTextHighlight)
-        m_actionTextHighlight->setVisible(!hasFile || !isImageDoc);
-    if (m_actionAnnotRect)
-        m_actionAnnotRect->setVisible(!hasFile || !isImageDoc);
-    if (m_actionAnnotEdit)
-        m_actionAnnotEdit->setVisible(!hasFile || !isImageDoc);
-    if (m_actionAnnotPopup)
-        m_actionAnnotPopup->setVisible(!hasFile || !isImageDoc);
-    if (m_actionVisualLineMode)
-        m_actionVisualLineMode->setVisible(!hasFile || !isImageDoc);
-    if (m_actionNoneMode)
-        m_actionNoneMode->setVisible(!hasFile || !isImageDoc);
-
-    if (m_actionGotoMark)
-        m_actionGotoMark->setVisible(!hasFile || !isImageDoc);
-    if (m_actionSetMark)
-        m_actionSetMark->setVisible(!hasFile || !isImageDoc);
-    if (m_actionDeleteMark)
-        m_actionDeleteMark->setVisible(!hasFile || !isImageDoc);
-
-    // Undo/redo managed by canUndoChanged/canRedoChanged signals —
-    // only reset to false when no file is open
+    // Undo/Redo reset
     if (!hasFile)
     {
         m_actionUndo->setEnabled(false);
         m_actionRedo->setEnabled(false);
     }
 
+    // --- Status Bar and Mode Handling ---
     if (hasFile && isImageDoc)
     {
         m_actionNoneMode->setChecked(true);
         m_statusbar->setMode(GraphicsView::Mode::None);
         m_statusbar->setModeVisible(false);
         m_statusbar->setProgressVisible(false);
+        m_statusbar->setPageInfoVisible(false);
     }
     else
     {
         m_statusbar->setModeVisible(true);
         m_statusbar->setProgressVisible(true);
-        updateSelectionModeActions();
+        if (hasFile)
+        {
+            updateSelectionModeActions();
+        }
     }
 }
 
@@ -3973,19 +3950,19 @@ Lektra::updateStatusbar() noexcept
         const int numPages = model->numPages();
         if (numPages > 0)
         {
-            m_statusbar->hidePageInfo(false);
+            m_statusbar->setPageInfoVisible(false);
             m_statusbar->setTotalPageCount(numPages);
             m_statusbar->setPageNo(m_doc->pageNo() + 1);
         }
         else
         {
             // File still loading — hide until openFileFinished fires
-            m_statusbar->hidePageInfo(true);
+            m_statusbar->setPageInfoVisible(true);
         }
     }
     else
     {
-        m_statusbar->hidePageInfo(true);
+        m_statusbar->setPageInfoVisible(true);
         m_statusbar->setFilePath("");
         m_statusbar->setHighlightColor("");
     }
@@ -4254,7 +4231,7 @@ Lektra::showStartupWidget() noexcept
 void
 Lektra::updateActionsAndStuffForSystemTabs() noexcept
 {
-    m_statusbar->hidePageInfo(true);
+    m_statusbar->setPageInfoVisible(true);
     updateUiEnabledState();
     m_statusbar->setFilePath(tr("Start Page"));
 }
@@ -4868,7 +4845,7 @@ Lektra::updateSelectionModeActions() noexcept
     if (!m_doc)
         return;
 
-    const auto filetype = m_doc->model()->fileType();
+    const auto filetype   = m_doc->model()->fileType();
     const bool isImageDoc = [&]() noexcept
     {
         switch (filetype)
@@ -4877,7 +4854,7 @@ Lektra::updateSelectionModeActions() noexcept
             case Model::FileType::PNG:
             case Model::FileType::SVG:
             case Model::FileType::TIFF:
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
             case Model::FileType::APNG:
             case Model::FileType::BMP:
             case Model::FileType::GIF:

@@ -15,12 +15,10 @@
 #include <qtextformat.h>
 #include <unordered_set>
 
-#ifdef HAS_MAGICKPP
-    #include <Magick++.h>
-struct MagickDocument
-{
-    std::vector<Magick::Image> frames;
-};
+#ifdef WITH_IMAGE
+    #define cimg_display 0
+    #include "CImg.h"
+using cimg_library::CImg;
 
 static bool
 isImageFormat(Model::FileType ft) noexcept
@@ -828,15 +826,15 @@ Model::~Model() noexcept
 #ifdef HAS_DJVU
     if (m_filetype == FileType::DJVU)
         cleanup_djvu();
-    #ifdef HAS_MAGICKPP
+    #ifdef WITH_IMAGE
     if (m_is_image)
-        cleanup_magick();
+        cleanup_image();
     #endif
     else
 #endif
-#if !defined(HAS_DJVU) && defined(HAS_MAGICKPP)
+#if !defined(HAS_DJVU) && defined(WITH_IMAGE)
         if (m_is_image)
-        cleanup_magick();
+        cleanup_image();
     else
 #endif
     {
@@ -884,27 +882,14 @@ Model::cleanup_mupdf() noexcept
     fz_empty_store(m_ctx);
 }
 
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
 void
-Model::cleanup_magick() noexcept
+Model::cleanup_image() noexcept
 {
-    {
-        std::lock_guard<std::mutex> lock(m_doc_mutex);
-        m_magick_doc.reset();
-    }
-
-    {
-        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
-        m_page_lru_cache.clear();
-        m_text_cache.clear();
-        m_stext_page_cache.clear();
-    }
-
-    {
-        std::lock_guard<std::mutex> lock(m_page_dim_mutex);
-        m_page_dim_cache.reset(0);
-        m_default_page_dim = {};
-    }
+    m_image_cache = QImage();
+    m_is_image    = false;
+    m_page_dim_cache.reset(0);
+    m_default_page_dim = {};
 }
 #endif
 
@@ -945,6 +930,7 @@ Model::openAsync(const QString &filePath) noexcept
     // fast for unsupported types without incurring the overhead of starting a
     // thread and cloning the context.
     m_filetype = getFileType(canonPath);
+    m_is_image = isImageFormat(m_filetype);
 
     if (m_filetype == FileType::NONE)
     {
@@ -957,25 +943,32 @@ Model::openAsync(const QString &filePath) noexcept
     if (m_filetype == FileType::DJVU)
         return openAsync_djvu(canonPath);
 #endif
-#ifdef HAS_MAGICKPP
-    if ((m_is_image = isImageFormat(m_filetype)))
-        return openAsync_magick(canonPath);
-#endif
+
+    if (m_is_image)
+        return openAsync_image(canonPath);
+
     return openAsync_mupdf(canonPath);
 }
 
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
 QFuture<void>
-Model::openAsync_magick(const QString &canonPath) noexcept
+Model::openAsync_image(const QString &canonPath) noexcept
 {
     return QtConcurrent::run([this, canonPath]
     {
-        std::vector<Magick::Image> frames;
+        CImg<unsigned char> img;
         try
         {
-            Magick::readImages(&frames, canonPath.toStdString());
-            if (frames.empty())
-                throw std::runtime_error("No image frames found");
+            img.load(canonPath.toStdString().c_str());
+            if (img.is_empty())
+                throw std::runtime_error("No image data found");
+        }
+        catch (const cimg_library::CImgException &e)
+        {
+            qWarning() << "Failed to open image:" << e.what();
+            QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                      Qt::QueuedConnection);
+            return;
         }
         catch (const std::exception &e)
         {
@@ -985,48 +978,66 @@ Model::openAsync_magick(const QString &canonPath) noexcept
             return;
         }
 
-        const int page_count = 1;
-
-        const double density_x      = frames[0].density().x();
-        const double density_y      = frames[0].density().y();
-        const double safe_density_x = density_x > 1.0 ? density_x : 72.0;
-        const double safe_density_y = density_y > 1.0 ? density_y : 72.0;
-        const float w
-            = static_cast<float>(frames[0].columns() / safe_density_x * 72.0);
-        const float h
-            = static_cast<float>(frames[0].rows() / safe_density_y * 72.0);
-
-        QMetaObject::invokeMethod(
-            this, [this, frames = std::move(frames), page_count, w, h]() mutable
+        const size_t iw = img.width();
+        const size_t ih = img.height();
+        const size_t spectrum = img.spectrum();
+        if (iw == 0 || ih == 0 || spectrum == 0)
         {
-            waitForPendingRenders();
-            m_render_cancelled.store(false, std::memory_order_release);
-            cleanup_mupdf(); // drops MuPDF state
-    #ifdef HAS_DJVU
-            cleanup_djvu(); // drops any previous DjVu state
-    #endif
-            cleanup_magick();
+            qWarning() << "Failed to open image: invalid dimensions";
+            QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                      Qt::QueuedConnection);
+            return;
+        }
 
-            m_magick_doc         = std::make_unique<MagickDocument>();
-            m_magick_doc->frames = std::move(frames);
-            m_page_count         = page_count;
-            m_success            = true;
-            m_text_cache.setCapacity(std::min(page_count, 1024));
+        constexpr float safe_density_x = 72.0f;
+        constexpr float safe_density_y = 72.0f;
+        const float w = static_cast<float>(iw / safe_density_x * 72.0);
+        const float h = static_cast<float>(ih / safe_density_y * 72.0);
 
+        std::vector<unsigned char> rgba(iw * ih * 4);
+
+        for (size_t y = 0; y < ih; ++y)
+        {
+            for (size_t x = 0; x < iw; ++x)
             {
-                std::lock_guard<std::mutex> lk(m_page_dim_mutex);
-                m_default_page_dim = {w, h};
-                m_page_dim_cache.dimensions.assign(page_count,
-                                                   m_default_page_dim);
-                m_page_dim_cache.known.assign(page_count, 0);
-                if (page_count > 0)
-                    m_page_dim_cache.known[0] = true;
+                const size_t dst = (y * iw + x) * 4;
+                const unsigned char r = img((int)x, (int)y, 0, 0);
+                const unsigned char g
+                    = spectrum > 1 ? img((int)x, (int)y, 0, 1) : r;
+                const unsigned char b
+                    = spectrum > 2 ? img((int)x, (int)y, 0, 2) : r;
+                const unsigned char a
+                    = spectrum > 3 ? img((int)x, (int)y, 0, 3) : 255;
+                rgba[dst + 0] = r;
+                rgba[dst + 1] = g;
+                rgba[dst + 2] = b;
+                rgba[dst + 3] = a;
             }
+        }
 
+        QImage base(rgba.data(), (int)iw, (int)ih, (int)(iw * 4),
+                    QImage::Format_RGBA8888);
+        base = base.copy(); // detach from rgba buffer before it goes out of
+                            // scope
+
+        QMetaObject::invokeMethod(this,
+                                  [this, base = std::move(base), w, h]() mutable
+        {
+            cleanup_image();
+            m_is_image        = true;
+            m_page_count      = 1;
+            m_success          = true;
+            m_default_page_dim = {w, h};
+            m_page_dim_cache.dimensions.assign(m_page_count, m_default_page_dim);
+            m_page_dim_cache.known.assign(m_page_count, false);
+            m_page_dim_cache.known[0] = true;
+            m_image_cache = std::move(base); // ready for renderImageDirect
             emit openFileFinished();
-        }, Qt::QueuedConnection);
+        },
+                                  Qt::QueuedConnection);
     });
 }
+
 #endif
 
 #ifdef HAS_DJVU
@@ -1074,8 +1085,8 @@ Model::openAsync_djvu(const QString &canonPath) noexcept
             m_render_cancelled.store(false, std::memory_order_release);
             cleanup_mupdf(); // drops MuPDF state
             cleanup_djvu();  // drops any previous DjVu state
-    #ifdef HAS_MAGICKPP
-            cleanup_magick();
+    #ifdef WITH_IMAGE
+            cleanup_image();
     #endif
 
             m_ddjvu_ctx  = ctx;
@@ -1253,8 +1264,8 @@ Model::_continueOpen(fz_context *ctx, fz_document *doc) noexcept
 #ifdef HAS_DJVU
         cleanup_djvu();
 #endif
-#ifdef HAS_MAGICKPP
-        cleanup_magick();
+#ifdef WITH_IMAGE
+        cleanup_image();
 #endif
         fz_drop_context(m_ctx);
 
@@ -1289,10 +1300,10 @@ Model::close() noexcept
         return;
     }
 #endif
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
     if (m_is_image)
     {
-        cleanup_magick();
+        cleanup_image();
         return;
     }
 #endif
@@ -1428,8 +1439,8 @@ Model::buildPageCache_djvu(int pageno) noexcept
     PageCacheEntry entry;
     entry.pageno       = pageno;
     entry.bounds       = {0, 0, w_pts, h_pts};
-    entry.display_list = nullptr; // signals "DjVu pre-rendered" path
-    entry.cached_image = image;   // add this field to PageCacheEntry
+    entry.display_list = nullptr;
+    entry.cached_image = image;
 
     {
         std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
@@ -1449,14 +1460,6 @@ Model::buildPageCache(int pageno) noexcept
     if (m_filetype == FileType::DJVU)
     {
         buildPageCache_djvu(pageno);
-        return;
-    }
-#endif
-
-#ifdef HAS_MAGICKPP
-    if (m_is_image)
-    {
-        buildPageCache_magick(pageno);
         return;
     }
 #endif
@@ -1632,89 +1635,6 @@ Model::buildPageCache(int pageno) noexcept
             fz_drop_display_list(ctx, dlist);
     }
 }
-
-#ifdef HAS_MAGICKPP
-void
-Model::buildPageCache_magick(int pageno) noexcept
-{
-    Magick::Image source;
-    {
-        std::lock_guard<std::mutex> lock(m_doc_mutex);
-        if (!m_magick_doc || m_magick_doc->frames.empty() || pageno != 0)
-            return;
-        source = m_magick_doc->frames.front();
-    }
-
-    const double density_x      = source.density().x();
-    const double density_y      = source.density().y();
-    const double safe_density_x = density_x > 1.0 ? density_x : 72.0;
-    const double safe_density_y = density_y > 1.0 ? density_y : 72.0;
-
-    const float w_pts
-        = static_cast<float>(source.columns() / safe_density_x * 72.0);
-    const float h_pts
-        = static_cast<float>(source.rows() / safe_density_y * 72.0);
-
-    const double render_dpi = m_zoom * m_dpi * m_dpr;
-    const size_t rw         = static_cast<size_t>(
-        std::max(1.0, source.columns() * render_dpi / safe_density_x));
-    const size_t rh = static_cast<size_t>(
-        std::max(1.0, source.rows() * render_dpi / safe_density_y));
-
-    QImage image;
-    try
-    {
-        Magick::Image frame = std::move(source);
-        frame.resize(Magick::Geometry(rw, rh));
-
-        if (rw > static_cast<size_t>(std::numeric_limits<int>::max())
-            || rh > static_cast<size_t>(std::numeric_limits<int>::max())
-            || rw > std::numeric_limits<size_t>::max() / 4
-            || rh > std::numeric_limits<size_t>::max() / (rw * 4))
-        {
-            qWarning() << "Image dimensions too large for rasterization:" << rw
-                       << "x" << rh;
-            return;
-        }
-
-        const size_t row_bytes   = rw * 4;
-        const size_t total_bytes = row_bytes * rh;
-        std::vector<unsigned char> rgba(total_bytes);
-
-        frame.write(0, 0, rw, rh, "RGBA", Magick::CharPixel, rgba.data());
-
-        QImage tmp(rgba.data(), static_cast<int>(rw), static_cast<int>(rh),
-                   static_cast<int>(row_bytes), QImage::Format_RGBA8888);
-        image = tmp.copy();
-    }
-    catch (const std::exception &e)
-    {
-        qWarning() << "Failed to rasterize image:" << e.what();
-        return;
-    }
-
-    image.setDotsPerMeterX(static_cast<int>(render_dpi * 1000.0 / 25.4));
-    image.setDotsPerMeterY(static_cast<int>(render_dpi * 1000.0 / 25.4));
-    image.setDevicePixelRatio(m_dpr);
-
-    {
-        std::lock_guard<std::mutex> dimlock(m_page_dim_mutex);
-        m_page_dim_cache.set(pageno, w_pts, h_pts);
-    }
-
-    PageCacheEntry entry;
-    entry.pageno       = pageno;
-    entry.bounds       = {0, 0, w_pts, h_pts};
-    entry.display_list = nullptr;
-    entry.cached_image = image;
-
-    {
-        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
-        if (!m_page_lru_cache.has(pageno))
-            m_page_lru_cache.put(pageno, std::move(entry));
-    }
-}
-#endif
 
 void
 Model::setPopupColor(const QColor &color) noexcept
@@ -2322,17 +2242,21 @@ Model::createRenderJob(int pageno) const noexcept
 QImage
 Model::requestImageRender() noexcept
 {
-#ifdef HAS_MAGICKPP
-    if (m_is_image)
-    {
-        image.invertPixels();
+    if (!m_is_image)
+        return {};
 
-        image.setDotsPerMeterX(static_cast<int>((job.dpi * 1000) / 25.4));
-        image.setDotsPerMeterY(static_cast<int>((job.dpi * 1000) / 25.4));
-        image.setDevicePixelRatio(job.dpr);
-        return image;
-    }
-#endif
+    if (m_image_cache.isNull())
+        return {};
+
+    const int rw = std::max(1, (int)(m_image_cache.width() * m_zoom * m_dpr));
+    const int rh = std::max(1, (int)(m_image_cache.height() * m_zoom * m_dpr));
+
+    QImage scaled = m_image_cache.scaled(rw, rh, Qt::KeepAspectRatio,
+                                         Qt::FastTransformation);
+    scaled.setDevicePixelRatio(m_dpr);
+    if (m_invert_color)
+        scaled.invertPixels();
+    return scaled;
 }
 
 void
@@ -4540,7 +4464,7 @@ Model::getFileType(const QString &path) noexcept
     if (name == "image/svg+xml" || name == "image/svg")
         return FileType::SVG;
 
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
     // Images
     if (name == "image/bmp" || name == "image/x-bmp")
         return FileType::BMP;
@@ -4592,7 +4516,7 @@ Model::setZoom(float zoom) noexcept
     }
 #endif
 
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
     if (m_is_image)
         invalidatePageCaches();
 #endif
@@ -4613,7 +4537,7 @@ Model::rotateClock() noexcept
     }
 #endif
 
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
     if (m_is_image)
         invalidatePageCaches();
 #endif
@@ -4634,7 +4558,7 @@ Model::rotateAnticlock() noexcept
     }
 #endif
 
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
     if (m_is_image)
         invalidatePageCaches();
 #endif

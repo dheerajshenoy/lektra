@@ -29,7 +29,7 @@ public:
         m_totalpage_label->setText(QString::number(total));
     }
 
-    void hidePageInfo(bool state) noexcept;
+    void setPageInfoVisible(bool state) noexcept;
     void setPageNo(int pageno) noexcept;
     void setFitMode(DocumentView::FitMode mode) noexcept;
     void setMode(GraphicsView::Mode) noexcept;
@@ -61,6 +61,7 @@ private:
     QPushButton *m_session_label    = new QPushButton();
     QGridLayout *m_layout           = new QGridLayout(this);
     GraphicsView::Mode m_current_mode;
-    bool m_mode_forced_hidden{false};
-    bool m_progress_forced_hidden{false};
+    bool m_mode_forced_hidden     = false;
+    bool m_progress_forced_hidden = false;
+    bool m_pageinfo_forced_hidden = false;
 };

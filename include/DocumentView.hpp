@@ -35,7 +35,7 @@ extern "C"
 #include <qevent.h>
 #include <set>
 
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
     #include <QMovie>
 #endif
 
@@ -288,6 +288,7 @@ public:
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
     void createAndAddPageItem(int pageno, const QImage &image) noexcept;
+    void renderImage() noexcept;
     void renderPages() noexcept;
     void renderPage() noexcept;
     void handleTextHighlightRequested() noexcept;
@@ -503,7 +504,7 @@ private:
                           qreal pageH) noexcept;
     void visual_line_move(Direction direction) noexcept;
     void snapVisualLine(bool centerView = true) noexcept;
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
     void startGifPlayback() noexcept;
     void stopGifPlayback() noexcept;
 #endif
@@ -555,7 +556,7 @@ private:
     int m_visual_line_index                  = -1;
     bool m_visual_line_mode                  = false;
     bool m_thumbnail_mode                    = false;
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
     QMovie *m_gif_movie = nullptr;
 #endif
 #ifdef HAS_SYNCTEX

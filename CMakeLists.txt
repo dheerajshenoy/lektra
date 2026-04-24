@@ -3,6 +3,8 @@ project(lektra VERSION 0.7.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
+option(WITH_IMAGE "Enable image support" ON)
+
 # ---------------------------------------------------------------------------
 # Build type default
 # ---------------------------------------------------------------------------
@@ -119,25 +121,25 @@ else()
         SOURCE_DIR "${MUPDF_SOURCE_DIR}"
         CONFIGURE_COMMAND ""
         BUILD_COMMAND
-        make -C <SOURCE_DIR> build=release shared=no
-        HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no
-        LIB_CFLAGS=-fPIC libs
+        make -C <SOURCE_DIR> build=release shared=yes
+        HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no USE_SYSTEM_LIBS=yes
+        LIB_CFLAGS="-fPIC -fvisibility=hidden" libs
         INSTALL_COMMAND
-        make -C <SOURCE_DIR> build=release shared=no
-        HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no
+        make -C <SOURCE_DIR> build=release shared=yes
+        HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no USE_SYSTEM_LIBS=yes
         prefix="${MUPDF_INSTALL_DIR}" install-libs
         BUILD_BYPRODUCTS "${MUPDF_LIB_FILE}" "${MUPDF_LIB_THIRD_FILE}"
         UPDATE_COMMAND ""
     )
 endif()
 
-add_library(mupdf_lib STATIC IMPORTED GLOBAL)
+add_library(mupdf_lib SHARED IMPORTED)
 set_target_properties(mupdf_lib PROPERTIES
     IMPORTED_LOCATION             "${MUPDF_LIB_FILE}"
     INTERFACE_INCLUDE_DIRECTORIES "${MUPDF_INCLUDE_DIRS}"
 )
 
-add_library(mupdf_lib_third STATIC IMPORTED GLOBAL)
+add_library(mupdf_lib_third SHARED IMPORTED)
 set_target_properties(mupdf_lib_third PROPERTIES
     IMPORTED_LOCATION             "${MUPDF_LIB_THIRD_FILE}"
     INTERFACE_INCLUDE_DIRECTORIES "${MUPDF_INCLUDE_DIRS}"
@@ -151,12 +153,6 @@ find_package(Qt6 REQUIRED COMPONENTS
     Core Gui Widgets Concurrent LinguistTools OpenGLWidgets Network)
 
 find_package(PkgConfig REQUIRED)
-
-add_definitions( -DMAGICKCORE_QUANTUM_DEPTH=16 )
-add_definitions( -DMAGICKCORE_HDRI_ENABLE=0 )
-
-find_package(ImageMagick COMPONENTS Magick++)
-pkg_check_modules(MAGICKPP QUIET Magick++)
 
 pkg_check_modules(DJVULIBRE QUIET ddjvuapi)
 pkg_check_modules(SYNCTEX QUIET synctex)
@@ -263,14 +259,8 @@ target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 # Link libraries
 # ---------------------------------------------------------------------------
 
-if (MAGICKPP_FOUND)
-    include_directories(${MAGICKPP_INCLUDE_DIRS})
-    link_directories(${MAGICKPP_LIBRARY_DIRS})
-    target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_MAGICKPP=1)
-    include_directories(${ImageMagick_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-        ${ImageMagick_LIBRARIES}
-        ${MAGICKPP_LIBRARIES})
+if(WITH_IMAGE)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_IMAGE=1)
 endif()
 
 # --- MuPDF ---

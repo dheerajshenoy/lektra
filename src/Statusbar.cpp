@@ -100,17 +100,17 @@ Statusbar::setPageNo(int pageno) noexcept
 }
 
 void
-Statusbar::hidePageInfo(bool state) noexcept
+Statusbar::setPageInfoVisible(bool state) noexcept
 {
-    bool show_page = !state && m_config.component.pagenumber.show;
+    bool show_page_info = !state && m_config.component.pagenumber.show
+                          && !m_pageinfo_forced_hidden;
     bool show_mode
         = !state && m_config.component.mode.show && !m_mode_forced_hidden;
-    bool show_progress
-        = !state && m_config.component.progress.show && !m_progress_forced_hidden;
-
-    m_pageno_label->setVisible(show_page);
-    m_pageno_separator->setVisible(show_page);
-    m_totalpage_label->setVisible(show_page);
+    bool show_progress = !state && m_config.component.progress.show
+                         && !m_progress_forced_hidden;
+    m_pageno_label->setVisible(show_page_info);
+    m_pageno_separator->setVisible(show_page_info);
+    m_totalpage_label->setVisible(show_page_info);
     m_mode_label->setVisible(show_mode);
     m_progress_label->setVisible(show_progress);
 }
@@ -208,7 +208,8 @@ Statusbar::setMode(GraphicsView::Mode mode) noexcept
         QString(tr("Current mode: <b>%1</b>.<br>Click to change."))
             .arg(tr(text)));
 
-    m_mode_color_label->setVisible(cfg.show && show_color && !m_mode_forced_hidden);
+    m_mode_color_label->setVisible(cfg.show && show_color
+                                   && !m_mode_forced_hidden);
     m_mode_label->setVisible(cfg.show && !m_mode_forced_hidden);
     m_current_mode = mode;
 }

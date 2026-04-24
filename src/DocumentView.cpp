@@ -94,7 +94,7 @@ DocumentView::DocumentView(const Config &config, float dpr, QWidget *parent,
 
 DocumentView::~DocumentView() noexcept
 {
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
     stopGifPlayback();
 #endif
 
@@ -275,7 +275,6 @@ DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
     m_pageno = std::clamp(m_pageno, 0, m_model->numPages() - 1);
 
     GotoPage(m_pageno);
-    // renderPages();
 }
 
 #ifdef HAS_SYNCTEX
@@ -312,7 +311,6 @@ DocumentView::openAsync(const QString &filePath) noexcept
     m_spinner->show();
 
     QFuture<void> future = m_model->openAsync(QDir::cleanPath(filePath));
-
     m_open_future_watcher.setFuture(future);
 }
 
@@ -339,7 +337,7 @@ DocumentView::handleOpenFileFinished() noexcept
 
     m_spinner->stop();
     m_spinner->hide();
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
     stopGifPlayback();
 #endif
 
@@ -348,6 +346,16 @@ DocumentView::handleOpenFileFinished() noexcept
     if (m_model->isImage())
     {
         setLayoutMode(LayoutMode::SINGLE);
+        initConnections();
+
+        // Always defer fitmode to next event loop tick so geometry is settled
+        setFitMode(m_config.layout.initial_fit);
+
+#ifdef WITH_IMAGE
+        if (m_model->fileType() == Model::FileType::GIF)
+            startGifPlayback();
+#endif
+        QTimer::singleShot(0, this, [this]() { renderImage(); });
     }
     else
     {
@@ -362,34 +370,26 @@ DocumentView::handleOpenFileFinished() noexcept
 
         m_vscroll->blockSignals(false);
         m_hscroll->blockSignals(false);
+
+        initConnections();
+
+        // Always defer fitmode to next event loop tick so geometry is settled
+        QTimer::singleShot(0, this, [this]()
+        {
+            setFitMode(m_config.layout.initial_fit);
+            renderPages();
+        });
     }
-
-    initConnections();
-
-    // Always defer fitmode to next event loop tick so geometry is settled
-    QTimer::singleShot(0, this, [this]()
-    {
-        setFitMode(m_config.layout.initial_fit);
-        renderPages();
-    });
 
     setAutoReload(m_config.behavior.auto_reload);
     emit openFileFinished(this, m_model->fileType());
-
-#ifdef HAS_MAGICKPP
-    if (m_model->fileType() == Model::FileType::GIF)
-        startGifPlayback();
-#endif
 }
 
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
 void
 DocumentView::startGifPlayback() noexcept
 {
-    if (m_thumbnail_mode)
-        return;
-
-    if (m_model->fileType() != Model::FileType::GIF)
+    if (m_thumbnail_mode || m_model->fileType() != Model::FileType::GIF)
         return;
 
     // 1. Clean up the previous movie if it exists
@@ -419,7 +419,13 @@ DocumentView::startGifPlayback() noexcept
         if (frame.isNull())
             return;
 
-        QImage img = frame;
+        const int rw
+            = std::max(1, int(frame.width() * m_current_zoom * m_model->DPR()));
+        const int rh = std::max(
+            1, int(frame.height() * m_current_zoom * m_model->DPR()));
+
+        QImage img
+            = frame.scaled(rw, rh, Qt::KeepAspectRatio, Qt::FastTransformation);
         if (m_model->invertColor())
             img.invertPixels();
         img.setDevicePixelRatio(m_model->DPR());
@@ -508,6 +514,9 @@ DocumentView::initConnections() noexcept
     {
         connect(m_model, &Model::openFileFinished, this,
                 &DocumentView::handleOpenFileFinished);
+
+        connect(m_hq_render_timer, &QTimer::timeout, this,
+                &DocumentView::renderImage, Qt::UniqueConnection);
 
         connect(m_gview, &GraphicsView::zoomInRequested, this,
                 &DocumentView::ZoomIn);
@@ -1327,7 +1336,8 @@ DocumentView::setZoom(double factor, bool restoreLocation) noexcept
     else
     {
         m_current_zoom = factor;
-        invalidateVisiblePagesCache();
+        if (!m_model->isImage())
+            invalidateVisiblePagesCache();
         zoomHelper(PageLocation{-1, 0, 0});
     }
 }
@@ -1352,6 +1362,42 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
     const QPointF viewportRatio(
         anchorViewport.x() / m_gview->viewport()->width(),
         anchorViewport.y() / m_gview->viewport()->height());
+
+    if (m_model->isImage())
+    {
+        GraphicsImageItem *imageItem = m_page_items_hash.value(0, nullptr);
+        if (!imageItem)
+            return;
+
+        const double zoomRatio
+            = (m_current_zoom > 0.0) ? (factor / m_current_zoom) : 1.0;
+        m_current_zoom = factor;
+        m_model->setZoom(m_current_zoom);
+
+        // Just scale the existing item — no re-render yet
+        const QPointF localPos = imageItem->mapFromScene(anchorScenePos);
+        imageItem->setScale(imageItem->scale() * zoomRatio);
+        const QPointF newScenePos = imageItem->mapToScene(localPos);
+
+        const QPointF currentCenter
+            = m_gview->mapToScene(m_gview->viewport()->rect().center());
+        const QPointF desiredAnchorViewport(
+            viewportRatio.x() * m_gview->viewport()->width(),
+            viewportRatio.y() * m_gview->viewport()->height());
+        const QPointF anchorOffset
+            = m_gview->mapToScene(desiredAnchorViewport.toPoint())
+              - currentCenter;
+        m_gview->centerOn(newScenePos - anchorOffset);
+
+        updateSceneRect();
+        repositionPages();
+
+        // Re-render at correct resolution only when zoom gesture settles
+        m_hq_render_timer->start();
+
+        m_gview->flashScrollbars();
+        return;
+    }
 
     // Find which page the anchor is on and its relative position
     int anchorPage              = -1;
@@ -1379,6 +1425,7 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         else
         {
             m_model->setZoom(m_current_zoom);
+            renderImage();
         }
 
         // Find where the anchor point is now in scene coordinates
@@ -2199,7 +2246,7 @@ DocumentView::SaveAsFile() noexcept
 void
 DocumentView::CloseFile() noexcept
 {
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
     stopGifPlayback();
 #endif
     stopPendingRenders();
@@ -2650,18 +2697,9 @@ DocumentView::clearAnnotationsForPage(int pageno) noexcept
 void
 DocumentView::renderPages() noexcept
 {
-#ifdef HAS_MAGICKPP
-    if (m_model->fileType() == Model::FileType::GIF)
-    {
-        updateSceneRect();
-        repositionPages();
-        updateCurrentHitHighlight();
-        return;
-    }
-#endif
 
     // Guard
-    if (m_layout_mode == LayoutMode::SINGLE || m_model->isImage())
+    if (m_layout_mode == LayoutMode::SINGLE)
     {
         renderPage();
         return;
@@ -2705,11 +2743,84 @@ DocumentView::renderPages() noexcept
     }
 }
 
+void
+DocumentView::renderImage() noexcept
+{
+#ifdef WITH_IMAGE
+    if (m_model->fileType() == Model::FileType::GIF && m_gif_movie)
+    {
+        QImage frame = m_gif_movie->currentImage();
+        if (frame.isNull())
+            frame = m_gif_movie->currentPixmap().toImage();
+
+        if (!frame.isNull())
+        {
+            const int rw = std::max(
+                1, int(frame.width() * m_current_zoom * m_model->DPR()));
+            const int rh = std::max(
+                1, int(frame.height() * m_current_zoom * m_model->DPR()));
+
+            QImage img = frame.scaled(rw, rh, Qt::KeepAspectRatio,
+                                      Qt::FastTransformation);
+            if (m_model->invertColor())
+                img.invertPixels();
+            img.setDevicePixelRatio(m_model->DPR());
+
+            m_pageno = 0;
+
+            GraphicsImageItem *pageItem = m_page_items_hash.value(0, nullptr);
+            if (pageItem)
+            {
+                pageItem->setScale(1.0);
+                pageItem->setImage(img);
+            }
+            else
+            {
+                createAndAddPageItem(0, img);
+            }
+
+            updateSceneRect();
+            repositionPages();
+            return;
+        }
+    }
+#endif
+
+    QImage img = m_model->requestImageRender();
+    if (img.isNull())
+    {
+        qWarning() << "Failed to render image";
+        return;
+    }
+
+    m_pageno = 0;
+
+    GraphicsImageItem *pageItem = m_page_items_hash.value(0, nullptr);
+    if (pageItem)
+    {
+        pageItem->setScale(1.0);
+        pageItem->setImage(img);
+    }
+    else
+    {
+        createAndAddPageItem(0, img);
+    }
+
+    updateSceneRect();
+    repositionPages();
+}
+
 // Render a specific page (used when LayoutMode is SINGLE)
 void
 DocumentView::renderPage() noexcept
 {
-#ifdef HAS_MAGICKPP
+    if (m_model->isImage())
+    {
+        renderImage();
+        return;
+    }
+
+#ifdef WITH_IMAGE
     if (m_model->fileType() == Model::FileType::GIF)
     {
         updateSceneRect();
@@ -3637,6 +3748,9 @@ DocumentView::clearDocumentItems() noexcept
 void
 DocumentView::requestPageRender(int pageno, bool force) noexcept
 {
+    if (m_model->isImage())
+        return;
+
     if (!force && m_pending_renders.contains(pageno))
         return;
 
@@ -3646,17 +3760,10 @@ DocumentView::requestPageRender(int pageno, bool force) noexcept
              << pageno;
 #endif
 
-    if (m_model->isImage())
-    {
-        m_model->requestImageRender();
-    }
-    else
-    {
-        m_pending_renders.insert(pageno);
-        m_render_queue.enqueue(pageno);
-        createAndAddPlaceholderPageItem(pageno);
-        startNextRenderJob();
-    }
+    m_pending_renders.insert(pageno);
+    m_render_queue.enqueue(pageno);
+    createAndAddPlaceholderPageItem(pageno);
+    startNextRenderJob();
 }
 
 void
@@ -4267,7 +4374,7 @@ void
 DocumentView::setInvertColor(bool invert) noexcept
 {
     m_model->setInvertColor(invert);
-#ifdef HAS_MAGICKPP
+#ifdef WITH_IMAGE
     if (m_model->fileType() == Model::FileType::GIF)
     {
         startGifPlayback();
@@ -4818,21 +4925,29 @@ DocumentView::zoomHelper(const PageLocation &loc) noexcept
 #ifndef NDEBUG
     qDebug() << "DocumentView::zoomHelper(): Zooming to" << m_current_zoom;
 #endif
-    ClearTextSelection();
-    m_model->setZoom(m_current_zoom);
-
-    cachePageStride();
-    updateSceneRect();
-
-    m_gview->flashScrollbars();
-    repositionPages();
-
-    // Restore the exact viewport position
-    if (loc.pageno != -1)
-        CenterOnLocation(loc);
+    if (m_model->isImage())
+    {
+        m_model->setZoom(m_current_zoom);
+        renderImage();
+    }
     else
-        // Fallback if we were out of bounds
-        GotoPage(m_pageno);
+    {
+        ClearTextSelection();
+        m_model->setZoom(m_current_zoom);
+
+        cachePageStride();
+        updateSceneRect();
+
+        m_gview->flashScrollbars();
+        repositionPages();
+
+        // Restore the exact viewport position
+        if (loc.pageno != -1)
+            CenterOnLocation(loc);
+        else
+            // Fallback if we were out of bounds
+            GotoPage(m_pageno);
+    }
 }
 
 // Reposition every live page item at the new zoom

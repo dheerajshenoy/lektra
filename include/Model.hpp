@@ -27,6 +27,7 @@ extern "C"
 #ifdef HAS_DJVU
     #include <libdjvu/ddjvuapi.h>
     #include <libdjvu/miniexp.h>
+
 #endif
 }
 
@@ -34,15 +35,6 @@ extern "C"
 class TextHighlightAnnotationCommand;
 class TextAnnotationCommand;
 class DocumentView;
-
-#ifdef HAS_MAGICKPP
-namespace Magick
-{
-class Image;
-}
-
-struct MagickDocument;
-#endif
 
 struct Config;
 
@@ -67,8 +59,8 @@ public:
         EPUB,
         FB2,
         MOBI,
-    // Images
-#ifdef HAS_MAGICKPP
+// Images
+#ifdef WITH_IMAGE
         JPG,
         PNG,
         SVG,
@@ -90,11 +82,6 @@ public:
         PGM,
         PBM,
         PCX,
-#else
-        JPG,
-        PNG,
-        SVG,
-        TIFF,
 #endif
     };
 
@@ -456,6 +443,7 @@ public:
     void requestPageRender(
         const RenderJob &job,
         const std::function<void(PageRenderResult)> &callback) noexcept;
+    QImage requestImageRender() noexcept;
     PageRenderResult renderPageWithExtrasAsync(const RenderJob &job) noexcept;
 
     Properties properties() noexcept;
@@ -467,10 +455,9 @@ public:
 #ifdef HAS_DJVU
     QFuture<void> openAsync_djvu(const QString &canonicalPath) noexcept;
 #endif
-#ifdef HAS_MAGICKPP
-    QFuture<void> openAsync_magick(const QString &canonicalPath) noexcept;
-    void buildPageCache_magick(int pageno) noexcept;
-    void cleanup_magick() noexcept;
+#ifdef WITH_IMAGE
+    QFuture<void> openAsync_image(const QString &canonicalPath) noexcept;
+    void cleanup_image() noexcept;
 #endif
     void _continueOpen(fz_context *ctx, fz_document *doc) noexcept;
 
@@ -627,7 +614,7 @@ private:
         fz_display_list *display_list = nullptr;
         fz_rect bounds;
 
-#if defined(HAS_DJVU) || defined(HAS_MAGICKPP)
+#if defined(HAS_DJVU) || defined(WITH_IMAGE)
         QImage cached_image; // for DJVU
 #endif
         PageDimension dimension;
@@ -753,10 +740,6 @@ private:
     ddjvu_document_t *m_ddjvu_doc = nullptr;
 #endif
 
-#ifdef HAS_MAGICKPP
-    std::unique_ptr<MagickDocument> m_magick_doc;
-#endif
-
     // For use with visual line mode
     struct VisualLineInfo
     {
@@ -783,7 +766,10 @@ private:
     std::atomic<int> m_search_match_count = 0;
     std::atomic<bool> m_search_cancelled  = false;
 
+#ifdef WITH_IMAGE
     bool m_is_image = false;
+    QImage m_image_cache;
+#endif
 
     const Config &m_config;
 };
