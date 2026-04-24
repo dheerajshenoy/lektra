@@ -17,9 +17,7 @@
 #include <unordered_set>
 
 #ifdef WITH_IMAGE
-    #define cimg_display 0
-    #include "CImg.h"
-using cimg_library::CImg;
+    #include <Magick++.h>
 
 static bool
 isImageFormat(Model::FileType ft) noexcept
@@ -933,8 +931,6 @@ Model::openAsync(const QString &filePath) noexcept
     m_filetype = getFileType(canonPath);
 #ifdef WITH_IMAGE
     m_is_image = isImageFormat(m_filetype);
-#else
-    m_is_image = false;
 #endif
 
     if (m_filetype == FileType::NONE)
@@ -958,132 +954,151 @@ Model::openAsync(const QString &filePath) noexcept
 }
 
 #ifdef WITH_IMAGE
+
 QFuture<void>
 Model::openAsync_image(const QString &canonPath) noexcept
 {
     return QtConcurrent::run([this, canonPath]
     {
-        if (m_filetype == FileType::GIF)
+        // Initialize ImageMagick (safe to call multiple times)
+        Magick::InitializeMagick(nullptr);
+
+        std::vector<Magick::Image> frames;
+        try
         {
-            QImageReader reader(canonPath);
-            reader.setAutoTransform(true);
+            Magick::readImages(&frames, canonPath.toStdString());
+            qDebug() << "frames decoded:" << frames.size() << "for"
+                     << canonPath;
+        }
+        catch (const Magick::Exception &e)
+        {
+            qWarning() << "ImageMagick failed to open:" << e.what();
+            QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                      Qt::QueuedConnection);
+            return;
+        }
 
-            if (!reader.canRead())
+        if (frames.empty())
+        {
+            qWarning() << "ImageMagick: no frames decoded for" << canonPath;
+            QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                      Qt::QueuedConnection);
+            return;
+        }
+
+        // ── Helpers ───────────────────────────────────────────────────────
+
+        auto toQImage = [](const Magick::Image &imgIn) -> QImage
+        {
+            Magick::Image img = imgIn; // local copy to call non-const methods
+            img.alpha(true);
+            img.depth(8);
+            const size_t w = img.columns(), h = img.rows();
+            Magick::Blob blob;
+            img.write(&blob, "RGBA");
+            const auto *src = static_cast<const uchar *>(blob.data());
+            QImage qi(src, (int)w, (int)h, (int)(w * 4),
+                      QImage::Format_RGBA8888);
+            return qi.copy();
+        };
+
+        // centiseconds (GIF/WebP standard) → milliseconds, with sane floor
+        auto delayMs = [](const Magick::Image &img) -> int
+        {
+            const int ms = (int)(img.animationDelay() * 10);
+            return ms < 20 ? 100 : ms;
+        };
+
+        if (frames.size() > 1)
+        {
+            std::vector<Magick::Image> coalesced;
+            try
             {
-                qWarning() << "Failed to open GIF:" << reader.errorString();
+                Magick::coalesceImages(&coalesced, frames.begin(),
+                                       frames.end());
+            }
+            catch (const Magick::Exception &e)
+            {
+                qWarning() << "ImageMagick coalesce failed:" << e.what();
                 QMetaObject::invokeMethod(this, &Model::openFileFailed,
                                           Qt::QueuedConnection);
                 return;
             }
 
-            QImage firstFrame = reader.read();
-            if (firstFrame.isNull())
+            QList<QImage> qframes;
+            QList<int> delays;
+            qframes.reserve((int)coalesced.size());
+            delays.reserve((int)coalesced.size());
+
+            for (auto &f : coalesced)
             {
-                qWarning() << "Failed to decode first GIF frame:"
-                           << reader.errorString();
+                delays.push_back(delayMs(f));
+                qframes.push_back(
+                    toQImage(f)); // pass by ref, toQImage takes by value
+            }
+
+            if (qframes.isEmpty())
+            {
                 QMetaObject::invokeMethod(this, &Model::openFileFailed,
                                           Qt::QueuedConnection);
                 return;
             }
 
-            const float w = static_cast<float>(firstFrame.width());
-            const float h = static_cast<float>(firstFrame.height());
+            const float w = static_cast<float>(qframes[0].width());
+            const float h = static_cast<float>(qframes[0].height());
 
-            QMetaObject::invokeMethod(
-                this, [this, base = std::move(firstFrame), w, h]() mutable
+            QMetaObject::invokeMethod(this,
+                                      [this, qframes = std::move(qframes),
+                                       delays = std::move(delays), w,
+                                       h]() mutable
             {
                 cleanup_image();
                 m_is_image         = true;
+                m_is_animated      = true;
                 m_page_count       = 1;
                 m_success          = true;
                 m_default_page_dim = {w, h};
-                m_page_dim_cache.dimensions.assign(m_page_count,
-                                                   m_default_page_dim);
-                m_page_dim_cache.known.assign(m_page_count, false);
-                m_page_dim_cache.known[0] = true;
-                m_image_cache             = std::move(base);
+                m_page_dim_cache.dimensions.assign(1, m_default_page_dim);
+                m_page_dim_cache.known.assign(1, true);
+                m_animated_frames = std::move(qframes);
+                m_frame_delays_ms = std::move(delays);
+                m_frame_count     = m_animated_frames.size();
+                m_current_frame   = 0;
+                m_image_cache     = m_animated_frames[0];
                 emit openFileFinished();
-            }, Qt::QueuedConnection);
-            return;
-        }
-
-        CImg<unsigned char> img;
-        try
-        {
-            img.load(canonPath.toStdString().c_str());
-            if (img.is_empty())
-                throw std::runtime_error("No image data found");
-        }
-        catch (const cimg_library::CImgException &e)
-        {
-            qWarning() << "Failed to open image:" << e.what();
-            QMetaObject::invokeMethod(this, &Model::openFileFailed,
+            },
                                       Qt::QueuedConnection);
             return;
         }
-        catch (const std::exception &e)
+
+        // ── Static image ──────────────────────────────────────────────────
+        QImage base = toQImage(std::move(frames[0]));
+
+        if (base.isNull())
         {
-            qWarning() << "Failed to open image:" << e.what();
+            qWarning() << "ImageMagick: toQImage produced null for"
+                       << canonPath;
             QMetaObject::invokeMethod(this, &Model::openFileFailed,
                                       Qt::QueuedConnection);
             return;
         }
 
-        const size_t iw       = img.width();
-        const size_t ih       = img.height();
-        const size_t spectrum = img.spectrum();
-        if (iw == 0 || ih == 0 || spectrum == 0)
-        {
-            qWarning() << "Failed to open image: invalid dimensions";
-            QMetaObject::invokeMethod(this, &Model::openFileFailed,
-                                      Qt::QueuedConnection);
-            return;
-        }
-
-        constexpr float safe_density_x = 72.0f;
-        constexpr float safe_density_y = 72.0f;
-        const float w = static_cast<float>(iw / safe_density_x * 72.0);
-        const float h = static_cast<float>(ih / safe_density_y * 72.0);
-
-        std::vector<unsigned char> rgba(iw * ih * 4);
-
-        for (size_t y = 0; y < ih; ++y)
-        {
-            for (size_t x = 0; x < iw; ++x)
-            {
-                const size_t dst      = (y * iw + x) * 4;
-                const unsigned char r = img((int)x, (int)y, 0, 0);
-                const unsigned char g
-                    = spectrum > 1 ? img((int)x, (int)y, 0, 1) : r;
-                const unsigned char b
-                    = spectrum > 2 ? img((int)x, (int)y, 0, 2) : r;
-                const unsigned char a
-                    = spectrum > 3 ? img((int)x, (int)y, 0, 3) : 255;
-                rgba[dst + 0] = r;
-                rgba[dst + 1] = g;
-                rgba[dst + 2] = b;
-                rgba[dst + 3] = a;
-            }
-        }
-
-        QImage base(rgba.data(), (int)iw, (int)ih, (int)(iw * 4),
-                    QImage::Format_RGBA8888);
-        base = base.copy(); // detach from rgba buffer before it goes out of
-                            // scope
+        const float w = static_cast<float>(base.width());
+        const float h = static_cast<float>(base.height());
 
         QMetaObject::invokeMethod(this,
                                   [this, base = std::move(base), w, h]() mutable
         {
             cleanup_image();
             m_is_image         = true;
+            m_is_animated      = false;
             m_page_count       = 1;
             m_success          = true;
             m_default_page_dim = {w, h};
-            m_page_dim_cache.dimensions.assign(m_page_count,
-                                               m_default_page_dim);
-            m_page_dim_cache.known.assign(m_page_count, false);
+            m_page_dim_cache.dimensions.assign(1, m_default_page_dim);
+            m_page_dim_cache.known.assign(1, false);
             m_page_dim_cache.known[0] = true;
-            m_image_cache = std::move(base); // ready for renderImageDirect
+            m_image_cache             = std::move(base);
             emit openFileFinished();
         }, Qt::QueuedConnection);
     });
@@ -2301,6 +2316,17 @@ Model::requestImageRender(bool highQuality) noexcept
 
     if (m_image_cache.isNull())
         return {};
+
+    // For animated images, skip the expensive per-frame scale.
+    // DocumentView applies zoom via the scene transform instead.
+    if (m_is_animated)
+    {
+        QImage frame = m_image_cache; // shallow copy
+        frame.setDevicePixelRatio(m_dpr);
+        if (m_invert_color)
+            frame.invertPixels(); // this will detach — acceptable
+        return frame;
+    }
 
     int rw = std::max(1, (int)(m_image_cache.width() * m_zoom * m_dpr));
     int rh = std::max(1, (int)(m_image_cache.height() * m_zoom * m_dpr));
@@ -4679,3 +4705,55 @@ Model::waitForPendingRenders() noexcept
     m_renders_cv.wait(lock, [this]
     { return m_active_renders.load(std::memory_order_acquire) == 0; });
 }
+
+#ifdef WITH_IMAGE
+QImage
+Model::getAnimatedFrame(int index) noexcept
+{
+    if (index < 0 || index >= m_frame_count)
+        return {};
+    try
+    {
+        std::vector<Magick::Image> frames;
+        Magick::readImages(&frames, m_filepath.toStdString());
+        if (frames.empty())
+            return {};
+
+        std::vector<Magick::Image> coalesced;
+        Magick::coalesceImages(&coalesced, frames.begin(), frames.end());
+
+        if (index >= (int)coalesced.size())
+            return {};
+
+        auto &f = coalesced[index];
+        f.alpha(true);
+        f.depth(8);
+        Magick::Blob blob;
+        f.write(&blob, "RGBA");
+        const size_t fw = f.columns(), fh = f.rows();
+        QImage qi(static_cast<const uchar *>(blob.data()), (int)fw, (int)fh,
+                  (int)(fw * 4), QImage::Format_RGBA8888);
+        return qi.copy();
+    }
+    catch (const Magick::Exception &e)
+    {
+        qWarning() << "getAnimatedFrame failed:" << e.what();
+        return {};
+    }
+}
+
+void
+Model::setCurrentAnimFrame(int index) noexcept
+{
+    qDebug() << "setCurrentAnimFrame" << index
+             << "frames available:" << m_animated_frames.size() << "frame null?"
+             << (index < m_animated_frames.size()
+                     ? m_animated_frames[index].isNull()
+                     : true);
+    if (index < 0 || index >= (int)m_animated_frames.size())
+        return;
+    m_current_frame = index;
+    m_image_cache   = m_animated_frames[index];
+}
+
+#endif
