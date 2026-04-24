@@ -272,6 +272,10 @@ public:
         return m_thumbnail_mode;
     }
 
+#ifdef WITH_IMAGE
+    void startGifPlayback() noexcept;
+    void stopGifPlayback() noexcept;
+#endif
     bool pageAtScenePos(QPointF scenePos, int &outPageIndex,
                         GraphicsImageItem *&outPageItem) const noexcept;
     void setPortal(DocumentView *portal) noexcept;
@@ -503,8 +507,6 @@ private:
     void visual_line_move(Direction direction) noexcept;
     void snapVisualLine(bool centerView = true) noexcept;
 #ifdef WITH_IMAGE
-    void startGifPlayback() noexcept;
-    void stopGifPlayback() noexcept;
     void setCurrentAnimFrame(int index) noexcept;
     QTimer *m_anim_timer = nullptr;
 #endif
