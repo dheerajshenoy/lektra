@@ -53,41 +53,7 @@
 #define HSCROLL_STEP 50
 #define VSCROLL_STEP 50
 
-static DocumentView::Id nextId{0};
-
-static bool
-isImageFileType(Model::FileType ft) noexcept
-{
-    switch (ft)
-    {
-        case Model::FileType::JPG:
-        case Model::FileType::PNG:
-        case Model::FileType::SVG:
-        case Model::FileType::TIFF:
-#ifdef HAS_MAGICKPP
-        case Model::FileType::APNG:
-        case Model::FileType::BMP:
-        case Model::FileType::GIF:
-        case Model::FileType::WEBP:
-        case Model::FileType::AVIF:
-        case Model::FileType::HEIC:
-        case Model::FileType::JXL:
-        case Model::FileType::QOI:
-        case Model::FileType::PSD:
-        case Model::FileType::EXR:
-        case Model::FileType::HDR:
-        case Model::FileType::TGA:
-        case Model::FileType::ICO:
-        case Model::FileType::PPM:
-        case Model::FileType::PGM:
-        case Model::FileType::PBM:
-        case Model::FileType::PCX:
-#endif
-            return true;
-        default:
-            return false;
-    }
-}
+static DocumentView::Id nextId = 0;
 
 static DocumentView::Id
 g_newId() noexcept
@@ -379,21 +345,26 @@ DocumentView::handleOpenFileFinished() noexcept
 
     m_pageno = 0;
 
-    // Block scroll signals to prevent jumping during layout swap
-    m_vscroll->blockSignals(true);
-    m_hscroll->blockSignals(true);
+    if (m_model->isImage())
+    {
+        setLayoutMode(LayoutMode::SINGLE);
+    }
+    else
+    {
+        // Block scroll signals to prevent jumping during layout swap
+        m_vscroll->blockSignals(true);
+        m_hscroll->blockSignals(true);
 
-    // First, clear old items and caches
-    clearDocumentItems();
-    invalidateVisiblePagesCache();
+        // First, clear old items and caches
+        clearDocumentItems();
+        invalidateVisiblePagesCache();
+        setLayoutMode(m_config.layout.mode);
 
-    const bool isImageDoc = isImageFileType(m_model->fileType());
+        m_vscroll->blockSignals(false);
+        m_hscroll->blockSignals(false);
+    }
 
-    setLayoutMode(isImageDoc ? LayoutMode::SINGLE : m_config.layout.mode);
     initConnections();
-
-    m_vscroll->blockSignals(false);
-    m_hscroll->blockSignals(false);
 
     // Always defer fitmode to next event loop tick so geometry is settled
     QTimer::singleShot(0, this, [this]()
@@ -460,49 +431,6 @@ DocumentView::startGifPlayback() noexcept
     });
 
     m_gif_movie->start();
-    //     connect(m_gif_movie, &QMovie::frameChanged, this, [this](int)
-    //     {
-    //         if (!m_gif_movie)
-    //             return;
-    //
-    //         const QImage frame = m_gif_movie->currentImage();
-    //         if (frame.isNull())
-    //             return;
-    //
-    //         QImage img = frame;
-    //         if (m_model->invertColor())
-    //             img.invertPixels();
-    //         img.setDevicePixelRatio(m_model->DPR());
-    //
-    //         if (m_page_items_hash.contains(0))
-    //             m_page_items_hash[0]->setImage(img);
-    //         else
-    //             createAndAddPageItem(0, img);
-    //
-    //         GraphicsImageItem *item = m_page_items_hash.value(0, nullptr);
-    //         if (!item)
-    //             return;
-    //
-    //         const QSizeF logicalSize = pageSceneSize(0);
-    //         if (!img.isNull() && img.width() > 0 && img.height() > 0
-    //             && logicalSize.width() > 0.0 && logicalSize.height() > 0.0)
-    //         {
-    //             QImage scaled
-    //                 = img.scaled(logicalSize.width() * m_model->DPR(),
-    //                              logicalSize.height() * m_model->DPR(),
-    //                              Qt::IgnoreAspectRatio,
-    //                              Qt::SmoothTransformation);
-    //             scaled.setDevicePixelRatio(m_model->DPR());
-    //             m_page_items_hash[0]->setImage(scaled);
-    //         }
-    //
-    //         const QRectF sr = m_gview->sceneRect();
-    //         item->setPos(sr.x() + (sr.width() - logicalSize.width()) / 2.0,
-    //                      sr.y() + (sr.height() - logicalSize.height())
-    //                      / 2.0);
-    //
-    //         updateCurrentHitHighlight();
-    //     });
 }
 
 void
@@ -521,8 +449,8 @@ void
 DocumentView::resetConnections() noexcept
 {
 #ifndef NDEBUG
-    qDebug()
-        << "DocumentView::resetConnections(): Clearing existing connections";
+    qDebug() << "DocumentView::resetConnections(): Clearing existing "
+                "connections";
 #endif
 
     // Disconnect specific objects that signal INTO this DocumentView
@@ -575,6 +503,25 @@ DocumentView::initConnections() noexcept
     connect(m_gview, &GraphicsView::synctexJumpRequested, this,
             &DocumentView::handleSynctexJumpRequested);
 #endif
+
+    if (m_model->isImage())
+    {
+        connect(m_model, &Model::openFileFinished, this,
+                &DocumentView::handleOpenFileFinished);
+
+        connect(m_gview, &GraphicsView::zoomInRequested, this,
+                &DocumentView::ZoomIn);
+
+        // Pinch zoom
+        connect(m_gview, &GraphicsView::zoomRequested, this,
+                [this](float factor, QPointF anchorScenePos)
+        { setZoomAnchored(m_current_zoom * factor, anchorScenePos); });
+
+        connect(m_gview, &GraphicsView::zoomOutRequested, this,
+                &DocumentView::ZoomOut);
+
+        return;
+    }
 
     if (m_thumbnail_mode)
     {
@@ -833,8 +780,8 @@ DocumentView::getClosestHitIndex() noexcept
     // We want to find the hit closest to the current viewport position.
     // We'll use the page number as the primary sorting key, and the index
     // within the page as the secondary key. This way, if there are multiple
-    // hits on the same page, we'll jump to the one closest to the top of the
-    // page.
+    // hits on the same page, we'll jump to the one closest to the top of
+    // the page.
     const int currentPage = m_pageno;
 
     auto it = std::lower_bound(m_search_hit_flat_refs.begin(),
@@ -844,17 +791,20 @@ DocumentView::getClosestHitIndex() noexcept
 
     if (it == m_search_hit_flat_refs.end())
     {
-        // All hits are before the current page, so wrap around to the first hit
+        // All hits are before the current page, so wrap around to the first
+        // hit
         index = 0;
     }
     else if (it == m_search_hit_flat_refs.begin())
     {
-        // All hits are after the current page, so wrap around to the last hit
+        // All hits are after the current page, so wrap around to the last
+        // hit
         index = static_cast<int>(m_search_hit_flat_refs.size() - 1);
     }
     else
     {
-        // Check the hit at 'it' and the one before it to see which is closer
+        // Check the hit at 'it' and the one before it to see which is
+        // closer
         const int nextPage = it->page;
         const int prevPage = (it - 1)->page;
 
@@ -935,7 +885,7 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
         }
     }
 
-    fz_point pdfPos{float(pagePos.x()), float(pagePos.y())};
+    fz_point pdfPos = {float(pagePos.x()), float(pagePos.y())};
 
     std::vector<QPolygonF> quads;
     switch (clickType)
@@ -1008,7 +958,7 @@ DocumentView::handleSynctexJumpRequested(QPointF scenePos) noexcept
 
         // Map to page-local coordinates
         const QPointF pagePos = pageItem->mapFromScene(scenePos);
-        fz_point pdfPos{float(pagePos.x()), float(pagePos.y())};
+        fz_point pdfPos       = {float(pagePos.x()), float(pagePos.y())};
 
         if (synctex_edit_query(m_synctex_scanner, pageIndex + 1, pdfPos.x,
                                pdfPos.y)
@@ -1320,7 +1270,7 @@ DocumentView::setFitMode(FitMode mode) noexcept
                           // center
     }
 
-    double newZoom{m_current_zoom};
+    double newZoom = m_current_zoom;
     switch (mode)
     {
         case FitMode::Width:
@@ -1416,12 +1366,20 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
 
         // Apply zoom
         m_current_zoom = factor;
-        invalidateVisiblePagesCache();
-        ClearTextSelection();
-        m_model->setZoom(m_current_zoom);
-        cachePageStride();
-        updateSceneRect();
-        repositionPages();
+
+        if (!m_model->isImage())
+        {
+            invalidateVisiblePagesCache();
+            ClearTextSelection();
+            m_model->setZoom(m_current_zoom);
+            cachePageStride();
+            updateSceneRect();
+            repositionPages();
+        }
+        else
+        {
+            m_model->setZoom(m_current_zoom);
+        }
 
         // Find where the anchor point is now in scene coordinates
         pageItem = m_page_items_hash.value(anchorPage, nullptr);
@@ -1724,8 +1682,8 @@ DocumentView::Search(const QString &term, bool useRegex) noexcept
 
     emit searchBarSpinnerShow(true);
 
-    // Always search from the first page, but hit index is determined by current
-    // location
+    // Always search from the first page, but hit index is determined by
+    // current location
     m_model->search(term, caseSensitive, 0, useRegex);
 }
 
@@ -2132,7 +2090,7 @@ DocumentView::FollowLink(const Model::LinkInfo &info) noexcept
         case BrowseLinkItem::LinkType::Page:
             if (info.target_page >= 0)
             {
-                PageLocation target{info.target_page, 0, 0};
+                PageLocation target = {info.target_page, 0, 0};
                 addToHistory(
                     {info.source_page, info.source_loc.x, info.source_loc.y});
                 addToHistory(target);
@@ -2703,7 +2661,7 @@ DocumentView::renderPages() noexcept
 #endif
 
     // Guard
-    if (m_layout_mode == LayoutMode::SINGLE)
+    if (m_layout_mode == LayoutMode::SINGLE || m_model->isImage())
     {
         renderPage();
         return;
@@ -3302,12 +3260,12 @@ DocumentView::pageAtScenePos(QPointF scenePos, int &outPageIndex,
     candidate = std::clamp(candidate, 0, N - 1);
 
     // ── Try candidate, then expand outward
-    // With variable page sizes the binary search is exact for the main axis,
-    // but the cross-axis check (sceneBoundingRect) can still miss e.g. during a
-    // zoom animation frame. Expanding ±1 covers that transient case without
-    // ever needing more — the binary search already pins the main-axis page
-    // correctly, so ±1 is now a genuine safety net rather than the primary
-    // mechanism.
+    // With variable page sizes the binary search is exact for the main
+    // axis, but the cross-axis check (sceneBoundingRect) can still miss
+    // e.g. during a zoom animation frame. Expanding ±1 covers that
+    // transient case without ever needing more — the binary search already
+    // pins the main-axis page correctly, so ±1 is now a genuine safety net
+    // rather than the primary mechanism.
 
     std::vector<int> candidates;
     if (m_layout_mode == LayoutMode::BOOK)
@@ -3620,40 +3578,7 @@ DocumentView::updateCurrentPage() noexcept
 void
 DocumentView::ensureVisiblePagePlaceholders() noexcept
 {
-    const auto isImageDoc = [this]() noexcept
-    {
-        switch (m_model->fileType())
-        {
-            case Model::FileType::JPG:
-            case Model::FileType::PNG:
-            case Model::FileType::SVG:
-            case Model::FileType::TIFF:
-#ifdef HAS_MAGICKPP
-            case Model::FileType::APNG:
-            case Model::FileType::BMP:
-            case Model::FileType::GIF:
-            case Model::FileType::WEBP:
-            case Model::FileType::AVIF:
-            case Model::FileType::HEIC:
-            case Model::FileType::JXL:
-            case Model::FileType::QOI:
-            case Model::FileType::PSD:
-            case Model::FileType::EXR:
-            case Model::FileType::HDR:
-            case Model::FileType::TGA:
-            case Model::FileType::ICO:
-            case Model::FileType::PPM:
-            case Model::FileType::PGM:
-            case Model::FileType::PBM:
-            case Model::FileType::PCX:
-#endif
-                return true;
-            default:
-                return false;
-        }
-    };
-
-    if (isImageDoc())
+    if (m_model->isImage())
         return;
 
     const std::set<int> &visiblePages = getVisiblePages();
@@ -3721,45 +3646,17 @@ DocumentView::requestPageRender(int pageno, bool force) noexcept
              << pageno;
 #endif
 
-    m_pending_renders.insert(pageno);
-    m_render_queue.enqueue(pageno);
-
-    const auto isImageDoc = [this]() noexcept
+    if (m_model->isImage())
     {
-        switch (m_model->fileType())
-        {
-            case Model::FileType::JPG:
-            case Model::FileType::PNG:
-            case Model::FileType::SVG:
-            case Model::FileType::TIFF:
-#ifdef HAS_MAGICKPP
-            case Model::FileType::APNG:
-            case Model::FileType::BMP:
-            case Model::FileType::GIF:
-            case Model::FileType::WEBP:
-            case Model::FileType::AVIF:
-            case Model::FileType::HEIC:
-            case Model::FileType::JXL:
-            case Model::FileType::QOI:
-            case Model::FileType::PSD:
-            case Model::FileType::EXR:
-            case Model::FileType::HDR:
-            case Model::FileType::TGA:
-            case Model::FileType::ICO:
-            case Model::FileType::PPM:
-            case Model::FileType::PGM:
-            case Model::FileType::PBM:
-            case Model::FileType::PCX:
-#endif
-                return true;
-            default:
-                return false;
-        }
-    };
-
-    if (!isImageDoc())
+        m_model->requestImageRender();
+    }
+    else
+    {
+        m_pending_renders.insert(pageno);
+        m_render_queue.enqueue(pageno);
         createAndAddPlaceholderPageItem(pageno);
-    startNextRenderJob();
+        startNextRenderJob();
+    }
 }
 
 void
@@ -3923,7 +3820,7 @@ DocumentView::renderLinks(int pageno,
                     const PageLocation sourceLocation = CurrentLocation();
                     if (sourceLocation.pageno != -1)
                         addToHistory(sourceLocation);
-                    PageLocation target{pageno, loc.x, loc.y};
+                    PageLocation target = {pageno, loc.x, loc.y};
                     if (std::isnan(target.x))
                         target.x = 0;
                     if (std::isnan(target.y))
@@ -3944,7 +3841,7 @@ DocumentView::renderLinks(int pageno,
                     const PageLocation sourceLocation = CurrentLocation();
                     if (sourceLocation.pageno != -1)
                         addToHistory(sourceLocation);
-                    PageLocation target{pageno, loc.x, loc.y};
+                    PageLocation target = {pageno, loc.x, loc.y};
                     if (std::isnan(target.x))
                         target.x = 0;
                     if (std::isnan(target.y))
@@ -3963,8 +3860,8 @@ DocumentView::renderLinks(int pageno,
                                        const BrowseLinkItem::PageLocation
                                            &sourceLocationOfLink)
                 {
-                    const PageLocation targetLocation{targetPageno, 0, 0};
-                    const PageLocation sourceLocation{
+                    const PageLocation targetLocation = {targetPageno, 0, 0};
+                    const PageLocation sourceLocation = {
                         pageno, sourceLocationOfLink.x, sourceLocationOfLink.y};
                     addToHistory(sourceLocation);
                     addToHistory(targetLocation);
@@ -4873,7 +4770,7 @@ void
 DocumentView::handleAnnotPopupRequested(QPointF scenePos) noexcept
 {
     int pageno;
-    GraphicsImageItem *pageItem;
+    GraphicsImageItem *pageItem = nullptr;
 
     if (!pageAtScenePos(scenePos, pageno, pageItem))
         return;
@@ -5054,7 +4951,7 @@ DocumentView::handleHScrollValueChanged(int value) noexcept
     // Don't render on scroll for single-page documents or images
     if (m_layout_mode == LayoutMode::SINGLE)
         return;
-    if (m_model && isImageFileType(m_model->fileType()))
+    if (m_model && m_model->isImage())
         return;
 
     // During fast scrolling, only invalidate cache, don't trigger render
@@ -5075,7 +4972,7 @@ DocumentView::handleVScrollValueChanged(int /*value */) noexcept
     // Don't render on scroll for single-page documents or images
     if (m_layout_mode == LayoutMode::SINGLE)
         return;
-    if (m_model && isImageFileType(m_model->fileType()))
+    if (m_model && m_model->isImage())
         return;
 
     // During fast scrolling, only invalidate cache, don't trigger render
@@ -5287,11 +5184,11 @@ DocumentView::snapVisualLine(bool centerView) noexcept
 
         const float scale = m_model->logicalScale();
 
-        // Map bbox in item-local pixel coords through the full item transform.
-        // Do NOT pre-multiply by scale if the item itself carries a scale()
-        // factor — mapRectToScene already accounts for it. Instead, work in
-        // the item's own coordinate system (pixels at render resolution) and
-        // let Qt composite the transform.
+        // Map bbox in item-local pixel coords through the full item
+        // transform. Do NOT pre-multiply by scale if the item itself
+        // carries a scale() factor — mapRectToScene already accounts for
+        // it. Instead, work in the item's own coordinate system (pixels at
+        // render resolution) and let Qt composite the transform.
         QRectF itemBbox(info.bbox.x() * scale, info.bbox.y() * scale,
                         info.bbox.width() * scale, info.bbox.height() * scale);
 

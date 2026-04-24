@@ -278,6 +278,11 @@ public:
         m_rotation = angle;
     }
 
+    inline bool isImage() noexcept
+    {
+        return m_is_image;
+    }
+
     inline float rotation() const noexcept
     {
         return m_rotation;

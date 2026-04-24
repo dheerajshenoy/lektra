@@ -556,7 +556,7 @@ private:
     bool m_visual_line_mode                  = false;
     bool m_thumbnail_mode                    = false;
 #ifdef HAS_MAGICKPP
-    QMovie *m_gif_movie                      = nullptr;
+    QMovie *m_gif_movie = nullptr;
 #endif
 #ifdef HAS_SYNCTEX
     synctex_scanner_p m_synctex_scanner = nullptr;
