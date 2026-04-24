@@ -68,13 +68,6 @@ supportedFormats()
            "*.ppm *.pgm *.pbm "
            "*.pcx"
            ");;"
-#else
-           "Images ("
-           "*.jpg *.jpeg "
-           "*.png *.apng "
-           "*.tiff *.tif "
-           "*.svg"
-           ");;"
 #endif
            "All Files (*.*)";
 }
@@ -4848,13 +4841,13 @@ Lektra::updateSelectionModeActions() noexcept
     const auto filetype   = m_doc->model()->fileType();
     const bool isImageDoc = [&]() noexcept
     {
+#ifdef WITH_IMAGE
         switch (filetype)
         {
             case Model::FileType::JPG:
             case Model::FileType::PNG:
             case Model::FileType::SVG:
             case Model::FileType::TIFF:
-#ifdef WITH_IMAGE
             case Model::FileType::APNG:
             case Model::FileType::BMP:
             case Model::FileType::GIF:
@@ -4872,11 +4865,14 @@ Lektra::updateSelectionModeActions() noexcept
             case Model::FileType::PGM:
             case Model::FileType::PBM:
             case Model::FileType::PCX:
-#endif
                 return true;
             default:
                 return false;
         }
+#else
+        Q_UNUSED(filetype);
+        return false;
+#endif
     }();
 
     if (isImageDoc)

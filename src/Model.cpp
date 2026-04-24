@@ -930,7 +930,11 @@ Model::openAsync(const QString &filePath) noexcept
     // fast for unsupported types without incurring the overhead of starting a
     // thread and cloning the context.
     m_filetype = getFileType(canonPath);
+#ifdef WITH_IMAGE
     m_is_image = isImageFormat(m_filetype);
+#else
+    m_is_image = false;
+#endif
 
     if (m_filetype == FileType::NONE)
     {
@@ -944,8 +948,10 @@ Model::openAsync(const QString &filePath) noexcept
         return openAsync_djvu(canonPath);
 #endif
 
+#ifdef WITH_IMAGE
     if (m_is_image)
         return openAsync_image(canonPath);
+#endif
 
     return openAsync_mupdf(canonPath);
 }
@@ -2242,6 +2248,9 @@ Model::createRenderJob(int pageno) const noexcept
 QImage
 Model::requestImageRender() noexcept
 {
+#ifndef WITH_IMAGE
+    return {};
+#else
     if (!m_is_image)
         return {};
 
@@ -2257,6 +2266,7 @@ Model::requestImageRender() noexcept
     if (m_invert_color)
         scaled.invertPixels();
     return scaled;
+#endif
 }
 
 void
@@ -4455,6 +4465,8 @@ Model::getFileType(const QString &path) noexcept
         return FileType::DJVU;
 #endif
 
+#ifdef WITH_IMAGE
+    // Images
     if (name == "image/jpeg")
         return FileType::JPG;
     if (name == "image/png" || name == "image/apng")
@@ -4464,8 +4476,6 @@ Model::getFileType(const QString &path) noexcept
     if (name == "image/svg+xml" || name == "image/svg")
         return FileType::SVG;
 
-#ifdef WITH_IMAGE
-    // Images
     if (name == "image/bmp" || name == "image/x-bmp")
         return FileType::BMP;
     if (name == "image/gif")

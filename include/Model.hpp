@@ -766,8 +766,8 @@ private:
     std::atomic<int> m_search_match_count = 0;
     std::atomic<bool> m_search_cancelled  = false;
 
-#ifdef WITH_IMAGE
     bool m_is_image = false;
+#ifdef WITH_IMAGE
     QImage m_image_cache;
 #endif
 
