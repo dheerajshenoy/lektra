@@ -343,6 +343,7 @@ DocumentView::handleOpenFileFinished() noexcept
 
     m_pageno = 0;
 
+#ifdef WITH_IMAGE
     if (m_model->isImage())
     {
         setLayoutMode(LayoutMode::SINGLE);
@@ -351,13 +352,12 @@ DocumentView::handleOpenFileFinished() noexcept
         // Always defer fitmode to next event loop tick so geometry is settled
         setFitMode(m_config.layout.initial_fit);
 
-#ifdef WITH_IMAGE
-        if (m_model->fileType() == Model::FileType::GIF)
+        if (m_model->isAnimated())
             startGifPlayback();
-#endif
-        QTimer::singleShot(0, this, [this]() { renderImage(); });
+        // QTimer::singleShot(0, this, [this]() { renderImage(); });
     }
     else
+#endif
     {
         // Block scroll signals to prevent jumping during layout swap
         m_vscroll->blockSignals(true);
@@ -389,66 +389,43 @@ DocumentView::handleOpenFileFinished() noexcept
 void
 DocumentView::startGifPlayback() noexcept
 {
-    if (m_thumbnail_mode || m_model->fileType() != Model::FileType::GIF)
+    if (m_thumbnail_mode || !m_model->isAnimated())
         return;
-
-    // 1. Clean up the previous movie if it exists
-    if (m_gif_movie)
-    {
-        m_gif_movie->stop();
-        delete m_gif_movie;
-        m_gif_movie = nullptr;
-    }
 
     stopGifPlayback();
 
-    m_gif_movie = new QMovie(m_model->filePath(), QByteArray(), this);
+    m_anim_timer = new QTimer(this);
+    m_anim_timer->setSingleShot(true);
 
-    if (!m_gif_movie || !m_gif_movie->isValid())
+    connect(m_anim_timer, &QTimer::timeout, this, [this]()
     {
-        stopGifPlayback();
-        return;
-    }
-
-    connect(m_gif_movie, &QMovie::frameChanged, this, [this](int)
-    {
-        if (!m_gif_movie)
+        if (!m_model->isAnimated())
             return;
 
-        const QImage frame = m_gif_movie->currentImage();
-        if (frame.isNull())
-            return;
+        const int next
+            = (m_model->currentAnimFrame() + 1) % m_model->frameCount();
 
-        const int rw
-            = std::max(1, int(frame.width() * m_current_zoom * m_model->DPR()));
-        const int rh = std::max(
-            1, int(frame.height() * m_current_zoom * m_model->DPR()));
+        m_model->setCurrentAnimFrame(next);
 
-        QImage img
-            = frame.scaled(rw, rh, Qt::KeepAspectRatio, Qt::FastTransformation);
-        if (m_model->invertColor())
-            img.invertPixels();
-        img.setDevicePixelRatio(m_model->DPR());
+        renderImage();
 
-        if (m_page_items_hash.contains(0))
-            m_page_items_hash[0]->setImage(img);
-        else
-            createAndAddPageItem(0, img);
+        m_anim_timer->start(m_model->frameDelayMs(next));
     });
 
-    m_gif_movie->start();
+    m_anim_timer->start(m_model->frameDelayMs(0));
 }
 
 void
 DocumentView::stopGifPlayback() noexcept
 {
-    if (!m_gif_movie)
-        return;
-
-    m_gif_movie->stop();
-    m_gif_movie->deleteLater();
-    m_gif_movie = nullptr;
+    if (m_anim_timer)
+    {
+        m_anim_timer->stop();
+        m_anim_timer->deleteLater();
+        m_anim_timer = nullptr;
+    }
 }
+
 #endif
 
 void
@@ -510,6 +487,7 @@ DocumentView::initConnections() noexcept
             &DocumentView::handleSynctexJumpRequested);
 #endif
 
+#ifdef WITH_IMAGE
     if (m_model->isImage())
     {
         connect(m_model, &Model::openFileFinished, this,
@@ -531,6 +509,7 @@ DocumentView::initConnections() noexcept
 
         return;
     }
+#endif
 
     if (m_thumbnail_mode)
     {
@@ -1336,7 +1315,9 @@ DocumentView::setZoom(double factor, bool restoreLocation) noexcept
     else
     {
         m_current_zoom = factor;
+#ifdef WITH_IMAGE
         if (!m_model->isImage())
+#endif
             invalidateVisiblePagesCache();
         zoomHelper(PageLocation{-1, 0, 0});
     }
@@ -1363,6 +1344,7 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         anchorViewport.x() / m_gview->viewport()->width(),
         anchorViewport.y() / m_gview->viewport()->height());
 
+#ifdef WITH_IMAGE
     if (m_model->isImage())
     {
         GraphicsImageItem *imageItem = m_page_items_hash.value(0, nullptr);
@@ -1398,6 +1380,7 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         m_gview->flashScrollbars();
         return;
     }
+#endif
 
     // Find which page the anchor is on and its relative position
     int anchorPage              = -1;
@@ -1413,7 +1396,14 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         // Apply zoom
         m_current_zoom = factor;
 
-        if (!m_model->isImage())
+#ifdef WITH_IMAGE
+        if (m_model->isImage())
+        {
+            m_model->setZoom(m_current_zoom);
+            renderImage();
+        }
+        else
+#endif
         {
             invalidateVisiblePagesCache();
             ClearTextSelection();
@@ -1421,11 +1411,6 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
             cachePageStride();
             updateSceneRect();
             repositionPages();
-        }
-        else
-        {
-            m_model->setZoom(m_current_zoom);
-            renderImage();
         }
 
         // Find where the anchor point is now in scene coordinates
@@ -2743,48 +2728,33 @@ DocumentView::renderPages() noexcept
     }
 }
 
+#ifdef WITH_IMAGE
 void
 DocumentView::renderImage() noexcept
 {
-#ifdef WITH_IMAGE
-    if (m_model->fileType() == Model::FileType::GIF && m_gif_movie)
+    if (m_model->isAnimated())
     {
-        QImage frame = m_gif_movie->currentImage();
+        QImage frame = m_model->requestImageRender(false);
         if (frame.isNull())
-            frame = m_gif_movie->currentPixmap().toImage();
-
-        if (!frame.isNull())
-        {
-            const int rw = std::max(
-                1, int(frame.width() * m_current_zoom * m_model->DPR()));
-            const int rh = std::max(
-                1, int(frame.height() * m_current_zoom * m_model->DPR()));
-
-            QImage img = frame.scaled(rw, rh, Qt::KeepAspectRatio,
-                                      Qt::FastTransformation);
-            if (m_model->invertColor())
-                img.invertPixels();
-            img.setDevicePixelRatio(m_model->DPR());
-
-            m_pageno = 0;
-
-            GraphicsImageItem *pageItem = m_page_items_hash.value(0, nullptr);
-            if (pageItem)
-            {
-                pageItem->setScale(1.0);
-                pageItem->setImage(img);
-            }
-            else
-            {
-                createAndAddPageItem(0, img);
-            }
-
-            updateSceneRect();
-            repositionPages();
             return;
+
+        m_pageno                    = 0;
+        GraphicsImageItem *pageItem = m_page_items_hash.value(0, nullptr);
+        if (pageItem)
+        {
+            // Apply zoom via transform — no pixel scaling
+            pageItem->setScale(m_current_zoom);
+            pageItem->setImage(frame);
         }
+        else
+        {
+            createAndAddPageItem(0, frame);
+            m_page_items_hash[0]->setScale(m_current_zoom);
+        }
+        updateSceneRect();
+        repositionPages();
+        return;
     }
-#endif
 
     const bool highQuality = !m_hq_render_timer->isActive();
     QImage img             = m_model->requestImageRender(highQuality);
@@ -2793,9 +2763,7 @@ DocumentView::renderImage() noexcept
         qWarning() << "Failed to render image";
         return;
     }
-
-    m_pageno = 0;
-
+    m_pageno                    = 0;
     GraphicsImageItem *pageItem = m_page_items_hash.value(0, nullptr);
     if (pageItem)
     {
@@ -2806,23 +2774,23 @@ DocumentView::renderImage() noexcept
     {
         createAndAddPageItem(0, img);
     }
-
     updateSceneRect();
     repositionPages();
 }
+#endif
 
 // Render a specific page (used when LayoutMode is SINGLE)
 void
 DocumentView::renderPage() noexcept
 {
+#ifdef WITH_IMAGE
     if (m_model->isImage())
     {
         renderImage();
         return;
     }
 
-#ifdef WITH_IMAGE
-    if (m_model->fileType() == Model::FileType::GIF)
+    if (m_model->isAnimated())
     {
         updateSceneRect();
         repositionPages();
@@ -3690,9 +3658,6 @@ DocumentView::updateCurrentPage() noexcept
 void
 DocumentView::ensureVisiblePagePlaceholders() noexcept
 {
-    if (m_model->isImage())
-        return;
-
     const std::set<int> &visiblePages = getVisiblePages();
 
     // Quick check - if we already have all pages, return early
@@ -3749,9 +3714,6 @@ DocumentView::clearDocumentItems() noexcept
 void
 DocumentView::requestPageRender(int pageno, bool force) noexcept
 {
-    if (m_model->isImage())
-        return;
-
     if (!force && m_pending_renders.contains(pageno))
         return;
 
@@ -4376,7 +4338,7 @@ DocumentView::setInvertColor(bool invert) noexcept
 {
     m_model->setInvertColor(invert);
 #ifdef WITH_IMAGE
-    if (m_model->fileType() == Model::FileType::GIF)
+    if (m_model->isAnimated())
     {
         startGifPlayback();
         return;
@@ -4926,12 +4888,15 @@ DocumentView::zoomHelper(const PageLocation &loc) noexcept
 #ifndef NDEBUG
     qDebug() << "DocumentView::zoomHelper(): Zooming to" << m_current_zoom;
 #endif
+
+#ifdef WITH_IMAGE
     if (m_model->isImage())
     {
         m_model->setZoom(m_current_zoom);
         renderImage();
     }
     else
+#endif
     {
         ClearTextSelection();
         m_model->setZoom(m_current_zoom);
@@ -5067,8 +5032,6 @@ DocumentView::handleHScrollValueChanged(int value) noexcept
     // Don't render on scroll for single-page documents or images
     if (m_layout_mode == LayoutMode::SINGLE)
         return;
-    if (m_model && m_model->isImage())
-        return;
 
     // During fast scrolling, only invalidate cache, don't trigger render
     invalidateVisiblePagesCache();
@@ -5087,8 +5050,6 @@ DocumentView::handleVScrollValueChanged(int /*value */) noexcept
 {
     // Don't render on scroll for single-page documents or images
     if (m_layout_mode == LayoutMode::SINGLE)
-        return;
-    if (m_model && m_model->isImage())
         return;
 
     // During fast scrolling, only invalidate cache, don't trigger render
