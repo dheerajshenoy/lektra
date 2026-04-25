@@ -1345,6 +1345,54 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
              << "anchored at" << anchorScenePos;
 #endif
 
+#ifdef WITH_IMAGE
+    if (m_model->isImage())
+    {
+        GraphicsImageItem *imageItem = m_page_items_hash.value(0, nullptr);
+        if (!imageItem)
+            return;
+
+        // 1. Capture the pixel-exact position of the cursor in the viewport
+        const QPointF anchorViewport = m_gview->mapFromScene(anchorScenePos);
+
+        // 2. Map the scene anchor to the image's LOCAL coordinates.
+        // This point (e.g., the nose of a person in a photo) remains constant
+        // relative to the pixels even when we scale or rotate the item.
+        const QPointF localPos = imageItem->mapFromScene(anchorScenePos);
+
+        // 3. Update the model and the item scale
+        m_current_zoom = factor;
+        m_model->setZoom(m_current_zoom);
+
+        // Use setScale directly to ensure it matches the zoom factor precisely
+        imageItem->setScale(m_current_zoom);
+
+        // 4. Update the layout.
+        // repositionPages() likely moves the item (setPos), which changes
+        // mapToScene logic.
+        updateSceneRect();
+        repositionPages();
+
+        // 5. Find where that same LOCAL pixel is in the scene NOW after
+        // scaling/repositioning
+        const QPointF newScenePos = imageItem->mapToScene(localPos);
+
+        // 6. Calculate the new center.
+        // We want: NewScenePos to appear at AnchorViewport pixels.
+        // QGraphicsView::centerOn(target) puts 'target' at the exact center of
+        // the viewport.
+        const QPointF viewportCenter(m_gview->viewport()->width() / 2.0,
+                                     m_gview->viewport()->height() / 2.0);
+        const QPointF centerOffset = anchorViewport - viewportCenter;
+        const QPointF targetCenter = newScenePos - centerOffset;
+
+        m_gview->centerOn(targetCenter);
+
+        m_gview->flashScrollbars();
+        return;
+    }
+#endif
+
     factor = std::clamp(factor, MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
 
     // If effectively no change, skip
@@ -1356,44 +1404,6 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
     const QPointF viewportRatio(
         anchorViewport.x() / m_gview->viewport()->width(),
         anchorViewport.y() / m_gview->viewport()->height());
-
-#ifdef WITH_IMAGE
-    if (m_model->isImage())
-    {
-        GraphicsImageItem *imageItem = m_page_items_hash.value(0, nullptr);
-        if (!imageItem)
-            return;
-
-        const double zoomRatio
-            = (m_current_zoom > 0.0) ? (factor / m_current_zoom) : 1.0;
-        m_current_zoom = factor;
-        m_model->setZoom(m_current_zoom);
-
-        // Just scale the existing item — no re-render yet
-        const QPointF localPos = imageItem->mapFromScene(anchorScenePos);
-        imageItem->setScale(imageItem->scale() * zoomRatio);
-        const QPointF newScenePos = imageItem->mapToScene(localPos);
-
-        const QPointF currentCenter
-            = m_gview->mapToScene(m_gview->viewport()->rect().center());
-        const QPointF desiredAnchorViewport(
-            viewportRatio.x() * m_gview->viewport()->width(),
-            viewportRatio.y() * m_gview->viewport()->height());
-        const QPointF anchorOffset
-            = m_gview->mapToScene(desiredAnchorViewport.toPoint())
-              - currentCenter;
-        m_gview->centerOn(newScenePos - anchorOffset);
-
-        updateSceneRect();
-        repositionPages();
-
-        // Re-render at correct resolution only when zoom gesture settles
-        // m_hq_render_timer->start();
-
-        m_gview->flashScrollbars();
-        return;
-    }
-#endif
 
     // Find which page the anchor is on and its relative position
     int anchorPage              = -1;
