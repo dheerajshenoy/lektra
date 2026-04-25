@@ -179,7 +179,7 @@ TabBar::paintEvent(QPaintEvent *event)
         if (!tabRect.isValid())
             continue;
 
-        int badgeLeft, badgeTop;
+        int badgeLeft = 0, badgeTop = 0;
 
         if (!isVertical)
         {
