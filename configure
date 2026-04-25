@@ -12,6 +12,8 @@ Options:
     --prefix PATH           Set the installation prefix [default: /usr]
     --build-type TYPE       Set the CMake build type [default: Release]
                             Valid values: Debug, Release, RelWithDebInfo
+    --with-image            Enable image files support (requires ImageMagick and it's C++ development library) (default: true)
+    --without-image         Disable image files support
     -h, --help              Show this help message and exit
 
 Examples:
@@ -29,6 +31,14 @@ while [ "$#" -gt 0 ]; do
             ;;
         --prefix)
             PREFIX="$2"
+            shift 2
+            ;;
+        --with-image)
+            WITH_IMAGE="on"
+            shift 2
+            ;;
+        --without-image)
+            WITH_IMAGE="off"
             shift 2
             ;;
         -h|--help)
@@ -60,7 +70,8 @@ fi
 # Run cmake with the specified options
 cmake -S . -B build \
   -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-  -DCMAKE_INSTALL_PREFIX="$PREFIX"
+  -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+  -DWITH_IMAGE="$WITH_IMAGE"
 
 cmake --build build
 

@@ -4,6 +4,7 @@ setlocal enabledelayedexpansion
 :: Default values
 set "BUILD_TYPE=Release"
 set "PREFIX=C:\usr"
+set "WITH_IMAGE=on"
 
 :parse_args
 if "%~1"=="" goto end_parse
@@ -15,6 +16,18 @@ if /i "%~1"=="--build-type" (
 )
 if /i "%~1"=="--prefix" (
     set "PREFIX=%~2"
+    shift
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--with-image" (
+    set "WITH_IMAGE=on"
+    shift
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--without-image" (
+    set "WITH_IMAGE=off"
     shift
     shift
     goto parse_args
@@ -31,6 +44,8 @@ echo Usage: configure.bat [OPTIONS]
 echo.
 echo Options:
 echo     --prefix PATH           Set the installation prefix [default: C:\usr]
+echo     --with-image            Enable image files support (requires ImageMagick and it's C++ development library) (default: true)
+echo     --without-image         Disable image files support
 echo     --build-type TYPE       Set the CMake build type [default: Release]
 echo                             Valid values: Debug, Release, RelWithDebInfo
 echo     -h, --help              Show this help message and exit
@@ -53,7 +68,7 @@ if %errorlevel% neq 0 (
 if not exist build mkdir build
 
 :: Note: For MSVC, CMAKE_BUILD_TYPE is ignored at this stage.
-cmake -S . -B build -G "Visual Studio 18 2026" -A x64 -DCMAKE_INSTALL_PREFIX="%PREFIX%"
+cmake -S . -B build -G "Visual Studio 18 2026" -A x64 -DCMAKE_INSTALL_PREFIX="%PREFIX%" -DWITH_IMAGE="%WITH_IMAGE%"
 
 if %errorlevel% neq 0 exit /b %errorlevel%
 
