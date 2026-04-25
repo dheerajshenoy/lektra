@@ -14,6 +14,8 @@ Options:
                             Valid values: Debug, Release, RelWithDebInfo
     --with-image            Enable image files support (requires ImageMagick and it's C++ development library) (default: true)
     --without-image         Disable image files support
+    --with-synctex          Enable SyncTeX support (default: true)
+    --without-synctex       Disable SyncTeX support
     -h, --help              Show this help message and exit
 
 Examples:
@@ -39,6 +41,14 @@ while [ "$#" -gt 0 ]; do
             ;;
         --without-image)
             WITH_IMAGE="off"
+            shift 2
+            ;;
+        --with-synctex)
+            WITH_SYNCTEX="on"
+            shift 2
+            ;;
+        --without-synctex)
+            WITH_SYNCTEX="off"
             shift 2
             ;;
         -h|--help)
@@ -71,7 +81,8 @@ fi
 cmake -S . -B build \
   -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-  -DWITH_IMAGE="$WITH_IMAGE"
+  -DWITH_IMAGE="$WITH_IMAGE" \
+  -DWITH_SYNCTEX="$WITH_SYNCTEX"
 
 cmake --build build
 
