@@ -1388,7 +1388,7 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         repositionPages();
 
         // Re-render at correct resolution only when zoom gesture settles
-        m_hq_render_timer->start();
+        // m_hq_render_timer->start();
 
         m_gview->flashScrollbars();
         return;
