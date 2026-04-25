@@ -22,7 +22,12 @@
 
 ## Supported file types
 
-- PDF, XPS, OXPS, CBZ, FB2, EPUB, FictionBook, Mobi, JPG, PNG, SVG, TIFF, DjVu (if compiled)
+### Documents
+- PDF, XPS, OXPS, CBZ, FB2, EPUB, Mobi, DjVu (if compiled)
+
+### Images (if compiled with image support)
+- All the file formats supported by [ImageMagick](https://imagemagick.org/formats) ~ 170 formats, including but not limited to: JPEG, PNG, TIFF, GIF, SVG, WebP, HEIC, AVIF etc.
+- Also supports multi-frame animated images (e.g. animated GIFs, animated WebPs etc.) and multi-page TIFFs.
 
 ## Screenshots
 
