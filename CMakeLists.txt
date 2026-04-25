@@ -4,6 +4,7 @@ project(lektra VERSION 0.7.0 LANGUAGES CXX)
 include(GNUInstallDirs)
 
 option(WITH_IMAGE "Enable image support" ON)
+option(WITH_SYNCTEX "Enable synctex support" ON)
 
 # ---------------------------------------------------------------------------
 # Build type default
@@ -127,19 +128,6 @@ else()
     )
 endif()
 
-# ----------------------------------------------------------------------------
-# Synctex
-# ----------------------------------------------------------------------------
-
-# Define the source files needed for the parser
-set(SYNCTEX_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/synctex/synctex_parser.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/synctex/synctex_parser_utils.c
-)
-
-# Create a static library target
-add_library(synctex STATIC ${SYNCTEX_SOURCES})
-
 # ---------------------------------------------------------------------------
 # Qt6 + optional system libraries
 # ---------------------------------------------------------------------------
@@ -147,7 +135,6 @@ find_package(Qt6 REQUIRED COMPONENTS
     Core Gui Widgets Concurrent LinguistTools OpenGLWidgets Network)
 
 find_package(djvulibre CONFIG QUIET)
-find_package(synctex CONFIG QUIET)
 
 if (WITH_IMAGE)
     find_package(ImageMagick QUIET COMPONENTS MagickCore Magick++)
@@ -293,7 +280,7 @@ if(WITH_IMAGE)
     endif()
 endif()
 
-add_dependencies(${PROJECT_NAME} mupdf_external synctex)
+add_dependencies(${PROJECT_NAME} mupdf_external)
 
 # --- Qt ---
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -330,11 +317,25 @@ else()
     )
 endif()
 
-# --- SyncTeX ---
-if(SYNCTEX_FOUND)
-    target_include_directories(${PROJECT_NAME} PRIVATE "${SYNCTEX_INCLUDE_DIRS}")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE HAS_SYNCTEX=1)
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${SYNCTEX_LIBRARIES})
+# ----------------------------------------------------------------------------
+# Synctex
+# ----------------------------------------------------------------------------
+
+if (WITH_SYNCTEX)
+    # Define the source files
+    set(SYNCTEX_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/synctex/synctex_parser.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/synctex/synctex_parser_utils.c
+    )
+
+    # Create the static library
+    add_library(synctex STATIC ${SYNCTEX_SOURCES})
+
+    # Crucial for Linux: ensures the static lib can be linked into your executable
+    set_target_properties(synctex PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+    # Tell anyone linking to 'synctex' where the headers are automatically
+    target_include_directories(synctex PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/synctex)
 endif()
 
 # --- DjVuLibre ---
