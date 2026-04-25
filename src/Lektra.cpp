@@ -3224,6 +3224,13 @@ Lektra::handleFileNameChanged(const QString &name) noexcept
 void
 Lektra::handleCurrentTabChanged(int index) noexcept
 {
+#ifdef WITH_IMAGE
+    // Stop animation on all views in the outgoing tab
+    if (auto *oldContainer = m_tab_widget->rootContainer(m_prev_tab_index))
+        for (DocumentView *view : oldContainer->getAllViews())
+            view->stopGifPlayback();
+#endif
+
     if (!validTabIndex(index))
     {
         setCurrentDocumentView(nullptr);
@@ -3241,15 +3248,21 @@ Lektra::handleCurrentTabChanged(int index) noexcept
     // Update m_doc to current view in the container
     setCurrentDocumentView(container->view());
 
+#ifdef WITH_IMAGE
+    // Start animation on all views in the incoming tab
+    for (DocumentView *view : container->getAllViews())
+        if (view->model()->isAnimated())
+            view->startGifPlayback();
+#endif
+
+    m_prev_tab_index = index;
+
     if (m_doc)
     {
-        // Update UI
         emit m_doc->fileNameChanged(m_doc->fileName());
         updateUiEnabledState();
         updatePageNavigationActions();
         updateSelectionModeActions();
-
-        // Update statusbar if needed
         updateStatusbar();
     }
 }

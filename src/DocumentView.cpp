@@ -77,7 +77,7 @@ DocumentView::DocumentView(const Config &config, float dpr, QWidget *parent,
             &DocumentView::handleOpenFileFailed);
 
     connect(m_model, &Model::openFileFinished, this,
-            &DocumentView::handleOpenFileFinished);
+            &DocumentView::handleOpenFileFinished, Qt::UniqueConnection);
 
     connect(m_model, &Model::passwordRequired, this,
             &DocumentView::handle_password_required);
@@ -353,7 +353,9 @@ DocumentView::handleOpenFileFinished() noexcept
         setFitMode(m_config.layout.initial_fit);
 
         if (m_model->isAnimated())
+        {
             startGifPlayback();
+        }
         // QTimer::singleShot(0, this, [this]() { renderImage(); });
     }
     else
@@ -392,6 +394,9 @@ DocumentView::startGifPlayback() noexcept
     if (m_thumbnail_mode || !m_model->isAnimated())
         return;
 
+    if (m_anim_timer && m_anim_timer->isActive())
+        return;
+
     stopGifPlayback();
 
     m_anim_timer = new QTimer(this);
@@ -418,12 +423,17 @@ DocumentView::startGifPlayback() noexcept
 void
 DocumentView::stopGifPlayback() noexcept
 {
-    if (m_anim_timer)
-    {
-        m_anim_timer->stop();
-        m_anim_timer->deleteLater();
-        m_anim_timer = nullptr;
-    }
+    #ifndef NDEBUG
+    qDebug() << "DocumentView::stopGifPlayback(): Stopping GIF animation timer";
+    #endif
+
+    if (!m_anim_timer)
+        return;
+
+    m_anim_timer->stop();
+    m_anim_timer->disconnect(this);
+    m_anim_timer->deleteLater();
+    m_anim_timer = nullptr;
 }
 
 #endif
@@ -490,11 +500,8 @@ DocumentView::initConnections() noexcept
 #ifdef WITH_IMAGE
     if (m_model->isImage())
     {
-        connect(m_model, &Model::openFileFinished, this,
-                &DocumentView::handleOpenFileFinished);
-
         connect(m_hq_render_timer, &QTimer::timeout, this,
-                &DocumentView::renderImage, Qt::UniqueConnection);
+                &DocumentView::renderImage);
 
         connect(m_gview, &GraphicsView::zoomInRequested, this,
                 &DocumentView::ZoomIn);
@@ -513,8 +520,6 @@ DocumentView::initConnections() noexcept
 
     if (m_thumbnail_mode)
     {
-        connect(m_model, &Model::openFileFinished, this,
-                &DocumentView::handleOpenFileFinished);
         connect(m_vscroll, &QScrollBar::valueChanged, this,
                 &DocumentView::handleVScrollValueChanged);
         connect(m_hq_render_timer, &QTimer::timeout, this,
@@ -4340,7 +4345,7 @@ DocumentView::setInvertColor(bool invert) noexcept
 #ifdef WITH_IMAGE
     if (m_model->isAnimated())
     {
-        startGifPlayback();
+        renderImage();
         return;
     }
 #endif

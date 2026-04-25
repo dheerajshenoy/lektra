@@ -382,6 +382,8 @@ private:
     CommentSearchPicker *m_comment_search_picker     = nullptr;
     RecentFilesPicker *m_recent_file_picker          = nullptr;
 
+    int m_prev_tab_index = -1; // For remembering last active tab when switching
+                               // to system tabs like recent files, outline etc.
     DocumentView *m_preview_view = nullptr; // For link preview (Alt+click)
     QWidget *m_preview_overlay   = nullptr; // Overlay for link preview
 

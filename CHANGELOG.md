@@ -7,7 +7,7 @@
 
 - Add optional `Imagemagick` image rendering library support for handling more image file formats.
     - **Requires ImageMagick to be installed on the system and `Magick++` development libraries for compilation.**
-
+- Animated image support (e.g. animated GIFs, WEBP, AJPG) using `ImageMagick` for rendering.
 - Hide unrelevant actions from the menu bar based on the file type of the currently opened document.
 
 - Add `Windows` operating system support
@@ -37,6 +37,7 @@
 
 ### Bug Fixes
 
+- Stop animated image playback when not visible (different tab) to save resources and avoid unnecessary CPU usage.
 - Hide mode, color and progress info in the statusbar when in non-supported file types (e.g. images) to avoid confusion
 - Fix `invert color` menu button not working
 - Make search behave more like in vim/emacs
