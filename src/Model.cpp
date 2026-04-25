@@ -960,19 +960,16 @@ Model::openAsync_image(const QString &canonPath) noexcept
 {
     return QtConcurrent::run([this, canonPath]
     {
-        // Initialize ImageMagick (safe to call multiple times)
         Magick::InitializeMagick(nullptr);
 
         std::vector<Magick::Image> frames;
         try
         {
             Magick::readImages(&frames, canonPath.toStdString());
-            qDebug() << "frames decoded:" << frames.size() << "for"
-                     << canonPath;
         }
         catch (const Magick::Exception &e)
         {
-            qWarning() << "ImageMagick failed to open:" << e.what();
+            qWarning() << "ImageMagick failed:" << e.what();
             QMetaObject::invokeMethod(this, &Model::openFileFailed,
                                       Qt::QueuedConnection);
             return;
@@ -980,34 +977,37 @@ Model::openAsync_image(const QString &canonPath) noexcept
 
         if (frames.empty())
         {
-            qWarning() << "ImageMagick: no frames decoded for" << canonPath;
             QMetaObject::invokeMethod(this, &Model::openFileFailed,
                                       Qt::QueuedConnection);
             return;
         }
 
-        // ── Helpers ───────────────────────────────────────────────────────
+        // ── Helpers ─────────────────────────────────────────────
 
-        auto toQImage = [](const Magick::Image &imgIn) -> QImage
+        auto toQImage = [](Magick::Image img) -> QImage
         {
-            Magick::Image img = imgIn; // local copy to call non-const methods
             img.alpha(true);
             img.depth(8);
-            const size_t w = img.columns(), h = img.rows();
+
+            const size_t w = img.columns();
+            const size_t h = img.rows();
+
             Magick::Blob blob;
             img.write(&blob, "RGBA");
-            const auto *src = static_cast<const uchar *>(blob.data());
+
+            const uchar *src = static_cast<const uchar *>(blob.data());
             QImage qi(src, (int)w, (int)h, (int)(w * 4),
                       QImage::Format_RGBA8888);
             return qi.copy();
         };
 
-        // centiseconds (GIF/WebP standard) → milliseconds, with sane floor
         auto delayMs = [](const Magick::Image &img) -> int
         {
-            const int ms = (int)(img.animationDelay() * 10);
+            int ms = (int)(img.animationDelay() * 10);
             return ms < 20 ? 100 : ms;
         };
+
+        // ── Detect animation ─────────────────────────────────────
 
         if (frames.size() > 1)
         {
@@ -1019,65 +1019,88 @@ Model::openAsync_image(const QString &canonPath) noexcept
             }
             catch (const Magick::Exception &e)
             {
-                qWarning() << "ImageMagick coalesce failed:" << e.what();
+                qWarning() << "Coalesce failed:" << e.what();
                 QMetaObject::invokeMethod(this, &Model::openFileFailed,
                                           Qt::QueuedConnection);
                 return;
             }
 
-            QList<QImage> qframes;
+            if (coalesced.empty())
+            {
+                QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                          Qt::QueuedConnection);
+                return;
+            }
+
+            // Convert ONLY first frame immediately
+            QImage first = toQImage(coalesced[0]);
+
+            const float w = static_cast<float>(first.width());
+            const float h = static_cast<float>(first.height());
+
+            // Precompute delays (cheap)
             QList<int> delays;
-            qframes.reserve((int)coalesced.size());
             delays.reserve((int)coalesced.size());
-
-            for (auto &f : coalesced)
-            {
+            for (const auto &f : coalesced)
                 delays.push_back(delayMs(f));
-                qframes.push_back(
-                    toQImage(f)); // pass by ref, toQImage takes by value
-            }
 
-            if (qframes.isEmpty())
-            {
-                QMetaObject::invokeMethod(this, &Model::openFileFailed,
-                                          Qt::QueuedConnection);
-                return;
-            }
-
-            const float w = static_cast<float>(qframes[0].width());
-            const float h = static_cast<float>(qframes[0].height());
-
+            // Send initial state to UI
             QMetaObject::invokeMethod(this,
-                                      [this, qframes = std::move(qframes),
-                                       delays = std::move(delays), w,
-                                       h]() mutable
+                                      [this, first = std::move(first), delays,
+                                       frames = std::move(coalesced), w, h,
+                                       &toQImage]() mutable
             {
                 cleanup_image();
-                m_is_image         = true;
-                m_is_animated      = true;
+
+                m_is_image    = true;
+                m_is_animated = true;
+                m_success     = true;
+
                 m_page_count       = 1;
-                m_success          = true;
                 m_default_page_dim = {w, h};
+
                 m_page_dim_cache.dimensions.assign(1, m_default_page_dim);
                 m_page_dim_cache.known.assign(1, true);
-                m_animated_frames = std::move(qframes);
-                m_frame_delays_ms = std::move(delays);
-                m_frame_count     = m_animated_frames.size();
+
+                m_frame_delays_ms = delays;
+                m_frame_count     = frames.size();
                 m_current_frame   = 0;
-                m_image_cache     = m_animated_frames[0];
+
+                // cache: only first frame for now
+                m_animated_frames.resize(m_frame_count);
+                m_animated_frames[0] = first;
+                m_image_cache        = first;
+
                 emit openFileFinished();
+
+                // ── Background decoding of remaining frames ──
+                auto _ = QtConcurrent::run(
+                    [&, frames = std::move(frames)]() mutable
+                {
+                    for (int i = 1; i < (int)frames.size(); ++i)
+                    {
+                        QImage img = toQImage(frames[i]);
+
+                        QMetaObject::invokeMethod(
+                            this, [this, i, img = std::move(img)]() mutable
+                        {
+                            if (i < m_animated_frames.size())
+                                m_animated_frames[i] = std::move(img);
+                        }, Qt::QueuedConnection);
+                    }
+                });
             },
                                       Qt::QueuedConnection);
+
             return;
         }
 
-        // ── Static image ──────────────────────────────────────────────────
+        // ── Static image ────────────────────────────────────────
+
         QImage base = toQImage(std::move(frames[0]));
 
         if (base.isNull())
         {
-            qWarning() << "ImageMagick: toQImage produced null for"
-                       << canonPath;
             QMetaObject::invokeMethod(this, &Model::openFileFailed,
                                       Qt::QueuedConnection);
             return;
@@ -1090,15 +1113,19 @@ Model::openAsync_image(const QString &canonPath) noexcept
                                   [this, base = std::move(base), w, h]() mutable
         {
             cleanup_image();
-            m_is_image         = true;
-            m_is_animated      = false;
+
+            m_is_image    = true;
+            m_is_animated = false;
+            m_success     = true;
+
             m_page_count       = 1;
-            m_success          = true;
             m_default_page_dim = {w, h};
+
             m_page_dim_cache.dimensions.assign(1, m_default_page_dim);
-            m_page_dim_cache.known.assign(1, false);
-            m_page_dim_cache.known[0] = true;
-            m_image_cache             = std::move(base);
+            m_page_dim_cache.known.assign(1, true);
+
+            m_image_cache = std::move(base);
+
             emit openFileFinished();
         }, Qt::QueuedConnection);
     });
