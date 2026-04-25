@@ -58,6 +58,7 @@ add_compile_definitions(
 # ---------------------------------------------------------------------------
 # MuPDF (ExternalProject)
 # ---------------------------------------------------------------------------
+include(ExternalProject)
 set(MUPDF_INSTALL_DIR "${CMAKE_BINARY_DIR}/mupdf-install")
 set(MUPDF_SOURCE_DIR  "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/mupdf")
 
@@ -82,7 +83,6 @@ else()
         "Initialise the submodule: git submodule update --init thirdparty/mupdf")
 endif()
 
-include(ExternalProject)
 
 if(MSVC)
     set(MUPDF_SLN "${MUPDF_SOURCE_DIR}/platform/win32/mupdf.sln")
@@ -116,18 +116,29 @@ else()
         CONFIGURE_COMMAND ""
         BUILD_COMMAND
         make -C <SOURCE_DIR> build=release shared=no
-        HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no USE_SYSTEM_LIBS=yes
-        LIB_CFLAGS="-fPIC -fvisibility=hidden" libs
+        HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no USE_SYSTEM_LIBS=no
+        LIB_CFLAGS=-fPIC libs
         INSTALL_COMMAND
         make -C <SOURCE_DIR> build=release shared=no
-        HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no USE_SYSTEM_LIBS=yes
+        HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no USE_SYSTEM_LIBS=no
         prefix="${MUPDF_INSTALL_DIR}" install-libs
         BUILD_BYPRODUCTS "${MUPDF_LIB_FILE}" "${MUPDF_LIB_THIRD_FILE}"
         UPDATE_COMMAND ""
     )
 endif()
 
-# add_dependencies(mupdf_lib_third mupdf_external)
+# ----------------------------------------------------------------------------
+# Synctex
+# ----------------------------------------------------------------------------
+
+# Define the source files needed for the parser
+set(SYNCTEX_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/synctex/synctex_parser.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/synctex/synctex_parser_utils.c
+)
+
+# Create a static library target
+add_library(synctex STATIC ${SYNCTEX_SOURCES})
 
 # ---------------------------------------------------------------------------
 # Qt6 + optional system libraries
@@ -150,9 +161,6 @@ endif()
 
 if(NOT DJVULIBRE_FOUND)
     message(WARNING "DjVuLibre not found – DjVu support disabled")
-endif()
-if(NOT SYNCTEX_FOUND)
-    message(WARNING "SyncTeX not found – SyncTeX support disabled")
 endif()
 
 # ---------------------------------------------------------------------------
@@ -252,29 +260,57 @@ target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 
 if(WITH_IMAGE)
     if(ImageMagick_FOUND AND ImageMagick_MagickCore_FOUND AND ImageMagick_Magick++_FOUND)
-        target_include_directories(${PROJECT_NAME} PRIVATE
-            ${ImageMagick_INCLUDE_DIRS}
-            ${ImageMagick_MagickCore_INCLUDE_DIRS}
-            ${ImageMagick_Magick++_INCLUDE_DIRS}
-        )
-        target_link_libraries(${PROJECT_NAME} PRIVATE
-            ${ImageMagick_LIBRARIES}
-            ${ImageMagick_MagickCore_LIBRARIES}
-            ${ImageMagick_Magick++_LIBRARIES})
-        target_compile_definitions(${PROJECT_NAME} PRIVATE
-            WITH_IMAGE=1
-            MAGICKCORE_QUANTUM_DEPTH=16
-            MAGICKCORE_HDRI_ENABLE=1)
+        if(MSVC)
+            target_include_directories(${PROJECT_NAME} PRIVATE
+                ${ImageMagick_INCLUDE_DIRS}
+                ${ImageMagick_MagickCore_INCLUDE_DIRS}
+                ${ImageMagick_Magick++_INCLUDE_DIRS}
+            )
+            target_link_libraries(${PROJECT_NAME} PRIVATE
+                ${ImageMagick_LIBRARIES}
+                ${ImageMagick_MagickCore_LIBRARIES}
+                ${ImageMagick_Magick++_LIBRARIES}
+            )
+            target_compile_definitions(${PROJECT_NAME} PRIVATE
+                WITH_IMAGE=1
+                MAGICKCORE_QUANTUM_DEPTH=16
+                MAGICKCORE_HDRI_ENABLE=1)
+        elseif(PLATFORM_LINUX)
+            # Use pkg-config on Linux to capture the full transitive dep chain
+            # (freetype, brotli, etc.) that find_package(ImageMagick) misses.
+            pkg_check_modules(MAGICK QUIET IMPORTED_TARGET Magick++-7.Q16HDRI)
+            if(MAGICK_FOUND)
+                target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::MAGICK)
+                target_compile_definitions(${PROJECT_NAME} PRIVATE
+                    WITH_IMAGE=1
+                    MAGICKCORE_QUANTUM_DEPTH=16
+                    MAGICKCORE_HDRI_ENABLE=1)
+            else()
+                message(WARNING "Magick++-7.Q16HDRI pkg-config not found – image support disabled")
+                set(WITH_IMAGE OFF)
+            endif()
+        endif()
     endif()
 endif()
 
-add_dependencies(${PROJECT_NAME} mupdf_external)
+add_dependencies(${PROJECT_NAME} mupdf_external synctex)
 
 # --- Qt ---
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Core Qt6::Gui Qt6::Widgets
     Qt6::Concurrent Qt6::OpenGLWidgets Qt6::Network
 )
+
+# Qt6Network on Arch/Qt 6.11+ has an undeclared dep on libbrotlidec.
+# Link it explicitly on Linux to avoid "DSO missing from command line".
+if(PLATFORM_LINUX)
+    find_library(BROTLIDEC_LIB  brotlidec)
+    find_library(BROTLICOMMON_LIB brotlicommon)
+    if(BROTLIDEC_LIB AND BROTLICOMMON_LIB)
+        target_link_libraries(${PROJECT_NAME} PRIVATE
+            ${BROTLIDEC_LIB} ${BROTLICOMMON_LIB})
+    endif()
+endif()
 
 # --- MuPDF ---
 target_include_directories(${PROJECT_NAME} PRIVATE ${MUPDF_INCLUDE_DIRS})
@@ -286,8 +322,8 @@ if(MSVC)
     )
 else()
     target_link_libraries(${PROJECT_NAME} PRIVATE
-        mupdf_lib
-        mupdf_lib_third
+        "${MUPDF_INSTALL_DIR}/lib/libmupdf.a"
+        "${MUPDF_INSTALL_DIR}/lib/libmupdf-third.a"
         z       # zlib
         m       # libm
         dl      # libdl
@@ -296,9 +332,9 @@ endif()
 
 # --- SyncTeX ---
 if(SYNCTEX_FOUND)
-    # target_include_directories(${PROJECT_NAME} PRIVATE "${SYNCTEX_INCLUDE_DIRS}")
+    target_include_directories(${PROJECT_NAME} PRIVATE "${SYNCTEX_INCLUDE_DIRS}")
     target_compile_definitions(${PROJECT_NAME} PRIVATE HAS_SYNCTEX=1)
-    target_link_libraries(${PROJECT_NAME} PRIVATE synctex::synctex)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${SYNCTEX_LIBRARIES})
 endif()
 
 # --- DjVuLibre ---
@@ -320,10 +356,18 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:RelWithDebInfo>:${REL_WITH_DEB_INFO_FLAGS}>
 )
 
-target_link_options(${PROJECT_NAME} PRIVATE
-    $<$<CONFIG:Debug>:$<IF:$<CXX_COMPILER_ID:MSVC>,/DEBUG,--fsanitize=address>>
-    # nothing needed for Release/RelWithDebInfo
-)
+if (MSVC)
+    target_link_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Debug>:$<IF:$<CXX_COMPILER_ID:MSVC>,/DEBUG,--fsanitize=address>>
+        # nothing needed for Release/RelWithDebInfo
+    )
+else()
+    target_link_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Debug>:$<IF:$<CXX_COMPILER_ID:MSVC>,/DEBUG,-fsanitize=address>>
+        # nothing needed for Release/RelWithDebInfo
+    )
+endif()
+
 
 # ---------------------------------------------------------------------------
 # Qt platform plugins

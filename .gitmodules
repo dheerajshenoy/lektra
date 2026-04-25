@@ -4,3 +4,6 @@
 [submodule "thirdparty/mupdf"]
 	path = thirdparty/mupdf
 	url = https://github.com/ArtifexSoftware/mupdf
+[submodule "thirdparty/synctex"]
+	path = thirdparty/synctex
+	url = https://github.com/jlaurens/synctex.git
