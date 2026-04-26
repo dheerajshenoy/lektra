@@ -24,8 +24,10 @@ struct Config
 
     QHash<QString, QString> keybinds;
     std::vector<MouseBinding> mousebinds{
+#ifdef WITH_SYNCTEX
         {Qt::LeftButton, Qt::ShiftModifier,
          GraphicsView::MouseAction::SynctexJump},
+#endif
         {Qt::LeftButton, Qt::ControlModifier,
          GraphicsView::MouseAction::Portal},
     };
@@ -50,6 +52,7 @@ struct Config
     } page;
     // @endsection
 
+#ifdef WITH_SYNCTEX
     // @section synctex
     // @section_desc Synctex options struct
     // @section_type struct
@@ -69,6 +72,7 @@ struct Config
         QString editor_command = QString();
     } synctex;
     // @endsection
+#endif
 
     // @section search
     // @section_desc Search options struct
