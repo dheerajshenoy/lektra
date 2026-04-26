@@ -4779,7 +4779,11 @@ Model::getAnimatedFrame(int index) noexcept
             return {};
 
         auto &f = coalesced[index];
+    #if MagickLibVersion < 0x712
+        f.matte(true);
+    #else
         f.alpha(true);
+    #endif
         f.depth(8);
         Magick::Blob blob;
         f.write(&blob, "RGBA");
