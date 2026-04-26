@@ -60,7 +60,7 @@ Maintainer: Dheeraj Vittal Shenoy <dheerajshenoy22@gmail.com>
 Homepage: https://codeberg.org/lektra/lektra
 Installed-Size: ${INSTALLED_SIZE:-0}
 Build-Depends: build-essential pkgconf cmake ninja-build g++
-Depends: qt6-base-dev, qt6-tools-dev, qt6-l10n-tools, unzip, zlib1g-dev, libgl1-mesa-dri, mesa-common-dev
+Depends: qt6-base-dev, qt6-tools-dev, qt6-l10n-tools, unzip, zlib1g-dev, libgl1-mesa-dri, mesa-common-dev, imagemagick, libmagick++-dev
 Suggests: qt6-style-kvantum
 Description: High performance Document and Image viewer
 EOF
