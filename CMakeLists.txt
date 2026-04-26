@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(lektra VERSION 0.7.1 LANGUAGES CXX)
+project(lektra VERSION 0.7.1 LANGUAGES C CXX)
 
 include(GNUInstallDirs)
 
@@ -327,15 +327,13 @@ if (WITH_SYNCTEX)
         ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/synctex/synctex_parser.c
         ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/synctex/synctex_parser_utils.c
     )
-
-    # Create the static library
     add_library(synctex STATIC ${SYNCTEX_SOURCES})
 
-    # Crucial for Linux: ensures the static lib can be linked into your executable
-    set_target_properties(synctex PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    target_include_directories(synctex
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/synctex)
 
-    # Tell anyone linking to 'synctex' where the headers are automatically
-    target_include_directories(synctex PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/synctex)
+    target_link_libraries(${PROJECT_NAME} PRIVATE synctex)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_SYNCTEX=1)
 endif()
 
 # --- DjVuLibre ---
