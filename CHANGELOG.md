@@ -8,6 +8,7 @@
 
 ### Bug Fixes
 
+- Fix synctex initialisation
 - Fix synctex optional macro in the source code `HAS_SYNCTEX` -> `WITH_SYNCTEX`
 - Fix image zoom anchoring
 

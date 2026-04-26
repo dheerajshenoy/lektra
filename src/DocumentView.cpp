@@ -86,10 +86,6 @@ DocumentView::DocumentView(const Config &config, float dpr, QWidget *parent,
             &DocumentView::handle_wrong_password);
 
     initGui();
-
-#ifdef WITH_SYNCTEX
-    initSynctex();
-#endif
 }
 
 DocumentView::~DocumentView() noexcept
@@ -295,6 +291,12 @@ DocumentView::initSynctex() noexcept
         = synctex_scanner_new_with_output_file(filePathStr.c_str(), nullptr, 1);
     if (!m_synctex_scanner)
         return;
+
+    #ifndef NDEBUG
+    qDebug()
+        << "DocumentView::initSynctex(): Initialized SyncTeX scanner for file"
+        << m_model->filePath();
+    #endif
 }
 #endif
 
@@ -381,6 +383,13 @@ DocumentView::handleOpenFileFinished() noexcept
             setFitMode(m_config.layout.initial_fit);
             renderPages();
         });
+
+#ifdef WITH_SYNCTEX
+        if (m_model->fileType() == Model::FileType::PDF)
+        {
+            initSynctex();
+        }
+#endif
     }
 
     setAutoReload(m_config.behavior.auto_reload);
