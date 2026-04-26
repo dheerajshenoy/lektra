@@ -68,6 +68,7 @@ struct Config
         // @added 0.3.0
         QString editor_command = QString();
     } synctex;
+    // @endsection
 
     // @section search
     // @section_desc Search options struct
