@@ -19,7 +19,7 @@ TabWidget::TabWidget(QWidget *parent) : QWidget(parent), m_id(g_newId())
     setTabsClosable(true);
     setAcceptDrops(true);
     setStyleSheet("border: 0");
-    setMovable(true);
+    // Movable handling is done manually in TabBar
     // m_tab_bar->setElideMode(Qt::TextElideMode::ElideLeft);
 
     // Forward signals from the draggable tab bar
@@ -39,6 +39,16 @@ TabWidget::TabWidget(QWidget *parent) : QWidget(parent), m_id(g_newId())
 
     connect(m_tab_bar, &QTabBar::tabCloseRequested, this,
             &TabWidget::tabCloseRequested);
+
+    // Sync stacked widget when tabs are reordered
+    connect(m_tab_bar, &QTabBar::tabMoved, this, [this](int from, int to)
+    {
+        QWidget *widget = m_stacked_widget->widget(from);
+        if (!widget)
+            return;
+        m_stacked_widget->removeWidget(widget);
+        m_stacked_widget->insertWidget(to, widget);
+    });
 }
 
 void

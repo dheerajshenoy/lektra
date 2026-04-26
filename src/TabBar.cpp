@@ -1,10 +1,15 @@
 #include "TabBar.hpp"
 
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
+
 TabBar::TabBar(QWidget *parent) : QTabBar(parent)
 {
     setElideMode(Qt::TextElideMode::ElideRight);
     setDrawBase(false);
-    setMovable(true);
+    setMovable(false); // We handle reordering manually
+    setAcceptDrops(true);
 }
 
 void
@@ -60,78 +65,78 @@ TabBar::mouseMoveEvent(QMouseEvent *event)
         return;
     }
 
-    // Check if cursor has left the window
-    QWidget *topWindow = window();
-    QPoint globalPos   = mapToGlobal(event->pos());
+    QPoint globalPos = mapToGlobal(event->pos());
+    QWidget *win     = window();
 
-    // Only initiate custom drag if we're outside the window
-    if (topWindow->geometry().contains(globalPos))
+    // If cursor is outside the window, initiate detach
+    if (!win->geometry().contains(globalPos))
     {
-        // Still inside window - let QTabBar handle it
-        QTabBar::mouseMoveEvent(event);
-        return;
-    }
+        // Request tab data from the parent widget
+        TabData tabData;
+        emit tabDataRequested(m_drag_tab_index, &tabData);
 
-    // ===== CURSOR IS OUTSIDE WINDOW - INITIATE DETACH =====
+        int draggedIndex = m_drag_tab_index;
+        if (tabData.filePath.isEmpty())
+        {
+            m_drag_tab_index = -1;
+            return;
+        }
 
-    // Request tab data from the parent widget
-    TabData tabData;
-    emit tabDataRequested(m_drag_tab_index, &tabData);
+        // Create drag object
+        QDrag *drag     = new QDrag(this);
+        QMimeData *mime = new QMimeData();
+        mime->setData(MIME_TYPE, tabData.serialize());
+        mime->setUrls({QUrl::fromLocalFile(tabData.filePath)});
+        drag->setMimeData(mime);
 
-    if (tabData.filePath.isEmpty())
-    {
+        // Create a pixmap of the tab for visual feedback
+        QRect tabRect = this->tabRect(draggedIndex);
+        QPixmap tabPixmap(tabRect.size());
+        tabPixmap.fill(Qt::transparent);
+        QPainter painter(&tabPixmap);
+        painter.setOpacity(0.8);
+
+        // Render the tab
+        QStyleOptionTab opt;
+        initStyleOption(&opt, draggedIndex);
+        opt.rect = QRect(QPoint(0, 0), tabRect.size());
+        style()->drawControl(QStyle::CE_TabBarTab, &opt, &painter, this);
+        painter.end();
+
+        drag->setPixmap(tabPixmap);
+        drag->setHotSpot(m_drag_start_pos);
+
+        drag->exec(Qt::MoveAction | Qt::IgnoreAction);
+
         m_drag_tab_index = -1;
+
+        // Process events to let the target window become active
+        QApplication::processEvents();
+
+        QWidget *sourceWindow = window();
+        QWidget *activeWindow = QApplication::activeWindow();
+
+        // If the active window is different from source, tab was dropped on it
+        // (close original tab). Otherwise create new window
+        if (activeWindow && activeWindow != sourceWindow && activeWindow->isVisible())
+        {
+            emit tabDetached(draggedIndex, QCursor::pos());
+        }
+        else
+        {
+            emit tabDetachedToNewWindow(draggedIndex, tabData);
+        }
         return;
     }
 
-    int draggedIndex = m_drag_tab_index;
-
-    // Create drag object
-    QDrag *drag     = new QDrag(this);
-    QMimeData *mime = new QMimeData();
-    mime->setData(MIME_TYPE, tabData.serialize());
-    mime->setUrls({QUrl::fromLocalFile(tabData.filePath)});
-    drag->setMimeData(mime);
-
-    // Create a pixmap of the tab for visual feedback
-    QRect tabRect = this->tabRect(draggedIndex);
-    QPixmap tabPixmap(tabRect.size());
-    tabPixmap.fill(Qt::transparent);
-    QPainter painter(&tabPixmap);
-    painter.setOpacity(0.8);
-
-    // Render the tab
-    QStyleOptionTab opt;
-    initStyleOption(&opt, draggedIndex);
-    opt.rect = QRect(QPoint(0, 0), tabRect.size());
-    style()->drawControl(QStyle::CE_TabBarTab, &opt, &painter, this);
-    painter.end();
-
-    drag->setPixmap(tabPixmap);
-    drag->setHotSpot(m_drag_start_pos);
-
-    Qt::DropAction result = drag->exec(Qt::MoveAction | Qt::IgnoreAction);
-
-    m_drag_tab_index = -1;
-
-    const bool dropWasAccepted = (result == Qt::MoveAction) || s_drop_accepted;
-
-    s_drop_accepted = false; // Reset for next drag
-
-    //
-    // Handle the drag result
-    if (dropWasAccepted)
+    // Inside window - handle tab reordering
+    int targetIndex = tabAt(event->pos());
+    if (targetIndex != -1 && targetIndex != m_drag_tab_index)
     {
-        // Dropped on another application window
-        emit tabDetached(draggedIndex, QCursor::pos());
+        // Move tab to new position
+        moveTab(m_drag_tab_index, targetIndex);
+        m_drag_tab_index = targetIndex;
     }
-    else
-    {
-        // Dropped outside - create new window
-        emit tabDetachedToNewWindow(draggedIndex, tabData);
-    }
-
-    // Don't call parent implementation - we handled everything
 }
 
 void
@@ -228,4 +233,52 @@ TabBar::tabSizeHint(int index) const
 
     s.setHeight(s.height() + 50);
     return s;
+}
+
+void
+TabBar::dragEnterEvent(QDragEnterEvent *event)
+{
+    if (event->mimeData()->hasFormat(MIME_TYPE))
+    {
+        event->acceptProposedAction();
+    }
+    else
+    {
+        event->ignore();
+    }
+}
+
+void
+TabBar::dragMoveEvent(QDragMoveEvent *event)
+{
+    if (event->mimeData()->hasFormat(MIME_TYPE))
+    {
+        event->acceptProposedAction();
+    }
+    else
+    {
+        event->ignore();
+    }
+}
+
+void
+TabBar::dropEvent(QDropEvent *event)
+{
+    const QMimeData *mime = event->mimeData();
+    if (!mime->hasFormat(MIME_TYPE))
+    {
+        event->ignore();
+        return;
+    }
+
+    TabData data = TabData::deserialize(mime->data(MIME_TYPE));
+    if (data.filePath.isEmpty())
+    {
+        event->ignore();
+        return;
+    }
+
+    emit tabDropReceived(data);
+    event->setDropAction(Qt::MoveAction);
+    event->accept();
 }
