@@ -247,36 +247,22 @@ target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 
 if(WITH_IMAGE)
     if(ImageMagick_FOUND AND ImageMagick_MagickCore_FOUND AND ImageMagick_Magick++_FOUND)
-        if(MSVC)
-            target_include_directories(${PROJECT_NAME} PRIVATE
-                ${ImageMagick_INCLUDE_DIRS}
-                ${ImageMagick_MagickCore_INCLUDE_DIRS}
-                ${ImageMagick_Magick++_INCLUDE_DIRS}
-            )
-            target_link_libraries(${PROJECT_NAME} PRIVATE
-                ${ImageMagick_LIBRARIES}
-                ${ImageMagick_MagickCore_LIBRARIES}
-                ${ImageMagick_Magick++_LIBRARIES}
-            )
-            target_compile_definitions(${PROJECT_NAME} PRIVATE
-                WITH_IMAGE=1
-                MAGICKCORE_QUANTUM_DEPTH=16
-                MAGICKCORE_HDRI_ENABLE=1)
-        elseif(PLATFORM_LINUX)
-            # Use pkg-config on Linux to capture the full transitive dep chain
-            # (freetype, brotli, etc.) that find_package(ImageMagick) misses.
-            pkg_check_modules(MAGICK QUIET IMPORTED_TARGET Magick++-7.Q16HDRI)
-            if(MAGICK_FOUND)
-                target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::MAGICK)
-                target_compile_definitions(${PROJECT_NAME} PRIVATE
-                    WITH_IMAGE=1
-                    MAGICKCORE_QUANTUM_DEPTH=16
-                    MAGICKCORE_HDRI_ENABLE=1)
-            else()
-                message(WARNING "Magick++-7.Q16HDRI pkg-config not found – image support disabled")
-                set(WITH_IMAGE OFF)
-            endif()
-        endif()
+        target_include_directories(${PROJECT_NAME} PRIVATE
+            ${ImageMagick_INCLUDE_DIRS}
+            ${ImageMagick_MagickCore_INCLUDE_DIRS}
+            ${ImageMagick_Magick++_INCLUDE_DIRS}
+        )
+        target_link_libraries(${PROJECT_NAME} PRIVATE
+            ${ImageMagick_LIBRARIES}
+            ${ImageMagick_MagickCore_LIBRARIES}
+            ${ImageMagick_Magick++_LIBRARIES}
+        )
+        target_compile_definitions(${PROJECT_NAME} PRIVATE
+            WITH_IMAGE=1
+            MAGICKCORE_QUANTUM_DEPTH=16
+            MAGICKCORE_HDRI_ENABLE=1)
+    else()
+        message(WARNING "ImageMagick/Magick++ not found – image support disabled")
     endif()
 endif()
 
