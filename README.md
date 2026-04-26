@@ -86,6 +86,11 @@
   <strong>SyncTeX integration</strong>
 </p>
 
+# AI Usage
+
+I would like to acknowledge the use of AI tools in the development of this project. I have used it for code generation,
+debugging, and optimization, which has significantly improved the efficiency and quality of the codebase.
+
 # Contributing
 
 Check out [CONTRIBUTING.md](CONTRIBUTING.md)
