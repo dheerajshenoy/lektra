@@ -87,10 +87,10 @@ https://github.com/user-attachments/assets/c3b80351-3af3-4488-87a6-8b52c27f875c
 
 **I would like to acknowledge the use of AI tools in the development of this project. I have NOT VIBECODED the whole project.
 I have used it for code generation, debugging, and optimization. The entire project is NOT AI-generated,
-but rather that AI has been a valuable tool in the development process. I am committed to transparency about
-the use of AI in this project and will continue to provide updates on its role as the project evolves.
-I use it as a tool to assist in the development process, but the final decisions and implementations are
-made by me, the developer.**
+but rather used as a tool in the development process. I am committed to transparency about the use of AI in
+this project and will continue to provide updates on its role as the project evolves. I use it as a tool
+to assist in the development process, but the final decisions and implementations are made by me,
+the developer.**
 
 
 # Contributing
