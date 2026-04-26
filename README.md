@@ -31,13 +31,8 @@
 
 ## Screenshots
 
+https://github.com/user-attachments/assets/26a553f8-a037-4479-8e1e-6636ea5258bd
 <p align="center">
-  <img src="https://dheerajshenoy.github.io/lektra/files/Scrolling.gif" alt="Scrolling" width="800"><br>
-  <strong>Scrolling</strong>
-</p>
-
-<p align="center">
-  <img src="https://dheerajshenoy.github.io/lektra/files/Tabs_and_Splits.gif" alt="Tabs and Splits" width="800"><br>
   <strong>Tabs and Splits</strong>
 </p>
 
@@ -46,13 +41,15 @@
   <strong>Portals</strong>
 </p>
 
+https://github.com/user-attachments/assets/0d4a236a-c75b-4299-bd06-1ef4e12d797e
+
 <p align="center">
-  <img src="https://dheerajshenoy.github.io/lektra/files/preview.gif" alt="Preview" width="800"><br>
   <strong>Preview</strong>
 </p>
 
+https://github.com/user-attachments/assets/c3b80351-3af3-4488-87a6-8b52c27f875c
+
 <p align="center">
-  <img src="https://dheerajshenoy.github.io/lektra/files/Layouts.gif" alt="Layouts" width="800"><br>
   <strong>Layouts</strong>
 </p>
 
