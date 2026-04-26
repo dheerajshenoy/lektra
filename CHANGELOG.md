@@ -12,6 +12,13 @@
 - Fix synctex optional macro in the source code `HAS_SYNCTEX` -> `WITH_SYNCTEX`
 - Fix image zoom anchoring
 
+### Breaking Changes
+
+- C++ version requirement has been downgraded to C++20 (previously it was C++23) to allow
+  for wider compatibility with different platforms and compilers, as C++20 is now widely
+  supported by most modern compilers and platforms, while C++23 is still very new and not yet
+  supported on many platforms.
+
 ## 0.7.0
 
 ### Features

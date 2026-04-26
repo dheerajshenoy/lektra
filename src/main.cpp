@@ -6,7 +6,6 @@
 #include <QLocale>
 #include <QTranslator>
 #include <fcntl.h>
-#include <print>
 #include <qcoreapplication.h>
 #include <signal.h>
 

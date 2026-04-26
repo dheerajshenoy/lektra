@@ -19,7 +19,7 @@ message(STATUS "Installation prefix: ${CMAKE_INSTALL_PREFIX}")
 # ---------------------------------------------------------------------------
 # Compiler / language settings
 # ---------------------------------------------------------------------------
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
