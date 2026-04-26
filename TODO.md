@@ -25,6 +25,7 @@
 
 ## MEDIUM PRIORITY
 
+- [ ] Add support for embedded files in PDFs
 - [ ] Password protected PDFs thumbnail view asking for password, do something about it.
 - [ ] Show text highlight brush cursor when highlighting text
 - [ ] Drag and drop tabs not working, also get it to work with splits
