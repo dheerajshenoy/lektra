@@ -32,57 +32,57 @@
 ## Screenshots
 
 <p align="center">
-  <img src="./images/Scrolling.gif" alt="Scrolling" width="800"><br>
+  <img src="https://dheerajshenoy.github.io/lektra/files/Scrolling.gif" alt="Scrolling" width="800"><br>
   <strong>Scrolling</strong>
 </p>
 
 <p align="center">
-  <img src="./images/Tabs_and_Splits.gif" alt="Tabs and Splits" width="800"><br>
+  <img src="https://dheerajshenoy.github.io/lektra/files/Tabs_and_Splits.gif" alt="Tabs and Splits" width="800"><br>
   <strong>Tabs and Splits</strong>
 </p>
 
 <p align="center">
-  <img src="./images/Portals.gif" alt="Portals" width="800"><br>
+  <img src="https://dheerajshenoy.github.io/lektra/files/Portals.gif" alt="Portals" width="800"><br>
   <strong>Portals</strong>
 </p>
 
 <p align="center">
-  <img src="./images/preview.gif" alt="Preview" width="800"><br>
+  <img src="https://dheerajshenoy.github.io/lektra/files/preview.gif" alt="Preview" width="800"><br>
   <strong>Preview</strong>
 </p>
 
 <p align="center">
-  <img src="./images/Layouts.gif" alt="Layouts" width="800"><br>
+  <img src="https://dheerajshenoy.github.io/lektra/files/Layouts.gif" alt="Layouts" width="800"><br>
   <strong>Layouts</strong>
 </p>
 
 <p align="center">
-  <img src="./images/Outline.png" alt="Outline Overlay" width="800"><br>
+  <img src="https://dheerajshenoy.github.io/lektra/files/Outline.png" alt="Outline Overlay" width="800"><br>
   <strong>Outline Overlay</strong>
 </p>
 
 <p align="center">
-  <img src="./images/Search-Hits-Scrollbar.gif" alt="Search and hits in scrollbar" width="800"><br>
+  <img src="https://dheerajshenoy.github.io/lektra/files/Search-Hits-Scrollbar.gif" alt="Search and hits in scrollbar" width="800"><br>
   <strong>Search + Hits in Scrollbar</strong>
 </p>
 
 <p align="center">
-  <img src="./images/Jump-Marker.gif" alt="Jump Markers" width="800"><br>
+  <img src="https://dheerajshenoy.github.io/lektra/files/Jump-Marker.gif" alt="Jump Markers" width="800"><br>
   <strong>Jump Markers</strong>
 </p>
 
 <p align="center">
-  <img src="./images/link_hint.png" alt="Link Hints" width="800"><br>
+  <img src="https://dheerajshenoy.github.io/lektra/files/link_hint.png" alt="Link Hints" width="800"><br>
   <strong>Link Hints</strong>
 </p>
 
 <p align="center">
-  <img src="./images/command_palette.png" alt="Command Palette" width="800"><br>
+  <img src="https://dheerajshenoy.github.io/lektra/files/command_palette.png" alt="Command Palette" width="800"><br>
   <strong>Command Palette</strong>
 </p>
 
 <p align="center">
-  <img src="./images/synctex.gif" alt="SyncTeX integration" width="800"><br>
+  <img src="https://dheerajshenoy.github.io/lektra/files/synctex.gif" alt="SyncTeX integration" width="800"><br>
   <strong>SyncTeX integration</strong>
 </p>
 
