@@ -6,6 +6,10 @@
 
 - Add bookmarks support with a bookmark picker to view and manage bookmarks. Bookmarks allow users to save specific locations
   in the document for quick access later.
+- New bookmark related commands:
+    - `bookmark_add` to add a bookmark at the current location
+    - `bookmark_remove` to remove a bookmark at the current location
+    - `bookmarks` to open the bookmark picker with the list of bookmarks in the document
 - Add image rotation support
 
 ### Bug Fixes
