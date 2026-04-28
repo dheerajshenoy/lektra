@@ -2541,22 +2541,16 @@ Lektra::OpenFilesInHSplit(const std::vector<std::string> &files) noexcept
 void
 Lektra::OpenFilesInNewTab(const std::vector<std::string> &files) noexcept
 {
-    const bool was_batch_opening = m_batch_opening;
-    m_batch_opening              = true;
     for (const std::string &s : files)
         OpenFileInNewTab(QString::fromStdString(s));
-    m_batch_opening = was_batch_opening;
 }
 
 // Opens multiple files given a list of file paths
 void
 Lektra::OpenFilesInNewTab(const QStringList &files) noexcept
 {
-    const bool was_batch_opening = m_batch_opening;
-    m_batch_opening              = true;
     for (const QString &file : files)
         OpenFileInNewTab(file);
-    m_batch_opening = was_batch_opening;
 }
 
 DocumentView *
