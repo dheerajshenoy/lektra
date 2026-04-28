@@ -4,6 +4,8 @@
 
 ### Features
 
+- Add bookmarks support with a bookmark picker to view and manage bookmarks. Bookmarks allow users to save specific locations
+  in the document for quick access later.
 - Add image rotation support
 
 ### Bug Fixes

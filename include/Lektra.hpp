@@ -9,6 +9,8 @@
 #include "MessageBar.hpp"
 #include "TabBar.hpp"
 // #include "OutlineWidget.hpp"
+#include "BookmarkManager.hpp"
+#include "BookmarkPicker.hpp"
 #include "CommandManager.hpp"
 #include "OutlinePicker.hpp"
 #include "RecentFilesPicker.hpp"
@@ -66,6 +68,7 @@ public:
     void Show_highlight_search() noexcept;
     void Show_annot_comment_search() noexcept;
     void Show_command_picker() noexcept;
+    void Show_bookmark_picker() noexcept;
     void ToggleCommentMarkers() noexcept;
     void ToggleNoneMode() noexcept;
     void ToggleVisualLineMode() noexcept;
@@ -98,7 +101,8 @@ public:
     void LastPage() noexcept;
     void NextPage() noexcept;
     void OpenContainingFolder() noexcept;
-    bool OpenFileDWIM(const QString &filename = {}) noexcept;
+    bool OpenFileDWIM(const QString &filename               = {},
+                      const std::function<void()> &callback = {}) noexcept;
     bool OpenFileInContainer(DocumentContainer *container,
                              const QString &filename               = {},
                              const std::function<void()> &callback = {},
@@ -173,6 +177,8 @@ public:
     void Show_recent_files_picker() noexcept;
     void Copy_page_image() noexcept;
     void Reopen_last_closed_file() noexcept;
+    void AddBookmark() noexcept;
+    void RemoveBookmark() noexcept;
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -231,6 +237,7 @@ private:
     void setupMousebinding(const QString &action,
                            const QString &trigger) noexcept;
     void populateRecentFiles() noexcept;
+    void populateBookmarks() noexcept;
     void updateUiEnabledState() noexcept;
     void editLastPages() noexcept;
     void openLastVisitedFile() noexcept;
@@ -304,6 +311,7 @@ private:
     QMenu *m_viewMenu                           = nullptr;
     QMenu *m_layoutMenu                         = nullptr;
     QAction *m_actionCommandPicker              = nullptr;
+    QAction *m_actionBookmarkPicker             = nullptr;
     QAction *m_actionShowTutorialFile           = nullptr;
     QAction *m_actionLayoutSingle               = nullptr;
     QAction *m_actionLayoutLeftToRight          = nullptr;
@@ -357,7 +365,7 @@ private:
     Config m_config;
     float m_dpr = 1.0f;
     QMap<QString, float> m_screen_dpr_map; // DPR per screen
-    QString m_config_file_path;
+    QString m_config_file_path, m_bookmarks_file_path;
     QString m_lockedInputBuffer; // Used for link hints and waiting input event
                                  // like for marks etc.
     bool m_link_hint_mode                 = false;
@@ -381,6 +389,9 @@ private:
     HighlightSearchPicker *m_highlight_search_picker = nullptr;
     CommentSearchPicker *m_comment_search_picker     = nullptr;
     RecentFilesPicker *m_recent_file_picker          = nullptr;
+    BookmarkPicker *m_bookmark_picker                = nullptr;
+
+    BookmarkManager m_bookmark_manager;
 
     int m_prev_tab_index = -1; // For remembering last active tab when switching
                                // to system tabs like recent files, outline etc.

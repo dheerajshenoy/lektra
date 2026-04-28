@@ -183,6 +183,7 @@ Lektra::construct() noexcept
     initDB();
     trimRecentFilesDatabase();
     populateRecentFiles();
+    populateBookmarks();
     initConnections();
     updateUiEnabledState();
     setMinimumSize(200, 150);
@@ -354,6 +355,10 @@ Lektra::initMenubar() noexcept
     m_actionCommandPicker = m_toggleMenu->addAction(
         tr("Command Picker\t%1").arg(m_config.keybinds["command_picker"]), this,
         &Lektra::Show_command_picker);
+
+    m_actionBookmarkPicker = m_toggleMenu->addAction(
+        tr("Bookmark Picker\t%1").arg(m_config.keybinds["bookmark_picker"]),
+        this, &Lektra::Show_bookmark_picker);
 
     m_actionToggleOutline = m_toggleMenu->addAction(
         tr("Outline\t%1").arg(m_config.keybinds["picker_outline"]), this,
@@ -593,6 +598,7 @@ Lektra::initConfig() noexcept
     if (!QFile::exists(m_config_file_path))
         return;
 
+    m_bookmarks_file_path = m_app_data_dir.filePath("bookmarks.json");
     toml::table toml;
 
     try
@@ -1996,6 +2002,62 @@ Lektra::applyCommandLineOverrides(
     }
 }
 
+void
+Lektra::populateBookmarks() noexcept
+{
+    QFile bookmarksFile(m_bookmarks_file_path);
+    if (!bookmarksFile.exists())
+        return;
+
+    // Read the bookmarks json file
+    if (!bookmarksFile.open(QIODevice::ReadOnly))
+    {
+        qWarning() << tr("Failed to open bookmarks file:")
+                   << m_bookmarks_file_path;
+        return;
+    }
+
+    QByteArray data = bookmarksFile.readAll();
+    bookmarksFile.close();
+
+    std::vector<Bookmark> bookmarks;
+
+    // Parse the json data
+    QJsonParseError parseError;
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(data, &parseError);
+    if (parseError.error != QJsonParseError::NoError)
+    {
+        qWarning() << tr("Failed to parse bookmarks file:")
+                   << parseError.errorString();
+        return;
+    }
+
+    if (!jsonDoc.isArray())
+    {
+        qWarning() << tr("Invalid bookmarks file format: expected an array");
+        return;
+    }
+
+    QJsonArray jsonArray = jsonDoc.array();
+    for (const QJsonValue &value : jsonArray)
+    {
+        if (!value.isObject())
+            continue;
+
+        QJsonObject obj = value.toObject();
+
+        QString label    = obj["label"].toString();
+        QString filePath = obj["file_path"].toString();
+        PageLocation loc = PageLocation::fromJson(obj["location"].toArray());
+        QDateTime created
+            = QDateTime::fromString(obj["added_on"].toString(), Qt::ISODate);
+
+        bookmarks.emplace_back(filePath, loc, created);
+    }
+
+    m_bookmark_manager.setBookmarks(bookmarks);
+}
+
 // Populates the `QMenu` for recent files with
 // recent files entries from the store
 void
@@ -2315,25 +2377,26 @@ Lektra::Selection_copy() noexcept
 
 // TODO: Fix DWIM version
 bool
-Lektra::OpenFileDWIM(const QString &filename) noexcept
+Lektra::OpenFileDWIM(const QString &filename,
+                     const std::function<void()> &callback) noexcept
 {
     if (m_tab_widget->count() == 0)
-        return OpenFileInNewTab(filename);
+        return OpenFileInNewTab(filename, callback);
 
     DocumentContainer *container
         = m_tab_widget->rootContainer(m_tab_widget->currentIndex());
     if (!container)
-        return OpenFileInNewTab(filename);
+        return OpenFileInNewTab(filename, callback);
 
     // No active view or empty — reuse current pane
     if (!m_doc || m_doc->filePath().isEmpty())
-        return OpenFileInContainer(container, filename, {}, m_doc);
+        return OpenFileInContainer(container, filename, callback, m_doc);
 
     if (container->getViewCount() > 1)
-        return OpenFileInContainer(container, filename, {}, m_doc);
+        return OpenFileInContainer(container, filename, callback, m_doc);
 
     // Single view with a file — open in new tab
-    return OpenFileInNewTab(filename);
+    return OpenFileInNewTab(filename, callback);
 }
 
 bool
@@ -2405,8 +2468,8 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
 
     setCurrentDocumentView(view); // immediate, like OpenFileInNewTab
 
-    // Restore saved page number after file loads (if remember_last_visited is
-    // enabled)
+    // Restore saved page number after file loads (if remember_last_visited
+    // is enabled)
     if (m_config.behavior.remember_last_visited)
     {
         const int savedPage = m_recent_files_store.pageNumber(filename);
@@ -2591,8 +2654,8 @@ Lektra::OpenFileInNewTab(const QString &filename,
     // Update current view reference
     setCurrentDocumentView(view);
 
-    // Restore saved page number after file loads (if remember_last_visited is
-    // enabled)
+    // Restore saved page number after file loads (if remember_last_visited
+    // is enabled)
     if (m_config.behavior.remember_last_visited)
     {
         const int savedPage = m_recent_files_store.pageNumber(filename);
@@ -2674,8 +2737,8 @@ Lektra::openFileSplitHelper(const QString &filename,
     m_tab_widget->tabBar()->set_split_count(tabIndex,
                                             container->getViewCount());
 
-    // Restore saved page number after file loads (if remember_last_visited is
-    // enabled)
+    // Restore saved page number after file loads (if remember_last_visited
+    // is enabled)
     if (m_config.behavior.remember_last_visited)
     {
         const int savedPage = m_recent_files_store.pageNumber(filename);
@@ -3412,6 +3475,7 @@ Lektra::closeEvent(QCloseEvent *e)
                     e->ignore();
                     return;
                 }
+
                 else if (ret == QMessageBox::Save)
                 {
                     doc->SaveFile();
@@ -3433,6 +3497,8 @@ Lektra::closeEvent(QCloseEvent *e)
             return;
         }
     }
+
+    m_bookmark_manager.saveBookmarks(m_bookmarks_file_path);
 
     e->accept();
 }
@@ -3534,8 +3600,8 @@ Lektra::eventFilter(QObject *object, QEvent *event)
         if (type == QEvent::MouseButtonPress)
         {
             {
-                // Check if click is on the overlay background (not the inner
-                // container)
+                // Check if click is on the overlay background (not the
+                // inner container)
                 if (object == m_preview_overlay)
                 {
                     QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(event);
@@ -3795,8 +3861,9 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::openFileFinished, this,
             [this](DocumentView *doc, Model::FileType /* ft */)
     {
-        // Only update the statusbar if this view is the currently active one.
-        // If it's a background split, don't clobber the active view's info.
+        // Only update the statusbar if this view is the currently active
+        // one. If it's a background split, don't clobber the active view's
+        // info.
         if (m_doc == doc)
         {
             updateStatusbar();
@@ -4180,9 +4247,9 @@ Lektra::SaveAsSession(const QString &sessionPath) noexcept
     Q_UNUSED(sessionPath);
     if (m_session_name.isEmpty())
     {
-        QMessageBox::information(
-            this, tr("Save As Session"),
-            tr("Cannot save session as you are not currently in a session"));
+        QMessageBox::information(this, tr("Save As Session"),
+                                 tr("Cannot save session as you are not "
+                                    "currently in a session"));
         return;
     }
 
@@ -4344,6 +4411,17 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("page_goto", tr("Jump to a specific page number"),
                            [this](const QStringList &args)
     { Goto_page(args); });
+
+    // Bookmark
+    m_command_manager->reg("bookmark_add", tr("Add bookmark"),
+                           [this](const QStringList &) { AddBookmark(); });
+
+    m_command_manager->reg("bookmark_remove", tr("Remove bookmark"),
+                           [this](const QStringList &) { RemoveBookmark(); });
+
+    m_command_manager->reg("bookmarks", tr("List bookmarks"),
+                           [this](const QStringList &)
+    { Show_bookmark_picker(); });
 
     // Marks
     m_command_manager->reg("mark_set",
@@ -5189,6 +5267,26 @@ Lektra::Show_command_picker() noexcept
     }
 
     m_command_picker->launch();
+}
+
+void
+Lektra::Show_bookmark_picker() noexcept
+{
+    if (!m_bookmark_picker)
+    {
+        m_bookmark_picker
+            = new BookmarkPicker(m_config.picker, &m_bookmark_manager, this);
+        m_bookmark_picker->setKeybindings(m_picker_keybinds);
+        connect(m_bookmark_picker, &BookmarkPicker::fileOpenRequested, this,
+                [this](const QString &file_path)
+        {
+            OpenFileDWIM(file_path, [] {
+
+            });
+        });
+    }
+
+    m_bookmark_picker->launch();
 }
 
 void
@@ -6121,9 +6219,9 @@ Lektra::ToggleThumbnailPanel() noexcept
     m_doc->ToggleThumbnailPanel();
 }
 
-// Check if the config file exists and is a valid TOML file and contains only
-// known keys. Print warnings for any issues found. Return true if no issues
-// found, false otherwise.
+// Check if the config file exists and is a valid TOML file and contains
+// only known keys. Print warnings for any issues found. Return true if no
+// issues found, false otherwise.
 bool
 Lektra::checkConfigFile(const QString &path) noexcept
 {
@@ -6287,4 +6385,21 @@ Lektra::checkConfigFile(const QString &path) noexcept
             << Qt::endl;
 
     return ok;
+}
+
+void
+Lektra::AddBookmark() noexcept
+{
+    if (!m_doc)
+        return;
+
+    m_bookmark_manager.addBookmark({m_doc->filePath(), m_doc->CurrentLocation(),
+                                    QDateTime::currentDateTime()});
+}
+
+void
+Lektra::RemoveBookmark() noexcept
+{
+    if (!m_doc)
+        return;
 }

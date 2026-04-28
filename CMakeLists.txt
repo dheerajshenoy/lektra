@@ -195,6 +195,9 @@ add_executable(${PROJECT_NAME}
     src/CommentSearchPicker.cpp
     src/ScrollBar.cpp
     src/ColorDialog.cpp
+    src/Bookmark.cpp
+    src/BookmarkManager.cpp
+    src/BookmarkPicker.cpp
 
     ${LEKTRA_CORE_HEADERS}
     ${LEKTRA_ANNOTATION_HEADERS}
