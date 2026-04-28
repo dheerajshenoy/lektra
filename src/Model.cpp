@@ -50,6 +50,27 @@ isImageFormat(Model::FileType ft) noexcept
             return false;
     }
 }
+
+static QImage
+toQImage(Magick::Image img)
+{
+    #if MagickLibVersion >= 0x700
+    img.alpha(true);
+    #else
+    img.matte(true);
+    #endif
+    img.depth(8);
+
+    const size_t w = img.columns();
+    const size_t h = img.rows();
+
+    Magick::Blob blob;
+    img.write(&blob, "RGBA");
+
+    const uchar *src = static_cast<const uchar *>(blob.data());
+    QImage qi(src, (int)w, (int)h, (int)(w * 4), QImage::Format_RGBA8888);
+    return qi.copy();
+};
 #endif
 
 static std::array<std::mutex, FZ_LOCK_MAX> mupdf_mutexes;
@@ -983,23 +1004,6 @@ Model::openAsync_image(const QString &canonPath) noexcept
 
         // ── Helpers ─────────────────────────────────────────────
 
-        auto toQImage = [](Magick::Image img) -> QImage
-        {
-            img.alpha(true);
-            img.depth(8);
-
-            const size_t w = img.columns();
-            const size_t h = img.rows();
-
-            Magick::Blob blob;
-            img.write(&blob, "RGBA");
-
-            const uchar *src = static_cast<const uchar *>(blob.data());
-            QImage qi(src, (int)w, (int)h, (int)(w * 4),
-                      QImage::Format_RGBA8888);
-            return qi.copy();
-        };
-
         auto delayMs = [](const Magick::Image &img) -> int
         {
             int ms = (int)(img.animationDelay() * 10);
@@ -1046,8 +1050,8 @@ Model::openAsync_image(const QString &canonPath) noexcept
             // Send initial state to UI
             QMetaObject::invokeMethod(this,
                                       [this, first = std::move(first), delays,
-                                       frames = std::move(coalesced), w, h,
-                                       &toQImage]() mutable
+                                       frames = std::move(coalesced), w,
+                                       h]() mutable
             {
                 cleanup_image();
 
