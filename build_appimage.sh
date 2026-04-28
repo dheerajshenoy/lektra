@@ -23,7 +23,7 @@ need() {
 
 need cmake
 need make
-need linuxdeploy
+#need linuxdeploy
 
 if [ "$CLEAN_APPDIR" -eq 1 ]; then
     rm -rf "$APPDIR"
@@ -48,8 +48,23 @@ fi
 
 ln -sf usr/bin/lektra "$APPDIR/AppRun"
 
-VERSION="$APP_VERSION" NO_STRIP=1 linuxdeploy \
-    --appdir "$APPDIR" \
-    --desktop-file "$DESKTOP_FILE" \
-    --icon-file "$ICON_FILE" \
-    --output appimage
+#VERSION="$APP_VERSION" NO_STRIP=1 ./linuxdeploy-x86_64.AppImage --appimage-extract \
+#    --appdir "$APPDIR" \
+#    --desktop-file "$DESKTOP_FILE" \
+#    --icon-file "$ICON_FILE" \
+#    --output appimage
+
+export EXTRA_QT_PLUGINS="waylandcompositor"
+export EXTRA_PLATFORM_PLUGINS="libqwayland-egl.so;libqwayland-generic.so"
+export QMAKE=qmake6
+export EXTRA_PLATFORM_PLUGINS="libqwayland-egl.so;libqwayland-generic.so"
+export APPIMAGE_EXTRACT_AND_RUN=1
+
+VERSION="$APP_VERSION" NO_STRIP=0 \
+	./linuxdeploy-x86_64.AppImage \
+	--appdir AppDir \
+	--executable ./appimage/AppDir/usr/bin/lektra \
+	--desktop-file ./appimage/AppDir/usr/share/applications/lektra.desktop \
+	--icon-file ./appimage/AppDir/usr/share/icons/hicolor/512x512/apps/lektra.png \
+	--plugin qt \
+	--output appimage
