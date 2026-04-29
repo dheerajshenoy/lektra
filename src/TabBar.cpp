@@ -118,7 +118,8 @@ TabBar::mouseMoveEvent(QMouseEvent *event)
 
         // If the active window is different from source, tab was dropped on it
         // (close original tab). Otherwise create new window
-        if (activeWindow && activeWindow != sourceWindow && activeWindow->isVisible())
+        if (activeWindow && activeWindow != sourceWindow
+            && activeWindow->isVisible())
         {
             emit tabDetached(draggedIndex, QCursor::pos());
         }
@@ -281,4 +282,10 @@ TabBar::dropEvent(QDropEvent *event)
     emit tabDropReceived(data);
     event->setDropAction(Qt::MoveAction);
     event->accept();
+}
+
+void
+TabBar::contextMenuEvent(QContextMenuEvent *event)
+{
+    emit contextMenuRequested(tabAt(event->pos()), event->globalPos());
 }

@@ -3192,6 +3192,8 @@ Lektra::initConnections() noexcept
             &Lektra::handleTabDetached);
     connect(m_tab_widget, &TabWidget::tabDetachedToNewWindow, this,
             &Lektra::handleTabDetachedToNewWindow);
+    connect(m_tab_widget, &TabWidget::contextMenuRequested, this,
+            &Lektra::handleTabContextMenu);
 
     QWindow *win = window()->windowHandle();
 
@@ -3674,13 +3676,6 @@ Lektra::eventFilter(QObject *object, QEvent *event)
         }
     }
 
-    // Context menu for the tab widgets
-    if (object == m_tab_widget || object == m_tab_widget->tabBar())
-    {
-        if (type == QEvent::ContextMenu)
-            return handleTabContextMenu(object, event);
-    }
-
     // Let other events pass through
     return QObject::eventFilter(object, event);
 }
@@ -3750,21 +3745,9 @@ Lektra::dropEvent(QDropEvent *e) noexcept
     e->ignore();
 }
 
-bool
-Lektra::handleTabContextMenu(QObject *object, QEvent *event) noexcept
+void
+Lektra::handleTabContextMenu(int index, const QPoint &globalPos) noexcept
 {
-    auto *contextEvent = static_cast<QContextMenuEvent *>(event);
-    if (!contextEvent || !m_tab_widget)
-        return false;
-
-    const QPoint tabPos = object == m_tab_widget->tabBar()
-                              ? contextEvent->pos()
-                              : m_tab_widget->tabBar()->mapFrom(
-                                    m_tab_widget, contextEvent->pos());
-    const int index     = m_tab_widget->tabBar()->tabAt(tabPos);
-    if (index == -1)
-        return true;
-
     QMenu menu;
     menu.addAction(tr("Open Location"), this,
                    [this, index]() { openInExplorerForIndex(index); });
@@ -3778,11 +3761,11 @@ Lektra::handleTabContextMenu(QObject *object, QEvent *event) noexcept
         if (!data.filePath.isEmpty())
             handleTabDetachedToNewWindow(index, data);
     });
+
     menu.addAction(tr("Close Tab"), this,
                    [this, index]() { m_tab_widget->tabCloseRequested(index); });
 
-    menu.exec(contextEvent->globalPos());
-    return true;
+    menu.exec(globalPos);
 }
 
 bool

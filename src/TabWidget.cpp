@@ -30,6 +30,8 @@ TabWidget::TabWidget(QWidget *parent) : QWidget(parent), m_id(g_newId())
     connect(m_tab_bar, &TabBar::tabDetached, this, &TabWidget::tabDetached);
     connect(m_tab_bar, &TabBar::tabDetachedToNewWindow, this,
             &TabWidget::tabDetachedToNewWindow);
+    connect(m_tab_bar, &TabBar::contextMenuRequested, this,
+            &TabWidget::contextMenuRequested);
 
     connect(m_tab_bar, &QTabBar::currentChanged, this, [this](int i)
     {

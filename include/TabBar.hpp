@@ -70,6 +70,7 @@ signals:
     void tabDropReceived(const TabData &data);
     void tabDetached(int index, const QPoint &globalPos);
     void tabDetachedToNewWindow(int index, const TabData &data);
+    void contextMenuRequested(int index, const QPoint &globalPos);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -80,6 +81,7 @@ protected:
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;
     void dropEvent(QDropEvent *event) override;
+    void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
     QPoint m_drag_start_pos;

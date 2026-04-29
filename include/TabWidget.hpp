@@ -120,6 +120,7 @@ signals:
     void tabDetachedToNewWindow(int index, const TabBar::TabData &data);
     void currentChanged(const int index);
     void tabCloseRequested(const int index);
+    void contextMenuRequested(int index, const QPoint &globalPos);
 
 private:
     TabId m_id{0};

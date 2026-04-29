@@ -300,7 +300,7 @@ private:
     void gotoMark(const QString &key) noexcept;
     void deleteMark(const QString &key) noexcept;
     bool handleLinkHintEvent(QEvent *event) noexcept;
-    bool handleTabContextMenu(QObject *object, QEvent *event) noexcept;
+    void handleTabContextMenu(int index, const QPoint &globalPos) noexcept;
     void applyCommandLineOverrides(
         const argparse::ArgumentParser &argparser) noexcept;
     DocumentView *create_portal(DocumentView *sourceView,
