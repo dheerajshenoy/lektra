@@ -23,6 +23,8 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QLocalServer>
+#include <QLocalSocket>
 #include <QMimeData>
 #include <QObject>
 #include <QProcess>
@@ -175,9 +177,9 @@ void
 Lektra::construct() noexcept
 {
     initCommands();
+    initConfig();
     initDefaultKeybinds();
     initDefaultMousebinds();
-    initConfig();
     initGui();
     warnShortcutConflicts();
     initDB();
@@ -1075,11 +1077,6 @@ Lektra::initConfig() noexcept
     }
 #endif
 
-    // Colors
-    if (auto colors = toml["colors"])
-    {
-    }
-
     // Rendering
     if (auto rendering = toml["rendering"])
     {
@@ -1185,8 +1182,7 @@ Lektra::initConfig() noexcept
         set(behavior["undo_limit"], m_config.behavior.undo_limit);
         set(behavior["remember_last_visited"],
             m_config.behavior.remember_last_visited);
-        set(behavior["always_open_in_new_window"],
-            m_config.behavior.always_open_in_new_window);
+        set(behavior["single_instance"], m_config.behavior.single_instance);
         set(behavior["page_history"], m_config.behavior.page_history_limit);
         set(behavior["invert_mode"], m_config.behavior.invert_mode);
         set(behavior["dont_invert_images"],
@@ -1207,7 +1203,7 @@ Lektra::initConfig() noexcept
             if (value.is_value())
                 setupKeybinding(
                     QString::fromStdString(std::string(action.str())),
-                    QString::fromStdString(value.value_or<std::string>("")));
+                    {QString::fromStdString(value.value_or<std::string>(""))});
             else if (value.is_array())
             {
                 QStringList keys;
@@ -1325,7 +1321,7 @@ Lektra::initDefaultKeybinds() noexcept
     for (const auto &binding : defaults)
     {
         setupKeybinding(QString::fromLatin1(binding.action),
-                        QString::fromLatin1(binding.key));
+                        {QString::fromLatin1(binding.key)});
     }
 }
 
@@ -1580,14 +1576,6 @@ Lektra::updateUiEnabledState() noexcept
     }
 }
 
-// Helper function to construct `QShortcut` Qt shortcut
-// from the config file
-void
-Lektra::setupKeybinding(const QString &action, const QString &key) noexcept
-{
-    setupKeybinding(action, QStringList{key});
-}
-
 void
 Lektra::setupKeybinding(const QString &action, const QStringList &keys) noexcept
 {
@@ -1830,10 +1818,48 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
             = QString::fromStdString(argparser.get<std::string>("--config"));
     }
 
+    // IPC probe — must happen before construct() so no window is created
+    const QString ipcName = QStringLiteral("lektra-ipc");
+    if (readSingleInstanceFromConfig() && argparser.is_used("files"))
+    {
+        auto files = argparser.get<std::vector<std::string>>("files");
+        if (!files.empty())
+        {
+            QLocalSocket probe;
+            probe.connectToServer(ipcName);
+            if (probe.waitForConnected(300))
+            {
+                QJsonObject msg;
+                QJsonArray fileArr;
+                for (auto &f : files)
+                    fileArr.append(QString::fromStdString(f));
+                msg["files"]  = fileArr;
+                msg["page"]   = argparser.is_used("page")
+                                    ? argparser.get<int>("--page")
+                                    : -1;
+                msg["vsplit"] = argparser.is_used("vsplit");
+                msg["hsplit"] = argparser.is_used("hsplit");
+                if (argparser.is_used("command"))
+                    msg["command"] = QString::fromStdString(
+                        argparser.get<std::string>("--command"));
+
+                probe.write(QJsonDocument(msg).toJson(QJsonDocument::Compact));
+                probe.flush();
+                probe.waitForBytesWritten(1000);
+                probe.disconnectFromServer();
+                std::exit(0);
+                return; // exits before construct() — no window created
+            }
+        }
+    }
+
     // This creates the UI and applies the initial user config file settings
     this->construct();
 
     applyCommandLineOverrides(argparser);
+
+    if (m_config.behavior.single_instance)
+        startIPCServer(ipcName); // correct place — after construct()
 
     if (argparser.is_used("about"))
     {
@@ -1941,7 +1967,6 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 
         if (!files.empty())
         {
-
             if (hsplit)
                 OpenFilesInHSplit(files);
             else if (vsplit)
@@ -1950,8 +1975,6 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
             {
                 if (files.size() == 1)
                 {
-                    // If only one file is passed, open it in a new tab and go
-                    // to the specified page (if any)
                     OpenFileInNewTab(QString::fromStdString(files[0]),
                                      [pageOverride, this, runCliCommands]()
                     {
@@ -3342,7 +3365,7 @@ Lektra::handleCurrentTabChanged(int index) noexcept
         m_tab_widget->removeTab(index);
         w->deleteLater();
 
-        DocumentView *view = OpenFileInNewTab(filePath, lazy.fn);
+        DocumentView *_ = OpenFileInNewTab(filePath, lazy.fn);
 
         m_tab_widget->tabBar()->moveTab(m_tab_widget->count() - 1, index);
         m_tab_widget->setCurrentIndex(index);
@@ -6481,4 +6504,113 @@ Lektra::RemoveBookmark() noexcept
         return;
 
     m_bookmark_manager.removeBookmark(m_doc->filePath());
+}
+
+void
+Lektra::onNewIPCConnection()
+{
+    QLocalServer *server       = qobject_cast<QLocalServer *>(sender());
+    QLocalSocket *clientSocket = server->nextPendingConnection();
+    connect(clientSocket, &QLocalSocket::readyRead, this,
+            &Lektra::onIPCDataReady);
+    connect(clientSocket, &QLocalSocket::disconnected, clientSocket,
+            &QLocalSocket::deleteLater);
+}
+
+void
+Lektra::onIPCDataReady()
+{
+    QLocalSocket *socket = qobject_cast<QLocalSocket *>(sender());
+    if (!socket)
+        return;
+
+    const QByteArray data = socket->readAll();
+    QJsonParseError err;
+    const QJsonDocument doc = QJsonDocument::fromJson(data, &err);
+
+    if (err.error != QJsonParseError::NoError || !doc.isObject())
+        return;
+
+    const QJsonObject msg  = doc.object();
+    const QJsonArray files = msg["files"].toArray();
+    const int page         = msg["page"].toInt(-1);
+    const bool vsplit      = msg["vsplit"].toBool();
+    const bool hsplit      = msg["hsplit"].toBool();
+    const QString cmd      = msg["command"].toString();
+
+    std::vector<std::string> filePaths;
+    for (const auto &v : files)
+        filePaths.push_back(v.toString().toStdString());
+
+    if (!filePaths.empty())
+    {
+        if (vsplit)
+            OpenFilesInVSplit(filePaths);
+        else if (hsplit)
+            OpenFilesInHSplit(filePaths);
+        else if (filePaths.size() == 1)
+        {
+            OpenFileInNewTab(QString::fromStdString(filePaths[0]),
+                             [page, this]()
+            {
+                if (page > 0)
+                    gotoPage(page);
+            });
+        }
+        else
+            OpenFiles(filePaths);
+    }
+
+    if (!cmd.isEmpty())
+    {
+        const QStringList cmdList = cmd.split(';', Qt::SkipEmptyParts);
+        for (const QString &c : cmdList)
+        {
+            QStringList parts = c.split(' ', Qt::SkipEmptyParts);
+            if (parts.isEmpty())
+                continue;
+            if (auto *command = m_command_manager->find(parts[0]))
+                command->action(parts.mid(1));
+        }
+    }
+
+    this->raise();
+    this->activateWindow();
+}
+
+void
+Lektra::startIPCServer(const QString &name)
+{
+#ifndef NDEBUG
+    qDebug() << "Starting IPC server with name:" << name;
+#endif
+
+    auto *server = new QLocalServer(this);
+    // Remove existing socket file if it crashed previously
+    QLocalServer::removeServer(name);
+
+    if (server->listen(name))
+    {
+        connect(server, &QLocalServer::newConnection, this,
+                &Lektra::onNewIPCConnection);
+    }
+}
+
+// Add this helper before Read_args_parser
+// TODO: Don't do this hacky stuff, refactor the argument parsing logic to be
+// more flexible and not require this
+bool
+Lektra::readSingleInstanceFromConfig() noexcept
+{
+    try
+    {
+        const toml::table tbl
+            = toml::parse_file(m_config_file_path.toStdString());
+        if (auto v = tbl["behavior"]["single_instance"].value<bool>())
+            return *v;
+    }
+    catch (...)
+    {
+    }
+    return false; // default off if config missing/unparseable
 }

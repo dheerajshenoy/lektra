@@ -1077,11 +1077,14 @@ struct Config
         // @added 0.3.0
         bool open_last_visited = false;
 
-        // @desc Always open files in new window
+        // @desc {
+        // Allow only a single instance of the application (opening a new
+        // file will open in the same instance)
+        // }
         // @type bool
         // @default false
-        // @added 0.5.3
-        bool always_open_in_new_window = false;
+        // @added 0.7.1
+        bool single_instance = false;
 
         // @desc Remembers last visited page number
         // @type bool

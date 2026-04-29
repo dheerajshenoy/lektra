@@ -214,6 +214,9 @@ private:
             m_search_bar->focusSearchInput();
     }
 
+    // IPC related
+    void startIPCServer(const QString &name);
+
     void restoreSplitNode(DocumentContainer *container,
                           DocumentView *targetView, const QJsonObject &node,
                           std::function<void()> onAllDone) noexcept;
@@ -238,7 +241,6 @@ private:
     void initDefaultKeybinds() noexcept;
     void initDefaultMousebinds() noexcept;
     void warnShortcutConflicts() noexcept;
-    void setupKeybinding(const QString &action, const QString &key) noexcept;
     void setupKeybinding(const QString &action,
                          const QStringList &keys) noexcept;
     void setupMousebinding(const QString &action,
@@ -411,6 +413,12 @@ private:
         DocumentView *portal = nullptr;
     };
 
+    bool readSingleInstanceFromConfig() noexcept;
+
     std::unique_ptr<MarkManager> m_marks_manager;
     std::unique_ptr<CommandManager> m_command_manager;
+
+private slots:
+    void onNewIPCConnection();
+    void onIPCDataReady();
 };

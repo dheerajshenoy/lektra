@@ -11,6 +11,9 @@
     - `bookmark_remove` to remove a bookmark at the current location
     - `bookmarks` to open the bookmark picker with the list of bookmarks in the document
 - Add image rotation support
+- Add missing implementation for `single_instance` option. Now if `single_instance` is enabled, new files will use the
+  existing instance of LEKTRA instead of opening a new instance, which allows for better management of
+  multiple documents and prevents cluttering the taskbar with multiple instances of LEKTRA.
 
 ### Bug Fixes
 
@@ -21,6 +24,7 @@
 
 ### Breaking Changes
 
+- Rename `always_open_in_new_window` to `single_instance`.
 - C++ version requirement has been downgraded to C++20 (previously it was C++23) to allow
   for wider compatibility with different platforms and compilers, as C++20 is now widely
   supported by most modern compilers and platforms, while C++23 is still very new and not yet
