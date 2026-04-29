@@ -1711,7 +1711,6 @@ Model::buildPageCache(int pageno) noexcept
         fz_drop_page(ctx, page);
         if (!success && dlist)
             fz_drop_display_list(ctx, dlist);
-        fz_drop_context(ctx);
     }
     fz_catch(ctx)
     {
@@ -1720,7 +1719,10 @@ Model::buildPageCache(int pageno) noexcept
     }
 
     if (!success)
+    {
+        fz_drop_context(ctx);
         return;
+    }
 
     // Cache the display list and links
     {
@@ -1730,6 +1732,8 @@ Model::buildPageCache(int pageno) noexcept
         else
             fz_drop_display_list(ctx, dlist);
     }
+
+    fz_drop_context(ctx);
 }
 
 void
