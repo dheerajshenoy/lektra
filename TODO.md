@@ -6,7 +6,6 @@
 
 - [ ] Allow opening multiple files from the file dialog
 - [ ] Render large gifs quickly and efficiently
-- [ ] Switching to images in tab doesn't update the statusbar info
 - [ ] Fix conflicting shortcuts to override default shortcuts
 - [ ] Open in existing window, using IPC or something, instead of opening a new window every time
 - [ ] Tab detach drag and drop to new window spawns new useless window
@@ -26,7 +25,6 @@
 - [ ] History for pickers
 - [ ] Don't add connection to annotation when in non-annotatable mode
 - [ ] External search engine configuration
-- [ ] Crash when zoom out too much and then in
 
 ## MEDIUM PRIORITY
 
