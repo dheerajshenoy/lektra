@@ -157,61 +157,15 @@ spawn_detached_child(int argc, char *argv[])
 void
 init_args(argparse::ArgumentParser &program)
 {
-    program.add_argument("-p", "--page")
-        .help("Page number to go to")
-        .scan<'i', int>()
-        .default_value(-1)
-        .metavar("PAGE_NUMBER");
-
-    program.add_argument("--list-commands")
-        .help("List available commands and exit")
-        .flag();
-
-    program.add_argument("-c", "--config")
-        .help("Path to config.toml file")
-        .nargs(1)
-        .metavar("CONFIG_PATH");
-
-    program.add_argument("--vsplit")
-        .help("Open file(s) in vertical split")
-        .flag();
-
-    program.add_argument("--hsplit")
-        .help("Open file(s) in horizontal split")
-        .flag();
-
     program.add_argument("--about")
         .help("Show about dialog")
         .default_value(false)
         .implicit_value(true);
 
-    program.add_argument("-s", "--session")
-        .help("Load a session")
+    program.add_argument("-c", "--config")
+        .help("Path to config.toml file")
         .nargs(1)
-        .metavar("SESSION_NAME");
-
-    program.add_argument("--foreground")
-        .help("Run in the foreground (do not detach from the terminal)")
-        .default_value(false)
-        .implicit_value(true);
-
-#ifdef WITH_SYNCTEX
-    program.add_argument("--synctex-forward")
-        .help(
-            "Format: "
-            "--synctex-forward={pdf-file-path}#{src-file-path}:{line}:{column}")
-        .default_value(std::string{})
-        .metavar("SYNCTEX_FORMAT");
-#endif
-
-    program.add_argument("--layout")
-        .help("Set initial layout (single, vertical, horizontal, book)")
-        .default_value(std::string{"vertical"})
-        .metavar("LAYOUT");
-
-    program.add_argument("--tutorial")
-        .help("Start with the tutorial file open")
-        .flag();
+        .metavar("CONFIG_PATH");
 
     program.add_argument("--command")
         .help(
@@ -227,6 +181,52 @@ init_args(argparse::ArgumentParser &program)
               "(defaults to searching for config.toml in standard locations)")
         .nargs(0, 1)
         .metavar("CONFIG_PATH");
+
+    program.add_argument("--foreground")
+        .help("Run in the foreground (do not detach from the terminal)")
+        .default_value(false)
+        .implicit_value(true);
+
+    program.add_argument("--hsplit")
+        .help("Open file(s) in horizontal split")
+        .flag();
+
+    program.add_argument("--layout")
+        .help("Set initial layout (single, vertical, horizontal, book)")
+        .default_value(std::string{"vertical"})
+        .metavar("LAYOUT");
+
+    program.add_argument("--list-commands")
+        .help("List available commands and exit")
+        .flag();
+
+    program.add_argument("-p", "--page")
+        .help("Page number to go to")
+        .scan<'i', int>()
+        .default_value(-1)
+        .metavar("PAGE_NUMBER");
+
+    program.add_argument("-s", "--session")
+        .help("Load a session")
+        .nargs(1)
+        .metavar("SESSION_NAME");
+
+#ifdef WITH_SYNCTEX
+    program.add_argument("--synctex-forward")
+        .help(
+            "Format: "
+            "--synctex-forward={pdf-file-path}#{src-file-path}:{line}:{column}")
+        .default_value(std::string{})
+        .metavar("SYNCTEX_FORMAT");
+#endif
+
+    program.add_argument("--tutorial")
+        .help("Start with the tutorial file open")
+        .flag();
+
+    program.add_argument("--vsplit")
+        .help("Open file(s) in vertical split")
+        .flag();
 
     program.add_argument("files").remaining().metavar("FILE_PATH(s)");
 }
