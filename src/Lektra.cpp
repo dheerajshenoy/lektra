@@ -4817,9 +4817,10 @@ Lektra::SetDPR() noexcept
 void
 Lektra::reloadDocument() noexcept
 {
-    if (m_doc)
-    {
-    }
+    if (!m_doc)
+        return;
+
+    m_doc->reloadFile();
 }
 
 // Go to the first tab

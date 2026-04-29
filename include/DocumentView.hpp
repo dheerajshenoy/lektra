@@ -272,6 +272,11 @@ public:
         return m_thumbnail_mode;
     }
 
+    inline void reloadFile() noexcept
+    {
+        tryReloadLater(0);
+    }
+
 #ifdef WITH_IMAGE
     void startGifPlayback() noexcept;
     void stopGifPlayback() noexcept;
