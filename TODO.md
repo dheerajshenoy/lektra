@@ -55,7 +55,6 @@
 - [ ] Separate dark and light mode colors ability
 - [ ] Search engine configuration
 - [ ] Smart jump under cursor (eg. jump to citation if on citation)
-- [ ] Navigate chapters, sections, subsections, etc. in the document
 - [ ] Narrow to region
 - [ ] Ruler
 - [ ] Try to generate outline if not present somehow
