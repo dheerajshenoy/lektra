@@ -17,6 +17,7 @@
 
 ### Bug Fixes
 
+- Fix opening files in containers with already open file not loading.
 - Fix `openSessionFromArray` function loading files incorrectly and breaking
 - Fix segfault in `buildPageCache` because of double free of mupdf context
 - Add implementation for `file_reload` command

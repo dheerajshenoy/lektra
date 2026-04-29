@@ -76,8 +76,8 @@ DocumentView::DocumentView(const Config &config, float dpr, QWidget *parent,
     connect(m_model, &Model::openFileFailed, this,
             &DocumentView::handleOpenFileFailed);
 
-    connect(m_model, &Model::openFileFinished, this,
-            &DocumentView::handleOpenFileFinished, Qt::UniqueConnection);
+    // connect(m_model, &Model::openFileFinished, this,
+    //         &DocumentView::handleOpenFileFinished, Qt::UniqueConnection);
 
     connect(m_model, &Model::passwordRequired, this,
             &DocumentView::handle_password_required);
@@ -314,6 +314,8 @@ DocumentView::openAsync(const QString &filePath) noexcept
 
     QFuture<void> future = m_model->openAsync(QDir::cleanPath(filePath));
     m_open_future_watcher.setFuture(future);
+    connect(&m_open_future_watcher, &QFutureWatcher<void>::finished, this,
+            &DocumentView::handleOpenFileFinished);
 }
 
 void
@@ -2266,6 +2268,12 @@ DocumentView::CloseFile() noexcept
 #ifdef WITH_IMAGE
     stopGifPlayback();
 #endif
+
+    // Disconnect watcher before cancelling to prevent handleOpenFileFinished
+    // firing for the old future
+    // m_open_future_watcher.disconnect();
+    m_open_future_watcher.cancel();
+
     stopPendingRenders();
     clearDocumentItems();
     resetConnections();

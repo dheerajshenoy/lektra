@@ -2446,7 +2446,6 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
         return false;
     }
 
-    // Check if file exists
     if (!QFile(filename).exists())
     {
         QMessageBox::critical(
@@ -2459,44 +2458,46 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
     if (!view)
         return false;
 
-    view->setDPR(m_dpr); // match OpenFileInNewTab
+    // Close after view is resolved, on the correct view
+    view->CloseFile();
+
+    view->setDPR(m_dpr);
 
     const int tabIndex = m_tab_widget->currentIndex();
-    // Update tab title once loaded
-    connect(view, &DocumentView::openFileFinished, this,
-            [this, tabIndex](DocumentView *doc, Model::FileType)
-    {
-        if (validTabIndex(tabIndex))
-            m_tab_widget->tabBar()->setTabText(tabIndex, m_config.tabs.full_path
-                                                             ? doc->filePath()
-                                                             : doc->fileName());
-        updateStatusbar();
-        updateUiEnabledState();
-    }, Qt::SingleShotConnection);
-
-    view->openAsync(filename);
-
-    m_tab_widget->tabBar()->set_split_count(tabIndex,
-                                            container->getViewCount());
-
-    setCurrentDocumentView(view); // immediate, like OpenFileInNewTab
 
     if (m_config.behavior.remember_last_visited || callback)
     {
         const int savedPage = m_config.behavior.remember_last_visited
                                   ? m_recent_files_store.pageNumber(filename)
                                   : 0;
-
         connect(view, &DocumentView::openFileFinished, this,
                 [callback, savedPage](DocumentView *view, Model::FileType)
         {
-            // savedPage takes lower priority than session callback
             if (savedPage > 0 && !callback)
                 view->GotoPage(savedPage - 1);
             if (callback)
                 callback();
         }, Qt::SingleShotConnection);
     }
+    else
+    {
+        connect(view, &DocumentView::openFileFinished, this,
+                [this, tabIndex](DocumentView *doc, Model::FileType)
+        {
+            if (validTabIndex(tabIndex))
+                m_tab_widget->tabBar()->setTabText(
+                    tabIndex, m_config.tabs.full_path ? doc->filePath()
+                                                      : doc->fileName());
+            updateStatusbar();
+            updateUiEnabledState();
+            gotoPage(0);
+        }, Qt::SingleShotConnection);
+    }
+
+    view->openAsync(filename);
+    setCurrentDocumentView(view); // always, unconditionally
+    m_tab_widget->tabBar()->set_split_count(tabIndex,
+                                            container->getViewCount());
 
     return true;
 }
@@ -5325,12 +5326,7 @@ Lektra::Show_bookmark_picker() noexcept
             = new BookmarkPicker(m_config.picker, &m_bookmark_manager, this);
         m_bookmark_picker->setKeybindings(m_picker_keybinds);
         connect(m_bookmark_picker, &BookmarkPicker::fileOpenRequested, this,
-                [this](const QString &file_path)
-        {
-            OpenFileDWIM(file_path, [] {
-
-            });
-        });
+                [this](const QString &file_path) { OpenFileDWIM(file_path); });
     }
 
     m_bookmark_picker->launch();
