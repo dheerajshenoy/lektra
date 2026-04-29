@@ -123,9 +123,9 @@ signals:
     void contextMenuRequested(int index, const QPoint &globalPos);
 
 private:
-    TabId m_id{0};
-    QStackedWidget *m_stacked_widget{nullptr};
-    TabBar *m_tab_bar{nullptr};
-    QLayout *m_main_layout{nullptr};
-    QTabWidget::TabPosition m_tab_position{QTabWidget::North};
+    TabId m_id                             = 0;
+    QStackedWidget *m_stacked_widget       = nullptr;
+    TabBar *m_tab_bar                      = nullptr;
+    QLayout *m_main_layout                 = nullptr;
+    QTabWidget::TabPosition m_tab_position = QTabWidget::North;
 };
