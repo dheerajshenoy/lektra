@@ -115,10 +115,10 @@ public:
                              const QString &filename    = {},
                              const CallbackFn &callback = {},
                              DocumentView *targetView   = nullptr) noexcept;
-    void OpenFilesInVSplit(const std::vector<std::string> &files = {}) noexcept;
-    void OpenFilesInHSplit(const std::vector<std::string> &files = {}) noexcept;
+    void OpenFilesInVSplit(const QStringList &files = {}) noexcept;
+    void OpenFilesInHSplit(const QStringList &files = {}) noexcept;
 
-    void OpenFiles(const std::vector<std::string> &filenames = {}) noexcept;
+    void OpenFiles(const QStringList &filenames = {}) noexcept;
     void OpenFilesInNewTab(const QStringList &files = {},
                            const std::vector<CallbackFn> &callbacks
                            = {}) noexcept;

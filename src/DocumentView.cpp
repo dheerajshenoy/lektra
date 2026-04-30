@@ -286,7 +286,8 @@ DocumentView::initSynctex() noexcept
         m_synctex_scanner = nullptr;
     }
 
-    const std::string filePathStr = m_model->filePath().toStdString();
+    const QByteArray pathBytes = m_model->filePath().toUtf8();
+    const std::string filePathStr(pathBytes.constData(), pathBytes.size());
     m_synctex_scanner
         = synctex_scanner_new_with_output_file(filePathStr.c_str(), nullptr, 1);
     if (!m_synctex_scanner)

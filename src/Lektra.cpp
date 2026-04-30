@@ -1848,14 +1848,19 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
         auto files = argparser.get<std::vector<std::string>>("files");
         if (!files.empty())
         {
+            QStringList qtFiles;
+            qtFiles.reserve(static_cast<int>(files.size()));
+            for (const auto &file : files)
+                qtFiles.push_back(QString::fromLocal8Bit(file.c_str()));
+
             QLocalSocket probe;
             probe.connectToServer(ipcName);
             if (probe.waitForConnected(300))
             {
                 QJsonObject msg;
                 QJsonArray fileArr;
-                for (auto &f : files)
-                    fileArr.append(QString::fromStdString(f));
+                for (const QString &f : qtFiles)
+                    fileArr.append(f);
                 msg["files"]  = fileArr;
                 msg["page"]   = argparser.is_used("page")
                                     ? argparser.get<int>("--page")
@@ -1985,20 +1990,24 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
     if (argparser.is_used("files"))
     {
         auto files = argparser.get<std::vector<std::string>>("files");
+        QStringList qtFiles;
+        qtFiles.reserve(static_cast<int>(files.size()));
+        for (const auto &file : files)
+            qtFiles.push_back(QString::fromLocal8Bit(file.c_str()));
         m_config.behavior.open_last_visited = false;
         const int pageOverride = m_config.behavior._startpage_override;
 
-        if (!files.empty())
+        if (!qtFiles.isEmpty())
         {
             if (hsplit)
-                OpenFilesInHSplit(files);
+                OpenFilesInHSplit(qtFiles);
             else if (vsplit)
-                OpenFilesInVSplit(files);
+                OpenFilesInVSplit(qtFiles);
             else
             {
-                if (files.size() == 1)
+                if (qtFiles.size() == 1)
                 {
-                    OpenFileInNewTab(QString::fromStdString(files[0]),
+                    OpenFileInNewTab(qtFiles[0],
                                      [pageOverride, this, runCliCommands]()
                     {
                         if (pageOverride > 0)
@@ -2008,7 +2017,7 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
                 }
                 else
                 {
-                    OpenFiles(files);
+                    OpenFiles(qtFiles);
                     runCliCommands();
                 }
             }
@@ -2525,18 +2534,18 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
 }
 
 void
-Lektra::OpenFiles(const std::vector<std::string> &files) noexcept
+Lektra::OpenFiles(const QStringList &files) noexcept
 {
     bool isFirst = true;
-    for (const std::string &file : files)
+    for (const QString &file : files)
     {
         if (!m_config.tabs.lazy_load || isFirst)
         {
-            OpenFileInNewTab(QString::fromStdString(file));
+            OpenFileInNewTab(file);
         }
         else
         {
-            const QString filePath = QString::fromStdString(file);
+            const QString filePath = file;
             auto *placeholder      = new QWidget(this);
             placeholder->setProperty("tabRole", "lazy");
             placeholder->setProperty("filePath", filePath);
@@ -2555,41 +2564,41 @@ Lektra::OpenFiles(const std::vector<std::string> &files) noexcept
 }
 
 void
-Lektra::OpenFilesInVSplit(const std::vector<std::string> &files) noexcept
+Lektra::OpenFilesInVSplit(const QStringList &files) noexcept
 {
 #ifndef NDEBUG
     qDebug() << "Lektra::OpenFilesInVSplit(): Opening files in vertical split:"
              << files.size();
 #endif
-    if (files.empty())
+    if (files.isEmpty())
         return;
 
     // First file always opens in a new tab
-    OpenFileInNewTab(QString::fromStdString(files[0]), [this, files]()
+    OpenFileInNewTab(files[0], [this, files]()
     {
         // Subsequent files split into that tab
-        for (size_t i = 1; i < files.size(); ++i)
-            OpenFileVSplit(QString::fromStdString(files[i]));
+        for (int i = 1; i < files.size(); ++i)
+            OpenFileVSplit(files[i]);
     });
 }
 
 void
-Lektra::OpenFilesInHSplit(const std::vector<std::string> &files) noexcept
+Lektra::OpenFilesInHSplit(const QStringList &files) noexcept
 {
 #ifndef NDEBUG
     qDebug()
         << "Lektra::OpenFilesInHSplit(): Opening files in horizontal split:"
         << files.size();
 #endif
-    if (files.empty())
+    if (files.isEmpty())
         return;
 
     // First file always opens in a new tab
-    OpenFileInNewTab(QString::fromStdString(files[0]), [this, files]()
+    OpenFileInNewTab(files[0], [this, files]()
     {
         // Subsequent files split into that tab
-        for (size_t i = 1; i < files.size(); ++i)
-            OpenFileHSplit(QString::fromStdString(files[i]));
+        for (int i = 1; i < files.size(); ++i)
+            OpenFileHSplit(files[i]);
     });
 }
 
@@ -6481,11 +6490,11 @@ Lektra::onIPCDataReady()
     const bool hsplit      = msg["hsplit"].toBool();
     const QString cmd      = msg["command"].toString();
 
-    std::vector<std::string> filePaths;
+    QStringList filePaths;
     for (const auto &v : files)
-        filePaths.push_back(v.toString().toStdString());
+        filePaths.push_back(v.toString());
 
-    if (!filePaths.empty())
+    if (!filePaths.isEmpty())
     {
         if (vsplit)
             OpenFilesInVSplit(filePaths);
@@ -6493,7 +6502,7 @@ Lektra::onIPCDataReady()
             OpenFilesInHSplit(filePaths);
         else if (filePaths.size() == 1)
         {
-            OpenFileInNewTab(QString::fromStdString(filePaths[0]),
+            OpenFileInNewTab(filePaths[0],
                              [page, this]()
             {
                 if (page > 0)

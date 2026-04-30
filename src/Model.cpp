@@ -986,7 +986,10 @@ Model::openAsync_image(const QString &canonPath) noexcept
         std::vector<Magick::Image> frames;
         try
         {
-            Magick::readImages(&frames, canonPath.toStdString());
+            const QByteArray pathBytes = canonPath.toUtf8();
+            Magick::readImages(
+                &frames,
+                std::string(pathBytes.constData(), pathBytes.size()));
         }
         catch (const Magick::Exception &e)
         {
@@ -1144,8 +1147,10 @@ Model::openAsync_djvu(const QString &canonPath) noexcept
     return QtConcurrent::run([this, canonPath]
     {
         ddjvu_context_t *ctx  = ddjvu_context_create("LEKTRA");
+        const QByteArray pathBytes = canonPath.toUtf8();
+        const std::string pathStr(pathBytes.constData(), pathBytes.size());
         ddjvu_document_t *doc = ddjvu_document_create_by_filename(
-            ctx, canonPath.toUtf8().constData(), true);
+            ctx, pathStr.c_str(), true);
         if (!doc)
         {
             ddjvu_context_release(ctx);
@@ -1244,7 +1249,8 @@ Model::openAsync_mupdf(const QString &canonPath) noexcept
         cleanup_mupdf();
 
         fz_document *doc          = nullptr;
-        const std::string pathStr = canonPath.toStdString();
+        const QByteArray pathBytes = canonPath.toUtf8();
+        const std::string pathStr(pathBytes.constData(), pathBytes.size());
         fz_try(bg_ctx)
         {
             doc = fz_open_document(bg_ctx, pathStr.c_str());
@@ -1786,7 +1792,9 @@ Model::decrypt() noexcept
 
         if (m_pdf_doc)
         {
-            const std::string filePathStr = m_filepath.toStdString();
+            const QByteArray filePathBytes = m_filepath.toUtf8();
+            const std::string filePathStr(filePathBytes.constData(),
+                                          filePathBytes.size());
             pdf_save_document(m_ctx, m_pdf_doc, filePathStr.c_str(), &opts);
         }
     }
@@ -1848,7 +1856,9 @@ Model::reloadDocument() noexcept
     fz_try(m_ctx)
     {
         std::lock_guard<std::mutex> lock(m_doc_mutex);
-        const std::string filePathStr = m_filepath.toStdString();
+        const QByteArray filePathBytes = m_filepath.toUtf8();
+        const std::string filePathStr(filePathBytes.constData(),
+                                      filePathBytes.size());
         new_doc = fz_open_document(m_ctx, filePathStr.c_str());
         if (!new_doc)
             return false;
@@ -1920,7 +1930,8 @@ Model::SaveChanges() noexcept
 
     fz_try(m_ctx)
     {
-        const std::string pathStr = m_filepath.toStdString();
+        const QByteArray pathBytes = m_filepath.toUtf8();
+        const std::string pathStr(pathBytes.constData(), pathBytes.size());
         std::lock_guard<std::mutex> lock(m_doc_mutex);
         pdf_write_options opts = m_pdf_write_options;
         opts.do_incremental    = 1;
@@ -1944,7 +1955,8 @@ Model::SaveAs(const QString &newFilePath) noexcept
     if (!m_doc || !m_pdf_doc)
         return false;
 
-    const std::string pathStr = newFilePath.toStdString();
+    const QByteArray pathBytes = newFilePath.toUtf8();
+    const std::string pathStr(pathBytes.constData(), pathBytes.size());
     fz_try(m_ctx)
     {
         std::lock_guard<std::mutex> lock(m_doc_mutex);
@@ -4777,7 +4789,9 @@ Model::getAnimatedFrame(int index) noexcept
     try
     {
         std::vector<Magick::Image> frames;
-        Magick::readImages(&frames, m_filepath.toStdString());
+        const QByteArray pathBytes = m_filepath.toUtf8();
+        Magick::readImages(
+            &frames, std::string(pathBytes.constData(), pathBytes.size()));
         if (frames.empty())
             return {};
 

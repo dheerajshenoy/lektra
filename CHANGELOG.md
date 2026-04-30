@@ -19,6 +19,7 @@
 
 ### Bug Fixes
 
+- Add UTF-8 text conversion for file paths on Windows to fix issues with opening files with non-ASCII characters in their paths on Windows.
 - Reset `m_success = false` at the start of every open in `Model.cpp`
 - [DocumentView.cpp] Made the future watcher connection single-shot and cleared stale connections before reconnecting and
   added a guard in `handleOpenFileFinished()` so it exits early if the model did not actually open the file.
