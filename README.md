@@ -10,6 +10,8 @@
     <a href="https://dheerajshenoy.github.io/lektra" target="_blank">Homepage</a> |
     <a href="https://dheerajshenoy.github.io/lektra/installation.html" target="_blank">Installation</a> |
     <a href="https://dheerajshenoy.github.io/lektra/configuration.html" target="_blank">Configuration</a>
+    <a href="CHANGELOG.md" target="_blank">CHANGELOG</a>
+    <a href="https://codeberg.org/lektra/lektra" target="_blank">Codeberg Mirror</a>
 </p>
 
 <p align="center">
@@ -18,18 +20,7 @@
 <a href="https://codeberg.org/lektra/lektra/src/branch/main/LICENSE"><img alt="Static Badge" src="https://img.shields.io/badge/LICENSE-AGPL--3.0-darkgreen?style=for-the-badge"></a>
 </p>
 
-**NOTE: For the latest updates and breaking changes (if any), please check the [CHANGELOG.md](CHANGELOG.md), where the description of the latest changes in features, config, bug fixes etc. are updated frequently.**
-
-## Supported file types
-
-### Documents
-- PDF, XPS, OXPS, CBZ, FB2, EPUB, Mobi, DjVu (if compiled)
-
-### Images (if compiled with image support)
-- All the file formats supported by [ImageMagick](https://imagemagick.org/formats) ~ 170 formats, including but not limited to: JPEG, PNG, TIFF, GIF, SVG, WebP, HEIC, AVIF etc.
-- Also supports multi-frame animated images (e.g. animated GIFs, animated WebPs etc.) and multi-page TIFFs.
-
-## Screenshots
+# Screenshots
 
 https://github.com/user-attachments/assets/26a553f8-a037-4479-8e1e-6636ea5258bd
 <p align="center">
@@ -82,6 +73,16 @@ https://github.com/user-attachments/assets/c3b80351-3af3-4488-87a6-8b52c27f875c
   <img src="https://dheerajshenoy.github.io/lektra/files/synctex.gif" alt="SyncTeX integration" width="800"><br>
   <strong>SyncTeX integration</strong>
 </p>
+
+# Supported file types
+
+### Documents
+- PDF, XPS, OXPS, CBZ, FB2, EPUB, Mobi, DjVu (if compiled)
+
+### Images (if compiled with image support)
+- All the file formats supported by [ImageMagick](https://imagemagick.org/formats) ~ 170 formats, including but not limited to: JPEG, PNG, TIFF, GIF, SVG, WebP, HEIC, AVIF etc.
+- Also supports multi-frame animated images (e.g. animated GIFs, animated WebPs etc.) and multi-page TIFFs.
+
 
 # AI Usage
 
