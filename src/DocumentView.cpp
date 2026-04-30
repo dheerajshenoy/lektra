@@ -1630,8 +1630,7 @@ DocumentView::GotoPage(int pageno) noexcept
 
     if (m_visual_line_mode)
     {
-        // m_visual_lines      = m_model->get_text_lines(m_pageno);
-        m_visual_line_index = -1;
+        m_visual_line_index = 0;
         snapVisualLine();
     }
 }
@@ -5242,6 +5241,8 @@ DocumentView::visual_line_move(Direction direction) noexcept
     {
         case LEFT:
         case RIGHT:
+            // TODO: Implement horizontal movement within the same line if the
+            // model provides character-level info.
             break;
 
         case UP:
@@ -5249,7 +5250,8 @@ DocumentView::visual_line_move(Direction direction) noexcept
             if (m_visual_line_index == 0)
             {
                 GotoPrevPage();
-                return;
+                m_visual_line_index = m_visual_lines.size()
+                                      - 1; // Move to last line of new page
             }
             else
             {
@@ -5264,7 +5266,6 @@ DocumentView::visual_line_move(Direction direction) noexcept
                 || m_visual_line_index == (int)m_visual_lines.size() - 1)
             {
                 GotoNextPage();
-                return;
             }
             else
             {
