@@ -1,18 +1,14 @@
 #include "ColorDialog.hpp"
 
+#include <QCheckBox>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QPushButton>
 
 ColorDialog::ColorDialog(const std::vector<QColor> &colors,
-                         const QColor &initial_color, QWidget *parent)
-    : QDialog(parent), m_colors(colors), m_initial_color(initial_color)
-{
-    initUI();
-}
-
-void
-ColorDialog::initUI()
+                         const QColor &initial_color, bool fill_required,
+                         QWidget *parent)
+    : QDialog(parent), m_colors(colors)
 {
     setWindowTitle(tr("Select Color"));
     setModal(true);
@@ -55,17 +51,29 @@ ColorDialog::initUI()
     }
 
     // Inside initUI, after the for loop:
-    if (m_initial_color.isValid())
+    if (initial_color.isValid())
     {
+        const QColor initial_rgb = initial_color.toRgb();
+        auto channelDiff         = [](int a, int b)
+        {
+            return a > b ? a - b : b - a;
+        };
+        const int tolerance = 2;
+
         for (size_t i = 0; i < m_colors.size(); ++i)
         {
-            if (m_colors[i] == m_initial_color)
+            const QColor color_rgb = m_colors[i].toRgb();
+            if (channelDiff(color_rgb.red(), initial_rgb.red()) <= tolerance
+                && channelDiff(color_rgb.green(), initial_rgb.green())
+                       <= tolerance
+                && channelDiff(color_rgb.blue(), initial_rgb.blue())
+                       <= tolerance)
             {
                 if (auto *btn
                     = m_color_button_group->button(static_cast<int>(i)))
                 {
                     qDebug() << "Pre-selecting color: %s"
-                             << m_initial_color.name().toStdString().c_str();
+                             << initial_color.name().toStdString().c_str();
                     btn->setChecked(true);
                 }
                 break;
@@ -75,6 +83,15 @@ ColorDialog::initUI()
 
     mainLayout->addLayout(colorGrid);
 
+    mainLayout->addWidget(m_custom_widget);
+
+    auto *fillCheckBox = new QCheckBox(tr("Fill"));
+
+    if (fill_required)
+    {
+        mainLayout->addWidget(fillCheckBox);
+    }
+
     // Standard Dialog Buttons
     auto *buttonBox = new QHBoxLayout();
     auto *okBtn     = new QPushButton(tr("OK"));
@@ -83,16 +100,19 @@ ColorDialog::initUI()
     okBtn->setDefault(true);
     buttonBox->addWidget(okBtn);
     buttonBox->addWidget(cancelBtn);
+
     mainLayout->addLayout(buttonBox);
 
     // Logic
-    connect(okBtn, &QPushButton::clicked, this, [this]()
+    connect(okBtn, &QPushButton::clicked, this,
+            [this, fill_required, fillCheckBox]()
     {
         int id = m_color_button_group->checkedId();
         if (id != -1)
         {
             m_selected_color = m_colors[static_cast<size_t>(id)];
-            emit colorSelected(m_selected_color);
+            if (fill_required)
+                m_fill_required = fillCheckBox->isChecked();
             accept();
         }
     });
