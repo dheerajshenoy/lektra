@@ -6560,7 +6560,7 @@ Lektra::readSingleInstanceFromConfig() noexcept
 
 #ifdef WITH_LUA
 void
-Lektra::initLua() noexcept
+Lektra::init_lua() noexcept
 {
     m_L = luaL_newstate();
 

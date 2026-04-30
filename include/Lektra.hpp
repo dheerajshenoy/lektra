@@ -242,9 +242,6 @@ private:
     void initMenubar() noexcept;
     void initGui() noexcept;
     void initConfig() noexcept;
-#ifdef WITH_LUA
-    void initLua() noexcept;
-#endif
     void initDefaultKeybinds() noexcept;
     void initDefaultMousebinds() noexcept;
     void warnShortcutConflicts() noexcept;
@@ -425,6 +422,7 @@ private:
     std::unique_ptr<CommandManager> m_command_manager;
 
 #ifdef WITH_LUA
+    void init_lua() noexcept;
     lua_State *m_L = nullptr;
 #endif
 };
