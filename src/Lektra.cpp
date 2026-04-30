@@ -190,7 +190,9 @@ Lektra::~Lektra() noexcept
 void
 Lektra::construct() noexcept
 {
-    initLua();
+#ifdef WITH_LUA
+    init_lua();
+#endif
     initCommands();
     initConfig();
     initDefaultKeybinds();
