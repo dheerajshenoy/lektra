@@ -4,6 +4,8 @@
 
 ## HIGH PRIORITY
 
+- [ ] Fit mode for rotated images
+- [ ] Export highlight annotations
 - [ ] Allow for command arguments
 - [ ] Allow opening multiple files from the file dialog
 - [ ] Render large gifs quickly and efficiently
@@ -32,7 +34,6 @@
 - [ ] Password protected PDFs thumbnail view asking for password, do something about it.
 - [ ] Show text highlight brush cursor when highlighting text
 - [ ] Drag and drop tabs not working, also get it to work with splits
-- [ ] Export highlight annotations
 - [ ] Shell Scripting
 - [ ] lektra.readthedocs.io page
 
