@@ -21,6 +21,14 @@ public:
         m_commands.push_back(std::move(cmd));
     }
 
+    inline void unreg(const QString &name) noexcept
+    {
+        m_commands.erase(std::remove_if(m_commands.begin(), m_commands.end(),
+                                        [&name](const Command &cmd)
+        { return cmd.name == name; }),
+                         m_commands.end());
+    }
+
     inline void
     reg(const QString &name, const QString &description,
         std::function<void(const QStringList &args)> action) noexcept
