@@ -6,6 +6,7 @@ set "BUILD_TYPE=Release"
 set "PREFIX=C:\usr"
 set "WITH_IMAGE=on"
 set "WITH_SYNCTEX=off"
+set "WITH_LUA=off"
 
 :parse_args
 
@@ -39,8 +40,29 @@ if /i "%~1"=="--without-image" (
     goto parse_args
 )
 
-if /i "%~1"=="--without-image" (
+if /i "%~1"=="--with-synctex" (
+    set "WITH_SYNCTEX=on"
+    shift
+    shift
+    goto parse_args
+)
+
+if /i "%~1"=="--without-synctex" (
     set "WITH_SYNCTEX=off"
+    shift
+    shift
+    goto parse_args
+)
+
+if /i "%~1"=="--with-lua" (
+    set "WITH_LUA=on"
+    shift
+    shift
+    goto parse_args
+)
+
+if /i "%~1"=="--without-lua" (
+    set "WITH_LUA=off"
     shift
     shift
     goto parse_args
@@ -61,6 +83,10 @@ echo Options:
 echo     --prefix PATH           Set the installation prefix [default: C:\usr]
 echo     --with-image            Enable image files support (requires ImageMagick and it's C++ development library) (default: true)
 echo     --without-image         Disable image files support
+echo     --with-synctex          Enable SyncTeX support (requires SyncTeX library) (default: false)
+echo     --without-synctex       Disable SyncTeX support
+echo     --with-lua              Enable Lua scripting support (requires Lua library) (default: false)
+echo     --without-lua           Disable Lua scripting support
 echo     --build-type TYPE       Set the CMake build type [default: Release]
 echo                             Valid values: Debug, Release, RelWithDebInfo
 echo     -h, --help              Show this help message and exit
@@ -83,7 +109,11 @@ if %errorlevel% neq 0 (
 if not exist build mkdir build
 
 :: Note: For MSVC, CMAKE_BUILD_TYPE is ignored at this stage.
-cmake -S . -B build -G "Visual Studio 18 2026" -A x64 -DCMAKE_INSTALL_PREFIX="%PREFIX%" -DWITH_IMAGE="%WITH_IMAGE%" -DWITH_SYNCTEX="%WITH_SYNCTEX%"
+cmake -S . -B build -G "Visual Studio 18 2026" -A x64
+    -DCMAKE_INSTALL_PREFIX="%PREFIX%"
+    -DWITH_IMAGE="%WITH_IMAGE%"
+    -DWITH_SYNCTEX="%WITH_SYNCTEX%"
+    -DWITH_LUA="%WITH_LUA%"
 
 if %errorlevel% neq 0 exit /b %errorlevel%
 

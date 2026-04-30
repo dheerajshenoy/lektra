@@ -3,22 +3,27 @@ set -e
 
 BUILD_TYPE="Release"
 PREFIX="/usr"
+WITH_IMAGE="on"
+WITH_SYNCTEX="on"
+WITH_LUA="off"
 
 print_help() {
     cat <<EOF
-Usage: ./configure [OPTIONS]
+    Usage: ./configure [OPTIONS]
 
-Options:
+    Options:
     --prefix PATH           Set the installation prefix [default: /usr]
     --build-type TYPE       Set the CMake build type [default: Release]
-                            Valid values: Debug, Release, RelWithDebInfo
+    Valid values: Debug, Release, RelWithDebInfo
     --with-image            Enable image files support (requires ImageMagick and it's C++ development library) (default: true)
     --without-image         Disable image files support
     --with-synctex          Enable SyncTeX support (default: true)
     --without-synctex       Disable SyncTeX support
+    --with-lua              Enable Lua scripting support (requires Lua) (default: false)
+    --without-lua           Disable Lua scripting support
     -h, --help              Show this help message and exit
 
-Examples:
+    Examples:
     ./configure
     ./configure --prefix /usr/local --build-type Release
 EOF
@@ -49,6 +54,14 @@ while [ "$#" -gt 0 ]; do
             ;;
         --without-synctex)
             WITH_SYNCTEX="off"
+            shift 2
+            ;;
+        --with-lua)
+            WITH_LUA="on"
+            shift 2
+            ;;
+        --without-lua)
+            WITH_LUA="off"
             shift 2
             ;;
         -h|--help)
@@ -84,10 +97,10 @@ fi
 
 # Run cmake with the specified options
 cmake -S . -B build \
-  -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-  -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-  -DWITH_IMAGE="$WITH_IMAGE" \
-  -DWITH_SYNCTEX="$WITH_SYNCTEX"
+    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+    -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+    -DWITH_IMAGE="$WITH_IMAGE" \
+    -DWITH_SYNCTEX="$WITH_SYNCTEX"
 
 cmake --build build
 

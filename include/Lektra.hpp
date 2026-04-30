@@ -40,6 +40,10 @@
 #include <QStandardPaths>
 #include <QTabWidget>
 
+#ifdef WITH_LUA
+    #include <lua.hpp>
+#endif
+
 // In Lektra.hpp
 using CallbackFn = std::function<void()>;
 
@@ -51,6 +55,7 @@ public:
     Lektra() noexcept;
     Lektra(const QString &sessionName,
            const QJsonArray &sessionArray) noexcept; // load from session
+    ~Lektra() noexcept;
 
     void VSplit() noexcept;
     void HSplit() noexcept;
@@ -189,6 +194,10 @@ protected:
     void dropEvent(QDropEvent *event) noexcept override;
     void dragEnterEvent(QDragEnterEvent *event) noexcept override;
 
+private slots:
+    void onNewIPCConnection();
+    void onIPCDataReady();
+
 private:
     enum class LinkHintMode
     {
@@ -233,6 +242,9 @@ private:
     void initMenubar() noexcept;
     void initGui() noexcept;
     void initConfig() noexcept;
+#ifdef WITH_LUA
+    void initLua() noexcept;
+#endif
     void initDefaultKeybinds() noexcept;
     void initDefaultMousebinds() noexcept;
     void warnShortcutConflicts() noexcept;
@@ -412,7 +424,7 @@ private:
     std::unique_ptr<MarkManager> m_marks_manager;
     std::unique_ptr<CommandManager> m_command_manager;
 
-private slots:
-    void onNewIPCConnection();
-    void onIPCDataReady();
+#ifdef WITH_LUA
+    lua_State *m_L = nullptr;
+#endif
 };

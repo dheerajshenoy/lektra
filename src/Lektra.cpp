@@ -34,6 +34,10 @@
 #include <QWindow>
 #include <variant>
 
+#ifdef WITH_LUA
+    #include <lua.hpp>
+#endif
+
 namespace
 {
 
@@ -174,10 +178,19 @@ Lektra::Lektra(const QString &sessionName,
     m_statusbar->setSessionName(sessionName);
 }
 
+Lektra::~Lektra() noexcept
+{
+#ifdef WITH_LUA
+    if (m_L)
+        lua_close(m_L);
+#endif
+}
+
 // On-demand construction of `Lektra` (for use with argparse)
 void
 Lektra::construct() noexcept
 {
+    initLua();
     initCommands();
     initConfig();
     initDefaultKeybinds();
@@ -6542,3 +6555,41 @@ Lektra::readSingleInstanceFromConfig() noexcept
     }
     return false; // default off if config missing/unparseable
 }
+
+#ifdef WITH_LUA
+void
+Lektra::initLua() noexcept
+{
+    m_L = luaL_newstate();
+
+    luaL_openlibs(m_L); // open standard libraries
+
+    // Create a "lektra" table in Lua to hold our API functions
+    lua_newtable(m_L);
+
+    lua_pushcfunction(m_L, [](lua_State *L) -> int
+    {
+        const char *msg = luaL_checkstring(L, 1);
+        QMessageBox::information(nullptr, "Lua Message", msg);
+        return 0;
+    });
+
+    lua_setfield(m_L, -2, "message");
+    // lua_setfield(m_L, -2, "utils");
+
+    lua_setglobal(m_L, "lektra");
+
+    // Read init.lua
+    auto lua_file = m_config_dir.filePath("init.lua");
+
+    if (QFile::exists(lua_file))
+    {
+        if (luaL_dofile(m_L, lua_file.toStdString().c_str()) != LUA_OK)
+        {
+            const char *error = lua_tostring(m_L, -1);
+            qWarning() << "Error loading init.lua:" << error;
+            lua_pop(m_L, 1); // pop error message
+        }
+    }
+}
+#endif

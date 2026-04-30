@@ -5,6 +5,7 @@ include(GNUInstallDirs)
 
 option(WITH_IMAGE "Enable image support" ON)
 option(WITH_SYNCTEX "Enable synctex support" ON)
+option(WITH_LUA "Enable lua scripting support" OFF)
 
 # ---------------------------------------------------------------------------
 # Build type default
@@ -135,6 +136,16 @@ find_package(Qt6 REQUIRED COMPONENTS
     Core Gui Widgets Concurrent LinguistTools OpenGLWidgets Network)
 
 find_package(djvulibre CONFIG QUIET)
+
+if (WITH_LUA)
+    find_package(Lua)
+    if (Lua_FOUND)
+        message(STATUS "Lua support: enabled (Lua version: ${Lua_VERSION})")
+    else()
+        message(WARNING "Lua not found – Lua scripting support disabled")
+        set(WITH_LUA OFF)
+    endif()
+endif()
 
 if (WITH_IMAGE)
     find_package(ImageMagick QUIET COMPONENTS MagickCore Magick++)
@@ -323,6 +334,12 @@ if (WITH_SYNCTEX)
 
     target_link_libraries(${PROJECT_NAME} PRIVATE synctex)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_SYNCTEX=1)
+endif()
+
+if (WITH_LUA AND Lua_FOUND)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${Lua_INCLUDE_DIRS})
+    target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_LUA=1)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${LUA_LIBRARIES})
 endif()
 
 # --- DjVuLibre ---
