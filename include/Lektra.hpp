@@ -47,6 +47,25 @@
 // In Lektra.hpp
 using CallbackFn = std::function<void()>;
 
+#ifdef WITH_LUA
+enum class DispatchType
+{
+    OnReady = 0,
+    OnFileOpen,
+    OnFileClose,
+    OnPageChanged,
+    OnZoomChanged,
+    OnLinkClicked,
+    OnSelectionChanged,
+    OnHistoryChanged,
+    OnTabChanged,
+    OnMarkSet,
+    OnMarkDeleted,
+    OnGotoMark,
+    OnCommand,
+};
+#endif
+
 class Lektra : public QMainWindow
 {
     Q_OBJECT
@@ -438,6 +457,11 @@ private:
     void initLuaOpt() noexcept;
     void initLuaAPI() noexcept;
     void initLuaUI() noexcept;
+    void initLuaEventDispatcher() noexcept;
+    void dispatchLuaEvent(DispatchType type) noexcept;
+
     lua_State *m_L = nullptr;
+    std::unordered_map<DispatchType, std::vector<CallbackFn>>
+        m_lua_event_dispatcher;
 #endif
 };

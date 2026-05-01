@@ -209,6 +209,9 @@ Lektra::construct() noexcept
     this->show();
     resize(m_config.window.initial_size[0], m_config.window.initial_size[1]);
     installEventFilter(this);
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnReady);
+#endif
 }
 
 // Initialize the menubar related stuff

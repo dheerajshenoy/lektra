@@ -1,6 +1,7 @@
 #include "Lektra.hpp"
 
 #include "api.cpp"
+#include "event.cpp"
 #include "opt.cpp"
 #include "ui.cpp"
 
@@ -17,6 +18,7 @@ Lektra::initLua() noexcept
     initLuaOpt();
     initLuaAPI();
     initLuaUI();
+    initLuaEventDispatcher();
 
     lua_setglobal(m_L, "lektra");
 
