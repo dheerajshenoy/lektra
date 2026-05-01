@@ -57,9 +57,18 @@ public:
            const QJsonArray &sessionArray) noexcept; // load from session
     ~Lektra() noexcept;
 
-    void VSplit() noexcept;
-    void HSplit() noexcept;
+    inline DocumentView *currentDocument() const noexcept
+    {
+        return m_doc;
+    }
 
+    inline CommandManager *commandManager() noexcept
+    {
+        return m_command_manager.get();
+    }
+
+    DocumentView *VSplit(DocumentView::Id id = -1) noexcept;
+    DocumentView *HSplit(DocumentView::Id id = -1) noexcept;
     void OpenConfigFile() noexcept;
     void Create_or_focus_portal() noexcept;
     void Close_split() noexcept;
@@ -69,7 +78,6 @@ public:
     void Focus_split_left() noexcept;
     void Focus_split_right() noexcept;
     void Read_args_parser(const argparse::ArgumentParser &argparser) noexcept;
-    // bool OpenFile(DocumentView *view) noexcept;
     void Search(const QStringList &args = {}) noexcept;
     void SearchRegex(const QStringList &args = {}) noexcept;
     void SearchInPage(const QStringList &args = {}) noexcept;
@@ -98,6 +106,7 @@ public:
     void SaveFile(const QString &filename = {}) noexcept;
     void SaveAsFile(const QString &filename = {}) noexcept;
     void CloseFile(const QString &filename = {}) noexcept;
+    void CloseFile(DocumentView::Id doc_id) noexcept;
     void Fit_width() noexcept;
     void Fit_height() noexcept;
     void Fit_page() noexcept;
@@ -109,6 +118,8 @@ public:
     void LastPage() noexcept;
     void NextPage() noexcept;
     void OpenContainingFolder() noexcept;
+    DocumentView *OpenFile(const QString &filename, int on_doc_id = -1,
+                           const CallbackFn &callback = {}) noexcept;
     bool OpenFileDWIM(const QString &filename    = {},
                       const CallbackFn &callback = {}) noexcept;
     bool OpenFileInContainer(DocumentContainer *container,
@@ -225,7 +236,8 @@ private:
                           DocumentView *targetView, const QJsonObject &node,
                           const CallbackFn &callback) noexcept;
     void focusSplitHelper(DocumentContainer::Direction direction) noexcept;
-    void splitHelper(Qt::Orientation orientation) noexcept;
+    DocumentView *splitHelper(DocumentView::Id id,
+                              Qt::Orientation orientation) noexcept;
     bool checkConfigFile(const QString &path) noexcept;
 
     DocumentView *openFileSplitHelper(const QString &filename    = {},
@@ -422,7 +434,10 @@ private:
     std::unique_ptr<CommandManager> m_command_manager;
 
 #ifdef WITH_LUA
-    void init_lua() noexcept;
+    void initLua() noexcept;
+    void initLuaOpt() noexcept;
+    void initLuaAPI() noexcept;
+    void initLuaUI() noexcept;
     lua_State *m_L = nullptr;
 #endif
 };
