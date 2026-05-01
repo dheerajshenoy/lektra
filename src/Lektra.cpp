@@ -35,7 +35,7 @@
 #include <variant>
 
 #ifdef WITH_LUA
-    #include <lua.hpp>
+    #include "lua/Lektra.cpp"
 #endif
 
 namespace
@@ -190,11 +190,11 @@ Lektra::~Lektra() noexcept
 void
 Lektra::construct() noexcept
 {
-#ifdef WITH_LUA
-    init_lua();
-#endif
     initCommands();
     initConfig();
+#ifdef WITH_LUA
+    initLua();
+#endif
     initDefaultKeybinds();
     initDefaultMousebinds();
     initGui();
@@ -5406,38 +5406,43 @@ Lektra::TabsCloseOthers() noexcept
     }
 }
 
-void
-Lektra::splitHelper(Qt::Orientation orientation) noexcept
+DocumentView *
+Lektra::splitHelper(DocumentView::Id id, Qt::Orientation orientation) noexcept
 {
     int currentTabIndex = m_tab_widget->currentIndex();
     if (!validTabIndex(currentTabIndex))
-        return;
+        return nullptr;
 
     // Get the container for this tab
     DocumentContainer *container = m_tab_widget->rootContainer(currentTabIndex);
     if (!container)
-        return;
+        return nullptr;
 
-    DocumentView *currentView = container->view();
-    if (!currentView || currentView == container->thumbnailView())
-        return;
+    DocumentView *targetView = nullptr;
+    if (id == -1)
+        targetView = container->view();
+    else
+        targetView = container->get_child_view_by_id(id);
+    if (!targetView || targetView == container->thumbnailView())
+        return nullptr;
 
     // Perform vertical split (top/bottom)
-    container->split(currentView, orientation);
+    container->split(targetView, orientation);
     m_tab_widget->tabBar()->set_split_count(currentTabIndex,
                                             container->getViewCount());
+    return targetView;
 }
 
-void
-Lektra::VSplit() noexcept
+DocumentView *
+Lektra::VSplit(DocumentView::Id id) noexcept
 {
-    splitHelper(Qt::Vertical);
+    return splitHelper(id, Qt::Vertical);
 }
 
-void
-Lektra::HSplit() noexcept
+DocumentView *
+Lektra::HSplit(DocumentView::Id id) noexcept
 {
-    splitHelper(Qt::Horizontal);
+    return splitHelper(id, Qt::Horizontal);
 }
 
 // Closes all splits except the current one in the current tab. If there is
@@ -6502,8 +6507,7 @@ Lektra::onIPCDataReady()
             OpenFilesInHSplit(filePaths);
         else if (filePaths.size() == 1)
         {
-            OpenFileInNewTab(filePaths[0],
-                             [page, this]()
+            OpenFileInNewTab(filePaths[0], [page, this]()
             {
                 if (page > 0)
                     gotoPage(page);
@@ -6567,40 +6571,46 @@ Lektra::readSingleInstanceFromConfig() noexcept
     return false; // default off if config missing/unparseable
 }
 
-#ifdef WITH_LUA
-void
-Lektra::init_lua() noexcept
+DocumentView *
+Lektra::OpenFile(const QString &filename, int on_doc_id,
+                 const CallbackFn &callback) noexcept
 {
-    m_L = luaL_newstate();
+    if (filename.isEmpty())
+        return nullptr;
 
-    luaL_openlibs(m_L); // open standard libraries
-
-    // Create a "lektra" table in Lua to hold our API functions
-    lua_newtable(m_L);
-
-    lua_pushcfunction(m_L, [](lua_State *L) -> int
+    // Search for doc_id if != -1, if found, close and open file in the same
+    // view
+    if (on_doc_id != -1)
     {
-        const char *msg = luaL_checkstring(L, 1);
-        QMessageBox::information(nullptr, "Lua Message", msg);
-        return 0;
-    });
-
-    lua_setfield(m_L, -2, "message");
-    // lua_setfield(m_L, -2, "utils");
-
-    lua_setglobal(m_L, "lektra");
-
-    // Read init.lua
-    auto lua_file = m_config_dir.filePath("init.lua");
-
-    if (QFile::exists(lua_file))
-    {
-        if (luaL_dofile(m_L, lua_file.toStdString().c_str()) != LUA_OK)
+        DocumentView *view = get_view_by_id(on_doc_id);
+        if (view)
         {
-            const char *error = lua_tostring(m_L, -1);
-            qWarning() << "Error loading init.lua:" << error;
-            lua_pop(m_L, 1); // pop error message
+            view->openAsync(filename);
+            if (callback)
+            {
+                connect(view, &DocumentView::openFileFinished, this,
+                        [callback](DocumentView *, Model::FileType)
+                { callback(); }, Qt::SingleShotConnection);
+            }
+            return view;
         }
     }
+
+    // Otherwise, open in a new tab
+    return OpenFileInNewTab(filename, callback);
 }
-#endif
+
+void
+Lektra::CloseFile(DocumentView::Id doc_id) noexcept
+{
+    if (doc_id == -1)
+    {
+        m_doc->CloseFile();
+    }
+    else
+    {
+        DocumentView *view = get_view_by_id(doc_id);
+        if (view)
+            view->CloseFile();
+    }
+}
