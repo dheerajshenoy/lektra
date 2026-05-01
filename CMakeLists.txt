@@ -274,9 +274,25 @@ if(WITH_IMAGE)
         target_compile_definitions(${PROJECT_NAME} PRIVATE
             WITH_IMAGE=1
             MAGICKCORE_QUANTUM_DEPTH=16
-            MAGICKCORE_HDRI_ENABLE=1)
+            MAGICKCORE_HDRI_ENABLE=1
+        )
+
+        # On Windows, also copy the ImageMagick DLLs to the build output
+        if(WIN32)
+            file(GLOB IM_DLLS "${ImageMagick_INCLUDE_DIRS}/../bin/CORE_RL_*.dll"
+                               "${ImageMagick_INCLUDE_DIRS}/../bin/IM_MOD_RL_*.dll")
+            if(IM_DLLS)
+                add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        ${IM_DLLS} $<TARGET_FILE_DIR:${PROJECT_NAME}>
+                    COMMENT "Copying ImageMagick DLLs..."
+                )
+                install(FILES ${IM_DLLS} DESTINATION bin)
+            endif()
+        endif()
     else()
         message(WARNING "ImageMagick/Magick++ not found – image support disabled")
+        set(WITH_IMAGE OFF)
     endif()
 endif()
 
@@ -545,7 +561,7 @@ if(WIN32 AND WINDEPLOYQT_EXECUTABLE)
         --release
         --no-translations
         --compiler-runtime
-        \"\${CMAKE_INSTALL_PREFIX}/bin/YourApp.exe\"
+        \"\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}.exe\"
         RESULT_VARIABLE WINDEPLOYQT_RESULT
     )
     if(NOT WINDEPLOYQT_RESULT EQUAL 0)
@@ -572,8 +588,8 @@ if (WIN32 AND WITH_IMAGE)
         )
 
         # Also copy to build directory for debugging
-        add_custom_command(TARGET YourApp POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RUNTIME_DLLS} $<TARGET_FILE_DIR:YourApp>
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RUNTIME_DLLS} $<TARGET_FILE_DIR:${PROJECT_NAME}>
             COMMENT "Copying third-party DLLs to build directory..."
         )
     endif()
