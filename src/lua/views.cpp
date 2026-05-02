@@ -1,7 +1,7 @@
 #include "Lektra.hpp"
 
 void
-Lektra::initLuaViews() noexcept
+Lektra::initLuaView() noexcept
 {
     lua_newtable(m_L);
 

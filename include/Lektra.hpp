@@ -470,8 +470,8 @@ private:
     // lektra.event
     void initLuaEventDispatcher() noexcept;
 
-    // lektra.views
-    void initLuaViews() noexcept;
+    // lektra.view
+    void initLuaView() noexcept;
 
     void dispatchLuaEvent(DispatchType type) noexcept;
     void executeLuaCode(const QString &code) noexcept;
