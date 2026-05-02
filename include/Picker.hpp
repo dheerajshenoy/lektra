@@ -226,6 +226,7 @@ public:
 
     void repopulate() noexcept;
     void setStructureMode(StructureMode mode) noexcept;
+    void setPrompt(const QString &prompt) noexcept;
 
 signals:
     void itemSelected(const Item &item);
@@ -256,6 +257,7 @@ private:
     Item itemAtProxyIndex(const QModelIndex &index) const;
 
 private:
+    QLabel *m_promptLabel                      = nullptr;
     QFrame *m_frame                            = nullptr;
     QStandardItemModel *m_model                = nullptr;
     StructureMode m_structureMode              = StructureMode::Hierarchical;
