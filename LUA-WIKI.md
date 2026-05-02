@@ -1,5 +1,8 @@
 # lektra
 
+> [!NOTE]
+> This is Work in Progress and is subject to change as the API evolves. The documentation will be updated regularly to reflect the latest state of the API.
+
 ## lektra.keymap
 
 - lektra.keymap.set(name, value)
@@ -172,17 +175,23 @@
 ## lektra.api
 Core functions for document management and command registration.
 
-* **`open(file, [docid], [callback], [options])`**: Opens a file.
+* **`open(file, [docnr], [callback], [options])`**: Opens a file.
+  * `docid`: Optional integer of target document to open in (defaults to current).
   * `callback`: `function(view)` called once the view is ready.
   * `options`: See [OpenFileOptions](#openfileoptions) table.
-* **`close([docid])`**: Closes the specified document (defaults to current).
-* **`hsplit([docid])`**: Splits the specified view horizontally.
-* **`vsplit([docid])`**: Splits the specified view vertically.
-* **`current_doc_id()`**: Returns the `ID` (string/int) of the active document.
-* **`register_command(name, callback)`**: Adds a custom command to Lektra.
+* **`close([docnr])`**: Closes the specified document (defaults to current).
+* **`hsplit([docnr])`**: Splits the specified view horizontally.
+* **`vsplit([docnr])`**: Splits the specified view vertically.
+* **`docnr()`**: Returns the `ID` (string/int) of current document.
   * `callback`: `function(args)` receiving a table of command-line arguments.
 
 ---
+
+## lektra.cmd
+
+* **`register(name, callback)`**: Adds a custom command to Lektra.
+* **`unregister(name)`**: Removes a previously registered command.
+* **`execute(name, [args])`**: Executes a registered command with optional arguments.
 
 ## lektra.ui
 Functions for interacting with the user interface.
@@ -191,6 +200,10 @@ Functions for interacting with the user interface.
   * `type`: `"info"` (default), `"warning"`, or `"error"`.
 * **`input(title, prompt, callback)`**: Opens an input prompt.
   * `callback`: `function(input)` receiving the string entered by the user.
+* **`picker(title, items, callback, [opts])`**: Shows a selection picker.
+  * `items`: List of strings or tables with `label` and `value`.
+  * `callback`: `function(selected)` receiving the chosen item.
+  * `opts`: See [PickerOptions](#pickeroptions) table.
 
 ---
 
@@ -201,6 +214,13 @@ Subscription-based event system.
 | Event Name | Description |
 | :--- | :--- |
 | **`OnReady`** | Emitted when the application has finished loading and the Lua environment is live. |
+| **`OnDocumentOpen`** | Emitted after a document is successfully opened. Callback receives `function(docid, filepath)`. |
+| **`OnDocumentClose`** | Emitted after a document is closed. Callback receives `function(docid)`. |
+| **`OnPageChange`** | Emitted when the user navigates to a different page. Callback receives `function(docid, page_number)`. |
+| **`OnZoomChange`** | Emitted when the zoom level changes. Callback receives `function(docid, zoom_level)`. |
+| **`OnLinkClick`** | Emitted when a link is clicked. Callback receives `function(docid, link_url)`. |
+| **`OnError`** | Emitted when an error occurs. Callback receives `function(error_message)`. |
+
 
 ---
 
@@ -216,4 +236,17 @@ Pass this table to `lektra.api.open` to control how the document is rendered.
 | **`new_window`**| `bool` | If true, opens the file in a separate OS window. |
 | **`dwim`** | `bool` | "Do What I Mean." Automatically decides the split/window logic based on current layout. |
 
+### `PickerOptions`
+
+Pass this table to `lektra.ui.picker` to customize the appearance and behavior of the picker dialog.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| **`width`** | `int` or `float` | Width in pixels (>1) or relative (0.0-1.0) to main window. |
+| **`height`** | `int` or `float` | Height in pixels (>1) or relative (0.0-1.0) to main window. |
+| **`border` | `bool` | Whether to show a border around the picker. |
+| **`alternating_row_color`** | `bool` | Whether to enable zebra-striping in the item list. |
+| **`shadow`** | `table` | Shadow configuration with fields: `enabled` (`bool`), `blur_radius` (`int`), `offset_x` (`int`), `offset_y` (`int`), and `opacity` (`int`, 0-255). |
+| **`vscrollbar`** | `bool` | Whether to show a vertical scrollbar when items exceed the visible area. |
+| **`flat_menu`** | `bool` | Whether to display items in a flat list instead of a hierarchical tree. |
 ---
