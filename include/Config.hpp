@@ -921,6 +921,12 @@ struct Config
         // @added 0.6.9
         bool flat_menu = true;
 
+        // @desc prompt text for the outline picker
+        // @type str
+        // @default "Outline"
+        // @added 0.7.1
+        QString prompt = "Outline";
+
     } outline;
     // @endsection
 
@@ -938,6 +944,13 @@ struct Config
         // @default true
         // @added 0.6.9
         bool flat_menu = true;
+
+        // @desc prompt text for the highlight search picker
+        // @type str
+        // @default "Search Highlights"
+        // @added 0.7.1
+        QString prompt = "Search Highlights";
+
     } highlight_search;
     // @endsection
 
@@ -947,11 +960,11 @@ struct Config
     // @section_added 0.5.4
     struct CommandPalette : public Picker
     {
-        // @desc Placeholder text for the input field
+        // @desc prompt text for the command palette
         // @type str
-        // @default "Type a command..."
-        // @added 0.5.4
-        QString placeholder_text = "Type a command...";
+        // @default "Command"
+        // @added 0.7.1
+        QString prompt = "Command";
 
         // @desc Show the vertical scrollbar in the picker
         // @type bool
