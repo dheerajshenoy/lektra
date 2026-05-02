@@ -36,7 +36,20 @@ public:
         m_commands.push_back({name, description, std::move(action)});
     }
 
-    const std::vector<Command> &const_commands() const noexcept
+    inline void execute(const QString &name,
+                        const QStringList &args = {}) const noexcept
+    {
+        for (const auto &cmd : m_commands)
+        {
+            if (cmd.name == name)
+            {
+                cmd.action(args);
+                return;
+            }
+        }
+    }
+
+    inline const std::vector<Command> &const_commands() const noexcept
     {
         return m_commands;
     }
