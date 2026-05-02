@@ -817,6 +817,14 @@ struct Config
         // @added 0.6.8
         bool alternating_row_color = true;
 
+        // @desc Prompt text for the picker
+        // @type str
+        // @default ""
+        // @added 0.7.1
+        // Note: if prompt is empty, the prompt label will be hidden and the
+        // search box will take the full width of the picker
+        QString prompt = QString();
+
         // clang-format off
         // @section Picker.Keys
         // @section_type struct
