@@ -54,12 +54,12 @@ public:
         return m_commands;
     }
 
-    const std::vector<Command> commands() const noexcept
+    inline const std::vector<Command> commands() const noexcept
     {
         return m_commands;
     }
 
-    const QStringList commandNames() const noexcept
+    inline const QStringList commandNames() const noexcept
     {
         QStringList names;
         for (const auto &cmd : m_commands)
@@ -67,7 +67,7 @@ public:
         return names;
     }
 
-    const bool hasCommand(const QString &name) const noexcept
+    bool hasCommand(const QString &name) const noexcept
     {
         for (const auto &cmd : m_commands)
         {
