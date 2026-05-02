@@ -2,11 +2,14 @@
 #include "Lektra.hpp"
 #include "utils.hpp"
 
+#include <lua.h>
+
 struct LuaField
 {
     const char *key;
     int (*get)(lua_State *, void *);
     void (*set)(lua_State *, void *);
+    void (*callback)(Lektra *) = nullptr; // called after set, nullptr = no-op
 };
 
 struct LuaEnumEntry
@@ -201,7 +204,10 @@ static const LuaField pageFields[] = {
     lua_pushinteger(L, static_cast<Config::Page *>(p)->bg);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Page *>(p)->bg = lua_tointeger(L, 3); }},
+{ static_cast<Config::Page *>(p)->bg = lua_tointeger(L, 3); },
+    [] (Lektra *lektra){
+
+    }},
     {"fg",
      [](lua_State *L, P p)
 {
@@ -1094,17 +1100,17 @@ static const LuaField highlightSearchFields[] = {
 
 // --- command_palette (Inherits Picker) ---
 static const LuaField commandPaletteFields[] = {
-    {"placeholder_text",
+    {"prompt",
      [](lua_State *L, P p)
 {
-    lua_pushstring(L, static_cast<Config::CommandPalette *>(p)
-                          ->placeholder_text.toUtf8()
-                          .constData());
+    lua_pushstring(
+        L,
+        static_cast<Config::CommandPalette *>(p)->prompt.toUtf8().constData());
     return 1;
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::CommandPalette *>(p)->placeholder_text
+    static_cast<Config::CommandPalette *>(p)->prompt
         = QString::fromUtf8(lua_tostring(L, 3));
 }},
     {"vscrollbar",
@@ -1427,17 +1433,26 @@ genericNewIndex(lua_State *L)
     auto *fields = static_cast<const LuaField *>(lua_touserdata(L, -1));
     lua_getfield(L, 1, "__count");
     int count = lua_tointeger(L, -1);
-    lua_pop(L, 3);
+    lua_getfield(L, 1, "__lektra");
+    auto *lektra = static_cast<Lektra *>(lua_touserdata(L, -1));
+    lua_pop(L, 4);
 
     const LuaField *f = findField(fields, count, lua_tostring(L, 2));
     if (f)
+    {
         f->set(L, ptr);
+        if (f->callback && lektra)
+        {
+            f->callback(lektra);
+        }
+    }
     return 0;
 }
 
 template <int N>
 static void
-pushSection(lua_State *L, void *ptr, const LuaField (&fields)[N])
+pushSection(lua_State *L, void *ptr, const LuaField (&fields)[N],
+            Lektra *lektra)
 {
     lua_newtable(L);
     lua_pushlightuserdata(L, ptr);
@@ -1446,6 +1461,8 @@ pushSection(lua_State *L, void *ptr, const LuaField (&fields)[N])
     lua_setfield(L, -2, "__fields");
     lua_pushinteger(L, N);
     lua_setfield(L, -2, "__count");
+    lua_pushlightuserdata(L, lektra);
+    lua_setfield(L, -2, "__lektra");
 
     lua_newtable(L);
     lua_pushcfunction(L, genericIndex);
@@ -1457,95 +1474,95 @@ pushSection(lua_State *L, void *ptr, const LuaField (&fields)[N])
 }
 
 static void
-initLuaSections(lua_State *L, Config &config)
+initLuaSections(lua_State *L, Config &config, Lektra *lektra)
 {
     // lektra.opt {}
     lua_newtable(L);
 
     // lektra.opt.page
-    pushSection(L, &config.page, pageFields);
+    pushSection(L, &config.page, pageFields, lektra);
     lua_setfield(L, -2, "page");
 
     // lektra.opt.synctex
-    pushSection(L, &config.synctex, synctexFields);
+    pushSection(L, &config.synctex, synctexFields, lektra);
     lua_setfield(L, -2, "synctex");
 
     // lektra.opt.search
-    pushSection(L, &config.search, searchFields);
+    pushSection(L, &config.search, searchFields, lektra);
     lua_setfield(L, -2, "search");
 
     // lektra.opt.annotations {}
     lua_newtable(L);
 
     // lektra.opt.annotations.highlight
-    pushSection(L, &config.annotations.highlight, annotHighlightFields);
+    pushSection(L, &config.annotations.highlight, annotHighlightFields, lektra);
     lua_setfield(L, -2, "highlight");
 
     // lektra.opt.annotations.rect
-    pushSection(L, &config.annotations.rect, annotRectFields);
+    pushSection(L, &config.annotations.rect, annotRectFields, lektra);
     lua_setfield(L, -2, "rect");
 
     // lektra.opt.annotations.popup
-    pushSection(L, &config.annotations.popup, annotPopupFields);
+    pushSection(L, &config.annotations.popup, annotPopupFields, lektra);
     lua_setfield(L, -2, "popup");
 
     // lektra.opt.annotations
     lua_setfield(L, -2, "annotations");
 
     // lektra.opt.thumbnail_panel
-    pushSection(L, &config.thumbnail, thumbnailPanelFields);
+    pushSection(L, &config.thumbnail, thumbnailPanelFields, lektra);
     lua_setfield(L, -2, "thumbnail_panel");
 
     // lektra.opt.portal
-    pushSection(L, &config.portal, portalFields);
+    pushSection(L, &config.portal, portalFields, lektra);
     lua_setfield(L, -2, "portal");
 
     // lektra.opt.window
-    pushSection(L, &config.window, windowFields);
+    pushSection(L, &config.window, windowFields, lektra);
     lua_setfield(L, -2, "window");
 
     // lektra.opt.layout
-    pushSection(L, &config.layout, layoutFields);
+    pushSection(L, &config.layout, layoutFields, lektra);
     lua_setfield(L, -2, "layout");
 
     // lektra.opt.statusbar
-    pushSection(L, &config.statusbar, statusbarFields);
+    pushSection(L, &config.statusbar, statusbarFields, lektra);
     lua_setfield(L, -2, "statusbar");
 
     // lektra.opt.zoom
-    pushSection(L, &config.zoom, zoomFields);
+    pushSection(L, &config.zoom, zoomFields, lektra);
     lua_setfield(L, -2, "zoom");
 
     // lektra.opt.selection
-    pushSection(L, &config.selection, selectionFields);
+    pushSection(L, &config.selection, selectionFields, lektra);
     lua_setfield(L, -2, "selection");
 
     // lektra.opt.split
-    pushSection(L, &config.split, splitFields);
+    pushSection(L, &config.split, splitFields, lektra);
     lua_setfield(L, -2, "split");
 
     // lektra.opt.scrollbars
-    pushSection(L, &config.scrollbars, scrollbarsFields);
+    pushSection(L, &config.scrollbars, scrollbarsFields, lektra);
     lua_setfield(L, -2, "scrollbars");
 
     // lektra.opt.jump_marker
-    pushSection(L, &config.jump_marker, jumpMarkerFields);
+    pushSection(L, &config.jump_marker, jumpMarkerFields, lektra);
     lua_setfield(L, -2, "jump_marker");
 
     // lektra.opt.links
-    pushSection(L, &config.links, linksFields);
+    pushSection(L, &config.links, linksFields, lektra);
     lua_setfield(L, -2, "links");
 
     // lektra.opt.link_hints
-    pushSection(L, &config.link_hints, linkHintsFields);
+    pushSection(L, &config.link_hints, linkHintsFields, lektra);
     lua_setfield(L, -2, "link_hints");
 
     // lektra.opt.tabs
-    pushSection(L, &config.tabs, tabsFields);
+    pushSection(L, &config.tabs, tabsFields, lektra);
     lua_setfield(L, -2, "tabs");
 
     // lektra.opt.picker
-    pushSection(L, &config.picker, pickerFields);
+    pushSection(L, &config.picker, pickerFields, lektra);
     lua_setfield(L, -2, "picker");
 
     // lektra.opt.picker.shadow
@@ -1553,31 +1570,31 @@ initLuaSections(lua_State *L, Config &config)
     // lua_setfield(L, -2, "picker_shadow");
 
     // lektra.opt.outline
-    pushSection(L, &config.outline, outlineFields);
+    pushSection(L, &config.outline, outlineFields, lektra);
     lua_setfield(L, -2, "outline");
 
     // lektra.opt.highlight_search
-    pushSection(L, &config.highlight_search, highlightSearchFields);
+    pushSection(L, &config.highlight_search, highlightSearchFields, lektra);
     lua_setfield(L, -2, "highlight_search");
 
     // lektra.opt.command_palette
-    pushSection(L, &config.command_palette, commandPaletteFields);
+    pushSection(L, &config.command_palette, commandPaletteFields, lektra);
     lua_setfield(L, -2, "command_palette");
 
     // lektra.opt.rendering
-    pushSection(L, &config.rendering, renderingFields);
+    pushSection(L, &config.rendering, renderingFields, lektra);
     lua_setfield(L, -2, "rendering");
 
     // lektra.opt.behavior
-    pushSection(L, &config.behavior, behaviorFields);
+    pushSection(L, &config.behavior, behaviorFields, lektra);
     lua_setfield(L, -2, "behavior");
 
     // lektra.opt.preview
-    pushSection(L, &config.preview, previewFields);
+    pushSection(L, &config.preview, previewFields, lektra);
     lua_setfield(L, -2, "preview");
 
     // lektra.opt.misc
-    pushSection(L, &config.misc, miscFields);
+    pushSection(L, &config.misc, miscFields, lektra);
     lua_setfield(L, -2, "misc");
 
     // lektra.opt
@@ -1590,5 +1607,5 @@ Lektra::initLuaOpt() noexcept
     initLuaEnums(m_L);
     initLuaKeymaps(m_L, m_config);
     initLuaMousemaps(m_L, m_config);
-    initLuaSections(m_L, m_config);
+    initLuaSections(m_L, m_config, this);
 }
