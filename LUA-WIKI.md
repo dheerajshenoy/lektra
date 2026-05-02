@@ -200,7 +200,7 @@ Functions for interacting with the user interface.
   * `type`: `"info"` (default), `"warning"`, or `"error"`.
 * **`input(title, prompt, callback)`**: Opens an input prompt.
   * `callback`: `function(input)` receiving the string entered by the user.
-* **`picker(title, items, callback, [opts])`**: Shows a selection picker.
+* **`picker(title, items, [opts])`**: Shows a selection picker.
   * `items`: List of strings or tables with `label` and `value`.
   * `callback`: `function(selected)` receiving the chosen item.
   * `opts`: See [PickerOptions](#pickeroptions) table.
