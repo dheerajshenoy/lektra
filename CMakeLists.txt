@@ -291,19 +291,7 @@ if(WITH_IMAGE)
             MAGICKCORE_HDRI_ENABLE=1
         )
 
-        # On Windows, also copy the ImageMagick DLLs to the build output
-        if(WIN32)
-            file(GLOB IM_DLLS "${ImageMagick_INCLUDE_DIRS}/../bin/CORE_RL_*.dll"
-                               "${ImageMagick_INCLUDE_DIRS}/../bin/IM_MOD_RL_*.dll")
-            if(IM_DLLS)
-                add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        ${IM_DLLS} $<TARGET_FILE_DIR:${PROJECT_NAME}>
-                    COMMENT "Copying ImageMagick DLLs..."
-                )
-                install(FILES ${IM_DLLS} DESTINATION bin)
-            endif()
-        endif()
+
     else()
         message(WARNING "ImageMagick/Magick++ not found – image support disabled")
         set(WITH_IMAGE OFF)
@@ -584,27 +572,84 @@ if(WIN32 AND WINDEPLOYQT_EXECUTABLE)
     " COMPONENT Runtime)
 endif()
 
-if (WIN32 AND WITH_IMAGE)
-    # Define runtime DLLs for third-party libraries
-    set(RUNTIME_DLLS "")
+if(WIN32 AND WITH_IMAGE)
+    # Derive IM root from where find_package found the includes.
+    # The official IM installer puts headers directly in <root>/include,
+    # so we only need to go up one level.
+    get_filename_component(IM_ROOT "${ImageMagick_INCLUDE_DIRS}" DIRECTORY)
 
-    # OpenSSL DLLs
-    if(EXISTS "${IMAGEMAGICK_ROOT}/")
-        file(GLOB OPENSSL_DLLS "${OPENSSL_ROOT}/bin/*.dll")
-        list(APPEND RUNTIME_DLLS ${OPENSSL_DLLS})
+    message(STATUS "ImageMagick root:    ${IM_ROOT}")
+    message(STATUS "ImageMagick include: ${ImageMagick_INCLUDE_DIRS}")
+
+    # Core DLLs (loader-resolved, must be next to the exe)
+    # Official IM installer places these directly in the root dir, not bin/
+    file(GLOB IM_CORE_DLLS
+        "${IM_ROOT}/CORE_RL_*.dll"
+        "${IM_ROOT}/FILTER_*.dll"
+        "${IM_ROOT}/bin/CORE_RL_*.dll"
+        "${IM_ROOT}/bin/FILTER_*.dll"
+    )
+
+    # Coder modules — loaded at runtime via LoadLibrary, NOT caught by windeployqt.
+    file(GLOB IM_CODER_DLLS
+        "${IM_ROOT}/modules/coders/IM_MOD_RL_*.dll"
+        "${IM_ROOT}/bin/modules/coders/IM_MOD_RL_*.dll"
+    )
+
+    # Config files (delegates.xml, policy.xml, magic.xml etc.)
+    set(IM_CONFIG_DIR "")
+    foreach(_cfgdir
+            "${IM_ROOT}"
+            "${IM_ROOT}/config"
+            "${IM_ROOT}/etc/ImageMagick-7"
+            "${IM_ROOT}/share/ImageMagick-7")
+        if(EXISTS "${_cfgdir}/policy.xml")
+            set(IM_CONFIG_DIR "${_cfgdir}")
+            break()
+        endif()
+    endforeach()
+
+    message(STATUS "IM core DLLs:   ${IM_CORE_DLLS}")
+    message(STATUS "IM coder DLLs:  ${IM_CODER_DLLS}")
+    message(STATUS "IM config dir:  ${IM_CONFIG_DIR}")
+
+    # --- Core DLLs ---
+    if(IM_CORE_DLLS)
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${IM_CORE_DLLS} $<TARGET_FILE_DIR:${PROJECT_NAME}>
+            COMMENT "Copying ImageMagick core DLLs..."
+        )
+        install(FILES ${IM_CORE_DLLS} DESTINATION bin)
+    else()
+        message(WARNING "No ImageMagick core DLLs found under ${IM_ROOT}/bin — check IM_ROOT above")
     endif()
 
-    # Install third-party DLLs
-    if(RUNTIME_DLLS)
-        install(FILES ${RUNTIME_DLLS}
-            DESTINATION bin
-            CONFIGURATIONS Release RelWithDebInfo
-        )
-
-        # Also copy to build directory for debugging
+    # --- Coder modules ---
+    if(IM_CODER_DLLS)
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RUNTIME_DLLS} $<TARGET_FILE_DIR:${PROJECT_NAME}>
-            COMMENT "Copying third-party DLLs to build directory..."
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/modules/coders"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${IM_CODER_DLLS}
+                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/modules/coders/"
+            COMMENT "Copying ImageMagick coder modules..."
         )
+        install(FILES ${IM_CODER_DLLS} DESTINATION bin/modules/coders)
+    else()
+        message(WARNING "No ImageMagick coder DLLs found — image formats will silently fail at runtime")
+    endif()
+
+    # --- Config files ---
+    if(IM_CONFIG_DIR)
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${IM_CONFIG_DIR}"
+                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/config"
+            COMMENT "Copying ImageMagick config files..."
+        )
+        install(DIRECTORY "${IM_CONFIG_DIR}/" DESTINATION bin/config)
+    else()
+        message(WARNING "No ImageMagick config dir found — delegates.xml/policy.xml missing")
     endif()
 endif()
