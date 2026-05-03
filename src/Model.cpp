@@ -988,8 +988,7 @@ Model::openAsync_image(const QString &canonPath) noexcept
         {
             const QByteArray pathBytes = canonPath.toUtf8();
             Magick::readImages(
-                &frames,
-                std::string(pathBytes.constData(), pathBytes.size()));
+                &frames, std::string(pathBytes.constData(), pathBytes.size()));
         }
         catch (const Magick::Exception &e)
         {
@@ -1146,11 +1145,11 @@ Model::openAsync_djvu(const QString &canonPath) noexcept
 {
     return QtConcurrent::run([this, canonPath]
     {
-        ddjvu_context_t *ctx  = ddjvu_context_create("LEKTRA");
+        ddjvu_context_t *ctx       = ddjvu_context_create("LEKTRA");
         const QByteArray pathBytes = canonPath.toUtf8();
         const std::string pathStr(pathBytes.constData(), pathBytes.size());
-        ddjvu_document_t *doc = ddjvu_document_create_by_filename(
-            ctx, pathStr.c_str(), true);
+        ddjvu_document_t *doc
+            = ddjvu_document_create_by_filename(ctx, pathStr.c_str(), true);
         if (!doc)
         {
             ddjvu_context_release(ctx);
@@ -1248,7 +1247,7 @@ Model::openAsync_mupdf(const QString &canonPath) noexcept
 #endif
         cleanup_mupdf();
 
-        fz_document *doc          = nullptr;
+        fz_document *doc           = nullptr;
         const QByteArray pathBytes = canonPath.toUtf8();
         const std::string pathStr(pathBytes.constData(), pathBytes.size());
         fz_try(bg_ctx)
@@ -4836,3 +4835,71 @@ Model::setCurrentAnimFrame(int index) noexcept
     m_image_cache   = m_animated_frames[index];
 }
 #endif
+
+QString
+Model::fileTypeToString() const noexcept
+{
+    switch (m_filetype)
+    {
+        case FileType::PDF:
+            return "PDF";
+        case FileType::EPUB:
+            return "EPUB";
+        case FileType::XPS:
+            return "XPS";
+        case FileType::MOBI:
+            return "MOBI";
+        case FileType::CBZ:
+            return "CBZ/CBT";
+        case FileType::FB2:
+            return "FB2";
+#ifdef HAS_DJVU
+        case FileType::DJVU:
+            return "DJVU";
+#endif
+#ifdef WITH_IMAGE
+        case FileType::JPG:
+            return "JPEG";
+        case FileType::PNG:
+            return "PNG";
+        case FileType::TIFF:
+            return "TIFF";
+        case FileType::SVG:
+            return "SVG";
+        case FileType::BMP:
+            return "BMP";
+        case FileType::GIF:
+            return "GIF";
+        case FileType::WEBP:
+            return "WEBP";
+        case FileType::AVIF:
+            return "AVIF";
+        case FileType::HEIC:
+            return "HEIC/HEIF";
+        case FileType::JXL:
+            return "JPEG XL";
+        case FileType::QOI:
+            return "QOI";
+        case FileType::PSD:
+            return "PSD";
+        case FileType::EXR:
+            return "EXR";
+        case FileType::HDR:
+            return "HDR";
+        case FileType::TGA:
+            return "TGA";
+        case FileType::ICO:
+            return "ICO";
+        case FileType::PPM:
+            return "PPM";
+        case FileType::PGM:
+            return "PGM";
+        case FileType::PBM:
+            return "PBM";
+        case FileType::PCX:
+            return "PCX";
+#endif
+        default:
+            return "Unknown";
+    }
+}
