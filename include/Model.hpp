@@ -521,6 +521,7 @@ public:
     QString getAnnotComment(const int pageno, const int objNum) noexcept;
     QColor getAnnotColor(const int pageno, const int index) noexcept;
     int get_obj_num_at_rect(int pageno, fz_rect targetRect) noexcept;
+    QString fileTypeToString() const noexcept;
 
 signals:
     void undoStackCleanChanged(bool clean);
