@@ -465,6 +465,12 @@ private:
     // lektra.View
     void initLuaDocumentView() noexcept;
 
+    // lektra.keymap
+    void initLuaKeymaps() noexcept;
+
+    // lektra.mousemap
+    void initLuaMousemaps() noexcept;
+
     bool removeLuaEventCallback(DispatchType type, int callbackRef) noexcept;
     void dispatchLuaEvent(DispatchType type) noexcept;
     void executeLuaCode(const QString &code) noexcept;
