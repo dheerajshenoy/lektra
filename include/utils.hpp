@@ -1,14 +1,16 @@
 #pragma once
 
+#include "DispatchType.hpp"
+
 #include <QColor>
 #include <QDebug>
 #include <QDir>
 #include <QPointF>
 #include <algorithm>
 #include <cstdint>
+#include <locale>
 #include <string_view>
 #include <vector>
-#include <locale>
 
 extern "C"
 {
@@ -115,8 +117,6 @@ trim_ws(std::wstring &s)
         s.pop_back();
 }
 
-
-
 bool
 parseHexColor(std::string_view s, uint32_t &out);
 
@@ -189,4 +189,66 @@ joinPaths(Args &&...args)
         }
     }(std::forward<Args>(args)), ...);
     return QDir::cleanPath(result);
+}
+
+static DispatchType
+stringToDispatchType(const QString &name)
+{
+    static const std::unordered_map<QString, DispatchType> eventMap = {
+        {"OnAppReady", DispatchType::OnAppReady},
+        {"OnReady", DispatchType::OnReady},
+        {"OnFileOpen", DispatchType::OnFileOpen},
+        {"OnFileClose", DispatchType::OnFileClose},
+        {"OnPageChanged", DispatchType::OnPageChanged},
+        {"OnZoomChanged", DispatchType::OnZoomChanged},
+        {"OnLinkClicked", DispatchType::OnLinkClicked},
+        {"OnTabChanged", DispatchType::OnTabChanged},
+        {"OnTextSelected", DispatchType::OnTextSelected},
+        {"OnPageChanged", DispatchType::OnPageChanged},
+    };
+
+    if (!eventMap.contains(name))
+        throw std::invalid_argument(
+            QString("Unknown event name: %1").arg(name).toStdString());
+
+    return eventMap.at(name);
+}
+
+static inline QString
+supportedFormats()
+{
+    return "Documents ("
+           "PDF (*.pdf);;"
+#ifdef HAS_DJVU
+           "DjVu (*.djvu *.djv);;"
+#endif
+           "XPS (*.oxps *.xps);;"
+           "CBZ (*.cbz *.cbt);;"
+           "EPUB (*.epub);;"
+           "FictionBook (*.fb2 *.fbz);;"
+           "Mobi (*.mobi);;"
+           ");;"
+#ifdef WITH_IMAGE
+           "Images ("
+           "*.jpg *.jpeg "
+           "*.png *.apng "
+           "*.tiff *.tif "
+           "*.svg"
+           "*.bmp "
+           "*.gif "
+           "*.webp "
+           "*.avif "
+           "*.heic *.heif "
+           "*.jxl "
+           "*.qoi "
+           "*.psd "
+           "*.exr "
+           "*.hdr "
+           "*.tga "
+           "*.ico "
+           "*.ppm *.pgm *.pbm "
+           "*.pcx"
+           ");;"
+#endif
+           "All Files (*.*)";
 }
