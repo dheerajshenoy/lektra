@@ -719,8 +719,8 @@ restore_image_regions(fz_context *ctx, fz_pixmap *pix,
             continue;
 
         // Create a sub-pixmap for just this region
-        fz_pixmap *sub{nullptr};
-        fz_device *draw_dev{nullptr};
+        fz_pixmap *sub      = nullptr;
+        fz_device *draw_dev = nullptr;
 
         fz_try(ctx)
         {
@@ -1229,8 +1229,8 @@ Model::openAsync_mupdf(const QString &canonPath) noexcept
         struct Guard
         {
             fz_context *ctx;
-            fz_document *doc{nullptr};
-            bool committed{false};
+            fz_document *doc = nullptr;
+            bool committed   = false;
             ~Guard()
             {
                 if (!committed)
@@ -1511,7 +1511,7 @@ Model::buildPageCache_djvu(int pageno) noexcept
     const int stride = rw * 4;
     QByteArray buf(stride * rh, 0);
 
-    ddjvu_format_t *fmt{nullptr};
+    ddjvu_format_t *fmt         = nullptr;
     // DjVuLibre RGBMASK32: specify R/G/B masks and white background
     const unsigned int masks[3] = {0x00FF0000, 0x0000FF00, 0x000000FF};
     fmt = ddjvu_format_create(DDJVU_FORMAT_RGBMASK32, 3,
@@ -1575,12 +1575,12 @@ Model::buildPageCache(int pageno) noexcept
         return;
     }
 
-    fz_page *page{nullptr};
-    fz_display_list *dlist{nullptr};
-    fz_device *list_dev{nullptr};
-    fz_link *head{nullptr};
-    fz_rect bounds{};
-    bool success{false};
+    fz_page *page          = nullptr;
+    fz_display_list *dlist = nullptr;
+    fz_device *list_dev    = nullptr;
+    fz_link *head          = nullptr;
+    bool success           = false;
+    fz_rect bounds;
 
     std::lock_guard<std::mutex> lock(m_doc_mutex);
 
@@ -1871,7 +1871,7 @@ Model::reloadDocument() noexcept
 
     int page_count = 0;
     float w = 0, h = 0;
-    fz_page *page{nullptr};
+    fz_page *page = nullptr;
     fz_try(m_ctx)
     {
         page_count = fz_count_pages(m_ctx, new_doc);
@@ -1996,14 +1996,14 @@ Model::computeTextSelectionQuad(int pageno, QPointF devStart,
 #endif
 
     std::vector<QPolygonF> out;
-    constexpr int MAX_HITS{1024};
+    constexpr int MAX_HITS = 1024;
     thread_local std::array<fz_quad, MAX_HITS> hits;
     const float scale = logicalScale();
 
-    fz_page *page{nullptr};
+    fz_page *page = nullptr;
+    int count     = 0;
     fz_rect page_bounds;
-    fz_matrix page_to_dev{};
-    int count{0};
+    fz_matrix page_to_dev;
 
     fz_try(m_ctx)
     {
@@ -2080,9 +2080,9 @@ Model::get_selected_text(int pageno, QPointF start, QPointF end,
                          bool formatted) noexcept
 {
     std::string result;
-    fz_page *page{nullptr};
-    char *selection_text{nullptr};
-    const float scale = logicalScale();
+    fz_page *page        = nullptr;
+    char *selection_text = nullptr;
+    const float scale    = logicalScale();
     fz_rect bounds;
 
     fz_try(m_ctx)
@@ -2547,8 +2547,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     if (!ctx)
         return result;
 
-    fz_display_list *dlist{nullptr};
-    fz_rect bounds{};
+    fz_display_list *dlist = nullptr;
+    fz_rect bounds;
     std::vector<CachedLink> links;
     std::vector<CachedAnnotation> annotations;
 
@@ -2594,10 +2594,10 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         return result;
     }
 
-    fz_link *head{nullptr};
-    fz_pixmap *pix{nullptr};
-    fz_device *dev{nullptr};
-    fz_device *tracker{nullptr};
+    fz_link *head      = nullptr;
+    fz_pixmap *pix     = nullptr;
+    fz_device *dev     = nullptr;
+    fz_device *tracker = nullptr;
 
     fz_try(ctx)
     {
@@ -2719,7 +2719,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             result.links.push_back(std::move(renderLink));
         }
 
-        // fz_stext_page *stext_page{nullptr};
+        // fz_stext_page *stext_page = nullptr;
         // if (m_detect_url_links)
         // {
         //     text_page = fz_load_page(ctx, m_doc, job.pageno);
@@ -2861,10 +2861,10 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 void
 Model::highlight_text_selection(int pageno, QPointF start, QPointF end) noexcept
 {
-    constexpr int MAX_HITS{1000};
+    constexpr int MAX_HITS = 1000;
     fz_quad hits[MAX_HITS];
-    int count{0};
-    fz_page *page{nullptr};
+    int count         = 0;
+    fz_page *page     = nullptr;
     const float scale = logicalScale();
     fz_rect bounds;
 
@@ -3084,8 +3084,8 @@ Model::addTextAnnotation(const int pageno, const fz_rect &rect,
     if (text.isEmpty())
         return objNum;
 
-    pdf_annot *annot{nullptr};
-    pdf_page *page{nullptr};
+    pdf_annot *annot = nullptr;
+    pdf_page *page   = nullptr;
 
     fz_try(m_ctx)
     {
@@ -3148,7 +3148,7 @@ QString
 Model::getAnnotComment(const int pageno, const int objNum) noexcept
 {
     QString comment;
-    pdf_page *page{nullptr};
+    pdf_page *page = nullptr;
     fz_try(m_ctx)
     {
         page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
@@ -3181,8 +3181,8 @@ void
 Model::addAnnotComment(const int pageno, const int objNum,
                        const QString &text) noexcept
 {
-    bool changed{false};
-    pdf_page *page{nullptr};
+    bool changed   = false;
+    pdf_page *page = nullptr;
 
     fz_try(m_ctx)
     {
@@ -3251,7 +3251,7 @@ Model::removeAnnotations(int pageno, const std::vector<int> &objNums) noexcept
     for (int n : objNums)
         to_delete.insert(n);
 
-    pdf_page *page{nullptr};
+    pdf_page *page = nullptr;
 
     fz_try(m_ctx)
     {
@@ -3326,7 +3326,7 @@ std::vector<QPolygonF>
 Model::selectAtHelper(int pageno, fz_point pt, int snapMode) noexcept
 {
     std::vector<QPolygonF> out;
-    constexpr int MAX_HITS{1024};
+    constexpr int MAX_HITS = 1024;
     thread_local std::array<fz_quad, MAX_HITS> hits;
     const float scale = logicalScale();
     fz_rect bounds;
@@ -3485,7 +3485,7 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
 std::pair<fz_matrix, fz_matrix>
 Model::buildPageTransforms(int pageno) const noexcept
 {
-    const fz_matrix identity{fz_identity};
+    const fz_matrix identity = fz_identity;
     fz_rect bounds;
 
     fz_try(m_ctx)
@@ -3809,7 +3809,8 @@ Model::collect_annot_comments() noexcept
 
     for (int pageno = 0; pageno < m_page_count; ++pageno)
     {
-        pdf_page *pdfPage{nullptr};
+        pdf_page *pdfPage = nullptr;
+
         fz_try(m_ctx)
         {
             pdfPage = pdf_load_page(m_ctx, m_pdf_doc, pageno);
@@ -3851,8 +3852,8 @@ Model::collectHighlightTexts(bool groupByLine) noexcept
 
     for (int pageno = 0; pageno < m_page_count; ++pageno)
     {
-        pdf_page *pdfPage{nullptr};
-        fz_stext_page *stext_page{nullptr};
+        pdf_page *pdfPage         = nullptr;
+        fz_stext_page *stext_page = nullptr;
 
         fz_try(m_ctx)
         {
@@ -4041,7 +4042,7 @@ QColor
 Model::getAnnotColor(const int pageno, const int objNum) noexcept
 {
     QColor color;
-    pdf_page *page{nullptr};
+    pdf_page *page = nullptr;
 
     fz_try(m_ctx)
     {
@@ -4098,9 +4099,9 @@ Model::getTextInArea(const int pageno, QPointF start, QPointF end) noexcept
     const float scale = logicalScale(); // does not include DPR or DPI,
                                         // since selection is in PDF points
 
-    fz_stext_page *stext_page{nullptr};
-    fz_page *page{nullptr};
-    char *selection_text{nullptr};
+    fz_stext_page *stext_page = nullptr;
+    fz_page *page             = nullptr;
+    char *selection_text      = nullptr;
 
     fz_try(m_ctx)
     {
@@ -4308,8 +4309,8 @@ Model::getTextInArea(const int pageno, QPointF start, QPointF end) noexcept
 fz_point
 Model::getFirstCharPos(const int pageno) noexcept
 {
-    fz_stext_page *stext_page{nullptr};
-    fz_page *page{nullptr};
+    fz_stext_page *stext_page = nullptr;
+    fz_page *page             = nullptr;
 
     fz_try(m_ctx)
     {
@@ -4749,9 +4750,9 @@ Model::rotateAnticlock() noexcept
 int
 Model::get_obj_num_at_rect(int pageno, fz_rect targetRect) noexcept
 {
-    pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
-    pdf_annot *annot{nullptr};
-    int foundObjNum{-1};
+    pdf_page *page   = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+    pdf_annot *annot = nullptr;
+    int foundObjNum  = -1;
 
     for (annot = pdf_first_annot(m_ctx, page); annot;
          annot = pdf_next_annot(m_ctx, annot))
@@ -4902,4 +4903,40 @@ Model::fileTypeToString() const noexcept
         default:
             return "Unknown";
     }
+}
+
+std::string
+Model::getTextInPage(const int pageno, bool formatted) noexcept
+{
+    std::string result;
+
+    fz_stext_page *stext_page = nullptr;
+    fz_page *page             = nullptr;
+
+    fz_try(m_ctx)
+    {
+        page       = fz_load_page(m_ctx, m_doc, pageno);
+        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+        if (!stext_page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to build text page");
+
+        char *page_text
+            = fz_copy_selection(m_ctx, stext_page, {0, 0}, {1e6f, 1e6f}, 0);
+        if (page_text)
+            result = page_text;
+    }
+    fz_always(m_ctx)
+    {
+        fz_drop_page(m_ctx, page);
+        fz_drop_stext_page(m_ctx, stext_page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "getTextInPage failed:" << fz_caught_message(m_ctx);
+    }
+
+    if (formatted)
+        clean_pdf_text(result);
+
+    return result;
 }
