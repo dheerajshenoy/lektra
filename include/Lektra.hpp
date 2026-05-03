@@ -41,29 +41,10 @@
 #include <QTabWidget>
 
 #ifdef WITH_LUA
+    #include "DispatchType.hpp"
+    #include "LuaCallback.hpp"
+
     #include <lua.hpp>
-#endif
-
-// In Lektra.hpp
-using CallbackFn = std::function<void()>;
-
-#ifdef WITH_LUA
-enum class DispatchType
-{
-    OnReady = 0,
-    OnFileOpen,
-    OnFileClose,
-    OnPageChanged,
-    OnZoomChanged,
-    OnLinkClicked,
-    OnSelectionChanged,
-    OnHistoryChanged,
-    OnTabChanged,
-    OnMarkSet,
-    OnMarkDeleted,
-    OnGotoMark,
-    OnCommand,
-};
 #endif
 
 class Lektra : public QMainWindow
@@ -71,6 +52,8 @@ class Lektra : public QMainWindow
     Q_OBJECT
 
 public:
+    using CallbackFn = std::function<void(Lektra *)>;
+
     Lektra() noexcept;
     Lektra(const QString &sessionName,
            const QJsonArray &sessionArray) noexcept; // load from session
@@ -473,11 +456,30 @@ private:
     // lektra.view
     void initLuaView() noexcept;
 
+    // lektra.View
+    void initLuaDocumentView() noexcept;
+
+    bool removeLuaEventCallback(DispatchType type, int callbackRef) noexcept;
     void dispatchLuaEvent(DispatchType type) noexcept;
     void executeLuaCode(const QString &code) noexcept;
 
     lua_State *m_L = nullptr;
-    std::unordered_map<DispatchType, std::vector<CallbackFn>>
+
+    std::unordered_map<DispatchType, std::vector<LuaCallback<Lektra>>>
         m_lua_event_dispatcher;
+
+    #ifdef WITH_LUA
+    inline void addEventListener(DispatchType type, int handle, bool is_once,
+                                 CallbackFn callback) noexcept
+    {
+        m_lua_event_dispatcher[type].push_back(
+            {.ref = handle, .invoker = callback, .is_once = is_once});
+    }
+
+    inline void removeEventListeners(DispatchType type) noexcept
+    {
+        m_lua_event_dispatcher[type].clear();
+    }
+    #endif
 #endif
 };
