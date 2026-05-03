@@ -215,7 +215,41 @@ Lektra::initLuaUI() noexcept
 
         return 0;
     }, 1);
-    lua_setfield(m_L, -2, "show_message");
+    lua_setfield(m_L, -2, "messagebox");
+
+    // lektra.ui.message(message, duration)
+    lua_pushlightuserdata(m_L, this);
+    lua_pushcclosure(m_L, [](lua_State *L) -> int
+    {
+        const char *message = "Message";
+        float duration      = 2.0;
+
+        if (lua_istable(L, 1))
+        {
+            lua_getfield(L, 1, "message");
+            if (lua_isstring(L, -1))
+                message = lua_tostring(L, -1);
+            lua_pop(L, 1);
+
+            lua_getfield(L, 1, "duration");
+            if (lua_isnumber(L, -1))
+                duration = static_cast<float>(lua_tonumber(L, -1));
+            lua_pop(L, 1);
+        }
+        else
+        {
+            message  = luaL_checkstring(L, 1);
+            duration = static_cast<float>(luaL_optnumber(L, 2, 2.0));
+        }
+
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+
+        lektra->showMessage(QString::fromUtf8(message), duration);
+
+        return 0;
+    }, 1);
+    lua_setfield(m_L, -2, "message");
 
     // lektra.ui.input(title, prompt)
     lua_pushlightuserdata(m_L, this);
@@ -246,7 +280,8 @@ Lektra::initLuaUI() noexcept
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
 
         bool ok      = false;
-        // Qt handles const char* nicely, but we ensure they are valid pointers
+        // Qt handles const char* nicely, but we ensure they are valid
+        // pointers
         QString text = QInputDialog::getText(lektra, title, prompt,
                                              QLineEdit::Normal, QString(), &ok);
         if (ok)
@@ -260,8 +295,8 @@ Lektra::initLuaUI() noexcept
     lua_setfield(m_L, -2, "input");
 
     // lektra.ui.picker(prompt, items, [options])
-    // Items can be heirarchical specified as a table of tables, can be strings
-    // or numbers, but will be converted to strings for display
+    // Items can be heirarchical specified as a table of tables, can be
+    // strings or numbers, but will be converted to strings for display
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
