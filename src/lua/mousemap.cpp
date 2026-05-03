@@ -3,78 +3,50 @@
 namespace
 {
 static void
-registerMousemaps(lua_State *L, Config &config) noexcept
+registerMousemaps(lua_State *L, Lektra *lektra) noexcept
 {
     lua_newtable(L); // lektra.mousemap
 
-    lua_pushlightuserdata(L, &config.mousebinds);
+    lua_pushlightuserdata(L, lektra);
 
-    // lektra.mousebind.set(button, modifiers, action)
+    // lektra.mousemap.set(action, trigger: string)
     lua_pushcclosure(L, [](lua_State *L) -> int
     {
-        auto *mousebinds = static_cast<std::vector<Config::MouseBinding> *>(
-            lua_touserdata(L, lua_upvalueindex(1)));
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
 
-        if (lua_gettop(L) != 3 || !lua_isinteger(L, 1) || !lua_isinteger(L, 2)
-            || !lua_isinteger(L, 3))
+        if (lua_gettop(L) != 2 || !lua_isstring(L, 1) || !lua_isstring(L, 2))
         {
-            return luaL_error(
-                L,
-                "Expected three integer arguments: button, modifiers, action");
+            return luaL_error(L,
+                              "Expected two string arguments: action, trigger");
         }
 
-        const int button    = static_cast<int>(lua_tointeger(L, 1));
-        const int modifiers = static_cast<int>(lua_tointeger(L, 2));
-        const int action    = static_cast<int>(lua_tointeger(L, 3));
+        const char *action  = lua_tostring(L, 1);
+        const char *trigger = lua_tostring(L, 2);
 
-        mousebinds->push_back({static_cast<Qt::MouseButton>(button),
-                               static_cast<Qt::KeyboardModifiers>(modifiers),
-                               static_cast<GraphicsView::MouseAction>(action)});
-
-        return 0; // No return values
+        lektra->setupMousebinding(QString::fromUtf8(action),
+                                  QString::fromUtf8(trigger));
+        return 0;
     }, 1);
-
     lua_setfield(L, -2, "set");
 
-    // lektra.mousebind.unset(button, modifiers)
-    lua_pushlightuserdata(L, &config);
+    // lektra.mousemap.unset(action)
+    lua_pushlightuserdata(L, lektra);
     lua_pushcclosure(L, [](lua_State *L) -> int
     {
-        auto *mousebinds = static_cast<std::vector<Config::MouseBinding> *>(
-            lua_touserdata(L, lua_upvalueindex(1)));
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
 
-        if (lua_gettop(L) != 2 || !lua_isinteger(L, 1) || !lua_isinteger(L, 2))
+        if (lua_gettop(L) != 1 || !lua_isstring(L, 1))
         {
-            return luaL_error(
-                L, "Expected two integer arguments: button, modifiers");
+            return luaL_error(L, "Expected one string argument: action");
         }
 
-        const int button    = static_cast<int>(lua_tointeger(L, 1));
-        const int modifiers = static_cast<int>(lua_tointeger(L, 2));
+        const char *action = lua_tostring(L, 1);
 
-        auto it
-            = std::remove_if(mousebinds->begin(), mousebinds->end(),
-                             [button, modifiers](const Config::MouseBinding &mb)
-        {
-            return mb.button == static_cast<Qt::MouseButton>(button)
-                   && mb.modifiers
-                          == static_cast<Qt::KeyboardModifiers>(modifiers);
-        });
-
-        if (it == mousebinds->end())
-        {
-            return luaL_error(
-                L, "Mouse binding not found for button %d with modifiers %d",
-                button, modifiers);
-        }
-        else
-        {
-            mousebinds->erase(it, mousebinds->end());
-        }
-
-        return 0; // No return values
+        lektra->unsetMousebinding(action);
+        return 0;
     }, 1);
-
     lua_setfield(L, -2, "unset");
 
     lua_setfield(L, -2, "mousemap");
@@ -84,5 +56,5 @@ registerMousemaps(lua_State *L, Config &config) noexcept
 void
 Lektra::initLuaMousemaps() noexcept
 {
-    registerMousemaps(m_L, m_config);
+    registerMousemaps(m_L, this);
 }
