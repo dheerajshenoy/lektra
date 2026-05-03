@@ -168,6 +168,13 @@ function View:save() end
 ---@param file_path string The file path to save the document to.
 function View:save_as(file_path) end
 
+--- Returns the text content of the document in the view. This may return an empty string for certain file types (e.g., images) or if the document does not contain extractable text.
+---@return string text_content
+function View:extract_text() end
+
+
+-- ##########################################
+
 --- Gets the view with the given id.
 --- @param id? integer
 --- @return View view
