@@ -580,7 +580,7 @@ Lektra::initLuaView() noexcept
 
     lua_newtable(m_L);
 
-    // lektra.view.current() -> id
+    // lektra.view.current() -> View
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
@@ -588,14 +588,20 @@ Lektra::initLuaView() noexcept
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
         auto *currentView = lektra->currentDocument();
         if (currentView)
-            lua_pushinteger(L, currentView->id());
+        {
+            auto **ud = static_cast<DocumentView **>(
+                lua_newuserdata(L, sizeof(DocumentView *)));
+            *ud = lektra->currentDocument();
+            luaL_getmetatable(L, "DocumentViewMetaTable");
+            lua_setmetatable(L, -2);
+        }
         else
             lua_pushnil(L);
         return 1;
     }, 1);
     lua_setfield(m_L, -2, "current");
 
-    // lektra.view.get(id) -> DocumentView or nil
+    // lektra.view.get(id) -> View or nil
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
@@ -619,7 +625,7 @@ Lektra::initLuaView() noexcept
     }, 1);
     lua_setfield(m_L, -2, "get");
 
-    // lektra.view.list(tab_index) -> table of DocumentView
+    // lektra.view.list(tab_index) -> table of View
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
