@@ -534,6 +534,21 @@ static const luaL_Reg DocumentViewMethods[] = {
                     }
                     return 0;
                 }),
+    VIEW_METHOD("extract_text",
+                {
+                    if (*view)
+                    {
+                        bool formatted = lua_toboolean(L, 2);
+                        auto text      = (*view)->extractText(formatted);
+                        lua_pushstring(L, text.toUtf8().constData());
+                        return 1;
+                    }
+                    else
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                }),
     {nullptr, nullptr}};
 
 #undef VIEW_METHOD
