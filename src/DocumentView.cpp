@@ -86,6 +86,9 @@ DocumentView::DocumentView(const Config &config, float dpr, QWidget *parent,
             &DocumentView::handle_wrong_password);
 
     initGui();
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnReady);
+#endif
 }
 
 DocumentView::~DocumentView() noexcept
@@ -402,6 +405,10 @@ DocumentView::handleOpenFileFinished() noexcept
 
     setAutoReload(m_config.behavior.auto_reload);
     emit openFileFinished(this, m_model->fileType());
+
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnFileOpen);
+#endif
 }
 
 #ifdef WITH_IMAGE
@@ -855,7 +862,7 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
 
     if (clickType == 1) // single click → place cursor or snap visual line
     {
-        if (has_text_selection())
+        if (hasTextSelection())
         {
             ClearTextSelection();
             return;
@@ -999,7 +1006,7 @@ DocumentView::synctexLocateInDocument(const char *texFileName,
 void
 DocumentView::handleTextHighlightRequested() noexcept
 {
-    if (!has_text_selection())
+    if (!hasTextSelection())
         return;
 
     const QPointF start = m_selection_start;
@@ -1155,6 +1162,10 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
 
     if (m_config.selection.copy_on_select)
         YankSelection();
+
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnTextSelected);
+#endif
 }
 
 // Rotate page clockwise
@@ -1638,6 +1649,10 @@ DocumentView::GotoPage(int pageno) noexcept
         m_visual_line_index = 0;
         snapVisualLine();
     }
+
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnPageChanged);
+#endif
 }
 
 // Go to next page
@@ -2178,6 +2193,10 @@ DocumentView::FollowLink(const Model::LinkInfo &info) noexcept
             }
             break;
     }
+
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnLinkClicked);
+#endif
 }
 
 // Show file properties dialog
@@ -2275,6 +2294,10 @@ DocumentView::CloseFile() noexcept
     clearDocumentItems();
     resetConnections();
     m_model->close();
+
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnFileClose);
+#endif
 }
 
 // Toggle auto-resize mode
@@ -2404,7 +2427,7 @@ DocumentView::UpdateKBHintsOverlay(const QString &input) noexcept
 void
 DocumentView::ClearTextSelection() noexcept
 {
-    if (!has_text_selection())
+    if (!hasTextSelection())
         return;
 
 #ifndef NDEBUG
@@ -2431,7 +2454,7 @@ DocumentView::ClearTextSelection() noexcept
 void
 DocumentView::YankSelection(bool formatted) noexcept
 {
-    if (!has_text_selection())
+    if (!hasTextSelection())
         return;
 
     QString fullText;
@@ -3699,6 +3722,10 @@ DocumentView::updateCurrentPage() noexcept
         m_visual_line_index = -1;
         snapVisualLine(false);
     }
+
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnPageChanged);
+#endif
 }
 
 void
@@ -4967,6 +4994,10 @@ DocumentView::zoomHelper(const PageLocation &loc) noexcept
             // Fallback if we were out of bounds
             GotoPage(m_pageno);
     }
+
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnZoomChanged);
+#endif
 }
 
 // Reposition every live page item at the new zoom
@@ -5472,3 +5503,23 @@ DocumentView::setDPR(float dpr) noexcept
     m_model->setDPR(dpr);
     renderPages();
 }
+
+#ifdef WITH_LUA
+void
+DocumentView::dispatchLuaEvent(DispatchType type) noexcept
+{
+    for (const auto &callback : m_lua_event_dispatcher[type])
+        callback.invoker(this);
+}
+
+void
+DocumentView::removeEventListener(DispatchType type, int handle) noexcept
+{
+    auto &listeners = m_lua_event_dispatcher[type];
+    listeners.erase(std::remove_if(listeners.begin(), listeners.end(),
+                                   [handle](const LuaCallback<DocumentView> &cb)
+    { return cb.ref == handle; }),
+                    listeners.end());
+}
+
+#endif
