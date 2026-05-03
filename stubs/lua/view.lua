@@ -180,6 +180,11 @@ function View:extract_text(formatted) end
 --- @return View view
 lektra.view.get = function(id) end
 
+--- Returns the current View object for the active document in the current tab.
+--- `Note` If there are multiple documents open in the current tab, it will return the active document's view. If no documents are open, it will return nil.
+--- @return View view
+lektra.view.current = function() end
+
 --- Returns a table of View objects for the current tab.
 --- @param tabindex? integer The tab index to get the document for.
 ---
