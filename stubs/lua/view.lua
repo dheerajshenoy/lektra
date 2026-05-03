@@ -169,9 +169,9 @@ function View:save() end
 function View:save_as(file_path) end
 
 --- Returns the text content of the document in the view. This may return an empty string for certain file types (e.g., images) or if the document does not contain extractable text.
+---@param formatted boolean Whether to return the text content with formatting (e.g., newlines, tabs) or as plain text. Default is false (plain text).
 ---@return string text_content
-function View:extract_text() end
-
+function View:extract_text(formatted) end
 
 -- ##########################################
 
