@@ -144,13 +144,13 @@ function View:file_type() end
 ---@param event string The name of the event to listen for (e.g., "page_changed", "selection_changed").
 ---@param callback function The callback function to be called when the event occurs. The callback function will receive the view instance and any relevant event data as arguments.
 ---@return integer handle A unique handle that can be used to unregister the callback later.
-function View:on(event, callback) end
+function View:register(event, callback) end
 
 --- Unregisters a callback function for the specified event on the view.
 ---@overload fun(event: { name: string, callback: function, handle: integer}) Unregisters a callback using an event table with name and callback fields.
 ---@param event string The name of the event to stop listening for (e.g., "page_changed", "selection_changed").
 ---@param handle integer The unique handle returned by the `on` method when the callback was registered.
-function View:off(event, handle) end
+function View:unregister(event, handle) end
 
 --- Registers a one-time callback function for the specified event on the view. The callback will be automatically unregistered after it is called once.
 ---@overload fun(event: { name: string, callback: function }) Registers a one-time callback using an event table with name and callback fields.

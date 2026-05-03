@@ -14,7 +14,13 @@ lektra.ui = {}
 ---@param title string
 ---@param message string
 ---@param type? string "info", "warning", "error", default is "info"
-lektra.ui.show_message = function(title , message, type) end
+lektra.ui.messagebox = function(title , message, type) end
+
+--- Shows a message to the user in the status bar
+---@overload fun (arg: {message: string, duration?: number})
+---@param message string Message to show in the status bar
+---@param duration? number Duration in seconds to show the message, default is 5 seconds
+lektra.ui.message = function(message, duration) end
 
 --- Shows an input dialog to the user with `QInputDialog` and returns the input as a string
 ---@overload fun(arg: {title: string, prompt: string})
