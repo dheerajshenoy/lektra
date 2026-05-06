@@ -236,6 +236,11 @@ lektra.mousemap.set("pan", "Alt+LeftButton")
 
 Tab management.
 
+#### Types
+
+- `Tab`
+  - `id: integer` Unique identifier for the tab.
+
 #### Functions
 
 - `lektra.tabs.close(index: integer)`
@@ -256,10 +261,15 @@ Tab management.
   - Move current tab left.
 - `lektra.tabs.count() -> integer`
   - Number of open tabs.
-- `lektra.tabs.current() -> integer`
-  - Current tab index.
+- `lektra.tabs.current() -> Tab`
+  - Current tab object, or `nil` if none.
 - `lektra.tabs.list() -> { index: integer, title: string }[]`
   - List tab index and title.
+
+#### Tab methods
+
+- `tab:id() -> integer`
+  - Return the tab id.
 
 #### Example
 
