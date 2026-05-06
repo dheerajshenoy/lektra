@@ -51,3 +51,10 @@ lektra.ui.picker = function (prompt, items, options) end
 ---@param options FileDialogOptions Options for the file dialog
 ---@return string[] FilePaths List of selected file paths
 lektra.ui.file_dialog = function(mode, options) end
+
+--- Shows a color picker dialog to the user and returns the selected color as a string in hex format (e.g., "#RRGGBB")
+---@overload fun(arg: {colors: string[], default_color?: string}): string
+---@param colors string[] List of color options to show in the color picker, specified as hex color strings (e.g., "#FF0000" for red)
+---@param default_color string Default color to be selected when the color picker is shown, specified as a hex color string (e.g., "#00FF00" for green)
+---@return string Selected color in hex format (e.g., "#RRGGBBAA")
+lektra.ui.color_dialog = function(colors, default_color) end

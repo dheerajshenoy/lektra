@@ -1,3 +1,4 @@
+#include "ColorDialog.hpp"
 #include "Lektra.hpp"
 #include "lua/LuaPicker.hpp"
 
@@ -373,6 +374,46 @@ Lektra::initLuaUI() noexcept
         return 0;
     }, 1);
     lua_setfield(m_L, -2, "file_dialog");
+
+    // lektra.ui.color_dialog(colors: string[], default_color: string)
+    lua_pushlightuserdata(m_L, this);
+    lua_pushcclosure(m_L, [](lua_State *L) -> int
+    {
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+
+        if (!lua_istable(L, 1))
+            return luaL_error(L, "Expected table of colors");
+
+        std::vector<QColor> colors;
+        lua_pushnil(L);
+        while (lua_next(L, 1))
+        {
+            if (lua_isstring(L, -1))
+            {
+                QColor color(lua_tostring(L, -1));
+                if (color.isValid())
+                    colors.push_back(color);
+            }
+            lua_pop(L, 1);
+        }
+
+        QColor default_color = colors.at(0);
+
+        ColorDialog dlg(colors, default_color, lektra);
+        dlg.exec();
+
+        if (dlg.selectedColor().isValid())
+        {
+            lua_pushstring(
+                L,
+                dlg.selectedColor().name(QColor::HexArgb).toUtf8().constData());
+            return 1;
+        }
+
+        return 0;
+    }, 1);
+    lua_setfield(m_L, -2, "color_dialog");
 
     lua_setfield(m_L, -2, "ui");
 }

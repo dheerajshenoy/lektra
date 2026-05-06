@@ -147,11 +147,23 @@ UI helpers.
   - Overload: `lektra.ui.input({ title = "...", prompt = "..." })`.
 - `lektra.ui.picker(prompt: string, items: table, options?: PickerOptions) -> string`
   - Overload: `lektra.ui.picker({ prompt = "...", items = { ... }, options = { ... } })`.
+- `lektra.ui.file_dialog(mode?: string, options?: table) -> string`
+  - `mode` is `"open"` or `"save"` (default `"open"`).
+  - `options.default_path` sets the initial path.
+  - `options.filters` sets file filters (Qt format, e.g. `"PDF (*.pdf);;All (*.*)"`).
+  - Overload: `lektra.ui.file_dialog({ mode = "open", default_path = "...", filters = "..." })`.
+- `lektra.ui.color_dialog(colors: string[]) -> string`
+  - `colors` is a list of color strings (e.g. `"#ff0000"`).
+  - Returns selected color as `#AARRGGBB` or `nil` if cancelled.
 
 #### Example
 
 ```lua
 lektra.ui.message("Hello", 2)
+local file = lektra.ui.file_dialog({ mode = "open", filters = "PDF (*.pdf)" })
+if file then
+  lektra.ui.message(file, 2)
+end
 ```
 
 ### lektra.cmd
