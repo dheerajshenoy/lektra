@@ -1,5 +1,7 @@
 #include "Lektra.hpp"
 #include "utils.hpp"
+#include <QMenu>
+#include <cstring>
 
 namespace
 {
@@ -643,6 +645,86 @@ static const luaL_Reg DocumentViewMethods[] = {
                         }
 
                         (*view)->clearEventListeners(dtype);
+                    }
+                    return 0;
+                }),
+
+    VIEW_METHOD("register_context_menu",
+                {
+                    if (*view)
+                    {
+                        const char *eventName = luaL_checkstring(L, 2);
+                        luaL_checktype(L, 3, LUA_TFUNCTION);
+
+                        lua_pushvalue(L, 3);
+                        int callbackRef = luaL_ref(L, LUA_REGISTRYINDEX);
+
+                        DocumentView::ContextMenuType menuType;
+                        if (strcmp(eventName, "TextSelection") == 0)
+                            menuType
+                                = DocumentView::ContextMenuType::TextSelection;
+                        else if (strcmp(eventName, "RegionSelection") == 0)
+                            menuType
+                                = DocumentView::ContextMenuType::RegionSelection;
+                        else
+                            return luaL_error(L,
+                                              "Unknown context menu type: %s",
+                                              eventName);
+
+                        (*view)->addContextMenuListener(
+                            menuType, callbackRef, false,
+                            [L, callbackRef](DocumentView *v, QMenu *menu)
+                        {
+                            lua_rawgeti(L, LUA_REGISTRYINDEX, callbackRef);
+                            auto **ud = static_cast<DocumentView **>(
+                                lua_newuserdata(L, sizeof(DocumentView *)));
+                            *ud = v;
+                            luaL_getmetatable(L, "DocumentViewMetaTable");
+                            lua_setmetatable(L, -2);
+
+                            QMenu **menu_ud
+                                = static_cast<QMenu **>(
+                                    lua_newuserdata(L, sizeof(QMenu *)));
+                            *menu_ud = menu;
+                            luaL_setmetatable(L, "LektraMenu");
+
+                            if (lua_pcall(L, 2, 0, 0) != LUA_OK)
+                            {
+                                const char *errorMsg = lua_tostring(L, -1);
+                                fprintf(stderr,
+                                        "Lua context menu callback error: %s\n",
+                                        errorMsg);
+                                lua_pop(L, 1);
+                            }
+                        });
+
+                        lua_pushinteger(L, callbackRef);
+                        return 1;
+                    }
+
+                    return 0;
+                }),
+
+    VIEW_METHOD("unregister_context_menu",
+                {
+                    if (*view)
+                    {
+                        const char *eventName = luaL_checkstring(L, 2);
+                        int handle            = luaL_checkinteger(L, 3);
+
+                        DocumentView::ContextMenuType menuType;
+                        if (strcmp(eventName, "TextSelection") == 0)
+                            menuType
+                                = DocumentView::ContextMenuType::TextSelection;
+                        else if (strcmp(eventName, "RegionSelection") == 0)
+                            menuType
+                                = DocumentView::ContextMenuType::RegionSelection;
+                        else
+                            return luaL_error(L,
+                                              "Unknown context menu type: %s",
+                                              eventName);
+
+                        (*view)->removeContextMenuListener(menuType, handle);
                     }
                     return 0;
                 }),

@@ -181,6 +181,17 @@ function View:unregister(event, handle) end
 ---@param callback function The callback function to be called when the event occurs. The callback function will receive the view instance and any relevant event data as arguments.
 function View:once(event, callback) end
 
+--- Registers a callback to customize the context menu for selections.
+---@param menu_type string "TextSelection" or "RegionSelection"
+---@param callback function Callback invoked with (view, menu)
+---@return integer handle
+function View:register_context_menu(menu_type, callback) end
+
+--- Unregisters a context menu callback.
+---@param menu_type string "TextSelection" or "RegionSelection"
+---@param handle integer
+function View:unregister_context_menu(menu_type, handle) end
+
 --- Returns true if the document in the view has unsaved changes, false otherwise.
 function View:is_modified() end
 

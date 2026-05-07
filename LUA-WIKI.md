@@ -95,6 +95,11 @@ Document view helpers and per-document actions.
   - Overload: `view:unregister({ name = "event", handle = id })`.
 - `view:once(event: string, callback: function)`
   - Register a one-shot callback.
+- `view:register_context_menu(menu_type: string, callback: function) -> integer`
+  - `menu_type` is `"TextSelection"` or `"RegionSelection"`.
+  - Callback receives `(view, menu)` where `menu` supports `add_item`.
+- `view:unregister_context_menu(menu_type: string, handle: integer)`
+  - Unregister a context menu callback.
 - `view:is_modified() -> boolean`
   - Whether the document has unsaved changes.
 - `view:save()`
@@ -155,6 +160,9 @@ UI helpers.
 - `lektra.ui.color_dialog(colors: string[]) -> string`
   - `colors` is a list of color strings (e.g. `"#ff0000"`).
   - Returns selected color as `#AARRGGBB` or `nil` if cancelled.
+- `lektra.ui.menu(items: table) -> Menu`
+  - Create a menu from a table of `{ label, callback, submenu?, icon? }` items.
+  - Returned `Menu` supports `menu:show()` and `menu:add_item(label, callback)`.
 
 #### Example
 
@@ -164,6 +172,42 @@ local file = lektra.ui.file_dialog({ mode = "open", filters = "PDF (*.pdf)" })
 if file then
   lektra.ui.message(file, 2)
 end
+```
+
+#### Context menu example
+
+```lua
+local registered = {}
+
+local function attach_context_menus(view)
+  if not view then return end
+  local id = view:id()
+  if registered[id] then return end
+  registered[id] = true
+
+  view:register_context_menu("TextSelection", function(v, menu)
+    menu:add_item("Copy Uppercase", function()
+      local text = v:selection_text(true)
+      -- do something with text here
+    end)
+  end)
+
+  view:register_context_menu("RegionSelection", function(v, menu)
+    menu:add_item("My Region Action", function()
+      lektra.ui.message("Region action!", 2)
+    end)
+  end)
+end
+
+lektra.event.register("OnAppReady", function()
+  for _, v in ipairs(lektra.view.list() or {}) do
+    attach_context_menus(v)
+  end
+end)
+
+lektra.event.register("OnTabChanged", function()
+  attach_context_menus(lektra.view.current())
+end)
 ```
 
 ### lektra.cmd
@@ -304,6 +348,8 @@ These names are case-sensitive and must match exactly.
 - `OnLinkClicked`
 - `OnTabChanged`
 - `OnTextSelected`
+- `OnRegionSelectionContextMenuRequested`
+- `OnTextSelectionContextMenuRequested`
 
 ## Predefined Strings
 

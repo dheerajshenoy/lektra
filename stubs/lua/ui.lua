@@ -3,6 +3,16 @@
 lektra = lektra or {}
 lektra.ui = {}
 
+---@class MenuItem
+---@field label string Label to show in the menu for this item
+---@field callback function Function to call when this menu item is selected
+---@field submenu? MenuItem[] Optional list of submenu items to show when this menu item is hovered over, if this field is present the "callback" field will be ignored
+---@field icon? string Optional path to an icon file to show next to the menu item
+
+---@class Menu
+---@field show fun(): nil Show the menu at the current cursor position
+---@field add_item fun(label: string, callback?: function): nil Add an item to the menu
+
 --- Options for the picker dialog
 ---@class FileDialogOptions
 ---@field title string Title of the file dialog
@@ -58,3 +68,8 @@ lektra.ui.file_dialog = function(mode, options) end
 ---@param default_color string Default color to be selected when the color picker is shown, specified as a hex color string (e.g., "#00FF00" for green)
 ---@return string Selected color in hex format (e.g., "#RRGGBBAA")
 lektra.ui.color_dialog = function(colors, default_color) end
+
+--- Shows a context menu to the user with the given items and options
+---@param menu_items MenuItem[] List of menu items to show in the context menu, each item is a table with a "label" field (string), "callback" field (function) and an optional "icon" field (string, path to an icon file)
+---@return Menu
+lektra.ui.menu = function(menu_items) end

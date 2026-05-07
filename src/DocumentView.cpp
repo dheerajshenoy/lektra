@@ -15,6 +15,7 @@
 
 // Other
 #include "Config.hpp"
+#include "DispatchType.hpp"
 #include "DocumentContainer.hpp"
 #include "GraphicsImageItem.hpp"
 #include "GraphicsView.hpp"
@@ -3544,6 +3545,10 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
             addAction(tr("Highlight Text"),
                       &DocumentView::handleTextHighlightRequested);
         }
+#ifdef WITH_LUA
+        dispatchLuaEvent(DispatchType::OnTextSelectionContextMenuRequested);
+        applyLuaContextMenu(ContextMenuType::TextSelection, menu);
+#endif
         hasActions = true;
     }
 
@@ -4873,6 +4878,7 @@ DocumentView::handleRegionSelectRequested(QRectF area) noexcept
         m_gview->clearRubberBand();
         menu->deleteLater();
     });
+
     menu->addAction(tr("Copy Region as Image"),
                     [this, area]() { CopyRegionAsImage(area); });
     menu->addAction(tr("Save Region as Image"),
@@ -4881,6 +4887,11 @@ DocumentView::handleRegionSelectRequested(QRectF area) noexcept
                     [this, area]() { OpenRegionInExternalViewer(area); });
     menu->addAction(tr("Copy Text from Region"),
                     [this, area]() { CopyTextFromRegion(area); });
+
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnRegionSelectionContextMenuRequested);
+    applyLuaContextMenu(ContextMenuType::RegionSelection, menu);
+#endif
 
     menu->popup(QCursor::pos());
 }
@@ -5520,6 +5531,47 @@ DocumentView::removeEventListener(DispatchType type, int handle) noexcept
                                    [handle](const LuaCallback<DocumentView> &cb)
     { return cb.ref == handle; }),
                     listeners.end());
+}
+
+void
+DocumentView::removeContextMenuListener(ContextMenuType type, int handle)
+    noexcept
+{
+    auto &listeners = m_lua_context_menu_dispatcher[type];
+    listeners.erase(
+        std::remove_if(listeners.begin(), listeners.end(),
+                       [handle](const MenuCallback &cb)
+        { return cb.ref == handle; }),
+        listeners.end());
+}
+
+void
+DocumentView::applyLuaContextMenu(ContextMenuType type, QMenu *menu) noexcept
+{
+    if (!menu)
+        return;
+
+    auto &listeners = m_lua_context_menu_dispatcher[type];
+    if (listeners.empty())
+        return;
+
+    QPointer<QMenu> guardedMenu(menu);
+    std::vector<int> handlesToRemove;
+
+    for (const auto &cb : listeners)
+    {
+        if (!guardedMenu)
+            break;
+        cb.invoker(this, guardedMenu.data());
+        if (cb.is_once)
+            handlesToRemove.push_back(cb.ref);
+    }
+
+    if (!handlesToRemove.empty())
+    {
+        for (const int handle : handlesToRemove)
+            removeContextMenuListener(type, handle);
+    }
 }
 
 #endif

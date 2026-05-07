@@ -17,6 +17,8 @@ lektra.event.EventType = {
     OnSearchFinished = 10,
     OnAnnotationAdded = 11,
     OnAnnotationRemoved = 12,
+    OnRegionSelectionContextMenuRequested = 13,
+    OnTextSelectionContextMenuRequested = 14,
 }
 
 --- Registers a callback to be called when the specified event is triggered.

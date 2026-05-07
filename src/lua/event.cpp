@@ -33,11 +33,11 @@ Lektra::initLuaEventDispatcher() noexcept
 {
     lua_newtable(m_L);
 
-    // lektra.event.register(eventName, callback) -> return an handle (int)
+    // lektra.event.register(event, callback) -> return an handle (int)
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
-        const char *eventName = luaL_checkstring(L, 1);
+        DispatchType type = static_cast<DispatchType>(luaL_checkinteger(L, 1));
         luaL_checktype(L, 2, LUA_TFUNCTION);
 
         // Store the callback in the registry with a unique key
@@ -46,19 +46,7 @@ Lektra::initLuaEventDispatcher() noexcept
         auto *self
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
 
-        // Add the callback to our dispatcher map
-        DispatchType dtype;
-        try
-        {
-            dtype = stringToDispatchType(eventName);
-        }
-        catch (const std::invalid_argument &e)
-        {
-            luaL_error(L, e.what());
-            return 0;
-        }
-
-        self->addEventListener(dtype, callbackRef, false, [L = self->m_L, callbackRef](Lektra *lektra)
+        self->addEventListener(type, callbackRef, false, [L = self->m_L, callbackRef](Lektra *lektra)
         {            // Push the callback function onto the stack
             lua_rawgeti(L, LUA_REGISTRYINDEX, callbackRef);
 
