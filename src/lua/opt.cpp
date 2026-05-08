@@ -42,11 +42,13 @@ initLuaEnums(lua_State *L)
         {"SINGLE", (int)DocumentView::LayoutMode::SINGLE},
         {"BOOK", (int)DocumentView::LayoutMode::BOOK},
     };
+
     static const LuaEnumEntry fitMode[] = {
         {"WIDTH", (int)DocumentView::FitMode::Width},
         {"HEIGHT", (int)DocumentView::FitMode::Height},
         {"WINDOW", (int)DocumentView::FitMode::Window},
     };
+
     static const LuaEnumEntry mouseButton[] = {
         {"LEFT", (int)Qt::MouseButton::LeftButton},
         {"RIGHT", (int)Qt::MouseButton::RightButton},

@@ -80,7 +80,6 @@ Lektra::initLuaCmd() noexcept
         });
         return 0;
     }, 1);
-
     lua_setfield(m_L, -2, "register");
 
     // lektra.cmd.unregister(name)
@@ -96,7 +95,6 @@ Lektra::initLuaCmd() noexcept
 
         return 0;
     }, 1);
-
     lua_setfield(m_L, -2, "unregister");
 
     // lektra.cmd.execute(name, [args]) -> bool (success)
@@ -127,7 +125,6 @@ Lektra::initLuaCmd() noexcept
 
         return 1;
     }, 1);
-
     lua_setfield(m_L, -2, "execute");
 
     // lektra.cmd.list() -> (CommandEntry){ name=..., desc=...}

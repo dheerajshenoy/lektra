@@ -68,12 +68,12 @@ public:
         return names;
     }
 
-    bool hasCommand(const QString &name) const noexcept
+    inline bool hasCommand(const QString &name) const noexcept
     {
         return m_commands.find(name) != m_commands.end();
     }
 
-    const Command find(const QString &name) const noexcept
+    inline const Command find(const QString &name) const noexcept
     {
         auto it = m_commands.find(name);
         if (it != m_commands.end())
@@ -81,7 +81,8 @@ public:
         return Command{};
     }
 
-    void alias(const QString &existingName, const QString &aliasName) noexcept
+    inline void alias(const QString &existingName,
+                      const QString &aliasName) noexcept
     {
         auto it = m_commands.find(existingName);
         if (it != m_commands.end())
