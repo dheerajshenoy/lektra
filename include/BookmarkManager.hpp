@@ -8,8 +8,8 @@ class BookmarkManager
 {
 public:
     void addBookmark(const Bookmark &bookmark);
-    void removeBookmark(const QString &file_path);
-    QString getBookmark(const QString &file_path) const;
+    void removeBookmark(Bookmark::BookmarkId id);
+    QString getBookmark(Bookmark::BookmarkId id) const;
 
     inline std::vector<Bookmark> bookmarks() const
     {
