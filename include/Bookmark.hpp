@@ -8,13 +8,10 @@
 class Bookmark
 {
 public:
-    Bookmark(const QString &file_path, const PageLocation &location,
-             const QDateTime &created_at) noexcept;
+    using BookmarkId = QString;
 
-    inline QString label() const noexcept
-    {
-        return m_label;
-    }
+    Bookmark(const QString &file_path, const PageLocation &location,
+             const QDateTime &created_at, BookmarkId id = "") noexcept;
 
     inline QString filePath() const noexcept
     {
@@ -31,9 +28,14 @@ public:
         return m_created_at;
     }
 
+    inline BookmarkId id() const noexcept
+    {
+        return m_id;
+    }
+
 private:
-    QString m_label;
     QString m_file_path;
     PageLocation m_location;
     QDateTime m_created_at;
+    BookmarkId m_id;
 };
