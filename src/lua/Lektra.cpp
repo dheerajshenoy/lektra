@@ -65,6 +65,47 @@ Lektra::initLuaLektra() noexcept
     lua_setfield(m_L, -2, "patch");
 
     lua_setfield(m_L, -2, "version");
+
+    // lektra.capabilities
+    lua_newtable(m_L);
+
+    // lektra.capabilities.synctex
+    lua_pushcfunction(m_L, [](lua_State *L) -> int
+    {
+#ifdef WITH_SYNCTEX
+        lua_pushboolean(L, true);
+#else
+        lua_pushboolean(L, false);
+#endif
+        return 1;
+    });
+    lua_setfield(m_L, -2, "synctex");
+
+    // lektra.capabilities.djvu
+    lua_pushcfunction(m_L, [](lua_State *L) -> int
+    {
+#ifdef WITH_DJVU
+        lua_pushboolean(L, true);
+#else
+        lua_pushboolean(L, false);
+#endif
+        return 1;
+    });
+    lua_setfield(m_L, -2, "djvu");
+
+    // lektra.capabilities.image
+    lua_pushcfunction(m_L, [](lua_State *L) -> int
+    {
+#ifdef WITH_IMAGE
+        lua_pushboolean(L, true);
+#else
+        lua_pushboolean(L, false);
+#endif
+        return 1;
+    });
+    lua_setfield(m_L, -2, "image");
+
+    lua_setfield(m_L, -2, "capabilities");
 }
 
 void
