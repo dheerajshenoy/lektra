@@ -1077,6 +1077,9 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
     if (!m_model->supports_text_selection())
         return;
 
+    if (start == m_selection_start && end == m_selection_end)
+        return;
+
     int startPage                    = -1;
     int endPage                      = -1;
     GraphicsImageItem *startPageItem = nullptr;

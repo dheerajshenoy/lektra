@@ -1088,19 +1088,20 @@ Lektra::initConfig() noexcept
     {
         if (auto backend_str = rendering["backend"])
         {
-            Config::Rendering::Backend backend{
-                Config::Rendering::Backend::Raster};
+            using Backend = Config::Rendering::Backend;
+
+            Backend backend = Backend::Raster;
             if (backend_str == "opengl")
             {
-                backend = Config::Rendering::Backend::OpenGL;
+                backend = Backend::OpenGL;
             }
             else if (backend_str == "raster")
             {
-                backend = Config::Rendering::Backend::Raster;
+                backend = Backend::Raster;
             }
             else if (backend_str == "auto")
             {
-                backend = Config::Rendering::Backend::Auto;
+                backend = Backend::Auto;
             }
             else
             {
@@ -1108,6 +1109,7 @@ Lektra::initConfig() noexcept
                            << QString::fromStdString(backend_str.value_or(""));
                 qWarning() << "Falling back to `raster` backend.";
             }
+
             m_config.rendering.backend = backend;
         }
 

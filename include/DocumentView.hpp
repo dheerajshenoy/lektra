@@ -23,6 +23,7 @@ extern "C"
 
 #include "DispatchType.hpp"
 
+#include <QElapsedTimer>
 #include <QFileInfo>
 #include <QFileSystemWatcher>
 #include <QFutureWatcher>
@@ -32,7 +33,6 @@ extern "C"
 #include <QScrollBar>
 #include <QSet>
 #include <QString>
-#include <QElapsedTimer>
 #include <QTimer>
 #include <QWidget>
 #include <qevent.h>
@@ -575,8 +575,8 @@ private:
     void visual_line_move(Direction direction) noexcept;
     void snapVisualLine(bool centerView = true) noexcept;
 #ifdef WITH_IMAGE
-    QTimer        *m_anim_timer = nullptr;
-    QElapsedTimer  m_anim_frame_clock;
+    QTimer *m_anim_timer = nullptr;
+    QElapsedTimer m_anim_frame_clock;
 #endif
 
 #ifdef WITH_SYNCTEX

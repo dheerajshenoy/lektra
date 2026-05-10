@@ -1025,9 +1025,9 @@ struct Config
 
         enum class Backend
         {
-            Auto,   // Automatically choose the best available backend
-            Raster, // Use raster rendering (CPU-based)
-            OpenGL  // Use OpenGL rendering (GPU-accelerated)
+            Auto = 0, // Automatically choose the best available backend
+            Raster,   // Use raster rendering (CPU-based)
+            OpenGL    // Use OpenGL rendering (GPU-accelerated)
         };
 
         // @desc Rendering backend to use

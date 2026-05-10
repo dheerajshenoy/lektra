@@ -147,6 +147,7 @@ public:
     void bindScrollbarActivity(QScrollBar *vertical,
                                QScrollBar *horizontal) noexcept;
     void clearRubberBand() noexcept;
+    void applyBackend() noexcept;
 
 signals:
     void textSelectionRequested(QPointF a, QPointF b);
@@ -231,7 +232,6 @@ private:
 
     void updateCursorForMode() noexcept;
     void onScrollbarActivity() noexcept;
-    void applyBackend() noexcept;
     void updateScrollbars();
     void layoutScrollbars();
     QScrollBar *scrollbarAt(const QPoint &pos) const noexcept;

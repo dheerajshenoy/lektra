@@ -17,7 +17,6 @@
 GraphicsView::GraphicsView(const Config &config, QWidget *parent)
     : QGraphicsView(parent), m_config(config)
 {
-    applyBackend();
     setMouseTracking(true);
     setResizeAnchor(QGraphicsView::AnchorViewCenter);
     setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
@@ -85,6 +84,8 @@ GraphicsView::GraphicsView(const Config &config, QWidget *parent)
         connect(&m_autoscroll_timer, &QTimer::timeout, this,
                 &GraphicsView::applyAutoScroll);
     }
+
+    applyBackend();
 }
 
 void
@@ -356,16 +357,16 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
         && m_selecting)
     {
         m_last_mouse_pos = event->pos();
+        bool isAutoScrolling = false;
         if (m_config.behavior.auto_scroll)
+            isAutoScrolling = updateAutoScroll(event->pos());
+
+        if (!isAutoScrolling
+            && (event->pos() - m_lastMovePos).manhattanLength()
+                   < MOVE_EMIT_THRESHOLD_PX)
         {
-            const bool autoScrollActive = updateAutoScroll(event->pos());
-            if (!autoScrollActive
-                && (event->pos() - m_lastMovePos).manhattanLength()
-                       < MOVE_EMIT_THRESHOLD_PX)
-            {
-                event->accept();
-                return;
-            }
+            event->accept();
+            return;
         }
 
         m_lastMovePos = event->pos();
@@ -922,6 +923,9 @@ GraphicsView::applyBackend() noexcept
         setViewportUpdateMode(
             QGraphicsView::FullViewportUpdate); // ← change from Minimal
         setCacheMode(QGraphicsView::CacheBackground);
+        qDebug() << "-------------------------------------";
+        qDebug() << "Using GPU";
+        qDebug() << "-------------------------------------";
     };
 
     auto backend_raster = [this]()
@@ -944,13 +948,9 @@ GraphicsView::applyBackend() noexcept
         case Config::Rendering::Backend::Auto:
         {
             if (QOpenGLContext::supportsThreadedOpenGL())
-            {
                 backend_opengl();
-            }
             else
-            {
                 backend_raster();
-            }
         }
         break;
     }
