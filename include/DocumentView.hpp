@@ -338,10 +338,6 @@ public:
         m_lua_context_menu_dispatcher[type].clear();
     }
 
-    void setAutoReload(bool state) noexcept;
-    void setDPR(float dpr) noexcept;
-    QString selectionText(bool formatted             = false,
-                          std::string page_separator = "\n") const noexcept;
     void removeEventListener(DispatchType type, int handle) noexcept;
     void removeContextMenuListener(ContextMenuType type, int handle) noexcept;
 #endif
@@ -350,6 +346,12 @@ public:
     void startGifPlayback() noexcept;
     void stopGifPlayback() noexcept;
 #endif
+
+    void setAutoReload(bool state) noexcept;
+    void setDPR(float dpr) noexcept;
+    QString selectionText(bool formatted             = false,
+                          std::string page_separator = "\n") const noexcept;
+
     bool pageAtScenePos(QPointF scenePos, int &outPageIndex,
                         GraphicsImageItem *&outPageItem) const noexcept;
     void setPortal(DocumentView *portal) noexcept;
