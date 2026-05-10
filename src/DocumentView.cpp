@@ -4923,11 +4923,13 @@ DocumentView::tryReloadLater(int attempt) noexcept
             return;
         else
         {
+#ifdef WITH_IMAGE
             if (m_model->isImage())
             {
                 renderImage();
             }
             else
+#endif
             {
 #ifdef WITH_SYNCTEX
                 initSynctex();
