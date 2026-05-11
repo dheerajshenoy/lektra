@@ -1454,6 +1454,13 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         m_gview->centerOn(targetCenter);
 
         m_gview->flashScrollbars();
+
+        // Debounced HQ re-render: after rapid zoom settles, replace the
+        // transform-scaled (blurry) pixels with a smooth re-render at the
+        // exact target dimensions. Mirrors the document HQ zoom approach.
+        if (!m_model->isAnimated())
+            m_hq_render_timer->start();
+
         return;
     }
 #endif

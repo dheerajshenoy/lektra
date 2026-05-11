@@ -1063,7 +1063,9 @@ Model::openAsync_image(const QString &canonPath) noexcept
                 m_is_animated      = false;
                 m_success          = true;
                 m_page_count       = 1;
-                m_default_page_dim = {w, h};
+                // Convert pixel dims to pts so the DPI-based scale in
+                // pageSceneSize / repositionPages cancels out cleanly.
+                m_default_page_dim = {w * 72.0f / m_dpi, h * 72.0f / m_dpi};
                 m_page_dim_cache.dimensions.assign(1, m_default_page_dim);
                 m_page_dim_cache.known.assign(1, true);
                 m_image_cache = std::move(first);
@@ -1089,7 +1091,7 @@ Model::openAsync_image(const QString &canonPath) noexcept
             m_is_animated      = true;
             m_success          = true;
             m_page_count       = 1;
-            m_default_page_dim = {w, h};
+            m_default_page_dim = {w * 72.0f / m_dpi, h * 72.0f / m_dpi};
             m_page_dim_cache.dimensions.assign(1, m_default_page_dim);
             m_page_dim_cache.known.assign(1, true);
             m_frame_delays_ms = delays;
