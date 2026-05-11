@@ -1,6 +1,10 @@
 #include "Lektra.hpp"
 #include "utils.hpp"
 
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QMenu>
 #include <cstring>
 
@@ -964,6 +968,48 @@ static const luaL_Reg DocumentViewMethods[] = {
 
                     return 1;
                 }),
+
+    VIEW_METHOD(
+        "export_highlights",
+        {
+            if (!*view)
+            {
+                lua_pushnil(L);
+                lua_pushstring(L, "no active view");
+                return 2;
+            }
+
+            const char *path = luaL_checkstring(L, 2);
+
+            const auto highlights = (*view)->model()->collectHighlightTexts();
+
+            QJsonArray arr;
+            for (const auto &h : highlights)
+            {
+                QJsonObject obj;
+                obj["page"] = h.page + 1; // 1-based for the end user
+                obj["text"] = h.text;
+                if (!h.comment.isEmpty())
+                    obj["comment"] = h.comment;
+                arr.append(obj);
+            }
+
+            const QByteArray json
+                = QJsonDocument(arr).toJson(QJsonDocument::Indented);
+
+            QFile file(QString::fromUtf8(path));
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+            {
+                lua_pushnil(L);
+                lua_pushstring(
+                    L, file.errorString().toUtf8().constData());
+                return 2;
+            }
+
+            file.write(json);
+            lua_pushboolean(L, 1);
+            return 1;
+        }),
 
     {nullptr, nullptr}}; // end point
 

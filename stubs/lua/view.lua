@@ -292,6 +292,20 @@ function View:container() end
 ---@return string[] table
 function View:outline() end
 
+---@class HighlightEntry
+--- Represents a single highlight annotation extracted from a document.
+---@field page integer The 1-based page number where the highlight appears.
+---@field text string The highlighted text content.
+---@field comment string? An optional note attached to the highlight, or nil if none.
+
+--- Exports all highlight annotations in the document to a JSON file.
+--- Each entry in the JSON array contains `page` (1-based), `text`, and optionally `comment`.
+--- Returns true on success, or nil plus an error message on failure.
+---@param path string The file path to write the JSON output to.
+---@return true | nil result `true` on success, `nil` on failure.
+---@return string? err An error message when result is nil.
+function View:export_highlights(path) end
+
 -- ##########################################
 
 

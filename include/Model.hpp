@@ -107,6 +107,7 @@ public:
     {
         int page;
         QString text;
+        QString comment;
         fz_quad quad;
     };
 

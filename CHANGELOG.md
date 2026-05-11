@@ -4,6 +4,13 @@
 
 ### Features
 
+- Add `collectHighlightTexts()` on `Model` returning a `std::vector<HighlightText>` with
+  `page`, `text`, `comment`, and `quad` fields. Multi-line highlights are grouped into a
+  single entry (lines joined with a space) rather than one entry per line.
+- Add Lua API `view:export_highlights(path)` that serialises all highlight annotations to
+  a JSON file. Each entry contains `page` (1-based), `text`, and optionally `comment`.
+  Returns `true` on success or `nil, error` on failure.
+
 ### Bug Fixes
 
 - Fix image files always rendering blurry: pixel dimensions were stored directly as

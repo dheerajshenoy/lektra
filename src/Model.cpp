@@ -3887,6 +3887,11 @@ Model::collectHighlightTexts(bool groupByLine) noexcept
                 if (quad_count <= 0)
                     continue;
 
+                const char *contents = pdf_annot_contents(m_ctx, annot);
+                const QString comment
+                    = contents ? QString::fromUtf8(contents).trimmed()
+                                : QString{};
+
                 std::vector<fz_quad> quads;
                 quads.reserve(quad_count);
                 for (int i = 0; i < quad_count; ++i)
@@ -3897,6 +3902,9 @@ Model::collectHighlightTexts(bool groupByLine) noexcept
                     line_quads = merge_quads_by_line(quads);
                 else
                     line_quads = merged_quads_from_quads(quads);
+
+                QStringList parts;
+                fz_quad anchor_quad{};
 
                 for (const fz_quad &q : line_quads)
                 {
@@ -3917,8 +3925,14 @@ Model::collectHighlightTexts(bool groupByLine) noexcept
                     if (text.isEmpty())
                         continue;
 
-                    results.push_back({pageno, text, q});
+                    if (parts.isEmpty())
+                        anchor_quad = q;
+                    parts.append(text);
                 }
+
+                if (!parts.isEmpty())
+                    results.push_back(
+                        {pageno, parts.join(' '), comment, anchor_quad});
             }
         }
         fz_always(m_ctx)
