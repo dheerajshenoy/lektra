@@ -19,6 +19,7 @@ BUILD_TYPE=${BUILD_TYPE:-Release}
 WITH_DJVU=${WITH_DJVU:-OFF}
 WITH_SYNCTEX=${WITH_SYNCTEX:-ON}
 WITH_LUA=${WITH_LUA:-ON}
+WITH_LIBRSVG=${WITH_LIBRSVG:-OFF}
 CLEAN_BUILD=${CLEAN_BUILD:-0}
 
 need() {
@@ -41,7 +42,8 @@ cmake -S "$ROOT_DIR" -B "$BUILD_DIR" \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -DWITH_DJVU="$WITH_DJVU" \
     -DWITH_SYNCTEX="$WITH_SYNCTEX" \
-    -DWITH_LUA="$WITH_LUA"
+    -DWITH_LUA="$WITH_LUA" \
+    -DWITH_LIBRSVG="$WITH_LIBRSVG"
 cmake --build "$BUILD_DIR" -j"$JOBS"
 
 rm -rf "$STAGE_DIR" "$PKG_DIR"
@@ -53,8 +55,9 @@ cp -a "$STAGE_DIR"/. "$PKG_DIR"/
 INSTALLED_SIZE=$(du -ks "$PKG_DIR/usr" 2>/dev/null | awk '{print $1}')
 
 _lower() { echo "$1" | tr '[:upper:]' '[:lower:]'; }
-DJVU_DEP=$([ "$(_lower "$WITH_DJVU")"    = "on" ] && echo ", libdjvulibre-dev"             || true)
-LUA_DEP=$([ "$(_lower "$WITH_LUA")"      = "on" ] && echo ", liblua5.4-dev"                || true)
+DJVU_DEP=$([ "$(_lower "$WITH_DJVU")"       = "on" ] && echo ", libdjvulibre-dev"  || true)
+LUA_DEP=$([ "$(_lower "$WITH_LUA")"        = "on" ] && echo ", liblua5.4-dev"     || true)
+LIBRSVG_DEP=$([ "$(_lower "$WITH_LIBRSVG")" = "on" ] && echo ", librsvg2-dev"     || true)
 
 cat >"$PKG_DIR/DEBIAN/control" <<EOF
 Package: $APP_NAME
@@ -66,7 +69,7 @@ Maintainer: Dheeraj Vittal Shenoy <dheerajshenoy22@gmail.com>
 Homepage: https://codeberg.org/lektra/lektra
 Installed-Size: ${INSTALLED_SIZE:-0}
 Build-Depends: build-essential pkgconf cmake ninja-build g++
-Depends: qt6-base-dev, qt6-tools-dev, qt6-l10n-tools, unzip, zlib1g-dev, libgl1-mesa-dri, mesa-common-dev, qt6-imageformats-plugins, libqt6svg6${DJVU_DEP}${LUA_DEP}
+Depends: qt6-base-dev, qt6-tools-dev, qt6-l10n-tools, unzip, zlib1g-dev, libgl1-mesa-dri, mesa-common-dev, qt6-imageformats-plugins, libqt6svg6${DJVU_DEP}${LUA_DEP}${LIBRSVG_DEP}
 Suggests: qt6-style-kvantum
 Description: High performance Document and Image viewer
 EOF

@@ -8,6 +8,13 @@
 #include <QFile>
 #include <QImageReader>
 #include <QMovie>
+#include <QPainter>
+#include <QSvgRenderer>
+#ifdef WITH_LIBRSVG
+    #undef signals
+    #include <librsvg/rsvg.h>
+// #define signals
+#endif
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -819,7 +826,7 @@ Model::~Model() noexcept
     }
     else
 #endif
-    if (m_is_image)
+        if (m_is_image)
     {
         cleanup_image();
     }
@@ -948,6 +955,90 @@ Model::openAsync_image(const QString &canonPath) noexcept
 {
     return QtConcurrent::run([this, canonPath]
     {
+        if (m_filetype == FileType::SVG)
+        {
+#ifdef WITH_LIBRSVG
+            GError *gerr       = nullptr;
+            RsvgHandle *handle = rsvg_handle_new_from_file(
+                canonPath.toUtf8().constData(), &gerr);
+            if (!handle)
+            {
+                if (gerr)
+                    g_error_free(gerr);
+                QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                          Qt::QueuedConnection);
+                return;
+            }
+            gdouble w_d = 0, h_d = 0;
+            if (!rsvg_handle_get_intrinsic_size_in_pixels(handle, &w_d, &h_d)
+                || w_d <= 0 || h_d <= 0)
+            {
+                w_d = 800;
+                h_d = 600;
+            }
+            const int iw = static_cast<int>(w_d);
+            const int ih = static_cast<int>(h_d);
+            cairo_surface_t *surf
+                = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, iw, ih);
+            cairo_t *cr      = cairo_create(surf);
+            RsvgRectangle vp = {0.0, 0.0, w_d, h_d};
+            gerr             = nullptr;
+            rsvg_handle_render_document(handle, cr, &vp, &gerr);
+            cairo_destroy(cr);
+            g_object_unref(handle);
+            if (gerr)
+            {
+                g_error_free(gerr);
+                cairo_surface_destroy(surf);
+                QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                          Qt::QueuedConnection);
+                return;
+            }
+            cairo_surface_flush(surf);
+            QImage img(cairo_image_surface_get_data(surf), iw, ih,
+                       cairo_image_surface_get_stride(surf),
+                       QImage::Format_ARGB32_Premultiplied);
+            img = img.copy();
+            cairo_surface_destroy(surf);
+#else
+            QSvgRenderer renderer(canonPath);
+            if (!renderer.isValid())
+            {
+                QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                          Qt::QueuedConnection);
+                return;
+            }
+            QSize sz = renderer.defaultSize();
+            if (sz.isEmpty())
+                sz = QSize(800, 600);
+            QImage img(sz, QImage::Format_ARGB32);
+            img.fill(Qt::transparent);
+            {
+                QPainter p(&img);
+                renderer.render(&p);
+            }
+            const int iw = sz.width();
+            const int ih = sz.height();
+#endif
+            const float fw = static_cast<float>(iw);
+            const float fh = static_cast<float>(ih);
+            QMetaObject::invokeMethod(
+                this, [this, img = std::move(img), fw, fh]() mutable
+            {
+                cleanup_image();
+                m_is_image         = true;
+                m_is_animated      = false;
+                m_success          = true;
+                m_page_count       = 1;
+                m_default_page_dim = {fw * 72.0f / m_dpi, fh * 72.0f / m_dpi};
+                m_page_dim_cache.dimensions.assign(1, m_default_page_dim);
+                m_page_dim_cache.known.assign(1, true);
+                m_image_cache = std::move(img);
+                emit openFileFinished();
+            }, Qt::QueuedConnection);
+            return;
+        }
+
         QImageReader reader(canonPath);
         reader.setAutoTransform(true);
 
@@ -993,8 +1084,7 @@ Model::openAsync_image(const QString &canonPath) noexcept
 
         // Animated: hand off to QMovie — it decodes one frame at a time,
         // keeping memory at O(1 frame) instead of O(all frames).
-        QMetaObject::invokeMethod(
-            this, [this, canonPath, w, h]()
+        QMetaObject::invokeMethod(this, [this, canonPath, w, h]()
         {
             cleanup_image();
             m_is_image         = true;
@@ -3750,7 +3840,7 @@ Model::collectHighlightTexts(bool groupByLine) noexcept
                 const char *contents = pdf_annot_contents(m_ctx, annot);
                 const QString comment
                     = contents ? QString::fromUtf8(contents).trimmed()
-                                : QString{};
+                               : QString{};
 
                 std::vector<fz_quad> quads;
                 quads.reserve(quad_count);
@@ -4663,7 +4753,6 @@ Model::waitForPendingRenders() noexcept
     m_renders_cv.wait(lock, [this]
     { return m_active_renders.load(std::memory_order_acquire) == 0; });
 }
-
 
 QString
 Model::fileTypeToString() const noexcept

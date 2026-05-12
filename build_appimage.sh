@@ -4,6 +4,7 @@ set -eu
 WITH_DJVU=${WITH_DJVU:-off}
 WITH_SYNCTEX=${WITH_SYNCTEX:-on}
 WITH_LUA=${WITH_LUA:-on}
+WITH_LIBRSVG=${WITH_LIBRSVG:-off}
 
 ROOT_DIR=$(cd "$(dirname "$0")" && pwd)
 BUILD_DIR="$ROOT_DIR/build-appimage"
@@ -39,7 +40,8 @@ cmake -S "$ROOT_DIR" -B "$BUILD_DIR" \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -DWITH_LUA="$WITH_LUA" \
     -DWITH_SYNCTEX="$WITH_SYNCTEX" \
-    -DWITH_DJVU="$WITH_DJVU"
+    -DWITH_DJVU="$WITH_DJVU" \
+    -DWITH_LIBRSVG="$WITH_LIBRSVG"
 
 cmake --build "$BUILD_DIR" -j"$JOBS"
 DESTDIR="$APPDIR" cmake --install "$BUILD_DIR"

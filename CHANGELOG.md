@@ -43,6 +43,15 @@
   `CacheMode::CacheNone`, which decodes one frame at a time on demand. The manual
   timer and elapsed-clock machinery is replaced by `QMovie::frameChanged`.
 
+### Optional Dependencies
+
+- Add optional `WITH_LIBRSVG` build flag (default OFF) to use librsvg + Cairo for SVG
+  rendering instead of Qt's built-in `QSvgRenderer`. librsvg has significantly better CSS
+  and `<switch>` support, correctly handling SVGs produced by tools such as draw.io that
+  use `<foreignObject>` for text labels (falling back to the embedded PNG per the SVG spec)
+  and CSS functions like `light-dark()` that Qt silently ignores. Enable with
+  `-DWITH_LIBRSVG=ON`; requires `librsvg2-dev` on the build host.
+
 ### Breaking Changes
 
 ## 0.7.1
