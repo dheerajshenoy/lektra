@@ -179,9 +179,12 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
     // zoomed in) and texts becomes unclickable.
     if (QScrollBar *bar = scrollbarAt(event->pos()))
     {
-        m_activeScrollbar = bar;
-        m_scrollbar_hide_timer.stop();
-        forwardMouseEvent(bar, event);
+        if (event->button() == Qt::LeftButton)
+        {
+            m_activeScrollbar = bar;
+            m_scrollbar_hide_timer.stop();
+            forwardMouseEvent(bar, event);
+        }
         return;
     }
 
@@ -356,7 +359,7 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
     if ((m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
         && m_selecting)
     {
-        m_last_mouse_pos = event->pos();
+        m_last_mouse_pos     = event->pos();
         bool isAutoScrolling = false;
         if (m_config.behavior.auto_scroll)
             isAutoScrolling = updateAutoScroll(event->pos());

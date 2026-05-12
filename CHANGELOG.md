@@ -37,6 +37,10 @@
 
 ### Bug Fixes
 
+- Fix crash when right-clicking on the overlay scrollbar — right-click events were unconditionally
+  forwarded to the scrollbar, causing its built-in context menu (`QMenu::exec`) to spin a nested
+  event loop while the GraphicsView's `contextMenuEvent` also fired, leading to a double-menu crash.
+  Non-left-button clicks on the scrollbar are now silently ignored.
 - Update the layout menu item names
 - Fix crash (SEGV) on click selection in `SINGLE` layout mode — `pageAtScenePos` was
   guarding the `outPageItem` assignment with `if (outPageItem)`, but the pointer is always
