@@ -195,16 +195,13 @@ static inline QString
 supportedFormats()
 {
     return "Documents ("
-           "PDF (*.pdf);;"
-#ifdef HAS_DJVU
-           "DjVu (*.djvu *.djv);;"
-#endif
-           "XPS (*.oxps *.xps);;"
-           "CBZ (*.cbz *.cbt);;"
-           "EPUB (*.epub);;"
-           "FictionBook (*.fb2 *.fbz);;"
-           "Mobi (*.mobi);;"
-           ");;"
+           "*.pdf "
+           "*.djvu *.djv"
+           "*.oxps *.xps "
+           "*.cbz *.cbt "
+           "*.epub "
+           "*.fb2 *.fbz "
+           "*.mobi);;"
            "Images ("
            "*.jpg *.jpeg "
            "*.png *.apng "
@@ -215,7 +212,6 @@ supportedFormats()
            "*.webp "
            "*.tga "
            "*.ico "
-           "*.ppm *.pgm *.pbm"
-           ");;"
+           "*.ppm *.pgm *.pbm);;"
            "All Files (*.*)";
 }
