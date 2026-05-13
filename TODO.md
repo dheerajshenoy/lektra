@@ -9,12 +9,10 @@
 - [ ] Allow opening multiple files from the file dialog
 - [ ] Tab detach drag and drop to new window spawns new useless window
 - [ ] Don't hide scrollbars when search hits have been drawn
-- [ ] Grow/Shrink splitter handle when hovering over it for easy dragging
 - [ ] Show visually, and identifier for split files (if they remain as original file) next to their name. Maybe,
       a numbered gutter badge, small [1], [2] badge in the corner of each split — same number means same file.
       Simple and non-intrusive.
 - [ ] Mult-click drag select word, line, paragraph, etc. based on number of clicks before dragging
-- [ ] Text selection change pos on resize event
 - [ ] History for pickers
 - [ ] Don't add connection to annotation when in non-annotatable mode
 
