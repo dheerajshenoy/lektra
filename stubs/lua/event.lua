@@ -20,6 +20,10 @@ lektra.event.EventType = {
     OnAnnotationRemoved = 13,
     OnRegionSelectionContextMenuRequested = 14,
     OnTextSelectionContextMenuRequested = 15,
+    OnTabAdded = 16,
+    OnTabRemoved = 17,
+    OnViewChanged = 18,
+    OnScreenChanged = 19,
 }
 
 --- Registers a callback to be called when the specified event is triggered.

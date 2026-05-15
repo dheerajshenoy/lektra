@@ -3,6 +3,10 @@
 lektra = lektra or {}
 lektra.opt = {}
 
+---@class Screen
+---@field description string Description of the screen/monitor (e.g. "desc:AU Optronics 0xE3AC").
+---@field scale number Scale factor for the screen (e.g. 1.0 for standard DPI, 1.5 for HiDPI).
+
 -- ── Enums ────────────────────────────────────────────────────────────────────
 -- Note: enum tables live on `lektra`, not `lektra.opt`.
 
@@ -216,6 +220,7 @@ lektra.opt.command_palette = {}
 ---@field text_antialiasing boolean Enable text-specific antialiasing.
 ---@field smooth_pixmap_transform boolean Use smooth (bilinear) scaling for pixmaps.
 ---@field backend Backend Rendering backend
+---@field scale number|Screen Scale factors for different device pixel ratios (e.g. `{ [1] = 1.0, [2] = 1.5 }`).
 lektra.opt.rendering = {}
 
 ---@class OptBehavior
