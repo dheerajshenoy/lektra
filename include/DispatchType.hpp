@@ -6,22 +6,27 @@
 
 enum class DispatchType
 {
-    OnAppReady = 0,
-    OnReady,
-    OnFileOpen,
-    OnFileClose,
-    OnPageChanged,
-    OnZoomChanged,
-    OnLinkClicked,
-    OnTextSelected,
-    OnTabChanged,
-    OnSearchStarted,
-    OnSearchFinished,
-    OnSearchCancelled,
-    OnAnnotationAdded,
-    OnAnnotationRemoved,
-    OnRegionSelectionContextMenuRequested,
-    OnTextSelectionContextMenuRequested,
+    OnAppReady                            = 0,
+    OnReady                               = 1,
+    OnFileOpen                            = 2,
+    OnFileClose                           = 3,
+    OnPageChanged                         = 4,
+    OnZoomChanged                         = 5,
+    OnLinkClicked                         = 6,
+    OnTextSelected                        = 7,
+    OnTabChanged                          = 8,
+    OnSearchStarted                       = 9,
+    OnSearchFinished                      = 10,
+    OnSearchCancelled                     = 11,
+    OnAnnotationAdded                     = 12,
+    OnAnnotationRemoved                   = 13,
+    OnRegionSelectionContextMenuRequested = 14,
+    OnTextSelectionContextMenuRequested   = 15,
+    OnTabAdded                            = 16,
+    OnTabRemoved                          = 17,
+    OnViewChanged                         = 18,
+    OnScreenChanged                       = 19,
+    OnAppShutdown                         = 20,
     COUNT
 };
 
@@ -44,6 +49,10 @@ static const QHash<QString, DispatchType> s_dispatchEventMap = {
      DispatchType::OnRegionSelectionContextMenuRequested},
     {"OnTextSelectionContextMenuRequested",
      DispatchType::OnTextSelectionContextMenuRequested},
+    {"OnTabAdded", DispatchType::OnTabAdded},
+    {"OnTabRemoved", DispatchType::OnTabRemoved},
+    {"OnViewChanged", DispatchType::OnViewChanged},
+    {"OnScreenChanged", DispatchType::OnScreenChanged},
 };
 
 inline static DispatchType
