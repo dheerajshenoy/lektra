@@ -53,6 +53,7 @@ static const QHash<QString, DispatchType> s_dispatchEventMap = {
     {"OnTabRemoved", DispatchType::OnTabRemoved},
     {"OnViewChanged", DispatchType::OnViewChanged},
     {"OnScreenChanged", DispatchType::OnScreenChanged},
+    {"OnAppShutdown", DispatchType::OnAppShutdown},
 };
 
 inline static DispatchType
@@ -67,26 +68,13 @@ stringToDispatchType(const QString &name)
 inline static QString
 dispatchTypeToString(DispatchType type)
 {
-    static const char *names[] = {
-        "OnAppReady",
-        "OnReady",
-        "OnFileOpen",
-        "OnFileClose",
-        "OnPageChanged",
-        "OnZoomChanged",
-        "OnLinkClicked",
-        "OnTextSelected",
-        "OnTabChanged",
-        "OnSearchStarted",
-        "OnSearchFinished",
-        "OnSearchCancelled",
-        "OnAnnotationAdded",
-        "OnAnnotationRemoved",
-        "OnRegionSelectionContextMenuRequested",
-        "OnTextSelectionContextMenuRequested",
-    };
-    const int idx = static_cast<int>(type);
-    if (idx < 0 || idx >= static_cast<int>(DispatchType::COUNT))
-        return "Unknown";
-    return names[idx];
+    for (auto it = s_dispatchEventMap.constBegin();
+         it != s_dispatchEventMap.constEnd(); ++it)
+    {
+        if (it.value() == type)
+            return it.key();
+    }
+    throw std::invalid_argument(QString("Unknown event type: %1")
+                                    .arg(static_cast<int>(type))
+                                    .toStdString());
 }
