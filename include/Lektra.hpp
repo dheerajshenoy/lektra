@@ -283,7 +283,9 @@ private:
     void initCommands() noexcept;
     void trimRecentFilesDatabase() noexcept;
     void reloadDocument() noexcept;
+    void handleScreenChange(QScreen *screen) noexcept;
     void handleTabDataRequested(int index, TabBar::TabData *outData) noexcept;
+    void handleTabCloseRequested(int index) noexcept;
     void handleTabDropReceived(const TabBar::TabData &data) noexcept;
     void handleTabDetached(int index, const QPoint &globalPos) noexcept;
     void handleTabDetachedToNewWindow(int index,

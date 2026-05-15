@@ -1118,6 +1118,56 @@ static const LuaField renderingFields[] = {
         = static_cast<Config::Rendering::Backend>(lua_tointeger(L, 3));
 }, [](Lektra *lektra)
 { lektra->currentDocument()->graphicsView()->applyBackend(); }},
+
+    {"scale",
+     [](lua_State *L, P p)
+{
+    // DPR = std::variant<float, QMap<QString, float>>;
+    using DPR = Config::Rendering::DPR;
+    DPR dpr   = static_cast<Config::Rendering *>(p)->dpr;
+
+    if (std::holds_alternative<float>(dpr))
+    {
+        lua_pushnumber(L, std::get<float>(dpr));
+    }
+    else
+    {
+        lua_newtable(L);
+        const auto &map = std::get<QMap<QString, float>>(dpr);
+        for (auto it = map.constBegin(); it != map.constEnd(); ++it)
+        {
+            lua_pushstring(L, it.key().toUtf8().constData());
+            lua_pushnumber(L, it.value());
+            lua_settable(L, -3);
+        }
+    }
+
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    if (lua_isnumber(L, 3))
+    {
+        static_cast<Config::Rendering *>(p)->dpr = (float)lua_tonumber(L, 3);
+    }
+    else if (lua_istable(L, 3))
+    {
+        QMap<QString, float> map;
+        lua_pushnil(L); // first key
+        while (lua_next(L, 3) != 0)
+        {
+            // key at -2, value at -1
+            if (lua_isstring(L, -2) && lua_isnumber(L, -1))
+            {
+                QString key = QString::fromUtf8(lua_tostring(L, -2));
+                float value = (float)lua_tonumber(L, -1);
+                map.insert(key, value);
+            }
+            lua_pop(L, 1); // remove value, keep key for next iteration
+        }
+        static_cast<Config::Rendering *>(p)->dpr = map;
+    }
+}},
 };
 
 // --- behavior ---
