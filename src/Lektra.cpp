@@ -2573,7 +2573,7 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
     }
 
     view->openAsync(filename);
-    setCurrentDocumentView(view); // always, unconditionally
+    setCurrentDocumentView(view);
     m_tab_widget->tabBar()->set_split_count(tabIndex,
                                             container->getViewCount());
 
@@ -3305,22 +3305,7 @@ Lektra::initConnections() noexcept
 
     m_dpr = m_screen_dpr_map.value(win->screen()->name(), 1.0f);
 
-    connect(win, &QWindow::screenChanged, this, [&](QScreen *screen)
-    {
-        if (std::holds_alternative<QMap<QString, float>>(
-                m_config.rendering.dpr))
-        {
-            m_dpr = m_screen_dpr_map.value(screen->name(), 1.0f);
-            if (m_doc)
-                m_doc->setDPR(m_dpr);
-        }
-        else if (std::holds_alternative<float>(m_config.rendering.dpr))
-        {
-            m_dpr = std::get<float>(m_config.rendering.dpr);
-            if (m_doc)
-                m_doc->setDPR(m_dpr);
-        }
-    });
+    connect(win, &QWindow::screenChanged, this, &Lektra::handleScreenChange);
 
     connect(m_search_bar, &SearchBar::searchRequested, this,
             [this](const QString &term, bool useRegex)
@@ -3335,81 +3320,88 @@ Lektra::initConnections() noexcept
     connect(m_search_bar, &SearchBar::prevHitRequested, this, &Lektra::PrevHit);
 
     connect(m_tab_widget, &TabWidget::tabCloseRequested, this,
-            [this](const int index)
-    {
-        QWidget *widget = m_tab_widget->widget(index);
-        if (!widget)
-            return;
-        const QString tabRole = widget->property("tabRole").toString();
-        if (tabRole == "doc")
-        {
-            DocumentView *doc = qobject_cast<DocumentView *>(widget);
-
-            if (doc)
-            {
-                // Set the outline to nullptr if the closed tab was the
-                // current one
-                if (m_doc == doc)
-                    m_outline_picker->clearOutline();
-                doc->CloseFile();
-            }
-        }
-        else if (tabRole == "lazy")
-        {
-            const QString filePath = widget->property("filePath").toString();
-        }
-        else if (tabRole == "startup")
-        {
-            if (m_startup_widget)
-            {
-                m_startup_widget->deleteLater();
-                m_startup_widget = nullptr;
-            }
-        }
-
-        // Save page numbers for all views in this tab before closing
-        if (m_config.behavior.remember_last_visited)
-        {
-            DocumentContainer *container = m_tab_widget->rootContainer(index);
-#ifndef NDEBUG
-            qDebug() << "tabCloseRequested: remember_last_visited enabled, "
-                        "container:"
-                     << container;
-#endif
-            if (container)
-            {
-                const auto views = container->getAllViews();
-#ifndef NDEBUG
-                qDebug() << "tabCloseRequested: found" << views.size()
-                         << "views";
-#endif
-                for (DocumentView *view : views)
-                {
-#ifndef NDEBUG
-                    qDebug()
-                        << "tabCloseRequested: view:" << view
-                        << "filePath:" << (view ? view->filePath() : "null")
-                        << "is_portal:" << (view ? view->is_portal() : false);
-#endif
-                    if (view && !view->filePath().isEmpty()
-                        && !view->is_portal())
-                    {
-                        const int page = view->pageNo() + 1;
-                        insertFileToDB(view->filePath(), page > 0 ? page : 1);
-                    }
-                }
-            }
-        }
-
-        m_tab_widget->removeTab(index);
-        if (m_tab_widget->count() == 0)
-        {
-            setCurrentDocumentView(nullptr);
-        }
-    });
+            &Lektra::handleTabCloseRequested);
 
     connect(m_navMenu, &QMenu::aboutToShow, this,
             &Lektra::updatePageNavigationActions);
+}
+
+void
+Lektra::handleTabCloseRequested(int index) noexcept
+{
+    QWidget *widget = m_tab_widget->widget(index);
+    if (!widget)
+        return;
+
+    const QString tabRole = widget->property("tabRole").toString();
+    if (tabRole == "doc")
+    {
+        DocumentView *doc = qobject_cast<DocumentView *>(widget);
+
+        if (doc)
+        {
+            // Set the outline to nullptr if the closed tab was the
+            // current one
+            if (m_doc == doc)
+                m_outline_picker->clearOutline();
+            doc->CloseFile();
+        }
+    }
+
+    else if (tabRole == "lazy")
+    {
+        const QString filePath = widget->property("filePath").toString();
+    }
+
+    else if (tabRole == "startup")
+    {
+        if (m_startup_widget)
+        {
+            m_startup_widget->deleteLater();
+            m_startup_widget = nullptr;
+        }
+    }
+
+    // Save page numbers for all views in this tab before closing
+    if (m_config.behavior.remember_last_visited)
+    {
+        DocumentContainer *container = m_tab_widget->rootContainer(index);
+#ifndef NDEBUG
+        qDebug() << "tabCloseRequested: remember_last_visited enabled, "
+                    "container:"
+                 << container;
+#endif
+        if (container)
+        {
+            const auto views = container->getAllViews();
+#ifndef NDEBUG
+            qDebug() << "tabCloseRequested: found" << views.size() << "views";
+#endif
+            for (DocumentView *view : views)
+            {
+#ifndef NDEBUG
+                qDebug() << "tabCloseRequested: view:" << view
+                         << "filePath:" << (view ? view->filePath() : "null")
+                         << "is_portal:" << (view ? view->is_portal() : false);
+#endif
+                if (view && !view->filePath().isEmpty() && !view->is_portal())
+                {
+                    const int page = view->pageNo() + 1;
+                    insertFileToDB(view->filePath(), page > 0 ? page : 1);
+                }
+            }
+        }
+    }
+
+    m_tab_widget->removeTab(index);
+    if (m_tab_widget->count() == 0)
+    {
+        setCurrentDocumentView(nullptr);
+    }
+
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnTabRemoved);
+#endif
 }
 
 // Handle when the file name is changed
@@ -3661,6 +3653,10 @@ Lektra::closeEvent(QCloseEvent *e)
     m_bookmark_manager.saveBookmarks(m_bookmarks_file_path);
 
     e->accept();
+
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnAppShutdown);
+#endif
 }
 
 void
@@ -6716,3 +6712,24 @@ Lektra::loadLuaConfig() noexcept
     }
 }
 #endif
+
+void
+Lektra::handleScreenChange(QScreen *screen) noexcept
+{
+    if (std::holds_alternative<QMap<QString, float>>(m_config.rendering.dpr))
+    {
+        m_dpr = m_screen_dpr_map.value(screen->name(), 1.0f);
+        if (m_doc)
+            m_doc->setDPR(m_dpr);
+    }
+    else if (std::holds_alternative<float>(m_config.rendering.dpr))
+    {
+        m_dpr = std::get<float>(m_config.rendering.dpr);
+        if (m_doc)
+            m_doc->setDPR(m_dpr);
+    }
+
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnScreenChanged);
+#endif
+}
