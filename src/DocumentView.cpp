@@ -1448,45 +1448,72 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         const double relY          = localPos.y() / pagePixelSize.height();
 
         // Apply zoom
-        m_current_zoom = factor;
-
         if (m_model->isImage())
         {
+            m_current_zoom = factor;
             m_model->setZoom(m_current_zoom);
             renderImage();
         }
-        else
+        else if (m_layout_mode == LayoutMode::SINGLE)
         {
+            m_current_zoom = factor;
+            m_gview->setUpdatesEnabled(false);
+            m_gscene->blockSignals(true);
             invalidateVisiblePagesCache();
             ClearTextSelection();
             m_model->setZoom(m_current_zoom);
             cachePageStride();
             updateSceneRect();
             repositionPages();
-            if (m_layout_mode == LayoutMode::SINGLE)
-                renderPage();
+            m_gscene->blockSignals(false);
+            m_gview->setUpdatesEnabled(true);
+            renderPage();
+        }
+        else
+        {
+            // Multi-page: O(1) GPU view-transform zoom, defer O(n) bake to
+            // renderPages() after the scroll-debounce timer settles.
+            const double prevZoom = m_current_zoom;
+            m_current_zoom        = factor;
+            ClearTextSelection();
+            const double delta = m_current_zoom / prevZoom;
+            // Scale the view, then cancel the drift so the anchor stays fixed.
+            const QPointF anchorVP = m_gview->mapFromScene(anchorScenePos);
+            m_gview->scale(delta, delta);
+            const QPointF drift
+                = m_gview->mapFromScene(anchorScenePos) - anchorVP;
+            m_gview->horizontalScrollBar()->setValue(
+                m_gview->horizontalScrollBar()->value() + (int)drift.x());
+            m_gview->verticalScrollBar()->setValue(
+                m_gview->verticalScrollBar()->value() + (int)drift.y());
+            m_view_zoom_pending = true;
+            m_scroll_page_update_timer->start();
         }
 
-        // Find where the anchor point is now in scene coordinates
-        pageItem = m_page_items_hash.value(anchorPage, nullptr);
-        if (pageItem)
+        // Restore anchor viewport position for image and SINGLE paths.
+        // GPU multi-page path keeps anchor correct via the drift correction above.
+        if (!m_view_zoom_pending)
         {
-            const QSizeF newPageSize = pageItem->boundingRect().size();
-            const QPointF newLocalPos(relX * newPageSize.width(),
-                                      relY * newPageSize.height());
-            const QPointF newScenePos = pageItem->mapToScene(newLocalPos);
+            pageItem = m_page_items_hash.value(anchorPage, nullptr);
+            if (pageItem)
+            {
+                const QSizeF newPageSize = pageItem->boundingRect().size();
+                const QPointF newLocalPos(relX * newPageSize.width(),
+                                          relY * newPageSize.height());
+                const QPointF newScenePos = pageItem->mapToScene(newLocalPos);
 
-            // Adjust view so anchor stays at same viewport position
-            const QPointF currentCenter
-                = m_gview->mapToScene(m_gview->viewport()->rect().center());
-            const QPointF desiredAnchorViewport(
-                viewportRatio.x() * m_gview->viewport()->width(),
-                viewportRatio.y() * m_gview->viewport()->height());
-            const QPointF anchorOffset
-                = m_gview->mapToScene(desiredAnchorViewport.toPoint())
-                  - currentCenter;
-            const QPointF newCenter = newScenePos - anchorOffset;
-            m_gview->centerOn(newCenter);
+                // Adjust view so anchor stays at same viewport position
+                const QPointF currentCenter
+                    = m_gview->mapToScene(m_gview->viewport()->rect().center());
+                const QPointF desiredAnchorViewport(
+                    viewportRatio.x() * m_gview->viewport()->width(),
+                    viewportRatio.y() * m_gview->viewport()->height());
+                const QPointF anchorOffset
+                    = m_gview->mapToScene(desiredAnchorViewport.toPoint())
+                      - currentCenter;
+                const QPointF newCenter = newScenePos - anchorOffset;
+                m_gview->centerOn(newCenter);
+            }
         }
     }
     else
@@ -2782,6 +2809,57 @@ DocumentView::renderPages() noexcept
         return;
     }
 
+    // Bake a pending GPU view-transform zoom into actual scene geometry.
+    // During interactive zoom setZoomAnchored() applies m_gview->scale() for
+    // O(1) visual feedback; the expensive O(n) repositionPages() is deferred
+    // here and runs once after the scroll-debounce timer fires.
+    if (m_view_zoom_pending)
+    {
+        m_view_zoom_pending = false;
+
+        // Capture viewport centre in page-local coords before resetting.
+        const QPointF centerScene
+            = m_gview->mapToScene(m_gview->viewport()->rect().center());
+        int centerPage              = -1;
+        GraphicsImageItem *centerItem = nullptr;
+        double centerRelX = 0.5, centerRelY = 0.5;
+        if (pageAtScenePos(centerScene, centerPage, centerItem) && centerItem)
+        {
+            const QPointF local = centerItem->mapFromScene(centerScene);
+            const QSizeF sz     = centerItem->boundingRect().size();
+            if (sz.width() > 0 && sz.height() > 0)
+            {
+                centerRelX = local.x() / sz.width();
+                centerRelY = local.y() / sz.height();
+            }
+        }
+
+        m_gview->setUpdatesEnabled(false);
+        m_gscene->blockSignals(true);
+        m_gview->resetTransform();
+        invalidateVisiblePagesCache();
+        m_model->setZoom(m_current_zoom);
+        cachePageStride();
+        updateSceneRect();
+        repositionPages();
+        m_gscene->blockSignals(false);
+        m_gview->setUpdatesEnabled(true);
+
+        // Restore viewport position using saved page-local coords.
+        if (centerPage >= 0)
+        {
+            GraphicsImageItem *restored
+                = m_page_items_hash.value(centerPage, nullptr);
+            if (restored)
+            {
+                const QSizeF sz = restored->boundingRect().size();
+                m_gview->centerOn(restored->mapToScene(
+                    QPointF(centerRelX * sz.width(), centerRelY * sz.height())));
+            }
+        }
+        // Fall through to request fresh renders at the new zoom level.
+    }
+
     const std::set<int> &visiblePages = getVisiblePages();
     const std::set<int> preloadPages  = getPreloadPages();
 
@@ -3776,6 +3854,11 @@ DocumentView::updateCurrentPage() noexcept
 void
 DocumentView::ensureVisiblePagePlaceholders() noexcept
 {
+    // Page offsets are still at the old zoom during a pending GPU zoom,
+    // so visible-page lookup would be wrong — skip until the bake fires.
+    if (m_view_zoom_pending)
+        return;
+
     const std::set<int> &visiblePages = getVisiblePages();
 
     // Quick check - if we already have all pages, return early
@@ -5045,14 +5128,17 @@ DocumentView::zoomHelper(const PageLocation &loc) noexcept
     }
     else
     {
+        m_gview->setUpdatesEnabled(false);
+        m_gscene->blockSignals(true);
         ClearTextSelection();
         m_model->setZoom(m_current_zoom);
-
         cachePageStride();
         updateSceneRect();
+        repositionPages();
+        m_gscene->blockSignals(false);
+        m_gview->setUpdatesEnabled(true);
 
         m_gview->flashScrollbars();
-        repositionPages();
 
         // Restore the exact viewport position
         if (loc.pageno != -1)
