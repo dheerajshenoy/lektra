@@ -17,4 +17,3 @@ pkg/
 *.tar.gz
 cmake/
 compile_commands.json
-.claude/*
