@@ -35,6 +35,10 @@
 
 ### Bug Fixes
 
+- Fix zoom glitch in multi-page document mode: interactive zoom (pinch/scroll) now uses an
+  O(1) GPU view-transform (`QGraphicsView::scale`) for each step, deferring the O(n)
+  `repositionPages()` call until the scroll-debounce timer settles. This eliminates the
+  jarring per-page resize flash that was visible during zoom.
 - Fix multi-page text selection breaking when scrolling: pages within the active selection
   range are now protected from eviction by `removeUnusedPageItems`, preventing gaps in the
   rendered quads and `pageAtScenePos` failures on the anchor page.

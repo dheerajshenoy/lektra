@@ -992,6 +992,13 @@ struct Config
     // @section_added 0.3.0
     struct Rendering
     {
+        // @desc Rendering backend
+        // @type string ("auto", "opengl", "raster")
+        // @default "auto"
+        // @added 0.7.3
+        enum class Backend { Auto = 0, Raster = 1, OpenGL = 2 };
+        Backend backend = Backend::Auto;
+
         using DPR = std::variant<float, QMap<QString, float>>;
         // @desc Device Pixel Ratio
         // @type float or table

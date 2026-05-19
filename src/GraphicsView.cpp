@@ -915,14 +915,25 @@ GraphicsView::handleTouchpadGesture(QNativeGestureEvent *e)
 void
 GraphicsView::applyBackend() noexcept
 {
-    // Probe whether an OpenGL context can actually be created on this system.
-    // supportsThreadedOpenGL() is intentionally not used here — it tests
-    // multi-thread GL support, not basic GL availability, and returns false on
-    // many Linux drivers even when the GPU works fine on the main thread.
-    QOpenGLContext probe;
-    const bool glAvailable = probe.create();
+    bool useGL = false;
+    switch (m_config.rendering.backend)
+    {
+    case Config::Rendering::Backend::OpenGL:
+        useGL = true;
+        break;
+    case Config::Rendering::Backend::Raster:
+        useGL = false;
+        break;
+    default: // Auto: probe whether an OpenGL context can actually be created.
+        // supportsThreadedOpenGL() is intentionally not used here — it tests
+        // multi-thread GL support, not basic GL availability, and returns false
+        // on many Linux drivers even when the GPU works fine on the main thread.
+        QOpenGLContext probe;
+        useGL = probe.create();
+        break;
+    }
 
-    if (glAvailable)
+    if (useGL)
     {
         QSurfaceFormat format;
         format.setSamples(m_config.rendering.antialiasing ? 4 : 0);

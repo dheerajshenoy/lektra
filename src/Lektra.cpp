@@ -1098,6 +1098,18 @@ Lektra::initConfig() noexcept
         set(rendering["antialiasing_bits"],
             m_config.rendering.antialiasing_bits);
 
+        if (auto v = rendering["backend"].value<std::string>())
+        {
+            if (*v == "opengl")
+                m_config.rendering.backend
+                    = Config::Rendering::Backend::OpenGL;
+            else if (*v == "raster")
+                m_config.rendering.backend
+                    = Config::Rendering::Backend::Raster;
+            else
+                m_config.rendering.backend = Config::Rendering::Backend::Auto;
+        }
+
         // If DPR is specified in config, use that (can be scalar or map)
         if (rendering["dpr"])
         {
@@ -6413,7 +6425,8 @@ Lektra::checkConfigFile(const QString &path) noexcept
 
         {"rendering",
          {"antialiasing", "text_antialiasing", "smooth_pixmap_transform",
-          "antialiasing_bits", "dpr", "cache_pages", "icc_color_profile"}},
+          "antialiasing_bits", "dpr", "cache_pages", "icc_color_profile",
+          "backend"}},
 
         {"split",
          {"mouse_follows_focus", "focus_follows_mouse", "dim_inactive",
