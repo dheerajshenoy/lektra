@@ -3,7 +3,7 @@ lektra = lektra or {}
 lektra.event = {}
 
 ---@enum EventType
-lektra.event.EventType = {
+EventType = {
     OnAppReady = 0,
     OnReady = 1,
     OnFileOpen = 2,
@@ -26,11 +26,15 @@ lektra.event.EventType = {
     OnScreenChanged = 19,
 }
 
+lektra.event.EventType = EventType
+
 --- Registers a callback to be called when the specified event is triggered.
----@overload fun(arg: {event: EventType, callback: function})
----@param event EventType The name of the event to listen for.
----@param callback function The function to call when the event is triggered.
----@return integer handle A unique identifier for the registered callback, which can be used to unregister it later.
+---@overload fun(event: EventType.OnScreenChanged, callback: fun(s: lektra.ScreenInfo)): integer
+---@overload fun(event: EventType.OnTabChanged, callback: fun(tab: integer)): integer
+---@overload fun(event: EventType.OnTabRemoved, callback: fun(tab: integer)): integer
+---@param event EventType
+---@param callback fun(arg: any)
+---@return integer handle
 lektra.event.register = function (event, callback) end
 
 --- Unregisters a callback from the specified event.
@@ -41,9 +45,12 @@ lektra.event.unregister = function (event, handle) end
 
 --- Registers a callback to be called when the specified event is triggered.
 --- The callback is called once and then automatically unregistered.
----@overload fun(arg: {event: EventType, callback: function})
----@param event EventType The name of the event to listen for.
----@param callback function The function to call when the event is triggered.
+---@overload fun(event: EventType.OnScreenChanged, callback: fun(s: lektra.ScreenInfo)): integer
+---@overload fun(event: EventType.OnTabChanged, callback: fun(tab: integer)): integer
+---@overload fun(event: EventType.OnTabRemoved, callback: fun(tab: integer)): integer
+---@param event EventType
+---@param callback fun(arg: any)
+---@return integer handle
 lektra.event.once = function (event, callback) end
 
 --- Clears all registered callbacks for the specified event.

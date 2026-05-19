@@ -1023,20 +1023,6 @@ struct Config
         // @added 0.6.3
         bool smooth_pixmap_transform = true;
 
-        enum class Backend
-        {
-            Auto = 0, // Automatically choose the best available backend
-            Raster,   // Use raster rendering (CPU-based)
-            OpenGL    // Use OpenGL rendering (GPU-accelerated)
-        };
-
-        // @desc Rendering backend to use
-        // @type str
-        // @choice auto, raster, opengl
-        // @added 0.6.6
-        // @default auto
-        Backend backend = Backend::Raster;
-
     } rendering;
     // @endsection
 

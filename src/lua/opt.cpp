@@ -56,16 +56,9 @@ initLuaEnums(lua_State *L)
         {"Middle", (int)Qt::MouseButton::MiddleButton},
     };
 
-    static const LuaEnumEntry backends[] = {
-        {"auto", (int)Config::Rendering::Backend::Auto},
-        {"raster", (int)Config::Rendering::Backend::Raster},
-        {"opengl", (int)Config::Rendering::Backend::OpenGL},
-    };
-
     registerLuaEnum(L, "LayoutMode", layoutMode, std::size(layoutMode));
     registerLuaEnum(L, "FitMode", fitMode, std::size(fitMode));
     registerLuaEnum(L, "MouseButton", mouseButton, std::size(mouseButton));
-    registerLuaEnum(L, "Backend", backends, std::size(backends));
 }
 
 using P = void *;
@@ -1104,20 +1097,6 @@ static const LuaField renderingFields[] = {
     static_cast<Config::Rendering *>(p)->smooth_pixmap_transform
         = lua_toboolean(L, 3);
 }},
-
-    {"backend",
-     [](lua_State *L, P p)
-{
-    lua_pushinteger(
-        L, static_cast<int>(static_cast<Config::Rendering *>(p)->backend));
-    return 1;
-},
-     [](lua_State *L, P p)
-{
-    static_cast<Config::Rendering *>(p)->backend
-        = static_cast<Config::Rendering::Backend>(lua_tointeger(L, 3));
-}, [](Lektra *lektra)
-{ lektra->currentDocument()->graphicsView()->applyBackend(); }},
 
     {"scale",
      [](lua_State *L, P p)

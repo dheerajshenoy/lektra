@@ -2788,6 +2788,15 @@ DocumentView::renderPages() noexcept
     std::set<int> pages = visiblePages;
     pages.insert(preloadPages.begin(), preloadPages.end());
 
+    // Keep all pages in the active selection range alive so that
+    // handleTextSelection never skips a middle page (missing item → gap in the
+    // rendered quads) and pageAtScenePos() always resolves for the anchors.
+    if (m_selection_start_page >= 0 && m_selection_end_page >= 0)
+    {
+        for (int p = m_selection_start_page; p <= m_selection_end_page; ++p)
+            pages.insert(p);
+    }
+
 #ifndef NDEBUG
     qDebug() << "DocumentView::renderPages(): Rendering pages:" << pages;
 #endif

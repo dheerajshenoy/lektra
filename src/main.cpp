@@ -4,6 +4,7 @@
 
 #include <QApplication>
 #include <QLocale>
+#include <QSurfaceFormat>
 #include <QTranslator>
 #include <fcntl.h>
 #include <qcoreapplication.h>
@@ -261,6 +262,11 @@ main(int argc, char *argv[])
 
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+
+    QSurfaceFormat fmt;
+    fmt.setDepthBufferSize(24);
+    fmt.setStencilBufferSize(8);
+    QSurfaceFormat::setDefaultFormat(fmt);
 
     QApplication app(argc, argv);
 

@@ -8,9 +8,36 @@
   text to the clipboard by testing each character's centre against the annotation's quad
   points, using the cached stext page so no extra parsing is needed.
 - Ability to open multiple files using file dialog to open in new tab, vsplit or hsplit.
+- GPU-accelerated rendering is now always attempted first (OpenGL via `QOpenGLWidget`
+  viewport), falling back to software raster only when no OpenGL context can be created.
+  Availability is probed by attempting `QOpenGLContext::create()` rather than the previous
+  `supportsThreadedOpenGL()` check, which incorrectly returned false on many Linux drivers
+  even when the GPU was fully functional. The `rendering.backend` config key and its
+  `auto`/`raster`/`opengl` choices have been removed.
+- `DocumentView` no longer inherits `QOpenGLWidget` — it is a plain `QWidget` that hosts
+  the `GraphicsView`; all GPU work goes through the view's own `QOpenGLWidget` viewport.
+- Touch events are now correctly re-applied to the new viewport after `applyBackend()`
+  replaces it.
+- A global `QSurfaceFormat` (depth 24, stencil 8) is set before `QApplication`
+  construction to ensure a well-formed OpenGL context on all platforms.
+
+#### Lua API
+
+- New dispatch event
+    - `OnShutdown` - Dispatched when the application is shutting down
+- Event callbacks now receive typed arguments instead of a raw `Lektra` pointer for
+  events where more specific data is available:
+    - `OnScreenChanged` — callback receives a `ScreenInfo` table with fields:
+      `name`, `dpr`, `logical_dpi`, `physical_dpi`, `refresh_rate`, and
+      `geometry` (`{x, y, w, h}`)
+    - `OnTabChanged`, `OnTabRemoved` — callback receives the tab index as an integer
+- Lua stubs: `ScreenInfo` class added with full field annotations
 
 ### Bug Fixes
 
+- Fix multi-page text selection breaking when scrolling: pages within the active selection
+  range are now protected from eviction by `removeUnusedPageItems`, preventing gaps in the
+  rendered quads and `pageAtScenePos` failures on the anchor page.
 - Fix fit mode not working properly for images/djvu files after rotating
 - Fix pickers (command palette, outline, bookmarks, etc.) leaking key events and shortcuts
   to the focused `DocumentView` while open. Pickers now grab the keyboard on launch and

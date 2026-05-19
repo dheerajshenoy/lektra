@@ -3,6 +3,11 @@
 #include <QMessageBox>
 #include <lua.h>
 
+namespace
+{
+
+}; // namespace
+
 void
 Lektra::executeLuaCode(const QString &code) noexcept
 {

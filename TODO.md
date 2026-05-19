@@ -4,6 +4,10 @@
 
 ## HIGH PRIORITY
 
+- Lua
+    - [ ] **lektra.view.region_select()** to select region of opened file and return coordinates, for use in copy/paste and other features
+    - [ ] Timers
+
 - [ ] Jump marker zoom doesn't affect location when reshowing
 - [ ] Allow for command arguments
 - [ ] Tab detach drag and drop to new window spawns new useless window

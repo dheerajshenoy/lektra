@@ -915,53 +915,29 @@ GraphicsView::handleTouchpadGesture(QNativeGestureEvent *e)
 void
 GraphicsView::applyBackend() noexcept
 {
-    auto backend_opengl = [this]()
+    // Probe whether an OpenGL context can actually be created on this system.
+    // supportsThreadedOpenGL() is intentionally not used here — it tests
+    // multi-thread GL support, not basic GL availability, and returns false on
+    // many Linux drivers even when the GPU works fine on the main thread.
+    QOpenGLContext probe;
+    const bool glAvailable = probe.create();
+
+    if (glAvailable)
     {
         QSurfaceFormat format;
-        format.setSamples(
-            m_config.rendering.antialiasing ? 4 : 0); // tie MSAA to your config
+        format.setSamples(m_config.rendering.antialiasing ? 4 : 0);
         QOpenGLWidget *glWidget = new QOpenGLWidget(this);
         glWidget->setFormat(format);
         setViewport(glWidget);
-        setViewportUpdateMode(
-            QGraphicsView::FullViewportUpdate); // ← change from Minimal
+        viewport()->setAttribute(Qt::WA_AcceptTouchEvents, true);
+        setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
         setCacheMode(QGraphicsView::CacheBackground);
-        qDebug() << "-------------------------------------";
-        qDebug() << "Using GPU";
-        qDebug() << "-------------------------------------";
-    };
-
-    auto backend_raster = [this]()
+    }
+    else
     {
-        // setViewport(new QWidget(this)); // Default raster widget
         setViewportUpdateMode(QGraphicsView::MinimalViewportUpdate);
         setCacheMode(QGraphicsView::CacheNone);
-    };
-
-    switch (m_config.rendering.backend)
-    {
-        case Config::Rendering::Backend::Raster:
-            backend_raster();
-            break;
-
-        case Config::Rendering::Backend::OpenGL:
-            backend_opengl();
-            break;
-
-        case Config::Rendering::Backend::Auto:
-        {
-            if (QOpenGLContext::supportsThreadedOpenGL())
-                backend_opengl();
-            else
-                backend_raster();
-        }
-        break;
     }
-
-    // format.setAlphaBufferSize(8); // Enable alpha buffer for transparency
-    // setCacheMode(QGraphicsView::CacheBackground);
-    // setOptimizationFlags(QGraphicsView::DontAdjustForAntialiasing
-    //                      | QGraphicsView::DontSavePainterState);
 }
 
 GraphicsView::MouseAction

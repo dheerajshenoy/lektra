@@ -169,7 +169,7 @@ Lektra::construct() noexcept
     installEventFilter(this);
 
 #ifdef WITH_LUA
-    dispatchLuaEvent(DispatchType::OnAppReady);
+    dispatchLuaEvent(DispatchType::OnAppReady, this);
 #endif
 }
 
@@ -1090,33 +1090,6 @@ Lektra::initConfig() noexcept
     // Rendering
     if (auto rendering = toml["rendering"])
     {
-        if (auto backend_str = rendering["backend"])
-        {
-            using Backend = Config::Rendering::Backend;
-
-            Backend backend = Backend::Raster;
-            if (backend_str == "opengl")
-            {
-                backend = Backend::OpenGL;
-            }
-            else if (backend_str == "raster")
-            {
-                backend = Backend::Raster;
-            }
-            else if (backend_str == "auto")
-            {
-                backend = Backend::Auto;
-            }
-            else
-            {
-                qWarning() << "Unknown rendering backend in config:"
-                           << QString::fromStdString(backend_str.value_or(""));
-                qWarning() << "Falling back to `raster` backend.";
-            }
-
-            m_config.rendering.backend = backend;
-        }
-
         set(rendering["antialiasing"], m_config.rendering.antialiasing);
         set(rendering["text_antialiasing"],
             m_config.rendering.text_antialiasing);
@@ -2052,8 +2025,8 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
             {
                 if (qtFiles.size() == 1)
                 {
-                    OpenFileInNewTab(qtFiles[0], [pageOverride, this,
-                                                  runCliCommands](Lektra *)
+                    OpenFileInNewTab(
+                        qtFiles[0], [pageOverride, this, runCliCommands](void *)
                     {
                         if (pageOverride > 0)
                             gotoPage(pageOverride);
@@ -2178,9 +2151,8 @@ Lektra::populateRecentFiles() noexcept
         const QString path  = entry.file_path;
         const int page      = entry.page_number;
         QAction *fileAction = new QAction(path, m_recentFilesMenu);
-        connect(fileAction, &QAction::triggered, this, [this, path, page]() {
-            OpenFileInNewTab(path, [this, page](Lektra *) { gotoPage(page); });
-        });
+        connect(fileAction, &QAction::triggered, this, [this, path, page]()
+        { OpenFileInNewTab(path, [this, page](void *) { gotoPage(page); }); });
 
         m_recentFilesMenu->addAction(fileAction);
     }
@@ -2630,7 +2602,7 @@ Lektra::OpenFilesInVSplit(const QStringList &files) noexcept
     }
 
     // First file always opens in a new tab
-    OpenFileInNewTab(qfiles[0], [this, qfiles](Lektra *)
+    OpenFileInNewTab(qfiles[0], [this, qfiles](void *)
     {
         // Subsequent files split into that tab
         for (int i = 1; i < qfiles.size(); ++i)
@@ -2659,7 +2631,7 @@ Lektra::OpenFilesInHSplit(const QStringList &files) noexcept
     }
 
     // First file always opens in a new tab
-    OpenFileInNewTab(qfiles[0], [this, qfiles](Lektra *)
+    OpenFileInNewTab(qfiles[0], [this, qfiles](void *)
     {
         // Subsequent files split into that tab
         for (int i = 1; i < qfiles.size(); ++i)
@@ -3400,7 +3372,7 @@ Lektra::handleTabCloseRequested(int index) noexcept
     }
 
 #ifdef WITH_LUA
-    dispatchLuaEvent(DispatchType::OnTabRemoved);
+    dispatchLuaEvent(DispatchType::OnTabRemoved, &index);
 #endif
 }
 
@@ -3420,7 +3392,7 @@ Lektra::handleCurrentTabChanged(int index) noexcept
 
 #ifdef WITH_LUA
     if (w)
-        dispatchLuaEvent(DispatchType::OnTabChanged);
+        dispatchLuaEvent(DispatchType::OnTabChanged, &index);
 #endif
 
     // Lazy load materialization: if the tab has the "lazy" role, it means
@@ -3518,7 +3490,7 @@ Lektra::handleTabDropReceived(const TabBar::TabData &data) noexcept
         return;
 
     // Open the file and restore its state
-    OpenFileInNewTab(data.filePath, [this, data](Lektra *)
+    OpenFileInNewTab(data.filePath, [this, data](void *)
     {
         if (!m_doc)
             return;
@@ -4420,7 +4392,7 @@ Lektra::showStartupWidget() noexcept
     connect(m_startup_widget, &StartupWidget::openFileRequested, this,
             [this](const QString &path)
     {
-        OpenFileInNewTab(path, [this](Lektra *)
+        OpenFileInNewTab(path, [this](void *)
         {
             int index = m_tab_widget->indexOf(m_startup_widget);
             if (index != -1)
@@ -5765,7 +5737,7 @@ Lektra::restoreSplitNode(DocumentContainer *container, DocumentView *targetView,
             DocumentView *pane      = panes[i];
 
             restoreSplitNode(container, pane, child,
-                             [remaining, callback](Lektra *l)
+                             [remaining, callback](void *l)
             {
                 --(*remaining);
                 if (*remaining == 0 && callback)
@@ -6072,7 +6044,7 @@ Lektra::Show_recent_files_picker() noexcept
 
         connect(m_recent_file_picker, &RecentFilesPicker::fileRequested, this,
                 [this](const QString &file)
-        { OpenFileInNewTab(file, [this](Lektra *) { m_doc->setFocus(); }); });
+        { OpenFileInNewTab(file, [this](void *) { m_doc->setFocus(); }); });
     }
 
     // Always update the recent files list before launching
@@ -6127,8 +6099,7 @@ Lektra::Reopen_last_closed_file() noexcept
     const int savedPage  = target->page_number;
     const QString &fpath = target->file_path;
 
-    OpenFileInNewTab(fpath,
-                     [this, savedPage](Lektra *) { gotoPage(savedPage); });
+    OpenFileInNewTab(fpath, [this, savedPage](void *) { gotoPage(savedPage); });
 }
 
 void
@@ -6441,9 +6412,8 @@ Lektra::checkConfigFile(const QString &path) noexcept
           "absolute_jump"}},
 
         {"rendering",
-         {"backend", "antialiasing", "text_antialiasing",
-          "smooth_pixmap_transform", "antialiasing_bits", "dpr", "cache_pages",
-          "icc_color_profile"}},
+         {"antialiasing", "text_antialiasing", "smooth_pixmap_transform",
+          "antialiasing_bits", "dpr", "cache_pages", "icc_color_profile"}},
 
         {"split",
          {"mouse_follows_focus", "focus_follows_mouse", "dim_inactive",
@@ -6567,7 +6537,7 @@ Lektra::onIPCDataReady()
             OpenFilesInHSplit(filePaths);
         else if (filePaths.size() == 1)
         {
-            OpenFileInNewTab(filePaths[0], [page, this](Lektra *)
+            OpenFileInNewTab(filePaths[0], [page, this](void *)
             {
                 if (page > 0)
                     gotoPage(page);
@@ -6730,6 +6700,6 @@ Lektra::handleScreenChange(QScreen *screen) noexcept
     }
 
 #ifdef WITH_LUA
-    dispatchLuaEvent(DispatchType::OnScreenChanged);
+    dispatchLuaEvent(DispatchType::OnScreenChanged, screen);
 #endif
 }

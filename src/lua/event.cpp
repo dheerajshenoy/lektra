@@ -1,6 +1,8 @@
 #include "DispatchType.hpp"
 #include "Lektra.hpp"
 
+#include <QScreen>
+
 bool
 Lektra::removeLuaEventCallback(DispatchType type, int callbackRef) noexcept
 {
@@ -13,7 +15,7 @@ Lektra::removeLuaEventCallback(DispatchType type, int callbackRef) noexcept
 
     callbacks.erase(
         std::remove_if(callbacks.begin(), callbacks.end(),
-                       [this, callbackRef](const LuaCallback<Lektra> &cb)
+                       [this, callbackRef](const LuaCallback<void> &cb)
     {
         if (cb.ref == callbackRef)
         {
@@ -25,6 +27,47 @@ Lektra::removeLuaEventCallback(DispatchType type, int callbackRef) noexcept
         callbacks.end());
 
     return callbacks.size() < originalSize;
+}
+
+static void
+push_event_arg(lua_State *L, DispatchType type, void *data)
+{
+    switch (type)
+    {
+    case DispatchType::OnScreenChanged:
+    {
+        auto *screen = static_cast<QScreen *>(data);
+        lua_newtable(L);
+        lua_pushstring(L, screen->name().toUtf8().constData());
+        lua_setfield(L, -2, "name");
+        lua_pushnumber(L, screen->devicePixelRatio());
+        lua_setfield(L, -2, "dpr");
+        lua_pushnumber(L, screen->logicalDotsPerInch());
+        lua_setfield(L, -2, "logical_dpi");
+        lua_pushnumber(L, screen->physicalDotsPerInch());
+        lua_setfield(L, -2, "physical_dpi");
+        lua_pushnumber(L, screen->refreshRate());
+        lua_setfield(L, -2, "refresh_rate");
+        QRect g = screen->geometry();
+        lua_newtable(L);
+        lua_pushinteger(L, g.x());     lua_setfield(L, -2, "x");
+        lua_pushinteger(L, g.y());     lua_setfield(L, -2, "y");
+        lua_pushinteger(L, g.width()); lua_setfield(L, -2, "w");
+        lua_pushinteger(L, g.height()); lua_setfield(L, -2, "h");
+        lua_setfield(L, -2, "geometry");
+        break;
+    }
+    case DispatchType::OnTabChanged:
+    case DispatchType::OnTabRemoved:
+        lua_pushinteger(L, *static_cast<int *>(data));
+        break;
+    default:
+        if (data)
+            lua_pushlightuserdata(L, data);
+        else
+            lua_pushnil(L);
+        break;
+    }
 }
 
 void
@@ -45,10 +88,10 @@ Lektra::initLuaEventDispatcher() noexcept
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
 
         self->addEventListener(type, callbackRef, false,
-                               [L = self->m_L, callbackRef](Lektra *lektra)
+                               [L = self->m_L, callbackRef, type](void *data)
         {
             lua_rawgeti(L, LUA_REGISTRYINDEX, callbackRef);
-            lua_pushlightuserdata(L, lektra);
+            push_event_arg(L, type, data);
             if (lua_pcall(L, 1, 0, 0) != LUA_OK)
             {
                 const char *errorMsg = lua_tostring(L, -1);
@@ -93,10 +136,10 @@ Lektra::initLuaEventDispatcher() noexcept
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
 
         self->addEventListener(type, callbackRef, true,
-                               [L = self->m_L, callbackRef](Lektra *lektra)
+                               [L = self->m_L, callbackRef, type](void *data)
         {
             lua_rawgeti(L, LUA_REGISTRYINDEX, callbackRef);
-            lua_pushlightuserdata(L, lektra);
+            push_event_arg(L, type, data);
             if (lua_pcall(L, 1, 0, 0) != LUA_OK)
             {
                 const char *errorMsg = lua_tostring(L, -1);
@@ -148,18 +191,18 @@ Lektra::initLuaEventDispatcher() noexcept
 }
 
 void
-Lektra::dispatchLuaEvent(DispatchType type) noexcept
+Lektra::dispatchLuaEvent(DispatchType type, void *arg) noexcept
 {
     // Copy so callbacks can safely call unregister without invalidating
     // iteration
     auto callbacks = m_lua_event_dispatcher[type];
     for (const auto &callback : callbacks)
-        callback.invoker(this);
+        callback.invoker(arg);
 
     // Remove and free any once-callbacks that just fired
     auto &live = m_lua_event_dispatcher[type];
     live.erase(std::remove_if(live.begin(), live.end(),
-                              [this](const LuaCallback<Lektra> &cb)
+                              [this](const LuaCallback<void> &cb)
     {
         if (cb.is_once)
         {

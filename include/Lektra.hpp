@@ -52,7 +52,7 @@ class Lektra : public QMainWindow
     Q_OBJECT
 
 public:
-    using CallbackFn = std::function<void(Lektra *)>;
+    using CallbackFn = std::function<void(void *)>;
 
     Lektra() noexcept;
     Lektra(const QString &sessionName,
@@ -489,12 +489,12 @@ private:
     void initLuaBookmarks() noexcept;
 
     bool removeLuaEventCallback(DispatchType type, int callbackRef) noexcept;
-    void dispatchLuaEvent(DispatchType type) noexcept;
+    void dispatchLuaEvent(DispatchType type, void *arg = nullptr) noexcept;
     void executeLuaCode(const QString &code) noexcept;
 
     lua_State *m_L = nullptr;
 
-    std::unordered_map<DispatchType, std::vector<LuaCallback<Lektra>>>
+    std::unordered_map<DispatchType, std::vector<LuaCallback<void>>>
         m_lua_event_dispatcher;
 
     #ifdef WITH_LUA
