@@ -12,12 +12,6 @@
   text to the clipboard by testing each character's centre against the annotation's quad
   points, using the cached stext page so no extra parsing is needed.
 - Ability to open multiple files using file dialog to open in new tab, vsplit or hsplit.
-- GPU-accelerated rendering is now always attempted first (OpenGL via `QOpenGLWidget`
-  viewport), falling back to software raster only when no OpenGL context can be created.
-  Availability is probed by attempting `QOpenGLContext::create()` rather than the previous
-  `supportsThreadedOpenGL()` check, which incorrectly returned false on many Linux drivers
-  even when the GPU was fully functional. The `rendering.backend` config key and its
-  `auto`/`raster`/`opengl` choices have been removed.
 - `DocumentView` no longer inherits `QOpenGLWidget` — it is a plain `QWidget` that hosts
   the `GraphicsView`; all GPU work goes through the view's own `QOpenGLWidget` viewport.
 - Touch events are now correctly re-applied to the new viewport after `applyBackend()`
@@ -52,7 +46,6 @@
 - **Invert Colour** menu item checked state is now synced on tab switch. Previously
   switching between tabs with different invert states left the checkbox stale; it is now
   updated in `updateUiEnabledState`.
-
 - Fix annotation comment edits (right-click annotation → Add Comment) not being tracked by
   the undo stack. Comments are now pushed as `AnnotCommentCommand` entries, so they can be
   undone/redone correctly and the modified indicator stays in sync.
