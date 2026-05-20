@@ -438,7 +438,7 @@ public:
     void rotateHelper() noexcept;
 signals:
     void openFileInNewTabRequested(const QString &filePath,
-                                   const LektraCallbackFn &cb) noexcept;
+                                   const LektraCallbackFn &cb);
     void allRendersFinished();
     void linkPreviewRequested(DocumentView *view,
                               const BrowseLinkItem *linkItem);
