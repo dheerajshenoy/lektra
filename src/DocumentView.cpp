@@ -1030,7 +1030,7 @@ DocumentView::handleTextCommentRequested() noexcept
     if (!hasTextSelection())
         return;
 
-    bool ok = false;
+    bool ok               = false;
     const QString comment = InputDialog::getText(
         tr("Add Comment"), tr("Enter comment for highlighted text:"), "",
         QString(), ok, this);
@@ -1068,8 +1068,8 @@ DocumentView::handleTextCommentRequested() noexcept
         else
         {
             m_model->highlight_text_selection(
-                p, QPointF(0, 0),
-                QPointF(item->boundingRect().bottomRight()), comment);
+                p, QPointF(0, 0), QPointF(item->boundingRect().bottomRight()),
+                comment);
         }
     }
 
@@ -2649,6 +2649,7 @@ DocumentView::GoBackHistory() noexcept
 
     m_loc_history_index -= 1;
     const PageLocation target = m_loc_history[m_loc_history_index];
+    emit historyChanged();
     GotoLocation(target);
 }
 
@@ -2666,6 +2667,7 @@ DocumentView::GoForwardHistory() noexcept
 
     m_loc_history_index += 1;
     const PageLocation target = m_loc_history[m_loc_history_index];
+    emit historyChanged();
     GotoLocation(target);
 }
 
@@ -4412,6 +4414,7 @@ DocumentView::setModified(bool modified) noexcept
     title = title.arg(this->fileName());
 
     emit statusbarNameChanged(fileName);
+    emit modifiedChanged(modified);
     this->setWindowTitle(title);
 
 #ifndef NDEBUG
@@ -4604,6 +4607,7 @@ DocumentView::addToHistory(const PageLocation &location) noexcept
 
     m_loc_history.push_back(location);
     m_loc_history_index = (int)m_loc_history.size() - 1;
+    emit historyChanged();
 }
 
 void
@@ -4914,7 +4918,7 @@ DocumentView::SaveRegionAsImage(QRectF area) noexcept
 }
 
 void
-DocumentView::OpenRegionInExternalViewer(QRectF area) noexcept
+DocumentView::OpenRegionInViewer(QRectF area, bool withDefaultViewer) noexcept
 {
     int pageno;
     GraphicsImageItem *pageItem;
@@ -4926,12 +4930,8 @@ DocumentView::OpenRegionInExternalViewer(QRectF area) noexcept
     QRect pixelRect;
     if (!mapRegionToPageRects(area, pageItem, pageRect, pixelRect))
         return;
-    openImageInExternalViewer(pageItem->image().copy(pixelRect));
-}
 
-void
-DocumentView::openImageInExternalViewer(const QImage &img) noexcept
-{
+    QImage img = pageItem->image().copy(pixelRect);
     if (img.isNull())
         return;
 
@@ -4952,7 +4952,10 @@ DocumentView::openImageInExternalViewer(const QImage &img) noexcept
     }
     tempFile->close();
 
-    QDesktopServices::openUrl(QUrl::fromLocalFile(tempFile->fileName()));
+    if (withDefaultViewer)
+        QDesktopServices::openUrl(QUrl::fromLocalFile(tempFile->fileName()));
+    else
+        emit openFileInNewTabRequested(tempFile->fileName(), {});
 }
 
 void
@@ -5074,8 +5077,10 @@ DocumentView::handleRegionSelectRequested(QRectF area) noexcept
                     [this, area]() { CopyRegionAsImage(area); });
     menu->addAction(tr("Save Region as Image"),
                     [this, area]() { SaveRegionAsImage(area); });
-    menu->addAction(tr("Open Region in external viewer"),
-                    [this, area]() { OpenRegionInExternalViewer(area); });
+    menu->addAction(tr("Open Region in new tab"),
+                    [this, area]() { OpenRegionInViewer(area); });
+    menu->addAction(tr("Open Region with Default Viewer"),
+                    [this, area]() { OpenRegionInViewer(area, true); });
     menu->addAction(tr("Copy Text from Region"),
                     [this, area]() { CopyTextFromRegion(area); });
 

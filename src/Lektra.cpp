@@ -1101,11 +1101,9 @@ Lektra::initConfig() noexcept
         if (auto v = rendering["backend"].value<std::string>())
         {
             if (*v == "opengl")
-                m_config.rendering.backend
-                    = Config::Rendering::Backend::OpenGL;
+                m_config.rendering.backend = Config::Rendering::Backend::OpenGL;
             else if (*v == "raster")
-                m_config.rendering.backend
-                    = Config::Rendering::Backend::Raster;
+                m_config.rendering.backend = Config::Rendering::Backend::Raster;
             else
                 m_config.rendering.backend = Config::Rendering::Backend::Auto;
         }
@@ -1509,9 +1507,9 @@ Lektra::updateUiEnabledState() noexcept
     m_actionCloseFile->setEnabled(hasFile);
     m_fitMenu->setEnabled(hasFile);
     m_actionInvertColor->setEnabled(hasFile);
-    m_actionPrevLocation->setEnabled(hasFile);
-    m_actionNextLocation->setEnabled(hasFile);
+    m_actionInvertColor->setChecked(hasFile && m_doc->invertColor());
     m_actionSessionSave->setEnabled(hasFile);
+    updateHistoryNavigationActions();
     m_actionSessionSaveAs->setEnabled(!m_session_name.isEmpty());
 
     // Navigation & Advanced (Disabled for Images)
@@ -1538,7 +1536,7 @@ Lektra::updateUiEnabledState() noexcept
     m_actionTextSelect->setEnabled(hasTextLayer && !isImageDoc);
 
     // PDF-only
-    m_actionSaveFile->setEnabled(isPDF);
+    m_actionSaveFile->setEnabled(isPDF && m_doc->isModified());
     m_actionSaveAsFile->setEnabled(isPDF);
     m_actionEncrypt->setEnabled(isPDF);
     m_actionDecrypt->setEnabled(isPDF);
@@ -1546,7 +1544,7 @@ Lektra::updateUiEnabledState() noexcept
     m_actionAnnotEdit->setEnabled(isPDF);
     m_actionAnnotPopup->setEnabled(isPDF);
     m_actionTextHighlight->setEnabled(isPDF);
-    m_actionFileProperties->setEnabled(isPDF);
+    m_actionFileProperties->setEnabled(hasFile);
 
     // Undo/Redo reset
     if (!hasFile)
@@ -2741,6 +2739,10 @@ Lektra::OpenFileInNewTab(const QString &filename,
     // Create a new DocumentView
     DocumentView *view = new DocumentView(m_config, m_dpr, this);
 
+    connect(view, &DocumentView::openFileInNewTabRequested, this,
+            [this](const QString &filePath, const CallbackFn &cb)
+    { OpenFileInNewTab(filePath, cb); });
+
     // Create a DocumentContainer with this view
     DocumentContainer *container = new DocumentContainer(view, this);
 
@@ -3465,6 +3467,7 @@ Lektra::handleCurrentTabChanged(int index) noexcept
         emit m_doc->fileNameChanged(m_doc->fileName());
         updateUiEnabledState();
         updatePageNavigationActions();
+        updateHistoryNavigationActions();
         updateSelectionModeActions();
         updateStatusbar();
     }
@@ -3983,6 +3986,19 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
             }
             updateUiEnabledState();
         }
+    });
+
+    connect(docwidget, &DocumentView::modifiedChanged, this,
+            [this](bool)
+    {
+        updateUiEnabledState();
+    });
+
+    connect(docwidget, &DocumentView::historyChanged, this,
+            [this, docwidget]()
+    {
+        if (m_doc == docwidget)
+            updateHistoryNavigationActions();
     });
 
     connect(docwidget, &DocumentView::openFileFailed, this,
@@ -5031,6 +5047,13 @@ Lektra::updatePageNavigationActions() noexcept
     m_actionPrevPage->setEnabled(page > 0);
     m_actionNextPage->setEnabled(page >= 0 && page < count - 1);
     m_actionLastPage->setEnabled(page >= 0 && page < count - 1);
+}
+
+void
+Lektra::updateHistoryNavigationActions() noexcept
+{
+    m_actionPrevLocation->setEnabled(m_doc && m_doc->canGoBack());
+    m_actionNextLocation->setEnabled(m_doc && m_doc->canGoForward());
 }
 
 // Open the containing folder of the current document

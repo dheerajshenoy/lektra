@@ -39,6 +39,20 @@
 
 ### Bug Fixes
 
+- **Save File** menu action is now enabled only when the document has unsaved changes,
+  providing a clear visual signal of modified state. A new `modifiedChanged(bool)` signal
+  on `DocumentView` drives the update so the menu reacts immediately on each edit.
+- **File Properties** menu action is now enabled for all open file types, not just PDF.
+- **Back / Forward** history navigation actions are now enabled only when there is actually
+  somewhere to navigate: `canGoBack()` and `canGoForward()` methods were added to
+  `DocumentView`, a `historyChanged()` signal is emitted from `addToHistory`,
+  `GoBackHistory`, and `GoForwardHistory`, and a dedicated
+  `updateHistoryNavigationActions()` keeps the menu items in sync on every history change
+  and on tab switch.
+- **Invert Colour** menu item checked state is now synced on tab switch. Previously
+  switching between tabs with different invert states left the checkbox stale; it is now
+  updated in `updateUiEnabledState`.
+
 - Fix annotation comment edits (right-click annotation → Add Comment) not being tracked by
   the undo stack. Comments are now pushed as `AnnotCommentCommand` entries, so they can be
   undone/redone correctly and the modified indicator stays in sync.

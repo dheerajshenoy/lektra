@@ -65,6 +65,7 @@ class DocumentView : public QWidget
     Q_OBJECT
 public:
     using CallbackFn          = std::function<void(DocumentView *)>;
+    using LektraCallbackFn    = std::function<void(void *)>;
     using Id                  = int;
     using SelectedAnnotations = std::vector<std::pair<int, Annotation *>>;
 
@@ -217,6 +218,17 @@ public:
     inline bool isModified() const noexcept
     {
         return m_is_modified;
+    }
+
+    inline bool canGoBack() const noexcept
+    {
+        return m_loc_history_index > 0;
+    }
+
+    inline bool canGoForward() const noexcept
+    {
+        return m_loc_history_index >= 0
+               && m_loc_history_index + 1 < (int)m_loc_history.size();
     }
 
     inline LayoutMode layoutMode() const noexcept
@@ -425,6 +437,8 @@ public:
     void Copy_page_image() noexcept;
     void rotateHelper() noexcept;
 signals:
+    void openFileInNewTabRequested(const QString &filePath,
+                                   const LektraCallbackFn &cb) noexcept;
     void allRendersFinished();
     void linkPreviewRequested(DocumentView *view,
                               const BrowseLinkItem *linkItem);
@@ -449,6 +463,8 @@ signals:
     void highlightColorChanged(const QColor &color);
     void autoResizeActionUpdate(bool state);
     void currentPageChanged(int pageno);
+    void modifiedChanged(bool modified);
+    void historyChanged();
     void closed();
 
 private slots:
@@ -513,7 +529,8 @@ private:
     void CopyTextFromRegion(QRectF area) noexcept;
     void CopyRegionAsImage(QRectF area) noexcept;
     void SaveRegionAsImage(QRectF area) noexcept;
-    void OpenRegionInExternalViewer(QRectF area) noexcept;
+    void OpenRegionInViewer(QRectF area,
+                            bool withDefaultViewer = false) noexcept;
     bool waitUntilReadableAsync() noexcept;
     void onFileReloadRequested(const QString &path) noexcept;
     void tryReloadLater(int attempt) noexcept;
@@ -565,7 +582,6 @@ private:
     std::vector<Annotation *> annotationsInArea(int pageno,
                                                 QRectF area) noexcept;
     Annotation *annotationAtPoint(int pageno, QPointF point) noexcept;
-    void openImageInExternalViewer(const QImage &image) noexcept;
     SelectedAnnotations getSelectedAnnotations() noexcept;
     void stopPendingRenders() noexcept;
     int pageAtAxisCoord(double coord) const noexcept;

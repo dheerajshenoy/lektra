@@ -322,6 +322,7 @@ private:
     void showStartupWidget() noexcept;
     void updateActionsAndStuffForSystemTabs() noexcept;
     void updatePageNavigationActions() noexcept;
+    void updateHistoryNavigationActions() noexcept;
     void updateSelectionModeActions() noexcept;
     void updateTabbarVisibility() noexcept;
     void setSessionName(const QString &name) noexcept;
