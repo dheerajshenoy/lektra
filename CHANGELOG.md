@@ -4,6 +4,10 @@
 
 ### Features
 
+- Add **Comment** to the text selection context menu. Selecting text and choosing Comment
+  now opens an input dialog, then creates a highlight annotation with the comment embedded
+  as a single undoable operation — no need to first highlight and then right-click the
+  annotation to add a comment.
 - Add **Copy Text** to the highlight annotation context menu. Copies the exact highlighted
   text to the clipboard by testing each character's centre against the annotation's quad
   points, using the cached stext page so no extra parsing is needed.
@@ -35,6 +39,14 @@
 
 ### Bug Fixes
 
+- Fix annotation comment edits (right-click annotation → Add Comment) not being tracked by
+  the undo stack. Comments are now pushed as `AnnotCommentCommand` entries, so they can be
+  undone/redone correctly and the modified indicator stays in sync.
+- Fix save being available after a save → undo → redo cycle. The undo stack correctly
+  returns to its clean index on redo, but MuPDF's internal mutation tracker still reported
+  unsaved changes because it sees the undo and redo as two separate edits. `SaveFile` now
+  uses `m_is_modified` (driven by the undo stack's clean state) rather than
+  `pdf_has_unsaved_changes` to decide whether a save is needed.
 - Fix zoom glitch in multi-page document mode: interactive zoom (pinch/scroll) now uses an
   O(1) GPU view-transform (`QGraphicsView::scale`) for each step, deferring the O(n)
   `repositionPages()` call until the scroll-debounce timer settles. This eliminates the

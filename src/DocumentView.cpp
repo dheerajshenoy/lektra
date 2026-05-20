@@ -1024,6 +1024,58 @@ DocumentView::handleTextHighlightRequested() noexcept
     ClearTextSelection();
 }
 
+void
+DocumentView::handleTextCommentRequested() noexcept
+{
+    if (!hasTextSelection())
+        return;
+
+    bool ok = false;
+    const QString comment = InputDialog::getText(
+        tr("Add Comment"), tr("Enter comment for highlighted text:"), "",
+        QString(), ok, this);
+
+    if (!ok)
+        return;
+
+    const QPointF start = m_selection_start;
+    const QPointF end   = m_selection_end;
+    const int startP    = m_selection_start_page;
+    const int endP      = m_selection_end_page;
+
+    for (int p = startP; p <= endP; ++p)
+    {
+        GraphicsImageItem *item = m_page_items_hash.value(p, nullptr);
+        if (!item)
+            continue;
+
+        if (p == startP && p == endP)
+        {
+            m_model->highlight_text_selection(p, item->mapFromScene(start),
+                                              item->mapFromScene(end), comment);
+        }
+        else if (p == startP)
+        {
+            m_model->highlight_text_selection(
+                p, item->mapFromScene(start),
+                QPointF(item->boundingRect().bottomRight()), comment);
+        }
+        else if (p == endP)
+        {
+            m_model->highlight_text_selection(p, QPointF(0, 0),
+                                              item->mapFromScene(end), comment);
+        }
+        else
+        {
+            m_model->highlight_text_selection(
+                p, QPointF(0, 0),
+                QPointF(item->boundingRect().bottomRight()), comment);
+        }
+    }
+
+    ClearTextSelection();
+}
+
 // Handle text selection from GraphicsView
 void
 DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
@@ -1476,7 +1528,7 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
             const double prevZoom = m_current_zoom;
             m_current_zoom        = factor;
             ClearTextSelection();
-            const double delta = m_current_zoom / prevZoom;
+            const double delta     = m_current_zoom / prevZoom;
             // Scale the view, then cancel the drift so the anchor stays fixed.
             const QPointF anchorVP = m_gview->mapFromScene(anchorScenePos);
             m_gview->scale(delta, delta);
@@ -1491,7 +1543,8 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         }
 
         // Restore anchor viewport position for image and SINGLE paths.
-        // GPU multi-page path keeps anchor correct via the drift correction above.
+        // GPU multi-page path keeps anchor correct via the drift correction
+        // above.
         if (!m_view_zoom_pending)
         {
             pageItem = m_page_items_hash.value(anchorPage, nullptr);
@@ -2284,7 +2337,7 @@ DocumentView::FileProperties() noexcept
 void
 DocumentView::SaveFile() noexcept
 {
-    if (!m_model->hasUnsavedChanges() || !m_model->supports_save())
+    if (!m_is_modified || !m_model->supports_save())
         return;
 
 #ifndef NDEBUG
@@ -2820,7 +2873,7 @@ DocumentView::renderPages() noexcept
         // Capture viewport centre in page-local coords before resetting.
         const QPointF centerScene
             = m_gview->mapToScene(m_gview->viewport()->rect().center());
-        int centerPage              = -1;
+        int centerPage                = -1;
         GraphicsImageItem *centerItem = nullptr;
         double centerRelX = 0.5, centerRelY = 0.5;
         if (pageAtScenePos(centerScene, centerPage, centerItem) && centerItem)
@@ -2853,8 +2906,8 @@ DocumentView::renderPages() noexcept
             if (restored)
             {
                 const QSizeF sz = restored->boundingRect().size();
-                m_gview->centerOn(restored->mapToScene(
-                    QPointF(centerRelX * sz.width(), centerRelY * sz.height())));
+                m_gview->centerOn(restored->mapToScene(QPointF(
+                    centerRelX * sz.width(), centerRelY * sz.height())));
             }
         }
         // Fall through to request fresh renders at the new zoom level.
@@ -3649,6 +3702,7 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
                   [this]() { YankSelection(false); });
         if (m_model->supports_annotations())
         {
+            addAction(tr("Comment"), &DocumentView::handleTextCommentRequested);
             addAction(tr("Highlight Text"),
                       &DocumentView::handleTextHighlightRequested);
         }
@@ -4277,12 +4331,8 @@ DocumentView::renderAnnotations(
             if (!ok)
                 return;
 
-            // m_model->undoStack()->push(new AnnotCommentCommand(
-            //     m_model, pageno, annot_item->index(), oldComment,
-            //     newComment));
-
-            m_model->addAnnotComment(pageno, annot_item->index(), newComment);
-            setModified(true);
+            m_model->undoStack()->push(new AnnotCommentCommand(
+                m_model, pageno, annot_item->index(), oldComment, newComment));
         });
 
         connect(annot_item, &Annotation::annotCopyTextRequested, this,

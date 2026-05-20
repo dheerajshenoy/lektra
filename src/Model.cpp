@@ -3167,7 +3167,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 }
 
 void
-Model::highlight_text_selection(int pageno, QPointF start, QPointF end) noexcept
+Model::highlight_text_selection(int pageno, QPointF start, QPointF end,
+                                const QString &comment) noexcept
 {
     constexpr int MAX_HITS = 1000;
     fz_quad hits[MAX_HITS];
@@ -3228,7 +3229,7 @@ Model::highlight_text_selection(int pageno, QPointF start, QPointF end) noexcept
     // // Create and push the command onto the undo stack for undo/redo
     // support
     m_undo_stack->push(
-        new TextHighlightAnnotationCommand(this, pageno, std::move(quads)));
+        new TextHighlightAnnotationCommand(this, pageno, std::move(quads), comment));
 }
 
 int

@@ -366,6 +366,7 @@ public:
     void renderPages() noexcept;
     void renderPage() noexcept;
     void handleTextHighlightRequested() noexcept;
+    void handleTextCommentRequested() noexcept;
     void setFitMode(FitMode mode) noexcept;
     void GotoPage(int pageno) noexcept;
     void GotoLocation(const PageLocation &targetlocation) noexcept;

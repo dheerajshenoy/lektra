@@ -22,8 +22,10 @@ class TextHighlightAnnotationCommand : public QUndoCommand
 public:
     TextHighlightAnnotationCommand(Model *model, int pageno,
                                    const std::vector<fz_quad> &quads,
+                                   const QString &comment  = {},
                                    QUndoCommand *parent = nullptr)
-        : QUndoCommand(parent), m_model(model), m_pageno(pageno), m_quads(quads)
+        : QUndoCommand(parent), m_model(model), m_pageno(pageno), m_quads(quads),
+          m_comment(comment)
     {
     }
 
@@ -34,12 +36,13 @@ public:
 
     void redo() override
     {
-        m_objNum = m_model->addHighlightAnnotation(m_pageno, m_quads);
+        m_objNum = m_model->addHighlightAnnotation(m_pageno, m_quads, {}, m_comment);
     }
 
 private:
     Model *m_model;
     int m_pageno;
     std::vector<fz_quad> m_quads;
+    QString m_comment;
     int m_objNum{-1};
 };

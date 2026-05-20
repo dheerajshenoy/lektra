@@ -452,8 +452,8 @@ public:
 
     QString get_selected_text(int pageno, QPointF a, QPointF b,
                               bool formatted) noexcept;
-    void highlight_text_selection(int pageno, QPointF start,
-                                  QPointF end) noexcept;
+    void highlight_text_selection(int pageno, QPointF start, QPointF end,
+                                  const QString &comment = {}) noexcept;
     void invalidatePageCaches() noexcept;
     void invalidatePageCache(int pageno) noexcept;
     void search(const QString &term, bool caseSensitive = false,
