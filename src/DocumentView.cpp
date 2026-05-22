@@ -764,13 +764,25 @@ DocumentView::getClosestHitIndex(bool above) noexcept
     const int currentPage = m_pageno;
     const int n           = static_cast<int>(m_search_hit_flat_refs.size());
 
+    // If the current hit is on the current page, step to the adjacent hit
+    // in the flat list — this handles multiple hits on the same page correctly.
+    if (m_search_index >= 0 && m_search_index < n
+        && m_search_hit_flat_refs[m_search_index].page == currentPage)
+    {
+        if (above)
+            return (m_search_index - 1 + n) % n;
+        else
+            return (m_search_index + 1) % n;
+    }
+
+    // User has scrolled to a different page — re-anchor by page.
     if (above)
     {
-        // First hit on a page strictly before currentPage
+        // Last hit on a page strictly before currentPage
         auto it = std::lower_bound(m_search_hit_flat_refs.begin(),
                                    m_search_hit_flat_refs.end(), currentPage,
                                    [](const HitRef &ref, int page)
-        { return ref.page < page; });
+                                   { return ref.page < page; });
 
         if (it == m_search_hit_flat_refs.begin())
             return n - 1; // wrap to last
@@ -785,7 +797,7 @@ DocumentView::getClosestHitIndex(bool above) noexcept
         auto it = std::upper_bound(m_search_hit_flat_refs.begin(),
                                    m_search_hit_flat_refs.end(), currentPage,
                                    [](int page, const HitRef &ref)
-        { return page < ref.page; });
+                                   { return page < ref.page; });
 
         if (it == m_search_hit_flat_refs.end())
             return 0; // wrap to first

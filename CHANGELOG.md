@@ -1,5 +1,14 @@
 # LEKTRA CHANGELOG
 
+## 0.7.4
+
+### Bug Fixes
+
+- Fix `n`/`N` search navigation skipping hits on the current page and jumping directly to
+  the next/previous page. `getClosestHitIndex` now steps by flat hit index when the current
+  hit is on the visible page, falling back to page-level anchoring only when the user has
+  scrolled to a different page.
+
 ## 0.7.3
 
 ### Features
