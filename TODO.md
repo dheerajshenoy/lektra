@@ -8,14 +8,11 @@
     - [ ] **lektra.view.region_select()** to select region of opened file and return coordinates, for use in copy/paste and other features
     - [ ] Timers
 
-- [ ] Jump marker zoom doesn't affect location when reshowing
 - [ ] Allow for command arguments
 - [ ] Tab detach drag and drop to new window spawns new useless window
-- [ ] Don't hide scrollbars when search hits have been drawn
 - [ ] Show visually, and identifier for split files (if they remain as original file) next to their name. Maybe,
       a numbered gutter badge, small [1], [2] badge in the corner of each split — same number means same file.
       Simple and non-intrusive.
-- [ ] Mult-click drag select word, line, paragraph, etc. based on number of clicks before dragging
 - [ ] Don't add connection to annotation when in non-annotatable mode
 
 ## MEDIUM PRIORITY

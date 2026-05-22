@@ -1682,7 +1682,7 @@ DocumentView::GotoLocation(const PageLocation &targetLocation) noexcept
     if (m_jump_marker)
         m_jump_marker->showAt(scenePos.x(), scenePos.y());
 
-    m_old_jump_marker_pos = scenePos;
+    m_old_jump_marker_loc = sanitized;
     m_pending_jump        = {-1, 0, 0};
 }
 
@@ -1826,6 +1826,7 @@ DocumentView::clearSearchHits() noexcept
 
     m_hscroll->setSearchMarkers({});
     m_vscroll->setSearchMarkers({});
+    m_gview->setScrollbarsPinned(false);
 }
 
 void
@@ -4570,6 +4571,9 @@ DocumentView::renderSearchHitsInScrollbar() noexcept
         }
         m_hscroll->setSearchMarkers(std::move(markers));
     }
+
+    if (m_config.scrollbars.search_hits)
+        m_gview->setScrollbarsPinned(true);
 }
 
 QGraphicsPathItem *
@@ -5178,7 +5182,18 @@ DocumentView::handleAnnotPopupRequested(QPointF scenePos) noexcept
 void
 DocumentView::Reshow_jump_marker() noexcept
 {
-    m_jump_marker->showAt(m_old_jump_marker_pos);
+    if (m_old_jump_marker_loc.pageno < 0)
+        return;
+
+    GraphicsImageItem *pageItem = m_page_items_hash.value(m_old_jump_marker_loc.pageno, nullptr);
+    if (!pageItem)
+        return;
+
+    const QPointF targetPixelPos = m_model->toPixelSpace(
+        m_old_jump_marker_loc.pageno, {m_old_jump_marker_loc.x, m_old_jump_marker_loc.y});
+    const QPointF scenePos = pageItem->mapToScene(targetPixelPos);
+
+    m_jump_marker->showAt(scenePos.x(), scenePos.y());
 }
 
 void

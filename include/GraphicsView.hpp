@@ -211,11 +211,18 @@ private:
 
     inline void hideScrollbars()
     {
-        if (m_scrollbarsVisible)
+        if (m_scrollbarsVisible && !m_scrollbarsPinned)
         {
             m_scrollbarsVisible = false;
             updateScrollbars();
         }
+    }
+
+    inline void setScrollbarsPinned(bool pinned)
+    {
+        m_scrollbarsPinned = pinned;
+        if (pinned)
+            showScrollbars();
     }
 
     inline void restartHideTimer()
@@ -284,6 +291,7 @@ private:
     int m_scrollbarSize                              = 12;
     bool m_autoHide                                  = false;
     bool m_scrollbarsVisible                         = false;
+    bool m_scrollbarsPinned                          = false;
     bool m_vbarEnabled                               = true;
     bool m_hbarEnabled                               = true;
     bool m_is_active                                 = false;

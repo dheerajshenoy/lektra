@@ -672,6 +672,6 @@ private:
     std::vector<LinkHint *> m_kb_link_hints;
     std::vector<double> m_page_offsets;
     std::set<int> m_visible_pages_cache;
-    QPointF m_old_jump_marker_pos;
+    PageLocation m_old_jump_marker_loc = {-1, 0, 0};
     std::vector<Model::VisualLineInfo> m_visual_lines;
 };

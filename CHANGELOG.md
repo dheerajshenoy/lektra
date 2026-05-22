@@ -8,6 +8,14 @@
   the next/previous page. `getClosestHitIndex` now steps by flat hit index when the current
   hit is on the visible page, falling back to page-level anchoring only when the user has
   scrolled to a different page.
+- Scrollbars are kept visible while search hit markers are drawn on them
+  (`scrollbars.search_hits = true`). The auto-hide timer and mouse-leave events no longer
+  dismiss the scrollbar during an active search; normal auto-hide resumes once the search
+  is cancelled or cleared.
+- Fix jump marker rendering at the wrong position after a zoom change. The marker's
+  location is now stored as a `PageLocation` (page + document-space coordinates) instead
+  of a scene-space point, so `Reshow_jump_marker` recomputes the correct scene position
+  at call time regardless of zoom level.
 
 ## 0.7.3
 
