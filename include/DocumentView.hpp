@@ -44,20 +44,20 @@ extern "C"
 #endif
 
 // Z-values for various overlay items
-#define ZVALUE_PAGE 0
-#define ZVALUE_ANNOTATION 5
-#define ZVALUE_LINK 10
-#define ZVALUE_JUMP_MARKER 15
-#define ZVALUE_SEARCH_HITS 20
-#define ZVALUE_KB_LINK_OVERLAY 25
-#define ZVALUE_TEXT_SELECTION 30
+static constexpr int ZVALUE_PAGE            = 0;
+static constexpr int ZVALUE_ANNOTATION      = 5;
+static constexpr int ZVALUE_LINK            = 10;
+static constexpr int ZVALUE_JUMP_MARKER     = 15;
+static constexpr int ZVALUE_SEARCH_HITS     = 20;
+static constexpr int ZVALUE_KB_LINK_OVERLAY = 25;
+static constexpr int ZVALUE_TEXT_SELECTION  = 30;
 
 // Zoom factor limits
-#define MIN_ZOOM_FACTOR 0.01
-#define MAX_ZOOM_FACTOR 100.0
+static constexpr double MIN_ZOOM_FACTOR = 0.01;
+static constexpr double MAX_ZOOM_FACTOR = 100.0;
 
 struct Config;
-class DocumentContainer; // Forward declaration to avoid circular dependency
+class DocumentContainer;
 class QMenu;
 
 class DocumentView : public QWidget
@@ -602,7 +602,7 @@ private:
     GraphicsScene *m_gscene                   = nullptr;
     FitMode m_fit_mode                        = FitMode::COUNT;
     int m_pageno                              = -1;
-    double m_spacing                          = 10.0f;
+    int m_spacing                             = 10;
     double m_current_zoom                     = MIN_ZOOM_FACTOR;
     bool m_auto_resize                        = false;
     bool m_auto_reload                        = false;

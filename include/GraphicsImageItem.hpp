@@ -30,7 +30,7 @@ public:
     }
 
     // Set image (copy)
-    void setImage(const QImage &image)
+    void setImage(const QImage &image) noexcept
     {
         prepareGeometryChange();
         m_image = image;
@@ -39,7 +39,7 @@ public:
     }
 
     // Set image (move - more efficient)
-    void setImage(QImage &&image)
+    void setImage(QImage &&image) noexcept
     {
         prepareGeometryChange();
         m_image = std::move(image);
@@ -48,34 +48,34 @@ public:
     }
 
     // API compatibility with QGraphicsPixmapItem
-    inline const QImage &image() const noexcept
+    [[nodiscard]] inline const QImage &image() const noexcept
     {
         return m_image;
     }
 
-    inline bool isNull() const noexcept
+    [[nodiscard]] inline bool isNull() const noexcept
     {
         return m_image.isNull();
     }
 
-    inline qreal devicePixelRatio() const noexcept
+    [[nodiscard]] inline qreal devicePixelRatio() const noexcept
     {
         return m_image.isNull() ? 1.0 : m_image.devicePixelRatioF();
     }
 
     // Returns pixel width (not logical width)
-    inline int width() const noexcept
+    [[nodiscard]] inline int width() const noexcept
     {
         return m_image.isNull() ? 0 : m_image.width();
     }
 
     // Returns pixel height (not logical height)
-    inline int height() const
+    [[nodiscard]] inline int height() const noexcept
     {
         return m_image.isNull() ? 0 : m_image.height();
     }
 
-    QRectF boundingRect() const override
+    [[nodiscard]] QRectF boundingRect() const override
     {
         return m_bounding_rect;
     }
@@ -147,7 +147,7 @@ private:
         }
     }
 
-    QGraphicsSimpleTextItem *m_label{nullptr}; // For page number labels
+    QGraphicsSimpleTextItem *m_label = nullptr; // For page number labels
     QImage m_image;
     QRectF m_bounding_rect;
 };

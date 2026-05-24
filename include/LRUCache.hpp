@@ -48,7 +48,14 @@ public:
     {
         if (m_capacity == 0)
             return;
-        remove(key);
+        auto it = m_map.find(key);
+        if (it != m_map.end())
+        {
+            if (m_onEvict)
+                m_onEvict(it->second.first);
+            m_list.erase(it->second.second);
+            m_map.erase(it);
+        }
         if (m_map.size() >= m_capacity)
             evict();
         m_list.push_front(key);

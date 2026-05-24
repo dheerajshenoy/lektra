@@ -4,6 +4,38 @@
 
 ### Bug Fixes
 
+- Fix `BrowseLinkItem` hover highlight rendering as nearly-black instead of yellow due to
+  `QColor` being constructed with float literals `(1.0, 1.0, 0.0)` that were implicitly
+  truncated to integers `(1, 1, 0)`. Corrected to `(255, 255, 0, 125)`.
+- Fix internal links targeting page 0 (the first page) being silently ignored. The guard
+  `if (_pageno)` evaluated to false for page 0; corrected to `if (_pageno >= 0)`.
+- Fix float-to-int truncation in `highlightAnnotColor` and `DeleteAnnotationsCommand::undo`
+  where `static_cast<int>(x * 255)` could produce off-by-one values (e.g. 254 instead of
+  255). Now uses `qRound()`.
+- Remove duplicate non-const `Model::DPI()` overload that shadowed the canonical
+  `[[nodiscard]] const` version and caused the `[[nodiscard]]` attribute to be bypassed on
+  non-const `Model` objects.
+- `supports_save()`, `supports_encryption()`, `supports_decryption()`, and `isImage()` in
+  `Model` were not marked `const noexcept` despite being pure queries with no side effects.
+- Z-value and zoom-limit constants in `DocumentView` were defined as preprocessor macros
+  (`#define`); replaced with typed `static constexpr` values.
+- `m_spacing` in `DocumentView` was declared `double` but initialized with a `float`
+  literal (`10.0f`); corrected to `int`.
+- `BrowseLinkItem::_uri` was a raw `char*` with no ownership contract, risking dangling
+  pointer access when MuPDF frees the underlying string. Changed to `QString` with a
+  `const QString &` setter.
+
+### Performance / Code Quality
+
+- `LRUCache::put` unconditionally called `remove(key)` before every insert, incurring a
+  redundant map lookup for the common new-key path. Inlined the existence check to avoid
+  the extra traversal.
+- `trim_ws` in `utils.hpp` trimmed leading whitespace with a per-character `erase` loop
+  (O(n²)); replaced with a single `erase(begin, find_if_not(...))` call.
+- `GraphicsImageItem::height()`, `quad_y_center()`, and `charEqual()` were missing
+  `noexcept` despite being trivially non-throwing; added for consistency with surrounding
+  functions.
+
 - Fix `n`/`N` search navigation skipping hits on the current page and jumping directly to
   the next/previous page. `getClosestHitIndex` now steps by flat hit index when the current
   hit is on the visible page, falling back to page-level anchoring only when the user has

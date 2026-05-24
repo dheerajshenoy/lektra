@@ -153,7 +153,7 @@ public:
     // Capability queries
 
     // This is useful for `dont_invert_images` config option.
-    inline bool supports_image_blocks() const noexcept
+    [[nodiscard]] inline bool supports_image_blocks() const noexcept
     {
         switch (m_filetype)
         {
@@ -168,7 +168,7 @@ public:
         }
     }
 
-    inline bool supports_links() const noexcept
+    [[nodiscard]] inline bool supports_links() const noexcept
     {
         switch (m_filetype)
         {
@@ -182,7 +182,7 @@ public:
         }
     }
 
-    inline bool supports_text_selection() const noexcept
+    [[nodiscard]] inline bool supports_text_selection() const noexcept
     {
         switch (m_filetype)
         {
@@ -197,39 +197,39 @@ public:
         }
     }
 
-    inline bool supports_text_search() const noexcept
+    [[nodiscard]] inline bool supports_text_search() const noexcept
     {
         return supports_text_selection();
     }
 
-    inline bool supports_outline() const noexcept
+    [[nodiscard]] inline bool supports_outline() const noexcept
     {
         return m_filetype == FileType::PDF || m_filetype == FileType::EPUB
                || m_filetype == FileType::XPS || m_filetype == FileType::FB2
                || m_filetype == FileType::DJVU || m_filetype == FileType::MOBI;
     }
 
-    inline bool supports_annotations() const noexcept
+    [[nodiscard]] inline bool supports_annotations() const noexcept
     {
         return m_filetype == FileType::PDF;
     }
 
-    inline bool supports_save()
+    [[nodiscard]] inline bool supports_save() const noexcept
     {
         return supports_annotations();
     }
 
-    inline bool supports_encryption()
+    [[nodiscard]] inline bool supports_encryption() const noexcept
     {
         return supports_annotations();
     }
 
-    inline bool supports_decryption()
+    [[nodiscard]] inline bool supports_decryption() const noexcept
     {
         return supports_annotations();
     }
 
-    inline fz_context *cloneContext() const noexcept
+    [[nodiscard]] inline fz_context *cloneContext() const noexcept
     {
         return fz_clone_context(m_ctx);
     }
@@ -239,42 +239,42 @@ public:
         m_rotation = angle;
     }
 
-    inline bool isAnimated() const noexcept
+    [[nodiscard]] inline bool isAnimated() const noexcept
     {
         return m_is_animated;
     }
 
-    inline bool isImage() noexcept
+    [[nodiscard]] inline bool isImage() const noexcept
     {
         return m_is_image;
     }
 
-    inline float rotation() const noexcept
+    [[nodiscard]] inline float rotation() const noexcept
     {
         return m_rotation;
     }
 
-    inline float zoom() const noexcept
+    [[nodiscard]] inline float zoom() const noexcept
     {
         return m_zoom;
     }
 
-    inline int searchMatchesCount() const noexcept
+    [[nodiscard]] inline int searchMatchesCount() const noexcept
     {
         return m_search_match_count;
     }
 
-    inline const QString &filePath() const noexcept
+    [[nodiscard]] inline const QString &filePath() const noexcept
     {
         return m_filepath;
     }
 
-    inline int numPages() const noexcept
+    [[nodiscard]] inline int numPages() const noexcept
     {
         return m_page_count;
     }
 
-    inline QUndoStack *undoStack() noexcept
+    [[nodiscard]] inline QUndoStack *undoStack() const noexcept
     {
         return m_undo_stack;
     }
@@ -284,9 +284,14 @@ public:
         m_invert_color = invert;
     }
 
-    inline bool invertColor() const noexcept
+    [[nodiscard]] inline bool invertColor() const noexcept
     {
         return m_invert_color;
+    }
+
+    [[nodiscard]] inline float DPI() const noexcept
+    {
+        return m_dpi;
     }
 
     inline void setDPR(float dpr) noexcept
@@ -295,7 +300,7 @@ public:
         m_inv_dpr = 1.0f / dpr;
     }
 
-    inline float DPR() const noexcept
+    [[nodiscard]] inline float DPR() const noexcept
     {
         return m_dpr;
     }
@@ -305,22 +310,17 @@ public:
         m_dpi = dpi;
     }
 
-    inline float DPI() noexcept
-    {
-        return m_dpi;
-    }
-
-    inline float invDPR() const noexcept
+    [[nodiscard]] inline float invDPR() const noexcept
     {
         return m_inv_dpr;
     }
 
-    inline bool success() const noexcept
+    [[nodiscard]] inline bool success() const noexcept
     {
         return m_success;
     }
 
-    inline QColor highlightAnnotColor() const noexcept
+    [[nodiscard]] inline QColor highlightAnnotColor() const noexcept
     {
         return QColor(static_cast<int>(m_highlight_color[0] * 255),
                       static_cast<int>(m_highlight_color[1] * 255),
@@ -328,7 +328,7 @@ public:
                       static_cast<int>(m_highlight_color[3] * 255));
     }
 
-    inline bool hasUnsavedChanges() const noexcept
+    [[nodiscard]] inline bool hasUnsavedChanges() const noexcept
     {
         if (m_filetype == FileType::DJVU)
             return false;
@@ -336,13 +336,13 @@ public:
     }
 
     // This is the "Logical" scale for the UI
-    inline float logicalScale() const noexcept
+    [[nodiscard]] inline float logicalScale() const noexcept
     {
         return m_zoom * (m_dpi / 72.0f);
     }
 
     // This is the "Physical" scale for the actual pixels
-    inline float physicalScale() const noexcept
+    [[nodiscard]] inline float physicalScale() const noexcept
     {
         return logicalScale() * m_dpr;
     }
@@ -358,7 +358,7 @@ public:
     }
 
     // Cache management
-    inline size_t pageCacheSize() const noexcept
+    [[nodiscard]] inline size_t pageCacheSize() const noexcept
     {
         std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
         return m_page_lru_cache.size();
@@ -379,19 +379,14 @@ public:
         m_fg_color = fg;
     }
 
-    [[nodiscard]] inline uint32_t backgroundColor() noexcept
+    [[nodiscard]] inline uint32_t backgroundColor() const noexcept
     {
         return m_bg_color;
     }
 
-    [[nodiscard]] inline uint32_t foregroundColor() noexcept
+    [[nodiscard]] inline uint32_t foregroundColor() const noexcept
     {
         return m_fg_color;
-    }
-
-    [[nodiscard]] inline float DPI() const noexcept
-    {
-        return m_dpi;
     }
 
     [[nodiscard]] inline const float *annotRectColor() const noexcept
@@ -624,7 +619,8 @@ private:
     };
     void initMuPDF() noexcept;
 
-    std::string getTextInPage(const int pageno, bool formatted) noexcept;
+    [[nodiscard]] std::string getTextInPage(const int pageno,
+                                            bool formatted) noexcept;
     [[nodiscard]] std::string getTextInArea(const int pageno, QPointF start,
                                             QPointF end) noexcept;
     [[nodiscard]] std::tuple<float, float>
@@ -637,35 +633,35 @@ private:
     bool m_invert_color = false;
 
     // private helper in Model
-    std::vector<QPolygonF> selectAtHelper(int pageno, fz_point pt,
-                                          int snapMode) noexcept;
+    [[nodiscard]] std::vector<QPolygonF> selectAtHelper(int pageno, fz_point pt,
+                                                        int snapMode) noexcept;
 
-    std::pair<fz_matrix, fz_matrix>
+    [[nodiscard]] std::pair<fz_matrix, fz_matrix>
     buildPageTransforms(int pageno) const noexcept;
     void buildPageCache(int pageno) noexcept;
     void buildPageCache_djvu(int pageno) noexcept;
-    int addRectAnnotation(const int pageno, const fz_rect &rect,
-                          const QString &content = {}) noexcept;
-    int addHighlightAnnotation(const int pageno,
-                               const std::vector<fz_quad> &quads,
-                               const QColor &color    = QColor(),
-                               const QString &content = {}) noexcept;
-    int addTextAnnotation(const int pageno, const fz_rect &rect,
-                          const QString &text) noexcept;
+    [[nodiscard]] int addRectAnnotation(const int pageno, const fz_rect &rect,
+                                        const QString &content = {}) noexcept;
+    [[nodiscard]] int
+    addHighlightAnnotation(const int pageno, const std::vector<fz_quad> &quads,
+                           const QColor &color    = QColor(),
+                           const QString &content = {}) noexcept;
+    [[nodiscard]] int addTextAnnotation(const int pageno, const fz_rect &rect,
+                                        const QString &text) noexcept;
     void removeAnnotations(const int pageno,
                            const std::vector<int> &objNums) noexcept;
     void buildTextCacheForPages(const std::set<int> &pagenos) noexcept;
-    fz_stext_page *get_or_build_stext_page(fz_context *ctx,
-                                           int pageno) noexcept;
+    [[nodiscard]] fz_stext_page *get_or_build_stext_page(fz_context *ctx,
+                                                         int pageno) noexcept;
     void populatePDFProperties(Properties &props) noexcept;
-    fz_point getFirstCharPos(const int pageno) noexcept;
-    std::vector<Model::RenderLink>
+    [[nodiscard]] fz_point getFirstCharPos(const int pageno) noexcept;
+    [[nodiscard]] std::vector<Model::RenderLink>
     detectUrlLinksForPage(const RenderJob &job) noexcept;
-    FileType getFileType(const QString &filepath) noexcept;
-    bool reloadDocument() noexcept;
+    [[nodiscard]] FileType getFileType(const QString &filepath) noexcept;
+    [[nodiscard]] bool reloadDocument() noexcept;
     void waitForPendingRenders() noexcept;
-    FileSize computeFileSize() noexcept;
-    QString fileSizeToString() const noexcept;
+    [[nodiscard]] FileSize computeFileSize() noexcept;
+    [[nodiscard]] QString fileSizeToString() const noexcept;
     QUndoStack *m_undo_stack = nullptr;
     // std::optional<std::wstring>
     // get_paper_name_at_position(const int pageno, const fz_point) noexcept;
@@ -716,8 +712,9 @@ private:
         int pageno;
     };
 
-    std::vector<VisualLineInfo> get_text_lines(int pageno) noexcept;
-    int
+    [[nodiscard]] std::vector<VisualLineInfo>
+    get_text_lines(int pageno) noexcept;
+    [[nodiscard]] int
     visual_line_index_at_pos(QPointF scenePos,
                              const std::vector<VisualLineInfo> &lines) noexcept;
 
@@ -740,7 +737,7 @@ private:
     bool m_is_animated = false;
     QMovie *m_movie    = nullptr;
 
-    QMovie *movie() noexcept
+    [[nodiscard]] inline QMovie *movie() const noexcept
     {
         return m_movie;
     }

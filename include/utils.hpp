@@ -79,7 +79,7 @@ std::vector<fz_quad>
 merge_quads_by_line(const std::vector<fz_quad> &input) noexcept;
 
 static inline float
-quad_y_center(const fz_quad &q)
+quad_y_center(const fz_quad &q) noexcept
 {
     return (q.ul.y + q.ll.y + q.ur.y + q.lr.y) * 0.25f;
 }
@@ -88,7 +88,7 @@ fz_quad
 getQuadForSubstring(fz_stext_line *line, int start, int len);
 
 static inline bool
-charEqual(uint32_t a, uint32_t b, bool caseSensitive)
+charEqual(uint32_t a, uint32_t b, bool caseSensitive) noexcept
 {
     if (caseSensitive)
         return a == b;
@@ -111,8 +111,9 @@ trim_ws(std::wstring &s)
         return std::isspace(c, std::locale(""));
     };
 
-    while (!s.empty() && is_space(s.front()))
-        s.erase(s.begin());
+    auto it = std::find_if_not(s.begin(), s.end(), is_space);
+    s.erase(s.begin(), it);
+
     while (!s.empty() && is_space(s.back()))
         s.pop_back();
 }

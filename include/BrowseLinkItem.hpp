@@ -79,12 +79,12 @@ public:
         return _source_loc;
     }
 
-    inline void setURI(char *uri) noexcept
+    inline void setURI(const QString &uri) noexcept
     {
         _uri = uri;
     }
 
-    inline const char *URI() const noexcept
+    inline const QString &URI() const noexcept
     {
         return _uri;
     }
@@ -124,7 +124,7 @@ protected:
             switch (_type)
             {
                 case LinkType::Page:
-                    if (_pageno)
+                    if (_pageno >= 0)
                         emit jumpToPageRequested(_pageno, _source_loc);
                     break;
 
@@ -155,7 +155,7 @@ protected:
 
     void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override
     {
-        setBrush(QBrush(QColor(1.0, 1.0, 0.0, 125)));
+        setBrush(QBrush(QColor(255, 255, 0, 125)));
         QGraphicsRectItem::hoverEnterEvent(e);
     }
 
@@ -180,8 +180,8 @@ protected:
 private:
     PageLocation _loc{0, 0, 0};
     PageLocation _source_loc{0, 0, 0};
-    int _pageno{-1};
+    int _pageno = -1;
     QString _link;
     LinkType _type;
-    char *_uri{nullptr};
+    QString _uri;
 };
