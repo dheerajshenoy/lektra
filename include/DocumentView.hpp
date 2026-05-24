@@ -408,6 +408,8 @@ public:
     void ScrollUp_HalfPage() noexcept;
     void RotateClock() noexcept;
     void RotateAnticlock() noexcept;
+    void FlipH() noexcept;
+    void FlipV() noexcept;
     QMap<int, Model::LinkInfo> LinkKB() noexcept;
     void ClearTextSelection() noexcept;
     void YankSelection(bool formatted = true) noexcept;

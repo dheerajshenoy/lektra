@@ -118,6 +118,8 @@ public:
         double dpi;
         double dpr;
         bool invert_color;
+        bool flip_h = false;
+        bool flip_v = false;
         fz_colorspace *colorspace = nullptr;
         QString filepath; // path to PDF
     };
@@ -238,6 +240,14 @@ public:
     {
         m_rotation = angle;
     }
+
+    [[nodiscard]] inline bool isFlippedH() const noexcept { return m_flip_h; }
+    [[nodiscard]] inline bool isFlippedV() const noexcept { return m_flip_v; }
+
+    inline void setFlipH(bool v) noexcept { m_flip_h = v; }
+    inline void setFlipV(bool v) noexcept { m_flip_v = v; }
+    inline void toggleFlipH() noexcept { m_flip_h = !m_flip_h; }
+    inline void toggleFlipV() noexcept { m_flip_v = !m_flip_v; }
 
     [[nodiscard]] inline bool isAnimated() const noexcept
     {
@@ -636,6 +646,7 @@ private:
     float m_dpr = 1.0f, m_dpi = 96.0f, m_zoom = 1.0f, m_rotation = 0.0f,
           m_inv_dpr     = 1.0f;
     bool m_invert_color = false;
+    bool m_flip_h = false, m_flip_v = false;
 
     // private helper in Model
     [[nodiscard]] std::vector<QPolygonF> selectAtHelper(int pageno, fz_point pt,

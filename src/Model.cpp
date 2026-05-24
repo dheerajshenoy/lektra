@@ -1,5 +1,38 @@
 #include "Model.hpp"
 
+// Build scale→rotate→[flip]→translate-to-origin matrix (manual pattern sites).
+static fz_matrix
+buildPageToDevMatrix(fz_rect bounds, float scale, float rotation, bool flip_h,
+                     bool flip_v) noexcept
+{
+    fz_matrix m = fz_scale(scale, scale);
+    m           = fz_pre_rotate(m, rotation);
+    if (flip_h)
+        m = fz_concat(m, fz_scale(-1.0f, 1.0f));
+    if (flip_v)
+        m = fz_concat(m, fz_scale(1.0f, -1.0f));
+    const fz_rect dev_bounds = fz_transform_rect(bounds, m);
+    return fz_concat(m, fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+}
+
+// Same but starting from fz_transform_page (render path sites).
+static fz_matrix
+buildRenderTransform(fz_rect bounds, float zoom, float rotation, bool flip_h,
+                     bool flip_v) noexcept
+{
+    fz_matrix m = fz_transform_page(bounds, zoom, rotation);
+    if (flip_h || flip_v)
+    {
+        if (flip_h)
+            m = fz_concat(m, fz_scale(-1.0f, 1.0f));
+        if (flip_v)
+            m = fz_concat(m, fz_scale(1.0f, -1.0f));
+        const fz_rect dev_bounds = fz_transform_rect(bounds, m);
+        m = fz_concat(m, fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+    }
+    return m;
+}
+
 #include "BrowseLinkItem.hpp"
 #include "Commands/TextHighlightAnnotationCommand.hpp"
 #include "Config.hpp"
@@ -2310,12 +2343,8 @@ Model::computeTextSelectionQuad(int pageno, QPointF devStart,
             page_bounds = {0, 0, w, h};
         }
 
-        page_to_dev = fz_scale(scale, scale);
-        page_to_dev = fz_pre_rotate(page_to_dev, m_rotation);
-
-        const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
-        page_to_dev = fz_concat(page_to_dev,
-                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+        page_to_dev = buildPageToDevMatrix(page_bounds, scale, m_rotation,
+                                           m_flip_h, m_flip_v);
 
         const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
 
@@ -2387,12 +2416,8 @@ Model::get_selected_text(int pageno, QPointF start, QPointF end,
             bounds = {0, 0, w, h};
         }
 
-        auto page_to_dev = fz_scale(scale, scale);
-        page_to_dev      = fz_pre_rotate(page_to_dev, m_rotation);
-
-        const fz_rect dev_bounds = fz_transform_rect(bounds, page_to_dev);
-        page_to_dev = fz_concat(page_to_dev,
-                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+        auto page_to_dev = buildPageToDevMatrix(bounds, scale, m_rotation,
+                                                m_flip_h, m_flip_v);
 
         const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
 
@@ -2583,19 +2608,16 @@ Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
     fz_rect bounds = {0, 0, width_pts, height_pts};
 
     // Re-create the same transform used in rendering
-    const float scale   = m_zoom * m_dpr * m_dpi;
-    fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
+    const float scale = m_zoom * m_dpr * m_dpi;
+    fz_matrix transform
+        = buildRenderTransform(bounds, scale, m_rotation, m_flip_h, m_flip_v);
 
-    // Get the bbox (to find the origin shift)
-    fz_rect transformed = fz_transform_rect(bounds, transform);
-    fz_irect bbox       = fz_round_rect(transformed);
-
-    // Adjust for Qt's Device Pixel Ratio and add bbox origin
+    // Adjust for Qt's Device Pixel Ratio
     float physicalX = pixelPos.x() * m_dpr;
     float physicalY = pixelPos.y() * m_dpr;
 
-    p.x = physicalX + bbox.x0;
-    p.y = physicalY + bbox.y0;
+    p.x = physicalX;
+    p.y = physicalY;
 
     // Invert transformation to get PDF space coordinates
     fz_matrix inv_transform = fz_invert_matrix(transform);
@@ -2614,17 +2636,14 @@ Model::toPixelSpace(int pageno, fz_point p) const noexcept
     fz_rect bounds = {0, 0, width_pts, height_pts};
 
     // Re-create the same transform used in rendering
-    const float scale   = m_zoom * m_dpr * m_dpi;
-    fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
+    const float scale = m_zoom * m_dpr * m_dpi;
+    fz_matrix transform
+        = buildRenderTransform(bounds, scale, m_rotation, m_flip_h, m_flip_v);
 
-    // Get the bbox (this is the key!)
-    fz_rect transformed = fz_transform_rect(bounds, transform);
-    fz_irect bbox       = fz_round_rect(transformed);
-
-    // Transform point to device space and subtract bbox origin
+    // Transform point to device space
     fz_point device_point = fz_transform_point(p, transform);
-    float localX          = device_point.x - bbox.x0;
-    float localY          = device_point.y - bbox.y0;
+    float localX          = device_point.x;
+    float localY          = device_point.y;
 
     // Adjust for Qt's Device Pixel Ratio
     return QPointF(localX / m_dpr, localY / m_dpr);
@@ -2642,6 +2661,8 @@ Model::createRenderJob(int pageno) const noexcept
                                        // (divides by 72 internally)
     job.rotation     = m_rotation;
     job.invert_color = m_invert_color;
+    job.flip_h       = m_flip_h;
+    job.flip_v       = m_flip_v;
     job.colorspace   = m_colorspace;
     return job;
 }
@@ -2660,10 +2681,14 @@ Model::requestImageRender(bool highQuality) noexcept
         QImage frame = m_movie->currentImage();
         if (frame.isNull())
             return {};
-        if (m_rotation != 0)
+        if (m_rotation != 0 || m_flip_h || m_flip_v)
         {
             QTransform trans;
             trans.rotate(m_rotation);
+            if (m_flip_h)
+                trans.scale(-1.0, 1.0);
+            if (m_flip_v)
+                trans.scale(1.0, -1.0);
             frame = frame.transformed(trans, Qt::SmoothTransformation);
         }
         frame.setDevicePixelRatio(m_dpr);
@@ -2726,6 +2751,10 @@ Model::requestImageRender(bool highQuality) noexcept
     // .transformed()
     QTransform finalTransform;
     finalTransform.rotate(m_rotation);
+    if (m_flip_h)
+        finalTransform.scale(-1.0, 1.0);
+    if (m_flip_v)
+        finalTransform.scale(1.0, -1.0);
 
     // Calculate the actual scale needed to reach our capped rw/rh from the
     // original source We scale the original cache pixels to fit the
@@ -2831,6 +2860,16 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         if (job.invert_color)
             image.invertPixels();
 
+        if (job.flip_h || job.flip_v)
+        {
+            Qt::Orientations o;
+            if (job.flip_h)
+                o |= Qt::Horizontal;
+            if (job.flip_v)
+                o |= Qt::Vertical;
+            image = image.flipped(o);
+        }
+
         image.setDotsPerMeterX(static_cast<int>((job.dpi * 1000) / 25.4));
         image.setDotsPerMeterY(static_cast<int>((job.dpi * 1000) / 25.4));
         image.setDevicePixelRatio(job.dpr);
@@ -2897,7 +2936,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
     fz_try(ctx)
     {
-        fz_matrix transform = fz_transform_page(bounds, job.zoom, job.rotation);
+        fz_matrix transform = buildRenderTransform(
+            bounds, job.zoom, job.rotation, job.flip_h, job.flip_v);
         fz_rect transformed = fz_transform_rect(bounds, transform);
         fz_irect bbox       = fz_round_rect(transformed);
 
@@ -3187,12 +3227,8 @@ Model::highlight_text_selection(int pageno, QPointF start, QPointF end,
             bounds = {0, 0, w, h};
         }
 
-        auto page_to_dev = fz_scale(scale, scale);
-        page_to_dev      = fz_pre_rotate(page_to_dev, m_rotation);
-
-        const fz_rect dev_bounds = fz_transform_rect(bounds, page_to_dev);
-        page_to_dev = fz_concat(page_to_dev,
-                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+        auto page_to_dev = buildPageToDevMatrix(bounds, scale, m_rotation,
+                                                m_flip_h, m_flip_v);
 
         const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
 
@@ -3690,11 +3726,8 @@ Model::selectAtHelper(int pageno, fz_point pt, int snapMode) noexcept
         bounds = {0, 0, w, h};
     }
 
-    fz_matrix page_to_dev    = fz_scale(scale, scale);
-    page_to_dev              = fz_pre_rotate(page_to_dev, m_rotation);
-    const fz_rect dev_bounds = fz_transform_rect(bounds, page_to_dev);
-    page_to_dev
-        = fz_concat(page_to_dev, fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+    fz_matrix page_to_dev
+        = buildPageToDevMatrix(bounds, scale, m_rotation, m_flip_h, m_flip_v);
     const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
 
     fz_point a = fz_transform_point(pt, dev_to_page);
@@ -3771,11 +3804,8 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
             bounds = {0, 0, w, h};
         }
 
-        fz_matrix page_to_dev    = fz_scale(scale, scale);
-        page_to_dev              = fz_pre_rotate(page_to_dev, m_rotation);
-        const fz_rect dev_bounds = fz_transform_rect(bounds, page_to_dev);
-        page_to_dev = fz_concat(page_to_dev,
-                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+        fz_matrix page_to_dev = buildPageToDevMatrix(bounds, scale, m_rotation,
+                                                     m_flip_h, m_flip_v);
         const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
         fz_point page_pt            = fz_transform_point(pt, dev_to_page);
         fz_stext_page *stext_page   = get_or_build_stext_page(m_ctx, pageno);
@@ -3855,11 +3885,9 @@ Model::buildPageTransforms(int pageno) const noexcept
         return {identity, identity};
     }
 
-    const float scale     = logicalScale();
-    fz_matrix page_to_dev = fz_scale(scale, scale);
-    page_to_dev           = fz_pre_rotate(page_to_dev, m_rotation);
-    const fz_rect dbox    = fz_transform_rect(bounds, page_to_dev);
-    page_to_dev = fz_concat(page_to_dev, fz_translate(-dbox.x0, -dbox.y0));
+    const float scale = logicalScale();
+    fz_matrix page_to_dev
+        = buildPageToDevMatrix(bounds, scale, m_rotation, m_flip_h, m_flip_v);
     return {page_to_dev, fz_invert_matrix(page_to_dev)};
 }
 
@@ -4538,11 +4566,8 @@ Model::getTextInArea(const int pageno, QPointF start, QPointF end) noexcept
         page = fz_load_page(m_ctx, m_doc, pageno);
 
         const fz_rect page_bounds = fz_bound_page(m_ctx, page);
-        fz_matrix page_to_dev     = fz_scale(scale, scale);
-        page_to_dev               = fz_pre_rotate(page_to_dev, m_rotation);
-        const fz_rect dev_bounds  = fz_transform_rect(page_bounds, page_to_dev);
-        page_to_dev = fz_concat(page_to_dev,
-                                fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+        fz_matrix page_to_dev     = buildPageToDevMatrix(
+            page_bounds, scale, m_rotation, m_flip_h, m_flip_v);
         const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
 
         fz_point p1 = fz_transform_point(
@@ -4741,8 +4766,8 @@ Model::getFirstCharPos(const int pageno) noexcept
 {
     fz_stext_page *stext_page = nullptr;
     fz_page *page             = nullptr;
-    fz_point result = {0, 0};
-    bool found      = false;
+    fz_point result           = {0, 0};
+    bool found                = false;
 
     fz_try(m_ctx)
     {
@@ -4751,13 +4776,13 @@ Model::getFirstCharPos(const int pageno) noexcept
         if (!stext_page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to build text page");
 
-        for (fz_stext_block *block = stext_page->first_block;
-             block && !found; block = block->next)
+        for (fz_stext_block *block = stext_page->first_block; block && !found;
+             block                 = block->next)
         {
             if (block->type != FZ_STEXT_BLOCK_TEXT)
                 continue;
-            for (fz_stext_line *line = block->u.t.first_line;
-                 line && !found; line = line->next)
+            for (fz_stext_line *line = block->u.t.first_line; line && !found;
+                 line                = line->next)
             {
                 for (fz_stext_char *span = line->first_char; span;
                      span                = span->next)
@@ -4805,9 +4830,7 @@ Model::detectUrlLinksForPage(const RenderJob &job) noexcept
             cachedLinks = entry->links;
     }
 
-    fz_matrix transform
-        = fz_transform_page(fz_empty_rect, job.zoom,
-                            job.rotation); // bounds not needed for stext
+    fz_matrix transform = fz_identity;
 
     fz_try(ctx)
     {
@@ -4826,7 +4849,8 @@ Model::detectUrlLinksForPage(const RenderJob &job) noexcept
             bounds = {0, 0, w, h};
         }
 
-        transform = fz_transform_page(bounds, job.zoom, job.rotation);
+        transform = buildRenderTransform(bounds, job.zoom, job.rotation,
+                                         job.flip_h, job.flip_v);
 
         fz_stext_page *stext_page = get_or_build_stext_page(ctx, job.pageno);
         if (!stext_page)
@@ -5170,15 +5194,15 @@ Model::get_obj_num_at_rect(int pageno, fz_rect targetRect) noexcept
             }
         }
     }
-    fz_catch(m_ctx)
-    {
-        qWarning() << "get_obj_num_at_rect failed:" << fz_caught_message(m_ctx);
-        return -1;
-    }
     fz_always(m_ctx)
     {
         // No cleanup needed here since we drop the page inside the loop
         pdf_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "get_obj_num_at_rect failed:" << fz_caught_message(m_ctx);
+        return -1;
     }
 
     return foundObjNum;

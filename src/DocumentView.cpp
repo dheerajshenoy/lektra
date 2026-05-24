@@ -1253,6 +1253,20 @@ DocumentView::rotateHelper() noexcept
     GotoPage(m_pageno);
 }
 
+void
+DocumentView::FlipH() noexcept
+{
+    m_model->toggleFlipH();
+    rotateHelper();
+}
+
+void
+DocumentView::FlipV() noexcept
+{
+    m_model->toggleFlipV();
+    rotateHelper();
+}
+
 // Cycle to the next fit mode
 void
 DocumentView::NextFitMode() noexcept

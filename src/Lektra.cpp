@@ -1297,6 +1297,8 @@ Lektra::initDefaultKeybinds() noexcept
         {"command_palette", ":"},
         {"rotate_clock", ">"},
         {"rotate_anticlock", "<"},
+        {"flip_horizontal", "|"},
+        {"flip_vertical", "_"},
         {"tab_1", "Alt+1"},
         {"tab_2", "Alt+2"},
         {"tab_3", "Alt+3"},
@@ -2399,6 +2401,20 @@ Lektra::RotateAnticlock() noexcept
 {
     if (m_doc)
         m_doc->RotateAnticlock();
+}
+
+void
+Lektra::FlipH() noexcept
+{
+    if (m_doc)
+        m_doc->FlipH();
+}
+
+void
+Lektra::FlipV() noexcept
+{
+    if (m_doc)
+        m_doc->FlipV();
 }
 
 // Shows link hints for each visible link to visit link
@@ -4557,12 +4573,18 @@ Lektra::initCommands() noexcept
                            [this](const QStringList &)
     { ScrollUp_HalfPage(); });
 
-    // Rotation
+    // Rotation / Flip
     m_command_manager->reg("rotate_clock", tr("Rotate page clockwise"),
                            [this](const QStringList &) { RotateClock(); });
     m_command_manager->reg("rotate_anticlock",
                            tr("Rotate page counter-clockwise"),
                            [this](const QStringList &) { RotateAnticlock(); });
+    m_command_manager->reg("flip_horizontal",
+                           tr("Flip page horizontally"),
+                           [this](const QStringList &) { FlipH(); });
+    m_command_manager->reg("flip_vertical",
+                           tr("Flip page vertically"),
+                           [this](const QStringList &) { FlipV(); });
 
     // Location history
     m_command_manager->reg("location_prev", tr("Go back in location history"),

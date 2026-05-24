@@ -158,6 +158,8 @@ public:
     void CopyLinkKB() noexcept;
     void RotateClock() noexcept;
     void RotateAnticlock() noexcept;
+    void FlipH() noexcept;
+    void FlipV() noexcept;
     void ScrollDown() noexcept;
     void ScrollUp() noexcept;
     void ScrollDown_HalfPage() noexcept;

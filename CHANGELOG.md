@@ -2,6 +2,16 @@
 
 ## 0.7.4
 
+### New Features
+
+- Add horizontal and vertical page flip (`flip_horizontal` / `flip_vertical` commands, default
+  bindings `|` / `_`). Flip state is stored in `Model` alongside rotation and propagated
+  through every coordinate-space transform (`buildPageToDevMatrix` / `buildRenderTransform`
+  helpers) so that text selection, link hit-testing, annotation picking, and all other
+  page-space operations remain correct when a document is flipped. All render backends are
+  supported: MuPDF PDF/XPS/CBZ, static images, animated GIFs, and DjVu. Commands are
+  exposed as `view:flip_horizontal()` and `view:flip_vertical()` in the Lua view API.
+
 ### Bug Fixes
 
 - Fix `BrowseLinkItem` hover highlight rendering as nearly-black instead of yellow due to

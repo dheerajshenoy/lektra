@@ -1037,6 +1037,34 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 1;
                 }),
 
+    VIEW_METHOD("rotate_clock",
+                {
+                    if (*view)
+                        (*view)->RotateClock();
+                    return 0;
+                }),
+
+    VIEW_METHOD("rotate_anticlock",
+                {
+                    if (*view)
+                        (*view)->RotateAnticlock();
+                    return 0;
+                }),
+
+    VIEW_METHOD("flip_horizontal",
+                {
+                    if (*view)
+                        (*view)->FlipH();
+                    return 0;
+                }),
+
+    VIEW_METHOD("flip_vertical",
+                {
+                    if (*view)
+                        (*view)->FlipV();
+                    return 0;
+                }),
+
     {nullptr, nullptr}}; // end point
 
 #undef VIEW_METHOD
