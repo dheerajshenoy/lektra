@@ -35,6 +35,22 @@
 - `GraphicsImageItem::height()`, `quad_y_center()`, and `charEqual()` were missing
   `noexcept` despite being trivially non-throwing; added for consistency with surrounding
   functions.
+- `Show_highlight_search()` and `Show_annot_comment_search()` used `&&` instead of `||`
+  in their null-guard (`!m_doc && !m_doc->model()->...`), causing a null pointer
+  dereference when `m_doc` was null. Corrected to `||`.
+- `Tab_goto` bounds check used `||` instead of `&&` (`index > 0 || index < count`),
+  making the condition almost always true and allowing out-of-range indices to pass.
+  Corrected to `index >= 1 && index <= count`.
+- `ShowAbout` leaked an `AboutDialog` instance on every call since the dialog was
+  heap-allocated but never freed. Added `WA_DeleteOnClose` so each dialog self-destructs
+  when closed.
+- `OpenFilesInNewTab` warning message claimed extra files would be processed with no
+  callback, but the function returned immediately. Message updated to accurately state
+  that the operation is aborted.
+- `std::move` was called on a `const QStringList &` parameter in `OpenFilesInNewTab`,
+  `OpenFilesInVSplit`, and `OpenFilesInHSplit`, silently falling back to a copy.
+  Corrected to plain assignment; the lambda captures in VSplit/HSplit now move `qfiles`
+  correctly.
 
 - Fix `n`/`N` search navigation skipping hits on the current page and jumping directly to
   the next/previous page. `getClosestHitIndex` now steps by flat hit index when the current

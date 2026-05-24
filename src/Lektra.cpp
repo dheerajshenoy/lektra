@@ -35,6 +35,8 @@
 #include <QWindow>
 #include <variant>
 
+const char *HOME_DIR = getenv("HOME");
+
 namespace
 {
 
@@ -1785,17 +1787,9 @@ Lektra::ToggleMenubar() noexcept
 void
 Lektra::ShowAbout() noexcept
 {
-    static AboutDialog *abw = new AboutDialog(this);
-
-    if (!abw)
-    {
-        abw = new AboutDialog(this);
-        connect(abw, &QObject::destroyed, []() { abw = nullptr; });
-    }
-
-    abw->show();
-    abw->raise();
-    abw->activateWindow();
+    AboutDialog *abw = new AboutDialog(this);
+    abw->setAttribute(Qt::WA_DeleteOnClose);
+    abw->open();
 }
 
 // Reads the arguments passed with `Lektra` from the
@@ -1946,17 +1940,16 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
             QStringLiteral(R"(^(.*)#(.*):(\d+):(\d+)$)"));
         QRegularExpressionMatch match = re.match(arg);
 
-        static const QString homeDir = QString::fromLocal8Bit(qgetenv("HOME"));
         if (match.hasMatch())
         {
-            const QString pdfPath
-                = match.captured(1).replace(QLatin1Char('~'), homeDir);
-            const QString texPath
-                = match.captured(2).replace(QLatin1Char('~'), homeDir);
-            const int line   = match.captured(3).toInt();
-            const int column = match.captured(4).toInt();
-            Q_UNUSED(line);
-            Q_UNUSED(column);
+            const QString pdfPath = match.captured(1).replace(
+                QLatin1Char('~'), QString::fromLatin1(HOME_DIR));
+            const QString texPath = match.captured(2).replace(
+                QLatin1Char('~'), QString::fromLatin1(HOME_DIR));
+            // const int line   = match.captured(3).toInt();
+            // const int column = match.captured(4).toInt();
+            // Q_UNUSED(line);
+            // Q_UNUSED(column);
             OpenFileInNewTab(pdfPath);
             // TODO:
             // synctexLocateInPdf(texPath, line, column);
@@ -1970,7 +1963,8 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
     }
 #endif
 
-    bool hsplit{false}, vsplit{false};
+    bool hsplit = false;
+    bool vsplit = false;
 
     if (argparser.is_used("vsplit"))
     {
@@ -2608,11 +2602,11 @@ Lektra::OpenFilesInVSplit(const QStringList &files) noexcept
     }
     else
     {
-        qfiles = std::move(files);
+        qfiles = files;
     }
 
     // First file always opens in a new tab
-    OpenFileInNewTab(qfiles[0], [this, qfiles](void *)
+    OpenFileInNewTab(qfiles[0], [this, qfiles = std::move(qfiles)](void *)
     {
         // Subsequent files split into that tab
         for (int i = 1; i < qfiles.size(); ++i)
@@ -2637,11 +2631,11 @@ Lektra::OpenFilesInHSplit(const QStringList &files) noexcept
     }
     else
     {
-        qfiles = std::move(files);
+        qfiles = files;
     }
 
     // First file always opens in a new tab
-    OpenFileInNewTab(qfiles[0], [this, qfiles](void *)
+    OpenFileInNewTab(qfiles[0], [this, qfiles = std::move(qfiles)](void *)
     {
         // Subsequent files split into that tab
         for (int i = 1; i < qfiles.size(); ++i)
@@ -2660,10 +2654,10 @@ Lektra::OpenFilesInNewTab(const QStringList &files,
 
     if (static_cast<size_t>(files.size()) != callbacks.size())
     {
-        qWarning()
-            << "Number of files and callbacks do not match in"
-               "OpenFilesInNewTab. Callbacks will be assigned to files in"
-               "order, and extra files will have no callback.";
+        qWarning() << "Number of files and callbacks do not match in"
+                      "OpenFilesInNewTab."
+                      "Aborting to prevent mismatched callbacks. Files count:"
+                   << files.size();
         return;
     }
     QStringList qfiles;
@@ -2675,7 +2669,7 @@ Lektra::OpenFilesInNewTab(const QStringList &files,
     }
     else
     {
-        qfiles = std::move(files);
+        qfiles = files;
     }
 
     bool isFirst = true;
@@ -3069,7 +3063,7 @@ Lektra::ShowOutline() noexcept
 void
 Lektra::Show_highlight_search() noexcept
 {
-    if (!m_doc && !m_doc->model()->supports_annotations())
+    if (!m_doc || !m_doc->model()->supports_annotations())
         return;
 
     if (!m_highlight_search_picker)
@@ -3091,7 +3085,7 @@ Lektra::Show_highlight_search() noexcept
 void
 Lektra::Show_annot_comment_search() noexcept
 {
-    if (!m_doc && !m_doc->model()->supports_annotations())
+    if (!m_doc || !m_doc->model()->supports_annotations())
         return;
 
     if (!m_comment_search_picker)
@@ -4956,7 +4950,7 @@ Lektra::Tab_goto(int index) noexcept
                                      m_tab_widget->count());
     }
 
-    if (index > 0 || index < m_tab_widget->count())
+    if (index >= 1 && index <= m_tab_widget->count())
         m_tab_widget->setCurrentIndex(index - 1);
     else
         m_message_bar->showMessage(tr("Invalid Tab Number"));
