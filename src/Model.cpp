@@ -3202,6 +3202,123 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     return result;
 }
 
+QImage
+Model::renderRegionAtDPI(int pageno, QRectF logicalRect, float targetDPI) noexcept
+{
+    // logicalRect is in item-local logical pixels (physicalPixels / DPR).
+    // buildPageTransforms uses logicalScale(), which maps PDF pts ↔ logical pixels,
+    // so dev_to_page correctly inverts logicalRect back to PDF point-space.
+    const auto [page_to_dev, dev_to_page] = buildPageTransforms(pageno);
+
+    const fz_point tl
+        = fz_transform_point({float(logicalRect.left()), float(logicalRect.top())},
+                             dev_to_page);
+    const fz_point br
+        = fz_transform_point({float(logicalRect.right()), float(logicalRect.bottom())},
+                             dev_to_page);
+    const fz_rect page_rect_pts = {std::min(tl.x, br.x), std::min(tl.y, br.y),
+                                   std::max(tl.x, br.x), std::max(tl.y, br.y)};
+
+    // For raster sources (images, DjVu) there is no display list to re-render
+    // from — return a null image so the caller can fall back to upscaling.
+    if (m_is_image || m_filetype == FileType::DJVU)
+        return {};
+
+    auto [w, h] = getPageDimensions(pageno);
+    if (w <= 0 || h <= 0)
+        return {};
+
+    const fz_rect full_bounds = {0, 0, w, h};
+
+    // Build a new render transform at targetDPI, preserving rotation and flip.
+    // targetDPI is passed directly as the "zoom" argument; fz_transform_page
+    // divides by 72 internally, yielding targetDPI/72 pixels-per-point.
+    const fz_matrix target_ctm = buildRenderTransform(full_bounds, targetDPI,
+                                                       m_rotation,
+                                                       m_flip_h, m_flip_v);
+
+    // Determine the pixel bbox for only the selected region.
+    const fz_rect  target_rect = fz_transform_rect(page_rect_pts, target_ctm);
+    const fz_irect target_bbox = fz_round_rect(target_rect);
+
+    if (target_bbox.x0 >= target_bbox.x1 || target_bbox.y0 >= target_bbox.y1)
+        return {};
+
+    fz_context *ctx = cloneContext();
+    if (!ctx)
+        return {};
+
+    fz_display_list *dlist = nullptr;
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+        const PageCacheEntry *entry = m_page_lru_cache.get(pageno);
+        if (!entry || !entry->display_list)
+        {
+            fz_drop_context(ctx);
+            return {};
+        }
+        dlist = fz_keep_display_list(ctx, entry->display_list);
+    }
+
+    fz_pixmap *pix    = nullptr;
+    fz_device *dev    = nullptr;
+    QImage     result;
+
+    fz_try(ctx)
+    {
+        pix = fz_new_pixmap_with_bbox(ctx, m_colorspace, target_bbox, nullptr, 1);
+        fz_clear_pixmap_with_value(ctx, pix, 255);
+
+        dev = fz_new_draw_device(ctx, fz_identity, pix);
+        fz_run_display_list(ctx, dlist, dev, target_ctm,
+                            fz_rect_from_irect(target_bbox), nullptr);
+        fz_close_device(ctx, dev);
+        fz_drop_device(ctx, dev);
+        dev = nullptr;
+
+        const int fg = (m_fg_color >> 8) & 0xFFFFFF;
+        const int bg = (m_bg_color >> 8) & 0xFFFFFF;
+        if (fg != 0 || bg != 0)
+            fz_tint_pixmap(ctx, pix, fg, bg);
+
+        if (m_invert_color)
+            fz_invert_pixmap(ctx, pix);
+
+        const int width  = fz_pixmap_width(ctx, pix);
+        const int height = fz_pixmap_height(ctx, pix);
+        const int n      = fz_pixmap_components(ctx, pix);
+        const int stride = fz_pixmap_stride(ctx, pix);
+
+        QImage::Format fmt;
+        switch (n)
+        {
+            case 1:  fmt = QImage::Format_Grayscale8; break;
+            case 3:  fmt = QImage::Format_RGB888;     break;
+            case 4:  fmt = QImage::Format_RGBA8888;   break;
+            default: fz_throw(ctx, FZ_ERROR_GENERIC, "Unsupported component count");
+        }
+
+        result = QImage(width, height, fmt);
+        std::memcpy(result.bits(), fz_pixmap_samples(ctx, pix), stride * height);
+        result.setDotsPerMeterX(static_cast<int>((targetDPI * 1000.0f) / 25.4f));
+        result.setDotsPerMeterY(static_cast<int>((targetDPI * 1000.0f) / 25.4f));
+    }
+    fz_always(ctx)
+    {
+        fz_drop_device(ctx, dev);
+        fz_drop_pixmap(ctx, pix);
+        fz_drop_display_list(ctx, dlist);
+    }
+    fz_catch(ctx)
+    {
+        qWarning() << "renderRegionAtDPI failed:" << fz_caught_message(ctx);
+        result = {};
+    }
+
+    fz_drop_context(ctx);
+    return result;
+}
+
 void
 Model::highlight_text_selection(int pageno, QPointF start, QPointF end,
                                 const QString &comment) noexcept

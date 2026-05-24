@@ -11,6 +11,13 @@
   page-space operations remain correct when a document is flipped. All render backends are
   supported: MuPDF PDF/XPS/CBZ, static images, animated GIFs, and DjVu. Commands are
   exposed as `view:flip_horizontal()` and `view:flip_vertical()` in the Lua view API.
+- Add "Copy Region as Image (Custom DPI)..." to the region-selection context menu.
+  For PDF and other vector sources the selected region is re-rendered from the cached
+  MuPDF display list at the requested DPI (72–1200, default 300), so the clipboard
+  image is sharp regardless of the current view zoom. Only the selected sub-region is
+  rasterized — not the whole page. Rotation and flip state are preserved in the new
+  render transform. For raster sources (images, DjVu) the existing crop is upscaled
+  using smooth transformation to approximate the requested resolution.
 - Add `lektra.timer` Lua module backed by `QTimer`. Timers are created with
   `lektra.timer.new(interval_ms, callback [, single_shot])`, support `start`, `stop`,
   `set_interval`, `set_single_shot`, `is_active`, `is_single_shot`, `interval`, and

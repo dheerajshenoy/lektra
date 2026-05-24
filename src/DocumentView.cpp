@@ -4897,6 +4897,49 @@ DocumentView::CopyRegionAsImage(QRectF area) noexcept
 }
 
 void
+DocumentView::CopyRegionAsImageAtDPI(QRectF area) noexcept
+{
+    bool ok      = false;
+    int targetDPI = QInputDialog::getInt(this, tr("Copy Region at Custom DPI"),
+                                         tr("Render DPI:"), 300, 72, 1200, 72, &ok);
+    if (!ok)
+        return;
+
+    int pageno;
+    GraphicsImageItem *pageItem;
+    if (!pageAtScenePos(area.center(), pageno, pageItem))
+        return;
+
+    QRectF logicalRect;
+    QRect  pixelRect;
+    if (!mapRegionToPageRects(area, pageItem, logicalRect, pixelRect))
+        return;
+
+    // Pass the logical rect — buildPageTransforms uses logicalScale() so
+    // dev_to_page maps logical pixels (item-local coords / DPR) → PDF pts.
+    QImage img = m_model->renderRegionAtDPI(pageno, logicalRect, float(targetDPI));
+
+    if (img.isNull())
+    {
+        // Raster / DjVu fallback: crop the existing render (physical pixels) and upscale.
+        img = pageItem->image().copy(pixelRect);
+        if (!img.isNull())
+        {
+            const float currentScale
+                = float(m_model->zoom()) * float(m_model->DPI());
+            const float scale = float(targetDPI) / currentScale;
+            if (scale > 1.0f)
+                img = img.scaled(
+                    qRound(img.width() * scale), qRound(img.height() * scale),
+                    Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        }
+    }
+
+    if (!img.isNull())
+        QGuiApplication::clipboard()->setImage(img);
+}
+
+void
 DocumentView::SaveRegionAsImage(QRectF area) noexcept
 {
     int pageno                  = -1;
@@ -5100,6 +5143,8 @@ DocumentView::handleRegionSelectRequested(QRectF area) noexcept
 
     menu->addAction(tr("Copy Region as Image"),
                     [this, area]() { CopyRegionAsImage(area); });
+    menu->addAction(tr("Copy Region as Image (Custom DPI)..."),
+                    [this, area]() { CopyRegionAsImageAtDPI(area); });
     menu->addAction(tr("Save Region as Image"),
                     [this, area]() { SaveRegionAsImage(area); });
     menu->addAction(tr("Open Region in new tab"),

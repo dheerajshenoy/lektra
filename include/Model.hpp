@@ -422,6 +422,8 @@ public:
         const std::function<void(PageRenderResult)> &callback) noexcept;
     QImage requestImageRender(bool highQuality = false) noexcept;
     PageRenderResult renderPageWithExtrasAsync(const RenderJob &job) noexcept;
+    [[nodiscard]] QImage renderRegionAtDPI(int pageno, QRectF logicalRect,
+                                           float targetDPI) noexcept;
 
     Properties properties() noexcept;
     fz_outline *getOutline() noexcept;

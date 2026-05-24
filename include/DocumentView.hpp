@@ -530,6 +530,7 @@ private:
     double pageStride(int pageno) const noexcept;
     void CopyTextFromRegion(QRectF area) noexcept;
     void CopyRegionAsImage(QRectF area) noexcept;
+    void CopyRegionAsImageAtDPI(QRectF area) noexcept;
     void SaveRegionAsImage(QRectF area) noexcept;
     void OpenRegionInViewer(QRectF area,
                             bool withDefaultViewer = false) noexcept;
