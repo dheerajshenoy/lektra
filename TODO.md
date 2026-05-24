@@ -6,7 +6,6 @@
 
 - Lua
     - [ ] **lektra.view.region_select()** to select region of opened file and return coordinates, for use in copy/paste and other features
-    - [ ] Timers
 
 - [ ] Allow for command arguments
 - [ ] Tab detach drag and drop to new window spawns new useless window
@@ -21,7 +20,6 @@
 - [ ] Add support for embedded files in PDFs
 - [ ] Password protected PDFs thumbnail view asking for password, do something about it.
 - [ ] Show text highlight brush cursor when highlighting text
-- [ ] lektra.readthedocs.io page
 
 ## LOW PRIORITY
 

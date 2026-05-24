@@ -93,6 +93,7 @@ Lektra::initLua() noexcept
     initLuaMousemaps();
     initLuaUtils();
     initLuaBookmarks();
+    initLuaTimer();
 
     lua_setglobal(m_L, "lektra");
 

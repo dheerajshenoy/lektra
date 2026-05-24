@@ -491,6 +491,9 @@ private:
     // lektra.bookmark
     void initLuaBookmarks() noexcept;
 
+    // lektra.timer
+    void initLuaTimer() noexcept;
+
     bool removeLuaEventCallback(DispatchType type, int callbackRef) noexcept;
     void dispatchLuaEvent(DispatchType type, void *arg = nullptr) noexcept;
     void executeLuaCode(const QString &code) noexcept;

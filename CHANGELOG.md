@@ -11,6 +11,16 @@
   page-space operations remain correct when a document is flipped. All render backends are
   supported: MuPDF PDF/XPS/CBZ, static images, animated GIFs, and DjVu. Commands are
   exposed as `view:flip_horizontal()` and `view:flip_vertical()` in the Lua view API.
+- Add `lektra.timer` Lua module backed by `QTimer`. Timers are created with
+  `lektra.timer.new(interval_ms, callback [, single_shot])`, support `start`, `stop`,
+  `set_interval`, `set_single_shot`, `is_active`, `is_single_shot`, `interval`, and
+  `destroy`. Timers are parented to the main window so they are cleaned up automatically
+  on shutdown; the `__gc` metamethod ensures the `QTimer` and Lua callback reference are
+  released as soon as the userdata is garbage-collected, making explicit `destroy()` calls
+  optional rather than required.
+- Add `view:rotate_clock()`, `view:rotate_anticlock()`, `view:flip_horizontal()`, and
+  `view:flip_vertical()` to the Lua view API (`lektra.view` methods on `View` userdata).
+  Rotation methods were previously missing from the view API entirely.
 
 ### Bug Fixes
 

@@ -41,6 +41,10 @@ Document view helpers and per-document actions.
 | `view:set_fit(mode)` | — | Set fit mode integer. |
 | `view:rotation()` | `number` | Rotation in degrees. |
 | `view:set_rotation(r)` | — | Set rotation in degrees. |
+| `view:rotate_clock()` | — | Rotate the page 90° clockwise. |
+| `view:rotate_anticlock()` | — | Rotate the page 90° counter-clockwise. |
+| `view:flip_horizontal()` | — | Toggle horizontal flip. |
+| `view:flip_vertical()` | — | Toggle vertical flip. |
 | `view:layout()` | `integer` | Current layout mode (see `lektra.opt.LayoutMode`). |
 | `view:set_layout(mode)` | — | Set layout mode integer. |
 | `view:dpr()` | `number` | Device pixel ratio. |
@@ -438,6 +442,60 @@ Enum tables available under `lektra.opt`:
 - `lektra.opt.FitMode` — `WIDTH`, `HEIGHT`, `WINDOW`
 - `lektra.opt.LayoutMode` — `SINGLE`, `HORIZONTAL`, `VERTICAL`, `BOOK`
 - `lektra.opt.MouseButton` — `LEFT`, `RIGHT`, `MIDDLE`
+
+---
+
+## lektra.timer
+
+Lua-accessible `QTimer` wrapper. Timers are parented to the main window, so they are
+always cleaned up on shutdown even if `destroy()` is never called. The `__gc` metamethod
+additionally releases the timer and its callback as soon as the Lua userdata is
+garbage-collected.
+
+### Constructor
+
+- `lektra.timer.new(interval_ms: integer, callback: function, single_shot?: boolean) -> Timer`
+  Create a new timer. `interval_ms` is the period in milliseconds. `single_shot` defaults
+  to `false` (repeating). The timer is **not** started automatically — call `t:start()`.
+
+### Timer methods
+
+| Method | Returns | Description |
+|---|---|---|
+| `t:start()` | — | Start (or restart) the timer. |
+| `t:stop()` | — | Stop the timer without destroying it. |
+| `t:set_interval(ms)` | — | Change the interval. Takes effect on the next `start()`. |
+| `t:set_single_shot(b)` | — | Set whether the timer fires once (`true`) or repeats (`false`). |
+| `t:is_active()` | `boolean` | Whether the timer is currently running. |
+| `t:is_single_shot()` | `boolean` | Whether the timer is configured as single-shot. |
+| `t:interval()` | `integer` | Current interval in milliseconds. |
+| `t:destroy()` | — | Stop and delete the timer immediately. Safe to call multiple times. |
+
+### Example
+
+```lua
+-- Repeating timer: print the current page every 5 seconds
+local t = lektra.timer.new(5000, function()
+    local v = lektra.view.current()
+    if v then
+        print("Current page:", v:pageno())
+    end
+end)
+t:start()
+
+-- One-shot: show a message 2 seconds after a file opens
+local ET = lektra.event.EventType
+lektra.event.register(ET.OnFileOpen, function()
+    local reminder = lektra.timer.new(2000, function()
+        lektra.ui.message("Don't forget to bookmark your page!", 3)
+    end, true)
+    reminder:start()
+end)
+
+-- Stop and clean up eagerly
+t:stop()
+t:destroy()
+```
 
 ---
 
