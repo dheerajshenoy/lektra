@@ -4,7 +4,6 @@
 
 ## HIGH PRIORITY
 
-- [ ] Add ability to flip horizontally and vertically
 - Lua
     - [ ] **lektra.view.region_select()** to select region of opened file and return coordinates, for use in copy/paste and other features
     - [ ] Timers
