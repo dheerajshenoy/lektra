@@ -8,6 +8,9 @@
 #include <qnamespace.h>
 #include <qtextcursor.h>
 
+static const char *const SPLITTER_STYLESHEET
+    = "QSplitter::handle { background-color: palette(mid); }";
+
 DocumentContainer::DocumentContainer(DocumentView *initialView, QWidget *parent)
     : QWidget(parent)
 {
@@ -69,8 +72,7 @@ DocumentContainer::split(DocumentView *view, Qt::Orientation orientation,
         QSplitter *splitter = new QSplitter(orientation, this);
         splitter->setChildrenCollapsible(false);
         splitter->setHandleWidth(1);
-        splitter->setStyleSheet(
-            "QSplitter::handle { background-color: palette(mid); }");
+        splitter->setStyleSheet(SPLITTER_STYLESHEET);
 
         // Reparenting view into splitter removes it from the layout
         splitter->addWidget(view);
@@ -156,8 +158,7 @@ DocumentContainer::splitInSplitter(QSplitter *splitter, DocumentView *view,
         QSplitter *newSplitter = new QSplitter(orientation, this);
         newSplitter->setChildrenCollapsible(false);
         newSplitter->setHandleWidth(1);
-        newSplitter->setStyleSheet(
-            "QSplitter::handle { background-color: palette(mid); }");
+        newSplitter->setStyleSheet(SPLITTER_STYLESHEET);
 
         // Add the old view and new view to the new splitter
         newSplitter->addWidget(oldWidget);
@@ -252,7 +253,6 @@ DocumentContainer::closeView(DocumentView *view) noexcept
         // View is directly in the layout - shouldn't happen in normal use
         m_layout->removeWidget(view);
         view->deleteLater();
-        emit viewClosed(view);
 
         // Update current view
         if (m_current_view == view)
@@ -265,6 +265,8 @@ DocumentContainer::closeView(DocumentView *view) noexcept
                 emit currentViewChanged(m_current_view);
             }
         }
+
+        emit viewClosed(view);
         return;
     }
 
@@ -274,7 +276,6 @@ DocumentContainer::closeView(DocumentView *view) noexcept
     // Remove from splitter
     view->setParent(nullptr);
     view->deleteLater();
-    emit viewClosed(view);
 
     if (parentSplitter->count() > 0)
         equalizeStretch(parentSplitter);
@@ -335,6 +336,8 @@ DocumentContainer::closeView(DocumentView *view) noexcept
             emit currentViewChanged(m_current_view);
         }
     }
+
+    emit viewClosed(view);
 }
 
 DocumentView *
@@ -380,7 +383,6 @@ DocumentContainer::getViewCount() const noexcept
 void
 DocumentContainer::focusView(DocumentView *view) noexcept
 {
-
     if (!view)
         return;
 
@@ -389,9 +391,10 @@ DocumentContainer::focusView(DocumentView *view) noexcept
     if (!views.contains(view))
         return;
 
-    if (m_current_view && m_current_view != view)
+    if (m_current_view != view)
     {
-        m_current_view->setActive(false);
+        if (m_current_view)
+            m_current_view->setActive(false);
         m_current_view = view;
         emit currentViewChanged(view);
     }
@@ -448,7 +451,7 @@ DocumentContainer::equalizeStretch(QSplitter *splitter) noexcept
     {
         int thumbSize = (thumbIdx != -1) ? sizes[thumbIdx] : 0;
         if (thumbSize <= 0 && thumbIdx != -1)
-            thumbSize = totalSize * 0.15; // fallback
+            thumbSize = static_cast<int>(totalSize * 0.15);
 
         int share = (totalSize - thumbSize) / remainingCount;
         QList<int> newSizes;
@@ -626,8 +629,7 @@ DocumentContainer::splitEmpty(DocumentView *view,
         QSplitter *splitter = new QSplitter(orientation, this);
         splitter->setChildrenCollapsible(false);
         splitter->setHandleWidth(1);
-        splitter->setStyleSheet(
-            "QSplitter::handle { background-color: palette(mid); }");
+        splitter->setStyleSheet(SPLITTER_STYLESHEET);
 
         splitter->addWidget(view);
         splitter->addWidget(newView);
@@ -724,8 +726,7 @@ DocumentContainer::createThumbnailView(DocumentView *view) noexcept
         QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
         splitter->setChildrenCollapsible(false);
         splitter->setHandleWidth(1);
-        splitter->setStyleSheet(
-            "QSplitter::handle { background-color: palette(mid); }");
+        splitter->setStyleSheet(SPLITTER_STYLESHEET);
 
         splitter->addWidget(thumbView); // index 0 = left
         splitter->addWidget(root);      // existing view pushed right
@@ -751,8 +752,7 @@ DocumentContainer::createThumbnailView(DocumentView *view) noexcept
         QSplitter *hSplitter = new QSplitter(Qt::Horizontal, this);
         hSplitter->setChildrenCollapsible(false);
         hSplitter->setHandleWidth(1);
-        hSplitter->setStyleSheet(
-            "QSplitter::handle { background-color: palette(mid); }");
+        hSplitter->setStyleSheet(SPLITTER_STYLESHEET);
 
         hSplitter->addWidget(thumbView);   // left
         hSplitter->addWidget(topSplitter); // existing vertical stack on right
@@ -772,26 +772,12 @@ DocumentContainer::createThumbnailView(DocumentView *view) noexcept
     {
         if (view == m_thumbnail_view)
             m_thumbnail_view = nullptr;
-    });
+    }, Qt::UniqueConnection);
 
     m_thumbnail_view->setAutoResize(true);
     m_thumbnail_view->setLayoutMode(DocumentView::LayoutMode::VERTICAL);
     resizeThumbnailView(
         0.15f); // TODO: make this configurable or dynamic based on content
-}
-
-void
-DocumentContainer::closeThumbnailView() noexcept
-{
-    if (!m_thumbnail_view)
-        return;
-}
-
-void
-DocumentContainer::focusThumbnailView() noexcept
-{
-    if (!m_thumbnail_view)
-        return;
 }
 
 void

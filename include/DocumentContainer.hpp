@@ -58,6 +58,16 @@ public:
         return m_thumbnail_view;
     }
 
+    inline void focusThumbnailView() noexcept
+    {
+        focusView(m_thumbnail_view);
+    }
+
+    inline void closeThumbnailView() noexcept
+    {
+        closeView(m_thumbnail_view);
+    }
+
     DocumentView *split(DocumentView *view,
                         Qt::Orientation orientation
                         = Qt::Orientation::Horizontal) noexcept;
@@ -77,9 +87,7 @@ public:
 
     // Thumbnail view management
     void createThumbnailView(DocumentView *view) noexcept;
-    void closeThumbnailView() noexcept;
     void resizeThumbnailView(float relWidth) noexcept;
-    void focusThumbnailView() noexcept;
 
 signals:
     void viewCreated(DocumentView *view);

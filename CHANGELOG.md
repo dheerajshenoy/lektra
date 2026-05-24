@@ -61,6 +61,31 @@
   `viewport()->rect().center()` instead of a scene-space coordinate; the result was
   immediately overwritten by the correct call. Removed the dead first call.
 
+### Bug Fixes (DocumentContainer)
+
+- Fix `focusView()` skipping assignment of `m_current_view` when it was `nullptr` — the
+  guard `if (m_current_view && m_current_view != view)` required a non-null current view,
+  so the first focus call after construction never set `m_current_view` or emitted
+  `currentViewChanged`. Corrected to `if (m_current_view != view)` with a separate null
+  check before deactivating the old view.
+- Fix `closeView()` emitting `viewClosed` before `m_current_view` was updated, so any slot
+  responding to the signal would observe a stale (already deleted) current view. Moved the
+  `emit viewClosed(view)` to after the `m_current_view` reassignment block in both branches.
+- Fix `closeThumbnailView()` and `focusThumbnailView()` being empty stubs that only checked
+  for a null `m_thumbnail_view` and returned. Replaced with inline implementations delegating
+  to `closeView(m_thumbnail_view)` and `focusView(m_thumbnail_view)` respectively.
+- Fix `createThumbnailView()` connecting the `viewClosed` lambda without
+  `Qt::UniqueConnection`, causing the lambda to accumulate duplicate connections on repeated
+  calls. Added `Qt::UniqueConnection` to the `connect` call.
+
+### Performance / Code Quality (DocumentContainer)
+
+- `thumbSize = totalSize * 0.15` in `equalizeStretch` silently truncated a `double` result
+  to `int`; changed to `static_cast<int>(totalSize * 0.15)`.
+- The QSplitter handle stylesheet string `"QSplitter::handle { background-color: palette(mid); }"`
+  was duplicated across five call sites in `DocumentContainer.cpp`; extracted to a
+  `static const char *const SPLITTER_STYLESHEET` at file scope.
+
 ### Performance / Code Quality (Model / DocumentView)
 
 - `HSCROLL_STEP` and `VSCROLL_STEP` in `DocumentView.cpp` were preprocessor macros;
