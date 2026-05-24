@@ -3989,13 +3989,9 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
     });
 
     connect(docwidget, &DocumentView::modifiedChanged, this,
-            [this](bool)
-    {
-        updateUiEnabledState();
-    });
+            [this](bool) { updateUiEnabledState(); });
 
-    connect(docwidget, &DocumentView::historyChanged, this,
-            [this, docwidget]()
+    connect(docwidget, &DocumentView::historyChanged, this, [this, docwidget]()
     {
         if (m_doc == docwidget)
             updateHistoryNavigationActions();
