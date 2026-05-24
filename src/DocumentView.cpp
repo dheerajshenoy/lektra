@@ -4677,6 +4677,9 @@ DocumentView::handleAnnotSelectClearRequested() noexcept
 void
 DocumentView::handleAnnotSelectRequested(QRectF sceneRect) noexcept
 {
+    if (!m_model || !m_model->supports_annotations())
+        return;
+
     int pageno;
     GraphicsImageItem *pageItem;
     if (!pageAtScenePos(sceneRect.center(), pageno, pageItem))
@@ -4698,6 +4701,9 @@ DocumentView::handleAnnotSelectRequested(QRectF sceneRect) noexcept
 void
 DocumentView::handleAnnotSelectRequested(QPointF scenePos) noexcept
 {
+    if (!m_model || !m_model->supports_annotations())
+        return;
+
     int pageno;
     GraphicsImageItem *pageItem;
     if (!pageAtScenePos(scenePos, pageno, pageItem))
@@ -5182,6 +5188,9 @@ DocumentView::handleRegionSelectRequested(QRectF area) noexcept
 void
 DocumentView::handleAnnotRectRequested(QRectF area) noexcept
 {
+    if (!m_model || !m_model->supports_annotations())
+        return;
+
     int pageno;
     GraphicsImageItem *pageItem;
 
@@ -5212,6 +5221,9 @@ DocumentView::handleAnnotRectRequested(QRectF area) noexcept
 void
 DocumentView::handleAnnotPopupRequested(QPointF scenePos) noexcept
 {
+    if (!m_model || !m_model->supports_annotations())
+        return;
+
     int pageno;
     GraphicsImageItem *pageItem = nullptr;
 
