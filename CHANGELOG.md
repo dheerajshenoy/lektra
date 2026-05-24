@@ -25,6 +25,55 @@
   pointer access when MuPDF frees the underlying string. Changed to `QString` with a
   `const QString &` setter.
 
+### Bug Fixes (Model / DocumentView)
+
+- Fix `highlightAnnotColor` in `Model` using `static_cast<int>(x * 255)` which could
+  produce off-by-one color values; corrected to `qRound()`.
+- Fix `removeAnnotComment` declared in `Model.hpp` but never implemented; added the
+  missing definition in `Model.cpp`.
+- Fix duplicate `"Animated"` entry being pushed twice into the properties list for image
+  files in `Model::properties()`; removed the redundant line.
+- Fix `get_obj_num_at_rect` calling `pdf_load_page` without any `fz_try`/`fz_catch`
+  guard, which could crash on a malformed PDF or out-of-range page number. Wrapped in
+  `fz_try`/`fz_always`/`fz_catch` with proper page cleanup.
+- Fix `getFirstCharPos` using `return` inside an `fz_try` block (bypassing `fz_always`
+  cleanup) and manually dropping `page` and `stext_page` before returning, causing a
+  double-free when combined with the `fz_always` block. Replaced with a `found` flag that
+  exits the nested loops normally so `fz_always` performs the single correct cleanup.
+- Fix `ScrollDown_HalfPage` and `ScrollUp_HalfPage` using `m_page_items_hash[m_pageno]`
+  which silently inserts a null entry and immediately dereferences it, causing a crash when
+  the current page is not yet rendered. Changed to `.value(m_pageno, nullptr)` with a null
+  guard.
+- Fix `renderAnnotations` and `renderLinks` using `m_page_items_hash[pageno]` (inserting
+  null on miss) instead of `.value(pageno, nullptr)`.
+- Fix `annotColorChangeRequested` lambda in `renderAnnotations` querying
+  `m_model->getAnnotColor(m_pageno, ...)` using the current page instead of the captured
+  `pageno`, returning the wrong color for annotations on non-current pages.
+- Fix `renderLinks` early-return guard using `&&` across all three conditions, meaning an
+  unsupported-links model only skipped rendering when the other two conditions also held.
+  Split into two independent guards.
+- Fix `clearVisiblePages` removing scene items without deleting them, leaking every
+  `GraphicsImageItem` on document close or reload. Added `delete item` before
+  `removeItem`, consistent with `clearVisibleLinks` and `clearVisibleAnnotations`.
+- Fix `ensureSearchItemForPage` returning a cached item only when text search is *not*
+  supported — the condition was inverted. Corrected to `if (supports_text_search() && ...)`.
+- Fix `Copy_page_image` calling `pageAtScenePos` with a widget-space `QPoint` from
+  `viewport()->rect().center()` instead of a scene-space coordinate; the result was
+  immediately overwritten by the correct call. Removed the dead first call.
+
+### Performance / Code Quality (Model / DocumentView)
+
+- `HSCROLL_STEP` and `VSCROLL_STEP` in `DocumentView.cpp` were preprocessor macros;
+  replaced with `static constexpr int`.
+- `switch ((int)m_model->rotation())` used a C-style cast; changed to `static_cast<int>`.
+- `img.save(fileName, format.toStdString().c_str())` created a temporary `std::string`
+  to obtain a `const char*`; changed to `format.toLatin1().constData()`.
+- `PageDimensionCache::reset()` assigned integer `0` to a `vector<bool>`; corrected to
+  `false`. C-style casts `(int)` in `set()`, `getOrDefault()`, and `get()` replaced with
+  `static_cast<int>`.
+- Redundant `reserve()` calls before copy-assignment of `links` and `annotations` vectors
+  in `renderPageWithExtrasAsync` removed; copy-assign allocates its own storage.
+
 ### Performance / Code Quality
 
 - `LRUCache::put` unconditionally called `remove(key)` before every insert, incurring a

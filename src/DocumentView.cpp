@@ -53,10 +53,9 @@
 #include <qpolygon.h>
 #include <qstyle.h>
 
-#define HSCROLL_STEP 50
-#define VSCROLL_STEP 50
-
-static DocumentView::Id nextId = 0;
+static constexpr int HSCROLL_STEP = 50;
+static constexpr int VSCROLL_STEP = 50;
+static DocumentView::Id nextId    = 0;
 
 static DocumentView::Id
 g_newId() noexcept
@@ -418,7 +417,8 @@ DocumentView::startGifPlayback() noexcept
     if (!movie || movie->state() == QMovie::Running)
         return;
 
-    connect(movie, &QMovie::frameChanged, this, [this](int) { renderImage(); });
+    connect(movie, &QMovie::frameChanged, this,
+            [this](int /* frame */) { renderImage(); });
     movie->start();
 }
 
@@ -782,7 +782,7 @@ DocumentView::getClosestHitIndex(bool above) noexcept
         auto it = std::lower_bound(m_search_hit_flat_refs.begin(),
                                    m_search_hit_flat_refs.end(), currentPage,
                                    [](const HitRef &ref, int page)
-                                   { return ref.page < page; });
+        { return ref.page < page; });
 
         if (it == m_search_hit_flat_refs.begin())
             return n - 1; // wrap to last
@@ -797,7 +797,7 @@ DocumentView::getClosestHitIndex(bool above) noexcept
         auto it = std::upper_bound(m_search_hit_flat_refs.begin(),
                                    m_search_hit_flat_refs.end(), currentPage,
                                    [](int page, const HitRef &ref)
-                                   { return page < ref.page; });
+        { return page < ref.page; });
 
         if (it == m_search_hit_flat_refs.end())
             return 0; // wrap to first
@@ -1129,7 +1129,7 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
 
         // Define logical anchors based on the current visual rotation
         QPointF docStart, docEnd;
-        switch ((int)m_model->rotation())
+        switch (static_cast<int>(m_model->rotation()))
         {
             case 90:
                 docStart = QPointF(bounds.width(), 0);  // Top-right
@@ -1547,9 +1547,11 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
             const QPointF drift
                 = m_gview->mapFromScene(anchorScenePos) - anchorVP;
             m_gview->horizontalScrollBar()->setValue(
-                m_gview->horizontalScrollBar()->value() + (int)drift.x());
+                m_gview->horizontalScrollBar()->value()
+                + static_cast<int>(drift.x()));
             m_gview->verticalScrollBar()->setValue(
-                m_gview->verticalScrollBar()->value() + (int)drift.y());
+                m_gview->verticalScrollBar()->value()
+                + static_cast<int>(drift.y()));
             m_view_zoom_pending = true;
             m_scroll_page_update_timer->start();
         }
@@ -1599,7 +1601,8 @@ DocumentView::CenterOnLocation(const PageLocation &targetLocation) noexcept
         return;
 
     // Continuous / LTR layouts
-    GraphicsImageItem *pageItem = m_page_items_hash[targetLocation.pageno];
+    GraphicsImageItem *pageItem
+        = m_page_items_hash.value(targetLocation.pageno, nullptr);
     if (!pageItem)
         return;
 
@@ -1656,7 +1659,8 @@ DocumentView::GotoLocation(const PageLocation &targetLocation) noexcept
 #endif
 
     // Continuous / LTR layouts
-    GraphicsImageItem *pageItem = m_page_items_hash[sanitized.pageno];
+    GraphicsImageItem *pageItem
+        = m_page_items_hash.value(sanitized.pageno, nullptr);
     if (!pageItem)
         return;
     if (m_placeholder_pages.contains(sanitized.pageno))
@@ -2115,18 +2119,24 @@ DocumentView::ScrollUp() noexcept
 void
 DocumentView::ScrollDown_HalfPage() noexcept
 {
+    GraphicsImageItem *pageItem = m_page_items_hash.value(m_pageno, nullptr);
+    if (!pageItem)
+        return;
+
     m_vscroll->setUpdatesEnabled(false);
-    m_vscroll->setValue(m_vscroll->value()
-                        + m_page_items_hash[m_pageno]->height() / 2);
+    m_vscroll->setValue(m_vscroll->value() + pageItem->height() / 2);
     m_vscroll->setUpdatesEnabled(true);
 }
 
 void
 DocumentView::ScrollUp_HalfPage() noexcept
 {
+    GraphicsImageItem *pageItem = m_page_items_hash.value(m_pageno, nullptr);
+    if (!pageItem)
+        return;
+
     m_vscroll->setUpdatesEnabled(false);
-    m_vscroll->setValue(m_vscroll->value()
-                        - m_page_items_hash[m_pageno]->height() / 2);
+    m_vscroll->setValue(m_vscroll->value() - pageItem->height() / 2);
     m_vscroll->setUpdatesEnabled(true);
 }
 
@@ -2653,7 +2663,7 @@ void
 DocumentView::GoBackHistory() noexcept
 {
     if (m_loc_history_index <= 0
-        || m_loc_history_index >= (int)m_loc_history.size())
+        || m_loc_history_index >= static_cast<int>(m_loc_history.size()))
         return;
 
 #ifndef NDEBUG
@@ -2671,7 +2681,7 @@ void
 DocumentView::GoForwardHistory() noexcept
 {
     if (m_loc_history_index < 0
-        || m_loc_history_index + 1 >= (int)m_loc_history.size())
+        || m_loc_history_index + static_cast<int>(m_loc_history.size()))
         return;
 
 #ifndef NDEBUG
@@ -2789,9 +2799,10 @@ DocumentView::getVisiblePages() noexcept
         for (int pageno = firstPage; pageno <= lastPage; ++pageno)
         {
             double pageStart = m_page_offsets[pageno];
-            double pageEnd   = (pageno + 1 < (int)m_page_offsets.size())
-                                   ? m_page_offsets[pageno + 1] - spacingScene
-                                   : pageStart + pageStride(pageno);
+            double pageEnd
+                = (pageno + 1 < static_cast<int>(m_page_offsets.size()))
+                      ? m_page_offsets[pageno + 1] - spacingScene
+                      : pageStart + pageStride(pageno);
 
             if (pageEnd > a0 && pageStart < a1)
                 m_visible_pages_cache.insert(pageno);
@@ -3051,7 +3062,8 @@ DocumentView::renderPage() noexcept
         // Promote preload item to visible if available — instant display
         if (m_page_items_hash.contains(m_pageno))
         {
-            GraphicsImageItem *item = m_page_items_hash[m_pageno];
+            GraphicsImageItem *item
+                = m_page_items_hash.value(m_pageno, nullptr);
             if (m_preload_pages.contains(m_pageno))
             {
                 m_preload_pages.remove(m_pageno);
@@ -3202,31 +3214,6 @@ DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
     filterQueue(m_render_queue);
 }
 
-// void
-// DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet)
-// noexcept
-// {
-//     // Copy keys first to avoid iterator invalidation
-//     const QList<int> trackedPages = m_page_items_hash.keys();
-//     for (int pageno : trackedPages)
-//     {
-//         if (visibleSet.count(pageno))
-//             continue;
-//
-//         clearLinksForPage(pageno);
-//         clearAnnotationsForPage(pageno);
-//         clearSearchItemsForPage(pageno);
-//
-//         auto *item = m_page_items_hash.take(pageno);
-//         if (item)
-//         {
-//             if (item->scene() == m_gscene)
-//                 m_gscene->removeItem(item);
-//             delete item;
-//         }
-//     }
-// }
-
 void
 DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
 {
@@ -3265,6 +3252,7 @@ DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
     {
         auto *item = m_page_items_hash.take(pageno);
         m_preload_pages.remove(pageno);
+
         if (item && item->scene() == m_gscene)
             m_gscene->removeItem(item);
         delete item;
@@ -3633,7 +3621,10 @@ DocumentView::clearVisiblePages() noexcept
     {
         GraphicsImageItem *item = it.value();
         if (item->scene() == m_gscene)
+        {
             m_gscene->removeItem(item);
+            delete item;
+        }
     }
     m_page_items_hash.clear();
     m_placeholder_pages.clear();
@@ -3803,7 +3794,7 @@ DocumentView::updateCurrentHitHighlight() noexcept
         return;
 
     if (m_search_index < 0
-        || m_search_index >= (int)m_search_hit_flat_refs.size())
+        || m_search_index >= static_cast<int>(m_search_hit_flat_refs.size()))
     {
         m_current_search_hit_item->setPath(QPainterPath());
         return;
@@ -3850,7 +3841,7 @@ void
 DocumentView::scrollToCurrentHit() noexcept
 {
     if (m_search_index < 0
-        || m_search_index >= (int)m_search_hit_flat_refs.size())
+        || m_search_index >= static_cast<int>(m_search_hit_flat_refs.size()))
         return;
 
     const QPainterPath &path = m_current_search_hit_item->path();
@@ -4136,12 +4127,13 @@ DocumentView::renderLinks(int pageno,
                           const std::vector<Model::RenderLink> &links,
                           bool append) noexcept
 {
-    if (!m_model->supports_links() && !append
-        && m_page_links_hash.contains(pageno))
+    if (!m_model->supports_links())
         return;
 
-    GraphicsImageItem *pageItem = m_page_items_hash[pageno];
+    if (!append && m_page_links_hash.contains(pageno))
+        return;
 
+    GraphicsImageItem *pageItem = m_page_items_hash.value(pageno, nullptr);
     if (!pageItem)
         return;
 
@@ -4291,7 +4283,8 @@ DocumentView::renderAnnotations(
     // if (m_page_annotations_hash.contains(pageno))
     //     return;
 
-    const GraphicsImageItem *pageItem = m_page_items_hash[pageno];
+    const GraphicsImageItem *pageItem
+        = m_page_items_hash.value(pageno, nullptr);
     if (!pageItem)
         return;
 
@@ -4370,7 +4363,7 @@ DocumentView::renderAnnotations(
                 [this, annot_item, pageno]()
         {
             QColor oldColor
-                = m_model->getAnnotColor(m_pageno, annot_item->index());
+                = m_model->getAnnotColor(pageno, annot_item->index());
             ColorDialog colorDialog(m_config.misc.color_dialog_colors,
                                     QColor::fromRgba(oldColor.rgba()), this);
             colorDialog.setWindowTitle(tr("Select Annotation Color"));
@@ -4473,7 +4466,7 @@ DocumentView::DecryptDocument() noexcept
                 return false;
 
             if (fz_authenticate_password(m_model->m_ctx, m_model->m_doc,
-                                         password.toStdString().c_str()))
+                                         password.toLatin1().constData()))
                 return m_model->decrypt();
         }
     }
@@ -4494,7 +4487,8 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
     const auto &hits = m_search_hits.value(pageno); // Local copy
 
     // Validate the Page Item still exists in the scene
-    const GraphicsImageItem *pageItem = m_page_items_hash[pageno];
+    const GraphicsImageItem *pageItem
+        = m_page_items_hash.value(pageno, nullptr);
 
     if (!pageItem)
         return;
@@ -4579,8 +4573,8 @@ DocumentView::renderSearchHitsInScrollbar() noexcept
 QGraphicsPathItem *
 DocumentView::ensureSearchItemForPage(int pageno) noexcept
 {
-    if (!m_model->supports_text_search() && m_search_items.contains(pageno))
-        return m_search_items[pageno];
+    if (m_model->supports_text_search() && m_search_items.contains(pageno))
+        return m_search_items.value(pageno, nullptr);
 
     auto *item = m_gscene->addPath(QPainterPath());
     item->setBrush(QColor(255, 230, 150, 120));
@@ -4608,7 +4602,7 @@ DocumentView::addToHistory(const PageLocation &location) noexcept
     if (location.pageno < 0)
         return;
 
-    if (m_loc_history_index + 1 < (int)m_loc_history.size())
+    if (m_loc_history_index + 1 < static_cast<int>(m_loc_history.size()))
     {
         m_loc_history.erase(m_loc_history.begin() + m_loc_history_index + 1,
                             m_loc_history.end());
@@ -4617,12 +4611,12 @@ DocumentView::addToHistory(const PageLocation &location) noexcept
     if (!m_loc_history.empty()
         && locationsEqual(m_loc_history.back(), location))
     {
-        m_loc_history_index = (int)m_loc_history.size() - 1;
+        m_loc_history_index = static_cast<int>(m_loc_history.size() - 1);
         return;
     }
 
     m_loc_history.push_back(location);
-    m_loc_history_index = (int)m_loc_history.size() - 1;
+    m_loc_history_index = static_cast<int>(m_loc_history.size() - 1);
     emit historyChanged();
 }
 
@@ -4891,18 +4885,19 @@ DocumentView::CopyRegionAsImage(QRectF area) noexcept
 void
 DocumentView::SaveRegionAsImage(QRectF area) noexcept
 {
-    int pageno;
-    GraphicsImageItem *pageItem;
+    int pageno                  = -1;
+    GraphicsImageItem *pageItem = nullptr;
 
     if (!pageAtScenePos(area.center(), pageno, pageItem))
         return;
 
     QRectF pageRect;
     QRect pixelRect;
+
     if (!mapRegionToPageRects(area, pageItem, pageRect, pixelRect))
         return;
-    const QImage img = pageItem->image().copy(pixelRect);
 
+    const QImage img = pageItem->image().copy(pixelRect);
     if (img.isNull())
         return;
 
@@ -4930,7 +4925,7 @@ DocumentView::SaveRegionAsImage(QRectF area) noexcept
     else
         format = "PNG";
 
-    img.save(fileName, format.toStdString().c_str());
+    img.save(fileName, format.toLatin1().constData());
 }
 
 void
@@ -5185,12 +5180,14 @@ DocumentView::Reshow_jump_marker() noexcept
     if (m_old_jump_marker_loc.pageno < 0)
         return;
 
-    GraphicsImageItem *pageItem = m_page_items_hash.value(m_old_jump_marker_loc.pageno, nullptr);
+    GraphicsImageItem *pageItem
+        = m_page_items_hash.value(m_old_jump_marker_loc.pageno, nullptr);
     if (!pageItem)
         return;
 
     const QPointF targetPixelPos = m_model->toPixelSpace(
-        m_old_jump_marker_loc.pageno, {m_old_jump_marker_loc.x, m_old_jump_marker_loc.y});
+        m_old_jump_marker_loc.pageno,
+        {m_old_jump_marker_loc.x, m_old_jump_marker_loc.y});
     const QPointF scenePos = pageItem->mapToScene(targetPixelPos);
 
     m_jump_marker->showAt(scenePos.x(), scenePos.y());
@@ -5442,11 +5439,8 @@ DocumentView::Copy_page_image() noexcept
     if (!m_model)
         return;
 
-    int pageno{-1};
+    int pageno                  = -1;
     GraphicsImageItem *pageItem = nullptr;
-
-    if (!pageAtScenePos(m_gview->viewport()->rect().center(), pageno, pageItem))
-        return;
 
     const QPointF sceneCenter = m_gview->mapToScene(
         m_gview->viewport()->width() / 2, m_gview->viewport()->height() / 2);
@@ -5543,7 +5537,8 @@ DocumentView::visual_line_move(Direction direction) noexcept
         case DOWN:
         {
             if (m_visual_lines.empty()
-                || m_visual_line_index == (int)m_visual_lines.size() - 1)
+                || m_visual_line_index
+                       == static_cast<int>(m_visual_lines.size() - 1))
             {
                 GotoNextPage();
             }
@@ -5580,7 +5575,7 @@ DocumentView::snapVisualLine(bool centerView) noexcept
     }
 
     if (m_visual_line_index >= 0
-        && m_visual_line_index < (int)m_visual_lines.size())
+        && m_visual_line_index < static_cast<int>(m_visual_lines.size()))
     {
         const Model::VisualLineInfo &info
             = m_visual_lines.at(m_visual_line_index);

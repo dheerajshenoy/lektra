@@ -2483,8 +2483,6 @@ Model::properties() noexcept
         props.emplace_back("Format", reader.format().constData());
         props.emplace_back("Animated",
                            reader.supportsAnimation() ? "Yes" : "No");
-        props.emplace_back("Animated",
-                           reader.supportsAnimation() ? "Yes" : "No");
     }
 
     else
@@ -2875,9 +2873,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         dlist  = fz_keep_display_list(ctx, entry->display_list);
         bounds = entry->bounds;
 
-        links.reserve(entry->links.size());
-        links = entry->links;
-        annotations.reserve(entry->annotations.size());
+        links       = entry->links;
         annotations = entry->annotations;
     }
     fz_always(ctx)
@@ -3228,8 +3224,8 @@ Model::highlight_text_selection(int pageno, QPointF start, QPointF end,
 
     // // Create and push the command onto the undo stack for undo/redo
     // support
-    m_undo_stack->push(
-        new TextHighlightAnnotationCommand(this, pageno, std::move(quads), comment));
+    m_undo_stack->push(new TextHighlightAnnotationCommand(
+        this, pageno, std::move(quads), comment));
 }
 
 int
@@ -3520,6 +3516,48 @@ Model::addAnnotComment(const int pageno, const int objNum,
     fz_catch(m_ctx)
     {
         qWarning() << "addAnnotComment failed:" << fz_caught_message(m_ctx);
+        return;
+    }
+
+    if (changed)
+    {
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
+    }
+}
+
+void
+Model::removeAnnotComment(const int pageno, const int objNum) noexcept
+{
+    bool changed   = false;
+    pdf_page *page = nullptr;
+
+    fz_try(m_ctx)
+    {
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        for (pdf_annot *annot = pdf_first_annot(m_ctx, page); annot;
+             annot            = pdf_next_annot(m_ctx, annot))
+        {
+            if (pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot)) != objNum)
+                continue;
+
+            pdf_set_annot_contents(m_ctx, annot, "");
+            pdf_update_annot(m_ctx, annot);
+            pdf_update_page(m_ctx, page);
+            changed = true;
+            break;
+        }
+    }
+    fz_always(m_ctx)
+    {
+        pdf_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "removeAnnotComment failed:" << fz_caught_message(m_ctx);
         return;
     }
 
@@ -4703,6 +4741,8 @@ Model::getFirstCharPos(const int pageno) noexcept
 {
     fz_stext_page *stext_page = nullptr;
     fz_page *page             = nullptr;
+    fz_point result = {0, 0};
+    bool found      = false;
 
     fz_try(m_ctx)
     {
@@ -4711,24 +4751,22 @@ Model::getFirstCharPos(const int pageno) noexcept
         if (!stext_page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to build text page");
 
-        for (fz_stext_block *block = stext_page->first_block; block;
-             block                 = block->next)
+        for (fz_stext_block *block = stext_page->first_block;
+             block && !found; block = block->next)
         {
             if (block->type != FZ_STEXT_BLOCK_TEXT)
                 continue;
-            for (fz_stext_line *line = block->u.t.first_line; line;
-                 line                = line->next)
+            for (fz_stext_line *line = block->u.t.first_line;
+                 line && !found; line = line->next)
             {
                 for (fz_stext_char *span = line->first_char; span;
                      span                = span->next)
                 {
                     if (span->size > 0)
                     {
-                        // Return the origin of the first character in the
-                        // first span
-                        fz_drop_page(m_ctx, page);
-                        fz_drop_stext_page(m_ctx, stext_page);
-                        return span->origin;
+                        result = span->origin;
+                        found  = true;
+                        break;
                     }
                 }
             }
@@ -4744,7 +4782,7 @@ Model::getFirstCharPos(const int pageno) noexcept
         qWarning() << "getFirstCharPos failed:" << fz_caught_message(m_ctx);
     }
 
-    return {0, 0};
+    return result;
 }
 
 // Detect URL-like text and return as links, excluding areas already covered
@@ -5111,24 +5149,38 @@ Model::rotateAnticlock() noexcept
 int
 Model::get_obj_num_at_rect(int pageno, fz_rect targetRect) noexcept
 {
-    pdf_page *page   = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+    pdf_page *page   = nullptr;
     pdf_annot *annot = nullptr;
     int foundObjNum  = -1;
 
-    for (annot = pdf_first_annot(m_ctx, page); annot;
-         annot = pdf_next_annot(m_ctx, annot))
+    fz_try(m_ctx)
     {
-        fz_rect currentRect = pdf_annot_rect(m_ctx, annot);
-        // Compare coordinates (with a tiny epsilon for float precision)
-        if (std::abs(currentRect.x0 - targetRect.x0) < 0.001f
-            && std::abs(currentRect.y0 - targetRect.y0) < 0.001f)
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+
+        for (annot = pdf_first_annot(m_ctx, page); annot;
+             annot = pdf_next_annot(m_ctx, annot))
         {
-            foundObjNum = pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot));
-            break;
+            fz_rect currentRect = pdf_annot_rect(m_ctx, annot);
+            // Compare coordinates (with a tiny epsilon for float precision)
+            if (std::abs(currentRect.x0 - targetRect.x0) < 0.001f
+                && std::abs(currentRect.y0 - targetRect.y0) < 0.001f)
+            {
+                foundObjNum = pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot));
+                break;
+            }
         }
     }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "get_obj_num_at_rect failed:" << fz_caught_message(m_ctx);
+        return -1;
+    }
+    fz_always(m_ctx)
+    {
+        // No cleanup needed here since we drop the page inside the loop
+        pdf_drop_page(m_ctx, page);
+    }
 
-    pdf_drop_page(m_ctx, page);
     return foundObjNum;
 }
 

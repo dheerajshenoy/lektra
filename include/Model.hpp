@@ -322,10 +322,10 @@ public:
 
     [[nodiscard]] inline QColor highlightAnnotColor() const noexcept
     {
-        return QColor(static_cast<int>(m_highlight_color[0] * 255),
-                      static_cast<int>(m_highlight_color[1] * 255),
-                      static_cast<int>(m_highlight_color[2] * 255),
-                      static_cast<int>(m_highlight_color[3] * 255));
+        return QColor(qRound(m_highlight_color[0] * 255),
+                      qRound(m_highlight_color[1] * 255),
+                      qRound(m_highlight_color[2] * 255),
+                      qRound(m_highlight_color[3] * 255));
     }
 
     [[nodiscard]] inline bool hasUnsavedChanges() const noexcept
@@ -526,13 +526,13 @@ private:
         std::vector<PageDimension> dimensions;
         std::vector<bool> known;
 
-        void reset(int page_count)
+        void reset(int page_count) noexcept
         {
             dimensions.assign(page_count, PageDimension{});
-            known.assign(page_count, 0);
+            known.assign(page_count, false);
         }
 
-        bool isKnown(int pageno) const
+        [[nodiscard]] inline bool isKnown(int pageno) const noexcept
         {
             return pageno >= 0 && pageno < static_cast<int>(known.size())
                    && known[pageno] != false;
@@ -540,23 +540,28 @@ private:
 
         void set(int p, float w, float h)
         {
-            if (p < 0 || p >= (int)dimensions.size())
+            if (p < 0 || p >= static_cast<int>(dimensions.size()))
                 return;
+
             dimensions[p] = PageDimension{w, h};
             known[p]      = true;
         }
 
-        PageDimension getOrDefault(int p, const PageDimension &def) const
+        [[nodiscard]] PageDimension
+        getOrDefault(int p, const PageDimension &def) const noexcept
         {
-            if (p < 0 || p >= (int)dimensions.size())
+            if (p < 0 || p >= static_cast<int>(dimensions.size()))
                 return def;
+
             return known[p] ? dimensions[p] : def;
         }
 
-        PageDimension get(int p, const PageDimension &fallback) const
+        [[nodiscard]] PageDimension
+        get(int p, const PageDimension &fallback) const noexcept
         {
-            if (p < 0 || p >= (int)dimensions.size())
+            if (p < 0 || p >= static_cast<int>(dimensions.size()))
                 return fallback;
+
             return dimensions[p];
         }
     };
