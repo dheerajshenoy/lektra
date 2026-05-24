@@ -5132,8 +5132,24 @@ DocumentView::tryReloadLater(int attempt) noexcept
 }
 
 void
+DocumentView::startRegionSelect(std::function<void(QRectF)> cb) noexcept
+{
+    m_region_select_cb = std::move(cb);
+    m_gview->setMode(GraphicsView::Mode::RegionSelection);
+}
+
+void
 DocumentView::handleRegionSelectRequested(QRectF area) noexcept
 {
+    if (m_region_select_cb)
+    {
+        auto cb = std::move(m_region_select_cb);
+        m_region_select_cb = nullptr;
+        m_gview->clearRubberBand();
+        cb(area);
+        return;
+    }
+
     QMenu *menu = new QMenu(this);
     connect(menu, &QMenu::aboutToHide, this, [this, menu]()
     {

@@ -1037,6 +1037,38 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 1;
                 }),
 
+    VIEW_METHOD("region_select",
+                {
+                    luaL_checktype(L, 2, LUA_TFUNCTION);
+                    lua_pushvalue(L, 2);
+                    int cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+                    (*view)->startRegionSelect(
+                        [L, cb_ref](QRectF area)
+                    {
+                        lua_rawgeti(L, LUA_REGISTRYINDEX, cb_ref);
+                        luaL_unref(L, LUA_REGISTRYINDEX, cb_ref);
+
+                        lua_newtable(L);
+                        lua_pushnumber(L, area.x());
+                        lua_setfield(L, -2, "x");
+                        lua_pushnumber(L, area.y());
+                        lua_setfield(L, -2, "y");
+                        lua_pushnumber(L, area.width());
+                        lua_setfield(L, -2, "w");
+                        lua_pushnumber(L, area.height());
+                        lua_setfield(L, -2, "h");
+
+                        if (lua_pcall(L, 1, 0, 0) != LUA_OK)
+                        {
+                            fprintf(stderr, "Lua error in region_select callback: %s\n",
+                                    lua_tostring(L, -1));
+                            lua_pop(L, 1);
+                        }
+                    });
+                    return 0;
+                }),
+
     VIEW_METHOD("rotate_clock",
                 {
                     if (*view)

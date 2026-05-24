@@ -410,6 +410,7 @@ public:
     void RotateAnticlock() noexcept;
     void FlipH() noexcept;
     void FlipV() noexcept;
+    void startRegionSelect(std::function<void(QRectF)> cb) noexcept;
     QMap<int, Model::LinkInfo> LinkKB() noexcept;
     void ClearTextSelection() noexcept;
     void YankSelection(bool formatted = true) noexcept;
@@ -602,6 +603,7 @@ private:
     Id m_id                                   = 0;
     Model *m_model                            = nullptr;
     GraphicsView *m_gview                     = nullptr;
+    std::function<void(QRectF)> m_region_select_cb;
     GraphicsScene *m_gscene                   = nullptr;
     FitMode m_fit_mode                        = FitMode::COUNT;
     int m_pageno                              = -1;

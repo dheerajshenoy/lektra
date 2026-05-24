@@ -41,6 +41,7 @@ Document view helpers and per-document actions.
 | `view:set_fit(mode)` | — | Set fit mode integer. |
 | `view:rotation()` | `number` | Rotation in degrees. |
 | `view:set_rotation(r)` | — | Set rotation in degrees. |
+| `view:region_select(callback)` | — | Enter rubber-band selection mode. When the user draws a rectangle the callback fires with `{ x, y, w, h }` (scene coordinates) and the view returns to normal. Bypasses the default context menu. |
 | `view:rotate_clock()` | — | Rotate the page 90° clockwise. |
 | `view:rotate_anticlock()` | — | Rotate the page 90° counter-clockwise. |
 | `view:flip_horizontal()` | — | Toggle horizontal flip. |
@@ -127,6 +128,30 @@ if v then
     v:goto_page(1)
     v:set_zoom(1.5)
 end
+```
+
+#### Region selection example
+
+```lua
+-- Ask the user to draw a rectangle, then report its dimensions
+local v = lektra.view.current()
+if v then
+    v:region_select(function(area)
+        lektra.ui.message(
+            string.format("Region: x=%.1f y=%.1f  %dx%d",
+                area.x, area.y, area.w, area.h), 3)
+    end)
+end
+
+-- Use region_select to drive a custom copy-at-DPI workflow from a command
+lektra.cmd.register("copy_region_600dpi", function()
+    local v = lektra.view.current()
+    if not v then return end
+    v:region_select(function(area)
+        -- area.x/y/w/h are in scene coordinates
+        lektra.ui.message("Region captured — implement custom handling here", 2)
+    end)
+end, "Copy selected region at 600 DPI (example)")
 ```
 
 ---

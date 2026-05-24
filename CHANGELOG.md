@@ -11,6 +11,10 @@
   page-space operations remain correct when a document is flipped. All render backends are
   supported: MuPDF PDF/XPS/CBZ, static images, animated GIFs, and DjVu. Commands are
   exposed as `view:flip_horizontal()` and `view:flip_vertical()` in the Lua view API.
+- Add `view:region_select(callback)` Lua API. Switches the view into rubber-band
+  selection mode; when the user draws a rectangle the callback receives
+  `{ x, y, w, h }` in scene coordinates and the view returns to normal. The default
+  context menu is bypassed so scripts can use the region for arbitrary purposes.
 - Add "Copy Region as Image (Custom DPI)..." to the region-selection context menu.
   For PDF and other vector sources the selected region is re-rendered from the cached
   MuPDF display list at the requested DPI (72–1200, default 300), so the clipboard
