@@ -1080,15 +1080,15 @@ struct Config
 
         // @desc Number of pages to cache page
         // @type int
-        // @default 10
+        // @default 5
         // @added 0.5.3
-        int cache_pages = 10;
+        int cache_pages = 5;
 
         // @desc Preload pages
         // @type int
-        // @default 2
+        // @default 1
         // @added 0.6.3
-        int preload_pages = 2;
+        int preload_pages = 1;
 
         // @desc Auto-reload file upon detecting file change
         // @type bool
