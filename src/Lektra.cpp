@@ -1882,26 +1882,34 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
             = QString::fromStdString(argparser.get<std::string>("--config"));
     }
 
-    // IPC probe — must happen before construct() so no window is created
-    const QString ipcName = QStringLiteral("lektra-ipc");
-    if (readSingleInstanceFromConfig() && argparser.is_used("files"))
-    {
-        auto files = argparser.get<std::vector<std::string>>("files");
-        if (!files.empty())
-        {
-            QStringList qtFiles;
-            qtFiles.reserve(static_cast<int>(files.size()));
-            for (const auto &file : files)
-                qtFiles.push_back(QString::fromLocal8Bit(file.c_str()));
+    if (argparser.is_used("single-instance"))
+        m_config.behavior.single_instance = true;
 
-            QLocalSocket probe;
-            probe.connectToServer(ipcName);
-            if (probe.waitForConnected(300))
+    // IPC probe — must happen before construct() so no window is created
+    const QString ipcName
+        = argparser.is_used("socket")
+              ? QString::fromStdString(argparser.get<std::string>("--socket"))
+              : QStringLiteral("lektra-ipc");
+#ifdef WITH_SYNCTEX
+    const bool hasSynctexForward = argparser.is_used("synctex-forward");
+#else
+    const bool hasSynctexForward = false;
+#endif
+    if (hasSynctexForward
+        || (readSingleInstanceFromConfig() && argparser.is_used("files")))
+    {
+        QLocalSocket probe;
+        probe.connectToServer(ipcName);
+        if (probe.waitForConnected(300))
+        {
+            QJsonObject msg;
+
+            if (argparser.is_used("files"))
             {
-                QJsonObject msg;
+                auto files = argparser.get<std::vector<std::string>>("files");
                 QJsonArray fileArr;
-                for (const QString &f : qtFiles)
-                    fileArr.append(f);
+                for (const auto &f : files)
+                    fileArr.append(QString::fromLocal8Bit(f.c_str()));
                 msg["files"]  = fileArr;
                 msg["page"]   = argparser.is_used("page")
                                     ? argparser.get<int>("--page")
@@ -1911,14 +1919,20 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
                 if (argparser.is_used("command"))
                     msg["command"] = QString::fromStdString(
                         argparser.get<std::string>("--command"));
-
-                probe.write(QJsonDocument(msg).toJson(QJsonDocument::Compact));
-                probe.flush();
-                probe.waitForBytesWritten(1000);
-                probe.disconnectFromServer();
-                std::exit(0);
-                return; // exits before construct() — no window created
             }
+
+#ifdef WITH_SYNCTEX
+            if (hasSynctexForward)
+                msg["synctex_forward"] = QString::fromStdString(
+                    argparser.get<std::string>("--synctex-forward"));
+#endif
+
+            probe.write(QJsonDocument(msg).toJson(QJsonDocument::Compact));
+            probe.flush();
+            probe.waitForBytesWritten(1000);
+            probe.disconnectFromServer();
+            std::exit(0);
+            return; // exits before construct() — no window created
         }
     }
 
@@ -1927,7 +1941,7 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 
     applyCommandLineOverrides(argparser);
 
-    if (m_config.behavior.single_instance)
+    if (m_config.behavior.single_instance || argparser.is_used("socket"))
         startIPCServer(ipcName); // correct place — after construct()
 
     if (argparser.is_used("about"))
@@ -1948,8 +1962,6 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 #ifdef WITH_SYNCTEX
     if (argparser.is_used("synctex-forward"))
     {
-        m_config.behavior._startpage_override = -1; // do not override the page
-
         // Format: --synctex-forward={pdf}#{src}:{line}:{column}
         // Example: --synctex-forward=test.pdf#main.tex:14
         const QString &arg = QString::fromStdString(
@@ -1966,14 +1978,18 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
                 QLatin1Char('~'), QString::fromLatin1(HOME_DIR));
             const QString texPath = match.captured(2).replace(
                 QLatin1Char('~'), QString::fromLatin1(HOME_DIR));
-            // const int line   = match.captured(3).toInt();
-            // const int column = match.captured(4).toInt();
-            // Q_UNUSED(line);
-            // Q_UNUSED(column);
-            OpenFileInNewTab(pdfPath);
-            // TODO:
-            // synctexLocateInPdf(texPath, line, column);
-            // m_model->synctexLocateInPdf();
+            const int line        = match.captured(3).toInt();
+            const int col         = match.captured(4).toInt();
+
+            // Pass as callback so remember_last_visited doesn't override the
+            // synctex jump position (callback presence suppresses savedPage).
+            OpenFileInNewTab(pdfPath,
+                             [texPath, line, col](void *ptr)
+            {
+                auto *lektra = static_cast<Lektra *>(ptr);
+                if (auto *view = lektra->currentDocument())
+                    view->synctexForwardSearch(texPath, line, col);
+            });
         }
         else
         {
@@ -6634,6 +6650,56 @@ Lektra::onIPCDataReady()
         else
             OpenFiles(filePaths);
     }
+
+#ifdef WITH_SYNCTEX
+    const QString synctexArg = msg["synctex_forward"].toString();
+    if (!synctexArg.isEmpty())
+    {
+        static const QRegularExpression re(
+            QStringLiteral(R"(^(.*)#(.*):(\d+):(\d+)$)"));
+        QRegularExpressionMatch match = re.match(synctexArg);
+        if (match.hasMatch())
+        {
+            const QString pdfPath = match.captured(1).replace(
+                QLatin1Char('~'), QString::fromLatin1(HOME_DIR));
+            const QString texPath = match.captured(2).replace(
+                QLatin1Char('~'), QString::fromLatin1(HOME_DIR));
+            const int fwdLine     = match.captured(3).toInt();
+            const int fwdCol      = match.captured(4).toInt();
+
+            // Find an already-open view for this PDF and jump in-place.
+            DocumentView *existing = nullptr;
+            const QFileInfo pdfInfo(pdfPath);
+            for (int i = 0; i < m_tab_widget->count(); ++i)
+            {
+                DocumentContainer *c = m_tab_widget->rootContainer(i);
+                if (!c)
+                    continue;
+                DocumentView *v = c->view();
+                if (v && QFileInfo(v->filePath()) == pdfInfo)
+                {
+                    existing = v;
+                    m_tab_widget->setCurrentIndex(i);
+                    break;
+                }
+            }
+
+            if (existing)
+            {
+                existing->synctexForwardSearch(texPath, fwdLine, fwdCol);
+            }
+            else
+            {
+                OpenFileInNewTab(pdfPath, [texPath, fwdLine, fwdCol](void *ptr)
+                {
+                    auto *lektra = static_cast<Lektra *>(ptr);
+                    if (auto *view = lektra->currentDocument())
+                        view->synctexForwardSearch(texPath, fwdLine, fwdCol);
+                });
+            }
+        }
+    }
+#endif
 
     if (!cmd.isEmpty())
     {

@@ -988,6 +988,37 @@ DocumentView::synctexLocateInDocument(const char *texFileName,
 
     QProcess::startDetached(editor, args);
 }
+
+void
+DocumentView::synctexForwardSearch(const QString &texPath, int line,
+                                   int col) noexcept
+{
+    if (!m_synctex_scanner)
+    {
+        qWarning() << "DocumentView::synctexForwardSearch(): no synctex scanner";
+        return;
+    }
+
+    const int hits = synctex_display_query(
+        m_synctex_scanner, texPath.toUtf8().constData(), line, col, -1);
+
+    if (hits <= 0)
+    {
+        qWarning() << "DocumentView::synctexForwardSearch(): no result for"
+                   << texPath << "line" << line;
+        return;
+    }
+
+    synctex_node_p node = synctex_scanner_next_result(m_synctex_scanner);
+    if (!node)
+        return;
+
+    const int page = synctex_node_page(node) - 1; // 0-based
+    const float x  = synctex_node_box_visible_h(node);
+    const float y  = synctex_node_box_visible_v(node);
+
+    GotoLocation({page, x, y});
+}
 #endif
 
 void

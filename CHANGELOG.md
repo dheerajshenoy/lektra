@@ -43,6 +43,22 @@
 - Add `view:rotate_clock()`, `view:rotate_anticlock()`, `view:flip_horizontal()`, and
   `view:flip_vertical()` to the Lua view API (`lektra.view` methods on `View` userdata).
   Rotation methods were previously missing from the view API entirely.
+- Implement SyncTeX forward search (editor → lektra). `--synctex-forward` now calls
+  `synctex_display_query` and jumps to the matching PDF location via `GotoLocation`,
+  including deferred-render support. Previously the flag parsed the arguments but never
+  performed the jump (was a TODO).
+- Add `--socket <path>` CLI flag. Starts the IPC server on the given socket path,
+  allowing multiple lektra instances to be addressed independently (analogous to
+  `nvim --listen`). The first invocation with a given socket listens; subsequent
+  invocations with the same socket forward their message and exit.
+- Add `--single-instance` CLI flag. Forces single-instance mode for one invocation
+  without requiring `behavior.single_instance = true` in the config file.
+- `--synctex-forward` now implicitly acts as single-instance: it always attempts to
+  connect to a running instance via IPC regardless of the `single_instance` config
+  setting, preventing duplicate windows when triggered from an editor.
+- SyncTeX forward search via IPC now reuses an already-open tab for the target PDF
+  instead of opening a new one each time. The matching tab is brought to focus and
+  the view jumps to the synctex position in-place.
 
 ### Bug Fixes
 

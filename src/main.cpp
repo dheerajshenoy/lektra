@@ -225,6 +225,15 @@ init_args(argparse::ArgumentParser &program)
         .help("Start with the tutorial file open")
         .flag();
 
+    program.add_argument("--single-instance")
+        .help("Force single-instance mode for this invocation")
+        .flag();
+
+    program.add_argument("--socket")
+        .help("Listen on the given socket path (overrides the default IPC socket)")
+        .default_value(std::string{})
+        .metavar("SOCKET_PATH");
+
     program.add_argument("--vsplit")
         .help("Open file(s) in vertical split")
         .flag();

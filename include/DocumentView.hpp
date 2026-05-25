@@ -354,6 +354,12 @@ public:
     void removeContextMenuListener(ContextMenuType type, int handle) noexcept;
 #endif
 
+#ifdef WITH_SYNCTEX
+    void synctexLocateInDocument(const char *fileName, int line) noexcept;
+    void synctexForwardSearch(const QString &texPath, int line,
+                              int col) noexcept;
+#endif
+
     void startGifPlayback() noexcept;
     void stopGifPlayback() noexcept;
 
@@ -429,7 +435,10 @@ public:
     void ToggleTextSelection() noexcept;
     void NarrowToRegion() noexcept;
     void WideRegion() noexcept;
-    inline bool isNarrowed() const noexcept { return m_is_narrow; }
+    inline bool isNarrowed() const noexcept
+    {
+        return m_is_narrow;
+    }
     void GoBackHistory() noexcept;
     void GoForwardHistory() noexcept;
     void ClearKBHintsOverlay() noexcept;
@@ -602,13 +611,12 @@ private:
 
 #ifdef WITH_SYNCTEX
     void initSynctex() noexcept;
-    void synctexLocateInDocument(const char *fileName, int line) noexcept;
 #endif
 
     const Config &m_config;
-    Id m_id                                   = 0;
-    Model *m_model                            = nullptr;
-    GraphicsView *m_gview                     = nullptr;
+    Id m_id               = 0;
+    Model *m_model        = nullptr;
+    GraphicsView *m_gview = nullptr;
     std::function<void(QRectF)> m_region_select_cb;
     GraphicsScene *m_gscene                   = nullptr;
     FitMode m_fit_mode                        = FitMode::COUNT;
@@ -650,12 +658,13 @@ private:
     bool m_is_narrow                          = false;
     int m_narrow_page                         = -1;
     QRectF m_narrow_local_normalized;
-    QRectF m_layout_scene_rect;  // full scene rect, unaffected by narrow override
+    QRectF
+        m_layout_scene_rect; // full scene rect, unaffected by narrow override
     // Visual Line Mode
-    QGraphicsPathItem *m_visual_line_item     = nullptr;
-    int m_visual_line_index                   = -1;
-    bool m_visual_line_mode                   = false;
-    bool m_thumbnail_mode                     = false;
+    QGraphicsPathItem *m_visual_line_item = nullptr;
+    int m_visual_line_index               = -1;
+    bool m_visual_line_mode               = false;
+    bool m_thumbnail_mode                 = false;
 #ifdef WITH_SYNCTEX
     synctex_scanner_p m_synctex_scanner = nullptr;
 #endif
