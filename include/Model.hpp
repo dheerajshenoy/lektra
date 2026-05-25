@@ -493,6 +493,7 @@ signals:
     void urlLinksReady(int pageno, std::vector<RenderLink> links);
     void passwordRequired();
     void wrongPassword();
+    void reloadPasswordRequired();
     void openFileFailed();
     void openFileFinished();
     void reloadRequested(int pageno);
@@ -644,6 +645,7 @@ private:
     getPageDimensions(int pageno) const noexcept;
 
     QString m_filepath;
+    QString m_cached_password;
     int m_page_count = 0;
     float m_dpr = 1.0f, m_dpi = 96.0f, m_zoom = 1.0f, m_rotation = 0.0f,
           m_inv_dpr     = 1.0f;

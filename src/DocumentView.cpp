@@ -538,6 +538,19 @@ DocumentView::initConnections() noexcept
     connect(m_model, &Model::reloadRequested, this,
             &DocumentView::handleReloadRequested, Qt::UniqueConnection);
 
+    connect(m_model, &Model::reloadPasswordRequired, this,
+            [this]()
+    {
+        const QString msg =
+            m_config.behavior.cache_password
+                ? tr("Auto-reload failed: the document is password-protected "
+                     "and the cached password no longer works.")
+                : tr("Auto-reload failed: the document is password-protected. "
+                     "Enable \"cache_password\" in the config to allow "
+                     "automatic re-authentication on reload.");
+        QMessageBox::warning(this, tr("Auto-reload failed"), msg);
+    }, Qt::UniqueConnection);
+
     if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
         connect(m_hscroll, &QScrollBar::valueChanged, this,

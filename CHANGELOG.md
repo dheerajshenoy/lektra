@@ -71,6 +71,11 @@
 
 ### Bug Fixes
 
+- Add `behavior.cache_password` config option (default `true`). When
+  auto-reloading a password-protected document, the password entered at open
+  time is reused automatically. Set to `false` to prevent the password from
+  persisting in memory beyond the initial unlock; auto-reload will then fail
+  with an explanatory message for encrypted files.
 - Fix auto-reload from disk being unreliable. Three bugs: (1) the file-stability
   check compared two `QFileInfo` size readings taken back-to-back with no delay,
   so it always returned "stable" even while the file was still being written (e.g.

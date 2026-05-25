@@ -1651,6 +1651,13 @@ Model::submitPassword(const QString &password) noexcept
             return;
         }
 
+        if (m_config.behavior.cache_password)
+            QMetaObject::invokeMethod(this, [this, password]
+            { m_cached_password = password; }, Qt::QueuedConnection);
+        else
+            QMetaObject::invokeMethod(this, [this]
+            { m_cached_password.clear(); }, Qt::QueuedConnection);
+
         _continueOpen(ctx, doc);
     });
 }
@@ -2186,6 +2193,23 @@ Model::reloadDocument() noexcept
         new_doc = fz_open_document(m_ctx, filePathStr.c_str());
         if (!new_doc)
             return false;
+
+        if (fz_needs_password(m_ctx, new_doc))
+        {
+            const bool canAuth = m_config.behavior.cache_password
+                                 && !m_cached_password.isEmpty();
+            const bool authed =
+                canAuth
+                && fz_authenticate_password(
+                       m_ctx, new_doc,
+                       m_cached_password.toStdString().c_str());
+            if (!authed)
+            {
+                fz_drop_document(m_ctx, new_doc);
+                emit reloadPasswordRequired();
+                return false;
+            }
+        }
     }
     fz_catch(m_ctx)
     {

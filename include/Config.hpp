@@ -1082,6 +1082,16 @@ struct Config
         // @added 0.3.0
         bool auto_reload = true;
 
+        // @desc {
+        // Cache the password for password-protected files so that auto-reload
+        // can re-authenticate without prompting. Disable if you prefer the
+        // password not to persist in memory beyond initial unlock.
+        // }
+        // @type bool
+        // @default true
+        // @added 0.7.4
+        bool cache_password = true;
+
         // @desc Invert color mode (aka dark mode)
         // @type bool
         // @default false

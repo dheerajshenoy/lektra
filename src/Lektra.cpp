@@ -1204,6 +1204,8 @@ Lektra::initConfig() noexcept
         set(behavior["dont_invert_images"],
             m_config.behavior.dont_invert_images);
         set(behavior["auto_reload"], m_config.behavior.auto_reload);
+        set(behavior["cache_password"],
+            m_config.behavior.cache_password);
         set(behavior["recent_files"], m_config.behavior.recent_files);
         set(behavior["num_recent_files"], m_config.behavior.num_recent_files);
         set(behavior["cache_pages"], m_config.behavior.cache_pages);
@@ -6552,8 +6554,9 @@ Lektra::checkConfigFile(const QString &path) noexcept
          {"preload_pages", "confirm_on_quit", "undo_limit",
           "remember_last_visited", "always_open_in_new_window",
           "page_history_limit", "invert_mode", "dont_invert_images",
-          "auto_reload", "recent_files", "num_recent_files", "initial_mode",
-          "open_last_visited", "file_name_only", "cache_pages"}},
+          "auto_reload", "cache_password", "recent_files",
+          "num_recent_files", "initial_mode", "open_last_visited",
+          "file_name_only", "cache_pages"}},
 
         {"keybindings", {}},
         {"mousebindings",

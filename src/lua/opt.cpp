@@ -1213,6 +1213,17 @@ static const LuaField behaviorFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::Behavior *>(p)->auto_reload = lua_toboolean(L, 3); }},
+    {"cache_password",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L,
+                    static_cast<Config::Behavior *>(p)->cache_password);
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::Behavior *>(p)->cache_password
+        = lua_toboolean(L, 3);
+}},
     {"invert_mode",
      [](lua_State *L, P p)
 {
