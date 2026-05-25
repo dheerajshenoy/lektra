@@ -71,6 +71,16 @@
 
 ### Bug Fixes
 
+- Fix auto-reload from disk being unreliable. Three bugs: (1) the file-stability
+  check compared two `QFileInfo` size readings taken back-to-back with no delay,
+  so it always returned "stable" even while the file was still being written (e.g.
+  latexmk truncates the PDF to 0 bytes before rewriting it); size is now compared
+  across two 100 ms timer ticks. (2) `QFileSystemWatcher::fileChanged` can fire
+  multiple times for a single atomic file replace, spawning concurrent reload
+  chains that caused double reloads; a `m_reload_pending` guard now prevents this.
+  (3) The watcher path was only re-added after a *successful* reload, so a
+  transient corrupt file would permanently stop watching for future saves; the
+  re-add is now unconditional.
 - Fix `--single-instance` CLI flag not triggering IPC forwarding. The probe condition
   used `readSingleInstanceFromConfig()` (reads the TOML file) and ignored the in-memory
   flag set by `--single-instance`, so the flag only started a server but never forwarded

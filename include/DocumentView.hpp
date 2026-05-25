@@ -550,7 +550,6 @@ private:
     void applyNarrow(QRectF sceneRect) noexcept;
     void refreshNarrowVisuals() noexcept;
     QRectF narrowSceneRect() const noexcept;
-    bool waitUntilReadableAsync() noexcept;
     void onFileReloadRequested(const QString &path) noexcept;
     void tryReloadLater(int attempt) noexcept;
 
@@ -648,6 +647,8 @@ private:
     bool m_deferred_fit                       = false;
     bool m_scroll_to_hit_pending              = false;
     QFileSystemWatcher *m_file_watcher        = nullptr;
+    bool m_reload_pending                     = false;
+    qint64 m_last_reload_observed_size        = -1;
     DocumentContainer *m_container            = nullptr;
     // max cross-axis page size, cached by cachePageStride()
     double m_max_page_cross_extent            = 0.0;

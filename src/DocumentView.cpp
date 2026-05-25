@@ -5110,23 +5110,6 @@ DocumentView::setAutoReload(bool state) noexcept
     }
 }
 
-// Wait until the file is readable and fully written. This is needed because
-// when using latex with continuous compilation, the PDF file is often
-// replaced by a new file that is first created with 0 bytes and then
-// written to. If we try to reload while the file is still 0 bytes, it will
-// fail.
-bool
-DocumentView::waitUntilReadableAsync() noexcept
-{
-    const QString filepath = m_model->filePath();
-    QFileInfo a(filepath);
-    if (!a.exists() || a.size() == 0)
-        return false;
-
-    QFileInfo b(filepath);
-    return b.exists() && a.size() == b.size();
-}
-
 // Slot to handle file change notifications for auto-reload
 void
 DocumentView::onFileReloadRequested(const QString &path) noexcept
@@ -5134,58 +5117,72 @@ DocumentView::onFileReloadRequested(const QString &path) noexcept
     if (path != m_model->filePath())
         return;
 
+    if (m_reload_pending)
+        return;
+
+    m_reload_pending            = true;
+    m_last_reload_observed_size = -1;
     tryReloadLater(0);
 }
 
 // Try to reload the document, if the file is not yet readable, wait and try
 // again a few times before giving up.
+// We compare the file size across two consecutive attempts to detect when the
+// write has stabilised — a single non-zero size reading is not enough because
+// tools like latexmk first truncate the file to 0 bytes and then write to it.
 void
 DocumentView::tryReloadLater(int attempt) noexcept
 {
     if (attempt > 15) // ~15 * 100ms = 1.5s
     {
+        m_reload_pending = false;
         QMessageBox::warning(this, tr("Auto-reload failed"),
                              tr("Could not reload the document."));
         return;
     }
 
-    if (waitUntilReadableAsync())
+    const QString filepath = m_model->filePath();
+    QFileInfo fi(filepath);
+    const qint64 currentSize = fi.exists() ? fi.size() : 0;
+
+    // File must be non-empty and its size must be stable across two ticks
+    const bool stable = currentSize > 0 && currentSize == m_last_reload_observed_size;
+    m_last_reload_observed_size = currentSize;
+
+    if (!stable)
     {
-        if (!m_model->reloadDocument())
-            return;
-        else
-        {
-            if (m_model->isImage())
-            {
-                renderImage();
-            }
-            else
-            {
-#ifdef WITH_SYNCTEX
-                initSynctex();
-#endif
-                {
-                    clearDocumentItems();
-                    cachePageStride();
-                    updateSceneRect();
-                    invalidateVisiblePagesCache();
-                    renderPages();
-                }
-                emit totalPageCountChanged(m_model->m_page_count);
-            }
-        }
-
-        const QString &filepath = m_model->filePath();
-        // IMPORTANT: file may have been removed and replaced → watcher
-        // loses it
-        if (m_file_watcher && !m_file_watcher->files().contains(filepath))
-            m_file_watcher->addPath(filepath);
-
+        QTimer::singleShot(100, this,
+                           [this, attempt]() { tryReloadLater(attempt + 1); });
         return;
     }
 
-    QTimer::singleShot(100, this,
-                       [this, attempt]() { tryReloadLater(attempt + 1); });
+    // IMPORTANT: file may have been removed and replaced → watcher loses it.
+    // Re-add unconditionally here so future saves are caught even if the
+    // reload below fails.
+    if (m_file_watcher && !m_file_watcher->files().contains(filepath))
+        m_file_watcher->addPath(filepath);
+
+    m_reload_pending = false;
+
+    if (!m_model->reloadDocument())
+        return;
+
+    if (m_model->isImage())
+    {
+        renderImage();
+    }
+    else
+    {
+#ifdef WITH_SYNCTEX
+        initSynctex();
+#endif
+        clearDocumentItems();
+        cachePageStride();
+        updateSceneRect();
+        invalidateVisiblePagesCache();
+        renderPages();
+        emit totalPageCountChanged(m_model->m_page_count);
+    }
 }
 
 void
