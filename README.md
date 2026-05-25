@@ -20,59 +20,9 @@
 <a href="https://codeberg.org/lektra/lektra/src/branch/main/LICENSE"><img alt="Static Badge" src="https://img.shields.io/badge/LICENSE-AGPL--3.0-darkgreen?style=for-the-badge"></a>
 </p>
 
-# Screenshots
+# Screenshots @ Homepage
 
-https://github.com/user-attachments/assets/26a553f8-a037-4479-8e1e-6636ea5258bd
-<p align="center">
-  <strong>Tabs and Splits</strong>
-</p>
-
-<p align="center">
-  <img src="https://dheerajshenoy.github.io/lektra/files/Portals.gif" alt="Portals" width="800"><br>
-  <strong>Portals</strong>
-</p>
-
-https://github.com/user-attachments/assets/0d4a236a-c75b-4299-bd06-1ef4e12d797e
-
-<p align="center">
-  <strong>Preview</strong>
-</p>
-
-https://github.com/user-attachments/assets/c3b80351-3af3-4488-87a6-8b52c27f875c
-
-<p align="center">
-  <strong>Layouts</strong>
-</p>
-
-<p align="center">
-  <img src="https://dheerajshenoy.github.io/lektra/files/Outline.png" alt="Outline Overlay" width="800"><br>
-  <strong>Outline Overlay</strong>
-</p>
-
-<p align="center">
-  <img src="https://dheerajshenoy.github.io/lektra/files/Search-Hits-Scrollbar.gif" alt="Search and hits in scrollbar" width="800"><br>
-  <strong>Search + Hits in Scrollbar</strong>
-</p>
-
-<p align="center">
-  <img src="https://dheerajshenoy.github.io/lektra/files/Jump-Marker.gif" alt="Jump Markers" width="800"><br>
-  <strong>Jump Markers</strong>
-</p>
-
-<p align="center">
-  <img src="https://dheerajshenoy.github.io/lektra/files/link_hint.png" alt="Link Hints" width="800"><br>
-  <strong>Link Hints</strong>
-</p>
-
-<p align="center">
-  <img src="https://dheerajshenoy.github.io/lektra/files/command_palette.png" alt="Command Palette" width="800"><br>
-  <strong>Command Palette</strong>
-</p>
-
-<p align="center">
-  <img src="https://dheerajshenoy.github.io/lektra/files/synctex.gif" alt="SyncTeX integration" width="800"><br>
-  <strong>SyncTeX integration</strong>
-</p>
+<a href="https://dheerajshenoy.github.io/lektra/" target="_blank">Check out the homepage</a>
 
 # Supported file types
 
@@ -92,7 +42,6 @@ but rather used as a tool in the development process. I am committed to transpar
 this project and will continue to provide updates on its role as the project evolves. I use it as a tool
 to assist in the development process, but the final decisions and implementations are made by me,
 the developer.**
-
 
 # Contributing
 
