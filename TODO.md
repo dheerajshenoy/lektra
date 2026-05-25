@@ -26,7 +26,6 @@
 - [ ] Explain selection
 - [ ] Underline Annotation
 - [ ] Synctex highlight line
-- [ ] Easy reference paper search
 - [ ] Peek equation dependencies
 - [ ] Search inside math equations
 - [ ] Separate dark and light mode colors ability
