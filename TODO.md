@@ -4,8 +4,8 @@
 
 ## HIGH PRIORITY
 
-- [ ] Allow for command arguments
 - [ ] Tab detach drag and drop to new window spawns new useless window
+- [ ] Allow for command arguments
 - [ ] Don't add connection to annotation when in non-annotatable mode
 
 ## MEDIUM PRIORITY
@@ -22,10 +22,7 @@
 - [ ] Finding citation from folder
 - [ ] Explain selection
 - [ ] Underline Annotation
-- [ ] Synctex highlight line
 - [ ] Peek equation dependencies
 - [ ] Search inside math equations
-- [ ] Separate dark and light mode colors ability
-- [ ] Smart jump under cursor (eg. jump to citation if on citation)
 - [ ] Try to generate outline if not present somehow
 - [ ] Visual line mode, if starting fresh, enable at the viewport
