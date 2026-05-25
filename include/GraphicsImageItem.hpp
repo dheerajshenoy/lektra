@@ -80,6 +80,16 @@ public:
         return m_bounding_rect;
     }
 
+    void setHighlighted(bool highlighted) noexcept
+    {
+        if (m_highlighted == highlighted)
+            return;
+        m_highlighted = highlighted;
+        update();
+    }
+
+    [[nodiscard]] bool isHighlighted() const noexcept { return m_highlighted; }
+
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
                QWidget *widget) override
     {
@@ -96,23 +106,29 @@ public:
 
         painter->save();
         painter->setClipRect(exposed);
-
-        // Draw only the exposed region (scissored by clip rect), while still
-        // using the full image mapping for correct DPR and transforms.
         painter->drawImage(m_bounding_rect, m_image);
-
         painter->restore();
+
+        if (m_highlighted)
+        {
+            painter->save();
+            QPen pen(QColor(70, 130, 255, 220), 3.0);
+            painter->setPen(pen);
+            painter->setBrush(Qt::NoBrush);
+            painter->drawRect(m_bounding_rect.adjusted(1.5, 1.5, -1.5, -1.5));
+            painter->restore();
+        }
     }
 
     // Inside GraphicsImageItem or a subclass
-    void setPageNumber(int pageno)
+    void setPageNumber(int pageno, int fontSize = 10)
     {
         if (!m_label)
-        {
-            // 'this' is the parent. Child positions are relative to (0,0) of
-            // the image.
             m_label = new QGraphicsSimpleTextItem(this);
-        }
+
+        QFont f = m_label->font();
+        f.setPointSize(fontSize);
+        m_label->setFont(f);
         m_label->setText(QString::number(pageno + 1));
 
         // Position it once. Because it's a child, it stays here
@@ -147,7 +163,8 @@ private:
         }
     }
 
-    QGraphicsSimpleTextItem *m_label = nullptr; // For page number labels
+    QGraphicsSimpleTextItem *m_label = nullptr;
     QImage m_image;
     QRectF m_bounding_rect;
+    bool m_highlighted = false;
 };

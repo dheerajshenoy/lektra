@@ -703,6 +703,9 @@ Lektra::initConfig() noexcept
         set(thumbnail_panel["show_page_numbers"],
             m_config.thumbnail.show_page_numbers);
         set(thumbnail_panel["panel_width"], m_config.thumbnail.panel_width);
+        set(thumbnail_panel["font_size"], m_config.thumbnail.font_size);
+        set(thumbnail_panel["highlight_current_page"],
+            m_config.thumbnail.highlight_current_page);
     }
 
     // Tabs
@@ -2903,7 +2906,7 @@ Lektra::openFileSplitHelper(const QString &filename, const CallbackFn &callback,
 
     DocumentView *currentView = container->view();
 
-    if (!currentView || currentView == container->thumbnailView())
+    if (!currentView)
         return nullptr;
 
     DocumentView *newView
@@ -5561,7 +5564,7 @@ Lektra::splitHelper(DocumentView::Id id, Qt::Orientation orientation) noexcept
         targetView = container->view();
     else
         targetView = container->get_child_view_by_id(id);
-    if (!targetView || targetView == container->thumbnailView())
+    if (!targetView)
         return nullptr;
 
     // Perform vertical split (top/bottom)
@@ -6487,8 +6490,8 @@ Lektra::checkConfigFile(const QString &path) noexcept
          {"border_radius", "close_on_click_outside", "size_ratio", "opacity"}},
 
         {"thumbnail_panel",
-         {"show_page_numbers", "panel_width", "highlight_current_page",
-          "vscrollbar", "hscrollbar"}},
+         {"show_page_numbers", "panel_width", "font_size",
+          "highlight_current_page", "vscrollbar", "hscrollbar"}},
 
         {"tabs",
          {"visible", "auto_hide", "closable", "movable", "elide_mode",

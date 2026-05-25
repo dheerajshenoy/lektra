@@ -1,4 +1,5 @@
 #include "DocumentContainer.hpp"
+#include "ThumbnailView.hpp"
 
 #include "utils.hpp"
 
@@ -217,12 +218,12 @@ DocumentContainer::collectViews(QWidget *widget,
     if (!widget)
         return;
 
-    if (auto *view = qobject_cast<DocumentView *>(widget))
+    if (qobject_cast<ThumbnailView *>(widget))
     {
-        // Don't count the thumbnail view as a "regular" view
-        if (view == m_thumbnail_view)
-            return;
-
+        return; // never count the thumbnail panel as a regular view
+    }
+    else if (auto *view = qobject_cast<DocumentView *>(widget))
+    {
         views.append(view);
     }
     else if (QSplitter *splitter = qobject_cast<QSplitter *>(widget))
@@ -429,10 +430,7 @@ DocumentContainer::equalizeStretch(QSplitter *splitter) noexcept
     for (int i = 0; i < splitter->count(); ++i)
     {
         QWidget *w = splitter->widget(i);
-        // If it's the thumbnail view, give it a stretch of 0 (fixed)
-        if (w == m_thumbnail_view
-            || (qobject_cast<DocumentView *>(w)
-                && qobject_cast<DocumentView *>(w)->isThumbnailView()))
+        if (w == m_thumbnail_view)
         {
             splitter->setStretchFactor(i, 0);
         }
@@ -684,30 +682,20 @@ DocumentContainer::createThumbnailView(DocumentView *view) noexcept
     if (!view)
         return;
 
-    DocumentView *thumbView
-        = new DocumentView(view->config(), view->dpr(), this, true);
-    thumbView->setContainer(this);
-    thumbView->setDPR(view->dpr());
-    thumbView->setInvertColor(view->invertColor());
-    thumbView->setAutoResize(view->autoResize());
+    auto *thumbView = new ThumbnailView(view->config(), view->dpr(), this);
 
-    connect(thumbView, &DocumentView::openFileFinished,
-            this, [view, thumbView]() {
-        thumbView->GotoLocation(view->CurrentLocation());
-    }, Qt::SingleShotConnection);
+    // Forward page clicks to the main view
+    connect(thumbView, &ThumbnailView::pageClicked, view,
+            &DocumentView::GotoPage);
 
-    connect(thumbView->graphicsView(), &GraphicsView::clickRequested, this,
-            [view, thumbView](int /*count */, QPointF scenePos)
-    {
-        GraphicsImageItem *item{nullptr};
-        int pageno{-1};
-        thumbView->pageAtScenePos(scenePos, pageno, item);
-        view->GotoPage(pageno);
-    });
+    // Keep the highlight in sync with the main view's current page.
+    // currentPageChanged is 1-based; highlightPage takes 0-based.
+    connect(view, &DocumentView::currentPageChanged, thumbView,
+            [thumbView](int pageno) { thumbView->highlightPage(pageno - 1); });
 
-    thumbView->openAsync(view->filePath());
+    thumbView->open(view->filePath(), view->CurrentLocation());
 
-    // Find the leftmost top-level widget
+    // Insert the thumbnail panel on the left side of the layout
     QWidget *root
         = m_layout->count() > 0 ? m_layout->itemAt(0)->widget() : nullptr;
 
@@ -719,7 +707,6 @@ DocumentContainer::createThumbnailView(DocumentView *view) noexcept
     if (!topSplitter)
     {
         // Root is a bare DocumentView — wrap it in a horizontal splitter
-        // with the thumb panel on the left
         int layoutIndex = m_layout->indexOf(root);
         QRect geom      = root->geometry();
 
@@ -729,7 +716,7 @@ DocumentContainer::createThumbnailView(DocumentView *view) noexcept
         splitter->setStyleSheet(SPLITTER_STYLESHEET);
 
         splitter->addWidget(thumbView); // index 0 = left
-        splitter->addWidget(root);      // existing view pushed right
+        splitter->addWidget(root);
 
         m_layout->insertWidget(layoutIndex, splitter);
         splitter->setGeometry(geom);
@@ -745,7 +732,6 @@ DocumentContainer::createThumbnailView(DocumentView *view) noexcept
     else
     {
         // Top splitter is vertical — wrap it in a new horizontal splitter
-        // with the thumb panel on the left
         int layoutIndex = m_layout->indexOf(topSplitter);
         QRect geom      = topSplitter->geometry();
 
@@ -762,22 +748,49 @@ DocumentContainer::createThumbnailView(DocumentView *view) noexcept
         equalizeStretch(hSplitter);
     }
 
-    emit viewCreated(thumbView);
-    focusView(thumbView);
-
     m_thumbnail_view = thumbView;
+    resizeThumbnailView(view->config().thumbnail.panel_width);
+}
 
-    connect(this, &DocumentContainer::viewClosed, this,
-            [this](DocumentView *view)
+void
+DocumentContainer::closeThumbnailView() noexcept
+{
+    if (!m_thumbnail_view)
+        return;
+
+    QSplitter *parentSplitter
+        = qobject_cast<QSplitter *>(m_thumbnail_view->parentWidget());
+
+    m_thumbnail_view->setParent(nullptr);
+    m_thumbnail_view->deleteLater();
+    m_thumbnail_view = nullptr;
+
+    if (!parentSplitter)
+        return;
+
+    // Collapse the splitter if only one child remains
+    if (parentSplitter->count() == 1)
     {
-        if (view == m_thumbnail_view)
-            m_thumbnail_view = nullptr;
-    }, Qt::UniqueConnection);
+        QWidget *remaining = parentSplitter->widget(0);
+        QSplitter *grandParent
+            = qobject_cast<QSplitter *>(parentSplitter->parentWidget());
 
-    m_thumbnail_view->setAutoResize(true);
-    m_thumbnail_view->setLayoutMode(DocumentView::LayoutMode::VERTICAL);
-    resizeThumbnailView(
-        0.15f); // TODO: make this configurable or dynamic based on content
+        if (grandParent)
+        {
+            int idx = grandParent->indexOf(parentSplitter);
+            grandParent->insertWidget(idx, remaining);
+        }
+        else
+        {
+            m_layout->removeWidget(parentSplitter);
+            m_layout->addWidget(remaining);
+        }
+        parentSplitter->deleteLater();
+    }
+    else
+    {
+        equalizeStretch(parentSplitter);
+    }
 }
 
 void

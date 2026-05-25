@@ -12,7 +12,6 @@
 
 - [ ] Add luajit support
 - [ ] Add support for embedded files in PDFs
-- [ ] Password protected PDFs thumbnail view asking for password, do something about it.
 
 ## LOW PRIORITY
 

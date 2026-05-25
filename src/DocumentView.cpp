@@ -377,7 +377,8 @@ DocumentView::handleOpenFileFinished() noexcept
         // First, clear old items and caches
         clearDocumentItems();
         invalidateVisiblePagesCache();
-        setLayoutMode(m_config.layout.mode);
+        if (!m_thumbnail_mode)
+            setLayoutMode(m_config.layout.mode);
 
         m_vscroll->blockSignals(false);
         m_hscroll->blockSignals(false);
@@ -539,17 +540,7 @@ DocumentView::initConnections() noexcept
             &DocumentView::handleReloadRequested, Qt::UniqueConnection);
 
     connect(m_model, &Model::reloadPasswordRequired, this,
-            [this]()
-    {
-        const QString msg =
-            m_config.behavior.cache_password
-                ? tr("Auto-reload failed: the document is password-protected "
-                     "and the cached password no longer works.")
-                : tr("Auto-reload failed: the document is password-protected. "
-                     "Enable \"cache_password\" in the config to allow "
-                     "automatic re-authentication on reload.");
-        QMessageBox::warning(this, tr("Auto-reload failed"), msg);
-    }, Qt::UniqueConnection);
+            &DocumentView::handleReloadPasswordRequired, Qt::UniqueConnection);
 
     if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
@@ -1804,6 +1795,7 @@ DocumentView::GotoPage(int pageno) noexcept
 
     if (m_layout_mode == LayoutMode::SINGLE)
     {
+        ClearTextSelection();
         renderPage();
     }
     else if (m_layout_mode == LayoutMode::HORIZONTAL)
@@ -2508,11 +2500,15 @@ DocumentView::ToggleThumbnailPanel() noexcept
     assert(container && "DocumentView should have a valid container");
 
     if (!container->thumbnailView())
-    {
         container->createThumbnailView(this);
-    }
 
     container->toggleThumbnailView();
+}
+
+GraphicsImageItem *
+DocumentView::pageItemAt(int pageno) const noexcept
+{
+    return m_page_items_hash.value(pageno, nullptr);
 }
 
 // Toggle text highlight mode
@@ -2739,7 +2735,7 @@ void
 DocumentView::GoForwardHistory() noexcept
 {
     if (m_loc_history_index < 0
-        || m_loc_history_index + static_cast<int>(m_loc_history.size()))
+        || m_loc_history_index + 1 >= static_cast<int>(m_loc_history.size()))
         return;
 
 #ifndef NDEBUG
@@ -3395,10 +3391,8 @@ DocumentView::cachePageStride() noexcept
 
         if (m_thumbnail_mode)
         {
-            // Use a consistent font (e.g., from config or a default size)
             QFont font;
-            font.setPointSizeF(
-                10); // Adjust to your preferred thumbnail font size
+            font.setPointSizeF(m_config.thumbnail.font_size);
             QFontMetricsF metrics(font);
 
             // height() + a small percentage for padding below the text
@@ -4084,12 +4078,14 @@ DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
         << "DocumentView::renderPageFromImage(): Rendering page from image "
         << "for pageno = " << pageno;
 #endif
+    bool wasHighlighted = false;
     auto it = m_page_items_hash.find(pageno);
     if (it != m_page_items_hash.end())
     {
         GraphicsImageItem *old = it.value();
         if (old && old->scene() == m_gscene)
         {
+            wasHighlighted = old->isHighlighted();
             m_gscene->removeItem(old);
             delete old;
         }
@@ -4100,6 +4096,10 @@ DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
     m_cached_hit_page_item = nullptr;
 
     createAndAddPageItem(pageno, image);
+
+    if (wasHighlighted)
+        if (auto *newItem = m_page_items_hash.value(pageno, nullptr))
+            newItem->setHighlighted(true);
     clearLinksForPage(pageno);
     clearAnnotationsForPage(pageno);
     clearSearchItemsForPage(pageno);
@@ -4191,7 +4191,7 @@ DocumentView::createAndAddPageItem(int pageno, const QImage &img) noexcept
     if (m_thumbnail_mode)
     {
         if (m_config.thumbnail.show_page_numbers)
-            pageItem->setPageNumber(pageno);
+            pageItem->setPageNumber(pageno, m_config.thumbnail.font_size);
     }
 
     m_gscene->addItem(pageItem);
@@ -5922,6 +5922,19 @@ DocumentView::handleReloadRequested(int pageno) noexcept
              << "page:" << pageno;
 #endif
     requestPageRender(pageno, true);
+}
+
+void
+DocumentView::handleReloadPasswordRequired() noexcept
+{
+    const QString msg =
+        m_config.behavior.cache_password
+            ? tr("Auto-reload failed: the document is password-protected "
+                 "and the cached password no longer works.")
+            : tr("Auto-reload failed: the document is password-protected. "
+                 "Enable \"cache_password\" in the config to allow "
+                 "automatic re-authentication on reload.");
+    QMessageBox::warning(this, tr("Auto-reload failed"), msg);
 }
 
 void

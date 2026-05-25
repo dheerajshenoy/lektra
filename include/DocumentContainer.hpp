@@ -2,6 +2,7 @@
 
 #include "Config.hpp"
 #include "DocumentView.hpp"
+#include "ThumbnailView.hpp"
 
 #include <QEvent>
 #include <QHash>
@@ -53,20 +54,18 @@ public:
             m_thumbnail_view->setVisible(!m_thumbnail_view->isVisible());
     }
 
-    inline DocumentView *thumbnailView() const noexcept
+    inline ThumbnailView *thumbnailView() const noexcept
     {
         return m_thumbnail_view;
     }
 
     inline void focusThumbnailView() noexcept
     {
-        focusView(m_thumbnail_view);
+        if (m_thumbnail_view)
+            m_thumbnail_view->setFocus();
     }
 
-    inline void closeThumbnailView() noexcept
-    {
-        closeView(m_thumbnail_view);
-    }
+    void closeThumbnailView() noexcept;
 
     DocumentView *split(DocumentView *view,
                         Qt::Orientation orientation
@@ -108,5 +107,5 @@ private:
     DocumentView *createViewFromTemplate(DocumentView *templateView) noexcept;
     QVBoxLayout *m_layout{nullptr};
     DocumentView *m_current_view{nullptr};
-    DocumentView *m_thumbnail_view{nullptr};
+    ThumbnailView *m_thumbnail_view{nullptr};
 };

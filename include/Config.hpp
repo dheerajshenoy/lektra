@@ -241,6 +241,20 @@ struct Config
         // @default 0.15
         // @added 0.6.9
         float panel_width = 0.15;
+
+        // @desc Font size (in points) for page number labels in the thumbnail
+        // panel
+        // @type int
+        // @default 10
+        // @added 0.7.4
+        int font_size = 10;
+
+        // @desc Highlight the thumbnail of the currently visible page with a
+        // border
+        // @type bool
+        // @default true
+        // @added 0.7.4
+        bool highlight_current_page = true;
     } thumbnail;
     // @endsection
 

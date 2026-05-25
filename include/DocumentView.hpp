@@ -426,6 +426,7 @@ public:
     void CloseFile() noexcept;
     void ToggleCommentMarkers() noexcept;
     void ToggleThumbnailPanel() noexcept;
+    [[nodiscard]] GraphicsImageItem *pageItemAt(int pageno) const noexcept;
     void ToggleAutoResize() noexcept;
     void ToggleTextHighlight() noexcept;
     void ToggleRegionSelect() noexcept;
@@ -502,6 +503,7 @@ private slots:
     void handleHScrollValueChanged(int value) noexcept;
     void handleVScrollValueChanged(int value) noexcept;
     void handleReloadRequested(int pageno = -1) noexcept;
+    void handleReloadPasswordRequired() noexcept;
     void handleDeferredResize() noexcept;
 
 #ifdef WITH_SYNCTEX
@@ -666,6 +668,7 @@ private:
     int m_visual_line_index               = -1;
     bool m_visual_line_mode               = false;
     bool m_thumbnail_mode                 = false;
+    int m_thumbnail_highlighted_page      = -1;
 #ifdef WITH_SYNCTEX
     synctex_scanner_p m_synctex_scanner = nullptr;
 #endif

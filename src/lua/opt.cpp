@@ -387,14 +387,41 @@ static const LuaField thumbnailPanelFields[] = {
         L, static_cast<Config::ThumbnailPanel *>(p)->show_page_numbers);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Page *>(p)->bg = lua_tointeger(L, 3); }},
+{
+    static_cast<Config::ThumbnailPanel *>(p)->show_page_numbers
+        = lua_toboolean(L, 3);
+}},
     {"panel_width",
      [](lua_State *L, P p)
 {
-    lua_pushinteger(L, static_cast<Config::ThumbnailPanel *>(p)->panel_width);
+    lua_pushnumber(L, static_cast<Config::ThumbnailPanel *>(p)->panel_width);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Page *>(p)->fg = lua_tointeger(L, 3); }},
+{
+    static_cast<Config::ThumbnailPanel *>(p)->panel_width
+        = static_cast<float>(lua_tonumber(L, 3));
+}},
+    {"font_size",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::ThumbnailPanel *>(p)->font_size);
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::ThumbnailPanel *>(p)->font_size
+        = lua_tointeger(L, 3);
+}},
+    {"highlight_current_page",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(
+        L, static_cast<Config::ThumbnailPanel *>(p)->highlight_current_page);
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::ThumbnailPanel *>(p)->highlight_current_page
+        = lua_toboolean(L, 3);
+}},
 };
 
 // --- portal ---
