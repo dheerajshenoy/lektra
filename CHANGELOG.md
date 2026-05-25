@@ -46,6 +46,22 @@
 
 ### Bug Fixes
 
+- Fix window title showing `"Argument missing"` warning when `title_format` used `{}`
+  placeholder in the default value (`"{} - lektra"`), which is incompatible with
+  `QString::arg()`. Default changed to `"%1 - lektra"` to match the existing TOML-loading
+  path that already performs the `{}` → `%1` substitution.
+- Fix crash on exit caused by `Lektra::~Lektra()` calling `lua_close(m_L)` before
+  `m_command_manager` was destroyed. Commands registered from Lua hold `LuaRefGuard`
+  `shared_ptr`s whose destructor calls `luaL_unref` — which requires the Lua state to still
+  be alive. `m_command_manager` is now explicitly reset before `lua_close` so those
+  destructors fire in the correct order.
+
+### Improvements
+
+- Change cursor to a crosshair (`Qt::CrossCursor`) when in text-highlight mode, switching
+  to the I-beam only while actively dragging a selection. The default arrow is restored on
+  mode exit.
+
 - Fix `BrowseLinkItem` hover highlight rendering as nearly-black instead of yellow due to
   `QColor` being constructed with float literals `(1.0, 1.0, 0.0)` that were implicitly
   truncated to integers `(1, 1, 0)`. Corrected to `(255, 255, 0, 125)`.

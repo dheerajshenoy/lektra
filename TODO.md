@@ -16,7 +16,6 @@
 - [ ] Add luajit support
 - [ ] Add support for embedded files in PDFs
 - [ ] Password protected PDFs thumbnail view asking for password, do something about it.
-- [ ] Show text highlight brush cursor when highlighting text
 
 ## LOW PRIORITY
 
@@ -32,6 +31,5 @@
 - [ ] Search inside math equations
 - [ ] Separate dark and light mode colors ability
 - [ ] Smart jump under cursor (eg. jump to citation if on citation)
-- [x] Narrow to region
 - [ ] Try to generate outline if not present somehow
 - [ ] Visual line mode, if starting fresh, enable at the viewport

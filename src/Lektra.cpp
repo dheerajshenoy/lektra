@@ -140,6 +140,11 @@ Lektra::Lektra(const QString &sessionName,
 
 Lektra::~Lektra() noexcept
 {
+    // Commands registered from Lua hold LuaRefGuard shared_ptrs that call
+    // luaL_unref in their destructor. Reset before lua_close so the Lua state
+    // is still alive when those destructors run.
+    m_command_manager.reset();
+
 #ifdef WITH_LUA
     if (m_L)
         lua_close(m_L);

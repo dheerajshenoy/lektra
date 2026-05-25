@@ -323,9 +323,9 @@ struct Config
 
         // @desc Title format for the window title
         // @type str
-        // @default "{} - lektra"
+        // @default "%1 - lektra"
         // @added 0.3.0
-        QString title_format = "{} - lektra";
+        QString title_format = "%1 - lektra";
 
         // Required for documentation parsing, do not remove
         using WindowSize = std::array<int, 2>;
