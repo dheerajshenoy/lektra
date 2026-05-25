@@ -670,6 +670,7 @@ Lektra::initConfig() noexcept
         set(portal["border_width"], m_config.portal.border_width);
         set(portal["respect_parent"], m_config.portal.respect_parent);
         set(portal["dim_inactive"], m_config.portal.dim_inactive);
+        set(portal["split"], m_config.portal.split);
     }
 
     // Preview
@@ -1882,9 +1883,6 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
             = QString::fromStdString(argparser.get<std::string>("--config"));
     }
 
-    if (argparser.is_used("single-instance"))
-        m_config.behavior.single_instance = true;
-
     // IPC probe — must happen before construct() so no window is created
     const QString ipcName
         = argparser.is_used("socket")
@@ -1895,8 +1893,10 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 #else
     const bool hasSynctexForward = false;
 #endif
+    const bool singleInstance = argparser.is_used("single-instance")
+                                || readSingleInstanceFromConfig();
     if (hasSynctexForward
-        || (readSingleInstanceFromConfig() && argparser.is_used("files")))
+        || (singleInstance && argparser.is_used("files")))
     {
         QLocalSocket probe;
         probe.connectToServer(ipcName);
@@ -1932,7 +1932,6 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
             probe.waitForBytesWritten(1000);
             probe.disconnectFromServer();
             std::exit(0);
-            return; // exits before construct() — no window created
         }
     }
 
@@ -1941,7 +1940,7 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 
     applyCommandLineOverrides(argparser);
 
-    if (m_config.behavior.single_instance || argparser.is_used("socket"))
+    if (singleInstance || argparser.is_used("socket"))
         startIPCServer(ipcName); // correct place — after construct()
 
     if (argparser.is_used("about"))
@@ -6017,8 +6016,16 @@ Lektra::create_portal(DocumentView *sourceView,
     if (sourceView->portal() || sourceView->is_portal())
         return nullptr;
 
-    DocumentView *newView = OpenFileVSplit(
-        filePath.isEmpty() ? sourceView->filePath() : filePath);
+    const QString target = filePath.isEmpty() ? sourceView->filePath() : filePath;
+
+    bool useHSplit = false;
+    if (m_config.portal.split.compare("horizontal", Qt::CaseInsensitive) == 0)
+        useHSplit = true;
+    else if (m_config.portal.split.compare("smart", Qt::CaseInsensitive) == 0)
+        useHSplit = sourceView->height() > sourceView->width();
+
+    DocumentView *newView = useHSplit ? OpenFileHSplit(target)
+                                      : OpenFileVSplit(target);
     if (!newView)
         return nullptr;
 
@@ -6454,7 +6461,7 @@ Lektra::checkConfigFile(const QString &path) noexcept
 
         {"portal",
          {"border_color", "enabled", "border_width", "respect_parent",
-          "dim_inactive"}},
+          "dim_inactive", "split"}},
 
         {"preview",
          {"border_radius", "close_on_click_outside", "size_ratio", "opacity"}},
@@ -6675,13 +6682,17 @@ Lektra::onIPCDataReady()
                 DocumentContainer *c = m_tab_widget->rootContainer(i);
                 if (!c)
                     continue;
-                DocumentView *v = c->view();
-                if (v && QFileInfo(v->filePath()) == pdfInfo)
+                for (DocumentView *v : c->getAllViews())
                 {
-                    existing = v;
-                    m_tab_widget->setCurrentIndex(i);
-                    break;
+                    if (v && QFileInfo(v->filePath()) == pdfInfo)
+                    {
+                        existing = v;
+                        m_tab_widget->setCurrentIndex(i);
+                        break;
+                    }
                 }
+                if (existing)
+                    break;
             }
 
             if (existing)

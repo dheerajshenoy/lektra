@@ -434,6 +434,13 @@ static const LuaField portalFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::Portal *>(p)->enabled = lua_toboolean(L, 3); }},
+    {"split",
+     [](lua_State *L, P p)
+{
+    lua_pushstring(L, static_cast<Config::Portal *>(p)->split.toUtf8().constData());
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Portal *>(p)->split = lua_tostring(L, 3); }},
 };
 
 // --- window ---

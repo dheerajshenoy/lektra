@@ -282,6 +282,13 @@ struct Config
         // @default false
         // @added 0.6.5
         bool dim_inactive = false;
+
+        // @desc Split direction for the portal view ("vertical", "horizontal", or
+        // "smart" — picks vertical when the view is wider than tall, horizontal otherwise)
+        // @type str
+        // @default "vertical"
+        // @added 0.7.4
+        QString split = "vertical";
     } portal;
     // @endsection
 

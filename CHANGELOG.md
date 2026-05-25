@@ -59,8 +59,18 @@
 - SyncTeX forward search via IPC now reuses an already-open tab for the target PDF
   instead of opening a new one each time. The matching tab is brought to focus and
   the view jumps to the synctex position in-place.
+- Add `portal.split` config option (`"vertical"`, `"horizontal"`, or `"smart"`).
+  Previously portals always opened in a vertical split. `"smart"` automatically picks
+  vertical when the view is wider than tall and horizontal otherwise.
 
 ### Bug Fixes
+
+- Fix `--single-instance` CLI flag not triggering IPC forwarding. The probe condition
+  used `readSingleInstanceFromConfig()` (reads the TOML file) and ignored the in-memory
+  flag set by `--single-instance`, so the flag only started a server but never forwarded
+  to an existing instance. Both sources are now combined before the probe runs.
+- Fix SyncTeX IPC tab reuse only searching the root view of each container, missing PDFs
+  open in split panes. Now uses `getAllViews()` to search all views in the container.
 
 - Fix window title showing `"Argument missing"` warning when `title_format` used `{}`
   placeholder in the default value (`"{} - lektra"`), which is incompatible with
