@@ -825,6 +825,38 @@ GraphicsView::paintEvent(QPaintEvent *event)
 
     QPainter painter(viewport());
 
+    // Narrow-to-region: paint over everything outside the narrow rect with
+    // the scene background so the region truly appears as the full content.
+    if (m_is_narrow_clip && m_narrow_scene_rect.isValid())
+    {
+        const QRect narrowVp
+            = mapFromScene(m_narrow_scene_rect).boundingRect()
+                  .intersected(viewport()->rect());
+        const QRect vp = viewport()->rect();
+        const QColor bg
+            = scene() ? scene()->backgroundBrush().color()
+                      : viewport()->palette().window().color();
+
+        // Top strip
+        if (narrowVp.top() > vp.top())
+            painter.fillRect(vp.left(), vp.top(), vp.width(),
+                             narrowVp.top() - vp.top(), bg);
+        // Bottom strip
+        if (narrowVp.bottom() < vp.bottom())
+            painter.fillRect(vp.left(), narrowVp.bottom() + 1, vp.width(),
+                             vp.bottom() - narrowVp.bottom(), bg);
+        // Left strip (between top/bottom strips)
+        if (narrowVp.left() > vp.left())
+            painter.fillRect(vp.left(), narrowVp.top(),
+                             narrowVp.left() - vp.left(), narrowVp.height(),
+                             bg);
+        // Right strip
+        if (narrowVp.right() < vp.right())
+            painter.fillRect(narrowVp.right() + 1, narrowVp.top(),
+                             vp.right() - narrowVp.right(), narrowVp.height(),
+                             bg);
+    }
+
     // --- Dimming Logic ---
     bool shouldDim = m_config.split.dim_inactive && !m_is_active;
 

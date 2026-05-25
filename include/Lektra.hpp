@@ -107,6 +107,8 @@ public:
     void ToggleTextSelection() noexcept;
     void ToggleTextHighlight() noexcept;
     void ToggleRegionSelect() noexcept;
+    void NarrowToRegion() noexcept;
+    void WideRegion() noexcept;
     void ToggleAnnotRect() noexcept;
     void ToggleAnnotSelect() noexcept;
     void ToggleAnnotPopup() noexcept;

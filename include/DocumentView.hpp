@@ -427,6 +427,9 @@ public:
     void ToggleAnnotSelect() noexcept;
     void ToggleAnnotPopup() noexcept;
     void ToggleTextSelection() noexcept;
+    void NarrowToRegion() noexcept;
+    void WideRegion() noexcept;
+    inline bool isNarrowed() const noexcept { return m_is_narrow; }
     void GoBackHistory() noexcept;
     void GoForwardHistory() noexcept;
     void ClearKBHintsOverlay() noexcept;
@@ -535,6 +538,9 @@ private:
     void SaveRegionAsImage(QRectF area) noexcept;
     void OpenRegionInViewer(QRectF area,
                             bool withDefaultViewer = false) noexcept;
+    void applyNarrow(QRectF sceneRect) noexcept;
+    void refreshNarrowVisuals() noexcept;
+    QRectF narrowSceneRect() const noexcept;
     bool waitUntilReadableAsync() noexcept;
     void onFileReloadRequested(const QString &path) noexcept;
     void tryReloadLater(int attempt) noexcept;
@@ -640,6 +646,11 @@ private:
     // Portal
     DocumentView *m_source_view               = nullptr;
     DocumentView *m_portal_view               = nullptr;
+    // Narrow to region
+    bool m_is_narrow                          = false;
+    int m_narrow_page                         = -1;
+    QRectF m_narrow_local_normalized;
+    QRectF m_layout_scene_rect;  // full scene rect, unaffected by narrow override
     // Visual Line Mode
     QGraphicsPathItem *m_visual_line_item     = nullptr;
     int m_visual_line_index                   = -1;

@@ -48,6 +48,25 @@ public:
         viewport()->update();
     }
 
+    inline void setNarrowRect(const QRectF &sceneRect) noexcept
+    {
+        m_narrow_scene_rect = sceneRect;
+        m_is_narrow_clip    = true;
+        viewport()->update();
+    }
+
+    inline void clearNarrowRect() noexcept
+    {
+        m_narrow_scene_rect = {};
+        m_is_narrow_clip    = false;
+        viewport()->update();
+    }
+
+    inline bool isNarrowClip() const noexcept
+    {
+        return m_is_narrow_clip;
+    }
+
     inline void setPortal(bool state) noexcept
     {
         m_is_portal = state;
@@ -296,6 +315,8 @@ private:
     bool m_hbarEnabled                               = true;
     bool m_is_active                                 = false;
     bool m_is_portal                                 = false;
+    bool m_is_narrow_clip                            = false;
+    QRectF m_narrow_scene_rect;
     const Config &m_config;
     QRectF m_visual_line_rect;
     QTimer m_scrollbar_hide_timer;

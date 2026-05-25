@@ -42,6 +42,9 @@ Document view helpers and per-document actions.
 | `view:rotation()` | `number` | Rotation in degrees. |
 | `view:set_rotation(r)` | — | Set rotation in degrees. |
 | `view:region_select(callback)` | — | Enter rubber-band selection mode. When the user draws a rectangle the callback fires with `{ x, y, w, h }` (scene coordinates) and the view returns to normal. Bypasses the default context menu. |
+| `view:narrow_to_region()` | — | Enter rubber-band selection mode and narrow the view to the drawn rectangle. If the view is already narrowed, widens it instead (toggle). |
+| `view:wide_region()` | — | Exit narrow mode and restore the full document view. No-op if not narrowed. |
+| `view:is_narrowed()` | `boolean` | Whether the view is currently in narrow mode. |
 | `view:rotate_clock()` | — | Rotate the page 90° clockwise. |
 | `view:rotate_anticlock()` | — | Rotate the page 90° counter-clockwise. |
 | `view:flip_horizontal()` | — | Toggle horizontal flip. |
@@ -128,6 +131,21 @@ if v then
     v:goto_page(1)
     v:set_zoom(1.5)
 end
+```
+
+#### Narrow to region example
+
+```lua
+-- Toggle narrow mode on the current view
+lektra.cmd.register("toggle_narrow", function()
+    local v = lektra.view.current()
+    if not v then return end
+    if v:is_narrowed() then
+        v:wide_region()
+    else
+        v:narrow_to_region()
+    end
+end, "Narrow view to selected region (toggle)")
 ```
 
 #### Region selection example

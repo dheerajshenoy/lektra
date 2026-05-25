@@ -379,6 +379,19 @@ Lektra::initMenubar() noexcept
     m_actionToggleStatusbar->setCheckable(true);
     m_actionToggleStatusbar->setChecked(!m_statusbar->isHidden());
 
+    m_viewMenu->addSeparator();
+
+    m_viewMenu->addAction(
+        tr("Narrow to Region\t%1")
+            .arg(m_config.keybinds["narrow_to_region"].join(", ")),
+        this, &Lektra::NarrowToRegion);
+
+    m_viewMenu->addAction(
+        tr("Widen\t%1").arg(m_config.keybinds["wide_region"].join(", ")),
+        this, &Lektra::WideRegion);
+
+    m_viewMenu->addSeparator();
+
     m_actionInvertColor = m_viewMenu->addAction(
         tr("Invert Color\t%1")
             .arg(m_config.keybinds["invert_color"].join(", ")),
@@ -3205,6 +3218,22 @@ Lektra::ToggleRegionSelect() noexcept
     m_doc->ToggleRegionSelect();
 }
 
+void
+Lektra::NarrowToRegion() noexcept
+{
+    if (!m_doc)
+        return;
+    m_doc->NarrowToRegion();
+}
+
+void
+Lektra::WideRegion() noexcept
+{
+    if (!m_doc)
+        return;
+    m_doc->WideRegion();
+}
+
 // Go to the first page
 void
 Lektra::FirstPage() noexcept
@@ -4691,6 +4720,12 @@ Lektra::initCommands() noexcept
     m_command_manager->reg(
         "selection_mode_region", tr("Switch to region selection mode"),
         [this](const QStringList &) { ToggleRegionSelect(); });
+    m_command_manager->reg(
+        "narrow_to_region", tr("Narrow view to selected region"),
+        [this](const QStringList &) { NarrowToRegion(); });
+    m_command_manager->reg(
+        "wide_region", tr("Exit narrow region (widen)"),
+        [this](const QStringList &) { WideRegion(); });
 
     // Fit modes
     m_command_manager->reg("fit_width", tr("Fit page to window width"),

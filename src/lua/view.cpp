@@ -1069,6 +1069,31 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 0;
                 }),
 
+    VIEW_METHOD("narrow_to_region",
+                {
+                    if (*view)
+                        (*view)->NarrowToRegion();
+                    return 0;
+                }),
+
+    VIEW_METHOD("wide_region",
+                {
+                    if (*view)
+                        (*view)->WideRegion();
+                    return 0;
+                }),
+
+    VIEW_METHOD("is_narrowed",
+                {
+                    if (*view)
+                    {
+                        lua_pushboolean(L, (*view)->isNarrowed());
+                        return 1;
+                    }
+                    lua_pushnil(L);
+                    return 1;
+                }),
+
     VIEW_METHOD("rotate_clock",
                 {
                     if (*view)

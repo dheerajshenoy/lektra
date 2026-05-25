@@ -3426,6 +3426,8 @@ DocumentView::updateSceneRect() noexcept
     const double viewW = m_gview->viewport()->width();
     const double viewH = m_gview->viewport()->height();
 
+    // Compute the full layout rect without touching the view yet.
+    QRectF layoutRect;
     if (m_layout_mode == LayoutMode::SINGLE)
     {
         const QSizeF page    = pageSceneSize(m_pageno);
@@ -3433,19 +3435,17 @@ DocumentView::updateSceneRect() noexcept
         const double yMargin = std::max(0.0, (viewH - page.height()) / 2.0);
         const double sceneW  = std::max(viewW, page.width());
         const double sceneH  = std::max(viewH, page.height());
-        m_gview->setSceneRect(-xMargin, -yMargin, sceneW, sceneH);
+        layoutRect           = QRectF(-xMargin, -yMargin, sceneW, sceneH);
     }
     else if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
         const double totalWidth = totalPageExtent();
         const double sceneH     = std::max(viewH, m_max_page_cross_extent);
         const double xMargin    = std::max(0.0, (viewW - totalWidth) / 2.0);
-        // yMargin relative to current page so scrolling to a shorter page
-        // doesn't shift content
         const double yMargin
             = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
-        m_gview->setSceneRect(-xMargin, -yMargin, totalWidth + 2.0 * xMargin,
-                              sceneH);
+        layoutRect = QRectF(-xMargin, -yMargin, totalWidth + 2.0 * xMargin,
+                            sceneH);
     }
     else if (m_layout_mode == LayoutMode::BOOK)
     {
@@ -3454,8 +3454,8 @@ DocumentView::updateSceneRect() noexcept
         const double cappedSceneW = std::min(sceneW, 20000.0);
         const double yMargin
             = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
-        m_gview->setSceneRect(0, -yMargin, cappedSceneW,
-                              totalHeight + 2.0 * yMargin);
+        layoutRect = QRectF(0, -yMargin, cappedSceneW,
+                            totalHeight + 2.0 * yMargin);
     }
     else
     {
@@ -3465,16 +3465,29 @@ DocumentView::updateSceneRect() noexcept
         const double yMargin
             = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
 
-        QRectF sceneRect(0, -yMargin, sceneW, totalHeight + 2.0 * yMargin);
+        layoutRect = QRectF(0, -yMargin, sceneW, totalHeight + 2.0 * yMargin);
 
         if (m_thumbnail_mode)
-        {
-            // Unite the calculated rect with the actual bounding box of all
-            // items to ensure labels are included.
-            sceneRect = sceneRect.united(m_gscene->itemsBoundingRect());
-        }
+            layoutRect = layoutRect.united(m_gscene->itemsBoundingRect());
+    }
 
-        m_gview->setSceneRect(sceneRect);
+    // Always keep the layout rect up to date for page positioning.
+    m_layout_scene_rect = layoutRect;
+
+    if (m_is_narrow)
+    {
+        // Only make one setSceneRect call to avoid double scroll-signal firing
+        // that would create a render loop (each setSceneRect can change the
+        // scrollbar value and restart the render timer).
+        const QRectF nr = narrowSceneRect();
+        if (nr.isValid())
+            m_gview->setSceneRect(nr);
+        else
+            m_gview->setSceneRect(layoutRect);
+    }
+    else
+    {
+        m_gview->setSceneRect(layoutRect);
     }
 }
 
@@ -3961,6 +3974,11 @@ DocumentView::clearDocumentItems() noexcept
 {
     invalidateVisiblePagesCache();
 
+    // Reset narrow state when document is cleared
+    m_is_narrow   = false;
+    m_narrow_page = -1;
+    m_gview->clearNarrowRect();
+
     m_page_annotations_hash.clear();
     m_page_links_hash.clear();
     m_page_items_hash.clear();
@@ -4065,7 +4083,8 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
 
     const double pageW = logicalSize.width();
     const double pageH = logicalSize.height();
-    const QRectF sr    = m_gview->sceneRect();
+    const QRectF sr    = m_layout_scene_rect.isValid() ? m_layout_scene_rect
+                                                        : m_gview->sceneRect();
 
     if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
@@ -4105,7 +4124,8 @@ DocumentView::createAndAddPageItem(int pageno, const QImage &img) noexcept
     const QSizeF logicalSize = pageSceneSize(pageno);
     const double pageW       = logicalSize.width();
     const double pageH       = logicalSize.height();
-    const QRectF sr          = m_gview->sceneRect();
+    const QRectF sr          = m_layout_scene_rect.isValid() ? m_layout_scene_rect
+                                                              : m_gview->sceneRect();
 
     if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
@@ -5163,6 +5183,9 @@ DocumentView::handleRegionSelectRequested(QRectF area) noexcept
         menu->deleteLater();
     });
 
+    menu->addAction(tr("Narrow to Region"),
+                    [this, area]() { applyNarrow(area); });
+    menu->addSeparator();
     menu->addAction(tr("Copy Region as Image"),
                     [this, area]() { CopyRegionAsImage(area); });
     menu->addAction(tr("Copy Region as Image (Custom DPI)..."),
@@ -5182,6 +5205,101 @@ DocumentView::handleRegionSelectRequested(QRectF area) noexcept
 #endif
 
     menu->popup(QCursor::pos());
+}
+
+QRectF
+DocumentView::narrowSceneRect() const noexcept
+{
+    const auto *pageItem = m_page_items_hash.value(m_narrow_page, nullptr);
+    if (!pageItem)
+        return {};
+    const QSizeF sz = pageItem->boundingRect().size();
+    if (sz.isEmpty())
+        return {};
+    const QRectF localRect(m_narrow_local_normalized.left() * sz.width(),
+                            m_narrow_local_normalized.top() * sz.height(),
+                            m_narrow_local_normalized.width() * sz.width(),
+                            m_narrow_local_normalized.height() * sz.height());
+    return pageItem->mapToScene(localRect).boundingRect();
+}
+
+void
+DocumentView::refreshNarrowVisuals() noexcept
+{
+    const QRectF nr = narrowSceneRect();
+    if (!nr.isValid())
+        return;
+
+    m_gview->setNarrowRect(nr);
+    m_gview->setSceneRect(nr);
+}
+
+void
+DocumentView::applyNarrow(QRectF sceneRect) noexcept
+{
+    int pageno;
+    GraphicsImageItem *pageItem;
+    if (!pageAtScenePos(sceneRect.center(), pageno, pageItem))
+        return;
+
+    const QRectF localRect = pageItem->mapFromScene(sceneRect).boundingRect();
+    const QSizeF sz        = pageItem->boundingRect().size();
+    if (sz.isEmpty())
+        return;
+
+    m_narrow_page              = pageno;
+    m_narrow_local_normalized  = QRectF(localRect.left() / sz.width(),
+                                        localRect.top() / sz.height(),
+                                        localRect.width() / sz.width(),
+                                        localRect.height() / sz.height());
+    m_is_narrow                = true;
+
+    // Zoom to fit the narrow region in the viewport
+    const double vw = m_gview->viewport()->width();
+    const double vh = m_gview->viewport()->height();
+    const double nw = sceneRect.width();
+    const double nh = sceneRect.height();
+    if (nw > 0 && nh > 0)
+    {
+        const double fitZoom = std::min(vw * m_current_zoom / nw,
+                                        vh * m_current_zoom / nh);
+        setZoom(std::clamp(fitZoom, MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR), false);
+    }
+
+    refreshNarrowVisuals();
+    m_gview->centerOn(narrowSceneRect().center());
+    m_gview->flashScrollbars();
+
+    // Restore text selection mode — region select mode was active during drawing
+    const auto restoreMode
+        = (m_gview->getDefaultMode() != GraphicsView::Mode::None)
+              ? m_gview->getDefaultMode()
+              : GraphicsView::Mode::TextSelection;
+    m_gview->setMode(restoreMode);
+    emit selectionModeChanged(restoreMode);
+}
+
+void
+DocumentView::NarrowToRegion() noexcept
+{
+    if (m_is_narrow)
+    {
+        WideRegion();
+        return;
+    }
+    startRegionSelect([this](QRectF area) { applyNarrow(area); });
+}
+
+void
+DocumentView::WideRegion() noexcept
+{
+    if (!m_is_narrow)
+        return;
+    m_is_narrow   = false;
+    m_narrow_page = -1;
+    m_gview->clearNarrowRect();
+    updateSceneRect();
+    m_gview->flashScrollbars();
 }
 
 // Handle annotation rectangle requested
@@ -5323,7 +5441,8 @@ DocumentView::zoomHelper(const PageLocation &loc) noexcept
 void
 DocumentView::repositionPages()
 {
-    const QRectF sr = m_gview->sceneRect();
+    const QRectF sr = m_layout_scene_rect.isValid() ? m_layout_scene_rect
+                                                     : m_gview->sceneRect();
 
     // For VERTICAL, each page may have a different width so we must
     // compute the centering offset per-page inside the loop. Using a single
@@ -5431,6 +5550,9 @@ DocumentView::repositionPages()
 
     if (m_visual_line_mode)
         snapVisualLine(false);
+
+    if (m_is_narrow)
+        refreshNarrowVisuals();
 }
 
 void

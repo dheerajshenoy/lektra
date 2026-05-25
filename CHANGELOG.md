@@ -4,6 +4,17 @@
 
 ### New Features
 
+- Add **narrow to region** (Emacs-style). Invoke `narrow_to_region` (or *View → Narrow to
+  Region*) to enter rubber-band selection; the chosen rectangle becomes the entire viewport —
+  scrolling is constrained to it, everything outside is painted over with the background
+  colour, and all interactions (text selection, zoom, search, links) work normally within the
+  region. `wide_region` (or *View → Widen*) restores the full document view. The narrow state
+  survives zoom changes: the region is stored in normalised page-local coordinates and
+  recomputed from the page item's current transform after each re-render. The narrow region is
+  also accessible from the region-selection context menu ("Narrow to Region").
+- Expose `view:narrow_to_region()`, `view:wide_region()`, and `view:is_narrowed() -> boolean`
+  in the Lua view API.
+
 - Add horizontal and vertical page flip (`flip_horizontal` / `flip_vertical` commands, default
   bindings `|` / `_`). Flip state is stored in `Model` alongside rotation and propagated
   through every coordinate-space transform (`buildPageToDevMatrix` / `buildRenderTransform`

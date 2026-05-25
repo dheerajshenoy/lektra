@@ -4,9 +4,6 @@
 
 ## HIGH PRIORITY
 
-- Lua
-    - [ ] **lektra.view.region_select()** to select region of opened file and return coordinates, for use in copy/paste and other features
-
 - [ ] Allow for command arguments
 - [ ] Tab detach drag and drop to new window spawns new useless window
 - [ ] Show visually, and identifier for split files (if they remain as original file) next to their name. Maybe,
@@ -35,6 +32,6 @@
 - [ ] Search inside math equations
 - [ ] Separate dark and light mode colors ability
 - [ ] Smart jump under cursor (eg. jump to citation if on citation)
-- [ ] Narrow to region
+- [x] Narrow to region
 - [ ] Try to generate outline if not present somehow
 - [ ] Visual line mode, if starting fresh, enable at the viewport
