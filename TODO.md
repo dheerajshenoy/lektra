@@ -6,9 +6,6 @@
 
 - [ ] Allow for command arguments
 - [ ] Tab detach drag and drop to new window spawns new useless window
-- [ ] Show visually, and identifier for split files (if they remain as original file) next to their name. Maybe,
-      a numbered gutter badge, small [1], [2] badge in the corner of each split — same number means same file.
-      Simple and non-intrusive.
 - [ ] Don't add connection to annotation when in non-annotatable mode
 
 ## MEDIUM PRIORITY

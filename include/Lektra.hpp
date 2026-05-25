@@ -13,6 +13,7 @@
 #include "BookmarkPicker.hpp"
 #include "CommandManager.hpp"
 #include "OutlinePicker.hpp"
+#include "FilePicker.hpp"
 #include "RecentFilesPicker.hpp"
 #include "RecentFilesStore.hpp"
 #include "SearchBar.hpp"
@@ -205,6 +206,7 @@ public:
     void TabsCloseOthers() noexcept;
     void Reshow_jump_marker() noexcept;
     void Show_recent_files_picker() noexcept;
+    void Show_file_picker() noexcept;
     void Copy_page_image() noexcept;
     void Reopen_last_closed_file() noexcept;
     void AddBookmark() noexcept;
@@ -431,6 +433,7 @@ private:
     HighlightSearchPicker *m_highlight_search_picker = nullptr;
     CommentSearchPicker *m_comment_search_picker     = nullptr;
     RecentFilesPicker *m_recent_file_picker          = nullptr;
+    FilePicker *m_file_picker                        = nullptr;
     BookmarkPicker *m_bookmark_picker                = nullptr;
 
     BookmarkManager m_bookmark_manager;

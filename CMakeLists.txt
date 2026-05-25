@@ -197,6 +197,7 @@ add_executable(${PROJECT_NAME}
     src/TabBar.cpp
     src/Picker.cpp
     src/RecentFilesPicker.cpp
+    src/FilePicker.cpp
     src/OutlinePicker.cpp
     src/CommentSearchPicker.cpp
     src/ScrollBar.cpp

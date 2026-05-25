@@ -1307,6 +1307,7 @@ Lektra::initDefaultKeybinds() noexcept
         {"annot_popup_mode", "5"},
         {"link_hint_visit", "f"},
         {"file_open_tab", "o"},
+        {"file_picker", "Ctrl+Shift+o"},
         {"file_save", "Ctrl+s"},
         {"visual_line_mode", "v"},
         {"undo", "u"},
@@ -4716,6 +4717,9 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("files_recent", tr("Show recently opened files"),
                            [this](const QStringList &)
     { Show_recent_files_picker(); });
+    m_command_manager->reg("file_picker", tr("Open file picker"),
+                           [this](const QStringList &)
+    { Show_file_picker(); });
 
     // Annotation modes
     m_command_manager->reg(
@@ -6160,6 +6164,20 @@ Lektra::Show_recent_files_picker() noexcept
     // Always update the recent files list before launching
     m_recent_file_picker->setRecentFiles(recentFiles);
     m_recent_file_picker->launch();
+}
+
+void
+Lektra::Show_file_picker() noexcept
+{
+    if (!m_file_picker)
+    {
+        m_file_picker = new FilePicker(m_config.picker, this);
+        m_file_picker->setKeybindings(m_picker_keybinds);
+        connect(m_file_picker, &FilePicker::fileRequested, this,
+                [this](const QString &file)
+        { OpenFileInNewTab(file, [this](void *) { m_doc->setFocus(); }); });
+    }
+    m_file_picker->launch();
 }
 
 #ifndef NDEBUG

@@ -62,6 +62,12 @@
 - Add `portal.split` config option (`"vertical"`, `"horizontal"`, or `"smart"`).
   Previously portals always opened in a vertical split. `"smart"` automatically picks
   vertical when the view is wider than tall and horizontal otherwise.
+- Add `FilePicker` — an Emacs-style find-file picker (`file_picker` command, default
+  binding `Ctrl+Shift+o`). The prompt label shows the current directory (abbreviated
+  with `~`); the search box filters entries in that directory. Typing a path with a `/`
+  separator auto-navigates to the directory part. Tab completes the best match:
+  directories are entered immediately, files are completed in the input. Backspace/Delete
+  on an empty input navigates up one directory.
 
 ### Bug Fixes
 
