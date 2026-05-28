@@ -6,6 +6,11 @@
     <b><i>High-performance document and image viewer that prioritizes screen space and control.</i></b>
 </p>
 
+<!-- Note -->
+> [!NOTE]
+> This project is in early development and is not yet ready for production use. Expect frequent breaking changes and instability.
+> If you want to contribute, please check out the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines on how to get involved.
+
 <p align="center">
     <a href="https://dheerajshenoy.github.io/lektra" target="_blank">Homepage</a> |
     <a href="https://dheerajshenoy.github.io/lektra/installation.html" target="_blank">Installation</a> |
