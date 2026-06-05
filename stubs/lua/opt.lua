@@ -149,6 +149,9 @@ lektra.opt.selection = {}
 ---@class OptSplit
 ---@field dim_inactive boolean Dim the inactive split pane.
 ---@field dim_inactive_opacity number Opacity of the inactive pane when dimmed (0.0–1.0).
+---@field focus_border boolean Draw a border around the currently focused split.
+---@field focus_border_color integer Border color as an ARGB hex integer (e.g. 0xFF4FC3F7).
+---@field focus_border_width integer Border thickness in pixels.
 ---@field focus_follows_mouse boolean Focus a split pane when the mouse enters it.
 ---@field mouse_follows_focus boolean Warp the mouse to the focused pane.
 lektra.opt.split = {}

@@ -1190,6 +1190,9 @@ Lektra::initConfig() noexcept
         set(split["focus_follows_mouse"], m_config.split.focus_follows_mouse);
         set(split["dim_inactive"], m_config.split.dim_inactive);
         set(split["dim_inactive_opacity"], m_config.split.dim_inactive_opacity);
+        set(split["focus_border"], m_config.split.focus_border);
+        set_color(split["focus_border_color"], m_config.split.focus_border_color);
+        set(split["focus_border_width"], m_config.split.focus_border_width);
     }
 
     // Behavior
@@ -6551,7 +6554,8 @@ Lektra::checkConfigFile(const QString &path) noexcept
 
         {"split",
          {"mouse_follows_focus", "focus_follows_mouse", "dim_inactive",
-          "dim_inactive_opacity"}},
+          "dim_inactive_opacity", "focus_border", "focus_border_color",
+          "focus_border_width"}},
 
         {"behavior",
          {"preload_pages", "confirm_on_quit", "undo_limit",

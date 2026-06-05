@@ -679,6 +679,7 @@ static const LuaField selectionFields[] = {
 };
 
 // --- split ---
+// NOTE: must remain sorted alphabetically (binary search in findField)
 static const LuaField splitFields[] = {
     {"dim_inactive",
      [](lua_State *L, P p)
@@ -698,6 +699,30 @@ static const LuaField splitFields[] = {
 {
     static_cast<Config::Split *>(p)->dim_inactive_opacity = lua_tonumber(L, 3);
 }},
+
+    {"focus_border",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Split *>(p)->focus_border);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Split *>(p)->focus_border = lua_toboolean(L, 3); }},
+
+    {"focus_border_color",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Split *>(p)->focus_border_color);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Split *>(p)->focus_border_color = lua_tointeger(L, 3); }},
+
+    {"focus_border_width",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Split *>(p)->focus_border_width);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Split *>(p)->focus_border_width = lua_tointeger(L, 3); }},
 
     {"focus_follows_mouse",
      [](lua_State *L, P p)

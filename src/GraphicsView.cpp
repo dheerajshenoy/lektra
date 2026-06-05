@@ -907,6 +907,16 @@ GraphicsView::paintEvent(QPaintEvent *event)
         }
     }
 
+    if (m_config.split.focus_border && m_config.split.focus_border_width > 0
+        && m_is_active && !m_is_portal)
+    {
+        painter.setRenderHint(QPainter::Antialiasing, false);
+        QPen pen(QColor(m_config.split.focus_border_color),
+                 m_config.split.focus_border_width);
+        painter.setPen(pen);
+        painter.drawRect(viewport()->rect().adjusted(1, 1, -1, -1));
+    }
+
     if (m_config.portal.border_width > 0 && m_config.portal.enabled
         && m_is_portal)
     {

@@ -59,6 +59,13 @@
 - SyncTeX forward search via IPC now reuses an already-open tab for the target PDF
   instead of opening a new one each time. The matching tab is brought to focus and
   the view jumps to the synctex position in-place.
+- Add focus border for the active split pane. Three new `split` config options:
+  `split.focus_border` (bool, default `false`) enables the feature;
+  `split.focus_border_color` (ARGB integer, default `0xFF4FC3F7`) sets the border colour;
+  `split.focus_border_width` (integer, default `2`) sets the thickness in pixels. All three
+  are exposed in the Lua opt API as `lektra.opt.split.focus_border`,
+  `lektra.opt.split.focus_border_color`, and `lektra.opt.split.focus_border_width`.
+
 - Add `portal.split` config option (`"vertical"`, `"horizontal"`, or `"smart"`).
   Previously portals always opened in a vertical split. `"smart"` automatically picks
   vertical when the view is wider than tall and horizontal otherwise.

@@ -612,6 +612,24 @@ struct Config
         // @default 0.5f
         // @added 0.6.2
         float dim_inactive_opacity = 0.5f; // 0.0 (no dim) to 1.0 (fully dimmed)
+
+        // @desc Show a border around the focused split
+        // @type bool
+        // @default false
+        // @added 0.6.3
+        bool focus_border = false;
+
+        // @desc Color of the focus border (ARGB hex)
+        // @type uint32_t
+        // @default 0xFF4FC3F7
+        // @added 0.6.3
+        uint32_t focus_border_color = 0xFF4FC3F7;
+
+        // @desc Width of the focus border in pixels
+        // @type int
+        // @default 2
+        // @added 0.6.3
+        int focus_border_width = 2;
     } split;
     // @endsection
 
