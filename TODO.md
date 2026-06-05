@@ -4,6 +4,7 @@
 
 ## HIGH PRIORITY
 
+- [ ] Improve `--check-config`
 - [ ] Tab detach drag and drop to new window spawns new useless window
 - [ ] Allow for command arguments
 - [ ] Don't add connection to annotation when in non-annotatable mode
@@ -12,16 +13,14 @@
 
 - [ ] Add luajit support
 - [ ] Add support for embedded files in PDFs
+- [ ] Underline Annotation
 
-## LOW PRIORITY
+## LUA PLUGIN IDEAS
 
 - [ ] Equation OCR to LaTeX
-- [ ] Table exporter to CSV/Excel/Numpy
+- [ ] Table exporter to tex/CSV/Excel/Numpy
 - [ ] Semantic search
 - [ ] Finding citation from folder
 - [ ] Explain selection
-- [ ] Underline Annotation
-- [ ] Peek equation dependencies
 - [ ] Search inside math equations
 - [ ] Try to generate outline if not present somehow
-- [ ] Visual line mode, if starting fresh, enable at the viewport
