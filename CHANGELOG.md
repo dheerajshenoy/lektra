@@ -89,6 +89,11 @@
 
 ### Bug Fixes
 
+- Fix highlight annotation hover effect triggering on parts of a line before the
+  annotation starts. `HighlightAnnotation` now overrides `shape()` to return the
+  union of its individual segment rects instead of the full bounding rect, so Qt's
+  hover hit-testing only fires when the cursor is actually over a highlighted segment.
+
 - Fix background colour being overridden by the system palette colour on scroll
   or zoom. `initGui` was setting the background brush only on `m_gscene`
   (`QGraphicsScene`), whose `drawBackground()` only fills the scene rect.

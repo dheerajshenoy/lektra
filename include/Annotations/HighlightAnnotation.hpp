@@ -49,6 +49,17 @@ public:
         return m_rect.adjusted(-margin, -margin, margin, margin);
     }
 
+    QPainterPath shape() const override
+    {
+        QPainterPath path;
+        if (m_rects.empty())
+            path.addRect(m_rect);
+        else
+            for (const QRectF &r : m_rects)
+                path.addRect(r);
+        return path;
+    }
+
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
                QWidget *widget) override
     {
