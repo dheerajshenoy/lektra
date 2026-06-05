@@ -15,5 +15,6 @@ TAGS
 .direnv/
 pkg/
 *.tar.gz
-cmake/
+cmake/*
+!cmake/Info.plist.in
 compile_commands.json

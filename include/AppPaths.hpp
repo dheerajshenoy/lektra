@@ -12,7 +12,7 @@ namespace AppPaths
 {
 
 #if defined(__APPLE__) && defined(__MACH__)
-QString
+static QString
 bundleResourcesPath() noexcept
 {
     const QDir appDir(QCoreApplication::applicationDirPath());
@@ -61,7 +61,7 @@ appTutorialPath() noexcept
     }
 #endif
 
-#if defined(__linux__)
+#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
     return QString("%1/share/doc/%2/tutorial.pdf")
         .arg(APP_INSTALL_PREFIX)
         .arg(APP_NAME);

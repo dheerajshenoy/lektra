@@ -9,27 +9,44 @@
 #include <fcntl.h>
 #include <qcoreapplication.h>
 #include <signal.h>
+#include <string>
+#include <string_view>
+#include <vector>
 
-#ifdef linux
+#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 #include <sys/resource.h>
 #include <unistd.h>
 #elif _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include <string>
-#include <vector>
 #endif
 
-#ifdef linux
+#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
 static std::string
 get_self_executable_path()
 {
+#ifdef __APPLE__
+    uint32_t size = 0;
+    _NSGetExecutablePath(nullptr, &size);
+    if (size == 0)
+        return std::string{};
+
+    std::vector<char> buf(size);
+    if (_NSGetExecutablePath(buf.data(), &size) != 0)
+        return std::string{};
+
+    return std::string(buf.data());
+#else
     char buf[PATH_MAX + 1];
     const ssize_t n = ::readlink("/proc/self/exe", buf, PATH_MAX);
     if (n <= 0)
         return std::string{};
     buf[n] = '\0';
     return std::string(buf);
+#endif
 }
 
 static void
