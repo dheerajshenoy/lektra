@@ -1,6 +1,7 @@
 #include "GraphicsView.hpp"
 
 #include "Config.hpp"
+#include "utils.hpp"
 
 #include <QApplication>
 #include <QGraphicsItem>
@@ -819,6 +820,19 @@ GraphicsView::forwardMouseEvent(QScrollBar *bar, QMouseEvent *event)
 }
 
 void
+GraphicsView::drawBackground(QPainter *painter, const QRectF & /*rect*/)
+{
+    // Fill the full viewport in scene coordinates so the gutter (the space
+    // around pages) always shows the configured background colour.  Qt only
+    // calls drawBackground() for dirty regions; if we relied on the brush
+    // mechanism the gutter would never be repainted by item-change events and
+    // would show the system palette colour instead.
+    const QColor bg = rgbaToQColor(m_config.window.bg);
+    painter->fillRect(mapToScene(viewport()->rect()).boundingRect(),
+                      bg.alpha() > 0 ? bg : viewport()->palette().window().color());
+}
+
+void
 GraphicsView::paintEvent(QPaintEvent *event)
 {
     QGraphicsView::paintEvent(event);
@@ -833,9 +847,9 @@ GraphicsView::paintEvent(QPaintEvent *event)
             = mapFromScene(m_narrow_scene_rect).boundingRect()
                   .intersected(viewport()->rect());
         const QRect vp = viewport()->rect();
-        const QColor bg
-            = scene() ? scene()->backgroundBrush().color()
-                      : viewport()->palette().window().color();
+        const QColor bgColor = rgbaToQColor(m_config.window.bg);
+        const QColor bg = bgColor.alpha() > 0 ? bgColor
+                                              : viewport()->palette().window().color();
 
         // Top strip
         if (narrowVp.top() > vp.top())

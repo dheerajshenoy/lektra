@@ -176,7 +176,6 @@ DocumentView::initGui() noexcept
     m_gview->setAlignment(Qt::AlignCenter);
     m_gview->setDefaultMode(m_config.behavior.initial_mode);
     m_gview->setMode(m_config.behavior.initial_mode);
-    m_gview->setBackgroundBrush(rgbaToQColor(m_config.window.bg));
     m_model->setAnnotRectColor(
         rgbaToQColor(m_config.annotations.rect.color).toRgb());
     m_model->setSelectionColor(rgbaToQColor(m_config.selection.color));

@@ -6892,3 +6892,21 @@ Lektra::handleScreenChange(QScreen *screen) noexcept
     dispatchLuaEvent(DispatchType::OnScreenChanged, screen);
 #endif
 }
+
+void
+Lektra::applyWindowBackground() noexcept
+{
+    if (!m_tab_widget)
+        return;
+    for (int i = 0; i < m_tab_widget->count(); ++i)
+    {
+        DocumentContainer *container = m_tab_widget->rootContainer(i);
+        if (!container)
+            continue;
+        for (DocumentView *view : container->getAllViews())
+        {
+            if (view)
+                view->graphicsView()->viewport()->update();
+        }
+    }
+}

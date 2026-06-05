@@ -297,8 +297,9 @@ struct Config
         // @added 0.6.5
         bool dim_inactive = false;
 
-        // @desc Split direction for the portal view ("vertical", "horizontal", or
-        // "smart" — picks vertical when the view is wider than tall, horizontal otherwise)
+        // @desc Split direction for the portal view ("vertical", "horizontal",
+        // or "smart" — picks vertical when the view is wider than tall,
+        // horizontal otherwise)
         // @type str
         // @default "vertical"
         // @added 0.7.4
@@ -1017,7 +1018,12 @@ struct Config
         // @type string ("auto", "opengl", "raster")
         // @default "auto"
         // @added 0.7.3
-        enum class Backend { Auto = 0, Raster = 1, OpenGL = 2 };
+        enum class Backend
+        {
+            Auto   = 0,
+            Raster = 1,
+            OpenGL = 2
+        };
         Backend backend = Backend::Auto;
 
         using DPR = std::variant<float, QMap<QString, float>>;

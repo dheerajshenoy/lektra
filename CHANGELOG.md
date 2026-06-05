@@ -71,6 +71,16 @@
 
 ### Bug Fixes
 
+- Fix background colour being overridden by the system palette colour on scroll
+  or zoom. `initGui` was setting the background brush only on `m_gscene`
+  (`QGraphicsScene`), whose `drawBackground()` only fills the scene rect.
+  Viewport areas that fall outside the scene rect (visible when zoomed out or
+  near document edges) were painted with the system palette window colour
+  instead of the configured background. The brush is now set on both `m_gview`
+  (`QGraphicsView`) — which fills the entire viewport — and `m_gscene` so that
+  the narrow-clip strip painting in `GraphicsView::paintEvent` continues to read
+  the correct colour from `scene()->backgroundBrush()`.
+
 - Fix thumbnail panel defaulting to single-page layout instead of vertical. `handleOpenFileFinished` unconditionally called `setLayoutMode(m_config.layout.mode)` on every file open, overwriting the vertical layout set during thumbnail view construction. The call is now skipped when in thumbnail mode.
 - Fix text-selection quads persisting on screen after navigating to a different page via the thumbnail panel. `GotoPage` now calls `ClearTextSelection()` before rendering in single-page layout mode, where the entire page is replaced.
 - Fix thumbnail page highlight disappearing after the page item is re-rendered (e.g. after a zoom change). `renderPageFromImage` now saves the `isHighlighted()` state of the old item before deleting it and restores it on the newly created item.
