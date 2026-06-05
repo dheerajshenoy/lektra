@@ -282,6 +282,17 @@ public:
         return m_gview->isActive();
     }
 
+    inline void setSplitMaximized(bool state) noexcept
+    {
+        m_gview->setSplitMaximized(state);
+        m_gview->update();
+    }
+
+    inline bool isSplitMaximized() const noexcept
+    {
+        return m_gview->isSplitMaximized();
+    }
+
     inline bool visual_line_mode() const noexcept
     {
         return m_visual_line_mode;

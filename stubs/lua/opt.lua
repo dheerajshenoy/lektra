@@ -153,6 +153,8 @@ lektra.opt.selection = {}
 ---@field focus_border_color integer Border color as an ARGB hex integer (e.g. 0xFF4FC3F7).
 ---@field focus_border_width integer Border thickness in pixels.
 ---@field focus_follows_mouse boolean Focus a split pane when the mouse enters it.
+---@field maximize_indicator boolean Show a badge in the corner of the maximized split.
+---@field maximize_indicator_color integer Badge color as an ARGB hex integer (e.g. 0xCC2979FF).
 ---@field mouse_follows_focus boolean Warp the mouse to the focused pane.
 lektra.opt.split = {}
 

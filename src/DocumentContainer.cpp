@@ -33,6 +33,16 @@ DocumentContainer::split(DocumentView *view, Qt::Orientation orientation,
     if (!view || view->filePath().isEmpty())
         return nullptr;
 
+    if (m_maximized)
+    {
+        for (auto *v : getAllViews())
+        {
+            v->show();
+            v->setSplitMaximized(false);
+        }
+        m_maximized = false;
+    }
+
     // Find the widget in the layout
     QWidget *currentWidget = nullptr;
     for (int i = 0; i < m_layout->count(); ++i)
@@ -246,6 +256,16 @@ DocumentContainer::closeView(DocumentView *view) noexcept
     if (allViews.count() <= 1)
         return;
 
+    if (m_maximized)
+    {
+        for (auto *v : allViews)
+        {
+            v->show();
+            v->setSplitMaximized(false);
+        }
+        m_maximized = false;
+    }
+
     // Find the parent splitter
     QSplitter *parentSplitter = qobject_cast<QSplitter *>(view->parentWidget());
 
@@ -395,11 +415,23 @@ DocumentContainer::focusView(DocumentView *view) noexcept
     if (m_current_view != view)
     {
         if (m_current_view)
+        {
             m_current_view->setActive(false);
+            if (m_maximized)
+            {
+                m_current_view->setSplitMaximized(false);
+                m_current_view->hide();
+            }
+        }
         m_current_view = view;
         emit currentViewChanged(view);
     }
 
+    if (m_maximized)
+    {
+        view->show();
+        view->setSplitMaximized(true);
+    }
     view->setActive(true);
 }
 
@@ -824,4 +856,35 @@ DocumentContainer::resizeThumbnailView(float relWidth) noexcept
     }
 
     parent->setSizes(sizes);
+}
+
+void
+DocumentContainer::toggleMaximizeSplit() noexcept
+{
+    const QList<DocumentView *> views = getAllViews();
+    if (views.size() <= 1)
+        return;
+
+    if (m_maximized)
+    {
+        for (auto *v : views)
+        {
+            v->show();
+            v->setSplitMaximized(false);
+        }
+        m_maximized = false;
+        if (m_layout->count() > 0)
+            equalizeAll(m_layout->itemAt(0)->widget());
+    }
+    else
+    {
+        m_maximized = true;
+        for (auto *v : views)
+        {
+            if (v == m_current_view)
+                v->setSplitMaximized(true);
+            else
+                v->hide();
+        }
+    }
 }

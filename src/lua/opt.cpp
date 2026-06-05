@@ -735,6 +735,22 @@ static const LuaField splitFields[] = {
     static_cast<Config::Split *>(p)->focus_follows_mouse = lua_toboolean(L, 3);
 }},
 
+    {"maximize_indicator",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Split *>(p)->maximize_indicator);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Split *>(p)->maximize_indicator = lua_toboolean(L, 3); }},
+
+    {"maximize_indicator_color",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Split *>(p)->maximize_indicator_color);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Split *>(p)->maximize_indicator_color = lua_tointeger(L, 3); }},
+
     {"mouse_follows_focus",
      [](lua_State *L, P p)
 {

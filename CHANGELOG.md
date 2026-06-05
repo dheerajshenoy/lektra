@@ -59,6 +59,17 @@
 - SyncTeX forward search via IPC now reuses an already-open tab for the target PDF
   instead of opening a new one each time. The matching tab is brought to focus and
   the view jumps to the synctex position in-place.
+- Add **split maximize** (`split_maximize` command). Hides all split panes except the
+  currently focused one, giving it the full tab area. Invoking the command again restores
+  all panes at equal sizes. Focus navigation while maximized (`split_focus_*`) moves
+  the maximized slot to the newly focused pane rather than switching the active pane
+  within a hidden layout. Creating a new split or closing the maximized view
+  automatically restores the layout first. A small corner badge (⊠) is drawn on the
+  maximized view; controlled by `split.maximize_indicator` (bool, default `true`) and
+  `split.maximize_indicator_color` (ARGB, default `0xCC2979FF`). Both options are exposed
+  in the Lua opt API as `lektra.opt.split.maximize_indicator` and
+  `lektra.opt.split.maximize_indicator_color`.
+
 - Add focus border for the active split pane. Three new `split` config options:
   `split.focus_border` (bool, default `false`) enables the feature;
   `split.focus_border_color` (ARGB integer, default `0xFF4FC3F7`) sets the border colour;

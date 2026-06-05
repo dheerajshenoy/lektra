@@ -917,6 +917,35 @@ GraphicsView::paintEvent(QPaintEvent *event)
         painter.drawRect(viewport()->rect().adjusted(1, 1, -1, -1));
     }
 
+    if (m_is_split_maximized && m_config.split.maximize_indicator)
+    {
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+        static const QString label = QStringLiteral("⊠"); // ⊠
+        QFont f                    = painter.font();
+        f.setPixelSize(13);
+        f.setBold(true);
+        painter.setFont(f);
+        QFontMetrics fm(f);
+        constexpr int pad = 4;
+        const QRect   tr  = fm.boundingRect(label);
+        const int     bw  = tr.width() + pad * 2;
+        const int     bh  = tr.height() + pad * 2;
+        const QRect   badge(viewport()->rect().right() - bw - 6,
+                          viewport()->rect().top() + 6, bw, bh);
+
+        QColor bg(m_config.split.maximize_indicator_color);
+        painter.setBrush(bg);
+        painter.setPen(Qt::NoPen);
+        painter.drawRoundedRect(badge, 4, 4);
+
+        QColor fg = bg.lightness() > 128 ? QColor(0, 0, 0, 220)
+                                         : QColor(255, 255, 255, 220);
+        painter.setPen(fg);
+        painter.drawText(badge, Qt::AlignCenter, label);
+    }
+
     if (m_config.portal.border_width > 0 && m_config.portal.enabled
         && m_is_portal)
     {

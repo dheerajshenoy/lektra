@@ -630,6 +630,18 @@ struct Config
         // @default 2
         // @added 0.6.3
         int focus_border_width = 2;
+
+        // @desc Show a badge in the corner of a maximized split
+        // @type bool
+        // @default true
+        // @added 0.6.3
+        bool maximize_indicator = true;
+
+        // @desc Color of the maximize badge (ARGB hex)
+        // @type uint32_t
+        // @default 0xCC2979FF
+        // @added 0.6.3
+        uint32_t maximize_indicator_color = 0xCC2979FF;
     } split;
     // @endsection
 

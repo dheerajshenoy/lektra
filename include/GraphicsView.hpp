@@ -220,6 +220,16 @@ private:
         return m_is_active;
     }
 
+    inline void setSplitMaximized(bool state) noexcept
+    {
+        m_is_split_maximized = state;
+    }
+
+    inline bool isSplitMaximized() const noexcept
+    {
+        return m_is_split_maximized;
+    }
+
     inline void showScrollbars()
     {
         if (!m_scrollbarsVisible)
@@ -316,6 +326,7 @@ private:
     bool m_hbarEnabled                               = true;
     bool m_is_active                                 = false;
     bool m_is_portal                                 = false;
+    bool m_is_split_maximized                        = false;
     bool m_is_narrow_clip                            = false;
     QRectF m_narrow_scene_rect;
     const Config &m_config;

@@ -84,6 +84,9 @@ public:
     DocumentView *get_child_view_by_id(DocumentView::Id id) const noexcept;
     void close_other_views(DocumentView *view) noexcept;
 
+    void toggleMaximizeSplit() noexcept;
+    inline bool isMaximized() const noexcept { return m_maximized; }
+
     // Thumbnail view management
     void createThumbnailView(DocumentView *view) noexcept;
     void resizeThumbnailView(float relWidth) noexcept;
@@ -108,4 +111,5 @@ private:
     QVBoxLayout *m_layout{nullptr};
     DocumentView *m_current_view{nullptr};
     ThumbnailView *m_thumbnail_view{nullptr};
+    bool m_maximized{false};
 };

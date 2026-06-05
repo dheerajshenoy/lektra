@@ -1193,6 +1193,9 @@ Lektra::initConfig() noexcept
         set(split["focus_border"], m_config.split.focus_border);
         set_color(split["focus_border_color"], m_config.split.focus_border_color);
         set(split["focus_border_width"], m_config.split.focus_border_width);
+        set(split["maximize_indicator"], m_config.split.maximize_indicator);
+        set_color(split["maximize_indicator_color"],
+                  m_config.split.maximize_indicator_color);
     }
 
     // Behavior
@@ -4680,6 +4683,9 @@ Lektra::initCommands() noexcept
     m_command_manager->reg(
         "split_close_others", tr("Close all splits except current"),
         [this](const QStringList &) { Close_other_splits(); });
+    m_command_manager->reg(
+        "split_maximize", tr("Toggle maximize focused split"),
+        [this](const QStringList &) { ToggleSplitMaximize(); });
 
     // Portal
     m_command_manager->reg("portal", tr("Create or focus portal"),
@@ -5609,6 +5615,20 @@ Lektra::Close_other_splits() noexcept
     container->close_other_views(currentView);
     m_tab_widget->tabBar()->set_split_count(currentTabIndex,
                                             container->getViewCount());
+}
+
+void
+Lektra::ToggleSplitMaximize() noexcept
+{
+    const int currentTabIndex = m_tab_widget->currentIndex();
+    if (!validTabIndex(currentTabIndex))
+        return;
+
+    DocumentContainer *container = m_tab_widget->rootContainer(currentTabIndex);
+    if (!container)
+        return;
+
+    container->toggleMaximizeSplit();
 }
 
 void
@@ -6555,7 +6575,8 @@ Lektra::checkConfigFile(const QString &path) noexcept
         {"split",
          {"mouse_follows_focus", "focus_follows_mouse", "dim_inactive",
           "dim_inactive_opacity", "focus_border", "focus_border_color",
-          "focus_border_width"}},
+          "focus_border_width", "maximize_indicator",
+          "maximize_indicator_color"}},
 
         {"behavior",
          {"preload_pages", "confirm_on_quit", "undo_limit",

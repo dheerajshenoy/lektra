@@ -83,6 +83,7 @@ public:
     void Create_or_focus_portal() noexcept;
     void Close_split() noexcept;
     void Close_other_splits() noexcept;
+    void ToggleSplitMaximize() noexcept;
     void Focus_split_up() noexcept;
     void Focus_split_down() noexcept;
     void Focus_split_left() noexcept;
