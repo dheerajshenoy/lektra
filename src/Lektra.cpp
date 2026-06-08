@@ -6884,6 +6884,12 @@ Lektra::loadLuaConfig() noexcept
     const QString init_file = m_config_dir.filePath("init.lua");
     if (QFile::exists(init_file))
     {
+        const std::string config_path = m_config_dir.absolutePath().toStdString();
+        const std::string path_snippet =
+            "package.path = \"" + config_path + "/?.lua;" +
+                                  config_path + "/?/init.lua;\" .. package.path";
+        luaL_dostring(m_L, path_snippet.c_str());
+
         if (luaL_dofile(m_L, init_file.toStdString().c_str()) != LUA_OK)
         {
             qWarning() << "Failed to execute init.lua:"
