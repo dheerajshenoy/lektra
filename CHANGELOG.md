@@ -14,7 +14,6 @@
   also accessible from the region-selection context menu ("Narrow to Region").
 - Expose `view:narrow_to_region()`, `view:wide_region()`, and `view:is_narrowed() -> boolean`
   in the Lua view API.
-
 - Add horizontal and vertical page flip (`flip_horizontal` / `flip_vertical` commands, default
   bindings `|` / `_`). Flip state is stored in `Model` alongside rotation and propagated
   through every coordinate-space transform (`buildPageToDevMatrix` / `buildRenderTransform`
@@ -69,14 +68,12 @@
   `split.maximize_indicator_color` (ARGB, default `0xCC2979FF`). Both options are exposed
   in the Lua opt API as `lektra.opt.split.maximize_indicator` and
   `lektra.opt.split.maximize_indicator_color`.
-
 - Add focus border for the active split pane. Three new `split` config options:
   `split.focus_border` (bool, default `false`) enables the feature;
   `split.focus_border_color` (ARGB integer, default `0xFF4FC3F7`) sets the border colour;
   `split.focus_border_width` (integer, default `2`) sets the thickness in pixels. All three
   are exposed in the Lua opt API as `lektra.opt.split.focus_border`,
   `lektra.opt.split.focus_border_color`, and `lektra.opt.split.focus_border_width`.
-
 - Add `portal.split` config option (`"vertical"`, `"horizontal"`, or `"smart"`).
   Previously portals always opened in a vertical split. `"smart"` automatically picks
   vertical when the view is wider than tall and horizontal otherwise.
@@ -93,7 +90,6 @@
   annotation starts. `HighlightAnnotation` now overrides `shape()` to return the
   union of its individual segment rects instead of the full bounding rect, so Qt's
   hover hit-testing only fires when the cursor is actually over a highlighted segment.
-
 - Fix background colour being overridden by the system palette colour on scroll
   or zoom. `initGui` was setting the background brush only on `m_gscene`
   (`QGraphicsScene`), whose `drawBackground()` only fills the scene rect.
@@ -103,13 +99,11 @@
   (`QGraphicsView`) — which fills the entire viewport — and `m_gscene` so that
   the narrow-clip strip painting in `GraphicsView::paintEvent` continues to read
   the correct colour from `scene()->backgroundBrush()`.
-
 - Fix thumbnail panel defaulting to single-page layout instead of vertical. `handleOpenFileFinished` unconditionally called `setLayoutMode(m_config.layout.mode)` on every file open, overwriting the vertical layout set during thumbnail view construction. The call is now skipped when in thumbnail mode.
 - Fix text-selection quads persisting on screen after navigating to a different page via the thumbnail panel. `GotoPage` now calls `ClearTextSelection()` before rendering in single-page layout mode, where the entire page is replaced.
 - Fix thumbnail page highlight disappearing after the page item is re-rendered (e.g. after a zoom change). `renderPageFromImage` now saves the `isHighlighted()` state of the old item before deleting it and restores it on the newly created item.
 - Fix thumbnail page highlight disappearing when a highlighted page scrolls off-screen and its item is deleted. The highlight state is now re-applied in `renderPageFromImage` whenever an existing highlighted item is replaced, covering both the re-render and the scroll-back-into-view paths.
 - Fix `GoForwardHistory` always returning immediately due to a malformed guard condition. The expression `m_loc_history_index + static_cast<int>(m_loc_history.size())` (a large positive sum, always truthy) was missing a comparison operator; corrected to `m_loc_history_index + 1 >= static_cast<int>(m_loc_history.size())`.
-
 - Add `behavior.cache_password` config option (default `true`). When
   auto-reloading a password-protected document, the password entered at open
   time is reused automatically. Set to `false` to prevent the password from
@@ -131,7 +125,6 @@
   to an existing instance. Both sources are now combined before the probe runs.
 - Fix SyncTeX IPC tab reuse only searching the root view of each container, missing PDFs
   open in split panes. Now uses `getAllViews()` to search all views in the container.
-
 - Fix window title showing `"Argument missing"` warning when `title_format` used `{}`
   placeholder in the default value (`"{} - lektra"`), which is incompatible with
   `QString::arg()`. Default changed to `"%1 - lektra"` to match the existing TOML-loading
@@ -147,7 +140,6 @@
 - Change cursor to a crosshair (`Qt::CrossCursor`) when in text-highlight mode, switching
   to the I-beam only while actively dragging a selection. The default arrow is restored on
   mode exit.
-
 - Fix `BrowseLinkItem` hover highlight rendering as nearly-black instead of yellow due to
   `QColor` being constructed with float literals `(1.0, 1.0, 0.0)` that were implicitly
   truncated to integers `(1, 1, 0)`. Corrected to `(255, 255, 0, 125)`.
