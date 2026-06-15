@@ -99,11 +99,19 @@
   (`QGraphicsView`) — which fills the entire viewport — and `m_gscene` so that
   the narrow-clip strip painting in `GraphicsView::paintEvent` continues to read
   the correct colour from `scene()->backgroundBrush()`.
-- Fix thumbnail panel defaulting to single-page layout instead of vertical. `handleOpenFileFinished` unconditionally called `setLayoutMode(m_config.layout.mode)` on every file open, overwriting the vertical layout set during thumbnail view construction. The call is now skipped when in thumbnail mode.
-- Fix text-selection quads persisting on screen after navigating to a different page via the thumbnail panel. `GotoPage` now calls `ClearTextSelection()` before rendering in single-page layout mode, where the entire page is replaced.
-- Fix thumbnail page highlight disappearing after the page item is re-rendered (e.g. after a zoom change). `renderPageFromImage` now saves the `isHighlighted()` state of the old item before deleting it and restores it on the newly created item.
-- Fix thumbnail page highlight disappearing when a highlighted page scrolls off-screen and its item is deleted. The highlight state is now re-applied in `renderPageFromImage` whenever an existing highlighted item is replaced, covering both the re-render and the scroll-back-into-view paths.
-- Fix `GoForwardHistory` always returning immediately due to a malformed guard condition. The expression `m_loc_history_index + static_cast<int>(m_loc_history.size())` (a large positive sum, always truthy) was missing a comparison operator; corrected to `m_loc_history_index + 1 >= static_cast<int>(m_loc_history.size())`.
+- Fix thumbnail panel defaulting to single-page layout instead of vertical. `handleOpenFileFinished` unconditionally called
+  `setLayoutMode(m_config.layout.mode)` on every file open, overwriting the vertical layout set during thumbnail view construction.
+  The call is now skipped when in thumbnail mode.
+- Fix text-selection quads persisting on screen after navigating to a different page via the thumbnail panel.
+  `GotoPage` now calls `ClearTextSelection()` before rendering in single-page layout mode, where the entire page is replaced.
+- Fix thumbnail page highlight disappearing after the page item is re-rendered (e.g. after a zoom change).
+  `renderPageFromImage` now saves the `isHighlighted()` state of the old item before deleting it and restores it on the newly created item.
+- Fix thumbnail page highlight disappearing when a highlighted page scrolls off-screen and its item is deleted.
+  The highlight state is now re-applied in `renderPageFromImage` whenever an existing highlighted item is replaced,
+  covering both the re-render and the scroll-back-into-view paths.
+- Fix `GoForwardHistory` always returning immediately due to a malformed guard condition. The expression
+  `m_loc_history_index + static_cast<int>(m_loc_history.size())` (a large positive sum, always truthy) was missing a comparison operator;
+  corrected to `m_loc_history_index + 1 >= static_cast<int>(m_loc_history.size())`.
 - Add `behavior.cache_password` config option (default `true`). When
   auto-reloading a password-protected document, the password entered at open
   time is reused automatically. Set to `false` to prevent the password from

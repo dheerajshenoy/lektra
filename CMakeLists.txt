@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(lektra VERSION 0.7.4 LANGUAGES C CXX)
+project(lektra VERSION 0.7.5 LANGUAGES C CXX)
 
 include(GNUInstallDirs)
 

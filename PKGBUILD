@@ -1,15 +1,16 @@
 # Maintainer: Dheeraj Vittal Shenoy <dheerajshenoy22@gmail.com>
 pkgname=lektra-git
-pkgver=0.6.9
-pkgrel=1
-pkgdesc="High-performance PDF reader that prioritizes screen space and control"
+pkgver=0.7.4
+pkgrel=0
+pkgdesc="High-performance document and image viewer that prioritizes screen space and control."
 arch=('x86_64')
 url="https://codeberg.org/lektra/lektra"
 license=('AGPL-3.0')
 depends=(
     'qt6-base'
-    'libsynctex'
+    'qt6-imageformats'
     'djvulibre'
+    'lua'
 )
 makedepends=('git' 'cmake' 'pkgconf')
 provides=("lektra")
@@ -35,9 +36,8 @@ build() {
     cmake -S . -B build \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr \
-        -DWITH_IMAGE=ON \
-        -DWITH_SYNCTEX=ON
-    cmake --build build
+        -DWITH_LUA=on
+    cmake --build build --parallel
 }
 
 package() {
