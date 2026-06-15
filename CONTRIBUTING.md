@@ -5,7 +5,8 @@ Thanks for your interest in contributing. You can contribute in many ways, inclu
 - Reporting bugs
 - Suggesting features
 - Help in UI language translation
-- Writing documentation
+- Documentation
+- Man pages
 
 This project is actively developed and maintained.
 Please read this document carefully before opening an issue or pull request.
