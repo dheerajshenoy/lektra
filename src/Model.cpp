@@ -2198,11 +2198,10 @@ Model::reloadDocument() noexcept
         {
             const bool canAuth = m_config.behavior.cache_password
                                  && !m_cached_password.isEmpty();
-            const bool authed =
-                canAuth
-                && fz_authenticate_password(
-                       m_ctx, new_doc,
-                       m_cached_password.toStdString().c_str());
+            const bool authed
+                = canAuth
+                  && fz_authenticate_password(
+                      m_ctx, new_doc, m_cached_password.toStdString().c_str());
             if (!authed)
             {
                 fz_drop_document(m_ctx, new_doc);
@@ -2891,7 +2890,11 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
                 o |= Qt::Horizontal;
             if (job.flip_v)
                 o |= Qt::Vertical;
+#if QT_VERSION <= QT_VERSION_CHECK(6, 9, 0)
+            image = image.mirrored(o);
+#else
             image = image.flipped(o);
+#endif
         }
 
         image.setDotsPerMeterX(static_cast<int>((job.dpi * 1000) / 25.4));
@@ -3227,19 +3230,19 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 }
 
 QImage
-Model::renderRegionAtDPI(int pageno, QRectF logicalRect, float targetDPI) noexcept
+Model::renderRegionAtDPI(int pageno, QRectF logicalRect,
+                         float targetDPI) noexcept
 {
     // logicalRect is in item-local logical pixels (physicalPixels / DPR).
-    // buildPageTransforms uses logicalScale(), which maps PDF pts ↔ logical pixels,
-    // so dev_to_page correctly inverts logicalRect back to PDF point-space.
+    // buildPageTransforms uses logicalScale(), which maps PDF pts ↔ logical
+    // pixels, so dev_to_page correctly inverts logicalRect back to PDF
+    // point-space.
     const auto [page_to_dev, dev_to_page] = buildPageTransforms(pageno);
 
-    const fz_point tl
-        = fz_transform_point({float(logicalRect.left()), float(logicalRect.top())},
-                             dev_to_page);
-    const fz_point br
-        = fz_transform_point({float(logicalRect.right()), float(logicalRect.bottom())},
-                             dev_to_page);
+    const fz_point tl = fz_transform_point(
+        {float(logicalRect.left()), float(logicalRect.top())}, dev_to_page);
+    const fz_point br = fz_transform_point(
+        {float(logicalRect.right()), float(logicalRect.bottom())}, dev_to_page);
     const fz_rect page_rect_pts = {std::min(tl.x, br.x), std::min(tl.y, br.y),
                                    std::max(tl.x, br.x), std::max(tl.y, br.y)};
 
@@ -3257,12 +3260,11 @@ Model::renderRegionAtDPI(int pageno, QRectF logicalRect, float targetDPI) noexce
     // Build a new render transform at targetDPI, preserving rotation and flip.
     // targetDPI is passed directly as the "zoom" argument; fz_transform_page
     // divides by 72 internally, yielding targetDPI/72 pixels-per-point.
-    const fz_matrix target_ctm = buildRenderTransform(full_bounds, targetDPI,
-                                                       m_rotation,
-                                                       m_flip_h, m_flip_v);
+    const fz_matrix target_ctm = buildRenderTransform(
+        full_bounds, targetDPI, m_rotation, m_flip_h, m_flip_v);
 
     // Determine the pixel bbox for only the selected region.
-    const fz_rect  target_rect = fz_transform_rect(page_rect_pts, target_ctm);
+    const fz_rect target_rect  = fz_transform_rect(page_rect_pts, target_ctm);
     const fz_irect target_bbox = fz_round_rect(target_rect);
 
     if (target_bbox.x0 >= target_bbox.x1 || target_bbox.y0 >= target_bbox.y1)
@@ -3284,13 +3286,14 @@ Model::renderRegionAtDPI(int pageno, QRectF logicalRect, float targetDPI) noexce
         dlist = fz_keep_display_list(ctx, entry->display_list);
     }
 
-    fz_pixmap *pix    = nullptr;
-    fz_device *dev    = nullptr;
-    QImage     result;
+    fz_pixmap *pix = nullptr;
+    fz_device *dev = nullptr;
+    QImage result;
 
     fz_try(ctx)
     {
-        pix = fz_new_pixmap_with_bbox(ctx, m_colorspace, target_bbox, nullptr, 1);
+        pix = fz_new_pixmap_with_bbox(ctx, m_colorspace, target_bbox, nullptr,
+                                      1);
         fz_clear_pixmap_with_value(ctx, pix, 255);
 
         dev = fz_new_draw_device(ctx, fz_identity, pix);
@@ -3316,16 +3319,26 @@ Model::renderRegionAtDPI(int pageno, QRectF logicalRect, float targetDPI) noexce
         QImage::Format fmt;
         switch (n)
         {
-            case 1:  fmt = QImage::Format_Grayscale8; break;
-            case 3:  fmt = QImage::Format_RGB888;     break;
-            case 4:  fmt = QImage::Format_RGBA8888;   break;
-            default: fz_throw(ctx, FZ_ERROR_GENERIC, "Unsupported component count");
+            case 1:
+                fmt = QImage::Format_Grayscale8;
+                break;
+            case 3:
+                fmt = QImage::Format_RGB888;
+                break;
+            case 4:
+                fmt = QImage::Format_RGBA8888;
+                break;
+            default:
+                fz_throw(ctx, FZ_ERROR_GENERIC, "Unsupported component count");
         }
 
         result = QImage(width, height, fmt);
-        std::memcpy(result.bits(), fz_pixmap_samples(ctx, pix), stride * height);
-        result.setDotsPerMeterX(static_cast<int>((targetDPI * 1000.0f) / 25.4f));
-        result.setDotsPerMeterY(static_cast<int>((targetDPI * 1000.0f) / 25.4f));
+        std::memcpy(result.bits(), fz_pixmap_samples(ctx, pix),
+                    stride * height);
+        result.setDotsPerMeterX(
+            static_cast<int>((targetDPI * 1000.0f) / 25.4f));
+        result.setDotsPerMeterY(
+            static_cast<int>((targetDPI * 1000.0f) / 25.4f));
     }
     fz_always(ctx)
     {
