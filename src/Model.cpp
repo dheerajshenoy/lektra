@@ -2890,10 +2890,11 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
                 o |= Qt::Horizontal;
             if (job.flip_v)
                 o |= Qt::Vertical;
-#if QT_VERSION <= QT_VERSION_CHECK(6, 9, 0)
-            image = image.mirrored(o);
-#else
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)
             image = image.flipped(o);
+#else
+            image = image.mirrored(o == Qt::Horizontal, o == Qt::Vertical);
 #endif
         }
 
