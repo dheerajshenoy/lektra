@@ -311,12 +311,11 @@ main(int argc, char *argv[])
         = {QCoreApplication::applicationDirPath() + "/translations",
            QString("%1/share/lektra/translations").arg(APP_INSTALL_PREFIX)};
 
-    const QString fileName = QString("lektra.%1").arg(locale.name());
-
     bool loaded = false;
+
     for (const QString &path : searchPaths)
     {
-        if (translator->load(fileName, path))
+        if (translator->load(locale, "lektra", ".", path))
         {
             loaded = true;
             break;
