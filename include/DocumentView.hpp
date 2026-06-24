@@ -390,7 +390,7 @@ public:
     bool EncryptDocument() noexcept;
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
-    void createAndAddPageItem(int pageno, const QImage &image) noexcept;
+    void createAndAddPageItem(int pageno, QImage image) noexcept;
     void renderImage() noexcept;
     void renderPages() noexcept;
     void renderPage() noexcept;
@@ -577,7 +577,7 @@ private:
     void clearVisibleAnnotations() noexcept;
     void clearVisiblePages() noexcept;
     void clearVisibleLinks() noexcept;
-    void renderPageFromImage(int pageno, const QImage &image) noexcept;
+    void renderPageFromImage(int pageno, QImage image) noexcept;
     void renderLinks(int pageno, const std::vector<Model::RenderLink> &links,
                      bool append = false) noexcept;
     void renderAnnotations(

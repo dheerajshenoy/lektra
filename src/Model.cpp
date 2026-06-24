@@ -3043,9 +3043,10 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             }
         }
 
-        QImage image(width, height, fmt);
-
-        std::memcpy(image.bits(), samples, stride * height);
+        // Construct with the MuPDF stride so Qt copies each scanline
+        // correctly regardless of its own alignment padding.
+        QImage image(samples, width, height, stride, fmt);
+        image = image.copy(); // detach from MuPDF's buffer before fz_drop_pixmap
 
         image.setDotsPerMeterX(static_cast<int>((job.dpi * 1000) / 25.4));
         image.setDotsPerMeterY(static_cast<int>((job.dpi * 1000) / 25.4));
@@ -3335,9 +3336,8 @@ Model::renderRegionAtDPI(int pageno, QRectF logicalRect,
                 fz_throw(ctx, FZ_ERROR_GENERIC, "Unsupported component count");
         }
 
-        result = QImage(width, height, fmt);
-        std::memcpy(result.bits(), fz_pixmap_samples(ctx, pix),
-                    stride * height);
+        result = QImage(fz_pixmap_samples(ctx, pix), width, height, stride, fmt)
+                     .copy();
         result.setDotsPerMeterX(
             static_cast<int>((targetDPI * 1000.0f) / 25.4f));
         result.setDotsPerMeterY(

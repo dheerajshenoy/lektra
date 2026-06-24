@@ -3173,7 +3173,7 @@ DocumentView::startNextRenderJob() noexcept
             DocumentView *view = self.data();
 
             view->m_pending_renders.remove(pageno);
-            const QImage &image = result.image;
+            QImage image = std::move(result.image);
 
             if (!image.isNull())
             {
@@ -3185,7 +3185,7 @@ DocumentView::startNextRenderJob() noexcept
                     view->m_gscene->blockSignals(true);
                     view->setUpdatesEnabled(false);
                     {
-                        view->renderPageFromImage(pageno, image);
+                        view->renderPageFromImage(pageno, std::move(image));
                         // Mark as preload and hide it for instant display later
                         if (view->m_page_items_hash.contains(pageno))
                         {
@@ -3204,7 +3204,7 @@ DocumentView::startNextRenderJob() noexcept
                 view->m_gscene->blockSignals(true);
                 view->setUpdatesEnabled(false);
                 {
-                    view->renderPageFromImage(pageno, image);
+                    view->renderPageFromImage(pageno, std::move(image));
                     if (!view->m_thumbnail_mode)
                     {
                         view->renderLinks(pageno, result.links);
@@ -4066,7 +4066,7 @@ DocumentView::requestPageRender(int pageno, bool force, bool visible) noexcept
 }
 
 void
-DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
+DocumentView::renderPageFromImage(int pageno, QImage image) noexcept
 {
     // Remove old item (placeholder OR real page) BEFORE adding the new
     // item, since createAndAddPageItem overwrites the hash entry.  Without
@@ -4094,7 +4094,7 @@ DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
     // New item pointer will differ from the cached one — force one recompute.
     m_cached_hit_page_item = nullptr;
 
-    createAndAddPageItem(pageno, image);
+    createAndAddPageItem(pageno, std::move(image));
 
     if (wasHighlighted)
         if (auto *newItem = m_page_items_hash.value(pageno, nullptr))
@@ -4154,14 +4154,14 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
 }
 
 void
-DocumentView::createAndAddPageItem(int pageno, const QImage &img) noexcept
+DocumentView::createAndAddPageItem(int pageno, QImage img) noexcept
 {
 #ifndef NDEBUG
     qDebug() << "DocumentView::createAndAddPageItem(): Adding page item for "
              << "pageno = " << pageno;
 #endif
     auto *pageItem = new GraphicsImageItem();
-    pageItem->setImage(img);
+    pageItem->setImage(std::move(img));
 
     // Logical scene size of the rendered image.
     const QSizeF logicalSize = pageSceneSize(pageno);
