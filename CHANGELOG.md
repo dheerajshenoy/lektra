@@ -27,6 +27,19 @@
   rendering immediately on every scroll event via `requestPageRender()`; the
   debounce timer still fires afterwards to handle cleanup (pruning stale renders,
   removing off-screen items, updating preload pages).
+- Fix viewport jumping to the wrong page during Ctrl+scroll zoom in multi-page
+  continuous layout. The zoom path applies a GPU view-transform (`m_gview->scale()`)
+  immediately for O(1) visual feedback, then defers the expensive `repositionPages()`
+  bake to a 66 ms debounce timer. During the bake, `resetTransform()` followed by
+  `updateSceneRect()` caused Qt to auto-clamp scrollbar values and emit
+  `valueChanged` on `m_vscroll` / `m_hscroll` — before `centerOn()` had a chance
+  to restore the correct viewport position. Because `m_gscene->blockSignals(true)`
+  only suppresses `QGraphicsScene` signals (not scrollbar signals), the scroll
+  handlers fired with an incorrect position, updated the current-page counter, and
+  queued renders for the wrong pages. Fixed by also calling
+  `m_vscroll->blockSignals(true)` / `m_hscroll->blockSignals(true)` around the
+  entire bake critical section and releasing them after `setUpdatesEnabled(true)`
+  at the end of the merged suppression window.
 
 ### Improvements
 
