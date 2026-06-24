@@ -30,6 +30,20 @@
 
 ### Improvements
 
+- Eliminate redundant work in the render cycle:
+  - `updateSceneRect()` was called unconditionally at the end of `renderPages()`
+    even when the zoom-bake block had already called it in the same cycle,
+    causing a double `setSceneRect()` on every zoom event. It is now skipped
+    when zoom was just baked (except in thumbnail mode where item bounds
+    contribute to the scene rect).
+  - `getPreloadPages()` was re-entering `getVisiblePages()` internally even
+    though the caller already held the result. Signature changed to accept the
+    visible-page set as a parameter, eliminating the redundant cache lookup on
+    every render cycle.
+  - `cachePageStride()` was allocating a `QFont` and `QFontMetricsF` on every
+    call in thumbnail mode to compute the label row height, even though the
+    value is constant for a given config. The result is now cached in
+    `m_thumbnail_label_height` and computed only once.
 - Reduce default memory usage significantly. Three sources of excess allocation
   have been eliminated:
   - **MuPDF internal store** reduced from `FZ_STORE_DEFAULT` (256 MB) to 64 MB.
