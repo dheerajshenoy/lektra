@@ -4,6 +4,21 @@
 
 ### Bug Fixes
 
+- Fix pages rendering slanted after zoom when using RGB (non-alpha) pixmaps.
+  The two `QImage` construction sites in the render pipeline were using
+  `QImage(w, h, fmt)` + `memcpy(image.bits(), samples, stride * height)`.
+  For `Format_RGB888` (3 bytes/pixel) Qt pads each scanline to the next 4-byte
+  boundary, so when the rendered page width is not divisible by 4 the bulk
+  `memcpy` wrote rows without the padding, shifting every subsequent row and
+  producing a diagonal slant. Fixed by using the stride-aware constructor
+  `QImage(samples, w, h, stride, fmt).copy()` at both sites, which lets Qt
+  handle the scanline alignment internally.
+- Fix redundant page-image copy on every render. The render callback passed
+  `const QImage &image` down through `renderPageFromImage` →
+  `createAndAddPageItem` → `setImage(const QImage &)`, triggering a full
+  pixel-buffer copy (~3–10 MB per page). Since the `PageRenderResult` is a
+  local value in the callback, the image is now moved with `std::move` all the
+  way into `GraphicsImageItem`, eliminating the copy entirely.
 - Fix pages appearing blank during fast scrolling. The scroll handlers
   (`handleVScrollValueChanged` / `handleHScrollValueChanged`) previously only
   restarted the 66 ms debounce timer on each scroll event, meaning
