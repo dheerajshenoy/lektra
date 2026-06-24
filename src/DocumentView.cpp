@@ -1588,8 +1588,16 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
             const double prevZoom = m_current_zoom;
             m_current_zoom        = factor;
             ClearTextSelection();
-            const double delta     = m_current_zoom / prevZoom;
-            // Scale the view, then cancel the drift so the anchor stays fixed.
+            const double delta = m_current_zoom / prevZoom;
+
+            // Set the pending flag BEFORE scale/setValue so that scroll
+            // handlers fired by setValue see it and skip queuing renders at
+            // the old zoom level.
+            m_view_zoom_pending = true;
+
+            // Suppress repaints for the entire scale+drift sequence so Qt
+            // never paints the intermediate state (post-scale, pre-drift).
+            m_gview->setUpdatesEnabled(false);
             const QPointF anchorVP = m_gview->mapFromScene(anchorScenePos);
             m_gview->scale(delta, delta);
             const QPointF drift
@@ -1600,7 +1608,8 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
             m_gview->verticalScrollBar()->setValue(
                 m_gview->verticalScrollBar()->value()
                 + static_cast<int>(drift.y()));
-            m_view_zoom_pending = true;
+            m_gview->setUpdatesEnabled(true);
+
             m_scroll_page_update_timer->start();
         }
 
@@ -2968,6 +2977,11 @@ DocumentView::renderPages() noexcept
             }
         }
 
+        // Block scrollbar signals for the entire bake so that resetTransform()
+        // and updateSceneRect() cannot trigger Qt's auto-clamping scroll emit
+        // (which fires valueChanged before centerOn() corrects the position).
+        m_vscroll->blockSignals(true);
+        m_hscroll->blockSignals(true);
         m_gview->setUpdatesEnabled(false);
         m_gscene->blockSignals(true);
         m_gview->resetTransform();
@@ -2976,10 +2990,10 @@ DocumentView::renderPages() noexcept
         cachePageStride();
         updateSceneRect();
         repositionPages();
-        m_gscene->blockSignals(false);
-        m_gview->setUpdatesEnabled(true);
 
-        // Restore viewport position using saved page-local coords.
+        // Restore viewport position inside the suppressed window so that
+        // centerOn's scrollbar adjustment cannot trigger a repaint or fire
+        // scroll handlers that queue renders at the wrong zoom.
         if (centerPage >= 0)
         {
             GraphicsImageItem *restored
@@ -2991,7 +3005,8 @@ DocumentView::renderPages() noexcept
                     centerRelX * sz.width(), centerRelY * sz.height())));
             }
         }
-        // Fall through to request fresh renders at the new zoom level.
+        // NOTE: setUpdatesEnabled/blockSignals/scrollbar blockSignals remain
+        // active — the block below re-uses them and re-enables at the end.
     }
 
     const std::set<int> &visiblePages = getVisiblePages();
@@ -3013,8 +3028,14 @@ DocumentView::renderPages() noexcept
     qDebug() << "DocumentView::renderPages(): Rendering pages:" << pages;
 #endif
 
-    m_gview->setUpdatesEnabled(false);
-    m_gscene->blockSignals(true);
+    // When zoom was baked above, setUpdatesEnabled(false) and blockSignals(true)
+    // are already in effect; otherwise start the suppression window now.
+    if (!zoomBaked)
+    {
+        m_gview->setUpdatesEnabled(false);
+        m_gscene->blockSignals(true);
+    }
+
     {
         prunePendingRenders(pages);
         removeUnusedPageItems(pages);
@@ -3036,6 +3057,11 @@ DocumentView::renderPages() noexcept
     }
     m_gscene->blockSignals(false);
     m_gview->setUpdatesEnabled(true);
+    if (zoomBaked)
+    {
+        m_vscroll->blockSignals(false);
+        m_hscroll->blockSignals(false);
+    }
 
     updateCurrentHitHighlight();
 
@@ -3169,9 +3195,13 @@ DocumentView::startNextRenderJob() noexcept
 
         auto job = m_model->createRenderJob(pageno);
 
+        // Capture zoom at dispatch time so stale callbacks from a previous
+        // zoom level can be detected and dropped in the lambda below.
+        const double dispatchZoom = m_current_zoom;
+
         QPointer<DocumentView> self(this);
         m_model->requestPageRender(
-            job, [self, pageno](const Model::PageRenderResult &result)
+            job, [self, pageno, dispatchZoom](const Model::PageRenderResult &result)
         {
             if (!self)
                 return;
@@ -3179,6 +3209,15 @@ DocumentView::startNextRenderJob() noexcept
             DocumentView *view = self.data();
 
             view->m_pending_renders.remove(pageno);
+
+            // Discard renders from a previous zoom level — the bake will have
+            // already queued fresh renders at the correct zoom.
+            if (!qFuzzyCompare(dispatchZoom, view->m_current_zoom))
+            {
+                view->startNextRenderJob();
+                return;
+            }
+
             QImage image = std::move(result.image);
 
             if (!image.isNull())
@@ -5616,9 +5655,15 @@ DocumentView::handleHScrollValueChanged(int value) noexcept
 
     // Immediately request renders for currently visible pages so they don't
     // appear blank during fast scrolling (requestPageRender is a no-op if the
-    // page is already pending).
-    for (int pageno : getVisiblePages())
-        requestPageRender(pageno);
+    // page is already pending). Skip during zoom: the scrollbar is being
+    // adjusted as part of anchor drift correction; page positions and model
+    // zoom are not yet consistent so renders dispatched here would be at the
+    // wrong zoom level.
+    if (!m_view_zoom_pending)
+    {
+        for (int pageno : getVisiblePages())
+            requestPageRender(pageno);
+    }
 
     // Always restart the timer (debouncing)
     m_scroll_page_update_timer->start();
@@ -5641,9 +5686,12 @@ DocumentView::handleVScrollValueChanged(int /*value */) noexcept
 
     // Immediately request renders for currently visible pages so they don't
     // appear blank during fast scrolling (requestPageRender is a no-op if the
-    // page is already pending).
-    for (int pageno : getVisiblePages())
-        requestPageRender(pageno);
+    // page is already pending). Skip during zoom: same reason as H handler.
+    if (!m_view_zoom_pending)
+    {
+        for (int pageno : getVisiblePages())
+            requestPageRender(pageno);
+    }
 
     // Always restart the timer (debouncing)
     m_scroll_page_update_timer->start();
