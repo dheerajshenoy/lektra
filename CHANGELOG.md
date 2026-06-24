@@ -1,5 +1,48 @@
 # LEKTRA CHANGELOG
 
+## 0.7.5
+
+### Bug Fixes
+
+- Fix pages appearing blank during fast scrolling. The scroll handlers
+  (`handleVScrollValueChanged` / `handleHScrollValueChanged`) previously only
+  restarted the 66 ms debounce timer on each scroll event, meaning
+  `renderPages()` — and therefore any render requests for newly visible pages —
+  would not fire until scrolling stopped. Visible pages are now queued for
+  rendering immediately on every scroll event via `requestPageRender()`; the
+  debounce timer still fires afterwards to handle cleanup (pruning stale renders,
+  removing off-screen items, updating preload pages).
+
+### Improvements
+
+- Reduce default memory usage significantly. Three sources of excess allocation
+  have been eliminated:
+  - **MuPDF internal store** reduced from `FZ_STORE_DEFAULT` (256 MB) to 64 MB.
+    The store caches decoded embedded images, fonts, and glyph bitmaps; the old
+    cap allowed it to silently consume the majority of the process RSS on
+    image-heavy documents. The limit is now configurable via
+    `behavior.mupdf_store_size` (integer, MB).
+  - **Alpha channel removed from rendered pixmaps.** `fz_new_pixmap_with_bbox`
+    was called with `alpha=1`, producing 4-component RGBA pixmaps even though
+    the page background is always cleared to opaque white and the alpha plane is
+    never used. Changed to `alpha=0`; rendered pages are now stored as
+    `Format_RGB888` (3 bytes/pixel) instead of `Format_RGBA8888` (4
+    bytes/pixel), a 25 % reduction per cached and displayed page image.
+  - **OpenGL MSAA disabled.** The OpenGL viewport was configured with 4× MSAA
+    (`format.setSamples(4)`), which multiplies the GPU framebuffer size (colour,
+    depth, stencil) by four. On integrated-GPU systems this memory is carved
+    from system RAM and shows up directly in process RSS (~60–100 MB at 1080p).
+    MSAA brings no quality benefit for a document viewer because MuPDF already
+    antialiases text and images at the CPU level. Samples are now always 0.
+  - **OpenGL `CacheBackground` removed.** `QGraphicsView::CacheBackground`
+    allocated a redundant full-viewport pixmap for what is typically a
+    solid-colour scene background. Replaced with `CacheNone`.
+- Change default rendering backend from `Auto` (OpenGL when available) to
+  `Raster`. The OpenGL backend adds ~150–185 MB of driver and framebuffer
+  overhead with no meaningful quality or performance benefit for document
+  viewing. OpenGL remains available via `rendering.backend = "opengl"` in the
+  config.
+
 ## 0.7.4
 
 ### New Features
