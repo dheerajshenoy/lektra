@@ -599,7 +599,7 @@ private:
     void resetConnections() noexcept;
     QGraphicsPathItem *ensureSearchItemForPage(int pageno) noexcept;
 
-    std::set<int> getPreloadPages() noexcept;
+    std::set<int> getPreloadPages(const std::set<int> &visiblePages) noexcept;
     const std::set<int> &getVisiblePages() noexcept;
     void invalidateVisiblePagesCache() noexcept;
     void removePageItem(int pageno) noexcept;
@@ -665,6 +665,9 @@ private:
     DocumentContainer *m_container            = nullptr;
     // max cross-axis page size, cached by cachePageStride()
     double m_max_page_cross_extent            = 0.0;
+    // thumbnail label height, cached by cachePageStride() to avoid recreating
+    // QFont/QFontMetricsF on every zoom change
+    double m_thumbnail_label_height           = 0.0;
     // Portal
     DocumentView *m_source_view               = nullptr;
     DocumentView *m_portal_view               = nullptr;

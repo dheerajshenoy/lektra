@@ -2945,8 +2945,10 @@ DocumentView::renderPages() noexcept
     // During interactive zoom setZoomAnchored() applies m_gview->scale() for
     // O(1) visual feedback; the expensive O(n) repositionPages() is deferred
     // here and runs once after the scroll-debounce timer fires.
+    bool zoomBaked = false;
     if (m_view_zoom_pending)
     {
+        zoomBaked = true;
         m_view_zoom_pending = false;
 
         // Capture viewport centre in page-local coords before resetting.
@@ -2993,7 +2995,7 @@ DocumentView::renderPages() noexcept
     }
 
     const std::set<int> &visiblePages = getVisiblePages();
-    const std::set<int> preloadPages  = getPreloadPages();
+    const std::set<int> preloadPages  = getPreloadPages(visiblePages);
 
     std::set<int> pages = visiblePages;
     pages.insert(preloadPages.begin(), preloadPages.end());
@@ -3026,7 +3028,11 @@ DocumentView::renderPages() noexcept
         for (int pageno : preloadPages)
             requestPageRender(pageno, false, false);
 
-        updateSceneRect();
+        // updateSceneRect is already called inside the zoom-bake block above;
+        // only call it here when no zoom was baked this cycle (scroll-only path)
+        // or in thumbnail mode where item bounds affect the scene rect.
+        if (!zoomBaked || m_thumbnail_mode)
+            updateSceneRect();
     }
     m_gscene->blockSignals(false);
     m_gview->setUpdatesEnabled(true);
@@ -3386,16 +3392,13 @@ DocumentView::cachePageStride() noexcept
     }
     else
     {
-        double labelHeight = 0.0;
-
-        if (m_thumbnail_mode)
+        if (m_thumbnail_mode && m_thumbnail_label_height == 0.0)
         {
             QFont font;
             font.setPointSizeF(m_config.thumbnail.font_size);
-            QFontMetricsF metrics(font);
-
-            // height() + a small percentage for padding below the text
-            labelHeight = metrics.height() + (metrics.height() * 0.25) + 10.0f;
+            const QFontMetricsF metrics(font);
+            m_thumbnail_label_height
+                = metrics.height() + (metrics.height() * 0.25) + 10.0;
         }
 
         const bool horizontal = (m_layout_mode == LayoutMode::HORIZONTAL);
@@ -3407,7 +3410,7 @@ DocumentView::cachePageStride() noexcept
             cursor += (horizontal ? w : h) + spacingScene;
 
             if (m_thumbnail_mode)
-                cursor += labelHeight; // Add buffer for thumbnail labels
+                cursor += m_thumbnail_label_height;
 
             maxCross = std::max(maxCross, horizontal ? h : w); // <-- add this
         }
@@ -3419,9 +3422,8 @@ DocumentView::cachePageStride() noexcept
 }
 
 std::set<int>
-DocumentView::getPreloadPages() noexcept
+DocumentView::getPreloadPages(const std::set<int> &visiblePages) noexcept
 {
-    const std::set<int> &visiblePages = getVisiblePages();
     if (visiblePages.empty())
         return {};
 
