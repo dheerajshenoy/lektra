@@ -1198,7 +1198,9 @@ Model::initMuPDF() noexcept
     m_fz_locks.user   = mupdf_mutexes.data();
     m_fz_locks.lock   = mupdf_lock_mutex;
     m_fz_locks.unlock = mupdf_unlock_mutex;
-    m_ctx             = fz_new_context(nullptr, &m_fz_locks, FZ_STORE_DEFAULT);
+    const size_t storeBytes
+        = static_cast<size_t>(m_config.behavior.mupdf_store_size) << 20;
+    m_ctx = fz_new_context(nullptr, &m_fz_locks, storeBytes);
     fz_register_document_handlers(m_ctx);
     m_colorspace = fz_device_rgb(m_ctx);
 }
@@ -2970,7 +2972,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         fz_irect bbox       = fz_round_rect(transformed);
 
         // // --- Render page to QImage ---
-        pix = fz_new_pixmap_with_bbox(ctx, job.colorspace, bbox, nullptr, 1);
+        pix = fz_new_pixmap_with_bbox(ctx, job.colorspace, bbox, nullptr, 0);
         fz_clear_pixmap_with_value(ctx, pix, 255);
 
         dev = fz_new_draw_device(ctx, fz_identity, pix);
@@ -3294,7 +3296,7 @@ Model::renderRegionAtDPI(int pageno, QRectF logicalRect,
     fz_try(ctx)
     {
         pix = fz_new_pixmap_with_bbox(ctx, m_colorspace, target_bbox, nullptr,
-                                      1);
+                                      0);
         fz_clear_pixmap_with_value(ctx, pix, 255);
 
         dev = fz_new_draw_device(ctx, fz_identity, pix);

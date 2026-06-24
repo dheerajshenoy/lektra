@@ -1218,6 +1218,7 @@ Lektra::initConfig() noexcept
         set(behavior["recent_files"], m_config.behavior.recent_files);
         set(behavior["num_recent_files"], m_config.behavior.num_recent_files);
         set(behavior["cache_pages"], m_config.behavior.cache_pages);
+        set(behavior["mupdf_store_size"], m_config.behavior.mupdf_store_size);
         set(behavior["auto_scroll"], m_config.behavior.auto_scroll);
     }
 
@@ -6584,7 +6585,7 @@ Lektra::checkConfigFile(const QString &path) noexcept
           "page_history_limit", "invert_mode", "dont_invert_images",
           "auto_reload", "cache_password", "recent_files",
           "num_recent_files", "initial_mode", "open_last_visited",
-          "file_name_only", "cache_pages"}},
+          "file_name_only", "cache_pages", "mupdf_store_size"}},
 
         {"keybindings", {}},
         {"mousebindings",

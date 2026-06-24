@@ -5612,6 +5612,12 @@ DocumentView::handleHScrollValueChanged(int value) noexcept
 
     updateCurrentPage();
 
+    // Immediately request renders for currently visible pages so they don't
+    // appear blank during fast scrolling (requestPageRender is a no-op if the
+    // page is already pending).
+    for (int pageno : getVisiblePages())
+        requestPageRender(pageno);
+
     // Always restart the timer (debouncing)
     m_scroll_page_update_timer->start();
 
@@ -5630,6 +5636,12 @@ DocumentView::handleVScrollValueChanged(int /*value */) noexcept
     invalidateVisiblePagesCache();
 
     updateCurrentPage();
+
+    // Immediately request renders for currently visible pages so they don't
+    // appear blank during fast scrolling (requestPageRender is a no-op if the
+    // page is already pending).
+    for (int pageno : getVisiblePages())
+        requestPageRender(pageno);
 
     // Always restart the timer (debouncing)
     m_scroll_page_update_timer->start();

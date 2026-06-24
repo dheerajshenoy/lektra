@@ -1021,13 +1021,18 @@ GraphicsView::applyBackend() noexcept
     if (useGL)
     {
         QSurfaceFormat format;
-        format.setSamples(m_config.rendering.antialiasing ? 4 : 0);
+        // MSAA is wasteful for a document viewer: page text and images are
+        // already antialiased by MuPDF at the CPU level, and MSAA multiplies
+        // GPU/system framebuffer memory by its sample count.
+        format.setSamples(0);
         QOpenGLWidget *glWidget = new QOpenGLWidget(this);
         glWidget->setFormat(format);
         setViewport(glWidget);
         viewport()->setAttribute(Qt::WA_AcceptTouchEvents, true);
         setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
-        setCacheMode(QGraphicsView::CacheBackground);
+        // CacheBackground allocates a redundant full-viewport pixmap for what
+        // is typically a solid-color background — not worth the memory cost.
+        setCacheMode(QGraphicsView::CacheNone);
     }
     else
     {
