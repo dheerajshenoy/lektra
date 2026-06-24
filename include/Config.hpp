@@ -1054,7 +1054,7 @@ struct Config
             Raster = 1,
             OpenGL = 2
         };
-        Backend backend = Backend::Auto;
+        Backend backend = Backend::Raster;
 
         using DPR = std::variant<float, QMap<QString, float>>;
         // @desc Device Pixel Ratio
@@ -1119,6 +1119,17 @@ struct Config
         // @default 5
         // @added 0.5.3
         int cache_pages = 5;
+
+        // @desc {
+        // Maximum size of MuPDF's internal store in megabytes. The store
+        // holds decoded embedded images, fonts, and glyph bitmaps. Reduce
+        // this if memory usage is too high; increase if you notice slow
+        // re-renders after scrolling through image-heavy documents.
+        // }
+        // @type int
+        // @default 64
+        // @added 0.8.0
+        int mupdf_store_size = 64;
 
         // @desc Preload pages
         // @type int
