@@ -9,15 +9,14 @@
 - [ ] Allow for command arguments
 - [ ] Don't add connection to annotation when in non-annotatable mode
 - [ ] Link hint lua api and then callback to lua
-- [ ] Right click context menu on link
-    - [ ] Open in new tab
-    - [ ] Copy link address
-    - [ ] Preview link (if it's internal)
-    - [ ] Portal link (if it's internal)
-    - [ ] Split link (if it's internal)
-        - [ ] vertically
-        - [ ] horizontally
-- [ ] Add option to open links in new tab by default
+- [X] Right click context menu on link
+    - [X] Open in new tab
+    - [X] Copy link address
+    - [X] Preview link (if it's internal)
+    - [X] Portal link (if it's internal)
+    - [X] Split link (if it's internal)
+        - [X] vertically
+        - [X] horizontally
 
 ## MEDIUM PRIORITY
 
