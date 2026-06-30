@@ -40,6 +40,20 @@
   `m_vscroll->blockSignals(true)` / `m_hscroll->blockSignals(true)` around the
   entire bake critical section and releasing them after `setUpdatesEnabled(true)`
   at the end of the merged suppression window.
+- Fix pages disappearing off-screen after zoom in multi-page layout. After the
+  zoom bake, `centerOn()` (and `GotoPage()` for the gap fallback) were called
+  while scrollbar signals were still blocked. Qt routes scroll position updates
+  through `setValue()` → `valueChanged` → `scrollContentsBy()`, which is what
+  physically moves the viewport; with signals blocked that chain is severed, so
+  the scrollbar stored the correct target value but the viewport never moved.
+  The result was a blank view after every zoom bake — the pages were correctly
+  positioned in the scene but the viewport was pointing at empty space. Scrolling
+  manually would trigger `valueChanged`, snap the viewport to the stored value,
+  and reveal the pages. Fixed by unblocking `m_vscroll` / `m_hscroll` signals
+  immediately after `repositionPages()` and before the `centerOn()` / `GotoPage()`
+  call, keeping the block only for the `resetTransform()` + `updateSceneRect()` +
+  `repositionPages()` critical section where spurious scroll events must be
+  suppressed.
 
 ### Improvements
 
