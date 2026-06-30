@@ -2,59 +2,6 @@
 
 ## 0.7.5
 
-### Bug Fixes
-
-- Fix pages rendering slanted after zoom when using RGB (non-alpha) pixmaps.
-  The two `QImage` construction sites in the render pipeline were using
-  `QImage(w, h, fmt)` + `memcpy(image.bits(), samples, stride * height)`.
-  For `Format_RGB888` (3 bytes/pixel) Qt pads each scanline to the next 4-byte
-  boundary, so when the rendered page width is not divisible by 4 the bulk
-  `memcpy` wrote rows without the padding, shifting every subsequent row and
-  producing a diagonal slant. Fixed by using the stride-aware constructor
-  `QImage(samples, w, h, stride, fmt).copy()` at both sites, which lets Qt
-  handle the scanline alignment internally.
-- Fix redundant page-image copy on every render. The render callback passed
-  `const QImage &image` down through `renderPageFromImage` →
-  `createAndAddPageItem` → `setImage(const QImage &)`, triggering a full
-  pixel-buffer copy (~3–10 MB per page). Since the `PageRenderResult` is a
-  local value in the callback, the image is now moved with `std::move` all the
-  way into `GraphicsImageItem`, eliminating the copy entirely.
-- Fix pages appearing blank during fast scrolling. The scroll handlers
-  (`handleVScrollValueChanged` / `handleHScrollValueChanged`) previously only
-  restarted the 66 ms debounce timer on each scroll event, meaning
-  `renderPages()` — and therefore any render requests for newly visible pages —
-  would not fire until scrolling stopped. Visible pages are now queued for
-  rendering immediately on every scroll event via `requestPageRender()`; the
-  debounce timer still fires afterwards to handle cleanup (pruning stale renders,
-  removing off-screen items, updating preload pages).
-- Fix viewport jumping to the wrong page during Ctrl+scroll zoom in multi-page
-  continuous layout. The zoom path applies a GPU view-transform (`m_gview->scale()`)
-  immediately for O(1) visual feedback, then defers the expensive `repositionPages()`
-  bake to a 66 ms debounce timer. During the bake, `resetTransform()` followed by
-  `updateSceneRect()` caused Qt to auto-clamp scrollbar values and emit
-  `valueChanged` on `m_vscroll` / `m_hscroll` — before `centerOn()` had a chance
-  to restore the correct viewport position. Because `m_gscene->blockSignals(true)`
-  only suppresses `QGraphicsScene` signals (not scrollbar signals), the scroll
-  handlers fired with an incorrect position, updated the current-page counter, and
-  queued renders for the wrong pages. Fixed by also calling
-  `m_vscroll->blockSignals(true)` / `m_hscroll->blockSignals(true)` around the
-  entire bake critical section and releasing them after `setUpdatesEnabled(true)`
-  at the end of the merged suppression window.
-- Fix pages disappearing off-screen after zoom in multi-page layout. After the
-  zoom bake, `centerOn()` (and `GotoPage()` for the gap fallback) were called
-  while scrollbar signals were still blocked. Qt routes scroll position updates
-  through `setValue()` → `valueChanged` → `scrollContentsBy()`, which is what
-  physically moves the viewport; with signals blocked that chain is severed, so
-  the scrollbar stored the correct target value but the viewport never moved.
-  The result was a blank view after every zoom bake — the pages were correctly
-  positioned in the scene but the viewport was pointing at empty space. Scrolling
-  manually would trigger `valueChanged`, snap the viewport to the stored value,
-  and reveal the pages. Fixed by unblocking `m_vscroll` / `m_hscroll` signals
-  immediately after `repositionPages()` and before the `centerOn()` / `GotoPage()`
-  call, keeping the block only for the `resetTransform()` + `updateSceneRect()` +
-  `repositionPages()` critical section where spurious scroll events must be
-  suppressed.
-
 ### New Features
 
 - Add right-click context menu for internal PDF links. Right-clicking any internal
@@ -117,6 +64,59 @@
   overhead with no meaningful quality or performance benefit for document
   viewing. OpenGL remains available via `rendering.backend = "opengl"` in the
   config.
+
+### Bug Fixes
+
+- Fix pages rendering slanted after zoom when using RGB (non-alpha) pixmaps.
+  The two `QImage` construction sites in the render pipeline were using
+  `QImage(w, h, fmt)` + `memcpy(image.bits(), samples, stride * height)`.
+  For `Format_RGB888` (3 bytes/pixel) Qt pads each scanline to the next 4-byte
+  boundary, so when the rendered page width is not divisible by 4 the bulk
+  `memcpy` wrote rows without the padding, shifting every subsequent row and
+  producing a diagonal slant. Fixed by using the stride-aware constructor
+  `QImage(samples, w, h, stride, fmt).copy()` at both sites, which lets Qt
+  handle the scanline alignment internally.
+- Fix redundant page-image copy on every render. The render callback passed
+  `const QImage &image` down through `renderPageFromImage` →
+  `createAndAddPageItem` → `setImage(const QImage &)`, triggering a full
+  pixel-buffer copy (~3–10 MB per page). Since the `PageRenderResult` is a
+  local value in the callback, the image is now moved with `std::move` all the
+  way into `GraphicsImageItem`, eliminating the copy entirely.
+- Fix pages appearing blank during fast scrolling. The scroll handlers
+  (`handleVScrollValueChanged` / `handleHScrollValueChanged`) previously only
+  restarted the 66 ms debounce timer on each scroll event, meaning
+  `renderPages()` — and therefore any render requests for newly visible pages —
+  would not fire until scrolling stopped. Visible pages are now queued for
+  rendering immediately on every scroll event via `requestPageRender()`; the
+  debounce timer still fires afterwards to handle cleanup (pruning stale renders,
+  removing off-screen items, updating preload pages).
+- Fix viewport jumping to the wrong page during Ctrl+scroll zoom in multi-page
+  continuous layout. The zoom path applies a GPU view-transform (`m_gview->scale()`)
+  immediately for O(1) visual feedback, then defers the expensive `repositionPages()`
+  bake to a 66 ms debounce timer. During the bake, `resetTransform()` followed by
+  `updateSceneRect()` caused Qt to auto-clamp scrollbar values and emit
+  `valueChanged` on `m_vscroll` / `m_hscroll` — before `centerOn()` had a chance
+  to restore the correct viewport position. Because `m_gscene->blockSignals(true)`
+  only suppresses `QGraphicsScene` signals (not scrollbar signals), the scroll
+  handlers fired with an incorrect position, updated the current-page counter, and
+  queued renders for the wrong pages. Fixed by also calling
+  `m_vscroll->blockSignals(true)` / `m_hscroll->blockSignals(true)` around the
+  entire bake critical section and releasing them after `setUpdatesEnabled(true)`
+  at the end of the merged suppression window.
+- Fix pages disappearing off-screen after zoom in multi-page layout. After the
+  zoom bake, `centerOn()` (and `GotoPage()` for the gap fallback) were called
+  while scrollbar signals were still blocked. Qt routes scroll position updates
+  through `setValue()` → `valueChanged` → `scrollContentsBy()`, which is what
+  physically moves the viewport; with signals blocked that chain is severed, so
+  the scrollbar stored the correct target value but the viewport never moved.
+  The result was a blank view after every zoom bake — the pages were correctly
+  positioned in the scene but the viewport was pointing at empty space. Scrolling
+  manually would trigger `valueChanged`, snap the viewport to the stored value,
+  and reveal the pages. Fixed by unblocking `m_vscroll` / `m_hscroll` signals
+  immediately after `repositionPages()` and before the `centerOn()` / `GotoPage()`
+  call, keeping the block only for the `resetTransform()` + `updateSceneRect()` +
+  `repositionPages()` critical section where spurious scroll events must be
+  suppressed.
 
 ## 0.7.4
 
