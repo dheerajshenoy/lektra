@@ -217,14 +217,6 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         return;
     }
 
-    // Unbound button — let the base class handle it (e.g. right-click context
-    // menu).
-    if (action == MouseAction::None && event->button() != Qt::LeftButton)
-    {
-        QGraphicsView::mousePressEvent(event);
-        return;
-    }
-
     const QPointF scenePos = mapToScene(event->pos());
 
 #ifdef WITH_SYNCTEX
@@ -242,6 +234,9 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
 #endif
 
     // --- Link actions (TextSelection / TextHighlight modes) ---
+    // Checked before the generic non-left-button early return so that middle
+    // click (and other explicit link actions) are caught even when the button
+    // has no configured MouseAction binding.
     if (m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
     {
         if (QGraphicsItem *item = itemAt(event->pos()))
@@ -251,15 +246,23 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                 if (action == MouseAction::Portal)
                     emit linkCtrlClickRequested(scenePos);
                 else if (action == MouseAction::Preview)
-                {
                     emit linkPreviewRequested(scenePos);
-                }
+                else if (event->button() == Qt::MiddleButton)
+                    emit linkMiddleClickRequested(scenePos);
                 else
                     QGraphicsView::mousePressEvent(event);
                 event->accept();
                 return;
             }
         }
+    }
+
+    // Unbound button — let the base class handle it (e.g. right-click context
+    // menu).
+    if (action == MouseAction::None && event->button() != Qt::LeftButton)
+    {
+        QGraphicsView::mousePressEvent(event);
+        return;
     }
 
     // --- Select action dispatched per mode ---

@@ -173,6 +173,7 @@ signals:
     void textHighlightRequested(QPointF a, QPointF b);
     void linkCtrlClickRequested(QPointF scenePos);
     void linkPreviewRequested(QPointF scenePos);
+    void linkMiddleClickRequested(QPointF scenePos);
     void annotRectRequested(QRectF sceneRect);
     void annotPopupRequested(QPointF scenePos);
     void regionSelectRequested(QRectF sceneRect);

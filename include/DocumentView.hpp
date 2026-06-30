@@ -505,6 +505,7 @@ private slots:
     void handle_wrong_password() noexcept;
     void handleLinkCtrlClickRequested(QPointF scenePos) noexcept;
     void handleLinkPreviewRequested(QPointF scenePos) noexcept;
+    void handleLinkMiddleClickRequested(QPointF scenePos) noexcept;
     void handleTextSelection(QPointF start, QPointF end) noexcept;
     void handleClickSelection(int clickType, QPointF scenePos) noexcept;
     void handleSearchResults(

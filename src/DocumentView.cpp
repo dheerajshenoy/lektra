@@ -623,6 +623,9 @@ DocumentView::initConnections() noexcept
 
     connect(m_gview, &GraphicsView::linkPreviewRequested, this,
             &DocumentView::handleLinkPreviewRequested);
+
+    connect(m_gview, &GraphicsView::linkMiddleClickRequested, this,
+            &DocumentView::handleLinkMiddleClickRequested);
 }
 
 void
@@ -689,6 +692,38 @@ DocumentView::handleLinkCtrlClickRequested(QPointF scenePos) noexcept
     if (!clicked_link)
         return;
     emit ctrlLinkClickRequested(this, clicked_link);
+}
+
+void
+DocumentView::handleLinkMiddleClickRequested(QPointF scenePos) noexcept
+{
+    if (!m_model->supports_links())
+        return;
+
+    int pageIndex               = -1;
+    GraphicsImageItem *pageItem = nullptr;
+
+    if (!pageAtScenePos(scenePos, pageIndex, pageItem))
+        return;
+
+    const std::vector<BrowseLinkItem *> links_in_page
+        = m_page_links_hash[pageIndex];
+    if (links_in_page.empty())
+        return;
+
+    BrowseLinkItem *clicked_link = nullptr;
+    for (BrowseLinkItem *link : links_in_page)
+    {
+        if (link->contains(scenePos))
+        {
+            clicked_link = link;
+            break;
+        }
+    }
+
+    if (!clicked_link || !clicked_link->isInternal())
+        return;
+    emit linkOpenInNewTabRequested(this, clicked_link);
 }
 
 void
