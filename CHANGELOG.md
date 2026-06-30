@@ -55,6 +55,25 @@
   `repositionPages()` critical section where spurious scroll events must be
   suppressed.
 
+### New Features
+
+- Add right-click context menu for internal PDF links. Right-clicking any internal
+  link now shows a menu with:
+  - **Open in New Tab** — opens the same document in a new tab and navigates to
+    the link target.
+  - **Open in Preview** — shows the link target in the floating preview overlay
+    (same as the configured preview mouse action).
+  - **Open as Portal** — creates a portal split to the link target (same as the
+    configured ctrl-click action).
+  - **Open in Split → Vertical / Horizontal** — opens a vertical or horizontal
+    split unconditionally, ignoring the portal split-direction config.
+  - **Copy Link Address** — copies the link destination string to the clipboard
+    (renamed from "Copy Link Location").
+  External links only show "Copy Link Address". The menu is implemented in
+  `BrowseLinkItem::contextMenuEvent()`; each action emits a signal that bubbles
+  through `DocumentView` to `Lektra`, reusing the existing preview and portal
+  infrastructure where possible.
+
 ### Improvements
 
 - Eliminate redundant work in the render cycle:

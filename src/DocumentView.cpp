@@ -4364,6 +4364,26 @@ DocumentView::renderLinks(int pageno,
             }
         });
 
+        connect(item, &BrowseLinkItem::linkOpenInNewTabRequested, this,
+                [this](const BrowseLinkItem *link)
+        { emit linkOpenInNewTabRequested(this, link); });
+
+        connect(item, &BrowseLinkItem::linkOpenPortalRequested, this,
+                [this](const BrowseLinkItem *link)
+        { emit ctrlLinkClickRequested(this, link); });
+
+        connect(item, &BrowseLinkItem::linkOpenPreviewRequested, this,
+                [this](const BrowseLinkItem *link)
+        { emit linkPreviewRequested(this, link); });
+
+        connect(item, &BrowseLinkItem::linkOpenVSplitRequested, this,
+                [this](const BrowseLinkItem *link)
+        { emit linkOpenVSplitRequested(this, link); });
+
+        connect(item, &BrowseLinkItem::linkOpenHSplitRequested, this,
+                [this](const BrowseLinkItem *link)
+        { emit linkOpenHSplitRequested(this, link); });
+
         // Map link rect to scene coordinates
         const QRectF sceneRect
             = pageItem->mapToScene(item->rect()).boundingRect();

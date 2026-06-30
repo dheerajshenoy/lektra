@@ -4185,6 +4185,15 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
 
     connect(docwidget, &DocumentView::linkPreviewRequested, this,
             &Lektra::handleLinkPreviewRequested);
+
+    connect(docwidget, &DocumentView::linkOpenInNewTabRequested, this,
+            &Lektra::handleLinkOpenInNewTab);
+
+    connect(docwidget, &DocumentView::linkOpenVSplitRequested, this,
+            &Lektra::handleLinkOpenVSplit);
+
+    connect(docwidget, &DocumentView::linkOpenHSplitRequested, this,
+            &Lektra::handleLinkOpenHSplit);
 }
 
 // Insert file to store when tab is closed to track
@@ -6033,6 +6042,84 @@ Lektra::handleLinkPreviewRequested(DocumentView *view,
     {
         navigateTo();
     }
+}
+
+void
+Lektra::handleLinkOpenInNewTab(DocumentView *view,
+                               const BrowseLinkItem *linkItem) noexcept
+{
+    if (!view || !linkItem || !linkItem->isInternal())
+        return;
+
+    PageLocation target{linkItem->gotoPageNo(), linkItem->location().x,
+                        linkItem->location().y};
+    if (std::isnan(target.x))
+        target.x = 0;
+    if (std::isnan(target.y))
+        target.y = 0;
+
+    DocumentView *newView = OpenFileInNewTab(view->filePath());
+    if (!newView)
+        return;
+
+    connect(newView, &DocumentView::openFileFinished, this,
+            [newView, target](DocumentView *, Model::FileType)
+    {
+        QTimer::singleShot(0, newView,
+                           [newView, target]() { newView->GotoLocation(target); });
+    }, Qt::SingleShotConnection);
+}
+
+void
+Lektra::handleLinkOpenVSplit(DocumentView *view,
+                             const BrowseLinkItem *linkItem) noexcept
+{
+    if (!view || !linkItem || !linkItem->isInternal())
+        return;
+
+    PageLocation target{linkItem->gotoPageNo(), linkItem->location().x,
+                        linkItem->location().y};
+    if (std::isnan(target.x))
+        target.x = 0;
+    if (std::isnan(target.y))
+        target.y = 0;
+
+    DocumentView *newView = OpenFileVSplit(view->filePath());
+    if (!newView)
+        return;
+
+    connect(newView, &DocumentView::openFileFinished, this,
+            [newView, target](DocumentView *, Model::FileType)
+    {
+        QTimer::singleShot(0, newView,
+                           [newView, target]() { newView->GotoLocation(target); });
+    }, Qt::SingleShotConnection);
+}
+
+void
+Lektra::handleLinkOpenHSplit(DocumentView *view,
+                             const BrowseLinkItem *linkItem) noexcept
+{
+    if (!view || !linkItem || !linkItem->isInternal())
+        return;
+
+    PageLocation target{linkItem->gotoPageNo(), linkItem->location().x,
+                        linkItem->location().y};
+    if (std::isnan(target.x))
+        target.x = 0;
+    if (std::isnan(target.y))
+        target.y = 0;
+
+    DocumentView *newView = OpenFileHSplit(view->filePath());
+    if (!newView)
+        return;
+
+    connect(newView, &DocumentView::openFileFinished, this,
+            [newView, target](DocumentView *, Model::FileType)
+    {
+        QTimer::singleShot(0, newView,
+                           [newView, target]() { newView->GotoLocation(target); });
+    }, Qt::SingleShotConnection);
 }
 
 /*

@@ -115,6 +115,11 @@ signals:
     void verticalFitRequested(int pageno, const PageLocation &loc);
     void horizontalFitRequested(int pageno, const PageLocation &loc);
     void linkCopyRequested(const QString &link);
+    void linkOpenInNewTabRequested(const BrowseLinkItem *link);
+    void linkOpenPortalRequested(const BrowseLinkItem *link);
+    void linkOpenPreviewRequested(const BrowseLinkItem *link);
+    void linkOpenVSplitRequested(const BrowseLinkItem *link);
+    void linkOpenHSplitRequested(const BrowseLinkItem *link);
 
 protected:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *e) override
@@ -168,10 +173,27 @@ protected:
     void contextMenuEvent(QGraphicsSceneContextMenuEvent *e) override
     {
         QMenu menu;
-        QAction *copyLinkLocationAction = menu.addAction("Copy Link Location");
 
-        connect(copyLinkLocationAction, &QAction::triggered, this,
-                [this]() { emit linkCopyRequested(_link); });
+        if (isInternal())
+        {
+            menu.addAction("Open in New Tab", this,
+                           [this]() { emit linkOpenInNewTabRequested(this); });
+            menu.addAction("Open in Preview", this,
+                           [this]() { emit linkOpenPreviewRequested(this); });
+            menu.addAction("Open as Portal", this,
+                           [this]() { emit linkOpenPortalRequested(this); });
+
+            QMenu *splitMenu = menu.addMenu("Open in Split");
+            splitMenu->addAction("Vertical", this,
+                                 [this]() { emit linkOpenVSplitRequested(this); });
+            splitMenu->addAction("Horizontal", this,
+                                 [this]() { emit linkOpenHSplitRequested(this); });
+
+            menu.addSeparator();
+        }
+
+        menu.addAction("Copy Link Address", this,
+                       [this]() { emit linkCopyRequested(_link); });
 
         menu.exec(e->screenPos());
         e->accept();

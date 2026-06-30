@@ -471,6 +471,12 @@ signals:
                               const BrowseLinkItem *linkItem);
     void ctrlLinkClickRequested(DocumentView *view,
                                 const BrowseLinkItem *linkItem);
+    void linkOpenInNewTabRequested(DocumentView *view,
+                                   const BrowseLinkItem *linkItem);
+    void linkOpenVSplitRequested(DocumentView *view,
+                                 const BrowseLinkItem *linkItem);
+    void linkOpenHSplitRequested(DocumentView *view,
+                                 const BrowseLinkItem *linkItem);
     void requestFocus(DocumentView *view);
     void openFileFailed(DocumentView *doc);
     void openFileFinished(DocumentView *doc, Model::FileType filetype);

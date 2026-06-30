@@ -302,6 +302,12 @@ private:
                                       const BrowseLinkItem *linkItem) noexcept;
     void handleLinkPreviewRequested(DocumentView *view,
                                     const BrowseLinkItem *linkItem) noexcept;
+    void handleLinkOpenInNewTab(DocumentView *view,
+                                const BrowseLinkItem *linkItem) noexcept;
+    void handleLinkOpenVSplit(DocumentView *view,
+                              const BrowseLinkItem *linkItem) noexcept;
+    void handleLinkOpenHSplit(DocumentView *view,
+                              const BrowseLinkItem *linkItem) noexcept;
 
     void gotoPage(int pageno) noexcept;
     void setFocusMode(bool state) noexcept;
