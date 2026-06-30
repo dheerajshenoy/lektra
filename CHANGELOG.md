@@ -2,121 +2,45 @@
 
 ## 0.7.5
 
+---
+
 ### New Features
 
-- Add right-click context menu for internal PDF links. Right-clicking any internal
-  link now shows a menu with:
-  - **Open in New Tab** — opens the same document in a new tab and navigates to
-    the link target.
-  - **Open in Preview** — shows the link target in the floating preview overlay
-    (same as the configured preview mouse action).
-  - **Open as Portal** — creates a portal split to the link target (same as the
-    configured ctrl-click action).
-  - **Open in Split → Vertical / Horizontal** — opens a vertical or horizontal
-    split unconditionally, ignoring the portal split-direction config.
-  - **Copy Link Address** — copies the link destination string to the clipboard
-    (renamed from "Copy Link Location").
-  External links only show "Copy Link Address". The menu is implemented in
-  `BrowseLinkItem::contextMenuEvent()`; each action emits a signal that bubbles
-  through `DocumentView` to `Lektra`, reusing the existing preview and portal
-  infrastructure where possible.
+* **Right-click context menu for internal PDF links:** Right-clicking any internal link now shows a menu with:
+* **Open in New Tab** — Opens the same document in a new tab and navigates to the link target.
+* **Open in Preview** — Shows the link target in the floating preview overlay (same as the configured preview mouse action).
+* **Open as Portal** — Creates a portal split to the link target (same as the configured Ctrl+click action).
+* **Open in Split → Vertical / Horizontal** — Opens a vertical or horizontal split unconditionally, ignoring the portal split-direction configuration.
+* **Copy Link Address** — Copies the link destination string to the clipboard (renamed from "Copy Link Location").
+* *Note:* External links will only show "Copy Link Address". The menu is implemented in `BrowseLinkItem::contextMenuEvent()`; each action emits a signal that bubbles through `DocumentView` to `Lektra`, reusing the existing preview and portal infrastructure where possible.
+
+---
 
 ### Improvements
 
-- Eliminate redundant work in the render cycle:
-  - `updateSceneRect()` was called unconditionally at the end of `renderPages()`
-    even when the zoom-bake block had already called it in the same cycle,
-    causing a double `setSceneRect()` on every zoom event. It is now skipped
-    when zoom was just baked (except in thumbnail mode where item bounds
-    contribute to the scene rect).
-  - `getPreloadPages()` was re-entering `getVisiblePages()` internally even
-    though the caller already held the result. Signature changed to accept the
-    visible-page set as a parameter, eliminating the redundant cache lookup on
-    every render cycle.
-  - `cachePageStride()` was allocating a `QFont` and `QFontMetricsF` on every
-    call in thumbnail mode to compute the label row height, even though the
-    value is constant for a given config. The result is now cached in
-    `m_thumbnail_label_height` and computed only once.
-- Reduce default memory usage significantly. Three sources of excess allocation
-  have been eliminated:
-  - **MuPDF internal store** reduced from `FZ_STORE_DEFAULT` (256 MB) to 64 MB.
-    The store caches decoded embedded images, fonts, and glyph bitmaps; the old
-    cap allowed it to silently consume the majority of the process RSS on
-    image-heavy documents. The limit is now configurable via
-    `behavior.mupdf_store_size` (integer, MB).
-  - **Alpha channel removed from rendered pixmaps.** `fz_new_pixmap_with_bbox`
-    was called with `alpha=1`, producing 4-component RGBA pixmaps even though
-    the page background is always cleared to opaque white and the alpha plane is
-    never used. Changed to `alpha=0`; rendered pages are now stored as
-    `Format_RGB888` (3 bytes/pixel) instead of `Format_RGBA8888` (4
-    bytes/pixel), a 25 % reduction per cached and displayed page image.
-  - **OpenGL MSAA disabled.** The OpenGL viewport was configured with 4× MSAA
-    (`format.setSamples(4)`), which multiplies the GPU framebuffer size (colour,
-    depth, stencil) by four. On integrated-GPU systems this memory is carved
-    from system RAM and shows up directly in process RSS (~60–100 MB at 1080p).
-    MSAA brings no quality benefit for a document viewer because MuPDF already
-    antialiases text and images at the CPU level. Samples are now always 0.
-  - **OpenGL `CacheBackground` removed.** `QGraphicsView::CacheBackground`
-    allocated a redundant full-viewport pixmap for what is typically a
-    solid-colour scene background. Replaced with `CacheNone`.
-- Change default rendering backend from `Auto` (OpenGL when available) to
-  `Raster`. The OpenGL backend adds ~150–185 MB of driver and framebuffer
-  overhead with no meaningful quality or performance benefit for document
-  viewing. OpenGL remains available via `rendering.backend = "opengl"` in the
-  config.
+* **Eliminate redundant work in the render cycle:**
+* `updateSceneRect()` was being called unconditionally at the end of `renderPages()`, even when the zoom-bake block had already called it in the same cycle. This caused a double `setSceneRect()` on every zoom event. It is now skipped when zoom has just been baked (except in thumbnail mode, where item bounds contribute to the scene rect).
+* `getPreloadPages()` was re-entering `getVisiblePages()` internally, even though the caller already held the result. The signature has been changed to accept the visible-page set as a parameter, eliminating the redundant cache lookup on every render cycle.
+* `cachePageStride()` was allocating a `QFont` and `QFontMetricsF` on every call in thumbnail mode to compute the label row height, even though the value is constant for a given configuration. The result is now cached in `m_thumbnail_label_height` and computed only once.
+
+* **Reduce default memory usage significantly:** Three sources of excess allocation have been eliminated:
+* **MuPDF internal store** reduced from `FZ_STORE_DEFAULT` (256 MB) to 64 MB. The store caches decoded embedded images, fonts, and glyph bitmaps; the old cap allowed it to silently consume the majority of the process RSS on image-heavy documents. The limit is now configurable via `behavior.mupdf_store_size` (integer, MB).
+* **Alpha channel removed from rendered pixmaps:** `fz_new_pixmap_with_bbox` was called with `alpha=1`, producing 4-component RGBA pixmaps even though the page background is always cleared to opaque white and the alpha plane is never used. Changed to `alpha=0`; rendered pages are now stored as `Format_RGB888` (3 bytes/pixel) instead of `Format_RGBA8888` (4 bytes/pixel), yielding a 25% reduction per cached and displayed page image.
+* **OpenGL MSAA disabled:** The OpenGL viewport was configured with 4× MSAA (`format.setSamples(4)`), which multiplies the GPU framebuffer size (color, depth, stencil) by four. On integrated-GPU systems, this memory is carved from system RAM and shows up directly in process RSS (~60–100 MB at 1080p). MSAA brings no quality benefit for a document viewer because MuPDF already antialiases text and images at the CPU level. Samples are now always set to 0.
+* **OpenGL `CacheBackground` removed:** `QGraphicsView::CacheBackground` allocated a redundant full-viewport pixmap for what is typically a solid-color scene background. Replaced with `CacheNone`.
+
+
+* **Change default rendering backend from `Auto` (OpenGL when available) to `Raster`:** The OpenGL backend adds ~150–185 MB of driver and framebuffer overhead with no meaningful quality or performance benefit for document viewing. OpenGL remains available via `rendering.backend = "opengl"` in the configuration.
+
+---
 
 ### Bug Fixes
 
-- Fix pages rendering slanted after zoom when using RGB (non-alpha) pixmaps.
-  The two `QImage` construction sites in the render pipeline were using
-  `QImage(w, h, fmt)` + `memcpy(image.bits(), samples, stride * height)`.
-  For `Format_RGB888` (3 bytes/pixel) Qt pads each scanline to the next 4-byte
-  boundary, so when the rendered page width is not divisible by 4 the bulk
-  `memcpy` wrote rows without the padding, shifting every subsequent row and
-  producing a diagonal slant. Fixed by using the stride-aware constructor
-  `QImage(samples, w, h, stride, fmt).copy()` at both sites, which lets Qt
-  handle the scanline alignment internally.
-- Fix redundant page-image copy on every render. The render callback passed
-  `const QImage &image` down through `renderPageFromImage` →
-  `createAndAddPageItem` → `setImage(const QImage &)`, triggering a full
-  pixel-buffer copy (~3–10 MB per page). Since the `PageRenderResult` is a
-  local value in the callback, the image is now moved with `std::move` all the
-  way into `GraphicsImageItem`, eliminating the copy entirely.
-- Fix pages appearing blank during fast scrolling. The scroll handlers
-  (`handleVScrollValueChanged` / `handleHScrollValueChanged`) previously only
-  restarted the 66 ms debounce timer on each scroll event, meaning
-  `renderPages()` — and therefore any render requests for newly visible pages —
-  would not fire until scrolling stopped. Visible pages are now queued for
-  rendering immediately on every scroll event via `requestPageRender()`; the
-  debounce timer still fires afterwards to handle cleanup (pruning stale renders,
-  removing off-screen items, updating preload pages).
-- Fix viewport jumping to the wrong page during Ctrl+scroll zoom in multi-page
-  continuous layout. The zoom path applies a GPU view-transform (`m_gview->scale()`)
-  immediately for O(1) visual feedback, then defers the expensive `repositionPages()`
-  bake to a 66 ms debounce timer. During the bake, `resetTransform()` followed by
-  `updateSceneRect()` caused Qt to auto-clamp scrollbar values and emit
-  `valueChanged` on `m_vscroll` / `m_hscroll` — before `centerOn()` had a chance
-  to restore the correct viewport position. Because `m_gscene->blockSignals(true)`
-  only suppresses `QGraphicsScene` signals (not scrollbar signals), the scroll
-  handlers fired with an incorrect position, updated the current-page counter, and
-  queued renders for the wrong pages. Fixed by also calling
-  `m_vscroll->blockSignals(true)` / `m_hscroll->blockSignals(true)` around the
-  entire bake critical section and releasing them after `setUpdatesEnabled(true)`
-  at the end of the merged suppression window.
-- Fix pages disappearing off-screen after zoom in multi-page layout. After the
-  zoom bake, `centerOn()` (and `GotoPage()` for the gap fallback) were called
-  while scrollbar signals were still blocked. Qt routes scroll position updates
-  through `setValue()` → `valueChanged` → `scrollContentsBy()`, which is what
-  physically moves the viewport; with signals blocked that chain is severed, so
-  the scrollbar stored the correct target value but the viewport never moved.
-  The result was a blank view after every zoom bake — the pages were correctly
-  positioned in the scene but the viewport was pointing at empty space. Scrolling
-  manually would trigger `valueChanged`, snap the viewport to the stored value,
-  and reveal the pages. Fixed by unblocking `m_vscroll` / `m_hscroll` signals
-  immediately after `repositionPages()` and before the `centerOn()` / `GotoPage()`
-  call, keeping the block only for the `resetTransform()` + `updateSceneRect()` +
-  `repositionPages()` critical section where spurious scroll events must be
-  suppressed.
+* **Fix pages rendering slanted after zoom when using RGB (non-alpha) pixmaps:** The two `QImage` construction sites in the render pipeline were using `QImage(w, h, fmt)` + `memcpy(image.bits(), samples, stride * height)`. For `Format_RGB888` (3 bytes/pixel), Qt pads each scanline to the next 4-byte boundary. When the rendered page width was not divisible by 4, the bulk `memcpy` wrote rows without the padding, shifting every subsequent row and producing a diagonal slant. Fixed by using the stride-aware constructor `QImage(samples, w, h, stride, fmt).copy()` at both sites, which lets Qt handle the scanline alignment internally.
+* **Fix redundant page-image copy on every render:** The render callback passed `const QImage &image` down through `renderPageFromImage` → `createAndAddPageItem` → `setImage(const QImage &)`, triggering a full pixel-buffer copy (~3–10 MB per page). Since the `PageRenderResult` is a local value in the callback, the image is now moved with `std::move` all the way into `GraphicsImageItem`, eliminating the copy entirely.
+* **Fix pages appearing blank during fast scrolling:** The scroll handlers (`handleVScrollValueChanged` / `handleHScrollValueChanged`) previously only restarted the 66ms debounce timer on each scroll event, meaning `renderPages()`—and therefore any render requests for newly visible pages—would not fire until scrolling stopped. Visible pages are now queued for rendering immediately on every scroll event via `requestPageRender()`; the debounce timer still fires afterward to handle cleanup (pruning stale renders, removing off-screen items, updating preload pages).
+* **Fix viewport jumping to the wrong page during Ctrl+scroll zoom in multi-page continuous layout:** The zoom path applies a GPU view-transform (`m_gview->scale()`) immediately for O(1) visual feedback, then defers the expensive `repositionPages()` bake to a 66ms debounce timer. During the bake, `resetTransform()` followed by `updateSceneRect()` caused Qt to auto-clamp scrollbar values and emit `valueChanged` on `m_vscroll` / `m_hscroll` before `centerOn()` had a chance to restore the correct viewport position. Because `m_gscene->blockSignals(true)` only suppresses `QGraphicsScene` signals (not scrollbar signals), the scroll handlers fired with an incorrect position, updated the current-page counter, and queued renders for the wrong pages. Fixed by also calling `m_vscroll->blockSignals(true)` / `m_hscroll->blockSignals(true)` around the entire bake critical section and releasing them after `setUpdatesEnabled(true)` at the end of the merged suppression window.
+* **Fix pages disappearing off-screen after zoom in multi-page layout:** After the zoom bake, `centerOn()` (and `GotoPage()` for the gap fallback) were called while scrollbar signals were still blocked. Qt routes scroll position updates through `setValue()` → `valueChanged` → `scrollContentsBy()`, which physically moves the viewport. With signals blocked, that chain was severed; the scrollbar stored the correct target value, but the viewport never moved. This resulted in a blank view after every zoom bake—the pages were correctly positioned in the scene, but the viewport was pointing at empty space. Scrolling manually would trigger `valueChanged`, snapping the viewport to the stored value and revealing the pages. Fixed by unblocking `m_vscroll` / `m_hscroll` signals immediately after `repositionPages()` and before the `centerOn()` / `GotoPage()` call, keeping the block only for the `resetTransform()` + `updateSceneRect()` + `repositionPages()` critical section where spurious scroll events must be suppressed.
 
 ## 0.7.4
 
