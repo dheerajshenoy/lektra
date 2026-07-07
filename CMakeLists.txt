@@ -168,7 +168,7 @@ if(WIN32)
     set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/resources/lektra.rc")
 endif()
 
-add_executable(${PROJECT_NAME}
+qt_add_executable(${PROJECT_NAME}
     ${app_icon_resource_windows}
     src/main.cpp
     src/Lektra.cpp
