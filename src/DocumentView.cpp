@@ -508,6 +508,9 @@ DocumentView::initConnections() noexcept
         connect(m_gview, &GraphicsView::zoomOutRequested, this,
                 &DocumentView::ZoomOut);
 
+        connect(m_gview, &GraphicsView::regionSelectRequested, this,
+                &DocumentView::handleRegionSelectRequested);
+
         return;
     }
 
@@ -5310,16 +5313,20 @@ DocumentView::handleRegionSelectRequested(QRectF area) noexcept
     menu->addSeparator();
     menu->addAction(tr("Copy Region as Image"),
                     [this, area]() { CopyRegionAsImage(area); });
-    menu->addAction(tr("Copy Region as Image (Custom DPI)..."),
-                    [this, area]() { CopyRegionAsImageAtDPI(area); });
+    // Re-rendering at a custom DPI only makes sense for vector/text-based
+    // formats (PDF, EPUB, XPS…); for raster images it would just upscale pixels.
+    if (!m_model->isImage())
+        menu->addAction(tr("Copy Region as Image (Custom DPI)..."),
+                        [this, area]() { CopyRegionAsImageAtDPI(area); });
     menu->addAction(tr("Save Region as Image"),
                     [this, area]() { SaveRegionAsImage(area); });
     menu->addAction(tr("Open Region in new tab"),
                     [this, area]() { OpenRegionInViewer(area); });
     menu->addAction(tr("Open Region with Default Viewer"),
                     [this, area]() { OpenRegionInViewer(area, true); });
-    menu->addAction(tr("Copy Text from Region"),
-                    [this, area]() { CopyTextFromRegion(area); });
+    if (m_model->supports_text_selection())
+        menu->addAction(tr("Copy Text from Region"),
+                        [this, area]() { CopyTextFromRegion(area); });
 
 #ifdef WITH_LUA
     dispatchLuaEvent(DispatchType::OnRegionSelectionContextMenuRequested);

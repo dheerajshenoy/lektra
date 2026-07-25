@@ -1554,8 +1554,10 @@ Lektra::updateUiEnabledState() noexcept
     m_actionPrevPage->setEnabled(showAdvancedTools);
     m_actionNextPage->setEnabled(showAdvancedTools);
     m_actionLastPage->setEnabled(showAdvancedTools);
+    // Mode menu: enabled for all file types (region select works for images too);
+    // individual actions inside are guarded by their own capability checks.
     if (m_modeMenu)
-        m_modeMenu->setEnabled(showAdvancedTools);
+        m_modeMenu->setEnabled(hasFile);
     if (m_layoutMenu)
         m_layoutMenu->setEnabled(showAdvancedTools);
     if (m_navMenu)
@@ -1563,7 +1565,7 @@ Lektra::updateUiEnabledState() noexcept
     m_actionToggleOutline->setEnabled(showAdvancedTools);
     m_actionToggleHighlightAnnotSearch->setEnabled(showAdvancedTools);
     m_actionVisualLineMode->setEnabled(showAdvancedTools);
-    m_actionRegionSelect->setEnabled(showAdvancedTools);
+    m_actionRegionSelect->setEnabled(hasFile);
     m_actionSetMark->setEnabled(showAdvancedTools);
     m_actionGotoMark->setEnabled(showAdvancedTools);
     m_actionDeleteMark->setEnabled(showAdvancedTools);
@@ -1592,11 +1594,10 @@ Lektra::updateUiEnabledState() noexcept
     // --- Status Bar and Mode Handling ---
     if (hasFile && isImageDoc)
     {
-        m_actionNoneMode->setChecked(true);
-        m_statusbar->setMode(GraphicsView::Mode::None);
-        m_statusbar->setModeVisible(false);
+        m_statusbar->setModeVisible(true);
         m_statusbar->setProgressVisible(false);
         m_statusbar->setPageInfoVisible(true);
+        updateSelectionModeActions();
     }
     else
     {
