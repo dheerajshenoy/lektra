@@ -5399,11 +5399,13 @@ DocumentView::applyNarrow(QRectF sceneRect) noexcept
     m_gview->centerOn(narrowSceneRect().center());
     m_gview->flashScrollbars();
 
-    // Restore text selection mode — region select mode was active during drawing
+    // Restore previous mode after region draw. Default to TextSelection for
+    // text-capable docs and RegionSelection for image docs (no text layer).
     const auto restoreMode
         = (m_gview->getDefaultMode() != GraphicsView::Mode::None)
               ? m_gview->getDefaultMode()
-              : GraphicsView::Mode::TextSelection;
+              : (m_model->isImage() ? GraphicsView::Mode::RegionSelection
+                                    : GraphicsView::Mode::TextSelection);
     m_gview->setMode(restoreMode);
     emit selectionModeChanged(restoreMode);
 }
