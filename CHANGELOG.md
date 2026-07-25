@@ -1,5 +1,23 @@
 # LEKTRA CHANGELOG
 
+## 0.7.6
+
+---
+
+### New Features
+
+* **Viewport-clipped rendering at high zoom for major performance improvement:** When zoom exceeds 2.5×, the render pipeline now clips the MuPDF pixmap to the visible viewport region plus a 50% margin in each direction, instead of rasterising the entire page. At extreme zoom levels (e.g. 8×) the full page can be 50–100× larger than the viewport; only ~2× the viewport area is now rasterised, giving proportional speedups. The clipped image is drawn at the correct offset within the full-page bounding rect so link, annotation, and search overlays remain correctly positioned. A fresh clip is requested automatically after each scroll or zoom change.
+
+* **Region selection and context menu now available in image mode:** Region select mode can now be activated when viewing images (JPEG, PNG, GIF, etc.) via the mode menu or keyboard shortcut. Drawing a rubber band shows the context menu with all compatible actions. The context menu adapts to the file type: "Copy Region as Image (Custom DPI)" is hidden for pure raster images (re-rendering at a different DPI is only meaningful for vector/text-based formats), and "Copy Text from Region" is hidden unless the document supports text extraction.
+
+---
+
+### Bug Fixes
+
+* **Fix `applyNarrow` restoring text selection mode in image mode:** After drawing a narrow region, the mode was restored using `TextSelection` as the hardcoded fallback when the document's default mode was `None`. Image documents have `None` as their default mode (no text layer), so they always ended up in `TextSelection` after narrowing — a mode that does nothing for images. The fallback now restores `RegionSelection` for image documents instead.
+
+---
+
 ## 0.7.5
 
 ---
@@ -22,14 +40,11 @@
 * `updateSceneRect()` was being called unconditionally at the end of `renderPages()`, even when the zoom-bake block had already called it in the same cycle. This caused a double `setSceneRect()` on every zoom event. It is now skipped when zoom has just been baked (except in thumbnail mode, where item bounds contribute to the scene rect).
 * `getPreloadPages()` was re-entering `getVisiblePages()` internally, even though the caller already held the result. The signature has been changed to accept the visible-page set as a parameter, eliminating the redundant cache lookup on every render cycle.
 * `cachePageStride()` was allocating a `QFont` and `QFontMetricsF` on every call in thumbnail mode to compute the label row height, even though the value is constant for a given configuration. The result is now cached in `m_thumbnail_label_height` and computed only once.
-
 * **Reduce default memory usage significantly:** Three sources of excess allocation have been eliminated:
 * **MuPDF internal store** reduced from `FZ_STORE_DEFAULT` (256 MB) to 64 MB. The store caches decoded embedded images, fonts, and glyph bitmaps; the old cap allowed it to silently consume the majority of the process RSS on image-heavy documents. The limit is now configurable via `behavior.mupdf_store_size` (integer, MB).
 * **Alpha channel removed from rendered pixmaps:** `fz_new_pixmap_with_bbox` was called with `alpha=1`, producing 4-component RGBA pixmaps even though the page background is always cleared to opaque white and the alpha plane is never used. Changed to `alpha=0`; rendered pages are now stored as `Format_RGB888` (3 bytes/pixel) instead of `Format_RGBA8888` (4 bytes/pixel), yielding a 25% reduction per cached and displayed page image.
 * **OpenGL MSAA disabled:** The OpenGL viewport was configured with 4× MSAA (`format.setSamples(4)`), which multiplies the GPU framebuffer size (color, depth, stencil) by four. On integrated-GPU systems, this memory is carved from system RAM and shows up directly in process RSS (~60–100 MB at 1080p). MSAA brings no quality benefit for a document viewer because MuPDF already antialiases text and images at the CPU level. Samples are now always set to 0.
 * **OpenGL `CacheBackground` removed:** `QGraphicsView::CacheBackground` allocated a redundant full-viewport pixmap for what is typically a solid-color scene background. Replaced with `CacheNone`.
-
-
 * **Change default rendering backend from `Auto` (OpenGL when available) to `Raster`:** The OpenGL backend adds ~150–185 MB of driver and framebuffer overhead with no meaningful quality or performance benefit for document viewing. OpenGL remains available via `rendering.backend = "opengl"` in the configuration.
 
 ---
