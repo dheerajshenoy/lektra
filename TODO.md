@@ -4,6 +4,11 @@
 
 ## HIGH PRIORITY
 
+- [ ] Try to generate outline if not present somehow (reddit recommendation)
+- [ ] Add support for directory local outline files
+- [ ] Add support for directory local config files
+
+
 - [ ] Improve `--check-config`
 - [ ] Tab detach drag and drop to new window spawns new useless window
 - [ ] Allow for command arguments
@@ -32,4 +37,3 @@
 - [ ] Finding citation from folder
 - [ ] Explain selection
 - [ ] Search inside math equations
-- [ ] Try to generate outline if not present somehow
