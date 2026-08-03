@@ -38,6 +38,7 @@ cmake -S "$ROOT_DIR" -B "$BUILD_DIR" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -DWITH_LUA="$WITH_LUA" \
+    -DIS_APPIMAGE=on\
     -DWITH_SYNCTEX="$WITH_SYNCTEX"
 
 cmake --build "$BUILD_DIR" -j"$JOBS"

@@ -6,6 +6,14 @@ include(GNUInstallDirs)
 option(WITH_SYNCTEX "Enable synctex support" ON)
 option(WITH_LUA     "Enable lua scripting support" OFF)
 
+# Internal option to build as AppImage (Linux only)
+option(IS_APPIMAGE "Build as AppImage (Linux only)" OFF)
+
+
+if (IS_APPIMAGE)
+    message(STATUS "Building as AppImage")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE IS_APPIMAGE=1)
+endif()
 
 # ---------------------------------------------------------------------------
 # Build type default

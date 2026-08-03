@@ -99,6 +99,10 @@ AboutDialog::softwaresUsedSection() noexcept
     layout->addRow("SyncTeX", new QLabel(QString(SYNCTEX_VERSION_STRING)));
 #endif
 
+#ifdef IS_APPIMAGE
+    layout->addRow("AppImage", new QLabel("Yes"));
+#endif
+
     {
         using PFN_ver = const char *(*)();
 #if defined(Q_OS_WIN)
@@ -106,10 +110,13 @@ AboutDialog::softwaresUsedSection() noexcept
 #else
         QLibrary djvuLib("djvulibre", 21);
 #endif
-        if (djvuLib.load()) {
-            auto fn = reinterpret_cast<PFN_ver>(djvuLib.resolve("ddjvu_get_version_string"));
+        if (djvuLib.load())
+        {
+            auto fn = reinterpret_cast<PFN_ver>(
+                djvuLib.resolve("ddjvu_get_version_string"));
             if (fn)
-                layout->addRow("DjVuLibre", new QLabel(QString(fn()).split("-").last()));
+                layout->addRow("DjVuLibre",
+                               new QLabel(QString(fn()).split("-").last()));
         }
     }
 
