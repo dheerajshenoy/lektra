@@ -366,6 +366,16 @@ Lektra::initMenubar() noexcept
             .arg(m_config.keybinds["generate_outline"].join(", ")),
         this, &Lektra::GenerateOutline);
 
+    m_toggleMenu->addAction(
+        tr("Export Outline\t%1")
+            .arg(m_config.keybinds["export_outline"].join(", ")),
+        this, &Lektra::ExportOutline);
+
+    m_toggleMenu->addAction(
+        tr("Load Outline from File\t%1")
+            .arg(m_config.keybinds["load_outline"].join(", ")),
+        this, &Lektra::LoadOutline);
+
     m_actionToggleHighlightAnnotSearch = m_toggleMenu->addAction(
         tr("Highlight Annotation Search\t%1")
             .arg(m_config.keybinds["picker_highlight_search"].join(", ")),
@@ -3098,7 +3108,11 @@ Lektra::ShowOutline() noexcept
     if (!m_doc || !m_doc->model())
         return;
 
-    if (!m_doc->model()->getOutline())
+    fz_outline *outline = m_doc->model()->getOutline();
+    if (!outline)
+        outline = m_doc->model()->getGeneratedOutline();
+
+    if (!outline)
     {
         QMessageBox::information(
             this, tr("Outline"),
@@ -3121,7 +3135,7 @@ Lektra::ShowOutline() noexcept
         });
     }
 
-    m_outline_picker->setOutline(m_doc->model()->getOutline());
+    m_outline_picker->setOutline(outline);
 
     if (m_outline_picker->hasOutline())
     {
@@ -3156,6 +3170,80 @@ Lektra::GenerateOutline() noexcept
                "Try lowering outline.generate_heading_ratio in your config "
                "(current value: %1).")
                 .arg(ratio));
+        return;
+    }
+
+    if (!m_outline_picker)
+    {
+        m_outline_picker = new OutlinePicker(m_config.outline, this);
+        m_outline_picker->setKeybindings(m_picker_keybinds);
+        connect(m_outline_picker, &OutlinePicker::jumpToLocationRequested, this,
+                [this](int page, const QPointF &pos)
+        {
+            m_doc->GotoLocationWithHistory(
+                {page, (float)pos.x(), (float)pos.y()});
+        });
+    }
+
+    m_outline_picker->setOutline(outline);
+
+    if (m_outline_picker->hasOutline())
+    {
+        m_outline_picker->setCurrentPage(m_doc->pageNo() + 1);
+        m_outline_picker->launch();
+        m_outline_picker->selectCurrentPage();
+    }
+}
+
+void
+Lektra::ExportOutline() noexcept
+{
+    if (!m_doc || !m_doc->model())
+        return;
+
+    fz_outline *outline = m_doc->model()->getOutline();
+    if (!outline)
+        outline = m_doc->model()->getGeneratedOutline();
+
+    if (!outline)
+    {
+        QMessageBox::information(
+            this, tr("Export Outline"),
+            tr("No outline available to export.\n\n"
+               "Open the document outline or generate one first."));
+        return;
+    }
+
+    const QString path = QFileDialog::getSaveFileName(
+        this, tr("Export Outline"), QString(),
+        tr("Outline JSON (*.json);;All Files (*)"));
+    if (path.isEmpty())
+        return;
+
+    if (!m_doc->model()->exportOutlineToFile(path, outline))
+        QMessageBox::warning(this, tr("Export Outline"),
+                             tr("Failed to write outline to:\n%1").arg(path));
+}
+
+void
+Lektra::LoadOutline() noexcept
+{
+    if (!m_doc || !m_doc->model())
+        return;
+
+    const QString path = QFileDialog::getOpenFileName(
+        this, tr("Load Outline"), QString(),
+        tr("Outline JSON (*.json);;All Files (*)"));
+    if (path.isEmpty())
+        return;
+
+    fz_outline *outline = m_doc->model()->loadOutlineFromFile(path);
+    if (!outline)
+    {
+        QMessageBox::warning(this, tr("Load Outline"),
+                             tr("Failed to load outline from:\n%1\n\n"
+                                "Make sure the file is a valid outline JSON.")
+                                 .arg(path));
         return;
     }
 
@@ -4909,6 +4997,11 @@ Lektra::initCommands() noexcept
         "generate_outline",
         tr("Generate outline from document text (font-size heuristic)"),
         [this](const QStringList &) { GenerateOutline(); });
+    m_command_manager->reg("export_outline", tr("Export outline to JSON file"),
+                           [this](const QStringList &) { ExportOutline(); });
+    m_command_manager->reg("load_outline",
+                           tr("Load outline from JSON file"),
+                           [this](const QStringList &) { LoadOutline(); });
     m_command_manager->reg(
         "picker_highlight_search", tr("Search within highlights"),
         [this](const QStringList &) { Show_highlight_search(); });
@@ -5750,6 +5843,10 @@ Lektra::setCurrentDocumentView(DocumentView *view) noexcept
     if (m_doc)
         m_doc->setActive(false);
     view->setActive(true);
+
+    // Clear the picker so it doesn't hold a stale pointer from the previous doc
+    if (m_outline_picker)
+        m_outline_picker->clearOutline();
 
     m_doc = view;
 

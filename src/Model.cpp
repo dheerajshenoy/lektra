@@ -2467,6 +2467,81 @@ Model::generateOutline(float min_ratio, int max_levels) noexcept
     return m_generated_outline;
 }
 
+// --- Outline file I/O ---
+
+static QJsonArray
+outline_to_json(fz_outline *node) noexcept
+{
+    QJsonArray arr;
+    for (; node; node = node->next)
+    {
+        QJsonObject obj;
+        obj["title"]    = node->title ? QString::fromUtf8(node->title) : QString();
+        obj["page"]     = node->page.page + 1; // store as 1-based
+        obj["x"]        = (double)node->x;
+        obj["y"]        = (double)node->y;
+        obj["children"] = outline_to_json(node->down);
+        arr.append(obj);
+    }
+    return arr;
+}
+
+static fz_outline *
+json_to_outline(fz_context *ctx, const QJsonArray &arr) noexcept
+{
+    fz_outline *root  = nullptr;
+    fz_outline **tail = &root;
+    for (const QJsonValue &val : arr)
+    {
+        if (!val.isObject())
+            continue;
+        const QJsonObject obj = val.toObject();
+        fz_outline *node      = fz_new_outline(ctx);
+        const QString title   = obj["title"].toString();
+        node->title           = fz_strdup(ctx, title.toUtf8().constData());
+        node->page            = fz_make_location(0, obj["page"].toInt(1) - 1);
+        node->x               = (float)obj["x"].toDouble();
+        node->y               = (float)obj["y"].toDouble();
+        node->is_open         = 1;
+        if (obj.contains("children") && obj["children"].isArray())
+            node->down = json_to_outline(ctx, obj["children"].toArray());
+        *tail = node;
+        tail  = &node->next;
+    }
+    return root;
+}
+
+bool
+Model::exportOutlineToFile(const QString &path, fz_outline *outline) noexcept
+{
+    if (!outline)
+        return false;
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+        return false;
+    const QJsonDocument doc(outline_to_json(outline));
+    file.write(doc.toJson(QJsonDocument::Indented));
+    return true;
+}
+
+fz_outline *
+Model::loadOutlineFromFile(const QString &path) noexcept
+{
+    if (!m_ctx)
+        return nullptr;
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly))
+        return nullptr;
+    QJsonParseError err;
+    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
+    if (err.error != QJsonParseError::NoError || !doc.isArray())
+        return nullptr;
+    fz_outline *root = json_to_outline(m_ctx, doc.array());
+    fz_drop_outline(m_ctx, m_generated_outline);
+    m_generated_outline = root;
+    return m_generated_outline;
+}
+
 std::vector<QPolygonF>
 Model::computeTextSelectionQuad(int pageno, QPointF devStart,
                                 QPointF devEnd) noexcept

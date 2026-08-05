@@ -427,7 +427,10 @@ public:
 
     Properties properties() noexcept;
     fz_outline *getOutline() noexcept;
+    fz_outline *getGeneratedOutline() noexcept { return m_generated_outline; }
     fz_outline *generateOutline(float min_ratio, int max_levels) noexcept;
+    bool exportOutlineToFile(const QString &path, fz_outline *outline) noexcept;
+    fz_outline *loadOutlineFromFile(const QString &path) noexcept;
     void cancelOpen() noexcept;
     QFuture<void> openAsync(const QString &filePath) noexcept;
 
