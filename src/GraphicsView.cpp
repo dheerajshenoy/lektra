@@ -294,6 +294,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
             m_mousePressPos   = scenePos;
             m_selection_start = scenePos;
             m_lastMovePos     = event->pos();
+            m_start           = event->pos();
             updateCursorForMode();
             event->accept();
             return;
@@ -462,8 +463,9 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     event->accept();
 
     const QPointF scenePos = mapToScene(event->pos());
-    const int dist
-        = (scenePos.toPoint() - m_mousePressPos.toPoint()).manhattanLength();
+    // Use viewport (screen) coordinates for text-selection drag detection so
+    // that the threshold stays consistent regardless of zoom level.
+    const int dist    = (event->pos() - m_start).manhattanLength();
     const bool isDrag = dist > m_drag_threshold;
 
     // Handle Text Selection / Highlighting Modes
@@ -471,21 +473,19 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     {
         updateCursorForMode();
 
-        if (isDrag)
+        if (m_mode == Mode::TextSelection)
         {
-            if (m_mode == Mode::TextSelection)
-            {
-                // Only emit if we actually moved from the start point
-                // Accept the button that was bound to Select at press time.
-                if (m_selection_start != scenePos)
-                    emit textSelectionRequested(m_selection_start, scenePos);
-            }
-            else // Mode::TextHighlight
-            {
-                // Highlight usually implies a selection was made first
+            if (isDrag && m_selection_start != scenePos)
                 emit textSelectionRequested(m_selection_start, scenePos);
-                emit textHighlightRequested(m_selection_start, scenePos);
-            }
+        }
+        else // Mode::TextHighlight
+        {
+            // Don't gate on isDrag: the handler checks hasTextSelection()
+            // internally, so a click with no movement produces no annotation.
+            // Gating on isDrag causes highlights to fail for short adjacent-line
+            // selections whose screen distance falls below the threshold.
+            emit textSelectionRequested(m_selection_start, scenePos);
+            emit textHighlightRequested(m_selection_start, scenePos);
         }
         return;
     }

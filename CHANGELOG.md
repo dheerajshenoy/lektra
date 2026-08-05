@@ -16,6 +16,8 @@
 
 * **Fix `applyNarrow` restoring text selection mode in image mode:** After drawing a narrow region, the mode was restored using `TextSelection` as the hardcoded fallback when the document's default mode was `None`. Image documents have `None` as their default mode (no text layer), so they always ended up in `TextSelection` after narrowing — a mode that does nothing for images. The fallback now restores `RegionSelection` for image documents instead.
 
+* **Fix text highlight annotation not applied for short adjacent-line selections:** In TextHighlight mode, the annotation was only created when the release-time drag distance exceeded 50 units in scene coordinates. Two bugs compounded: (1) the threshold was measured in scene units, so at high zoom `mapToScene` compressed the movement — e.g. dragging across two lines at 4× zoom yielded only ~12 scene units, well below 50; (2) even with a corrected screen-pixel threshold, 50 pixels is too large for a typical one-line-down drag (~25 px). The root fix: TextHighlight mode no longer gates annotation creation on the drag threshold at all. The annotation handler already guards via `hasTextSelection()`, which is false when no mouse movement occurred (no mousemove emission → no selection built), so accidental single-click highlights are still impossible. Additionally, the drag check for TextSelection mode (visual selection overlay) was switched from scene-coordinate distance to screen-pixel distance so it remains zoom-independent.
+
 ---
 
 ## 0.7.5
