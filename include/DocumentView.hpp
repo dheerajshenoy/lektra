@@ -497,6 +497,7 @@ signals:
     void autoResizeActionUpdate(bool state);
     void currentPageChanged(int pageno);
     void modifiedChanged(bool modified);
+    void narrowModeChanged(bool narrowed);
     void historyChanged();
     void closed();
 

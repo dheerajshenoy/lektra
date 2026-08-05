@@ -5398,6 +5398,7 @@ DocumentView::applyNarrow(QRectF sceneRect) noexcept
     refreshNarrowVisuals();
     m_gview->centerOn(narrowSceneRect().center());
     m_gview->flashScrollbars();
+    emit narrowModeChanged(true);
 
     // Restore previous mode after region draw. Default to TextSelection for
     // text-capable docs and RegionSelection for image docs (no text layer).
@@ -5431,6 +5432,7 @@ DocumentView::WideRegion() noexcept
     m_gview->clearNarrowRect();
     updateSceneRect();
     m_gview->flashScrollbars();
+    emit narrowModeChanged(false);
 }
 
 // Handle annotation rectangle requested

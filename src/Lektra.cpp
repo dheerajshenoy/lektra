@@ -4172,6 +4172,9 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::selectionModeChanged, m_statusbar,
             &Statusbar::setMode);
 
+    connect(docwidget, &DocumentView::narrowModeChanged, m_statusbar,
+            &Statusbar::setNarrowMode);
+
     connect(docwidget, &DocumentView::clipboardContentChanged, this,
             [&](const QString &text) { m_clipboard->setText(text); });
 
@@ -4224,6 +4227,7 @@ Lektra::updateStatusbar() noexcept
 
         m_statusbar->setFilePath(m_doc->filePath());
         m_statusbar->setPortalMode(m_doc->portal());
+        m_statusbar->setNarrowMode(m_doc->isNarrowed());
         m_statusbar->setMode(m_doc->selectionMode());
         m_statusbar->setHighlightColor(model->highlightAnnotColor());
 

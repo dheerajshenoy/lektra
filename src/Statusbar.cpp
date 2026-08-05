@@ -40,6 +40,8 @@ Statusbar::initGui() noexcept
     leftLayout->addWidget(m_filename_label);
     leftLayout->addWidget(m_portal_label);
     m_portal_label->setHidden(true);
+    leftLayout->addWidget(m_narrow_label);
+    m_narrow_label->setHidden(true);
 
     // Center
     auto *centerLayout = new QHBoxLayout;
@@ -164,6 +166,22 @@ Statusbar::setPortalMode(bool state) noexcept
     else
     {
         m_portal_label->hide();
+    }
+}
+
+void
+Statusbar::setNarrowMode(bool state) noexcept
+{
+    if (state)
+    {
+        m_narrow_label->setStyleSheet(
+            "QLabel { background-color: #e67e00; color: white; padding: 2px; }");
+        m_narrow_label->setToolTip(tr("Narrow region active — use Wide Region to exit"));
+        m_narrow_label->show();
+    }
+    else
+    {
+        m_narrow_label->hide();
     }
 }
 

@@ -37,6 +37,7 @@ public:
     void setProgressVisible(bool visible) noexcept;
     void setSessionName(const QString &name) noexcept;
     void setPortalMode(bool state) noexcept;
+    void setNarrowMode(bool state) noexcept;
     void setFilePath(const QString &name) noexcept;
 
 signals:
@@ -58,6 +59,7 @@ private:
     QLabel *m_pageno_separator      = new QLabel(" " + tr("of") + " ");
     QLabel *m_progress_label        = new QLabel();
     QLabel *m_portal_label          = new QLabel("P");
+    QLabel *m_narrow_label          = new QLabel(tr("N"));
     QPushButton *m_session_label    = new QPushButton();
     QGridLayout *m_layout           = new QGridLayout(this);
     GraphicsView::Mode m_current_mode;
