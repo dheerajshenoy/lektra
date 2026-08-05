@@ -1,5 +1,7 @@
 # LEKTRA CHANGELOG
 
+---
+
 ## 0.7.6
 
 ---
@@ -7,10 +9,11 @@
 ### New Features
 
 * **Narrow-region indicator in the statusbar:** When the document is in narrow region mode, an orange **N** badge appears in the left section of the statusbar. Hovering it shows a tooltip explaining how to exit. The badge is cleared automatically when Wide Region is invoked, and is correctly seeded when switching between tabs.
-
 * **Viewport-clipped rendering at high zoom for major performance improvement:** When zoom exceeds 2.5×, the render pipeline now clips the MuPDF pixmap to the visible viewport region plus a 50% margin in each direction, instead of rasterising the entire page. At extreme zoom levels (e.g. 8×) the full page can be 50–100× larger than the viewport; only ~2× the viewport area is now rasterised, giving proportional speedups. The clipped image is drawn at the correct offset within the full-page bounding rect so link, annotation, and search overlays remain correctly positioned. A fresh clip is requested automatically after each scroll or zoom change.
-
 * **Region selection and context menu now available in image mode:** Region select mode can now be activated when viewing images (JPEG, PNG, GIF, etc.) via the mode menu or keyboard shortcut. Drawing a rubber band shows the context menu with all compatible actions. The context menu adapts to the file type: "Copy Region as Image (Custom DPI)" is hidden for pure raster images (re-rendering at a different DPI is only meaningful for vector/text-based formats), and "Copy Text from Region" is hidden unless the document supports text extraction.
+* **Generate outline from document text:** When a PDF has no embedded outline, a heuristic outline can be generated via the `generate_outline` command or the "Generate Outline" menu entry. The algorithm scans all pages for text lines whose maximum character font size is at least `outline.generate_heading_ratio` times the modal (body) body text size (default 1.2×). Up to `outline.generate_max_levels` distinct font-size tiers are recognised as heading levels (default 3). The generated outline is shown in the standard outline picker and persists for the lifetime of the document tab — calling `ShowOutline` (`picker_outline`) will use it automatically if no real outline exists.
+* **Export outline to JSON file:** The `export_outline` command opens a save-file dialog and writes the currently active outline (real PDF outline, or generated/loaded synthetic outline) to a human-readable JSON file. Each entry records `title`, `page` (1-based), `x`, `y`, and a `children` array for nested outlines.
+* **Load outline from JSON file:** The `load_outline` command opens a file dialog, reads a previously exported outline JSON, and immediately displays it in the outline picker. The loaded outline is stored per-document and persists across tab switches for the session — invoking `picker_outline` on a document with no embedded outline will automatically fall back to the loaded one.
 
 ---
 
