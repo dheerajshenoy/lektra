@@ -570,6 +570,7 @@ private:
                             bool withDefaultViewer = false) noexcept;
     void applyNarrow(QRectF sceneRect) noexcept;
     void refreshNarrowVisuals() noexcept;
+    void remapNarrowForRotation(bool clockwise) noexcept;
     QRectF narrowSceneRect() const noexcept;
     void onFileReloadRequested(const QString &path) noexcept;
     void tryReloadLater(int attempt) noexcept;

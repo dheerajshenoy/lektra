@@ -1286,6 +1286,7 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
 void
 DocumentView::RotateClock() noexcept
 {
+    remapNarrowForRotation(true);
     m_model->rotateClock();
     rotateHelper();
 }
@@ -1294,6 +1295,7 @@ DocumentView::RotateClock() noexcept
 void
 DocumentView::RotateAnticlock() noexcept
 {
+    remapNarrowForRotation(false);
     m_model->rotateAnticlock();
     rotateHelper();
 }
@@ -1328,6 +1330,14 @@ DocumentView::rotateHelper() noexcept
 void
 DocumentView::FlipH() noexcept
 {
+    if (m_is_narrow)
+    {
+        const double l            = m_narrow_local_normalized.left();
+        const double t            = m_narrow_local_normalized.top();
+        const double w            = m_narrow_local_normalized.width();
+        const double h            = m_narrow_local_normalized.height();
+        m_narrow_local_normalized = QRectF(1.0 - l - w, t, w, h);
+    }
     m_model->toggleFlipH();
     rotateHelper();
 }
@@ -1335,6 +1345,14 @@ DocumentView::FlipH() noexcept
 void
 DocumentView::FlipV() noexcept
 {
+    if (m_is_narrow)
+    {
+        const double l            = m_narrow_local_normalized.left();
+        const double t            = m_narrow_local_normalized.top();
+        const double w            = m_narrow_local_normalized.width();
+        const double h            = m_narrow_local_normalized.height();
+        m_narrow_local_normalized = QRectF(l, 1.0 - t - h, w, h);
+    }
     m_model->toggleFlipV();
     rotateHelper();
 }
@@ -4167,6 +4185,11 @@ DocumentView::renderPageFromImage(int pageno, QImage image) noexcept
     clearLinksForPage(pageno);
     clearAnnotationsForPage(pageno);
     clearSearchItemsForPage(pageno);
+
+    // If this is the narrow page, refresh the dim overlay and scene rect so
+    // they reflect the new page geometry (e.g. after rotation re-render).
+    if (m_is_narrow && pageno == m_narrow_page)
+        refreshNarrowVisuals();
 }
 
 void
@@ -5334,6 +5357,25 @@ DocumentView::handleRegionSelectRequested(QRectF area) noexcept
 #endif
 
     menu->popup(QCursor::pos());
+}
+
+void
+DocumentView::remapNarrowForRotation(bool clockwise) noexcept
+{
+    if (!m_is_narrow)
+        return;
+    const double l = m_narrow_local_normalized.left();
+    const double t = m_narrow_local_normalized.top();
+    const double w = m_narrow_local_normalized.width();
+    const double h = m_narrow_local_normalized.height();
+    // After a 90° rotation the page swaps width/height in device space.
+    // Remap the normalized rect so it continues to cover the same visual area.
+    // 90° CW:  (l, t, w, h) → (1−t−h, l,     h, w)
+    // 90° CCW: (l, t, w, h) → (t,     1−l−w, h, w)
+    if (clockwise)
+        m_narrow_local_normalized = QRectF(1.0 - t - h, l, h, w);
+    else
+        m_narrow_local_normalized = QRectF(t, 1.0 - l - w, h, w);
 }
 
 QRectF
