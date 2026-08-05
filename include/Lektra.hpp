@@ -124,6 +124,7 @@ public:
     void Fit_height() noexcept;
     void Fit_page() noexcept;
     void ShowOutline() noexcept;
+    void GenerateOutline() noexcept;
     void InvertColor() noexcept;
     void TextSelectionMode() noexcept;
     void GoBackHistory() noexcept;

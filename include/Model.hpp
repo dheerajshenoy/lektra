@@ -427,6 +427,7 @@ public:
 
     Properties properties() noexcept;
     fz_outline *getOutline() noexcept;
+    fz_outline *generateOutline(float min_ratio, int max_levels) noexcept;
     void cancelOpen() noexcept;
     QFuture<void> openAsync(const QString &filePath) noexcept;
 
@@ -720,7 +721,8 @@ private:
     fz_document *m_doc          = nullptr;
     pdf_document *m_pdf_doc     = nullptr;
     fz_colorspace *m_colorspace = nullptr;
-    fz_outline *m_outline       = nullptr;
+    fz_outline *m_outline           = nullptr;
+    fz_outline *m_generated_outline = nullptr;
 
     void *m_ddjvu_ctx = nullptr;
     void *m_ddjvu_doc = nullptr;

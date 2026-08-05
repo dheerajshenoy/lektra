@@ -979,6 +979,22 @@ struct Config
         // @added 0.7.1
         QString prompt = "Outline";
 
+        // @desc {
+        // Minimum font size ratio relative to the body text size for a line to
+        // be considered a heading when generating an outline. E.g. 1.2 means
+        // the line must be at least 20%% larger than the modal body font size.
+        // }
+        // @type float
+        // @default 1.2
+        // @added 0.7.7
+        float generate_heading_ratio = 1.2f;
+
+        // @desc Maximum number of distinct heading levels to generate
+        // @type int
+        // @default 3
+        // @added 0.7.7
+        int generate_max_levels = 3;
+
     } outline;
     // @endsection
 

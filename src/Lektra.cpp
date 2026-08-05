@@ -361,6 +361,11 @@ Lektra::initMenubar() noexcept
         tr("Outline\t%1").arg(m_config.keybinds["picker_outline"].join(", ")),
         this, &Lektra::ShowOutline);
 
+    m_toggleMenu->addAction(
+        tr("Generate Outline\t%1")
+            .arg(m_config.keybinds["generate_outline"].join(", ")),
+        this, &Lektra::GenerateOutline);
+
     m_actionToggleHighlightAnnotSearch = m_toggleMenu->addAction(
         tr("Highlight Annotation Search\t%1")
             .arg(m_config.keybinds["picker_highlight_search"].join(", ")),
@@ -3095,8 +3100,12 @@ Lektra::ShowOutline() noexcept
 
     if (!m_doc->model()->getOutline())
     {
-        QMessageBox::information(this, tr("Outline"),
-                                 tr("This document has no outline"));
+        QMessageBox::information(
+            this, tr("Outline"),
+            tr("This document has no outline.\n\n"
+               "You can generate one from the document text via "
+               "the \"Generate Outline\" menu item or the "
+               "generate_outline command."));
         return;
     }
 
@@ -3113,6 +3122,56 @@ Lektra::ShowOutline() noexcept
     }
 
     m_outline_picker->setOutline(m_doc->model()->getOutline());
+
+    if (m_outline_picker->hasOutline())
+    {
+        m_outline_picker->setCurrentPage(m_doc->pageNo() + 1);
+        m_outline_picker->launch();
+        m_outline_picker->selectCurrentPage();
+    }
+}
+
+void
+Lektra::GenerateOutline() noexcept
+{
+    if (!m_doc || !m_doc->model())
+        return;
+
+    if (!m_doc->model()->supports_outline())
+    {
+        QMessageBox::information(this, tr("Generate Outline"),
+                                 tr("Outline generation is not supported for this file type."));
+        return;
+    }
+
+    const float ratio  = m_config.outline.generate_heading_ratio;
+    const int   levels = m_config.outline.generate_max_levels;
+
+    fz_outline *outline = m_doc->model()->generateOutline(ratio, levels);
+    if (!outline)
+    {
+        QMessageBox::information(
+            this, tr("Generate Outline"),
+            tr("Could not detect any headings in this document.\n\n"
+               "Try lowering outline.generate_heading_ratio in your config "
+               "(current value: %1).")
+                .arg(ratio));
+        return;
+    }
+
+    if (!m_outline_picker)
+    {
+        m_outline_picker = new OutlinePicker(m_config.outline, this);
+        m_outline_picker->setKeybindings(m_picker_keybinds);
+        connect(m_outline_picker, &OutlinePicker::jumpToLocationRequested, this,
+                [this](int page, const QPointF &pos)
+        {
+            m_doc->GotoLocationWithHistory(
+                {page, (float)pos.x(), (float)pos.y()});
+        });
+    }
+
+    m_outline_picker->setOutline(outline);
 
     if (m_outline_picker->hasOutline())
     {
@@ -4846,6 +4905,10 @@ Lektra::initCommands() noexcept
     // Pickers
     m_command_manager->reg("picker_outline", tr("Open document outline picker"),
                            [this](const QStringList &) { ShowOutline(); });
+    m_command_manager->reg(
+        "generate_outline",
+        tr("Generate outline from document text (font-size heuristic)"),
+        [this](const QStringList &) { GenerateOutline(); });
     m_command_manager->reg(
         "picker_highlight_search", tr("Search within highlights"),
         [this](const QStringList &) { Show_highlight_search(); });

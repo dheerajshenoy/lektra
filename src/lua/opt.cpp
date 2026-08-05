@@ -1065,6 +1065,26 @@ static const LuaField outlineFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::Outline *>(p)->show_page_number = lua_toboolean(L, 3); }},
+
+    {"generate_heading_ratio",
+     [](lua_State *L, P p)
+{
+    lua_pushnumber(L, static_cast<Config::Outline *>(p)->generate_heading_ratio);
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::Outline *>(p)->generate_heading_ratio
+        = (float)lua_tonumber(L, 3);
+}},
+
+    {"generate_max_levels",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Outline *>(p)->generate_max_levels);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Outline *>(p)->generate_max_levels = lua_tointeger(L, 3); }},
+
     // Note: Picker fields (width, height, etc) should be added here or handled
     // via a shared base mapper
 };

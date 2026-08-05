@@ -50,11 +50,14 @@ buildRenderTransform(fz_rect bounds, float zoom, float rotation, bool flip_h,
 #include <QtConcurrent/QtConcurrent>
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <limits>
+#include <map>
 #include <qbytearrayview.h>
 #include <qregularexpression.h>
 #include <qstyle.h>
 #include <qtextformat.h>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace
@@ -1210,6 +1213,8 @@ Model::cleanup_mupdf() noexcept
 {
     fz_drop_outline(m_ctx, m_outline);
     m_outline = nullptr;
+    fz_drop_outline(m_ctx, m_generated_outline);
+    m_generated_outline = nullptr;
     fz_drop_document(m_ctx, m_doc);
     m_doc     = nullptr;
     m_pdf_doc = nullptr;
@@ -2332,6 +2337,134 @@ Model::getOutline() noexcept
     }
 
     return m_outline;
+}
+
+fz_outline *
+Model::generateOutline(float min_ratio, int max_levels) noexcept
+{
+    if (!m_doc || !m_ctx || m_page_count == 0)
+        return nullptr;
+
+    // Phase 1: collect font size frequencies across all pages (bucketed to 0.1pt)
+    std::map<int, int> size_freq; // key = round(size * 10)
+    for (int pageno = 0; pageno < m_page_count; ++pageno)
+    {
+        fz_stext_page *stext = get_or_build_stext_page(m_ctx, pageno);
+        if (!stext)
+            continue;
+        for (fz_stext_block *block = stext->first_block; block; block = block->next)
+        {
+            if (block->type != FZ_STEXT_BLOCK_TEXT)
+                continue;
+            for (fz_stext_line *line = block->u.t.first_line; line; line = line->next)
+            {
+                for (fz_stext_char *ch = line->first_char; ch; ch = ch->next)
+                {
+                    if (ch->size > 0)
+                        size_freq[(int)std::round(ch->size * 10)]++;
+                }
+            }
+        }
+    }
+
+    if (size_freq.empty())
+        return nullptr;
+
+    // Body size = most frequently used size
+    int body_key = 0;
+    int max_freq = 0;
+    for (const auto &[key, freq] : size_freq)
+    {
+        if (freq > max_freq)
+        {
+            max_freq = freq;
+            body_key = key;
+        }
+    }
+    const float body_size = body_key / 10.0f;
+    const float threshold = body_size * min_ratio;
+
+    // Collect distinct heading sizes >= threshold, sorted descending, capped at max_levels
+    std::vector<int> heading_keys;
+    for (const auto &[key, freq] : size_freq)
+    {
+        if (key / 10.0f >= threshold)
+            heading_keys.push_back(key);
+    }
+    std::sort(heading_keys.begin(), heading_keys.end(), std::greater<int>());
+    if ((int)heading_keys.size() > max_levels)
+        heading_keys.resize(max_levels);
+
+    if (heading_keys.empty())
+        return nullptr;
+
+    std::unordered_map<int, int> key_to_level;
+    for (int i = 0; i < (int)heading_keys.size(); ++i)
+        key_to_level[heading_keys[i]] = i;
+
+    // Phase 2: build flat outline list from matching lines
+    fz_outline *root    = nullptr;
+    fz_outline **tail   = &root;
+
+    for (int pageno = 0; pageno < m_page_count; ++pageno)
+    {
+        fz_stext_page *stext = get_or_build_stext_page(m_ctx, pageno);
+        if (!stext)
+            continue;
+        for (fz_stext_block *block = stext->first_block; block; block = block->next)
+        {
+            if (block->type != FZ_STEXT_BLOCK_TEXT)
+                continue;
+            for (fz_stext_line *line = block->u.t.first_line; line; line = line->next)
+            {
+                if (!line->first_char)
+                    continue;
+
+                // Use the maximum char size in the line as its representative size
+                float line_size = 0;
+                for (fz_stext_char *ch = line->first_char; ch; ch = ch->next)
+                    line_size = std::max(line_size, ch->size);
+
+                const int line_key = (int)std::round(line_size * 10);
+                if (key_to_level.find(line_key) == key_to_level.end())
+                    continue;
+
+                // Collect UTF-8 text from the line
+                std::string title;
+                for (fz_stext_char *ch = line->first_char; ch; ch = ch->next)
+                {
+                    char buf[8];
+                    int n = fz_runetochar(buf, ch->c);
+                    title.append(buf, n);
+                }
+
+                // Trim leading/trailing whitespace
+                const auto not_space = [](unsigned char c) { return !std::isspace(c); };
+                title.erase(title.begin(),
+                            std::find_if(title.begin(), title.end(), not_space));
+                title.erase(
+                    std::find_if(title.rbegin(), title.rend(), not_space).base(),
+                    title.end());
+
+                if (title.empty())
+                    continue;
+
+                fz_outline *node = fz_new_outline(m_ctx);
+                node->title      = fz_strdup(m_ctx, title.c_str());
+                node->page       = fz_make_location(0, pageno);
+                node->x          = line->first_char->origin.x;
+                node->y          = line->first_char->origin.y;
+                node->is_open    = 1;
+
+                *tail = node;
+                tail  = &node->next;
+            }
+        }
+    }
+
+    fz_drop_outline(m_ctx, m_generated_outline);
+    m_generated_outline = root;
+    return m_generated_outline;
 }
 
 std::vector<QPolygonF>
