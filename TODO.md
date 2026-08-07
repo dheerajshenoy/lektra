@@ -4,8 +4,8 @@
 
 ## HIGH PRIORITY
 
-- [ ] Try to generate outline if not present somehow (reddit recommendation)
-- [ ] Add support for directory local outline files (outline.json)
+- [x] Try to generate outline if not present somehow (reddit recommendation)
+- [x] Add support for saving and loading outline files (outline.json)
 
 ## MEDIUM PRIORITY
 
