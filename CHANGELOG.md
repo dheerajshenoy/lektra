@@ -8,6 +8,8 @@
 
 ### New Features
 
+* **`open_config` now handles both `config.toml` and `init.lua`:** The command opens `config.toml` when present, falls back to `init.lua` when only the Lua config exists, and shows a chooser dialog when both are present so users can pick which file to edit.
+
 * **Narrow-region indicator in the statusbar:** When the document is in narrow region mode, an orange **N** badge appears in the left section of the statusbar. Hovering it shows a tooltip explaining how to exit. The badge is cleared automatically when Wide Region is invoked, and is correctly seeded when switching between tabs.
 * **Viewport-clipped rendering at high zoom for major performance improvement:** When zoom exceeds 2.5×, the render pipeline now clips the MuPDF pixmap to the visible viewport region plus a 50% margin in each direction, instead of rasterising the entire page. At extreme zoom levels (e.g. 8×) the full page can be 50–100× larger than the viewport; only ~2× the viewport area is now rasterised, giving proportional speedups. The clipped image is drawn at the correct offset within the full-page bounding rect so link, annotation, and search overlays remain correctly positioned. A fresh clip is requested automatically after each scroll or zoom change.
 * **Region selection and context menu now available in image mode:** Region select mode can now be activated when viewing images (JPEG, PNG, GIF, etc.) via the mode menu or keyboard shortcut. Drawing a rubber band shows the context menu with all compatible actions. The context menu adapts to the file type: "Copy Region as Image (Custom DPI)" is hidden for pure raster images (re-rendering at a different DPI is only meaningful for vector/text-based formats), and "Copy Text from Region" is hidden unless the document supports text extraction.
@@ -17,7 +19,15 @@
 
 ---
 
+### Removed
+
+* **`--check-config` CLI flag removed:** The TOML config validator maintained a hard-coded whitelist of every valid section and key, which drifted out of sync with the actual config schema as options were added. The flag and its `checkConfigFile()` implementation have been removed.
+
+---
+
 ### Bug Fixes
+
+* **Fix Visual Line mode not activating when selected via the statusbar mode label:** Clicking the mode label to cycle into "Visual Line" only called `GraphicsView::setMode(VisualLine)`, leaving `DocumentView::m_visual_line_mode` false and never running `snapVisualLine()` — so the label updated but the mode did nothing. `NextSelectionMode` now routes through `set_visual_line_mode(true)` when entering VisualLine and tears it down cleanly when cycling out.
 
 * **Fix `applyNarrow` restoring text selection mode in image mode:** After drawing a narrow region, the mode was restored using `TextSelection` as the hardcoded fallback when the document's default mode was `None`. Image documents have `None` as their default mode (no text layer), so they always ended up in `TextSelection` after narrowing — a mode that does nothing for images. The fallback now restores `RegionSelection` for image documents instead.
 

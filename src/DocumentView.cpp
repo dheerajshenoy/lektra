@@ -1373,7 +1373,17 @@ void
 DocumentView::NextSelectionMode() noexcept
 {
     GraphicsView::Mode nextMode = m_gview->getNextMode();
-    m_gview->setMode(nextMode);
+
+    if (nextMode == GraphicsView::Mode::VisualLine)
+    {
+        set_visual_line_mode(true);
+    }
+    else
+    {
+        if (m_visual_line_mode)
+            set_visual_line_mode(false);
+        m_gview->setMode(nextMode);
+    }
     emit selectionModeChanged(nextMode);
 }
 
