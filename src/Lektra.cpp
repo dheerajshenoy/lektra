@@ -1856,27 +1856,6 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
         return;
     }
 
-    if (argparser.is_used("check-config"))
-    {
-        QString config_file_path;
-
-        try
-        {
-            config_file_path = QString::fromStdString(
-                argparser.get<std::string>("--check-config"));
-        }
-        catch (const std::exception &e)
-        {
-            qDebug() << tr("No config file path provided, using default path:")
-                     << m_config_file_path;
-            config_file_path = m_config_file_path;
-        }
-
-        checkConfigFile(config_file_path);
-        QCoreApplication::exit(0);
-        return;
-    }
-
     if (argparser.is_used("list-commands"))
     {
         QTextStream out(stdout);
@@ -6695,16 +6674,45 @@ Lektra::resizeEvent(QResizeEvent *event)
 void
 Lektra::OpenConfigFile() noexcept
 {
-    if (QFile::exists(m_config_file_path))
+    const bool hasToml = QFile::exists(m_config_file_path);
+
+#ifdef WITH_LUA
+    const QString init_file = m_config_dir.filePath("init.lua");
+    const bool hasLua       = QFile::exists(init_file);
+
+    if (hasToml && hasLua)
+    {
+        QMessageBox dlg(this);
+        dlg.setWindowTitle(tr("Open Config"));
+        dlg.setText(tr("Which config file would you like to open?"));
+        QPushButton *tomlBtn = dlg.addButton("config.toml", QMessageBox::AcceptRole);
+        QPushButton *luaBtn  = dlg.addButton("init.lua", QMessageBox::AcceptRole);
+        dlg.addButton(QMessageBox::Cancel);
+        dlg.exec();
+
+        if (dlg.clickedButton() == tomlBtn)
+            QDesktopServices::openUrl(QUrl::fromLocalFile(m_config_file_path));
+        else if (dlg.clickedButton() == luaBtn)
+            QDesktopServices::openUrl(QUrl::fromLocalFile(init_file));
+        return;
+    }
+
+    if (hasLua)
+    {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(init_file));
+        return;
+    }
+#endif
+
+    if (hasToml)
     {
         QDesktopServices::openUrl(QUrl::fromLocalFile(m_config_file_path));
+        return;
     }
-    else
-    {
-        QMessageBox::critical(
-            this, tr("Error"),
-            tr("Config file not found at:\n%1").arg(m_config_file_path));
-    }
+
+    QMessageBox::critical(
+        this, tr("Error"),
+        tr("Config file not found at:\n%1").arg(m_config_file_path));
 }
 
 void
@@ -6714,177 +6722,6 @@ Lektra::ToggleThumbnailPanel() noexcept
         return;
 
     m_doc->ToggleThumbnailPanel();
-}
-
-// Check if the config file exists and is a valid TOML file and contains
-// only known keys. Print warnings for any issues found. Return true if no
-// issues found, false otherwise.
-bool
-Lektra::checkConfigFile(const QString &path) noexcept
-{
-    QTextStream out(stdout), err(stderr);
-    initCommands();
-
-    bool ok         = true;
-    const auto warn = [&](const QString &msg)
-    {
-        err << "[lektra --check-config] " << msg << "\n";
-        ok = false;
-    };
-
-    if (!QFile::exists(path))
-    {
-        warn(QString(tr("Config file not found at: %1")).arg(path));
-        return ok;
-    }
-
-    toml::table toml;
-    try
-    {
-        toml = toml::parse_file(path.toStdString());
-    }
-    catch (const std::exception &e)
-    {
-        warn(QString(tr("TOML parse error: %1")).arg(e.what()));
-        return false;
-    }
-
-    out << "[lektra --check-config] TOML syntax OK" << Qt::endl;
-
-    static const QHash<QString, QSet<QString>> knownKeys = {
-        {"page", {"bg", "fg"}},
-
-#ifdef WITH_SYNCTEX
-        {"synctex", {"enabled", "editor_command"}},
-#endif
-
-        {"portal",
-         {"border_color", "enabled", "border_width", "respect_parent",
-          "dim_inactive", "split"}},
-
-        {"preview",
-         {"border_radius", "close_on_click_outside", "size_ratio", "opacity"}},
-
-        {"thumbnail_panel",
-         {"show_page_numbers", "panel_width", "font_size",
-          "highlight_current_page", "vscrollbar", "hscrollbar"}},
-
-        {"tabs",
-         {"visible", "auto_hide", "closable", "movable", "elide_mode",
-          "location", "full_path", "lazy_load"}},
-
-        {"window",
-         {"startup_tab", "menubar", "fullscreen", "accent", "bg",
-          "initial_size", "title_format"}},
-
-        {"annotations", {"highlight", "rect", "popup"}},
-
-        {"statusbar",
-         {"visible", "padding", "show_progress", "file_name_only",
-          "show_file_info", "show_page_number", "show_mode",
-          "show_session_name", "components"}},
-
-        {"layout", {"mode", "initial_fit", "auto_resize", "spacing"}},
-
-        {"zoom", {"level", "factor", "anchor_to_mouse"}},
-
-        {"selection", {"drag_threshold", "copy_on_select", "color"}},
-
-        {"scrollbars",
-         {"vertical", "horizontal", "search_hits", "auto_hide", "size",
-          "hide_timeout"}},
-
-        {"command_palette",
-         {"description", "height", "width", "vscrollbar", "show_shortcuts",
-          "border", "alternating_row_color", "placeholder_text", "shadow"}},
-
-        {"picker",
-         {"width", "height", "border", "alternating_row_color", "shadow",
-          "keys"}},
-
-        {"jump_marker", {"enabled", "color", "fade_duration"}},
-
-        {"links", {"enabled", "boundary", "detect_urls", "url_regex"}},
-
-        {"link_hints", {"size", "bg", "fg"}},
-
-        {"outline",
-         {"width", "height", "border", "alternating_row_color", "shadow",
-          "indent_width", "show_page_numbers", "flat_menu"}},
-
-        {"highlight_search",
-         {"width", "height", "border", "alternating_row_color", "shadow",
-          "flat_menu"}},
-
-        {"search",
-         {"highlight_matches", "progressive", "match_color", "index_color",
-          "absolute_jump"}},
-
-        {"rendering",
-         {"antialiasing", "text_antialiasing", "smooth_pixmap_transform",
-          "antialiasing_bits", "dpr", "cache_pages", "icc_color_profile",
-          "backend"}},
-
-        {"split",
-         {"mouse_follows_focus", "focus_follows_mouse", "dim_inactive",
-          "dim_inactive_opacity", "focus_border", "focus_border_color",
-          "focus_border_width", "maximize_indicator",
-          "maximize_indicator_color"}},
-
-        {"behavior",
-         {"preload_pages", "confirm_on_quit", "undo_limit",
-          "remember_last_visited", "always_open_in_new_window",
-          "page_history_limit", "invert_mode", "dont_invert_images",
-          "auto_reload", "cache_password", "recent_files",
-          "num_recent_files", "initial_mode", "open_last_visited",
-          "file_name_only", "cache_pages", "mupdf_store_size"}},
-
-        {"keybindings", {}},
-        {"mousebindings",
-         {"pan", "portal",
-#ifdef WITH_SYNCTEX
-          "synctex_jump",
-#endif
-          "preview"}},
-
-    };
-
-    for (auto &[key, _] : toml)
-    {
-        const QString section = QString::fromStdString(std::string(key.str()));
-
-        if (!knownKeys.contains(section))
-        {
-            warn(QString(tr("Unknown section: [%1]")).arg(section));
-            continue;
-        }
-
-        const auto *table = toml.get(key.str());
-        if (!table || !table->is_table())
-            continue;
-
-        for (auto &[k, _] : *table->as_table())
-        {
-            const QString field = QString::fromStdString(std::string(k.str()));
-            if (section == "keybindings")
-            {
-                if (!m_command_manager->hasCommand(field))
-                    warn(QString(tr("Unknown command '%1' in [keybindings]"))
-                             .arg(field));
-            }
-            else if (!knownKeys[section].contains(field))
-            {
-                warn(QString(tr("Unknown key '%1' in [%2]"))
-                         .arg(field, section));
-            }
-        }
-    }
-
-    if (ok)
-        out << tr("[lektra --check-config] All keys valid. Config looks good!")
-            << Qt::endl;
-
-    return ok;
 }
 
 void

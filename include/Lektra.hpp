@@ -265,8 +265,6 @@ private:
     void focusSplitHelper(DocumentContainer::Direction direction) noexcept;
     DocumentView *splitHelper(DocumentView::Id id,
                               Qt::Orientation orientation) noexcept;
-    bool checkConfigFile(const QString &path) noexcept;
-
     DocumentView *openFileSplitHelper(const QString &filename    = {},
                                       const CallbackFn &callback = {},
                                       Qt::Orientation orientation

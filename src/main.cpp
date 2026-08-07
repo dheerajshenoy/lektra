@@ -192,14 +192,6 @@ init_args(argparse::ArgumentParser &program)
         .default_value(std::string{})
         .metavar("COMMAND(s)");
 
-    // This can take optional argument.
-    program.add_argument("--check-config")
-        .help("Check the validity of the config file and exit with non-zero "
-              "code if invalid. Optionally specify a config file path to check "
-              "(defaults to searching for config.toml in standard locations)")
-        .nargs(0, 1)
-        .metavar("CONFIG_PATH");
-
     program.add_argument("--foreground")
         .help("Run in the foreground (do not detach from the terminal)")
         .default_value(false)
@@ -280,10 +272,9 @@ main(int argc, char *argv[])
     // debugging/logging).
     bool foreground   = program.is_used("--foreground");
     bool listCommands = program.is_used("--list-commands");
-    bool check_config = program.is_used("--check-config");
     bool showVersion  = program.is_used("version");
 
-    if (!(foreground || listCommands || check_config || showVersion))
+    if (!(foreground || listCommands || showVersion))
         return spawn_detached_child(argc, argv);
 
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
@@ -335,7 +326,7 @@ main(int argc, char *argv[])
     Lektra d;
     d.Read_args_parser(program);
 
-    if (listCommands || check_config || showVersion)
+    if (listCommands || showVersion)
         return 0;
 
     return app.exec();
