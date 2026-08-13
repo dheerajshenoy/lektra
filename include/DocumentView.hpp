@@ -457,6 +457,7 @@ public:
     void ToggleTextSelection() noexcept;
     void NarrowToRegion() noexcept;
     void NarrowToPages(int startPage1, int endPage1) noexcept;
+    void NarrowToSectionByTitle(const QString &title) noexcept;
     void WidenRegion() noexcept;
     inline bool isNarrowed() const noexcept
     {

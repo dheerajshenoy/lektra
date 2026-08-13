@@ -5576,6 +5576,94 @@ DocumentView::applyNarrow(QRectF sceneRect) noexcept
 }
 
 void
+DocumentView::NarrowToSectionByTitle(const QString &title) noexcept
+{
+    if (!m_model)
+        return;
+
+    fz_outline *outline = m_model->getOutline();
+    if (!outline)
+        outline = m_model->getGeneratedOutline();
+    if (!outline)
+        return;
+
+    struct Section
+    {
+        QString title;
+        int depth;
+        int startPage0;
+        int endPage0;
+    };
+
+    QList<Section> sections;
+    std::function<void(fz_outline *, int)> harvest
+        = [&](fz_outline *node, int depth)
+    {
+        for (fz_outline *n = node; n; n = n->next)
+        {
+            if (n->page.page >= 0)
+                sections.append({QString(n->title ? n->title : "").simplified(),
+                                 depth, n->page.page, -1});
+            if (n->down)
+                harvest(n->down, depth + 1);
+        }
+    };
+    harvest(outline, 0);
+
+    if (sections.isEmpty())
+        return;
+
+    const int totalPages = m_model->numPages();
+
+    for (int i = 0; i < sections.size(); ++i)
+    {
+        const QString cp1 = sections[i].title + ".";
+        const QString cp2 = sections[i].title + " ";
+        int end            = totalPages - 1;
+        for (int j = i + 1; j < sections.size(); ++j)
+        {
+            const bool descendant
+                = sections[j].depth > sections[i].depth
+                  || sections[j].title.startsWith(cp1)
+                  || sections[j].title.startsWith(cp2);
+            if (sections[j].startPage0 > sections[i].startPage0 && !descendant)
+            {
+                end = sections[j].startPage0;
+                break;
+            }
+        }
+        sections[i].endPage0 = std::max(end, sections[i].startPage0);
+    }
+
+    int chosen = -1;
+    for (int i = 0; i < sections.size(); ++i)
+    {
+        if (sections[i].title.compare(title, Qt::CaseInsensitive) == 0)
+        {
+            chosen = i;
+            break;
+        }
+    }
+    if (chosen < 0)
+    {
+        for (int i = 0; i < sections.size(); ++i)
+        {
+            if (sections[i].title.contains(title, Qt::CaseInsensitive))
+            {
+                chosen = i;
+                break;
+            }
+        }
+    }
+
+    if (chosen < 0)
+        return;
+
+    NarrowToPages(sections[chosen].startPage0 + 1,
+                  sections[chosen].endPage0 + 1);
+}
+
+void
 DocumentView::NarrowToRegion() noexcept
 {
     if (m_is_narrow)

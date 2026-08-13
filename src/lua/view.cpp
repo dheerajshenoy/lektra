@@ -1114,6 +1114,17 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 0;
                 }),
 
+    VIEW_METHOD("narrow_to_section",
+                {
+                    if (*view)
+                    {
+                        auto title = luaL_checkstring(L, 2);
+                        (*view)->NarrowToSectionByTitle(
+                            QString::fromUtf8(title));
+                    }
+                    return 0;
+                }),
+
     VIEW_METHOD("widen_region",
                 {
                     if (*view)

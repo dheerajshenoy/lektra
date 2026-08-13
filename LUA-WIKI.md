@@ -45,6 +45,7 @@ Document view helpers and per-document actions.
 | `view:narrow_to_region()` | — | Enter rubber-band selection mode and narrow the view to the drawn rectangle. If the view is already narrowed, widens it instead (toggle). |
 | `view:narrow_to_pages(start, end)` | — | Narrow the view to an inclusive 1-indexed page range (e.g. `5, 10`). Scrolling, rendering focus, and search are all limited to pages in the range. |
 | `view:widen_region()` | — | Exit narrow mode and restore the full document view. No-op if not narrowed. |
+| `view:narrow_to_section(title)` | — | Narrow to the section matching `title` from the document outline (exact then substring match). The region extends from the section's start page through the page where the next non-descendant section begins, so overflow content is always included. Requires the document to have an outline (embedded, generated, or loaded). |
 | `view:is_narrowed()` | `boolean` | Whether the view is currently in narrow mode. |
 | `view:rotate_clock()` | — | Rotate the page 90° clockwise. |
 | `view:rotate_anticlock()` | — | Rotate the page 90° counter-clockwise. |

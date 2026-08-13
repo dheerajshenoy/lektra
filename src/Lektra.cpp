@@ -3402,6 +3402,166 @@ Lektra::NarrowToPages(int startPage1, int endPage1) noexcept
     m_doc->NarrowToPages(startPage1, endPage1);
 }
 
+void
+Lektra::NarrowToSection(const QStringList &args) noexcept
+{
+    if (!m_doc || !m_doc->model())
+        return;
+
+    fz_outline *outline = m_doc->model()->getOutline();
+    if (!outline)
+        outline = m_doc->model()->getGeneratedOutline();
+
+    if (!outline)
+    {
+        QMessageBox::information(
+            this, tr("Narrow to Section"),
+            tr("This document has no outline."));
+        return;
+    }
+
+    struct Section
+    {
+        QString title;
+        int depth;
+        int startPage0; // 0-based
+        int endPage0;   // 0-based, filled in second pass
+    };
+
+    // Flatten the outline tree, recording depth.
+    QList<Section> sections;
+    std::function<void(fz_outline *, int)> harvest
+        = [&](fz_outline *node, int depth)
+    {
+        for (fz_outline *n = node; n; n = n->next)
+        {
+            if (n->page.page >= 0)
+            {
+                Section s;
+                s.title      = QString(n->title ? n->title : "").simplified();
+                s.depth      = depth;
+                s.startPage0 = n->page.page;
+                s.endPage0   = -1;
+                sections.append(s);
+            }
+            if (n->down)
+                harvest(n->down, depth + 1);
+        }
+    };
+    harvest(outline, 0);
+
+    if (sections.isEmpty())
+    {
+        QMessageBox::information(this, tr("Narrow to Section"),
+                                 tr("No navigable sections found in outline."));
+        return;
+    }
+
+    const int totalPages = m_doc->model()->numPages();
+
+    // Second pass: compute end page for each section.
+    //
+    // A section ends just before the next entry that is NOT one of its
+    // descendants. Two complementary tests determine "descendant":
+    //
+    //  1. Depth-based (properly nested outlines): j.depth > i.depth.
+    //  2. Title-prefix-based (flat outlines where all entries share the same
+    //     depth): j.title starts with i.title followed by "." or " ".
+    //     Handles PDFs where "1.2.4.1", "1.2.4.2" are all at depth 2 even
+    //     though they are logically children of "1.2.4".
+    //
+    // We also require j to start on a strictly later page so out-of-order
+    // outline entries (same-page duplicates) don't truncate the range.
+    for (int i = 0; i < sections.size(); ++i)
+    {
+        const QString childPrefix1 = sections[i].title + ".";
+        const QString childPrefix2 = sections[i].title + " ";
+
+        auto isDescendant = [&](const Section &j) -> bool
+        {
+            if (j.depth > sections[i].depth)
+                return true;
+            return j.title.startsWith(childPrefix1)
+                   || j.title.startsWith(childPrefix2);
+        };
+
+        int end = totalPages - 1;
+        for (int j = i + 1; j < sections.size(); ++j)
+        {
+            if (sections[j].startPage0 > sections[i].startPage0
+                && !isDescendant(sections[j]))
+            {
+                // Include the page where the next section starts — section
+                // content frequently overflows onto the same page as the
+                // following heading, so ending at startPage0 - 1 would cut
+                // off the last paragraph.
+                end = sections[j].startPage0;
+                break;
+            }
+        }
+        sections[i].endPage0 = std::max(end, sections[i].startPage0);
+    }
+
+    // Determine which section to narrow to.
+    int chosen = -1;
+
+    if (!args.isEmpty())
+    {
+        const QString query = args.join(" ").trimmed();
+        // Exact match first, then case-insensitive substring.
+        for (int i = 0; i < sections.size(); ++i)
+        {
+            if (sections[i].title.compare(query, Qt::CaseInsensitive) == 0)
+            {
+                chosen = i;
+                break;
+            }
+        }
+        if (chosen < 0)
+        {
+            for (int i = 0; i < sections.size(); ++i)
+            {
+                if (sections[i].title.contains(query, Qt::CaseInsensitive))
+                {
+                    chosen = i;
+                    break;
+                }
+            }
+        }
+        if (chosen < 0)
+        {
+            QMessageBox::information(
+                this, tr("Narrow to Section"),
+                tr("No section matching \"%1\" found.").arg(query));
+            return;
+        }
+    }
+    else
+    {
+        // Build display list with indentation to show hierarchy.
+        QStringList items;
+        items.reserve(sections.size());
+        for (const auto &s : sections)
+            items << QString(s.depth * 2, ' ') + s.title;
+
+        bool ok = false;
+        const QString picked = QInputDialog::getItem(
+            this, tr("Narrow to Section"), tr("Select a section:"),
+            items, 0, false, &ok);
+
+        if (!ok)
+            return;
+
+        chosen = items.indexOf(picked);
+    }
+
+    if (chosen < 0 || chosen >= sections.size())
+        return;
+
+    NarrowToPages(sections[chosen].startPage0 + 1,
+                  sections[chosen].endPage0 + 1);
+}
+
 // Go to the first page
 void
 Lektra::FirstPage() noexcept
@@ -4913,6 +5073,10 @@ Lektra::initCommands() noexcept
     m_command_manager->reg(
         "narrow_to_region", tr("Narrow view to selected region"),
         [this](const QStringList &) { NarrowToRegion(); });
+    m_command_manager->reg(
+        "narrow_to_section",
+        tr("Narrow view to a document section from the outline"),
+        [this](const QStringList &args) { NarrowToSection(args); });
     m_command_manager->reg(
         "narrow_to_pages",
         tr("Narrow view to a page range (e.g. '5 10' or '5-10')"),

@@ -114,6 +114,7 @@ public:
     void ToggleRegionSelect() noexcept;
     void NarrowToRegion() noexcept;
     void NarrowToPages(int startPage1, int endPage1) noexcept;
+    void NarrowToSection(const QStringList &args) noexcept;
     void WidenRegion() noexcept;
     void ToggleAnnotRect() noexcept;
     void ToggleAnnotSelect() noexcept;
