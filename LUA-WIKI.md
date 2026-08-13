@@ -43,6 +43,7 @@ Document view helpers and per-document actions.
 | `view:set_rotation(r)` | — | Set rotation in degrees. |
 | `view:region_select(callback)` | — | Enter rubber-band selection mode. When the user draws a rectangle the callback fires with `{ x, y, w, h }` (scene coordinates) and the view returns to normal. Bypasses the default context menu. |
 | `view:narrow_to_region()` | — | Enter rubber-band selection mode and narrow the view to the drawn rectangle. If the view is already narrowed, widens it instead (toggle). |
+| `view:narrow_to_pages(start, end)` | — | Narrow the view to an inclusive 1-indexed page range (e.g. `5, 10`). Scrolling, rendering focus, and search are all limited to pages in the range. |
 | `view:wide_region()` | — | Exit narrow mode and restore the full document view. No-op if not narrowed. |
 | `view:is_narrowed()` | `boolean` | Whether the view is currently in narrow mode. |
 | `view:rotate_clock()` | — | Rotate the page 90° clockwise. |

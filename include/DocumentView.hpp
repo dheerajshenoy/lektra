@@ -456,6 +456,7 @@ public:
     void ToggleAnnotPopup() noexcept;
     void ToggleTextSelection() noexcept;
     void NarrowToRegion() noexcept;
+    void NarrowToPages(int startPage1, int endPage1) noexcept;
     void WideRegion() noexcept;
     inline bool isNarrowed() const noexcept
     {
@@ -693,9 +694,15 @@ private:
     // Portal
     DocumentView *m_source_view               = nullptr;
     DocumentView *m_portal_view               = nullptr;
-    // Narrow to region
+    // Narrow to region / pages. m_narrow_page is the first page; for a
+    // region-narrow (single page) m_narrow_page_end == m_narrow_page and
+    // m_narrow_local_normalized holds the local rect fractions. For a
+    // pages-narrow, m_narrow_page_end > m_narrow_page and
+    // m_narrow_local_normalized is (0,0,1,1) — full page on every page in
+    // the range.
     bool m_is_narrow                          = false;
     int m_narrow_page                         = -1;
+    int m_narrow_page_end                     = -1;
     QRectF m_narrow_local_normalized;
     QRectF
         m_layout_scene_rect; // full scene rect, unaffected by narrow override

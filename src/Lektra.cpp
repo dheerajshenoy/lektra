@@ -3394,6 +3394,14 @@ Lektra::WideRegion() noexcept
     m_doc->WideRegion();
 }
 
+void
+Lektra::NarrowToPages(int startPage1, int endPage1) noexcept
+{
+    if (!m_doc)
+        return;
+    m_doc->NarrowToPages(startPage1, endPage1);
+}
+
 // Go to the first page
 void
 Lektra::FirstPage() noexcept
@@ -4902,6 +4910,43 @@ Lektra::initCommands() noexcept
     m_command_manager->reg(
         "narrow_to_region", tr("Narrow view to selected region"),
         [this](const QStringList &) { NarrowToRegion(); });
+    m_command_manager->reg(
+        "narrow_to_pages",
+        tr("Narrow view to a page range (e.g. '5 10' or '5-10')"),
+        [this](const QStringList &args)
+    {
+        if (!m_doc)
+            return;
+
+        // Accept either two integer args ("5", "10") or a single "5-10".
+        int start = -1, end = -1;
+        bool ok1 = false, ok2 = false;
+        if (args.size() >= 2)
+        {
+            start = args.at(0).toInt(&ok1);
+            end   = args.at(1).toInt(&ok2);
+        }
+        else if (args.size() == 1)
+        {
+            const QStringList parts
+                = args.at(0).split('-', Qt::SkipEmptyParts);
+            if (parts.size() == 2)
+            {
+                start = parts.at(0).trimmed().toInt(&ok1);
+                end   = parts.at(1).trimmed().toInt(&ok2);
+            }
+        }
+
+        if (!ok1 || !ok2)
+        {
+            QMessageBox::critical(
+                this, tr("Narrow to Pages"),
+                tr("Expected a page range like '5 10' or '5-10'."));
+            return;
+        }
+
+        NarrowToPages(start, end);
+    });
     m_command_manager->reg(
         "wide_region", tr("Exit narrow region (widen)"),
         [this](const QStringList &) { WideRegion(); });

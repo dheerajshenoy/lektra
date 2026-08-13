@@ -1949,25 +1949,30 @@ DocumentView::filterHitsToNarrow(
     if (!m_is_narrow || m_narrow_page < 0)
         return;
 
-    const auto *pageItem = m_page_items_hash.value(m_narrow_page, nullptr);
-    if (!pageItem)
-        return;
-
-    const QSizeF sz = pageItem->boundingRect().size();
-    if (sz.isEmpty())
-        return;
-
-    const QRectF narrowLocal(m_narrow_local_normalized.left() * sz.width(),
-                             m_narrow_local_normalized.top() * sz.height(),
-                             m_narrow_local_normalized.width() * sz.width(),
-                             m_narrow_local_normalized.height() * sz.height());
-
+    const int endPage
+        = (m_narrow_page_end < 0) ? m_narrow_page : m_narrow_page_end;
     const auto scale = m_model->logicalScale();
 
     QMap<int, std::vector<Model::SearchHit>> out;
-    const auto it = results.constFind(m_narrow_page);
-    if (it != results.constEnd())
+    for (int p = m_narrow_page; p <= endPage; ++p)
     {
+        const auto it = results.constFind(p);
+        if (it == results.constEnd())
+            continue;
+
+        const auto *pageItem = m_page_items_hash.value(p, nullptr);
+        if (!pageItem)
+            continue;
+        const QSizeF sz = pageItem->boundingRect().size();
+        if (sz.isEmpty())
+            continue;
+
+        const QRectF narrowLocal(
+            m_narrow_local_normalized.left() * sz.width(),
+            m_narrow_local_normalized.top() * sz.height(),
+            m_narrow_local_normalized.width() * sz.width(),
+            m_narrow_local_normalized.height() * sz.height());
+
         std::vector<Model::SearchHit> kept;
         kept.reserve(it.value().size());
         for (const auto &hit : it.value())
@@ -1978,7 +1983,7 @@ DocumentView::filterHitsToNarrow(
                 kept.push_back(hit);
         }
         if (!kept.empty())
-            out.insert(m_narrow_page, std::move(kept));
+            out.insert(p, std::move(kept));
     }
     results = std::move(out);
 }
@@ -2033,7 +2038,8 @@ DocumentView::Search(const QString &term, bool useRegex) noexcept
     if (m_is_narrow)
     {
         pageFrom = m_narrow_page;
-        pageTo   = m_narrow_page;
+        pageTo   = (m_narrow_page_end < 0) ? m_narrow_page
+                                           : m_narrow_page_end;
     }
     else if (m_search_scope == SearchScope::Below)
     {
@@ -5465,17 +5471,28 @@ DocumentView::remapNarrowForRotation(bool clockwise) noexcept
 QRectF
 DocumentView::narrowSceneRect() const noexcept
 {
-    const auto *pageItem = m_page_items_hash.value(m_narrow_page, nullptr);
-    if (!pageItem)
-        return {};
-    const QSizeF sz = pageItem->boundingRect().size();
-    if (sz.isEmpty())
-        return {};
-    const QRectF localRect(m_narrow_local_normalized.left() * sz.width(),
-                            m_narrow_local_normalized.top() * sz.height(),
-                            m_narrow_local_normalized.width() * sz.width(),
-                            m_narrow_local_normalized.height() * sz.height());
-    return pageItem->mapToScene(localRect).boundingRect();
+    const int endPage
+        = (m_narrow_page_end < 0) ? m_narrow_page : m_narrow_page_end;
+
+    QRectF unioned;
+    for (int p = m_narrow_page; p <= endPage; ++p)
+    {
+        const auto *pageItem = m_page_items_hash.value(p, nullptr);
+        if (!pageItem)
+            continue;
+        const QSizeF sz = pageItem->boundingRect().size();
+        if (sz.isEmpty())
+            continue;
+        const QRectF localRect(
+            m_narrow_local_normalized.left() * sz.width(),
+            m_narrow_local_normalized.top() * sz.height(),
+            m_narrow_local_normalized.width() * sz.width(),
+            m_narrow_local_normalized.height() * sz.height());
+        const QRectF sceneRect = pageItem->mapToScene(localRect).boundingRect();
+        unioned                = unioned.isNull() ? sceneRect
+                                                  : unioned.united(sceneRect);
+    }
+    return unioned;
 }
 
 void
@@ -5503,6 +5520,7 @@ DocumentView::applyNarrow(QRectF sceneRect) noexcept
         return;
 
     m_narrow_page              = pageno;
+    m_narrow_page_end          = pageno;
     m_narrow_local_normalized  = QRectF(localRect.left() / sz.width(),
                                         localRect.top() / sz.height(),
                                         localRect.width() / sz.width(),
@@ -5553,12 +5571,53 @@ DocumentView::WideRegion() noexcept
 {
     if (!m_is_narrow)
         return;
-    m_is_narrow   = false;
-    m_narrow_page = -1;
+    m_is_narrow       = false;
+    m_narrow_page     = -1;
+    m_narrow_page_end = -1;
+    m_narrow_local_normalized = {};
     m_gview->clearNarrowRect();
     updateSceneRect();
     m_gview->flashScrollbars();
     emit narrowModeChanged(false);
+}
+
+// Narrow to an inclusive range of 1-indexed pages. The narrow rect covers
+// the full extent of every page in the range so scrolling stays within
+// those pages and search/filter is limited to them.
+void
+DocumentView::NarrowToPages(int startPage1, int endPage1) noexcept
+{
+    if (!m_model)
+        return;
+
+    const int total = m_model->numPages();
+    if (total <= 0)
+        return;
+
+    int start = std::min(startPage1, endPage1);
+    int end   = std::max(startPage1, endPage1);
+    if (start < 1)
+        start = 1;
+    if (end > total)
+        end = total;
+    if (start > total || end < 1)
+        return;
+
+    m_narrow_page             = start - 1;
+    m_narrow_page_end         = end - 1;
+    m_narrow_local_normalized = QRectF(0.0, 0.0, 1.0, 1.0);
+    m_is_narrow               = true;
+
+    // Ensure the first page in the range is materialized before computing
+    // the scene rect.
+    GotoPage(start);
+
+    refreshNarrowVisuals();
+    const QRectF nr = narrowSceneRect();
+    if (nr.isValid())
+        m_gview->centerOn(nr.center());
+    m_gview->flashScrollbars();
+    emit narrowModeChanged(true);
 }
 
 // Handle annotation rectangle requested

@@ -1102,6 +1102,18 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 0;
                 }),
 
+    VIEW_METHOD("narrow_to_pages",
+                {
+                    if (*view)
+                    {
+                        auto start = luaL_checkinteger(L, 2);
+                        auto end   = luaL_checkinteger(L, 3);
+                        (*view)->NarrowToPages(static_cast<int>(start),
+                                               static_cast<int>(end));
+                    }
+                    return 0;
+                }),
+
     VIEW_METHOD("wide_region",
                 {
                     if (*view)

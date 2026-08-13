@@ -113,6 +113,7 @@ public:
     void ToggleTextHighlight() noexcept;
     void ToggleRegionSelect() noexcept;
     void NarrowToRegion() noexcept;
+    void NarrowToPages(int startPage1, int endPage1) noexcept;
     void WideRegion() noexcept;
     void ToggleAnnotRect() noexcept;
     void ToggleAnnotSelect() noexcept;
