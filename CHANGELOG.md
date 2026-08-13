@@ -8,7 +8,7 @@
 
 ### New Features
 
-* **`narrow_to_pages` command (and Lua API):** Narrow the view to an inclusive range of 1-indexed pages instead of a single-page rubber-banded region. Invoke as `narrow_to_pages 5 10` or `narrow_to_pages 5-10`; the narrow rect becomes the union of the scene rects of every page in the range, scrolling and rendering focus stay inside the range, and `search` is already page-range aware so it only searches within those pages. `wide_region` exits pages-narrow the same way it exits region-narrow. Also exposed to Lua as `view:narrow_to_pages(start, end)`.
+* **`narrow_to_pages` command (and Lua API):** Narrow the view to an inclusive range of 1-indexed pages instead of a single-page rubber-banded region. Invoke as `narrow_to_pages 5 10` or `narrow_to_pages 5-10`; the narrow rect becomes the union of the scene rects of every page in the range, scrolling and rendering focus stay inside the range, and `search` is already page-range aware so it only searches within those pages. `widen_region` exits pages-narrow the same way it exits region-narrow. Also exposed to Lua as `view:narrow_to_pages(start, end)`.
 
 * **`search_below` and `search_above` commands (and Lua APIs):** Two new directional-search commands scope the search to a page range relative to the current page. `search_below` searches from `m_pageno` forward (inclusive); `search_above` searches from page 0 through `m_pageno` (inclusive). Both accept an optional inline term (searches immediately) or open the search bar with the direction primed — Enter then runs the scoped search. The scope is one-shot: after the search is dispatched, `DocumentView` reverts to full-document scope so the next plain `search` behaves normally. Narrow region mode still takes precedence over the directional scope. Also exposed to Lua as `view:search_below(query, regex?)` and `view:search_above(query, regex?)`.
 
@@ -92,11 +92,11 @@
   Region*) to enter rubber-band selection; the chosen rectangle becomes the entire viewport —
   scrolling is constrained to it, everything outside is painted over with the background
   colour, and all interactions (text selection, zoom, search, links) work normally within the
-  region. `wide_region` (or *View → Widen*) restores the full document view. The narrow state
+  region. `widen_region` (or *View → Widen*) restores the full document view. The narrow state
   survives zoom changes: the region is stored in normalised page-local coordinates and
   recomputed from the page item's current transform after each re-render. The narrow region is
   also accessible from the region-selection context menu ("Narrow to Region").
-- Expose `view:narrow_to_region()`, `view:wide_region()`, and `view:is_narrowed() -> boolean`
+- Expose `view:narrow_to_region()`, `view:widen_region()`, and `view:is_narrowed() -> boolean`
   in the Lua view API.
 - Add horizontal and vertical page flip (`flip_horizontal` / `flip_vertical` commands, default
   bindings `|` / `_`). Flip state is stored in `Model` alongside rotation and propagated

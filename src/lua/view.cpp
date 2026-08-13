@@ -1114,10 +1114,10 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 0;
                 }),
 
-    VIEW_METHOD("wide_region",
+    VIEW_METHOD("widen_region",
                 {
                     if (*view)
-                        (*view)->WideRegion();
+                        (*view)->WidenRegion();
                     return 0;
                 }),
 

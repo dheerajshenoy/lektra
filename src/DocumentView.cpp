@@ -5580,14 +5580,14 @@ DocumentView::NarrowToRegion() noexcept
 {
     if (m_is_narrow)
     {
-        WideRegion();
+        WidenRegion();
         return;
     }
     startRegionSelect([this](QRectF area) { applyNarrow(area); });
 }
 
 void
-DocumentView::WideRegion() noexcept
+DocumentView::WidenRegion() noexcept
 {
     if (!m_is_narrow)
         return;

@@ -407,8 +407,8 @@ Lektra::initMenubar() noexcept
         this, &Lektra::NarrowToRegion);
 
     m_viewMenu->addAction(
-        tr("Widen\t%1").arg(m_config.keybinds["wide_region"].join(", ")),
-        this, &Lektra::WideRegion);
+        tr("Widen\t%1").arg(m_config.keybinds["widen_region"].join(", ")),
+        this, &Lektra::WidenRegion);
 
     m_viewMenu->addSeparator();
 
@@ -3387,11 +3387,11 @@ Lektra::NarrowToRegion() noexcept
 }
 
 void
-Lektra::WideRegion() noexcept
+Lektra::WidenRegion() noexcept
 {
     if (!m_doc)
         return;
-    m_doc->WideRegion();
+    m_doc->WidenRegion();
 }
 
 void
@@ -4964,8 +4964,8 @@ Lektra::initCommands() noexcept
         NarrowToPages(start, end);
     });
     m_command_manager->reg(
-        "wide_region", tr("Exit narrow region (widen)"),
-        [this](const QStringList &) { WideRegion(); });
+        "widen_region", tr("Exit narrow region (widen)"),
+        [this](const QStringList &) { WidenRegion(); });
 
     // Fit modes
     m_command_manager->reg("fit_width", tr("Fit page to window width"),
