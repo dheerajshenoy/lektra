@@ -408,9 +408,19 @@ public:
     void GotoLastPage() noexcept;
     void setZoom(double factor, bool restoreLocation = true) noexcept;
     void setZoomAnchored(double factor, QPointF anchorScenePos) noexcept;
+    enum class SearchScope
+    {
+        All,
+        Below,
+        Above,
+    };
     void Search(const QString &term, bool useRegex) noexcept;
     void SearchInPage(int pageno, const QString &term) noexcept;
     void SearchCancel() noexcept;
+    inline void setSearchScope(SearchScope scope) noexcept
+    {
+        m_search_scope = scope;
+    }
     void ZoomIn() noexcept;
     void ZoomOut() noexcept;
     void ZoomReset() noexcept;
@@ -617,6 +627,8 @@ private:
     void renderSearchHitsForPage(int pageno) noexcept;
     void renderSearchHitsInScrollbar() noexcept;
     void clearSearchHits() noexcept;
+    void filterHitsToNarrow(
+        QMap<int, std::vector<Model::SearchHit>> &results) const noexcept;
     QGraphicsPathItem *m_current_search_hit_item{nullptr};
     QSizeF pageSceneSize(int pageno) const noexcept;
     std::vector<Annotation *> annotationsInArea(int pageno,
@@ -653,6 +665,7 @@ private:
     QTimer *m_resize_timer                    = nullptr;
     PageLocation m_pending_jump               = {-1, 0, 0};
     int m_search_index                        = -1;
+    SearchScope m_search_scope                = SearchScope::All;
     int m_cached_hit_index                    = -2;
     GraphicsImageItem *m_cached_hit_page_item = nullptr;
     int m_selection_start_page                = -1;

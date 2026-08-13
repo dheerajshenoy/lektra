@@ -468,7 +468,8 @@ public:
     void invalidatePageCaches() noexcept;
     void invalidatePageCache(int pageno) noexcept;
     void search(const QString &term, bool caseSensitive = false,
-                int pageFrom = -1, bool useRegex = false) noexcept;
+                int pageFrom = -1, bool useRegex = false,
+                int pageTo = -1) noexcept;
     void searchCancel() noexcept;
     void searchInPage(const int pageno, const QString &term,
                       bool caseSensitive = false) noexcept;

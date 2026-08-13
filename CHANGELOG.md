@@ -8,6 +8,10 @@
 
 ### New Features
 
+* **`search_below` and `search_above` commands (and Lua APIs):** Two new directional-search commands scope the search to a page range relative to the current page. `search_below` searches from `m_pageno` forward (inclusive); `search_above` searches from page 0 through `m_pageno` (inclusive). Both accept an optional inline term (searches immediately) or open the search bar with the direction primed — Enter then runs the scoped search. The scope is one-shot: after the search is dispatched, `DocumentView` reverts to full-document scope so the next plain `search` behaves normally. Narrow region mode still takes precedence over the directional scope. Also exposed to Lua as `view:search_below(query, regex?)` and `view:search_above(query, regex?)`.
+
+* **Narrowed search restricts hits to the narrowed page and region:** With a narrow region active, `search` now runs only on the narrow page (via a new `pageTo` parameter on `Model::search`) instead of scanning the entire document. Results are then post-filtered in `DocumentView::handleSearchResults` / `handlePartialSearchResults` to drop any hit whose quad center falls outside the narrow rect. The search count reported to the search bar reflects the filtered hits so navigation index/total stays consistent.
+
 * **`open_config` now handles both `config.toml` and `init.lua`:** The command opens `config.toml` when present, falls back to `init.lua` when only the Lua config exists, and shows a chooser dialog when both are present so users can pick which file to edit.
 
 * **Narrow-region indicator in the statusbar:** When the document is in narrow region mode, an orange **N** badge appears in the left section of the statusbar. Hovering it shows a tooltip explaining how to exit. The badge is cleared automatically when Wide Region is invoked, and is correctly seeded when switching between tabs.
@@ -26,6 +30,8 @@
 ---
 
 ### Bug Fixes
+
+* **Fix search bar close button leaving search highlights on the page:** Clicking the close button in the search bar only called `clearFocus()` and `hide()`, so the last search's highlights and index/count labels stayed active until a new search was started. It now also clears the input and emits an empty `searchRequested` signal — the same path the input takes when its text is emptied — so highlights are dropped and search mode exits cleanly.
 
 * **Fix Visual Line mode not activating when selected via the statusbar mode label:** Clicking the mode label to cycle into "Visual Line" only called `GraphicsView::setMode(VisualLine)`, leaving `DocumentView::m_visual_line_mode` false and never running `snapVisualLine()` — so the label updated but the mode did nothing. `NextSelectionMode` now routes through `set_visual_line_mode(true)` when entering VisualLine and tears it down cleanly when cycling out.
 

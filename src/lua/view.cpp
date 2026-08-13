@@ -526,6 +526,32 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 0;
                 }),
 
+    VIEW_METHOD("search_below",
+                {
+                    if (*view)
+                    {
+                        auto term     = luaL_checkstring(L, 2);
+                        auto useRegex = lua_toboolean(L, 3);
+                        (*view)->setSearchScope(
+                            DocumentView::SearchScope::Below);
+                        (*view)->Search(term, useRegex);
+                    }
+                    return 0;
+                }),
+
+    VIEW_METHOD("search_above",
+                {
+                    if (*view)
+                    {
+                        auto term     = luaL_checkstring(L, 2);
+                        auto useRegex = lua_toboolean(L, 3);
+                        (*view)->setSearchScope(
+                            DocumentView::SearchScope::Above);
+                        (*view)->Search(term, useRegex);
+                    }
+                    return 0;
+                }),
+
     VIEW_METHOD("search_hit_next",
                 {
                     if (*view)

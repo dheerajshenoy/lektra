@@ -79,6 +79,8 @@ Document view helpers and per-document actions.
 | `view:selection_text(formatted)` | `string` | Selected text. |
 | `view:clear_selection()` | — | Clear the current selection. |
 | `view:search(query, regex?)` | — | Search the document. |
+| `view:search_below(query, regex?)` | — | Search from the current page forward (inclusive). Narrow region still takes precedence. |
+| `view:search_above(query, regex?)` | — | Search from page 0 through the current page (inclusive). Narrow region still takes precedence. |
 | `view:search_hit_next()` | — | Jump to next search hit. |
 | `view:search_hit_prev()` | — | Jump to previous search hit. |
 | `view:search_cancel()` | — | Cancel search and clear highlights. |

@@ -92,6 +92,8 @@ SearchBar::initConnections() noexcept
     connect(m_closeButton, &QPushButton::clicked, this, [this]()
     {
         m_searchInput->clearFocus();
+        clearSearch();
+        emit searchRequested("", false);
         this->hide();
     });
 

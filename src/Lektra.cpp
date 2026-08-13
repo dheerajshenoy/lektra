@@ -5005,6 +5005,14 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("search_cancel",
                            tr("Cancel current search and clear highlights"),
                            [this](const QStringList &) { searchCancel(); });
+    m_command_manager->reg("search_below",
+                           tr("Search document from the current page forward"),
+                           [this](const QStringList &args)
+    { SearchDirectional(args, DocumentView::SearchScope::Below); });
+    m_command_manager->reg("search_above",
+                           tr("Search document from the current page backward"),
+                           [this](const QStringList &args)
+    { SearchDirectional(args, DocumentView::SearchScope::Above); });
 
     // Layout modes
     m_command_manager->reg("layout_single", tr("Single page layout"),
@@ -5461,6 +5469,35 @@ Lektra::SearchRegex(const QStringList &args) noexcept
     else
     {
         m_doc->Search(args.at(0), true);
+    }
+}
+
+void
+Lektra::SearchDirectional(const QStringList &args,
+                          DocumentView::SearchScope scope) noexcept
+{
+    if (!m_doc)
+        return;
+
+    if (!m_doc->model()->supports_text_search())
+    {
+        QMessageBox::information(
+            this, tr("Search Not Supported"),
+            tr("The current document does not support text search."));
+        return;
+    }
+
+    // Scope is one-shot: DocumentView::Search consumes it and reverts to All.
+    m_doc->setSearchScope(scope);
+
+    if (args.isEmpty())
+    {
+        m_search_bar->setVisible(true);
+        m_search_bar->focusSearchInput();
+    }
+    else
+    {
+        m_doc->Search(args.at(0), false);
     }
 }
 

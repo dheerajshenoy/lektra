@@ -741,7 +741,10 @@ DocumentView::handleSearchResults(
     emit searchBarSpinnerShow(false);
     clearSearchHits();
 
-    if (results.isEmpty())
+    QMap<int, std::vector<Model::SearchHit>> filtered = results;
+    filterHitsToNarrow(filtered);
+
+    if (filtered.isEmpty())
     {
         QMessageBox::information(this, tr("Search"),
                                  tr("No matches found for "
@@ -749,7 +752,7 @@ DocumentView::handleSearchResults(
         return;
     }
 
-    m_search_hits = results;
+    m_search_hits = std::move(filtered);
     buildFlatSearchHitIndex();
 
     m_search_index         = 0;
@@ -759,7 +762,8 @@ DocumentView::handleSearchResults(
     if (m_config.scrollbars.search_hits)
         renderSearchHitsInScrollbar();
 
-    emit searchCountChanged(m_model->searchMatchesCount());
+    emit searchCountChanged(
+        static_cast<int>(m_search_hit_flat_refs.size()));
 
     if (m_config.search.absolute_jump)
         GotoHit(m_search_index);
@@ -775,13 +779,17 @@ void
 DocumentView::handlePartialSearchResults(
     const QMap<int, std::vector<Model::SearchHit>> &results) noexcept
 {
+    QMap<int, std::vector<Model::SearchHit>> filtered = results;
+    filterHitsToNarrow(filtered);
+
     // Merge new batch into existing results — don't replace
-    for (auto it = results.cbegin(); it != results.cend(); ++it)
+    for (auto it = filtered.cbegin(); it != filtered.cend(); ++it)
         m_search_hits.insert(it.key(), it.value());
 
     buildFlatSearchHitIndex();
 
-    emit searchCountChanged(m_search_hits.size());
+    emit searchCountChanged(
+        static_cast<int>(m_search_hit_flat_refs.size()));
 
     if (m_config.scrollbars.search_hits)
         renderSearchHitsInScrollbar();
@@ -1929,6 +1937,52 @@ DocumentView::clearSearchHits() noexcept
     m_gview->setScrollbarsPinned(false);
 }
 
+// When a narrow region is active, discard all hits that don't fall inside
+// it. The narrow rect is stored as fractions of the page item bounding
+// rect; hit quads are in fz coordinates and become page-item-local when
+// multiplied by logicalScale(). Pages other than the narrow page are
+// dropped entirely.
+void
+DocumentView::filterHitsToNarrow(
+    QMap<int, std::vector<Model::SearchHit>> &results) const noexcept
+{
+    if (!m_is_narrow || m_narrow_page < 0)
+        return;
+
+    const auto *pageItem = m_page_items_hash.value(m_narrow_page, nullptr);
+    if (!pageItem)
+        return;
+
+    const QSizeF sz = pageItem->boundingRect().size();
+    if (sz.isEmpty())
+        return;
+
+    const QRectF narrowLocal(m_narrow_local_normalized.left() * sz.width(),
+                             m_narrow_local_normalized.top() * sz.height(),
+                             m_narrow_local_normalized.width() * sz.width(),
+                             m_narrow_local_normalized.height() * sz.height());
+
+    const auto scale = m_model->logicalScale();
+
+    QMap<int, std::vector<Model::SearchHit>> out;
+    const auto it = results.constFind(m_narrow_page);
+    if (it != results.constEnd())
+    {
+        std::vector<Model::SearchHit> kept;
+        kept.reserve(it.value().size());
+        for (const auto &hit : it.value())
+        {
+            const double cx = (hit.quad.ul.x + hit.quad.lr.x) * 0.5 * scale;
+            const double cy = (hit.quad.ul.y + hit.quad.lr.y) * 0.5 * scale;
+            if (narrowLocal.contains(cx, cy))
+                kept.push_back(hit);
+        }
+        if (!kept.empty())
+            out.insert(m_narrow_page, std::move(kept));
+    }
+    results = std::move(out);
+}
+
 void
 DocumentView::SearchCancel() noexcept
 {
@@ -1970,9 +2024,29 @@ DocumentView::Search(const QString &term, bool useRegex) noexcept
 
     emit searchBarSpinnerShow(true);
 
-    // Always search from the first page, but hit index is determined by
-    // current location
-    m_model->search(term, caseSensitive, 0, useRegex);
+    // Narrow region takes precedence over directional scope: restrict to
+    // the single narrow page (handleSearchResults further trims hits by
+    // the narrow rect). Otherwise honor m_search_scope for search_below
+    // (from current page forward) and search_above (up to current page).
+    int pageFrom = 0;
+    int pageTo   = -1;
+    if (m_is_narrow)
+    {
+        pageFrom = m_narrow_page;
+        pageTo   = m_narrow_page;
+    }
+    else if (m_search_scope == SearchScope::Below)
+    {
+        pageFrom = m_pageno;
+    }
+    else if (m_search_scope == SearchScope::Above)
+    {
+        pageTo = m_pageno;
+    }
+    m_model->search(term, caseSensitive, pageFrom, useRegex, pageTo);
+
+    // One-shot: revert to full-document scope after the search is dispatched.
+    m_search_scope = SearchScope::All;
 
 #ifdef WITH_LUA
     dispatchLuaEvent(DispatchType::OnSearchStarted);

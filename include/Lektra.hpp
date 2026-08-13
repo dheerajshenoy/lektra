@@ -91,6 +91,8 @@ public:
     void Read_args_parser(const argparse::ArgumentParser &argparser) noexcept;
     void Search(const QStringList &args = {}) noexcept;
     void SearchRegex(const QStringList &args = {}) noexcept;
+    void SearchDirectional(const QStringList &args,
+                           DocumentView::SearchScope scope) noexcept;
     void SearchInPage(const QStringList &args = {}) noexcept;
     void Show_highlight_search() noexcept;
     void Show_annot_comment_search() noexcept;

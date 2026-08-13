@@ -4269,7 +4269,7 @@ Model::searchCancel() noexcept
 
 void
 Model::search(const QString &term, bool caseSensitive, int pageFrom,
-              bool use_regex) noexcept
+              bool use_regex, int pageTo) noexcept
 {
     if (m_search_future.isRunning())
     {
@@ -4282,7 +4282,7 @@ Model::search(const QString &term, bool caseSensitive, int pageFrom,
     // Copy everything the lambda needs — no 'this' access in the thread
 
     m_search_future
-        = QtConcurrent::run([this, pageFrom, page_count = m_page_count,
+        = QtConcurrent::run([this, pageFrom, pageTo, page_count = m_page_count,
                              progressive = m_config.search.progressive,
                              use_regex, term, caseSensitive]() mutable
     {
@@ -4315,11 +4315,13 @@ Model::search(const QString &term, bool caseSensitive, int pageFrom,
 
         if (pageFrom == -1)
             pageFrom = 0;
+        const int stop_at
+            = (pageTo < 0) ? page_count : std::min(pageTo + 1, page_count);
         for (int batch_start = pageFrom;
-             batch_start < page_count && !m_search_cancelled.load();
+             batch_start < stop_at && !m_search_cancelled.load();
              batch_start += BATCH)
         {
-            const int batch_end = std::min(batch_start + BATCH, page_count);
+            const int batch_end = std::min(batch_start + BATCH, stop_at);
 
             std::set<int> batchPages;
             for (int p = batch_start; p < batch_end; ++p)
