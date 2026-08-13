@@ -509,6 +509,7 @@ signals:
     void currentPageChanged(int pageno);
     void modifiedChanged(bool modified);
     void narrowModeChanged(bool narrowed);
+    void narrowPageRangeChanged(int from1, int to1, int total);
     void historyChanged();
     void closed();
 

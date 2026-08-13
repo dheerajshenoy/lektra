@@ -29,6 +29,21 @@ public:
         m_totalpage_label->setText(QString::number(total));
     }
 
+    // Called when narrowed to a page range: shows "from–to (of total)".
+    // Pass from1 == -1 to revert to the plain total count.
+    inline void setPageRangeInfo(int from1, int to1, int total) noexcept
+    {
+        if (from1 < 0)
+            m_totalpage_label->setText(QString::number(total));
+        else
+            m_totalpage_label->setText(
+                QString("%1–%2 (%3 %4)")
+                    .arg(from1)
+                    .arg(to1)
+                    .arg(total)
+                    .arg(tr("total")));
+    }
+
     void setPageInfoVisible(bool state) noexcept;
     void setPageNo(int pageno) noexcept;
     void setFitMode(DocumentView::FitMode mode) noexcept;

@@ -4309,6 +4309,9 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::narrowModeChanged, m_statusbar,
             &Statusbar::setNarrowMode);
 
+    connect(docwidget, &DocumentView::narrowPageRangeChanged, m_statusbar,
+            &Statusbar::setPageRangeInfo);
+
     connect(docwidget, &DocumentView::clipboardContentChanged, this,
             [&](const QString &text) { m_clipboard->setText(text); });
 
@@ -4919,22 +4922,35 @@ Lektra::initCommands() noexcept
             return;
 
         // Accept either two integer args ("5", "10") or a single "5-10".
+        // With no args, prompt the user for a range.
         int start = -1, end = -1;
         bool ok1 = false, ok2 = false;
+        QString rangeText;
         if (args.size() >= 2)
         {
-            start = args.at(0).toInt(&ok1);
-            end   = args.at(1).toInt(&ok2);
+            rangeText = args.at(0) + "-" + args.at(1);
         }
         else if (args.size() == 1)
         {
-            const QStringList parts
-                = args.at(0).split('-', Qt::SkipEmptyParts);
-            if (parts.size() == 2)
-            {
-                start = parts.at(0).trimmed().toInt(&ok1);
-                end   = parts.at(1).trimmed().toInt(&ok2);
-            }
+            rangeText = args.at(0);
+        }
+        else
+        {
+            bool accepted = false;
+            rangeText     = QInputDialog::getText(
+                this, tr("Narrow to Pages"),
+                tr("Enter page range (e.g. '5 10' or '5-10'):"),
+                QLineEdit::Normal, QString(), &accepted);
+            if (!accepted || rangeText.trimmed().isEmpty())
+                return;
+        }
+
+        const QStringList parts = rangeText.split(QRegularExpression("[\\s-]+"),
+                                                  Qt::SkipEmptyParts);
+        if (parts.size() >= 2)
+        {
+            start = parts.at(0).toInt(&ok1);
+            end   = parts.at(1).toInt(&ok2);
         }
 
         if (!ok1 || !ok2)

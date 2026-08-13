@@ -5473,7 +5473,27 @@ DocumentView::narrowSceneRect() const noexcept
 {
     const int endPage
         = (m_narrow_page_end < 0) ? m_narrow_page : m_narrow_page_end;
+    const bool isPageRange = (endPage != m_narrow_page);
 
+    // For a multi-page (pages-narrow) range, derive bounds from the
+    // pre-computed page offsets rather than from materialized page items.
+    // Items may not exist yet for the whole range, so using m_page_items_hash
+    // produces an incomplete / empty rect that makes scrolling wonky.
+    if (isPageRange
+        && static_cast<int>(m_page_offsets.size()) > endPage + 1)
+    {
+        const double start = m_page_offsets[m_narrow_page];
+        const double end   = m_page_offsets[endPage + 1];
+        const QRectF &lr   = m_layout_scene_rect;
+
+        if (m_layout_mode == LayoutMode::HORIZONTAL)
+            return QRectF(start, lr.top(), end - start, lr.height());
+
+        // VERTICAL / SINGLE / BOOK — main axis is Y
+        return QRectF(lr.left(), start, lr.width(), end - start);
+    }
+
+    // Region-narrow (single page): use the page item for the exact local rect.
     QRectF unioned;
     for (int p = m_narrow_page; p <= endPage; ++p)
     {
@@ -5579,6 +5599,7 @@ DocumentView::WideRegion() noexcept
     updateSceneRect();
     m_gview->flashScrollbars();
     emit narrowModeChanged(false);
+    emit narrowPageRangeChanged(-1, -1, m_model ? m_model->numPages() : 0);
 }
 
 // Narrow to an inclusive range of 1-indexed pages. The narrow rect covers
@@ -5618,6 +5639,7 @@ DocumentView::NarrowToPages(int startPage1, int endPage1) noexcept
         m_gview->centerOn(nr.center());
     m_gview->flashScrollbars();
     emit narrowModeChanged(true);
+    emit narrowPageRangeChanged(start, end, m_model->numPages());
 }
 
 // Handle annotation rectangle requested
