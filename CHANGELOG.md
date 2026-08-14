@@ -2,6 +2,16 @@
 
 ---
 
+## 0.7.7
+
+### New Features
+
+- Update MuPDF to 1.28.2 (from 1.27.2) [release history](https://mupdf.com/releases/history)
+
+### Bug Fixes
+
+---
+
 ## 0.7.6
 
 ---
