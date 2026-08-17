@@ -8,7 +8,13 @@
 
 - Update MuPDF to 1.28.2 (from 1.27.2) [release history](https://mupdf.com/releases/history)
 
+### New Features
+
+* **Crash reporter:** When Lektra crashes, a dialog displays the crash log and offers a one-click button to open a pre-filled GitHub issue. The crash handler is installed at startup via `CrashHandler::install()`. On Linux/macOS, fatal signals (SIGSEGV, SIGABRT, SIGFPE, SIGILL, SIGBUS) are caught; on Windows, `SetUnhandledExceptionFilter` is used. A stack trace is written to `~/.local/share/lektra/crashes/crash_latest.log` (Linux/macOS) or `%TEMP%\lektra_crash.log` (Windows). A forked/spawned clean process then shows the `CrashReporterDialog` with the log, a "Copy to Clipboard" button, and a "Report on GitHub" button. Stack traces include function names and file/line numbers when built with `RelWithDebInfo` or `Debug`; release builds show addresses only.
+
 ### Bug Fixes
+
+* **Fix page gaps disappearing after scrolling in PDFs where the first page differs in size from the content pages:** `cachePageStride()` is called at open time when only page 0's dimensions are known; all other pages fall back to `m_default_page_dim` (page 0's size). If the cover or title page is a different height than the body pages, the precomputed strides are wrong and content pages overflow into the gap below them once they render. Fixed by comparing each rendered page's true stride against `m_page_offsets` in `renderPageFromImage()`; if a mismatch greater than 0.5 px is detected, `m_page_layout_stale` is set. On the next `renderPages()` pass, `cachePageStride()` + `repositionPages()` + `updateSceneRect()` are re-run before visible pages are computed. For uniform-page-size documents the check is a no-op; for mixed-size PDFs it triggers at most once per newly discovered page dimension.
 
 ---
 
