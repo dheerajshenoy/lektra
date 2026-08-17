@@ -179,6 +179,8 @@ endif()
 qt_add_executable(${PROJECT_NAME}
     ${app_icon_resource_windows}
     src/main.cpp
+    src/CrashHandler.cpp
+    src/CrashReporterDialog.cpp
     src/Lektra.cpp
     src/Statusbar.cpp
     src/Model.cpp
@@ -332,6 +334,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE HAS_MUPDF=1)
 if(MSVC)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         "${MUPDF_SOURCE_DIR}/platform/win32/x64/Release/libmupdf.lib"
+        dbghelp
     )
 else()
     target_link_libraries(${PROJECT_NAME} PRIVATE

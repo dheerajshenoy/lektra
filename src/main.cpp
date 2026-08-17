@@ -1,4 +1,6 @@
 #include "AppPaths.hpp"
+#include "CrashHandler.hpp"
+#include "CrashReporterDialog.hpp"
 #include "Lektra.hpp"
 #include "argparse.hpp"
 
@@ -247,6 +249,11 @@ init_args(argparse::ArgumentParser &program)
         .help("Open file(s) in vertical split")
         .flag();
 
+    program.add_argument("--crash-reporter")
+        .help("Internal: show crash reporter dialog for the given log file")
+        .default_value(std::string{})
+        .metavar("LOG_PATH");
+
     program.add_argument("files").remaining().metavar("FILE_PATH(s)");
 }
 
@@ -265,6 +272,24 @@ main(int argc, char *argv[])
     {
         qDebug() << e.what();
         return 1;
+    }
+
+    // Crash reporter mode: launched by the crash handler — show the dialog and exit.
+    // Must be checked before the detach logic so the reporter process isn't re-forked.
+    if (program.is_used("--crash-reporter")) {
+        const QString logPath
+            = QString::fromStdString(program.get<std::string>("--crash-reporter"));
+        QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
+            Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+        QApplication app(argc, argv);
+#ifdef _WIN32
+        app.setWindowIcon(QIcon(":/resources/lektra.ico"));
+#else
+        app.setWindowIcon(QIcon(":/resources/png/lektra.png"));
+#endif
+        CrashReporterDialog dlg(logPath);
+        dlg.exec();
+        return 0;
     }
 
     // Zed-style behavior: by default, detach from the terminal so the shell
@@ -322,6 +347,8 @@ main(int argc, char *argv[])
     {
         delete translator;
     }
+
+    CrashHandler::install();
 
     Lektra d;
     d.Read_args_parser(program);
