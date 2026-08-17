@@ -3140,6 +3140,16 @@ DocumentView::renderPages() noexcept
         // the block below re-uses them and re-enables at the end.
     }
 
+    // If any rendered page revealed dimensions that differ from what
+    // cachePageStride() assumed, recompute offsets before determining visible
+    // pages — otherwise the wrong pages get rendered and gaps remain missing.
+    if (m_page_layout_stale && !m_view_zoom_pending) {
+        cachePageStride();  // clears m_page_layout_stale
+        updateSceneRect();
+        repositionPages();
+        invalidateVisiblePagesCache();
+    }
+
     const std::set<int> &visiblePages = getVisiblePages();
     const std::set<int> preloadPages  = getPreloadPages(visiblePages);
 
@@ -3507,6 +3517,8 @@ DocumentView::removePageItem(int pageno) noexcept
 void
 DocumentView::cachePageStride() noexcept
 {
+    m_page_layout_stale = false;
+
     const int N = m_model->numPages();
     if (N <= 0)
         return;
@@ -4280,6 +4292,24 @@ DocumentView::renderPageFromImage(int pageno, QImage image) noexcept
     // they reflect the new page geometry (e.g. after rotation re-render).
     if (m_is_narrow && pageno == m_narrow_page)
         refreshNarrowVisuals();
+
+    // Detect when a page's true dimensions differ from what cachePageStride()
+    // assumed (e.g. cover page is a different size than content pages). In
+    // that case the cached offsets are wrong and gaps between pages disappear
+    // visually. Flag for a re-layout on the next renderPages() pass.
+    if (!m_page_layout_stale
+        && m_layout_mode != LayoutMode::SINGLE
+        && m_layout_mode != LayoutMode::BOOK
+        && pageno + 1 < static_cast<int>(m_page_offsets.size()))
+    {
+        const bool    hz         = (m_layout_mode == LayoutMode::HORIZONTAL);
+        const QSizeF  sz         = pageSceneSize(pageno);
+        const double  trueExtent = hz ? sz.width() : sz.height();
+        const double  usedStride = m_page_offsets[pageno + 1] - m_page_offsets[pageno];
+        const double  trueStride = trueExtent + m_spacing * m_current_zoom;
+        if (std::abs(usedStride - trueStride) > 0.5)
+            m_page_layout_stale = true;
+    }
 }
 
 void

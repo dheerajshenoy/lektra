@@ -682,6 +682,7 @@ private:
     WaitingSpinnerWidget *m_spinner           = nullptr;
     bool m_visible_pages_dirty                = true;
     bool m_view_zoom_pending                  = false;
+    bool m_page_layout_stale                  = false;
     bool m_deferred_fit                       = false;
     bool m_scroll_to_hit_pending              = false;
     QFileSystemWatcher *m_file_watcher        = nullptr;
