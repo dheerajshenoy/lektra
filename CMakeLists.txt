@@ -186,6 +186,7 @@ qt_add_executable(${PROJECT_NAME}
     src/Model.cpp
     src/PropertiesWidget.cpp
     src/AboutDialog.cpp
+    src/DonateDialog.cpp
     src/GraphicsView.cpp
     src/GraphicsScene.cpp
     src/DocumentView.cpp

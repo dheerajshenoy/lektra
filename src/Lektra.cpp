@@ -1,6 +1,7 @@
 #include "Lektra.hpp"
 
 #include "AboutDialog.hpp"
+#include "DonateDialog.hpp"
 #include "AppPaths.hpp"
 #include "DispatchType.hpp"
 #include "DocumentContainer.hpp"
@@ -589,6 +590,10 @@ Lektra::initMenubar() noexcept
         tr("Open Tutorial File\t%1")
             .arg(m_config.keybinds["show_tutorial_file"].join(", ")),
         this, &Lektra::showTutorialFile);
+
+    helpMenu->addSeparator();
+    m_actionDonate = helpMenu->addAction(tr("Donate / Support"), this,
+                                         &Lektra::ShowDonate);
 }
 
 // Initialize the recent files store
@@ -1840,6 +1845,14 @@ Lektra::ShowAbout() noexcept
     AboutDialog *abw = new AboutDialog(this);
     abw->setAttribute(Qt::WA_DeleteOnClose);
     abw->open();
+}
+
+void
+Lektra::ShowDonate() noexcept
+{
+    DonateDialog *dlg = new DonateDialog(this);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+    dlg->open();
 }
 
 // Reads the arguments passed with `Lektra` from the
@@ -5327,6 +5340,8 @@ Lektra::initCommands() noexcept
                            [this](const QStringList &) { showTutorialFile(); });
     m_command_manager->reg("show_about", tr("Show about dialog"),
                            [this](const QStringList &) { ShowAbout(); });
+    m_command_manager->reg("donate", tr("Show donate / support dialog"),
+                           [this](const QStringList &) { ShowDonate(); });
 }
 
 // Trims the recent files store to `num_recent_files` number of files

@@ -209,6 +209,7 @@ public:
     void Undo() noexcept;
     void Redo() noexcept;
     void ShowAbout() noexcept;
+    void ShowDonate() noexcept;
     void TextHighlightCurrentSelection() noexcept;
     void TabsCloseLeft() noexcept;
     void TabsCloseRight() noexcept;
@@ -408,6 +409,7 @@ private:
     QAction *m_actionPrevLocation               = nullptr;
     QAction *m_actionNextLocation               = nullptr;
     QAction *m_actionAbout                      = nullptr;
+    QAction *m_actionDonate                     = nullptr;
     QAction *m_actionTextHighlight              = nullptr;
     QAction *m_actionAnnotRect                  = nullptr;
     QAction *m_actionAnnotPopup                 = nullptr;
