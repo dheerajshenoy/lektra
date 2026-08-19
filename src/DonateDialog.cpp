@@ -28,33 +28,34 @@ DonateDialog::DonateDialog(QWidget *parent) : QDialog(parent)
         tr("Lektra is developed by Dheeraj Vittal Shenoy and contributors. "
            "It is free and open-source software and will stay free forever.\n\n"
            "If you find Lektra useful, consider supporting its development. "
-           "Every contribution helps keep the project alive."));
+           "Every contribution helps keep the project alive. "
+           "You can donate through any one of the services below."));
     body->setWordWrap(true);
     body->setAlignment(Qt::AlignLeft);
 
-    auto *ghBtn    = new QPushButton(tr("GitHub Sponsors"));
-    auto *lpBtn    = new QPushButton(tr("Liberapay"));
     auto *kofiBtn  = new QPushButton(tr("Ko-fi"));
+    auto *lpBtn    = new QPushButton(tr("Liberapay"));
+    auto *ghBtn    = new QPushButton(tr("GitHub Sponsors"));
     auto *closeBtn = new QPushButton(tr("Close"));
 
-    connect(ghBtn, &QPushButton::clicked, this, []() {
+    connect(kofiBtn, &QPushButton::clicked, this, []() {
         QDesktopServices::openUrl(
-            QUrl("https://github.com/sponsors/dheerajshenoy"));
+            QUrl("https://ko-fi.com/dheerajshenoy"));
     });
     connect(lpBtn, &QPushButton::clicked, this, []() {
         QDesktopServices::openUrl(
             QUrl("https://liberapay.com/dheerajshenoy"));
     });
-    connect(kofiBtn, &QPushButton::clicked, this, []() {
+    connect(ghBtn, &QPushButton::clicked, this, []() {
         QDesktopServices::openUrl(
-            QUrl("https://ko-fi.com/dheerajshenoy"));
+            QUrl("https://github.com/sponsors/dheerajshenoy"));
     });
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
 
     auto *donateRow = new QHBoxLayout;
-    donateRow->addWidget(ghBtn);
-    donateRow->addWidget(lpBtn);
     donateRow->addWidget(kofiBtn);
+    donateRow->addWidget(lpBtn);
+    donateRow->addWidget(ghBtn);
 
     auto *closeRow = new QHBoxLayout;
     closeRow->addStretch();

@@ -176,6 +176,15 @@ Lektra::construct() noexcept
     resize(m_config.window.initial_size[0], m_config.window.initial_size[1]);
     installEventFilter(this);
 
+    {
+        const QString sentinel = m_app_data_dir.filePath(".first_run_done");
+        if (!QFile::exists(sentinel)) {
+            QFile f(sentinel);
+            (void)f.open(QIODevice::WriteOnly);
+            QTimer::singleShot(500, this, [this]() { ShowDonate(); });
+        }
+    }
+
 #ifdef WITH_LUA
     dispatchLuaEvent(DispatchType::OnAppReady, this);
 #endif
