@@ -4,13 +4,9 @@
 
 ## HIGH PRIORITY
 
-- [x] Try to generate outline if not present somehow (reddit recommendation)
-- [x] Add support for saving and loading outline files (outline.json)
-
 ## MEDIUM PRIORITY
 
 - [ ] Add support for directory local config files
-- [ ] Improve `--check-config`
 - [ ] Tab detach drag and drop to new window spawns new useless window
 - [ ] Allow for command arguments
 - [ ] Don't add connection to annotation when in non-annotatable mode
