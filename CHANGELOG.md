@@ -14,6 +14,8 @@
 
 ### Bug Fixes
 
+* **Fix crash (SIGSEGV) when cancelling the file dialog opened via "Open File in VSplit / HSplit":** `OpenFilesInVSplit` and `OpenFilesInHSplit` passed an empty file list to the file dialog and then unconditionally accessed `qfiles[0]` after it returned. When the user cancelled the dialog, `qfiles` was empty and the index access caused a segmentation fault. Fixed by returning early when `qfiles` is empty after the dialog closes.
+
 * **Fix page gaps disappearing after scrolling in PDFs where the first page differs in size from the content pages:** `cachePageStride()` is called at open time when only page 0's dimensions are known; all other pages fall back to `m_default_page_dim` (page 0's size). If the cover or title page is a different height than the body pages, the precomputed strides are wrong and content pages overflow into the gap below them once they render. Fixed by comparing each rendered page's true stride against `m_page_offsets` in `renderPageFromImage()`; if a mismatch greater than 0.5 px is detected, `m_page_layout_stale` is set. On the next `renderPages()` pass, `cachePageStride()` + `repositionPages()` + `updateSceneRect()` are re-run before visible pages are computed. For uniform-page-size documents the check is a no-op; for mixed-size PDFs it triggers at most once per newly discovered page dimension.
 
 ---

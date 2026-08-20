@@ -2684,6 +2684,9 @@ Lektra::OpenFilesInVSplit(const QStringList &files) noexcept
         qfiles = files;
     }
 
+    if (qfiles.isEmpty())
+        return;
+
     // First file always opens in a new tab
     OpenFileInNewTab(qfiles[0], [this, qfiles = std::move(qfiles)](void *)
     {
@@ -2712,6 +2715,9 @@ Lektra::OpenFilesInHSplit(const QStringList &files) noexcept
     {
         qfiles = files;
     }
+
+    if (qfiles.isEmpty())
+        return;
 
     // First file always opens in a new tab
     OpenFileInNewTab(qfiles[0], [this, qfiles = std::move(qfiles)](void *)
