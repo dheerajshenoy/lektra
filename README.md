@@ -59,7 +59,7 @@ Check out [CONTRIBUTING.md](CONTRIBUTING.md)
 - [linwaytin](https://codeberg.org/linwaytin) - For providing valuable feedback and bug reports and feature-requesting annotation comment.
 - [douglarek](https://github.com/douglarek) - For packaging lektra to [gentoo-zh](https://github.com/microcai/gentoo-zh).
 - [Zou Yonghe](https://codeberg.org/budingZou) - For creating macOS app bundle.
-- [fraterlinux](https://github.com/fraterlinux) - Bug tester
+- [fraterlinux](https://github.com/fraterlinux) - For testing and reporting bugs.
 
 ## If you want to support me
 <a href="https://github.com/sponsors/dheerajshenoy"><img alt="GitHub Sponsors" src="https://img.shields.io/badge/GitHub_Sponsors-FF5F5F?style=for-the-badge&logo=github-sponsors&logoColor=white"></a>
