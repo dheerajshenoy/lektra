@@ -3113,6 +3113,23 @@ Lektra::Fit_page() noexcept
         m_doc->setFitMode(DocumentView::FitMode::Window);
 }
 
+// Fit to width of the tight content bounding box (blank margins pushed
+// off-screen instead of consuming zoom).
+void
+Lektra::Fit_width_smart() noexcept
+{
+    if (m_doc)
+        m_doc->setFitMode(DocumentView::FitMode::WidthSmart);
+}
+
+// Fit to height of the tight content bounding box.
+void
+Lektra::Fit_height_smart() noexcept
+{
+    if (m_doc)
+        m_doc->setFitMode(DocumentView::FitMode::HeightSmart);
+}
+
 // Toggle auto-resize mode
 void
 Lektra::ToggleAutoResize() noexcept
@@ -5225,6 +5242,34 @@ Lektra::initCommands() noexcept
                            [this](const QStringList &) { Fit_page(); });
     m_command_manager->reg("fit_auto", tr("Toggle automatic resize to fit"),
                            [this](const QStringList &) { ToggleAutoResize(); });
+    // Smart fit — ignore blank page margins, fit only the content region.
+    // Registered under two names each: fit_width_smart / fit_height_smart
+    // matches the existing fit_* family; fit_to_page_width_smart /
+    // fit_to_page_height_smart is the name from the feature request.
+    {
+        auto width_smart_handler = [this](const QStringList &) {
+            Fit_width_smart();
+        };
+        auto height_smart_handler = [this](const QStringList &) {
+            Fit_height_smart();
+        };
+        m_command_manager->reg("fit_width_smart",
+                               tr("Fit content width to window "
+                                  "(ignoring blank margins)"),
+                               width_smart_handler);
+        m_command_manager->reg("fit_to_page_width_smart",
+                               tr("Fit content width to window "
+                                  "(ignoring blank margins)"),
+                               width_smart_handler);
+        m_command_manager->reg("fit_height_smart",
+                               tr("Fit content height to window "
+                                  "(ignoring blank margins)"),
+                               height_smart_handler);
+        m_command_manager->reg("fit_to_page_height_smart",
+                               tr("Fit content height to window "
+                                  "(ignoring blank margins)"),
+                               height_smart_handler);
+    }
 
     // Sessions
     m_command_manager->reg("session_save", tr("Save current session"),

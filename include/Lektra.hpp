@@ -127,6 +127,8 @@ public:
     void Fit_width() noexcept;
     void Fit_height() noexcept;
     void Fit_page() noexcept;
+    void Fit_width_smart() noexcept;
+    void Fit_height_smart() noexcept;
     void ShowOutline() noexcept;
     void GenerateOutline() noexcept;
     void ExportOutline() noexcept;

@@ -16,6 +16,7 @@
 #include <memory>
 #include <mutex>
 #include <set>
+#include <unordered_map>
 
 extern "C"
 {
@@ -597,6 +598,24 @@ private:
         return m_page_dim_cache.isKnown(pageno);
     }
 
+    // Tight bounding box of drawn content on a page (points, unrotated page
+    // coordinates). "Smart" fit modes use this to fit the content region to
+    // the viewport instead of the raw page rectangle, so blank margins get
+    // pushed off-screen instead of consuming zoom. Non-PDF documents fall
+    // back to the full page rect. Results are cached per page; invalidated
+    // on document swap.
+    struct ContentBBox
+    {
+        float x0 = 0.0f, y0 = 0.0f, x1 = 0.0f, y1 = 0.0f;
+        [[nodiscard]] inline bool isEmpty() const noexcept
+        {
+            return x1 <= x0 || y1 <= y0;
+        }
+        [[nodiscard]] inline float width() const noexcept  { return x1 - x0; }
+        [[nodiscard]] inline float height() const noexcept { return y1 - y0; }
+    };
+    [[nodiscard]] ContentBBox contentBBox(int pageno) noexcept;
+
     struct PageCacheEntry
     {
         int pageno;
@@ -707,6 +726,11 @@ private:
     PageDimensionCache m_page_dim_cache;
     mutable std::mutex m_page_dim_mutex;
     PageDimension m_default_page_dim;
+
+    // Cache for contentBBox() so we only rasterize the bbox device once per
+    // page. Cleared alongside the page-dim cache on document swap.
+    std::unordered_map<int, ContentBBox> m_content_bbox_cache;
+    mutable std::mutex m_content_bbox_mutex;
 
     pdf_write_options m_pdf_write_options = pdf_default_write_options;
     bool m_link_show_boundary             = false;

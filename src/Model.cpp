@@ -1379,6 +1379,10 @@ Model::cleanup_mupdf() noexcept
         m_page_dim_cache.reset(0);
         m_default_page_dim = {};
     }
+    {
+        std::lock_guard<std::mutex> lock(m_content_bbox_mutex);
+        m_content_bbox_cache.clear();
+    }
 
     fz_empty_store(m_ctx);
 }
@@ -1404,6 +1408,10 @@ Model::cleanup_image() noexcept
         m_image_cache = QImage();
         m_page_dim_cache.reset(0);
         m_default_page_dim = {};
+    }
+    {
+        std::lock_guard<std::mutex> lock(m_content_bbox_mutex);
+        m_content_bbox_cache.clear();
     }
 }
 
@@ -1437,6 +1445,10 @@ Model::cleanup_djvu() noexcept
         std::lock_guard<std::mutex> lock(m_page_dim_mutex);
         m_page_dim_cache.reset(0);
         m_default_page_dim = {};
+    }
+    {
+        std::lock_guard<std::mutex> lock(m_content_bbox_mutex);
+        m_content_bbox_cache.clear();
     }
 }
 
@@ -5836,6 +5848,77 @@ Model::waitForPendingRenders() noexcept
     std::unique_lock<std::mutex> lock(m_renders_mutex);
     m_renders_cv.wait(lock, [this]
     { return m_active_renders.load(std::memory_order_acquire) == 0; });
+}
+
+Model::ContentBBox
+Model::contentBBox(int pageno) noexcept
+{
+    // Fallback for the non-PDF paths: image files and DjVu have no vector
+    // "content region" concept — return the full page rect so smart-fit
+    // degrades gracefully to plain fit.
+    const auto dim               = page_dimension_pts(pageno);
+    const ContentBBox page_rect  = {0.0f, 0.0f, dim.width_pts, dim.height_pts};
+
+    if (m_is_image || m_filetype == FileType::DJVU || !m_ctx || !m_doc
+        || pageno < 0 || pageno >= m_page_count)
+    {
+        return page_rect;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_content_bbox_mutex);
+        auto it = m_content_bbox_cache.find(pageno);
+        if (it != m_content_bbox_cache.end())
+            return it->second;
+    }
+
+    // Run a MuPDF bbox device over the page to accumulate the tight bounds
+    // of every draw call. Serialise against other MuPDF operations on the
+    // same document since the fz_context is not shareable across threads.
+    std::lock_guard<std::mutex> doc_lock(m_doc_mutex);
+
+    fz_page *page   = nullptr;
+    fz_device *dev  = nullptr;
+    fz_rect bbox    = fz_empty_rect;
+
+    fz_try(m_ctx)
+    {
+        page = fz_load_page(m_ctx, m_doc, pageno);
+        dev  = fz_new_bbox_device(m_ctx, &bbox);
+        fz_run_page(m_ctx, page, dev, fz_identity, nullptr);
+        fz_close_device(m_ctx, dev);
+    }
+    fz_always(m_ctx)
+    {
+        if (dev)
+            fz_drop_device(m_ctx, dev);
+        if (page)
+            fz_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        // On error just fall back to the full page rect below.
+        bbox = fz_empty_rect;
+    }
+
+    ContentBBox result = page_rect;
+    if (bbox.x1 > bbox.x0 && bbox.y1 > bbox.y0)
+    {
+        // Clamp to the page rect so quirky content that reports coords
+        // outside the mediabox doesn't produce weird fit factors.
+        result.x0 = std::max(0.0f, bbox.x0);
+        result.y0 = std::max(0.0f, bbox.y0);
+        result.x1 = std::min(dim.width_pts, bbox.x1);
+        result.y1 = std::min(dim.height_pts, bbox.y1);
+        if (result.isEmpty())
+            result = page_rect;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_content_bbox_mutex);
+        m_content_bbox_cache[pageno] = result;
+    }
+    return result;
 }
 
 QString

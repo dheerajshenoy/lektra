@@ -1383,12 +1383,18 @@ DocumentView::FlipV() noexcept
     rotateHelper();
 }
 
-// Cycle to the next fit mode
+// Cycle to the next fit mode. Only cycles through the "basic" modes
+// (Width, Height, Window) — WidthSmart / HeightSmart are opt-in and would
+// surprise a user who is just toggling.
 void
 DocumentView::NextFitMode() noexcept
 {
-    FitMode nextMode = static_cast<FitMode>((static_cast<int>(m_fit_mode) + 1)
-                                            % static_cast<int>(FitMode::COUNT));
+    static constexpr int kNumBasicFitModes
+        = static_cast<int>(FitMode::WidthSmart);
+    int cur = static_cast<int>(m_fit_mode);
+    if (cur < 0 || cur >= kNumBasicFitModes)
+        cur = -1; // Start the cycle at Width when leaving a smart mode
+    FitMode nextMode = static_cast<FitMode>((cur + 1) % kNumBasicFitModes);
     m_fit_mode       = nextMode;
     setFitMode(nextMode);
     fitModeChanged(nextMode);
@@ -1491,10 +1497,48 @@ DocumentView::setFitMode(FitMode mode) noexcept
         }
     }
 
+    // For smart fit modes, replace the raw page bbox with the tight
+    // content bbox so blank margins don't consume the fit budget. Cache
+    // the fractional content bbox so we can also centre the viewport on
+    // the content after zooming, regardless of rotation.
+    Model::ContentBBox contentPtBox{};
+    bool haveContentBox = false;
+    if ((mode == FitMode::WidthSmart || mode == FitMode::HeightSmart)
+        && !m_model->isImage())
+    {
+        contentPtBox   = m_model->contentBBox(m_pageno);
+        const auto dim = m_model->page_dimension_pts(m_pageno);
+        // Only meaningful if the content really is smaller than the page —
+        // otherwise fall back to the regular fit calculation.
+        const bool tighter
+            = (contentPtBox.width() > 0.0f
+               && contentPtBox.width() < dim.width_pts * 0.995f)
+              || (contentPtBox.height() > 0.0f
+                  && contentPtBox.height() < dim.height_pts * 0.995f);
+        if (tighter)
+        {
+            const double cbaseW
+                = (contentPtBox.width() / 72.0) * m_model->DPI();
+            const double cbaseH
+                = (contentPtBox.height() / 72.0) * m_model->DPI();
+            double rot = static_cast<double>(m_model->rotation());
+            rot        = std::fmod(rot, 360.0);
+            if (rot < 0)
+                rot += 360.0;
+            const double t = deg2rad(rot);
+            const double c = std::abs(std::cos(t));
+            const double s = std::abs(std::sin(t));
+            bboxW          = cbaseW * c + cbaseH * s;
+            bboxH          = cbaseW * s + cbaseH * c;
+            haveContentBox = true;
+        }
+    }
+
     double newZoom = m_current_zoom;
     switch (mode)
     {
         case FitMode::Width:
+        case FitMode::WidthSmart:
         {
             const int viewWidth  = m_gview->viewport()->width();
             const int viewHeight = m_gview->viewport()->height();
@@ -1509,6 +1553,7 @@ DocumentView::setFitMode(FitMode mode) noexcept
         break;
 
         case FitMode::Height:
+        case FitMode::HeightSmart:
         {
             const int viewWidth  = m_gview->viewport()->width();
             const int viewHeight = m_gview->viewport()->height();
@@ -1537,6 +1582,28 @@ DocumentView::setFitMode(FitMode mode) noexcept
     }
 
     setZoom(newZoom, false);
+
+    // For smart fits, scroll so the content bbox is centred in the viewport;
+    // margins fall off-screen (or into scroll-past space) instead of sitting
+    // at the top-left of the view. mapToScene() handles rotation for us.
+    if (haveContentBox)
+    {
+        if (auto *pageItem = m_page_items_hash.value(m_pageno, nullptr))
+        {
+            const auto dim         = m_model->page_dimension_pts(m_pageno);
+            const QRectF localRect = pageItem->boundingRect();
+            const double pw
+                = std::max(1.0, static_cast<double>(dim.width_pts));
+            const double ph
+                = std::max(1.0, static_cast<double>(dim.height_pts));
+            const double fx = 0.5 * (contentPtBox.x0 + contentPtBox.x1) / pw;
+            const double fy = 0.5 * (contentPtBox.y0 + contentPtBox.y1) / ph;
+            const QPointF localCenter(
+                localRect.x() + fx * localRect.width(),
+                localRect.y() + fy * localRect.height());
+            m_gview->centerOn(pageItem->mapToScene(localCenter));
+        }
+    }
 }
 
 // Set zoom factor directly

@@ -100,6 +100,12 @@ public:
         Width = 0,
         Height,
         Window,
+        // "Smart" fit modes ignore blank page margins: the tight content
+        // bounding box (returned by Model::contentBBox for PDFs) is fit to
+        // the viewport instead of the raw page rectangle, and the view is
+        // centred on the content region so the margins get pushed off-screen.
+        WidthSmart,
+        HeightSmart,
         COUNT
     };
 
