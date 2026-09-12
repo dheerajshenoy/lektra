@@ -830,6 +830,19 @@ struct Config
         // @default true
         // @added 0.6.0
         bool lazy_load = true;
+
+        // @desc Where a newly opened tab is placed in the tab bar
+        // @type str
+        // @choice end, start, after_current
+        // @default end
+        // @added 0.7.8
+        enum class OpenPosition
+        {
+            End = 0,        // append after all existing tabs (default)
+            Start,          // insert at index 0
+            AfterCurrent    // insert immediately after the current tab
+        };
+        OpenPosition open_position = OpenPosition::End;
     } tabs;
     // @endsection
 
@@ -1123,6 +1136,16 @@ struct Config
         // @default true
         // @added 0.7.1
         bool auto_scroll = true;
+
+        // @desc {
+        // Quit LEKTRA when the last open tab is closed. When false (the
+        // default), an empty window remains — the startup widget may be
+        // shown if that path is taken. `confirm_on_quit` still applies.
+        // }
+        // @type bool
+        // @default false
+        // @added 0.7.8
+        bool close_on_last_tab = false;
 
         // @desc Undo limit
         // @type int

@@ -102,6 +102,7 @@ elide_mode = "right"        # right | left | middle | none
 location   = "top"          # top | bottom | left | right
 full_path  = false          # show the full file path in the tab label
 lazy_load  = true           # only materialise a tab's view when it becomes current
+open_position = "end"       # end | start | after_current
 
 
 # -----------------------------------------------------------------------------
@@ -272,6 +273,7 @@ fade_duration = 1.0           # seconds
 # [links]
 # -----------------------------------------------------------------------------
 [links]
+enabled     = true                               # master switch for PDF links + detected URLs
 boundary    = false                              # show the clickable rect boundary
 detect_urls = false                              # find bare URLs in the page text
 url_regex   = '(https?://|www\.)[^\s<>()"'']+'   # used when detect_urls = true
@@ -331,6 +333,7 @@ recent_files          = true
 num_recent_files      = 10
 page_history          = 5         # location history depth per view (parser key: page_history)
 auto_scroll           = true      # scroll to keep out-of-view selection visible
+close_on_last_tab     = false     # quit LEKTRA when the last tab is closed (confirm_on_quit still applies)
 
 
 # -----------------------------------------------------------------------------

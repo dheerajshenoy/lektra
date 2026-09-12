@@ -278,6 +278,12 @@ private:
                                       = Qt::Horizontal);
 
     void setCurrentDocumentView(DocumentView *view) noexcept;
+
+    // Insert a newly opened tab at the position dictated by
+    // m_config.tabs.open_position (End / Start / AfterCurrent) and return
+    // the actual inserted index. The Startup widget uses plain addTab
+    // directly and does not go through this helper.
+    int insertNewTab(QWidget *page, const QString &title) noexcept;
     void centerMouseInDocumentView(DocumentView *view) noexcept;
     DocumentView *findOpenView(const QString &path) const noexcept;
     void construct() noexcept;
@@ -432,6 +438,16 @@ private:
                                  // like for marks etc.
     bool m_link_hint_mode                 = false;
     bool m_focus_mode                     = false;
+
+    // Focus mode: like presentation, save the exact chrome state on enter so
+    // exiting restores what the user had — not the config-file baseline
+    // (which loses any manual bar toggles the user did before entering).
+    struct FocusModeSaved
+    {
+        bool menubar_visible   = true;
+        bool statusbar_visible = true;
+        bool tabbar_visible    = true;
+    } m_focus_saved;
 
     // Presentation mode: saves the pre-presentation UI state so exiting
     // restores exactly what the user had. `active` gates the toggle.

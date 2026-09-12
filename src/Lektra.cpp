@@ -775,6 +775,17 @@ Lektra::initConfig() noexcept
         }
         set(tabs["full_path"], m_config.tabs.full_path);
         set(tabs["lazy_load"], m_config.tabs.lazy_load);
+
+        if (auto str = tabs["open_position"])
+        {
+            using OP = Config::Tabs::OpenPosition;
+            if (str == "start")
+                m_config.tabs.open_position = OP::Start;
+            else if (str == "after_current")
+                m_config.tabs.open_position = OP::AfterCurrent;
+            else
+                m_config.tabs.open_position = OP::End;
+        }
     }
 
     // Window
@@ -1088,6 +1099,7 @@ Lektra::initConfig() noexcept
     // Links
     if (auto links = toml["links"])
     {
+        set(links["enabled"], m_config.links.enabled);
         set(links["boundary"], m_config.links.boundary);
         set(links["detect_urls"], m_config.links.detect_urls);
         set(links["url_regex"], m_config.links.url_regex);
@@ -1249,6 +1261,8 @@ Lektra::initConfig() noexcept
         set(behavior["cache_pages"], m_config.behavior.cache_pages);
         set(behavior["mupdf_store_size"], m_config.behavior.mupdf_store_size);
         set(behavior["auto_scroll"], m_config.behavior.auto_scroll);
+        set(behavior["close_on_last_tab"],
+            m_config.behavior.close_on_last_tab);
     }
 
     if (auto keybindings = toml["keybindings"])
@@ -2664,7 +2678,7 @@ Lektra::OpenFiles(const QStringList &files) noexcept
             const QString title = m_config.tabs.full_path
                                       ? filePath
                                       : QFileInfo(filePath).fileName();
-            m_tab_widget->addTab(placeholder, title);
+            insertNewTab(placeholder, title);
         }
         isFirst = false;
     }
@@ -2790,7 +2804,7 @@ Lektra::OpenFilesInNewTab(const QStringList &files,
 
             const QString title
                 = m_config.tabs.full_path ? file : QFileInfo(file).fileName();
-            m_tab_widget->addTab(placeholder, title);
+            insertNewTab(placeholder, title);
         }
         isFirst = false;
     }
@@ -2878,7 +2892,7 @@ Lektra::OpenFileInNewTab(const QString &filename,
     // updateStatusbar / m_doc->fileNameChanged.
     QString tabTitle = QFileInfo(filename).fileName();
     m_tab_widget->blockSignals(true);
-    int tabIndex = m_tab_widget->addTab(container, tabTitle);
+    int tabIndex = insertNewTab(container, tabTitle);
     m_tab_widget->tabBar()->set_split_count(tabIndex,
                                             container->getViewCount());
     m_tab_widget->setCurrentIndex(tabIndex);
@@ -3808,6 +3822,13 @@ Lektra::handleTabCloseRequested(int index) noexcept
     if (m_tab_widget->count() == 0)
     {
         setCurrentDocumentView(nullptr);
+        if (m_config.behavior.close_on_last_tab)
+        {
+            // close() goes through closeEvent, so confirm_on_quit still
+            // applies. dispatchLuaEvent below still fires — the window is
+            // scheduled for close, not destroyed synchronously.
+            close();
+        }
     }
 
 #ifdef WITH_LUA
@@ -5600,7 +5621,14 @@ Lektra::Tab_close(int tabno) noexcept
     else
     {
         setCurrentDocumentView(nullptr);
-        showStartupWidget();
+        if (m_config.behavior.close_on_last_tab)
+        {
+            close();
+        }
+        else
+        {
+            showStartupWidget();
+        }
     }
 
     updateUiEnabledState();
@@ -5737,20 +5765,34 @@ Lektra::ToggleFocusMode() noexcept
 void
 Lektra::setFocusMode(bool enable) noexcept
 {
-    m_focus_mode = enable;
+    // No-op if already in the requested state — otherwise a second enter
+    // would overwrite the saved state with the (now-hidden) values and
+    // exiting would leave everything hidden.
+    if (m_focus_mode == enable)
+        return;
 
-    if (m_focus_mode)
+    if (enable)
     {
+        // Snapshot the real runtime state, not the config baseline, so
+        // exiting restores exactly what the user had before entering
+        // (including any manual bar toggles they made this session).
+        m_focus_saved.menubar_visible   = !m_menuBar->isHidden();
+        m_focus_saved.statusbar_visible = !m_statusbar->isHidden();
+        m_focus_saved.tabbar_visible
+            = m_tab_widget->tabBar()->isVisible();
+
         m_menuBar->setVisible(false);
         m_statusbar->setVisible(false);
         m_tab_widget->tabBar()->setVisible(false);
     }
     else
     {
-        m_menuBar->setVisible(m_config.window.menubar);
-        m_statusbar->setVisible(m_config.statusbar.visible);
-        updateTabbarVisibility();
+        m_menuBar->setVisible(m_focus_saved.menubar_visible);
+        m_statusbar->setVisible(m_focus_saved.statusbar_visible);
+        m_tab_widget->tabBar()->setVisible(m_focus_saved.tabbar_visible);
     }
+
+    m_focus_mode = enable;
 }
 
 void
@@ -6235,6 +6277,29 @@ Lektra::setCurrentDocumentView(DocumentView *view) noexcept
     updateUiEnabledState();
     updatePageNavigationActions();
     updateStatusbar();
+}
+
+int
+Lektra::insertNewTab(QWidget *page, const QString &title) noexcept
+{
+    using OP = Config::Tabs::OpenPosition;
+    switch (m_config.tabs.open_position)
+    {
+        case OP::Start:
+            return m_tab_widget->insertTab(0, page, title);
+        case OP::AfterCurrent:
+        {
+            // If there is no current tab (fresh window), fall through to
+            // End so we don't insert at -1 or 0 unexpectedly.
+            const int cur = m_tab_widget->currentIndex();
+            if (cur < 0)
+                return m_tab_widget->addTab(page, title);
+            return m_tab_widget->insertTab(cur + 1, page, title);
+        }
+        case OP::End:
+        default:
+            return m_tab_widget->addTab(page, title);
+    }
 }
 
 void
