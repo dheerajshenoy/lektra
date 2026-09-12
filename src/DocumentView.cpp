@@ -1771,8 +1771,35 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
 
         m_view_zoom_pending = true;
 
+        // QGraphicsView::scale() pivots around whatever transformationAnchor
+        // is set (default: AnchorViewCenter), so passing anchorScenePos here
+        // was a no-op — the cursor position drifted on every zoom. Capture
+        // the anchor's viewport pixel position, do the scale, then nudge
+        // the scrollbars so the same scene point lands at the same viewport
+        // pixel. That's the "zoom under the mouse" behaviour users expect,
+        // and it stays correct through the deferred bake because the bake
+        // restores whatever the viewport centre is at the time it fires.
+        const QPoint anchorPxBefore
+            = m_gview->mapFromScene(anchorScenePos);
+
         m_gview->setUpdatesEnabled(false);
         m_gview->scale(delta, delta);
+        // QGraphicsView applies scale to the transform immediately; the
+        // scrollbar geometry updates on the next event loop tick, so
+        // mapFromScene here already reflects the new transform.
+        const QPoint anchorPxAfter
+            = m_gview->mapFromScene(anchorScenePos);
+        const QPoint dxdy = anchorPxAfter - anchorPxBefore;
+        if (dxdy.x() != 0)
+        {
+            QScrollBar *hbar = m_gview->horizontalScrollBar();
+            hbar->setValue(hbar->value() + dxdy.x());
+        }
+        if (dxdy.y() != 0)
+        {
+            QScrollBar *vbar = m_gview->verticalScrollBar();
+            vbar->setValue(vbar->value() + dxdy.y());
+        }
         m_gview->setUpdatesEnabled(true);
 
         m_scroll_page_update_timer->start();
