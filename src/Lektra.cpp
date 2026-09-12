@@ -157,7 +157,11 @@ void
 Lektra::construct() noexcept
 {
     initCommands();
-    initDefaultKeybinds();
+    // initDefaultKeybinds() is now called from initConfig() so that
+    // `[keybindings].load_defaults = false` can actually skip defaults.
+    // Previously the outer call here plus the one inside initConfig()
+    // produced duplicate QShortcuts (and duplicated entries in
+    // m_config.keybinds[action]) whenever a user had a [keybindings] block.
     initDefaultMousebinds();
     initConfig();
 #ifdef WITH_LUA
@@ -648,7 +652,12 @@ Lektra::initConfig() noexcept
     }
 
     if (!QFile::exists(m_config_file_path))
+    {
+        // No config file → apply compiled-in defaults and bail. Users who
+        // never wrote a config still get all the standard keybindings.
+        initDefaultKeybinds();
         return;
+    }
 
     toml::table toml;
 
@@ -663,6 +672,8 @@ Lektra::initConfig() noexcept
             tr("There are one or more error(s) in your config "
                "file:\n%1\n\nLoading default config.")
                 .arg(e.what()));
+        // Fall back to defaults on parse error, same as the no-config path.
+        initDefaultKeybinds();
         return;
     }
 
@@ -1265,13 +1276,29 @@ Lektra::initConfig() noexcept
             m_config.behavior.close_on_last_tab);
     }
 
-    if (auto keybindings = toml["keybindings"])
-    {
-        if (keybindings["load_defaults"].value_or(true))
-            initDefaultKeybinds();
+    // Defaults are loaded here (exactly once) rather than in construct(),
+    // so `load_defaults = false` in the user's [keybindings] block can
+    // actually skip them. If there is no [keybindings] block at all,
+    // defaults still load — the block being absent is not the same as
+    // opting out.
+    auto keybindings           = toml["keybindings"];
+    const bool has_keybindings = static_cast<bool>(keybindings);
+    const bool want_defaults
+        = !has_keybindings
+          || keybindings["load_defaults"].value_or(true);
+    if (want_defaults)
+        initDefaultKeybinds();
 
+    if (has_keybindings)
+    {
         for (auto &[action, value] : *keybindings.as_table())
         {
+            // `load_defaults` is a config knob, not a command name — the
+            // loop was previously calling setupKeybinding("load_defaults",
+            // {"true"}), which silently no-op'd but still churned Qt state.
+            if (action == "load_defaults")
+                continue;
+
             if (value.is_value())
                 setupKeybinding(
                     QString::fromStdString(std::string(action.str())),
