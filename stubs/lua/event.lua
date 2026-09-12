@@ -24,6 +24,7 @@ EventType = {
     OnTabRemoved = 17,
     OnViewChanged = 18,
     OnScreenChanged = 19,
+    OnAppShutdown = 20,
 }
 
 lektra.event.EventType = EventType

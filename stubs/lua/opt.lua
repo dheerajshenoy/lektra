@@ -20,9 +20,13 @@ lektra.LayoutMode = {
 
 ---@enum FitMode
 lektra.FitMode = {
-    Width  = 0,
-    Height = 1,
-    Window = 2,
+    Width       = 0,
+    Height      = 1,
+    Window      = 2,
+    -- "Smart" fit modes ignore blank page margins and fit the tight
+    -- content bounding box instead. See `fit_width_smart` / `fit_height_smart`.
+    WidthSmart  = 3,
+    HeightSmart = 4,
 }
 
 ---@enum MouseButton
@@ -80,7 +84,8 @@ lektra.opt.search = {}
 ---@field hover_glow boolean Show glow only on hover.
 
 ---@class OptAnnotationsPopup
----@field color integer Popup annotation color (ARGB integer).
+-- Popup annotations inherit only from Base — they do NOT have a `color`
+-- field (unlike Highlight and Rect).
 ---@field comment boolean Show comment text for popups.
 ---@field comment_font_size integer Font size of the comment text.
 ---@field glow_color integer Glow color around the popup (ARGB integer).
@@ -118,6 +123,7 @@ lektra.opt.portal = {}
 ---@field accent integer Accent color (ARGB integer).
 ---@field fullscreen boolean Start in fullscreen mode.
 ---@field menubar boolean Show the menu bar.
+---@field show_menu_icons boolean Show standard icons next to menubar items (toggles Qt::AA_DontShowIconsInMenus).
 ---@field startup_tab boolean Open a new tab on startup.
 ---@field title_format string Printf-style format string for the window title.
 ---@field initial_size integer[] Two-element array `{width, height}` for the initial window size.
@@ -127,12 +133,59 @@ lektra.opt.window = {}
 ---@field initial_fit FitMode Fit mode applied when a document is first opened.
 ---@field auto_resize boolean Automatically resize the view to fit when the window resizes.
 ---@field mode LayoutMode Page layout mode (single, vertical, horizontal, book).
+---@field spacing integer Gap between pages in pixels.
 lektra.opt.layout = {}
 
+---@class OptStatusbarComponentMode
+---@field icon boolean Show the interaction mode as an icon.
+---@field show boolean Whether the interaction-mode indicator is shown at all.
+---@field text boolean Show the interaction mode as text (e.g. "Select", "Pan").
+
+---@class OptStatusbarComponentPageNumber
+---@field show boolean Show the current page number.
+
+---@class OptStatusbarComponentSession
+---@field show boolean Show the active session name.
+
+---@class OptStatusbarComponentZoom
+---@field show boolean Show the current zoom level.
+
+---@class OptStatusbarComponentFileName
+---@field full_path boolean Show the full file path instead of just the name.
+---@field show boolean Show the file name.
+
+---@class OptStatusbarComponentProgress
+---@field show boolean Show the reading-progress bar.
+
+---@class OptStatusbarComponents
+---@field mode OptStatusbarComponentMode
+---@field pagenumber OptStatusbarComponentPageNumber
+---@field session OptStatusbarComponentSession
+---@field zoom OptStatusbarComponentZoom
+---@field filename OptStatusbarComponentFileName
+---@field progress OptStatusbarComponentProgress
+
 ---@class OptStatusbar
----@field padding integer[] Four-element array `{top, right, bottom, left}` padding in pixels.
+---@field padding integer[] Four-element array `{left, top, right, bottom}` padding in pixels.
 ---@field visible boolean Whether the status bar is shown.
-lektra.opt.statusbar = {}
+---@field components OptStatusbarComponents Per-component visibility toggles.
+lektra.opt.statusbar = {
+    ---@type OptStatusbarComponents
+    components = {
+        ---@type OptStatusbarComponentMode
+        mode = {},
+        ---@type OptStatusbarComponentPageNumber
+        pagenumber = {},
+        ---@type OptStatusbarComponentSession
+        session = {},
+        ---@type OptStatusbarComponentZoom
+        zoom = {},
+        ---@type OptStatusbarComponentFileName
+        filename = {},
+        ---@type OptStatusbarComponentProgress
+        progress = {},
+    },
+}
 
 ---@class OptZoom
 ---@field anchor_to_mouse boolean Zoom anchored to the mouse cursor position.
@@ -186,30 +239,66 @@ lektra.opt.links = {}
 ---@field size number Font size for link hint labels.
 lektra.opt.link_hints = {}
 
+---@alias TabsElideMode
+---| '"right"'
+---| '"left"'
+---| '"middle"'
+---| '"none"'
+
+---@alias TabsLocation
+---| '"top"'
+---| '"bottom"'
+---| '"left"'
+---| '"right"'
+
+---@alias TabsOpenPosition
+---| '"end"'           # Append after all existing tabs (default).
+---| '"start"'         # Insert at index 0.
+---| '"after_current"' # Insert immediately after the current tab.
+
 ---@class OptTabs
 ---@field auto_hide boolean Hide the tab bar when only one tab is open.
 ---@field closable boolean Show a close button on each tab.
+---@field elide_mode TabsElideMode Where to elide long tab titles.
 ---@field full_path boolean Display the full file path as the tab title.
 ---@field lazy_load boolean Defer loading of background tabs until they are activated.
+---@field location TabsLocation Where the tab bar sits in the main window.
 ---@field movable boolean Allow tabs to be dragged and reordered.
+---@field open_position TabsOpenPosition Where a newly opened tab is placed in the tab bar.
 ---@field visible boolean Whether the tab bar is shown.
 lektra.opt.tabs = {}
+
+---@class OptPickerShadow
+---@field blur_radius integer Shadow blur radius in pixels.
+---@field enabled boolean Draw a drop shadow behind the picker.
+---@field offset_x integer Horizontal shadow offset in pixels.
+---@field offset_y integer Vertical shadow offset in pixels.
+---@field opacity integer Shadow opacity (0–255).
 
 ---@class OptPicker
 ---@field width number Picker widget width (as a fraction of the window or in pixels).
 ---@field height number Picker widget height.
 ---@field border boolean Draw a border around the picker.
 ---@field alternating_row_color boolean Alternate row background colors in the picker list.
-lektra.opt.picker = {}
+---@field prompt string Placeholder text shown in the picker's search box.
+---@field shadow OptPickerShadow Drop-shadow sub-table.
+lektra.opt.picker = {
+    ---@type OptPickerShadow
+    shadow = {},
+}
 
 ---@class OptOutline
----@field indent_width integer Pixels to indent each outline level.
----@field show_page_number boolean Show the page number next to each outline entry.
 ---@field flat_menu boolean Display the outline as a flat list instead of a tree.
+---@field generate_heading_ratio number Minimum font-size ratio (vs body text) for a line to be treated as a heading by `generate_outline`.
+---@field generate_max_levels integer Maximum number of heading tiers `generate_outline` will produce.
+---@field indent_width integer Pixels to indent each outline level.
+---@field prompt string Placeholder text shown in the outline picker's search box.
+---@field show_page_number boolean Show the page number next to each outline entry.
 lektra.opt.outline = {}
 
 ---@class OptHighlightSearch
 ---@field flat_menu boolean Display search results as a flat list.
+---@field prompt string Placeholder text shown in the highlight-search picker's search box.
 lektra.opt.highlight_search = {}
 
 ---@class OptCommandPalette
@@ -225,23 +314,27 @@ lektra.opt.command_palette = {}
 ---@field text_antialiasing boolean Enable text-specific antialiasing.
 ---@field smooth_pixmap_transform boolean Use smooth (bilinear) scaling for pixmaps.
 ---@field backend Backend Rendering backend
----@field scale number|Screen Scale factors for different device pixel ratios (e.g. `{ [1] = 1.0, [2] = 1.5 }`).
+---@field dpr number|table<string, number> Device pixel ratio: a single number for every screen, or a table keyed by screen name (e.g. `{ ["eDP-1"] = 1.5, ["HDMI-A-1"] = 1.0 }`).
 lektra.opt.rendering = {}
 
 ---@class OptBehavior
----@field confirm_on_quit boolean Show a confirmation dialog before quitting.
----@field undo_limit integer Maximum number of undo steps.
----@field cache_pages integer Number of rendered pages to keep in the page cache.
----@field preload_pages integer Number of pages to pre-render ahead of the current page.
 ---@field auto_reload boolean Automatically reload the document when the file changes on disk.
----@field invert_mode boolean Start with colour inversion enabled.
+---@field auto_scroll boolean Scroll to keep an out-of-view text selection visible.
+---@field cache_pages integer Number of rendered pages to keep in the page cache.
+---@field cache_password boolean Keep the password for encrypted PDFs in memory so auto-reload can re-authenticate.
+---@field close_on_last_tab boolean Quit LEKTRA when the last tab is closed (confirm_on_quit still applies).
+---@field confirm_on_quit boolean Show a confirmation dialog before quitting.
 ---@field dont_invert_images boolean Exclude images from colour inversion.
----@field open_last_visited boolean Reopen the last visited document on startup.
----@field single_instance boolean Enforce a single application instance.
----@field remember_last_visited boolean Remember and restore the last visited page.
----@field recent_files boolean Track recently opened files.
+---@field invert_mode boolean Start with colour inversion enabled.
+---@field mupdf_store_size integer Maximum size of MuPDF's internal decoded-image / glyph store, in MB.
 ---@field num_recent_files integer Maximum number of recent files to remember.
----@field page_history_limit integer Maximum number of entries in the page-navigation history.
+---@field open_last_visited boolean Reopen the last visited document on startup.
+---@field page_history_limit integer Maximum number of entries in the page-navigation history (parsed from TOML key `page_history`).
+---@field preload_pages integer Number of pages to pre-render ahead of the current page.
+---@field recent_files boolean Track recently opened files.
+---@field remember_last_visited boolean Remember and restore the last visited page.
+---@field single_instance boolean Enforce a single application instance.
+---@field undo_limit integer Maximum number of undo steps.
 lektra.opt.behavior = {}
 
 ---@class OptPreviewSizeRatio
