@@ -432,6 +432,19 @@ private:
                                  // like for marks etc.
     bool m_link_hint_mode                 = false;
     bool m_focus_mode                     = false;
+
+    // Presentation mode: saves the pre-presentation UI state so exiting
+    // restores exactly what the user had. `active` gates the toggle.
+    struct PresentationSaved
+    {
+        bool active                = false;
+        bool was_fullscreen        = false;
+        bool menubar_visible       = true;
+        bool statusbar_visible     = true;
+        bool tabbar_visible        = true;
+        DocumentView::LayoutMode layout_mode = DocumentView::LayoutMode::VERTICAL;
+        DocumentView::FitMode fit_mode       = DocumentView::FitMode::Width;
+    } m_presentation;
     StartupWidget *m_startup_widget       = nullptr;
     LinkHintMode m_link_hint_current_mode = LinkHintMode::None;
     QMap<int, Model::LinkInfo> m_link_hint_map;

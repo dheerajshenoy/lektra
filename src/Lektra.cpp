@@ -6793,8 +6793,47 @@ Lektra::TogglePresentationMode() noexcept
     if (!m_doc)
         return;
 
-    // TODO: Implement presentation mode (probably just a special
-    // full-screen mode with extra UI optimizations for it)
+    if (!m_presentation.active)
+    {
+        // Save every piece of state we are about to override so we can
+        // restore exactly what the user had. If they were already in
+        // fullscreen / had a bar hidden, exiting should leave that alone.
+        m_presentation.was_fullscreen    = isFullScreen();
+        m_presentation.menubar_visible   = !m_menuBar->isHidden();
+        m_presentation.statusbar_visible = !m_statusbar->isHidden();
+        m_presentation.tabbar_visible
+            = m_tab_widget->tabBar()->isVisible();
+        m_presentation.layout_mode     = m_doc->layoutMode();
+        m_presentation.fit_mode        = m_doc->fitMode();
+
+        // Enter: chrome-less fullscreen, single-page layout, fit-to-window.
+        // Scrollbars are left to the fit-to-window mode — a page fully
+        // fitted to the viewport won't need them, and the config-level
+        // scrollbar policy is left untouched so exiting restores it too.
+        if (!m_presentation.was_fullscreen)
+            showFullScreen();
+        m_menuBar->hide();
+        m_statusbar->hide();
+        m_tab_widget->tabBar()->hide();
+        SetLayoutMode(DocumentView::LayoutMode::SINGLE);
+        m_doc->setFitMode(DocumentView::FitMode::Window);
+
+        m_presentation.active = true;
+    }
+    else
+    {
+        // Restore the pre-presentation state.
+        if (!m_presentation.was_fullscreen)
+            showNormal();
+        m_menuBar->setVisible(m_presentation.menubar_visible);
+        m_statusbar->setVisible(m_presentation.statusbar_visible);
+        m_tab_widget->tabBar()->setVisible(m_presentation.tabbar_visible);
+        SetLayoutMode(m_presentation.layout_mode);
+        if (m_presentation.fit_mode != DocumentView::FitMode::COUNT)
+            m_doc->setFitMode(m_presentation.fit_mode);
+
+        m_presentation.active = false;
+    }
 }
 
 // Show a picker with the list of recent files from the recent files store,
