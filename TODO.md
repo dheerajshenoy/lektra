@@ -6,6 +6,8 @@
 
 ## MEDIUM PRIORITY
 
+- [ ] Decorate form fields
+- [ ] Trim margins
 - [ ] Smart Jump
 - [ ] fit to current page width/height
 - [ ] Add support for directory local config files
