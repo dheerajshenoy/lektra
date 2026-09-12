@@ -223,6 +223,14 @@ public:
     void Reopen_last_closed_file() noexcept;
     void AddBookmark() noexcept;
     void RemoveBookmark() noexcept;
+    // Write the current bookmark set to a JSON file. Empty path opens a
+    // save-file dialog. Format matches the on-disk bookmarks.json layout so
+    // exports can be moved to another machine and dropped into place.
+    void BookmarkExport(const QString &file_path = {}) noexcept;
+    // Load bookmarks from a JSON file and merge into the current set.
+    // Bookmarks whose id already exists locally are skipped so re-importing
+    // is idempotent. Empty path opens an open-file dialog.
+    void BookmarkImport(const QString &file_path = {}) noexcept;
     void setupKeybinding(const QString &action,
                          const QStringList &keys) noexcept;
     void unsetKeybinding(const QString &action) noexcept;

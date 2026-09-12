@@ -5054,6 +5054,17 @@ Lektra::initCommands() noexcept
                            [this](const QStringList &)
     { Show_bookmark_picker(); });
 
+    m_command_manager->reg("bookmark_export",
+                           tr("Export bookmarks to a JSON file"),
+                           [this](const QStringList &args)
+    { BookmarkExport(args.isEmpty() ? QString() : args.at(0)); });
+
+    m_command_manager->reg("bookmark_import",
+                           tr("Import bookmarks from a JSON file "
+                              "(merges with existing set)"),
+                           [this](const QStringList &args)
+    { BookmarkImport(args.isEmpty() ? QString() : args.at(0)); });
+
     // Marks
     m_command_manager->reg("mark_set",
                            tr("Set a named mark at current position"),
@@ -7274,6 +7285,123 @@ Lektra::RemoveBookmark() noexcept
         return;
 
     // TODO: Fix the implementation
+}
+
+void
+Lektra::BookmarkExport(const QString &file_path) noexcept
+{
+    QString path = file_path;
+    if (path.isEmpty())
+    {
+        path = QFileDialog::getSaveFileName(
+            this, tr("Export Bookmarks"),
+            QDir(m_app_data_dir).filePath("bookmarks-export.json"),
+            tr("JSON files (*.json);;All files (*)"));
+        if (path.isEmpty())
+            return;
+    }
+
+    // BookmarkManager::saveBookmarks handles the serialisation format —
+    // same schema as ~/.local/share/lektra/bookmarks.json, so an export can
+    // be moved to another machine and dropped in as bookmarks.json.
+    m_bookmark_manager.saveBookmarks(path);
+
+    if (m_message_bar)
+        m_message_bar->showMessage(
+            tr("Exported %1 bookmark(s) to %2")
+                .arg(m_bookmark_manager.bookmarks().size())
+                .arg(QFileInfo(path).fileName()),
+            3.0f);
+}
+
+void
+Lektra::BookmarkImport(const QString &file_path) noexcept
+{
+    QString path = file_path;
+    if (path.isEmpty())
+    {
+        path = QFileDialog::getOpenFileName(
+            this, tr("Import Bookmarks"), QString(),
+            tr("JSON files (*.json);;All files (*)"));
+        if (path.isEmpty())
+            return;
+    }
+
+    QFile in(path);
+    if (!in.open(QIODevice::ReadOnly))
+    {
+        QMessageBox::warning(this, tr("Import Bookmarks"),
+                             tr("Could not open %1").arg(path));
+        return;
+    }
+
+    QJsonParseError err;
+    const QJsonDocument doc = QJsonDocument::fromJson(in.readAll(), &err);
+    in.close();
+
+    if (err.error != QJsonParseError::NoError || !doc.isArray())
+    {
+        QMessageBox::warning(
+            this, tr("Import Bookmarks"),
+            tr("Invalid bookmarks file: %1")
+                .arg(err.error == QJsonParseError::NoError
+                         ? tr("root is not a JSON array")
+                         : err.errorString()));
+        return;
+    }
+
+    // Merge, don't replace: import is idempotent on repeated runs.
+    auto existing = m_bookmark_manager.bookmarks();
+    QSet<Bookmark::BookmarkId> existing_ids;
+    for (const auto &b : existing)
+        existing_ids.insert(b.id());
+
+    int added = 0, skipped = 0;
+    for (const QJsonValue &v : doc.array())
+    {
+        if (!v.isObject())
+        {
+            ++skipped;
+            continue;
+        }
+        const QJsonObject o = v.toObject();
+        const QString id    = o["id"].toString();
+        if (!id.isEmpty() && existing_ids.contains(id))
+        {
+            ++skipped;
+            continue;
+        }
+
+        PageLocation loc;
+        try
+        {
+            loc = PageLocation::fromJson(o["location"].toArray());
+        }
+        catch (const std::exception &)
+        {
+            ++skipped;
+            continue;
+        }
+        const QString imported_file = o["file_path"].toString();
+        const QDateTime created
+            = QDateTime::fromString(o["added_on"].toString(), Qt::ISODate);
+
+        existing.emplace_back(imported_file, loc, created, id);
+        if (!id.isEmpty())
+            existing_ids.insert(id);
+        ++added;
+    }
+
+    m_bookmark_manager.setBookmarks(existing);
+    // Write back to the live bookmarks file so the merge persists.
+    m_bookmark_manager.saveBookmarks(m_bookmarks_file_path);
+
+    if (m_message_bar)
+        m_message_bar->showMessage(
+            tr("Imported %1 bookmark(s), skipped %2 duplicate(s)")
+                .arg(added)
+                .arg(skipped),
+            3.0f);
 }
 
 void
