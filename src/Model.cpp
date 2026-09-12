@@ -60,6 +60,40 @@ buildRenderTransform(fz_rect bounds, float zoom, float rotation, bool flip_h,
 #include <unordered_map>
 #include <unordered_set>
 
+// Match fz_tint_pixmap's linear remap so DjVu-rendered pages honour the
+// same page.bg / page.fg colours the MuPDF path already applies. Each
+// channel maps 0 → fg, 255 → bg, with linear interpolation in between.
+// The identity case (fg=black, bg=white) is short-circuited so default
+// colours don't pay any per-pixel cost.
+static void
+tintQImageRGB(QImage &img, uint32_t fg_rgb, uint32_t bg_rgb) noexcept
+{
+    if (fg_rgb == 0x000000 && bg_rgb == 0xFFFFFF)
+        return; // identity — no change
+
+    const int fg_r = (fg_rgb >> 16) & 0xFF;
+    const int fg_g = (fg_rgb >>  8) & 0xFF;
+    const int fg_b =  fg_rgb        & 0xFF;
+    const int dr   = static_cast<int>((bg_rgb >> 16) & 0xFF) - fg_r;
+    const int dg   = static_cast<int>((bg_rgb >>  8) & 0xFF) - fg_g;
+    const int db   = static_cast<int>( bg_rgb        & 0xFF) - fg_b;
+
+    const int h = img.height();
+    const int w = img.width();
+    for (int y = 0; y < h; ++y)
+    {
+        QRgb *row = reinterpret_cast<QRgb *>(img.scanLine(y));
+        for (int x = 0; x < w; ++x)
+        {
+            const QRgb px = row[x];
+            const int r   = (qRed(px)   * dr) / 255 + fg_r;
+            const int g   = (qGreen(px) * dg) / 255 + fg_g;
+            const int b   = (qBlue(px)  * db) / 255 + fg_b;
+            row[x]        = qRgb(r, g, b);
+        }
+    }
+}
+
 namespace
 {
 
@@ -1206,8 +1240,13 @@ restore_image_regions(fz_context *ctx, fz_pixmap *pix,
 
         fz_try(ctx)
         {
-            // Create a temporary pixmap for this region
-            sub = fz_new_pixmap_with_bbox(ctx, colorspace, clipped, nullptr, 1);
+            // Create a temporary pixmap for this region. Critical: match
+            // the alpha channel of the main pixmap — mismatched component
+            // counts would make the row memcpy below drift by 1 byte per
+            // pixel and paint the images as slanted colour stripes.
+            const int alpha = fz_pixmap_alpha(ctx, pix);
+            sub = fz_new_pixmap_with_bbox(ctx, colorspace, clipped, nullptr,
+                                          alpha);
             fz_clear_pixmap_with_value(ctx, sub, 255);
 
             // The draw device needs a translation to map from device coords
@@ -2113,6 +2152,15 @@ Model::buildPageCache_djvu(int pageno) noexcept
     QImage image(reinterpret_cast<const uchar *>(buf.constData()), rw, rh,
                  stride, QImage::Format_RGB32);
     image = image.copy(); // detach from buf's lifetime
+
+    // Apply the same page.bg / page.fg tint the MuPDF path applies via
+    // fz_tint_pixmap so DjVu pages honour the config colours too. Drop
+    // the alpha byte to match the MuPDF path's `>> 8` convention, so
+    // identity colours (0x000000FF / 0xFFFFFFFF) short-circuit inside
+    // tintQImageRGB.
+    tintQImageRGB(image, (m_fg_color >> 8) & 0xFFFFFF,
+                  (m_bg_color >> 8) & 0xFFFFFF);
+
     image.setDotsPerMeterX(static_cast<int>(render_dpi * 1000.0 / 25.4));
     image.setDotsPerMeterY(static_cast<int>(render_dpi * 1000.0 / 25.4));
     image.setDevicePixelRatio(m_dpr);

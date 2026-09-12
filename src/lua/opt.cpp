@@ -1,6 +1,7 @@
 #include "Config.hpp"
 #include "DocumentView.hpp"
 #include "Lektra.hpp"
+#include "utils.hpp"
 
 #include <cstring>
 #include <lua.h>
@@ -71,6 +72,23 @@ initLuaEnums(lua_State *L)
 
 using P = void *;
 
+// Accept either an integer literal (`0xFF223344`) or a hex-color string
+// (`"#RRGGBBAA"` / `"#RRGGBB"`) for any colour field. The string form goes
+// through the same parseHexColor() the TOML parser uses, so whatever
+// works in config.toml also works from Lua.
+static inline uint32_t
+readLuaColor(lua_State *L, int idx, uint32_t fallback) noexcept
+{
+    if (lua_type(L, idx) == LUA_TSTRING)
+    {
+        uint32_t out = fallback;
+        if (parseHexColor(lua_tostring(L, idx), out))
+            return out;
+        return fallback;
+    }
+    return static_cast<uint32_t>(lua_tointeger(L, idx));
+}
+
 // --- page ---
 static const LuaField pageFields[] = {
     {"bg",
@@ -79,14 +97,20 @@ static const LuaField pageFields[] = {
     lua_pushinteger(L, static_cast<Config::Page *>(p)->bg);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Page *>(p)->bg = lua_tointeger(L, 3); }},
+{
+    auto *page = static_cast<Config::Page *>(p);
+    page->bg   = readLuaColor(L, 3, page->bg);
+}},
     {"fg",
      [](lua_State *L, P p)
 {
     lua_pushinteger(L, static_cast<Config::Page *>(p)->fg);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Page *>(p)->fg = lua_tointeger(L, 3); }},
+{
+    auto *page = static_cast<Config::Page *>(p);
+    page->fg   = readLuaColor(L, 3, page->fg);
+}},
 };
 
 // --- synctex ---
