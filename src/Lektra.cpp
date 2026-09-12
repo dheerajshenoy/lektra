@@ -435,6 +435,13 @@ Lektra::initMenubar() noexcept
     m_actionInvertColor->setCheckable(true);
     m_actionInvertColor->setChecked(m_config.behavior.invert_mode);
 
+    m_actionHighContrast = m_viewMenu->addAction(
+        tr("High Contrast\t%1")
+            .arg(m_config.keybinds["high_contrast"].join(", ")),
+        this, &Lektra::ToggleHighContrast);
+    m_actionHighContrast->setCheckable(true);
+    m_actionHighContrast->setChecked(m_config.behavior.high_contrast);
+
     // --- Tools Menu ---
 
     QMenu *toolsMenu = m_menuBar->addMenu(tr("Tools"));
@@ -1427,6 +1434,11 @@ Lektra::initConfig() noexcept
         set(behavior["auto_scroll"], m_config.behavior.auto_scroll);
         set(behavior["close_on_last_tab"],
             m_config.behavior.close_on_last_tab);
+        set(behavior["high_contrast"], m_config.behavior.high_contrast);
+        set(behavior["high_contrast_black_point"],
+            m_config.behavior.high_contrast_black_point);
+        set(behavior["high_contrast_white_point"],
+            m_config.behavior.high_contrast_white_point);
     }
 
     // Defaults are loaded here (exactly once) rather than in construct(),
@@ -3557,6 +3569,33 @@ Lektra::InvertColor() noexcept
     }
 }
 
+// Toggle the high-contrast tone stretch. Unlike invert (per-view), high
+// contrast is a global config flag applied at render time — so a toggle
+// walks every open view, invalidates its page cache, and re-renders.
+void
+Lektra::ToggleHighContrast() noexcept
+{
+    m_config.behavior.high_contrast = !m_config.behavior.high_contrast;
+
+    const int n = m_tab_widget ? m_tab_widget->count() : 0;
+    for (int i = 0; i < n; ++i)
+    {
+        DocumentContainer *c = m_tab_widget->rootContainer(i);
+        if (!c)
+            continue;
+        for (DocumentView *v : c->getAllViews())
+        {
+            if (!v || !v->model())
+                continue;
+            v->model()->invalidatePageCaches();
+            v->renderPages();
+        }
+    }
+
+    if (m_actionHighContrast)
+        m_actionHighContrast->setChecked(m_config.behavior.high_contrast);
+}
+
 // Toggle text highlight mode
 void
 Lektra::ToggleTextHighlight() noexcept
@@ -5645,6 +5684,9 @@ Lektra::initCommands() noexcept
     m_command_manager->reg(
         "highlight_selection", tr("Highlight current text selection"),
         [this](const QStringList &) { TextHighlightCurrentSelection(); });
+    m_command_manager->reg("high_contrast",
+                           tr("Toggle high-contrast tone stretch"),
+                           [this](const QStringList &) { ToggleHighContrast(); });
     m_command_manager->reg("invert_color",
                            tr("Toggle inverted colour rendering"),
                            [this](const QStringList &) { InvertColor(); });

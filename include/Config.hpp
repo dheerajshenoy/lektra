@@ -1209,6 +1209,31 @@ struct Config
         bool invert_mode = false;
 
         // @desc {
+        // High-contrast tone stretch applied after tint / invert. Pixels
+        // darker than black_point become pure black, lighter than
+        // white_point become pure white, midtones stretched linearly. On
+        // scanned or grayish pages this cleans up the paper background
+        // and sharpens text; on already-black-on-white PDFs it is a near
+        // no-op. Toggle at runtime with :toggle_high_contrast.
+        // }
+        // @type bool
+        // @default false
+        // @added 0.7.8
+        bool high_contrast = false;
+
+        // @desc Pixel value (0-255) below which high-contrast pushes to pure black.
+        // @type int
+        // @default 40
+        // @added 0.7.8
+        int high_contrast_black_point = 40;
+
+        // @desc Pixel value (0-255) above which high-contrast pushes to pure white.
+        // @type int
+        // @default 220
+        // @added 0.7.8
+        int high_contrast_white_point = 220;
+
+        // @desc {
         // Preserve images when in invert color mode. When enabled, images in
         // the PDF will retain their original colors even when invert mode is
         // active. This prevents photos and diagrams from appearing inverted.

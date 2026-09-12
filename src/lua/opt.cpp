@@ -1628,6 +1628,37 @@ static const LuaField behaviorFields[] = {
     static_cast<Config::Behavior *>(p)->dont_invert_images
         = lua_toboolean(L, 3);
 }},
+    {"high_contrast",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Behavior *>(p)->high_contrast);
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::Behavior *>(p)->high_contrast = lua_toboolean(L, 3);
+}},
+    {"high_contrast_black_point",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L,
+                    static_cast<Config::Behavior *>(p)->high_contrast_black_point);
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::Behavior *>(p)->high_contrast_black_point
+        = lua_tointeger(L, 3);
+}},
+    {"high_contrast_white_point",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L,
+                    static_cast<Config::Behavior *>(p)->high_contrast_white_point);
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::Behavior *>(p)->high_contrast_white_point
+        = lua_tointeger(L, 3);
+}},
     {"invert_mode",
      [](lua_State *L, P p)
 {

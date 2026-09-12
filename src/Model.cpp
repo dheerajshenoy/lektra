@@ -60,6 +60,71 @@ buildRenderTransform(fz_rect bounds, float zoom, float rotation, bool flip_h,
 #include <unordered_map>
 #include <unordered_set>
 
+// Build a 256-entry lookup table for the high-contrast tone stretch.
+// Pixels ≤ black become 0, pixels ≥ white become 255, midtones linearly
+// stretched. Applied to every sample-byte (each colour channel is treated
+// the same way) — for scanned / grayish pages this cleans up the paper
+// background and sharpens text; on already-black-on-white PDFs it is a
+// near no-op. Caller checks the identity case (black=0, white=255) and
+// skips the whole thing.
+static void
+buildHighContrastLUT(unsigned char lut[256], int black, int white) noexcept
+{
+    if (black < 0)    black = 0;
+    if (white > 255)  white = 255;
+    if (white <= black)
+    {
+        // Degenerate config — fall back to a hard threshold at the midpoint
+        // between the two bounds so the setting is not silently a no-op.
+        const int cut = (black + white) / 2;
+        for (int i = 0; i < 256; ++i)
+            lut[i] = (i <= cut) ? 0 : 255;
+        return;
+    }
+    const int span = white - black;
+    for (int i = 0; i < 256; ++i)
+    {
+        int v;
+        if (i <= black)      v = 0;
+        else if (i >= white) v = 255;
+        else                 v = ((i - black) * 255 + span / 2) / span;
+        lut[i] = static_cast<unsigned char>(v);
+    }
+}
+
+// Apply the high-contrast tone stretch to a raw sample buffer. Works for
+// any component layout (grayscale, RGB, RGBA) — alpha channels are
+// stretched too, but since alpha is either 0 or 255 for opaque pages, the
+// stretch is a no-op on them.
+static void
+applyHighContrastSamples(unsigned char *samples, size_t n_bytes,
+                         const unsigned char lut[256]) noexcept
+{
+    for (size_t i = 0; i < n_bytes; ++i)
+        samples[i] = lut[samples[i]];
+}
+
+// Same helper for the DjVu / QImage render path.
+static void
+applyHighContrastQImage(QImage &img, int black, int white) noexcept
+{
+    if (black == 0 && white == 255)
+        return;
+    unsigned char lut[256];
+    buildHighContrastLUT(lut, black, white);
+    const int h = img.height();
+    const int w = img.width();
+    for (int y = 0; y < h; ++y)
+    {
+        QRgb *row = reinterpret_cast<QRgb *>(img.scanLine(y));
+        for (int x = 0; x < w; ++x)
+        {
+            const QRgb px = row[x];
+            row[x]        = qRgb(lut[qRed(px)], lut[qGreen(px)], lut[qBlue(px)]);
+        }
+    }
+}
+
 // Match fz_tint_pixmap's linear remap so DjVu-rendered pages honour the
 // same page.bg / page.fg colours the MuPDF path already applies. Each
 // channel maps 0 → fg, 255 → bg, with linear interpolation in between.
@@ -2161,6 +2226,15 @@ Model::buildPageCache_djvu(int pageno) noexcept
     tintQImageRGB(image, (m_fg_color >> 8) & 0xFFFFFF,
                   (m_bg_color >> 8) & 0xFFFFFF);
 
+    // DjVu is overwhelmingly used for scanned documents, where the
+    // high-contrast stretch does its best work — apply it here too.
+    if (m_config.behavior.high_contrast)
+    {
+        applyHighContrastQImage(image,
+                                m_config.behavior.high_contrast_black_point,
+                                m_config.behavior.high_contrast_white_point);
+    }
+
     image.setDotsPerMeterX(static_cast<int>(render_dpi * 1000.0 / 25.4));
     image.setDotsPerMeterY(static_cast<int>(render_dpi * 1000.0 / 25.4));
     image.setDevicePixelRatio(m_dpr);
@@ -3519,17 +3593,37 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             fz_tint_pixmap(ctx, pix, fg, bg);
 
         if (job.invert_color)
-        {
             fz_invert_pixmap(ctx, pix);
 
-            if (m_config.behavior.dont_invert_images && supports_image_blocks()
-                && tracker)
-            {
-                restore_image_regions(
-                    ctx, pix,
-                    reinterpret_cast<fz_image_tracker_device *>(tracker),
-                    m_colorspace);
-            }
+        // High-contrast tone stretch — applied after invert so "dark mode
+        // + high contrast" is a legitimate combination. LUT-based, single
+        // pass over the sample buffer, ~1ms per page. Independent of
+        // invert: users can turn on high contrast without dark mode when
+        // reading grayish scans.
+        const bool high_contrast_active = m_config.behavior.high_contrast;
+        if (high_contrast_active)
+        {
+            unsigned char lut[256];
+            buildHighContrastLUT(lut,
+                                 m_config.behavior.high_contrast_black_point,
+                                 m_config.behavior.high_contrast_white_point);
+            const size_t nbytes
+                = static_cast<size_t>(fz_pixmap_stride(ctx, pix))
+                  * static_cast<size_t>(fz_pixmap_height(ctx, pix));
+            applyHighContrastSamples(fz_pixmap_samples(ctx, pix), nbytes, lut);
+        }
+
+        // Image protection covers both invert and high contrast: if the
+        // user has asked for images to be preserved, restore their
+        // original pixels after any post-processing pass has touched them.
+        if ((job.invert_color || high_contrast_active)
+            && m_config.behavior.dont_invert_images && supports_image_blocks()
+            && tracker)
+        {
+            restore_image_regions(
+                ctx, pix,
+                reinterpret_cast<fz_image_tracker_device *>(tracker),
+                m_colorspace);
         }
 
         // fz_gamma_pixmap(ctx, pix, 1.0f);

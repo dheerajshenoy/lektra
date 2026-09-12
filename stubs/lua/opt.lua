@@ -324,7 +324,10 @@ lektra.opt.rendering = {}
 ---@field cache_password boolean Keep the password for encrypted PDFs in memory so auto-reload can re-authenticate.
 ---@field close_on_last_tab boolean Quit LEKTRA when the last tab is closed (confirm_on_quit still applies).
 ---@field confirm_on_quit boolean Show a confirmation dialog before quitting.
----@field dont_invert_images boolean Exclude images from colour inversion.
+---@field dont_invert_images boolean Exclude images from colour inversion and high-contrast stretch.
+---@field high_contrast boolean High-contrast tone stretch applied after tint / invert (accessibility).
+---@field high_contrast_black_point integer Pixel value ≤ this becomes pure black (0-255).
+---@field high_contrast_white_point integer Pixel value ≥ this becomes pure white (0-255).
 ---@field invert_mode boolean Start with colour inversion enabled.
 ---@field mupdf_store_size integer Maximum size of MuPDF's internal decoded-image / glyph store, in MB.
 ---@field num_recent_files integer Maximum number of recent files to remember.

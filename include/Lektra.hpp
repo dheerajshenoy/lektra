@@ -134,6 +134,7 @@ public:
     void ExportOutline() noexcept;
     void LoadOutline() noexcept;
     void InvertColor() noexcept;
+    void ToggleHighContrast() noexcept;
     void TextSelectionMode() noexcept;
     void GoBackHistory() noexcept;
     void GoForwardHistory() noexcept;
@@ -401,6 +402,7 @@ private:
     QAction *m_actionFullscreen                 = nullptr;
     QAction *m_actionZoomIn                     = nullptr;
     QAction *m_actionInvertColor                = nullptr;
+    QAction *m_actionHighContrast               = nullptr;
     QAction *m_actionFileProperties             = nullptr;
     QAction *m_actionOpenContainingFolder       = nullptr;
     QAction *m_actionSaveFile                   = nullptr;

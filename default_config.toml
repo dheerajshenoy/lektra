@@ -335,6 +335,9 @@ num_recent_files      = 10
 page_history          = 5         # location history depth per view (parser key: page_history)
 auto_scroll           = true      # scroll to keep out-of-view selection visible
 close_on_last_tab     = false     # quit LEKTRA when the last tab is closed (confirm_on_quit still applies)
+high_contrast              = false   # tone-stretch pass: dark ≤ black_point → 0, light ≥ white_point → 255
+high_contrast_black_point  = 40      # 0-255
+high_contrast_white_point  = 220     # 0-255
 
 
 # -----------------------------------------------------------------------------
