@@ -4,6 +4,7 @@
 
 ## HIGH PRIORITY
 
+- [ ] Text reflow for MuPDF documents
 - [ ] Tab detach drag and drop to new window spawns new useless window
 
 ## MEDIUM PRIORITY
