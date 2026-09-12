@@ -1,240 +1,436 @@
+# =============================================================================
+# LEKTRA default configuration
+#
+# This file lists every configuration option that LEKTRA's TOML parser
+# understands (src/Lektra.cpp), with the default value taken from
+# include/Config.hpp. Keys and sections that are not shown here are ignored
+# by the parser — LEKTRA does not fail on unknown keys.
+#
+# You can override any subset of these keys in your own config file —
+# sections you omit fall back to the defaults compiled into the binary.
+#
+# Config file location:
+#   Linux / macOS : $HOME/.config/lektra/config.toml
+#   Windows       : %APPDATA%\lektra\config.toml
+#                   (typically C:\Users\<user>\AppData\Roaming\lektra\)
+#
+# The Lua init file, if you use one, sits next to config.toml as init.lua.
+#
+# See the full commented reference at:
+#   https://dheerajshenoy.github.io/lektra/configuration
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# [window] — Main window
+# -----------------------------------------------------------------------------
 [window]
-fullscreen = false
-menubar = false
+fullscreen  = false
+menubar     = true
 startup_tab = false
-title_format = "{} - lektra"
-initial_size = { width = 1200, height = 800 }
+title_format = "%1 - lektra"
+initial_size = { width = 600, height = 400 }
 accent = "#3daee9FF"
-bg = "#00000000"
+bg     = "#00000000"
 
-[preview]
-size_ratio = { width = 0.25, height = 0.25 }
-border_radius = 0
-close_on_click_outside = true
-opacity = 0.9
 
+# -----------------------------------------------------------------------------
+# [page] — Rendered page background/foreground (foreground used in invert mode)
+# -----------------------------------------------------------------------------
 [page]
-bg = "#FFFFFF"
-fg = "#000000"
+bg = "#FFFFFFFF"
+fg = "#000000FF"
 
-[outline]
-indent_width = 4
-show_page_numbers = true
-flat_menu = false
 
+# -----------------------------------------------------------------------------
+# [layout] — Multi-page layout / initial fit
+# -----------------------------------------------------------------------------
+[layout]
+mode        = "vertical"   # vertical | horizontal | single | book
+initial_fit = "width"      # width | height | window
+auto_resize = false        # re-run the fit when the view resizes
+spacing     = 10           # gap between pages in pixels
+
+
+# -----------------------------------------------------------------------------
+# [zoom]
+# -----------------------------------------------------------------------------
+[zoom]
+level           = 0.5      # initial zoom factor
+factor          = 1.25     # zoom_in / zoom_out multiplier
+anchor_to_mouse = true     # zoom under the cursor instead of view centre
+
+
+# -----------------------------------------------------------------------------
+# [statusbar]
+# -----------------------------------------------------------------------------
 [statusbar]
 visible = true
-padding = [ 2, 0, 2, 0 ]
-show_session_name = true
-show_mode = true
-show_page_number = true
-show_progress = true
-file_name_only = true
-show_file_info = true
+padding = [ 2, 2, 2, 2 ]   # left, top, right, bottom (pixels)
 
-[portal]
-enabled = true
-border_color = "#3daee9FF"
-border_width = 5
-respect_parent = true
-dim_inactive = false
+[statusbar.components.mode]
+show = true
+text = true
+icon = true
 
+[statusbar.components.pagenumber]
+show = true
+
+[statusbar.components.session]
+show = true
+
+[statusbar.components.zoom]
+show = true
+
+[statusbar.components.filename]
+show      = true
+full_path = true
+
+[statusbar.components.progress]
+show = true
+
+
+# -----------------------------------------------------------------------------
+# [tabs]
+# -----------------------------------------------------------------------------
+[tabs]
+visible    = true
+auto_hide  = false          # hide the tab bar when only one tab is open
+closable   = true
+movable    = true
+elide_mode = "right"        # right | left | middle | none
+location   = "top"          # top | bottom | left | right
+full_path  = false          # show the full file path in the tab label
+lazy_load  = true           # only materialise a tab's view when it becomes current
+
+
+# -----------------------------------------------------------------------------
+# [split]
+# -----------------------------------------------------------------------------
 [split]
-mouse_follows_focus = false
-focus_follows_mouse = true
-dim_inactive = false
-dim_inactive_opacity = 0.5
+focus_follows_mouse      = true
+mouse_follows_focus      = true
+dim_inactive             = false
+dim_inactive_opacity     = 0.5     # 0.0 (no dim) - 1.0 (full dim)
+focus_border             = false
+focus_border_color       = "#FF4FC3F7"
+focus_border_width       = 2
+maximize_indicator       = true
+maximize_indicator_color = "#CC2979FF"
 
-[annotations.popup]
-hover_glow = true
-glow_color = "#FF5000FF"
-glow_width = 5
-comment = true
-comment_marker = true
-comment_font_size = 12
 
+# -----------------------------------------------------------------------------
+# [portal] — Picture-in-picture linked view
+# -----------------------------------------------------------------------------
+[portal]
+enabled        = true
+border_color   = "#FFFFFFAA"
+border_width   = 5
+respect_parent = true
+dim_inactive   = false
+split          = "vertical"   # vertical | horizontal | smart
+
+
+# -----------------------------------------------------------------------------
+# [preview] — Floating link-preview window
+# -----------------------------------------------------------------------------
+[preview]
+size_ratio             = { width = 0.6, height = 0.7 }
+border_radius          = 8
+close_on_click_outside = true
+opacity                = 0.95
+
+
+# -----------------------------------------------------------------------------
+# [thumbnail_panel]
+# -----------------------------------------------------------------------------
+[thumbnail_panel]
+show_page_numbers      = true
+panel_width            = 0.15      # fraction of the main view
+font_size              = 10
+highlight_current_page = true
+
+
+# -----------------------------------------------------------------------------
+# [scrollbars]
+# -----------------------------------------------------------------------------
+[scrollbars]
+vertical     = true
+horizontal   = true
+search_hits  = true
+auto_hide    = true
+size         = 12
+hide_timeout = 1.5     # seconds of inactivity before hiding
+
+
+# -----------------------------------------------------------------------------
+# [outline]
+# -----------------------------------------------------------------------------
+[outline]
+indent_width      = 10
+show_page_numbers = true
+flat_menu         = true
+# Picker.shared knobs also apply here — width, height, border,
+# alternating_row_color, prompt, shadow.*  (see [picker] below).
+
+
+# -----------------------------------------------------------------------------
+# [picker] — Base defaults for every list-picker (outline, highlight search,
+# command palette, file/recent/bookmark pickers). The individual pickers
+# below can override any of these keys.
+# -----------------------------------------------------------------------------
+[picker]
+width                 = 600       # pixels if > 1, fraction of window width otherwise
+height                = 400
+border                = true
+alternating_row_color = true
+
+[picker.shadow]
+enabled     = true
+blur_radius = 18
+offset_x    = 0
+offset_y    = 6
+opacity     = 120
+
+
+# -----------------------------------------------------------------------------
+# [command_palette]
+# -----------------------------------------------------------------------------
+[command_palette]
+description     = false
+vscrollbar      = true
+show_shortcuts  = true
+prompt          = "Command"
+
+
+# -----------------------------------------------------------------------------
+# [highlight_search] — the picker opened with :picker_highlight_search
+# -----------------------------------------------------------------------------
+[highlight_search]
+flat_menu = true
+
+
+# -----------------------------------------------------------------------------
+# [annotations]
+# -----------------------------------------------------------------------------
 [annotations.highlight]
-color = "#55FF0055"
-hover_glow = true
-glow_color = "#FF5000FF"
-glow_width = 5
-comment = true
-comment_marker = true
+color             = "#55FF5588"
+hover_glow        = true
+glow_color        = "#FF5000AA"
+glow_width        = 5
+comment           = true
+comment_marker    = true
 comment_font_size = 12
 
 [annotations.rect]
-color = "#55FF5588"
-hover_glow = true
-glow_color = "#FF5000FF"
-glow_width = 3
-comment = true
-comment_marker = true
+color             = "#55FF5588"
+hover_glow        = true
+glow_color        = "#FF5000AA"
+glow_width        = 5
+comment           = true
+comment_marker    = true
 comment_font_size = 12
 
-[thumbnail_panel]
-show_page_numbers = true
-panel_width = 0.15
-highlight_current_page = true
-vscrollbar = false
-hscrollbar = false
-
-[picker]
-border = true
-alternating_row_color = true
-height = 300
-width = 400
-
-[picker.shadow]
-enabled = true
-blur_radius = 18
-offset_x = 0
-offset_y = 6
-opacity = 120
+[annotations.popup]
+hover_glow        = true
+glow_color        = "#FF5000AA"
+glow_width        = 5
+comment           = true
+comment_font_size = 12
 
 
-[picker.keys]
-up = [ "Ctrl+k", "Up" ]
-down = [ "Ctrl+j", "Down" ]
-accept = "Return"
-dismiss = "escape"
-# page_up = ""
-# page_down = ""
-
-# top = "g,g"
-# bottom = "G"
-
-[command_palette]
-show_shortcuts = true
-height = 400
-width = 600
-placeholder_text = "Type a command..."
-vscrollbar = true
-description = true
-border = true
-alternating_row_color = true
-
-# [llm_widget]
-# visible = false
-# panel_width = 400
-
-[layout]
-mode = "vertical"
-initial_fit = "width"
-auto_resize = false
-spacing = 9
-
-[zoom]
-anchor_to_mouse = false
-level = 1.0
-factor = 1.25
-
+# -----------------------------------------------------------------------------
+# [selection]
+# -----------------------------------------------------------------------------
 [selection]
-drag_threshold = 100
-copy_on_select = false
-color = "#FF500055"
+drag_threshold  = 50        # pixels before a click becomes a drag
+copy_on_select  = false
+color           = "#0000FF55"
 
-[scrollbars]
-horizontal = true
-vertical = true
-auto_hide = true
-search_hits = true
-size = 10
-hide_timeout = 4
 
-[jump_marker]
-enabled = true
-color  = "#FF0000FF"
-fade_duration = 2.0
-
-[links]
-enabled = true
-boundary = false
-detect_urls = true
-url_regex = "(https?://|www\\.)[^\\s<>()\\\"']+"
-
-[link_hints]
-size = 0.25
-bg = "#000000FF"
-fg = "#ea3ee9FF"
-
-[tabs]
-visible = false
-auto_hide = false
-closable = true
-movable = true
-elide_mode = "middle"
-location = "top"
-full_path = true
-lazy_load = true
-
-[highlight_search]
-flat_menu = false
-
+# -----------------------------------------------------------------------------
+# [search]
+# -----------------------------------------------------------------------------
 [search]
 highlight_matches = true
-progressive = true
-match_color = "#55500033"
-index_color = "#55FF0055"
-absolute_jump = false
+progressive       = true    # stream results as pages are searched
+absolute_jump     = false   # "next" is the next result index, not physically nearest
+match_color       = "#55500033"
+index_color       = "#55FF0055"
 
-[rendering]
-dpr = { "eDP-1" = 1.25, "DP-5" = 1.0, "DP-7" = 1.0 }
-antialiasing = true
-text_antialiasing = true
-smooth_pixmap_transform = true
-cache_pages = 0
-antialiasing_bits = 4
-icc_color_profile = true
-backend = "raster"
 
-[behavior]
-initial_mode = "text_select_mode"
-single_instance = false
-remember_last_visited = true
-confirm_on_quit = false
-invert_mode = false
-dont_invert_images = true
-auto_reload = true
-recent_files = true
-num_recent_files = 25
-undo_limit = 25
-preload_pages = 1
-open_last_visited = true
-file_name_only = true
-page_history_limit = 100
+# -----------------------------------------------------------------------------
+# [jump_marker]
+# -----------------------------------------------------------------------------
+[jump_marker]
+enabled       = true
+jump_marker   = "#FF0000FF"   # colour of the marker
+fade_duration = 1.0           # seconds
 
+
+# -----------------------------------------------------------------------------
+# [links]
+# -----------------------------------------------------------------------------
+[links]
+boundary    = false                              # show the clickable rect boundary
+detect_urls = false                              # find bare URLs in the page text
+url_regex   = '(https?://|www\.)[^\s<>()"'']+'   # used when detect_urls = true
+
+
+# -----------------------------------------------------------------------------
+# [link_hints] — the on-screen labels shown by :link_hint_visit
+# -----------------------------------------------------------------------------
+[link_hints]
+size = 0.5             # hint rect size, relative to link size
+bg   = "#000000FF"
+fg   = "#EA3EE9FF"
+
+
+# -----------------------------------------------------------------------------
+# [synctex] — Forward / reverse search with LaTeX editors (built only with
+# WITH_SYNCTEX=ON, which is the default).
+# -----------------------------------------------------------------------------
 [synctex]
-enabled = false
-editor_command = "zeditor %f:+%l"
+enabled        = true
+editor_command = ""    # e.g. "nvim --server /tmp/nvim.pipe --remote-send"
 
+
+# -----------------------------------------------------------------------------
+# [rendering]
+# -----------------------------------------------------------------------------
+[rendering]
+backend                 = "raster"   # auto | raster | opengl
+antialiasing            = true
+text_antialiasing       = true
+smooth_pixmap_transform = true
+antialiasing_bits       = 8
+dpr                     = 1.0        # scalar, OR table keyed by screen name (see below)
+
+# Per-screen DPR override (uncomment and adapt the keys to `xrandr --listactivemonitors`):
+# [rendering.dpr]
+# "eDP-1"  = 1.5
+# "HDMI-A-1" = 1.0
+
+
+# -----------------------------------------------------------------------------
+# [behavior]
+# -----------------------------------------------------------------------------
+[behavior]
+confirm_on_quit       = false
+undo_limit            = 25
+cache_pages           = 5
+mupdf_store_size      = 64        # MB — MuPDF's internal image/glyph store
+preload_pages         = 1
+auto_reload           = true      # watch the open document on disk and refresh
+cache_password        = true      # keep the password for auto-reload
+invert_mode           = false     # dark mode
+dont_invert_images    = true      # keep photos/diagrams in their original colours
+single_instance       = false
+remember_last_visited = true      # per-file: reopen at the last visited page
+recent_files          = true
+num_recent_files      = 10
+page_history          = 5         # location history depth per view (parser key: page_history)
+auto_scroll           = true      # scroll to keep out-of-view selection visible
+
+
+# -----------------------------------------------------------------------------
 # [misc]
-# color_dialog_colors = [ "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF" ]
+# -----------------------------------------------------------------------------
+[misc]
+# Swatches shown in the annotation colour picker.
+color_dialog_colors = [
+    "#FFFF0080",  # yellow
+    "#FFA50080",  # orange
+    "#FF000080",  # red
+    "#00FF0080",  # green
+    "#00C8FF80",  # cyan
+    "#8000FF80",  # purple
+    "#FF69B480",  # pink
+    "#0000FF80",  # blue
+    "#FFFFFF80",  # white
+]
 
+
+# -----------------------------------------------------------------------------
+# [keybindings]
+# -----------------------------------------------------------------------------
+# Every action name below must match a command registered with the command
+# manager (run `:` to browse). `load_defaults = true` (the default) means
+# LEKTRA re-applies the compiled-in defaults after this section is parsed;
+# set it to `false` if you want a clean slate and want only the bindings
+# you list here.
+#
+# Values can be either a single key sequence or a list of them:
+#   scroll_down = "j"
+#   scroll_down = [ "j", "Down" ]
+#
+# Chord bindings use a comma:
+#   split_horizontal = "Ctrl+W,s"
 [keybindings]
 load_defaults = true
-command_palette = [ ":", "Ctrl+P" ]
-file_open_tab = "o"
-link_hint_visit = "f"
-link_hint_copy = "Shift+F"
-scroll_left = "h"
-scroll_down = "j"
-scroll_up = "k"
-scroll_right = "l"
-location_prev = "Ctrl+o"
-location_next = "Ctrl+i"
-page_next = "Shift+J"
-page_prev = "Shift+K"
+
+# Movement
+scroll_left           = "h"
+scroll_down           = "j"
+scroll_up             = "k"
+scroll_right          = "l"
+scroll_down_half_page = "Ctrl+d"
+scroll_up_half_page   = "Ctrl+u"
+
+# Pages
+page_next  = "Shift+J"
+page_prev  = "Shift+K"
 page_first = "g,g"
-page_last = "Shift+G"
-page_goto = "b"
-picker_outline = "t"
-search = "/"
-search_this_page = "?" # TODO
+page_last  = "Shift+G"
+page_goto  = "Ctrl+g"
+
+# Search
+search      = "/"
 search_next = "n"
 search_prev = "Shift+N"
+
+# Zoom & fit
+zoom_in    = "="
+zoom_out   = "-"
 zoom_reset = "0"
-zoom_in = "="
-zoom_out = "-"
+fit_width  = "Ctrl+Shift+W"
+fit_height = "Ctrl+Shift+H"
+fit_page   = "Ctrl+Shift+="
+fit_auto   = "Ctrl+Shift+R"
+
+# History / outline
+location_prev           = "Ctrl+o"
+location_next           = "Ctrl+i"
+picker_outline          = "t"
+picker_highlight_search = "Alt+Shift+H"
+
+# Interaction modes
+selection_mode_text   = "1"
+annot_highlight_mode  = "2"
+annot_rect_mode       = "3"
+selection_mode_region = "4"
+annot_popup_mode      = "5"
+visual_line_mode      = "v"
+
+# Files
+link_hint_visit = "f"
+file_open_tab   = "o"
+file_picker     = "Ctrl+Shift+O"
+files_recent    = "Alt+Shift+O"
+file_save       = "Ctrl+S"
+
+# Editing / view
+undo             = "u"
+redo             = "Ctrl+R"
+invert_color     = "i"
+menubar          = "Ctrl+Shift+M"
+command_palette  = ":"
+rotate_clock     = ">"
+rotate_anticlock = "<"
+flip_horizontal  = "|"
+flip_vertical    = "_"
+
+# Tabs (Alt+<digit> jumps directly to that tab)
 tab_1 = "Alt+1"
 tab_2 = "Alt+2"
 tab_3 = "Alt+3"
@@ -244,53 +440,45 @@ tab_6 = "Alt+6"
 tab_7 = "Alt+7"
 tab_8 = "Alt+8"
 tab_9 = "Alt+9"
-tab_next = "Ctrl+Period"
-tab_prev = "Ctrl+Comma"
-tab_close = "Ctrl+w,t"
-selection_mode_text = "1"
-selection_mode_region = "2"
-annot_highlight_mode = "3"
-annot_rect_mode = "4"
-annot_edit_mode = "5"
-annot_pen_mode = "6"
-annot_popup_mode = "7"
-invert_color = "i"
-fullscreen = "F11"
-fit_height = "Ctrl+Shift+H"
-fit_width = "Ctrl+Shift+W"
-fit_page = "Ctrl+Shift+="
-fit_auto = "Ctrl+Shift+R"
-menubar = "Ctrl+Shift+M"
-statusbar = "Ctrl+Shift+B"
-tabs = "Ctrl+Shift+T"
-selection_cancel = "escape"
-selection_copy = "y"
-show_about = "F12"
-file_save = "Ctrl+S"
-rotate_clock = ">"
-rotate_anticlock = "<"
-undo = "u"
-redo = "Ctrl+R"
-focus_mode = "Ctrl+Space"
-selection_last = "g,v"
-picker_highlight_search = "Alt+Shift+H"
-completion_next = "Ctrl+n"
-completion_prev = "Ctrl+p"
-llm_widget = "Ctrl+Shift+L"
-split_focus_next = "Ctrl+Alt+Right"
-split_focus_prev = "Ctrl+Alt+Left"
-split_close = "Ctrl+w,c"
-visual_line_mode = "v"
-layout_single = "Ctrl+Shift+1"
-layout_top_to_bottom = "Ctrl+Shift+2"
-layout_left_to_right = "Ctrl+Shift+3"
-layout_book = "Ctrl+Shift+4"
-highlight_selection = "x"
-files_recent = "Ctrl+Shift+O"
 
+# Splits — Vim-style Ctrl+W chords
+split_horizontal  = "Ctrl+W,s"
+split_vertical    = "Ctrl+W,v"
+split_focus_left  = "Ctrl+W,h"
+split_focus_down  = "Ctrl+W,j"
+split_focus_up    = "Ctrl+W,k"
+split_focus_right = "Ctrl+W,l"
+split_close       = "Ctrl+W,c"
+
+
+# -----------------------------------------------------------------------------
+# [mousebindings]
+# -----------------------------------------------------------------------------
+# Modifier(s)+MouseButton. Valid mouse buttons: LeftButton, RightButton,
+# MiddleButton.
 [mousebindings]
-# LeftButton, RightButton, MiddleButton
-portal = "Ctrl+LeftButton"
+pan          = "Alt+LeftButton"
+preview      = "Alt+Shift+LeftButton"
+portal       = "Ctrl+LeftButton"
 synctex_jump = "Shift+LeftButton"
-pan = "Alt+LeftButton"
-preview = "Alt+Shift+LeftButton"
+
+
+# -----------------------------------------------------------------------------
+# [picker.keys] — the keys used inside every picker (outline, command palette,
+# highlight search, file picker, recent files, bookmarks). Values can be a
+# single key or a list.
+# -----------------------------------------------------------------------------
+[picker.keys]
+up                    = [ "Up", "Ctrl+K" ]
+down                  = [ "Down", "Ctrl+J" ]
+page_up               = "PgUp"
+page_down             = "PgDown"
+section_prev          = [ "Ctrl+Shift+Up", "Ctrl+Shift+K" ]
+section_next          = [ "Ctrl+Shift+Down", "Ctrl+Shift+J" ]
+accept                = "Return"
+expand                = "Tab"
+collapse              = "Tab"
+dismiss               = "Escape"
+toggle_structure_mode = "Ctrl+Space"
+history_prev          = "Ctrl+Up"
+history_next          = "Ctrl+Down"
