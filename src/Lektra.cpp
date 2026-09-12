@@ -201,16 +201,16 @@ Lektra::initMenubar() noexcept
     // --- File Menu ---
     QMenu *fileMenu = m_menuBar->addMenu(tr("&File"));
 
-    fileMenu->addAction(
+    QAction *actionOpenFile = fileMenu->addAction(
         tr("Open File\t%1").arg(m_config.keybinds["file_open_tab"].join(", ")),
         this, [&]() { OpenFilesInNewTab(); });
 
-    fileMenu->addAction(
+    QAction *actionOpenVSplit = fileMenu->addAction(
         tr("Open File In VSplit\t%1")
             .arg(m_config.keybinds["file_open_vsplit"].join(", ")),
         this, [&]() { OpenFilesInVSplit(); });
 
-    fileMenu->addAction(
+    QAction *actionOpenHSplit = fileMenu->addAction(
         tr("Open File In HSplit\t%1")
             .arg(m_config.keybinds["file_open_hsplit"].join(", ")),
         this, [&]() { OpenFilesInHSplit(); });
@@ -256,7 +256,8 @@ Lektra::initMenubar() noexcept
         this, [this]() { Tab_close(); });
 
     fileMenu->addSeparator();
-    fileMenu->addAction(tr("Quit"), this, &QMainWindow::close);
+    QAction *actionQuit = fileMenu->addAction(
+        tr("Quit"), this, &QMainWindow::close);
 
     QMenu *editMenu = m_menuBar->addMenu(tr("&Edit"));
     m_actionUndo    = editMenu->addAction(
@@ -305,8 +306,9 @@ Lektra::initMenubar() noexcept
 
     m_fitMenu->addSeparator();
 
-    // Auto Resize toggle (independent)
-    m_actionAutoresize = m_viewMenu->addAction(
+    // Auto Resize toggle — a modifier of the current fit, so it belongs
+    // inside the Fit submenu next to Width / Height / Page.
+    m_actionAutoresize = m_fitMenu->addAction(
         tr("Auto Fit\t%1").arg(m_config.keybinds["fit_auto"].join(", ")), this,
         &Lektra::ToggleAutoResize);
     m_actionAutoresize->setCheckable(true);
@@ -375,17 +377,17 @@ Lektra::initMenubar() noexcept
         tr("Outline\t%1").arg(m_config.keybinds["picker_outline"].join(", ")),
         this, &Lektra::ShowOutline);
 
-    m_toggleMenu->addAction(
+    QAction *actionGenerateOutline = m_toggleMenu->addAction(
         tr("Generate Outline\t%1")
             .arg(m_config.keybinds["generate_outline"].join(", ")),
         this, &Lektra::GenerateOutline);
 
-    m_toggleMenu->addAction(
+    QAction *actionExportOutline = m_toggleMenu->addAction(
         tr("Export Outline\t%1")
             .arg(m_config.keybinds["export_outline"].join(", ")),
         this, &Lektra::ExportOutline);
 
-    m_toggleMenu->addAction(
+    QAction *actionLoadOutline = m_toggleMenu->addAction(
         tr("Load Outline from File\t%1")
             .arg(m_config.keybinds["load_outline"].join(", ")),
         this, &Lektra::LoadOutline);
@@ -415,12 +417,12 @@ Lektra::initMenubar() noexcept
 
     m_viewMenu->addSeparator();
 
-    m_viewMenu->addAction(
+    QAction *actionNarrowToRegion = m_viewMenu->addAction(
         tr("Narrow to Region\t%1")
             .arg(m_config.keybinds["narrow_to_region"].join(", ")),
         this, &Lektra::NarrowToRegion);
 
-    m_viewMenu->addAction(
+    QAction *actionWidenRegion = m_viewMenu->addAction(
         tr("Widen\t%1").arg(m_config.keybinds["widen_region"].join(", ")),
         this, &Lektra::WidenRegion);
 
@@ -546,7 +548,7 @@ Lektra::initMenubar() noexcept
     // --- Navigation Menu ---
     m_navMenu = m_menuBar->addMenu(tr("&Navigation"));
 
-    m_navMenu->addAction(
+    QAction *actionStartPage = m_navMenu->addAction(
         tr("StartPage\t%1")
             .arg(m_config.keybinds["show_startup_widget"].join(", ")),
         this, &Lektra::showStartupWidget);
@@ -607,6 +609,156 @@ Lektra::initMenubar() noexcept
     helpMenu->addSeparator();
     m_actionDonate = helpMenu->addAction(tr("Donate / Support"), this,
                                          &Lektra::ShowDonate);
+
+    // Icons are always assigned to actions below — the visibility is
+    // controlled globally by Qt::AA_DontShowIconsInMenus. That way toggling
+    // window.show_menu_icons at runtime (via `lektra.opt.window
+    // .show_menu_icons`, say) takes effect immediately without needing to
+    // re-run initMenubar.
+    QCoreApplication::setAttribute(Qt::AA_DontShowIconsInMenus,
+                                   !m_config.window.show_menu_icons);
+
+    // --- Standard-style icons on menu actions ---
+    // Grouped in one block so a future theme change or icon reassignment
+    // does not require touching every action's registration site above.
+    // Two lookup styles:
+    //   ic(SP_*)         → QStyle standard icon, always present on every
+    //                      platform (Adwaita/Breeze/Windows/macOS/…).
+    //   th("name", SP_*) → Freedesktop themed icon (`fromTheme`), with the
+    //                      SP_* result as fallback. Used where a real theme
+    //                      icon is clearly better than any SP_* (zoom-fit-*,
+    //                      go-*, edit-*, document-*), but keeping the fallback
+    //                      means Windows / macOS / server-with-no-theme users
+    //                      still get a sensible glyph.
+    auto ic
+        = [this](QStyle::StandardPixmap p) { return style()->standardIcon(p); };
+    auto th = [&ic](const char *name, QStyle::StandardPixmap fb)
+    { return QIcon::fromTheme(name, ic(fb)); };
+
+    // File
+    actionOpenFile->setIcon(th("document-open", QStyle::SP_DialogOpenButton));
+    actionOpenVSplit->setIcon(
+        th("document-open", QStyle::SP_DialogOpenButton));
+    actionOpenHSplit->setIcon(
+        th("document-open", QStyle::SP_DialogOpenButton));
+    m_actionFileProperties->setIcon(
+        th("document-properties", QStyle::SP_FileDialogInfoView));
+    m_actionOpenContainingFolder->setIcon(
+        th("folder-open", QStyle::SP_DirOpenIcon));
+    m_actionSaveFile->setIcon(
+        th("document-save", QStyle::SP_DialogSaveButton));
+    m_actionSaveAsFile->setIcon(
+        th("document-save-as", QStyle::SP_DialogSaveButton));
+    m_actionSessionSave->setIcon(
+        th("document-save", QStyle::SP_DriveHDIcon));
+    m_actionSessionSaveAs->setIcon(
+        th("document-save-as", QStyle::SP_DriveHDIcon));
+    m_actionSessionLoad->setIcon(
+        th("document-open", QStyle::SP_DirLinkIcon));
+    m_actionCloseFile->setIcon(
+        th("window-close", QStyle::SP_DialogCloseButton));
+    actionQuit->setIcon(
+        th("application-exit", QStyle::SP_TitleBarCloseButton));
+
+    // Edit
+    m_actionUndo->setIcon(th("edit-undo", QStyle::SP_ArrowBack));
+    m_actionRedo->setIcon(th("edit-redo", QStyle::SP_ArrowForward));
+
+    // View
+    m_actionFullscreen->setIcon(
+        th("view-fullscreen", QStyle::SP_TitleBarMaxButton));
+    m_actionZoomIn->setIcon(th("zoom-in", QStyle::SP_ArrowUp));
+    m_actionZoomOut->setIcon(th("zoom-out", QStyle::SP_ArrowDown));
+    m_actionFitWidth->setIcon(
+        th("zoom-fit-width", QStyle::SP_DialogApplyButton));
+    m_actionFitHeight->setIcon(
+        th("zoom-fit-height", QStyle::SP_DialogApplyButton));
+    m_actionFitWindow->setIcon(
+        th("zoom-fit-best", QStyle::SP_DialogApplyButton));
+    m_actionAutoresize->setIcon(
+        th("view-restore", QStyle::SP_BrowserReload));
+    // Narrow to Region is a "crop the visible area" action, not a zoom —
+    // use the Freedesktop crop icon when the theme has one, and the shade
+    // (collapse-to-titlebar) button as the SP_* fallback since it also
+    // reads as "reduce visible area".
+    actionNarrowToRegion->setIcon(
+        th("image-crop", QStyle::SP_TitleBarShadeButton));
+    actionWidenRegion->setIcon(
+        th("view-restore", QStyle::SP_TitleBarUnshadeButton));
+    m_actionInvertColor->setIcon(
+        th("preferences-color", QStyle::SP_TitleBarShadeButton));
+
+    // Toggle / outline
+    // Submenu labels get an icon too (via QMenu::setIcon), so the Show/Hide
+    // submenu picks up a visibility glyph.
+    m_toggleMenu->setIcon(th("view-reveal", QStyle::SP_FileDialogListView));
+    m_actionToggleMenubar->setIcon(
+        th("open-menu-symbolic", QStyle::SP_TitleBarUnshadeButton));
+    m_actionCommandPicker->setIcon(ic(QStyle::SP_FileDialogListView));
+    m_actionBookmarkPicker->setIcon(
+        th("bookmarks", QStyle::SP_FileDialogListView));
+    m_actionToggleOutline->setIcon(
+        th("view-list-tree", QStyle::SP_FileDialogDetailedView));
+    actionGenerateOutline->setIcon(
+        th("view-refresh", QStyle::SP_FileDialogNewFolder));
+    actionExportOutline->setIcon(
+        th("document-save", QStyle::SP_DialogSaveButton));
+    actionLoadOutline->setIcon(
+        th("document-open", QStyle::SP_DialogOpenButton));
+    m_actionToggleHighlightAnnotSearch->setIcon(
+        th("edit-find", QStyle::SP_FileDialogListView));
+
+    // Tools > Mode — themed edit/select icons; SP_* fallbacks are weak
+    // but not misleading.
+    m_actionRegionSelect->setIcon(
+        th("edit-select-all", QStyle::SP_FileDialogContentsView));
+    m_actionTextSelect->setIcon(
+        th("edit-select", QStyle::SP_FileDialogListView));
+    m_actionTextHighlight->setIcon(
+        th("format-text-underline", QStyle::SP_FileDialogListView));
+    m_actionAnnotRect->setIcon(
+        th("draw-rectangle", QStyle::SP_FileDialogContentsView));
+    m_actionAnnotEdit->setIcon(
+        th("document-edit", QStyle::SP_FileDialogListView));
+    m_actionAnnotPopup->setIcon(
+        th("insert-text", QStyle::SP_MessageBoxInformation));
+    m_actionNoneMode->setIcon(
+        th("edit-clear", QStyle::SP_DialogCancelButton));
+
+    // Tools
+    m_actionEncrypt->setIcon(
+        th("document-encrypt", QStyle::SP_DialogSaveButton));
+    m_actionDecrypt->setIcon(
+        th("document-decrypt", QStyle::SP_DialogOpenButton));
+
+    // Navigation — Freedesktop `go-*` icons render as directional arrows
+    // in every mainstream theme; SP_Media* keep a play-transport metaphor
+    // as fallback for non-themed environments.
+    actionStartPage->setIcon(th("go-home", QStyle::SP_DirHomeIcon));
+    m_actionGotoPage->setIcon(th("go-jump", QStyle::SP_ArrowRight));
+    m_actionFirstPage->setIcon(th("go-first", QStyle::SP_MediaSkipBackward));
+    m_actionPrevPage->setIcon(th("go-previous", QStyle::SP_MediaSeekBackward));
+    m_actionNextPage->setIcon(th("go-next", QStyle::SP_MediaSeekForward));
+    m_actionLastPage->setIcon(th("go-last", QStyle::SP_MediaSkipForward));
+    // Location history reads as undo/redo for navigation — use the edit-*
+    // themed icons (curved back/forward arrows in most themes) so it's
+    // visually distinct from page nav.
+    m_actionPrevLocation->setIcon(th("edit-undo", QStyle::SP_ArrowBack));
+    m_actionNextLocation->setIcon(th("edit-redo", QStyle::SP_ArrowForward));
+
+    // Marks
+    m_actionSetMark->setIcon(
+        th("bookmark-new", QStyle::SP_DialogOkButton));
+    m_actionGotoMark->setIcon(th("go-jump", QStyle::SP_ArrowRight));
+    m_actionDeleteMark->setIcon(
+        th("edit-delete", QStyle::SP_TrashIcon));
+
+    // Help
+    m_actionAbout->setIcon(th("help-about", QStyle::SP_MessageBoxInformation));
+    m_actionShowTutorialFile->setIcon(
+        th("help-contents", QStyle::SP_MessageBoxQuestion));
+    m_actionDonate->setIcon(
+        th("emblem-favorite", QStyle::SP_MessageBoxInformation));
 }
 
 // Initialize the recent files store
@@ -804,6 +956,7 @@ Lektra::initConfig() noexcept
     {
         set(window["startup_tab"], m_config.window.startup_tab);
         set(window["menubar"], m_config.window.menubar);
+        set(window["show_menu_icons"], m_config.window.show_menu_icons);
         set(window["fullscreen"], m_config.window.fullscreen);
         set_color(window["accent"], m_config.window.accent);
         set_color(window["bg"], m_config.window.bg);

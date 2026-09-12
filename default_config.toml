@@ -25,13 +25,14 @@
 # [window] — Main window
 # -----------------------------------------------------------------------------
 [window]
-fullscreen  = false
-menubar     = true
-startup_tab = false
-title_format = "%1 - lektra"
-initial_size = { width = 600, height = 400 }
-accent = "#3daee9FF"
-bg     = "#00000000"
+fullscreen       = false
+menubar          = true
+show_menu_icons  = true   # standard-style icons next to menubar items
+startup_tab      = false
+title_format     = "%1 - lektra"
+initial_size     = { width = 600, height = 400 }
+accent           = "#3daee9FF"
+bg               = "#00000000"
 
 
 # -----------------------------------------------------------------------------

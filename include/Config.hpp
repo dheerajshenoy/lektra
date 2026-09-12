@@ -337,6 +337,16 @@ struct Config
         // @added 0.3.0
         bool menubar = true;
 
+        // @desc {
+        // Show standard-style icons next to menu items in the menubar.
+        // Turn off for a text-only menu; icons are set on every action
+        // regardless so this flag toggles their visibility at runtime.
+        // }
+        // @type bool
+        // @default true
+        // @added 0.7.8
+        bool show_menu_icons = true;
+
         // @desc Show startup widget tab
         // @type bool
         // @default true

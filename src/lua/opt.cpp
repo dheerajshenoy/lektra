@@ -538,6 +538,24 @@ static const LuaField windowFields[] = {
 }, [](lua_State *L, P p)
 { static_cast<Config::Window *>(p)->menubar = lua_toboolean(L, 3); }},
 
+    // Setting this toggles Qt::AA_DontShowIconsInMenus but Lektra doesn't
+    // watch the flag for changes — a manual `qApp->setAttribute(...)` in a
+    // startup script would be needed for the change to take effect
+    // mid-session. Simplest UX: change it in config.toml and restart.
+    {"show_menu_icons",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Window *>(p)->show_menu_icons);
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::Window *>(p)->show_menu_icons
+        = lua_toboolean(L, 3);
+    QCoreApplication::setAttribute(
+        Qt::AA_DontShowIconsInMenus,
+        !static_cast<Config::Window *>(p)->show_menu_icons);
+}},
+
     {"startup_tab",
      [](lua_State *L, P p)
 {
