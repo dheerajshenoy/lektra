@@ -4,14 +4,14 @@
 
 ## HIGH PRIORITY
 
+- [ ] Tab detach drag and drop to new window spawns new useless window
+
 ## MEDIUM PRIORITY
 
 - [ ] Decorate form fields
 - [ ] Trim margins
 - [ ] Smart Jump
-- [ ] fit to current page width/height
 - [ ] Add support for directory local config files
-- [ ] Tab detach drag and drop to new window spawns new useless window
 - [ ] Allow for command arguments
 - [ ] Don't add connection to annotation when in non-annotatable mode
 - [ ] Link hint lua api and then callback to lua
