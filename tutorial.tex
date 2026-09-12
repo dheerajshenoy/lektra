@@ -328,9 +328,23 @@ Press \keys{:} to open the command palette — a fuzzy-matching prompt that runs
 \section{Configuration}
 % ---------------------------------------------------------------------------
 
-LEKTRA can be configured using \textbf{TOML} or \textbf{Lua}. Both files are optional and both can be present; the TOML file is applied first, and the Lua file (\pathtt{\$HOME/.config/lektra/init.lua}) is sourced afterwards so it can override any TOML setting or add runtime behaviour.
+LEKTRA can be configured using \textbf{TOML} or \textbf{Lua}. Both files are optional and both can be present; the TOML file is applied first, and the Lua file is sourced afterwards so it can override any TOML setting or add runtime behaviour.
 
-Let us look at how to configure using TOML first. The configuration file should be at \pathtt{\$HOME/.config/lektra/config.toml}. Run \keys{:open\_config} to open whichever config file(s) exist — a chooser appears if both are present.
+Config file locations:
+
+\begin{description}[
+    style=nextline,
+    font=\ttfamily,
+    leftmargin=1.2em,
+    labelindent=0pt,
+    itemsep=0.2em,
+    parsep=0pt
+]
+    \item[Linux / macOS] \pathtt{\$HOME/.config/lektra/config.toml} \\ \pathtt{\$HOME/.config/lektra/init.lua}
+    \item[Windows] \pathtt{\%APPDATA\%\textbackslash lektra\textbackslash config.toml} \\ \pathtt{\%APPDATA\%\textbackslash lektra\textbackslash init.lua}
+\end{description}
+
+Run \keys{:open\_config} to open whichever config file(s) exist — a chooser appears if both are present.
 
 \subsection{Key sections}
 
@@ -391,7 +405,7 @@ LEKTRA embeds a Lua 5.x interpreter (build with \texttt{-DWITH\_LUA=ON}). All AP
 
 \subsection{Configuration file}
 
-Place your Lua init file at \pathtt{\$HOME/.config/lektra/init.lua}. It is sourced at startup after the TOML config is applied.
+Place your Lua init file at \pathtt{\$HOME/.config/lektra/init.lua} (Linux / macOS) or \pathtt{\%APPDATA\%\textbackslash lektra\textbackslash init.lua} (Windows). It is sourced at startup after the TOML config is applied.
 
 \subsection{Namespaces}
 
@@ -492,12 +506,37 @@ LEKTRA prefers \texttt{librsvg} + \texttt{libcairo} for SVG rendering; if either
 Install \texttt{libexif} (SONAME \texttt{.so.12}). LEKTRA discovers it at runtime — no rebuild required.
 
 \subsection{Where LEKTRA keeps its files}
-\begin{description}[leftmargin=0pt]
-    \item[\texttt{\$HOME/.config/lektra/}] \texttt{config.toml}, \texttt{init.lua}
-    \item[\texttt{\$HOME/.local/share/lektra/}] recent files DB, sessions, bookmarks
-    \item[\texttt{\$HOME/.local/share/lektra/crashes/}] crash logs (\texttt{crash\_latest.log})
-    \item[\texttt{\$HOME/.local/share/lektra/sessions/}] JSON session files
+
+\textbf{Linux / macOS:}
+\begin{description}[
+    style=nextline,
+    font=\ttfamily,
+    leftmargin=1.2em,
+    labelindent=0pt,
+    itemsep=0.2em,
+    parsep=0pt
+]
+    \item[\$HOME/.config/lektra/] \texttt{config.toml}, \texttt{init.lua}
+    \item[\$HOME/.local/share/lektra/] recent files DB, sessions, bookmarks
+    \item[\$HOME/.local/share/lektra/crashes/] crash logs (\texttt{crash\_latest.log})
+    \item[\$HOME/.local/share/lektra/sessions/] JSON session files
 \end{description}
+
+\textbf{Windows} (paths resolved via Qt's \texttt{QStandardPaths}; \texttt{\%APPDATA\%} is typically \texttt{C:\textbackslash Users\textbackslash <user>\textbackslash AppData\textbackslash Roaming}):
+\begin{description}[
+    style=nextline,
+    font=\ttfamily,
+    leftmargin=1.2em,
+    labelindent=0pt,
+    itemsep=0.2em,
+    parsep=0pt
+]
+    \item[\%APPDATA\%\textbackslash lektra\textbackslash] \texttt{config.toml}, \texttt{init.lua}, recent files DB, sessions, bookmarks
+    \item[\%APPDATA\%\textbackslash lektra\textbackslash sessions\textbackslash] JSON session files
+    \item[\%TEMP\%\textbackslash lektra\_crash.log] latest crash log
+\end{description}
+
+Windows collapses the config and app-data locations because LEKTRA does not set a Qt organization name, so both \texttt{QStandardPaths::AppConfigLocation} and \texttt{AppDataLocation} resolve under the same \texttt{\%APPDATA\%\textbackslash lektra\textbackslash} directory.
 
 \subsection{LEKTRA crashed}
 A crash dialog appears with the log and a one-click ``Report on GitHub'' button that pre-fills an issue. You can also copy the log to the clipboard from that dialog, or find it later at \texttt{crash\_latest.log} in the crashes directory. Debug and \texttt{RelWithDebInfo} builds include function names and file/line numbers in the trace; release builds show addresses only — running \texttt{addr2line -e /usr/bin/lektra} on those addresses resolves them if the binary keeps symbols.
