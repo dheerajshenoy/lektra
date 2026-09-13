@@ -4,6 +4,7 @@
 
 ## HIGH PRIORITY
 
+- [ ] Fix page shifting when zooming in/out
 - [ ] Text reflow for MuPDF documents
 - [ ] Tab detach drag and drop to new window spawns new useless window
 
