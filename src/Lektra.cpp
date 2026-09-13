@@ -21,6 +21,7 @@
 #include <QDesktopServices>
 #include <QFile>
 #include <QFileDialog>
+#include <QFileIconProvider>
 #include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -628,19 +629,17 @@ Lektra::initMenubar() noexcept
     // --- Standard-style icons on menu actions ---
     // Grouped in one block so a future theme change or icon reassignment
     // does not require touching every action's registration site above.
-    // Two lookup styles:
-    //   ic(SP_*)         → QStyle standard icon, always present on every
-    //                      platform (Adwaita/Breeze/Windows/macOS/…).
-    //   th("name", SP_*) → Freedesktop themed icon (`fromTheme`), with the
-    //                      SP_* result as fallback. Used where a real theme
-    //                      icon is clearly better than any SP_* (zoom-fit-*,
-    //                      go-*, edit-*, document-*), but keeping the fallback
-    //                      means Windows / macOS / server-with-no-theme users
-    //                      still get a sensible glyph.
+    // Icons always come from QStyle::SP_* — the same on every platform
+    // (Windows/macOS/Linux, themed or not). Freedesktop `fromTheme()` names
+    // were tried here previously but only resolve on Linux with a matching
+    // icon theme installed; everywhere else (Windows, macOS, theme-less
+    // Linux) they silently fall through anyway, so using SP_* directly
+    // gives consistent, predictable icons across platforms instead of
+    // "nicer on some Linux setups, generic everywhere else".
     auto ic
         = [this](QStyle::StandardPixmap p) { return style()->standardIcon(p); };
-    auto th = [&ic](const char *name, QStyle::StandardPixmap fb)
-    { return QIcon::fromTheme(name, ic(fb)); };
+    auto th = [&ic](const char * /*themeName*/, QStyle::StandardPixmap fb)
+    { return ic(fb); };
 
     // File
     actionOpenFile->setIcon(th("document-open", QStyle::SP_DialogOpenButton));
@@ -652,10 +651,14 @@ Lektra::initMenubar() noexcept
         th("document-properties", QStyle::SP_FileDialogInfoView));
     m_actionOpenContainingFolder->setIcon(
         th("folder-open", QStyle::SP_DirOpenIcon));
+    m_recentFilesMenu->setIcon(
+        th("document-open-recent", QStyle::SP_FileDialogDetailedView));
     m_actionSaveFile->setIcon(
         th("document-save", QStyle::SP_DialogSaveButton));
     m_actionSaveAsFile->setIcon(
         th("document-save-as", QStyle::SP_DialogSaveButton));
+    sessionMenu->setIcon(
+        th("preferences-system-session", QStyle::SP_ComputerIcon));
     m_actionSessionSave->setIcon(
         th("document-save", QStyle::SP_DriveHDIcon));
     m_actionSessionSaveAs->setIcon(
@@ -2423,6 +2426,13 @@ Lektra::populateRecentFiles() noexcept
         return;
     }
 
+    // QFileIconProvider asks the platform for the icon associated with a
+    // file's type — native shell association on Windows, Finder's icon on
+    // macOS, the desktop's mime-type icon (application-pdf, image/vnd.djvu,
+    // …) on Linux. Reused across entries since construction queries
+    // platform icon-theme state.
+    static QFileIconProvider iconProvider;
+
     m_recentFilesMenu->clear();
     for (const RecentFileEntry &entry : m_recent_files_store.entries())
     {
@@ -2431,6 +2441,12 @@ Lektra::populateRecentFiles() noexcept
         const QString path  = entry.file_path;
         const int page      = entry.page_number;
         QAction *fileAction = new QAction(path, m_recentFilesMenu);
+
+        QIcon typeIcon = iconProvider.icon(QFileInfo(path));
+        fileAction->setIcon(typeIcon.isNull()
+                                ? style()->standardIcon(QStyle::SP_FileIcon)
+                                : typeIcon);
+
         connect(fileAction, &QAction::triggered, this, [this, path, page]()
         { OpenFileInNewTab(path, [this, page](void *) { gotoPage(page); }); });
 
