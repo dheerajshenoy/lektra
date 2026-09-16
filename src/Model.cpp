@@ -4624,6 +4624,13 @@ std::vector<QPolygonF>
 Model::selectAtHelper(int pageno, fz_point pt, int snapMode) noexcept
 {
     std::vector<QPolygonF> out;
+    // DjVu has no fz_context/fz_document (m_ctx/m_doc are null — it uses
+    // the separate DjVuLib API instead), so fz_try(m_ctx) below would
+    // dereference a null context. Bail out cleanly instead, matching
+    // computeTextSelectionQuad()'s existing DjVu guard.
+    if (m_filetype == FileType::DJVU)
+        return out;
+
     constexpr int MAX_HITS = 1024;
     thread_local std::array<fz_quad, MAX_HITS> hits;
     const float scale = logicalScale();
@@ -4699,6 +4706,10 @@ std::vector<QPolygonF>
 Model::selectParagraphAt(int pageno, fz_point pt) noexcept
 {
     std::vector<QPolygonF> out;
+    // See selectAtHelper() above — DjVu has no fz_context/fz_document.
+    if (m_filetype == FileType::DJVU)
+        return out;
+
     constexpr int MAX_HITS = 1024;
     thread_local std::array<fz_quad, MAX_HITS> hits;
     const float scale = logicalScale();

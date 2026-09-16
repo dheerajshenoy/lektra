@@ -25,6 +25,7 @@
 ### Bug Fixes
 
 - Fix EPUB outline entries not navigating anywhere on double-click.
+- Fix a crash (perceived as a freeze) double- or triple-clicking to select a word/line in a DjVu file — word/line/paragraph selection didn't check file type before touching MuPDF-only state DjVu doesn't have, now bails out cleanly instead.
 - Fix detaching a tab to another window sometimes also spawning a spurious new window/process with the same document, caused by an unreliable window-focus heuristic instead of using Qt's own drag-result signal.
 - Fix the statusbar (page number, mode, portal/narrow badges, etc.) not updating — or updating to the wrong state — when a window's last tab is closed or detached.
 - Fix images rendering as diagonal coloured stripes when `behavior.dont_invert_images` was enabled.
