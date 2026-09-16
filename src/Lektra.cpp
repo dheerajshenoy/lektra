@@ -4923,9 +4923,16 @@ Lektra::updateStatusbar() noexcept
     }
     else
     {
-        m_statusbar->setPageInfoVisible(false);
+        // setPageInfoVisible's `state` param means "hide" despite the
+        // name (see the two call sites above: setPageInfoVisible(isImage)
+        // hides page info for images) — pass true here to actually hide
+        // the stale page/total-page/mode/progress labels rather than
+        // leaving them showing the just-closed document's last values.
+        m_statusbar->setPageInfoVisible(true);
         m_statusbar->setFilePath("");
         m_statusbar->setHighlightColor("");
+        m_statusbar->setPortalMode(false);
+        m_statusbar->setNarrowMode(false);
     }
 }
 
@@ -6549,18 +6556,32 @@ Lektra::Close_split() noexcept
 void
 Lektra::setCurrentDocumentView(DocumentView *view) noexcept
 {
-    if (!view || m_doc == view)
+    if (m_doc == view)
         return;
 
     if (m_doc)
         m_doc->setActive(false);
-    view->setActive(true);
 
     // Clear the picker so it doesn't hold a stale pointer from the previous doc
     if (m_outline_picker)
         m_outline_picker->clearOutline();
 
     m_doc = view;
+
+    if (!view)
+    {
+        // No tabs left in this window (e.g. the last/only tab was just
+        // closed or detached to another window) — still have to refresh
+        // the statusbar/UI-enabled state to the empty-document state,
+        // not just bail out, or they stay stuck showing the closed
+        // document.
+        updateUiEnabledState();
+        updatePageNavigationActions();
+        updateStatusbar();
+        return;
+    }
+
+    view->setActive(true);
 
     const int tabIndex = m_tab_widget->currentIndex();
 

@@ -20,10 +20,13 @@
 - `file_open_window`/`open_file_new_window` command is now actually registered.
 - `default_config.toml` rewritten to match the real parser and defaults.
 - Tutorial PDF audited and corrected against the real commands/keybindings.
+- Command palette can now sort entries by how often you've picked them (most-used first, smex-style), via `[command_palette].sort_by_frequency` (default on). Usage history persists across restarts unless `persist_frequency` is turned off. Both are also exposed to Lua.
 
 ### Bug Fixes
 
 - Fix EPUB outline entries not navigating anywhere on double-click.
+- Fix detaching a tab to another window sometimes also spawning a spurious new window/process with the same document, caused by an unreliable window-focus heuristic instead of using Qt's own drag-result signal.
+- Fix the statusbar (page number, mode, portal/narrow badges, etc.) not updating — or updating to the wrong state — when a window's last tab is closed or detached.
 - Fix images rendering as diagonal coloured stripes when `behavior.dont_invert_images` was enabled.
 - Fix `[page].bg`/`.fg` being ignored for DjVu files.
 - Fix duplicate default keybindings when a `[keybindings]` block was present in the config.

@@ -138,27 +138,27 @@ TabBar::mouseMoveEvent(QMouseEvent *event)
         drag->setPixmap(tabPixmap);
         drag->setHotSpot(m_drag_start_pos);
 
-        drag->exec(Qt::MoveAction | Qt::IgnoreAction);
+        // The target TabBar's dropEvent() calls
+        // event->setDropAction(Qt::MoveAction) whenever it actually
+        // receives and accepts the drop, and that's exactly what exec()
+        // returns here — Qt already tells us whether some window took
+        // it. Don't guess via QApplication::activeWindow(): window
+        // managers don't reliably hand OS focus to the drop target
+        // synchronously (or sometimes at all), so that heuristic could
+        // decide "no target" even when another Lektra window's
+        // dropEvent had already fired tabDropReceived and opened the
+        // tab there — causing both that window AND a spurious new
+        // process (spawned by tabDetachedToNewWindow) to end up with
+        // the document.
+        const Qt::DropAction result
+            = drag->exec(Qt::MoveAction | Qt::IgnoreAction);
 
         m_drag_tab_index = -1;
 
-        // Process events to let the target window become active
-        QApplication::processEvents();
-
-        QWidget *sourceWindow = window();
-        QWidget *activeWindow = QApplication::activeWindow();
-
-        // If the active window is different from source, tab was dropped on it
-        // (close original tab). Otherwise create new window
-        if (activeWindow && activeWindow != sourceWindow
-            && activeWindow->isVisible())
-        {
+        if (result == Qt::MoveAction)
             emit tabDetached(draggedIndex, QCursor::pos());
-        }
         else
-        {
             emit tabDetachedToNewWindow(draggedIndex, tabData);
-        }
         return;
     }
 
