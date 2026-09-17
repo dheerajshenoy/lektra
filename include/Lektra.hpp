@@ -564,6 +564,7 @@ private:
     void initLuaTimer() noexcept;
 
     bool removeLuaEventCallback(DispatchType type, int callbackRef) noexcept;
+    void clearLuaEventCallbacks(DispatchType type) noexcept;
     void executeLuaCode(const QString &code) noexcept;
 
     lua_State *m_L = nullptr;

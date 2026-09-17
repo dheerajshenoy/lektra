@@ -30,6 +30,42 @@ Lektra::removeLuaEventCallback(DispatchType type, int callbackRef) noexcept
     return callbacks.size() < originalSize;
 }
 
+void
+Lektra::clearLuaEventCallbacks(DispatchType type) noexcept
+{
+    auto it = m_lua_event_dispatcher.find(type);
+    if (it == m_lua_event_dispatcher.end())
+        return;
+
+    for (const auto &cb : it->second)
+        luaL_unref(m_L, LUA_REGISTRYINDEX, cb.ref);
+
+    it->second.clear();
+}
+
+// Accepts either a string event name ("OnPageChanged") or the legacy
+// integer EventType value, so `lektra.event.register("OnPageChanged", fn)`
+// works without needing the full `lektra.event.EventType.OnPageChanged`
+// path — string literals also give editors reliable overload narrowing
+// on the callback's argument type, unlike the enum-value overloads.
+static DispatchType
+check_dispatch_type(lua_State *L, int idx)
+{
+    if (lua_type(L, idx) == LUA_TSTRING)
+    {
+        const QString name = QString::fromUtf8(lua_tostring(L, idx));
+        try
+        {
+            return stringToDispatchType(name);
+        }
+        catch (const std::invalid_argument &)
+        {
+            luaL_error(L, "Unknown event name: %s", qUtf8Printable(name));
+        }
+    }
+    return static_cast<DispatchType>(luaL_checkinteger(L, idx));
+}
+
 static void
 push_event_arg(lua_State *L, DispatchType type, void *data)
 {
@@ -110,7 +146,7 @@ Lektra::initLuaEventDispatcher() noexcept
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
-        DispatchType type = static_cast<DispatchType>(luaL_checkinteger(L, 1));
+        DispatchType type = check_dispatch_type(L, 1);
         luaL_checktype(L, 2, LUA_TFUNCTION);
 
         int callbackRef = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -141,7 +177,7 @@ Lektra::initLuaEventDispatcher() noexcept
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
-        DispatchType type = static_cast<DispatchType>(luaL_checkinteger(L, 1));
+        DispatchType type = check_dispatch_type(L, 1);
         int handle        = luaL_checkinteger(L, 2);
 
         auto *self
@@ -158,7 +194,7 @@ Lektra::initLuaEventDispatcher() noexcept
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
-        DispatchType type = static_cast<DispatchType>(luaL_checkinteger(L, 1));
+        DispatchType type = check_dispatch_type(L, 1);
         luaL_checktype(L, 2, LUA_TFUNCTION);
 
         int callbackRef = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -202,7 +238,7 @@ Lektra::initLuaEventDispatcher() noexcept
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
-        DispatchType type = static_cast<DispatchType>(luaL_checkinteger(L, 1));
+        DispatchType type = check_dispatch_type(L, 1);
         auto *self
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
 
@@ -217,6 +253,18 @@ Lektra::initLuaEventDispatcher() noexcept
         return 1;
     }, 1);
     lua_setfield(m_L, -2, "count");
+
+    // lektra.event.clear(EventType)
+    lua_pushlightuserdata(m_L, this);
+    lua_pushcclosure(m_L, [](lua_State *L) -> int
+    {
+        DispatchType type = check_dispatch_type(L, 1);
+        auto *self
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        self->clearLuaEventCallbacks(type);
+        return 0;
+    }, 1);
+    lua_setfield(m_L, -2, "clear");
 
     lua_setfield(m_L, -2, "event");
 }
