@@ -21,12 +21,14 @@
 - `default_config.toml` rewritten to match the real parser and defaults.
 - Tutorial PDF audited and corrected against the real commands/keybindings.
 - Command palette can now sort entries by how often you've picked them (most-used first, smex-style), via `[command_palette].sort_by_frequency` (default on). Usage history persists across restarts unless `persist_frequency` is turned off. Both are also exposed to Lua.
+- `lektra.event.register`/`.once`/`.unregister`/`.count`/`.clear` now accept a plain string event name (`lektra.event.register("OnPageChanged", fn)`) instead of requiring the full `lektra.event.EventType.OnPageChanged` path — the old enum form still works. The stub's callback-argument typing was also switched to string-literal overloads, which editors resolve reliably (the previous enum-value overloads didn't).
 
 ### Bug Fixes
 
 - Fix most Lua document/view events (`OnFileOpen`, `OnReady`, `OnFileClose`, `OnPageChanged`, `OnZoomChanged`, `OnLinkClicked`, `OnTextSelected`, `OnSearchStarted`/`Finished`/`Cancelled`, and both context-menu-requested events) never reaching listeners registered globally via `lektra.event.register`/`.once` — they only ever reached listeners registered per-view via `view:register`. A script like `init.lua` that hooks `OnFileOpen` before any document is open (so it has no view to call `:register` on) silently never fired.
 - Wire up two previously-unimplemented Lua events, `OnTabAdded` and `OnViewChanged` (fires on split-pane focus changes too, not just tab switches).
 - Fix `OnZoomChanged` not firing for the zoom paths most people actually use — mouse wheel, pinch, and Zoom In/Out with the default `zoom.anchor_to_mouse = true` all bypassed the code path that dispatched it; only `zoom_set`/`zoom_reset` fired it.
+- Fix `lektra.event.clear` being documented but never actually implemented — calling it did nothing.
 - Fix EPUB outline entries not navigating anywhere on double-click.
 - Fix a crash (perceived as a freeze) double- or triple-clicking to select a word/line in a DjVu file — word/line/paragraph selection didn't check file type before touching MuPDF-only state DjVu doesn't have, now bails out cleanly instead.
 - Fix detaching a tab to another window sometimes also spawning a spurious new window/process with the same document, caused by an unreliable window-focus heuristic instead of using Qt's own drag-result signal.
