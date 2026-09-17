@@ -3120,7 +3120,13 @@ Lektra::OpenFileInNewTab(const QString &filename,
     });
 
     connect(container, &DocumentContainer::currentViewChanged, container,
-            [this](DocumentView *newView) { setCurrentDocumentView(newView); });
+            [this](DocumentView *newView)
+    {
+        setCurrentDocumentView(newView);
+#ifdef WITH_LUA
+        dispatchLuaEvent(DispatchType::OnViewChanged, newView);
+#endif
+    });
 
     // Initialize connections for the initial view
     initTabConnections(view);
@@ -3984,6 +3990,14 @@ Lektra::initConnections() noexcept
     QList<QScreen *> outputs = QGuiApplication::screens();
     connect(m_tab_widget, &TabWidget::currentChanged, this,
             &Lektra::handleCurrentTabChanged);
+
+    connect(m_tab_widget, &TabWidget::tabAdded, this,
+            [this](int index)
+    {
+#ifdef WITH_LUA
+        dispatchLuaEvent(DispatchType::OnTabAdded, &index);
+#endif
+    });
 
     // Tab drag and drop connections for cross-window tab transfer
     connect(m_tab_widget, &TabWidget::tabDataRequested, this,

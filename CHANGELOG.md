@@ -24,6 +24,9 @@
 
 ### Bug Fixes
 
+- Fix most Lua document/view events (`OnFileOpen`, `OnReady`, `OnFileClose`, `OnPageChanged`, `OnZoomChanged`, `OnLinkClicked`, `OnTextSelected`, `OnSearchStarted`/`Finished`/`Cancelled`, and both context-menu-requested events) never reaching listeners registered globally via `lektra.event.register`/`.once` — they only ever reached listeners registered per-view via `view:register`. A script like `init.lua` that hooks `OnFileOpen` before any document is open (so it has no view to call `:register` on) silently never fired.
+- Wire up two previously-unimplemented Lua events, `OnTabAdded` and `OnViewChanged` (fires on split-pane focus changes too, not just tab switches).
+- Fix `OnZoomChanged` not firing for the zoom paths most people actually use — mouse wheel, pinch, and Zoom In/Out with the default `zoom.anchor_to_mouse = true` all bypassed the code path that dispatched it; only `zoom_set`/`zoom_reset` fired it.
 - Fix EPUB outline entries not navigating anywhere on double-click.
 - Fix a crash (perceived as a freeze) double- or triple-clicking to select a word/line in a DjVu file — word/line/paragraph selection didn't check file type before touching MuPDF-only state DjVu doesn't have, now bails out cleanly instead.
 - Fix detaching a tab to another window sometimes also spawning a spurious new window/process with the same document, caused by an unreliable window-focus heuristic instead of using Qt's own drag-result signal.

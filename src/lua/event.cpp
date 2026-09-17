@@ -1,4 +1,5 @@
 #include "DispatchType.hpp"
+#include "DocumentView.hpp"
 #include "Lektra.hpp"
 
 #include <QScreen>
@@ -59,8 +60,38 @@ push_event_arg(lua_State *L, DispatchType type, void *data)
     }
     case DispatchType::OnTabChanged:
     case DispatchType::OnTabRemoved:
+    case DispatchType::OnTabAdded:
         lua_pushinteger(L, *static_cast<int *>(data));
         break;
+    // Every event DocumentView::dispatchLuaEvent() forwards here carries
+    // the originating view (as `this`) as its arg — push a proper View
+    // userdata for all of them, not just OnFileOpen.
+    case DispatchType::OnReady:
+    case DispatchType::OnFileOpen:
+    case DispatchType::OnFileClose:
+    case DispatchType::OnPageChanged:
+    case DispatchType::OnZoomChanged:
+    case DispatchType::OnLinkClicked:
+    case DispatchType::OnTextSelected:
+    case DispatchType::OnSearchStarted:
+    case DispatchType::OnSearchFinished:
+    case DispatchType::OnSearchCancelled:
+    case DispatchType::OnRegionSelectionContextMenuRequested:
+    case DispatchType::OnTextSelectionContextMenuRequested:
+    case DispatchType::OnViewChanged:
+    {
+        if (!data)
+        {
+            lua_pushnil(L);
+            break;
+        }
+        auto **ud = static_cast<DocumentView **>(
+            lua_newuserdata(L, sizeof(DocumentView *)));
+        *ud = static_cast<DocumentView *>(data);
+        luaL_getmetatable(L, "DocumentViewMetaTable");
+        lua_setmetatable(L, -2);
+        break;
+    }
     default:
         if (data)
             lua_pushlightuserdata(L, data);

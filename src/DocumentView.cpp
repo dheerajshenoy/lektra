@@ -22,6 +22,7 @@
 #include "GraphicsImageItem.hpp"
 #include "GraphicsView.hpp"
 #include "InputDialog.hpp"
+#include "Lektra.hpp"
 #include "LinkHint.hpp"
 #include "PropertiesWidget.hpp"
 #include "WaitingSpinnerWidget.hpp"
@@ -1702,6 +1703,9 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         if (!m_model->isAnimated())
             m_hq_render_timer->start();
 
+#ifdef WITH_LUA
+        dispatchLuaEvent(DispatchType::OnZoomChanged);
+#endif
         return;
     }
 
@@ -1769,6 +1773,9 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         }
 
         m_gview->flashScrollbars();
+#ifdef WITH_LUA
+        dispatchLuaEvent(DispatchType::OnZoomChanged);
+#endif
         return;
     }
 
@@ -1816,6 +1823,9 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
     }
 
     m_gview->flashScrollbars();
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnZoomChanged);
+#endif
 }
 
 void
@@ -6669,6 +6679,17 @@ DocumentView::dispatchLuaEvent(DispatchType type) noexcept
 {
     for (const auto &callback : m_lua_event_dispatcher[type])
         callback.invoker(this);
+
+    // Also forward to the global lektra.event.register/once(...) listener
+    // list, not just this view's own view:register(...) listeners. Every
+    // event routed through here previously only ever reached the latter —
+    // a script with no view handle yet (e.g. init.lua, which runs before
+    // any document is open) had no way to observe any of these events.
+    // Centralised here rather than at each of the ~12 call sites so a
+    // future new event routed through dispatchLuaEvent can't silently
+    // reintroduce the same gap.
+    if (auto *lektra = qobject_cast<Lektra *>(window()))
+        lektra->dispatchLuaEvent(type, this);
 }
 
 void

@@ -70,6 +70,11 @@ public:
         return m_command_manager.get();
     }
 
+    // Public so DocumentView can dispatch to global lektra.event
+    // listeners (e.g. OnFileOpen) for a view that isn't necessarily
+    // m_doc — mirrors the DocumentView::dispatchLuaEvent per-view path.
+    void dispatchLuaEvent(DispatchType type, void *arg = nullptr) noexcept;
+
     inline void showMessage(const QString &message,
                             float duration = 2.0f) noexcept
     {
@@ -559,7 +564,6 @@ private:
     void initLuaTimer() noexcept;
 
     bool removeLuaEventCallback(DispatchType type, int callbackRef) noexcept;
-    void dispatchLuaEvent(DispatchType type, void *arg = nullptr) noexcept;
     void executeLuaCode(const QString &code) noexcept;
 
     lua_State *m_L = nullptr;
