@@ -109,6 +109,7 @@ if(MSVC)
         MSBuild "${MUPDF_SLN}"
         /p:Configuration=$<CONFIG>
         /p:Platform=x64
+        /p:PlatformToolset=${CMAKE_VS_PLATFORM_TOOLSET}
         /m
 
         INSTALL_COMMAND

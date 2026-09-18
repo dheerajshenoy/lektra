@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 :: Default values
 set "BUILD_TYPE=Release"
-set "PREFIX=C:\usr"
+set "PREFIX=%ProgramFiles%\lektra"
 set "WITH_LUA=off"
 
 :parse_args
@@ -64,7 +64,7 @@ exit /b 1
 echo Usage: configure.bat [OPTIONS]
 echo.
 echo Options:
-echo     --prefix PATH           Set the installation prefix [default: C:\usr]
+echo     --prefix PATH           Set the installation prefix [default: %%ProgramFiles%%\lektra]
 echo     --with-synctex          Enable SyncTeX support (requires SyncTeX library) (default: false)
 echo     --without-synctex       Disable SyncTeX support
 echo     --with-lua              Enable Lua scripting support (requires Lua library) (default: false)
@@ -80,11 +80,15 @@ exit /b 0
 
 :end_parse
 
-:: Check for mupdf directory (checks if a file or folder exists)
-dir /a "thirdparty\mupdf" >nul 2>&1
+:: Always sync submodules recursively, including nested ones (mupdf's own
+:: submodules like leptonica). A top-level checkout can exist while nested
+:: submodules are still uninitialized, so checking for the directory alone
+:: is not enough.
+echo Syncing git submodules...
+git submodule update --init --recursive
 if %errorlevel% neq 0 (
-    echo Error: The directory 'thirdparty\mupdf' does not exist or is empty.
-    git submodule update --init --recursive
+    echo Error: git submodule update --init --recursive failed.
+    exit /b %errorlevel%
 )
 
 :: Create build directory
