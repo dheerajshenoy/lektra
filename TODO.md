@@ -21,8 +21,6 @@
 - [ ] Add luajit support
 - [ ] Add support for embedded files in PDFs
 - [ ] Underline Annotation
-- [ ] Djvu Text selection
-- [ ] Djvu Text search
 
 ## LUA PLUGIN IDEAS
 
