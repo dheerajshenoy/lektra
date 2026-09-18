@@ -3,6 +3,10 @@ project(lektra VERSION 0.7.8 LANGUAGES C CXX)
 
 include(GNUInstallDirs)
 
+# Single source of truth for the project version, exposed to the Inno Setup
+# installer script (lektra.iss) so it doesn't need its own hardcoded copy.
+file(WRITE "${CMAKE_BINARY_DIR}/version.txt" "${PROJECT_VERSION}")
+
 option(WITH_SYNCTEX "Enable synctex support" ON)
 option(WITH_LUA     "Enable lua scripting support" OFF)
 

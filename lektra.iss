@@ -1,9 +1,21 @@
 #define MyAppExecName "lektra.exe"
 #define MyAppName "Lektra"
 
+; Version comes from CMakeLists.txt's project(... VERSION x.y.z ...), via
+; build/version.txt written by CMake at configure time. Run configure.bat
+; (or `cmake -S . -B build`) before compiling this script.
+#define VersionFile SourcePath + "build\version.txt"
+#if FileExists(VersionFile)
+  #define VersionHandle FileOpen(VersionFile)
+  #define MyAppVersion Trim(FileRead(VersionHandle))
+  #expr FileClose(VersionHandle)
+#else
+  #error "build\version.txt not found. Run configure.bat (or cmake -S . -B build) before compiling lektra.iss."
+#endif
+
 [Setup]
 AppName={#MyAppName}
-AppVersion=0.7.0
+AppVersion={#MyAppVersion}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 OutputDir=installer
