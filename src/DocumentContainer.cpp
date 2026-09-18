@@ -720,10 +720,16 @@ DocumentContainer::createThumbnailView(DocumentView *view) noexcept
     connect(thumbView, &ThumbnailView::pageClicked, view,
             &DocumentView::GotoPage);
 
-    // Keep the highlight in sync with the main view's current page.
-    // currentPageChanged is 1-based; highlightPage takes 0-based.
+    // Keep the highlight and scroll position in sync with the main view's
+    // current page. currentPageChanged is 1-based; highlightPage/syncToPage
+    // take 0-based.
     connect(view, &DocumentView::currentPageChanged, thumbView,
-            [thumbView](int pageno) { thumbView->highlightPage(pageno - 1); });
+            [thumbView](int pageno)
+    {
+        thumbView->highlightPage(pageno - 1);
+        if (thumbView->documentView()->config().thumbnail.sync_scroll)
+            thumbView->syncToPage(pageno - 1);
+    });
 
     thumbView->open(view->filePath(), view->CurrentLocation());
 

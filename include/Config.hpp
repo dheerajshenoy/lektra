@@ -255,6 +255,13 @@ struct Config
         // @default true
         // @added 0.7.4
         bool highlight_current_page = true;
+
+        // @desc Automatically scroll the thumbnail panel to keep the
+        // currently visible page's thumbnail in view as pages change
+        // @type bool
+        // @default true
+        // @added 0.7.8
+        bool sync_scroll = true;
     } thumbnail;
     // @endsection
 

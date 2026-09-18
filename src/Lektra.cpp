@@ -821,10 +821,11 @@ Lektra::initConfig() noexcept
         }
     }
 
-    if (!QFile::exists(m_config_file_path))
+    if (m_skip_toml_config || !QFile::exists(m_config_file_path))
     {
-        // No config file → apply compiled-in defaults and bail. Users who
-        // never wrote a config still get all the standard keybindings.
+        // No config file (or --config explicitly selected only an init.lua)
+        // → apply compiled-in defaults and bail. Users who never wrote a
+        // config still get all the standard keybindings.
         initDefaultKeybinds();
         return;
     }
@@ -916,6 +917,7 @@ Lektra::initConfig() noexcept
         set(thumbnail_panel["font_size"], m_config.thumbnail.font_size);
         set(thumbnail_panel["highlight_current_page"],
             m_config.thumbnail.highlight_current_page);
+        set(thumbnail_panel["sync_scroll"], m_config.thumbnail.sync_scroll);
     }
 
     // Tabs
@@ -2130,8 +2132,19 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 
     if (argparser.is_used("config"))
     {
-        m_config_file_path
+        const QString config_arg
             = QString::fromStdString(argparser.get<std::string>("--config"));
+
+        if (config_arg.endsWith(".lua", Qt::CaseInsensitive))
+        {
+            m_init_file_path  = config_arg;
+            m_skip_toml_config = true;
+        }
+        else
+        {
+            m_config_file_path = config_arg;
+            m_skip_lua_config  = true;
+        }
     }
 
     // IPC probe — must happen before construct() so no window is created
@@ -7515,8 +7528,10 @@ Lektra::OpenConfigFile() noexcept
     const bool hasToml = QFile::exists(m_config_file_path);
 
 #ifdef WITH_LUA
-    const QString init_file = m_config_dir.filePath("init.lua");
-    const bool hasLua       = QFile::exists(init_file);
+    const QString init_file = m_init_file_path.isEmpty()
+                                   ? m_config_dir.filePath("init.lua")
+                                   : m_init_file_path;
+    const bool hasLua = QFile::exists(init_file);
 
     if (hasToml && hasLua)
     {
@@ -7930,7 +7945,12 @@ Lektra::getKeybindings(const QString &cmdname) const noexcept
 void
 Lektra::loadLuaConfig() noexcept
 {
-    const QString init_file = m_config_dir.filePath("init.lua");
+    if (m_skip_lua_config)
+        return;
+
+    const QString init_file = m_init_file_path.isEmpty()
+                                   ? m_config_dir.filePath("init.lua")
+                                   : m_init_file_path;
     if (QFile::exists(init_file))
     {
         const std::string config_path = m_config_dir.absolutePath().toStdString();

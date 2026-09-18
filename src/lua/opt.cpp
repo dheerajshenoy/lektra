@@ -448,6 +448,16 @@ static const LuaField thumbnailPanelFields[] = {
     static_cast<Config::ThumbnailPanel *>(p)->show_page_numbers
         = lua_toboolean(L, 3);
 }},
+    {"sync_scroll",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::ThumbnailPanel *>(p)->sync_scroll);
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::ThumbnailPanel *>(p)->sync_scroll
+        = lua_toboolean(L, 3);
+}},
 };
 
 // --- portal ---

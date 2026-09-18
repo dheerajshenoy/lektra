@@ -452,6 +452,14 @@ private:
     float m_dpr = 1.0f;
     QMap<QString, float> m_screen_dpr_map; // DPR per screen
     QString m_config_file_path, m_bookmarks_file_path;
+    // Overrides the default `<config_dir>/init.lua` path when --config was
+    // given a .lua file instead of a .toml file. Empty means "use default".
+    QString m_init_file_path;
+    // When --config is given, only that file is loaded — the other config
+    // type is skipped entirely rather than falling back to its default
+    // location.
+    bool m_skip_toml_config = false;
+    bool m_skip_lua_config  = false;
     QString m_lockedInputBuffer; // Used for link hints and waiting input event
                                  // like for marks etc.
     bool m_link_hint_mode                 = false;

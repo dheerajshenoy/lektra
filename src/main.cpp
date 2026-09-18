@@ -183,7 +183,11 @@ init_args(argparse::ArgumentParser &program)
         .implicit_value(true);
 
     program.add_argument("-c", "--config")
-        .help("Path to config.toml file")
+        .help("Path to a config.toml or init.lua file, selected by "
+              "extension. Only that file is loaded — a .toml path loads "
+              "just that config (compiled-in defaults otherwise, no "
+              "init.lua), a .lua path loads just that script (no "
+              "config.toml)")
         .nargs(1)
         .metavar("CONFIG_PATH");
 
