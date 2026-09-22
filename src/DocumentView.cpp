@@ -1733,7 +1733,7 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         relY                       = localPos.y() / pagePixelSize.height();
     }
 
-    // SINGLE: synchronous bake + anchor restore
+    // SINGLE: synchronous relayout + anchor restore
     if (m_layout_mode == LayoutMode::SINGLE)
     {
         m_current_zoom = factor;
@@ -1749,28 +1749,7 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         m_gview->setUpdatesEnabled(true);
         renderPage();
 
-        // Re-fetch pageItem after repositionPages() — it may have been rebuilt.
-        if (anchorPage >= 0)
-        {
-            pageItem = m_page_items_hash.value(anchorPage, nullptr);
-            if (pageItem)
-            {
-                const QSizeF newPageSize = pageItem->boundingRect().size();
-                const QPointF newLocalPos(relX * newPageSize.width(),
-                                          relY * newPageSize.height());
-                const QPointF newScenePos = pageItem->mapToScene(newLocalPos);
-
-                const QPointF currentCenter
-                    = m_gview->mapToScene(m_gview->viewport()->rect().center());
-                const QPointF desiredAnchorViewport(
-                    viewportRatio.x() * m_gview->viewport()->width(),
-                    viewportRatio.y() * m_gview->viewport()->height());
-                const QPointF anchorOffset
-                    = m_gview->mapToScene(desiredAnchorViewport.toPoint())
-                      - currentCenter;
-                m_gview->centerOn(newScenePos - anchorOffset);
-            }
-        }
+        restoreZoomAnchor(anchorPage, relX, relY, viewportRatio);
 
         m_gview->flashScrollbars();
 #ifdef WITH_LUA
@@ -1779,45 +1758,32 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         return;
     }
 
-    // Multi-page (VERTICAL, HORIZONTAL, BOOK): GPU-deferred.
+    // Multi-page (VERTICAL, HORIZONTAL, BOOK): synchronous relayout, same as
+    // SINGLE above. Layout/positioning (cachePageStride/repositionPages) is
+    // cheap — it only touches already-loaded items via setPos/setScale, no
+    // rendering — so there is no need to defer it behind a GPU view-transform
+    // and "bake" it later; doing so previously caused a visible jump whenever
+    // the deferred bake's layout didn't pixel-match the interim transform.
+    // Only the actual expensive re-render (in renderPages(), triggered by
+    // m_scroll_page_update_timer below) still needs debouncing.
     {
-        const double prevZoom = m_current_zoom;
-        m_current_zoom        = factor;
-        ClearTextSelection();
-        const double delta = m_current_zoom / prevZoom;
-
-        m_view_zoom_pending = true;
-
-        // QGraphicsView::scale() pivots around whatever transformationAnchor
-        // is set (default: AnchorViewCenter), so passing anchorScenePos here
-        // was a no-op — the cursor position drifted on every zoom. Capture
-        // the anchor's viewport pixel position, do the scale, then nudge
-        // the scrollbars so the same scene point lands at the same viewport
-        // pixel. That's the "zoom under the mouse" behaviour users expect,
-        // and it stays correct through the deferred bake because the bake
-        // restores whatever the viewport centre is at the time it fires.
-        const QPoint anchorPxBefore
-            = m_gview->mapFromScene(anchorScenePos);
-
+        m_current_zoom = factor;
         m_gview->setUpdatesEnabled(false);
-        m_gview->scale(delta, delta);
-        // QGraphicsView applies scale to the transform immediately; the
-        // scrollbar geometry updates on the next event loop tick, so
-        // mapFromScene here already reflects the new transform.
-        const QPoint anchorPxAfter
-            = m_gview->mapFromScene(anchorScenePos);
-        const QPoint dxdy = anchorPxAfter - anchorPxBefore;
-        if (dxdy.x() != 0)
-        {
-            QScrollBar *hbar = m_gview->horizontalScrollBar();
-            hbar->setValue(hbar->value() + dxdy.x());
-        }
-        if (dxdy.y() != 0)
-        {
-            QScrollBar *vbar = m_gview->verticalScrollBar();
-            vbar->setValue(vbar->value() + dxdy.y());
-        }
+        m_gscene->blockSignals(true);
+        m_vscroll->blockSignals(true);
+        m_hscroll->blockSignals(true);
+        invalidateVisiblePagesCache();
+        ClearTextSelection();
+        m_model->setZoom(m_current_zoom);
+        cachePageStride();
+        updateSceneRect();
+        repositionPages();
+        m_vscroll->blockSignals(false);
+        m_hscroll->blockSignals(false);
+        m_gscene->blockSignals(false);
         m_gview->setUpdatesEnabled(true);
+
+        restoreZoomAnchor(anchorPage, relX, relY, viewportRatio);
 
         m_scroll_page_update_timer->start();
     }
@@ -1826,6 +1792,37 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
 #ifdef WITH_LUA
     dispatchLuaEvent(DispatchType::OnZoomChanged);
 #endif
+}
+
+// Given a page-local anchor point (relX, relY on anchorPage) and where it
+// should land in the viewport (viewportRatio), re-center the view so that
+// point stays visually fixed after a zoom relayout. Shared by both the
+// SINGLE and multi-page branches of setZoomAnchored() above.
+void
+DocumentView::restoreZoomAnchor(int anchorPage, double relX, double relY,
+                                const QPointF &viewportRatio) noexcept
+{
+    if (anchorPage < 0)
+        return;
+
+    // Re-fetch the page item — it may have been rebuilt by repositionPages().
+    GraphicsImageItem *pageItem = m_page_items_hash.value(anchorPage, nullptr);
+    if (!pageItem)
+        return;
+
+    const QSizeF newPageSize = pageItem->boundingRect().size();
+    const QPointF newLocalPos(relX * newPageSize.width(),
+                              relY * newPageSize.height());
+    const QPointF newScenePos = pageItem->mapToScene(newLocalPos);
+
+    const QPointF currentCenter
+        = m_gview->mapToScene(m_gview->viewport()->rect().center());
+    const QPointF desiredAnchorViewport(
+        viewportRatio.x() * m_gview->viewport()->width(),
+        viewportRatio.y() * m_gview->viewport()->height());
+    const QPointF anchorOffset
+        = m_gview->mapToScene(desiredAnchorViewport.toPoint()) - currentCenter;
+    m_gview->centerOn(newScenePos - anchorOffset);
 }
 
 void
@@ -3208,81 +3205,10 @@ DocumentView::renderPages() noexcept
         return;
     }
 
-    // Bake a pending GPU view-transform zoom into actual scene geometry.
-    // During interactive zoom setZoomAnchored() applies m_gview->scale() for
-    // O(1) visual feedback; the expensive O(n) repositionPages() is deferred
-    // here and runs once after the scroll-debounce timer fires.
-    bool zoomBaked = false;
-    if (m_view_zoom_pending)
-    {
-        zoomBaked = true;
-        m_view_zoom_pending = false;
-
-        // Capture viewport centre in page-local coords before resetting.
-        const QPointF centerScene
-            = m_gview->mapToScene(m_gview->viewport()->rect().center());
-        int centerPage                = -1;
-        GraphicsImageItem *centerItem = nullptr;
-        double centerRelX = 0.5, centerRelY = 0.5;
-        if (pageAtScenePos(centerScene, centerPage, centerItem) && centerItem)
-        {
-            const QPointF local = centerItem->mapFromScene(centerScene);
-            const QSizeF sz     = centerItem->boundingRect().size();
-            if (sz.width() > 0 && sz.height() > 0)
-            {
-                centerRelX = local.x() / sz.width();
-                centerRelY = local.y() / sz.height();
-            }
-        }
-
-        // Block scrollbar signals across resetTransform/updateSceneRect so that
-        // Qt's auto-clamping doesn't fire valueChanged (and scroll the viewport)
-        // before we have a chance to call centerOn() with the correct position.
-        m_vscroll->blockSignals(true);
-        m_hscroll->blockSignals(true);
-        m_gview->setUpdatesEnabled(false);
-        m_gscene->blockSignals(true);
-        m_gview->resetTransform();
-        invalidateVisiblePagesCache();
-        m_model->setZoom(m_current_zoom);
-        cachePageStride();
-        updateSceneRect();
-        repositionPages();
-
-        // Unblock scrollbar signals NOW so that centerOn()/GotoPage() below
-        // actually move the viewport.  Qt routes centerOn → setValue →
-        // valueChanged → scrollContentsBy, which is what physically scrolls
-        // the view.  While signals are blocked that chain is severed, so the
-        // scrollbar stores the right value but the viewport never moves.
-        m_vscroll->blockSignals(false);
-        m_hscroll->blockSignals(false);
-
-        // Restore scroll position at the new zoom level.
-        if (centerPage >= 0)
-        {
-            GraphicsImageItem *restored
-                = m_page_items_hash.value(centerPage, nullptr);
-            if (restored)
-            {
-                const QSizeF sz = restored->boundingRect().size();
-                m_gview->centerOn(restored->mapToScene(QPointF(
-                    centerRelX * sz.width(), centerRelY * sz.height())));
-            }
-        }
-        else
-        {
-            // Viewport centre was in an inter-page gap; fall back to the
-            // current page.
-            GotoPage(m_pageno);
-        }
-        // NOTE: setUpdatesEnabled and m_gscene->blockSignals remain active —
-        // the block below re-uses them and re-enables at the end.
-    }
-
     // If any rendered page revealed dimensions that differ from what
     // cachePageStride() assumed, recompute offsets before determining visible
     // pages — otherwise the wrong pages get rendered and gaps remain missing.
-    if (m_page_layout_stale && !m_view_zoom_pending) {
+    if (m_page_layout_stale) {
         cachePageStride();  // clears m_page_layout_stale
         updateSceneRect();
         repositionPages();
@@ -3308,13 +3234,8 @@ DocumentView::renderPages() noexcept
     qDebug() << "DocumentView::renderPages(): Rendering pages:" << pages;
 #endif
 
-    // When zoom was baked above, setUpdatesEnabled(false) and blockSignals(true)
-    // are already in effect; otherwise start the suppression window now.
-    if (!zoomBaked)
-    {
-        m_gview->setUpdatesEnabled(false);
-        m_gscene->blockSignals(true);
-    }
+    m_gview->setUpdatesEnabled(false);
+    m_gscene->blockSignals(true);
 
     {
         prunePendingRenders(pages);
@@ -3329,20 +3250,10 @@ DocumentView::renderPages() noexcept
         for (int pageno : preloadPages)
             requestPageRender(pageno, false, false);
 
-        // updateSceneRect is already called inside the zoom-bake block above;
-        // only call it here when no zoom was baked this cycle (scroll-only path)
-        // or in thumbnail mode where item bounds affect the scene rect.
-        if (!zoomBaked || m_thumbnail_mode)
-            updateSceneRect();
+        updateSceneRect();
     }
     m_gscene->blockSignals(false);
     m_gview->setUpdatesEnabled(true);
-    if (zoomBaked)
-    {
-        m_vscroll->blockSignals(false);
-        m_hscroll->blockSignals(false);
-        updateCurrentPage();
-    }
 
     updateCurrentHitHighlight();
 
@@ -4384,11 +4295,6 @@ DocumentView::updateCurrentPage() noexcept
 void
 DocumentView::ensureVisiblePagePlaceholders() noexcept
 {
-    // Page offsets are still at the old zoom during a pending GPU zoom,
-    // so visible-page lookup would be wrong — skip until the bake fires.
-    if (m_view_zoom_pending)
-        return;
-
     const std::set<int> &visiblePages = getVisiblePages();
 
     // Quick check - if we already have all pages, return early
@@ -6250,22 +6156,13 @@ DocumentView::handleHScrollValueChanged(int value) noexcept
     // During fast scrolling, only invalidate cache, don't trigger render
     invalidateVisiblePagesCache();
 
-    // Skip page tracking during zoom: m_page_offsets are stale until the
-    // bake in renderPages() repositions everything at the new zoom level.
-    if (!m_view_zoom_pending)
-        updateCurrentPage();
+    updateCurrentPage();
 
     // Immediately request renders for currently visible pages so they don't
     // appear blank during fast scrolling (requestPageRender is a no-op if the
-    // page is already pending). Skip during zoom: the scrollbar is being
-    // adjusted as part of anchor drift correction; page positions and model
-    // zoom are not yet consistent so renders dispatched here would be at the
-    // wrong zoom level.
-    if (!m_view_zoom_pending)
-    {
-        for (int pageno : getVisiblePages())
-            requestPageRender(pageno);
-    }
+    // page is already pending).
+    for (int pageno : getVisiblePages())
+        requestPageRender(pageno);
 
     // Always restart the timer (debouncing)
     m_scroll_page_update_timer->start();
@@ -6284,19 +6181,13 @@ DocumentView::handleVScrollValueChanged(int /*value */) noexcept
     // During fast scrolling, only invalidate cache, don't trigger render
     invalidateVisiblePagesCache();
 
-    // Skip page tracking during zoom: m_page_offsets are stale until the
-    // bake in renderPages() repositions everything at the new zoom level.
-    if (!m_view_zoom_pending)
-        updateCurrentPage();
+    updateCurrentPage();
 
     // Immediately request renders for currently visible pages so they don't
     // appear blank during fast scrolling (requestPageRender is a no-op if the
-    // page is already pending). Skip during zoom: same reason as H handler.
-    if (!m_view_zoom_pending)
-    {
-        for (int pageno : getVisiblePages())
-            requestPageRender(pageno);
-    }
+    // page is already pending).
+    for (int pageno : getVisiblePages())
+        requestPageRender(pageno);
 
     // Always restart the timer (debouncing)
     m_scroll_page_update_timer->start();

@@ -637,6 +637,14 @@ private:
     void scrollToCurrentHit() noexcept;
     void zoomHelper(const PageLocation &loc = {-1, 0, 0}) noexcept;
     void repositionPages();
+    // Restores the viewport position after a synchronous zoom relayout: finds
+    // where the page-local point (relX, relY) on anchorPage now sits in the
+    // scene and centers the view so it lands back at viewportRatio's
+    // position in the viewport. Used by setZoomAnchored() for both the
+    // SINGLE and multi-page layout branches so zoom-anchoring behaves
+    // identically across layout modes.
+    void restoreZoomAnchor(int anchorPage, double relX, double relY,
+                           const QPointF &viewportRatio) noexcept;
     void cachePageStride() noexcept;
     void updateSceneRect() noexcept;
     // For reflowable documents (EPUB/FB2/MOBI), re-paginate to the current
@@ -720,7 +728,6 @@ private:
     LayoutMode m_layout_mode                  = LayoutMode::VERTICAL;
     WaitingSpinnerWidget *m_spinner           = nullptr;
     bool m_visible_pages_dirty                = true;
-    bool m_view_zoom_pending                  = false;
     bool m_page_layout_stale                  = false;
     bool m_deferred_fit                       = false;
     bool m_scroll_to_hit_pending              = false;
