@@ -53,6 +53,7 @@
 - Fix stale search results/popups reappearing after cancelling or re-searching.
 - Fix multi-file CLI open running `--command` before any file had actually loaded.
 - Fix zoom visibly jumping/snapping in continuous, horizontal, and book layout modes (mouse wheel, touchpad pinch, and keyboard zoom) — it now stays smoothly anchored under the cursor, matching single-page mode.
+- Fix internal link (TOC/page-jump) hover tooltips showing a raw internal destination string instead of something meaningful — they now show "Go to page N".
 - Fix a race that could double-fire the open-finished handler on rapid consecutive opens.
 - Fix File Properties freezing on a DjVu file with a broken annotation job.
 

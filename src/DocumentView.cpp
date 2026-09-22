@@ -4564,6 +4564,24 @@ DocumentView::renderLinks(int pageno,
             item->setTargetLocation(link.target_loc);
         }
 
+        // Internal jump links show a raw internal destination string (e.g.
+        // "#page=5") in link.uri, which isn't meaningful to users — show the
+        // target page number instead. External links keep showing the real
+        // URL, same as a browser.
+        switch (link.type)
+        {
+            case BrowseLinkItem::LinkType::Page:
+            case BrowseLinkItem::LinkType::Section:
+            case BrowseLinkItem::LinkType::Location:
+            case BrowseLinkItem::LinkType::FitV:
+            case BrowseLinkItem::LinkType::FitH:
+                if (link.target_page >= 0)
+                    item->setToolTip(tr("Go to page %1").arg(link.target_page + 1));
+                break;
+            case BrowseLinkItem::LinkType::External:
+                break;
+        }
+
         switch (item->linkType())
         {
             case BrowseLinkItem::LinkType::FitH:
