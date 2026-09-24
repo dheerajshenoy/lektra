@@ -47,6 +47,7 @@ cd lektra
 
 mkdir -p build
 cmake -S . -B build -DCMAKE_INSTALL_TYPE=Debug
+cmake --build build --parallel
 cmake --install build --prefix build/debug
 ```
 
