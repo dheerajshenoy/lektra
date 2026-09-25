@@ -57,6 +57,9 @@ public:
         HTML,
         MD,
         TXT,
+        DOCX,
+        XLSX,
+        PPTX,
         // Images
         JPG,
         PNG,
@@ -170,6 +173,9 @@ public:
             case FileType::MOBI:
             case FileType::HTML:
             case FileType::MD:
+            case FileType::DOCX:
+            case FileType::XLSX:
+            case FileType::PPTX:
                 return true;
             default:
                 return false;
@@ -186,6 +192,9 @@ public:
             case FileType::FB2:
             case FileType::HTML:
             case FileType::MD:
+            case FileType::DOCX:
+            case FileType::XLSX:
+            case FileType::PPTX:
                 return true;
             default:
                 return false;
@@ -204,6 +213,9 @@ public:
             case FileType::HTML:
             case FileType::MD:
             case FileType::TXT:
+            case FileType::DOCX:
+            case FileType::XLSX:
+            case FileType::PPTX:
                 return true;
             default:
                 return false;
@@ -220,7 +232,9 @@ public:
         return m_filetype == FileType::PDF || m_filetype == FileType::EPUB
                || m_filetype == FileType::XPS || m_filetype == FileType::FB2
                || m_filetype == FileType::DJVU || m_filetype == FileType::MOBI
-               || m_filetype == FileType::HTML || m_filetype == FileType::MD;
+               || m_filetype == FileType::HTML || m_filetype == FileType::MD
+               || m_filetype == FileType::DOCX || m_filetype == FileType::XLSX
+               || m_filetype == FileType::PPTX;
     }
 
     // True for HTML-backed formats whose pagination MuPDF computes by
@@ -235,7 +249,9 @@ public:
     {
         return m_filetype == FileType::EPUB || m_filetype == FileType::FB2
                || m_filetype == FileType::MOBI || m_filetype == FileType::HTML
-               || m_filetype == FileType::MD || m_filetype == FileType::TXT;
+               || m_filetype == FileType::MD || m_filetype == FileType::TXT
+               || m_filetype == FileType::DOCX || m_filetype == FileType::XLSX
+               || m_filetype == FileType::PPTX;
     }
 
     [[nodiscard]] inline bool supports_annotations() const noexcept

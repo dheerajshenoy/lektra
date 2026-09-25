@@ -6005,6 +6005,12 @@ Model::getFileType(const QString &path) noexcept
         return FileType::MD;
     if (suffix == "txt" || suffix == "text" || suffix == "log")
         return FileType::TXT;
+    if (suffix == "docx")
+        return FileType::DOCX;
+    if (suffix == "xlsx")
+        return FileType::XLSX;
+    if (suffix == "pptx")
+        return FileType::PPTX;
 
     const QMimeType mime
         = QMimeDatabase().mimeTypeForFile(path, QMimeDatabase::MatchContent);
@@ -6251,6 +6257,12 @@ Model::fileTypeToString() const noexcept
             return "Markdown";
         case FileType::TXT:
             return "Text";
+        case FileType::DOCX:
+            return "DOCX";
+        case FileType::XLSX:
+            return "XLSX";
+        case FileType::PPTX:
+            return "PPTX";
         case FileType::DJVU:
             return "DJVU";
         case FileType::JPG:

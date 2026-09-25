@@ -855,9 +855,9 @@ struct Config
         // @added 0.7.8
         enum class OpenPosition
         {
-            End = 0,        // append after all existing tabs (default)
-            Start,          // insert at index 0
-            AfterCurrent    // insert immediately after the current tab
+            End = 0,     // append after all existing tabs (default)
+            Start,       // insert at index 0
+            AfterCurrent // insert immediately after the current tab
         };
         OpenPosition open_position = OpenPosition::End;
     } tabs;
@@ -1248,13 +1248,15 @@ struct Config
         // @added 0.7.8
         bool high_contrast = false;
 
-        // @desc Pixel value (0-255) below which high-contrast pushes to pure black.
+        // @desc Pixel value (0-255) below which high-contrast pushes to pure
+        // black.
         // @type int
         // @default 40
         // @added 0.7.8
         int high_contrast_black_point = 40;
 
-        // @desc Pixel value (0-255) above which high-contrast pushes to pure white.
+        // @desc Pixel value (0-255) above which high-contrast pushes to pure
+        // white.
         // @type int
         // @default 220
         // @added 0.7.8
@@ -1450,4 +1452,55 @@ struct Config
         };
     } misc;
     // @endsection
+
+    // @section llm_view
+    // @section_desc LLM View options struct
+    // @section_type struct
+    // @section_added 0.7.8
+    struct LLMView
+    {
+        // @desc Show the LLM view
+        // @type bool
+        // @default false
+        // @added 0.7.8
+        bool enabled = false;
+
+        // @desc Show the LLM view in a separate window
+        // @type bool
+        // @default false
+        // @added 0.7.8
+        bool separate_window = false;
+
+        // @desc Location of the LLM view when not in a separate window
+        // @type str
+        // @choice left, right, top, bottom
+        // @default right
+        // @added 0.7.8
+        QString dock_area = "right"; // "left", "right", "top", "bottom"
+
+        // @desc Model to use for LLM view
+        // @type str
+        // @default "qwen-9b-chat"
+        // @added 0.7.8
+        QString model = "qwen-9b-chat";
+
+        // @desc API key for the LLM model (empty for local models)
+        // @type str
+        // @default ""
+        // @added 0.7.8
+        QString api_key = QString();
+
+        // @desc API URL for the LLM model
+        // @type str
+        // @default ""
+        // @added 0.7.8
+        QString api_url = "https://localhost:11434/v1/chat/completions";
+
+        // @desc Extra body to send in the API request (JSON format)
+        // @type map
+        // @default ""
+        // @added 0.7.8
+        QVariantMap extra_body = {};
+
+    } llm_view;
 };

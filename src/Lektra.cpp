@@ -1,11 +1,11 @@
 #include "Lektra.hpp"
 
 #include "AboutDialog.hpp"
-#include "DonateDialog.hpp"
 #include "AppPaths.hpp"
 #include "DispatchType.hpp"
 #include "DocumentContainer.hpp"
 #include "DocumentView.hpp"
+#include "DonateDialog.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
 #include "PageLocation.hpp"
@@ -175,6 +175,9 @@ Lektra::construct() noexcept
     initGui();
     // warnShortcutConflicts();
     initDB();
+#ifdef WITH_LLM_SUPPORT
+    initLLMView();
+#endif
     trimRecentFilesDatabase();
     populateRecentFiles();
     populateBookmarks();
@@ -187,7 +190,8 @@ Lektra::construct() noexcept
 
     {
         const QString sentinel = m_app_data_dir.filePath(".first_run_done");
-        if (!QFile::exists(sentinel)) {
+        if (!QFile::exists(sentinel))
+        {
             QFile f(sentinel);
             (void)f.open(QIODevice::WriteOnly);
             QTimer::singleShot(500, this, [this]() { ShowDonate(); });
@@ -261,8 +265,8 @@ Lektra::initMenubar() noexcept
         this, [this]() { Tab_close(); });
 
     fileMenu->addSeparator();
-    QAction *actionQuit = fileMenu->addAction(
-        tr("Quit"), this, &QMainWindow::close);
+    QAction *actionQuit
+        = fileMenu->addAction(tr("Quit"), this, &QMainWindow::close);
 
     QMenu *editMenu = m_menuBar->addMenu(tr("&Edit"));
     m_actionUndo    = editMenu->addAction(
@@ -428,8 +432,8 @@ Lektra::initMenubar() noexcept
         this, &Lektra::NarrowToRegion);
 
     QAction *actionWidenRegion = m_viewMenu->addAction(
-        tr("Widen\t%1").arg(m_config.keybinds["widen_region"].join(", ")),
-        this, &Lektra::WidenRegion);
+        tr("Widen\t%1").arg(m_config.keybinds["widen_region"].join(", ")), this,
+        &Lektra::WidenRegion);
 
     m_viewMenu->addSeparator();
 
@@ -640,39 +644,37 @@ Lektra::initMenubar() noexcept
     // Linux) they silently fall through anyway, so using SP_* directly
     // gives consistent, predictable icons across platforms instead of
     // "nicer on some Linux setups, generic everywhere else".
-    auto ic
-        = [this](QStyle::StandardPixmap p) { return style()->standardIcon(p); };
+    auto ic = [this](QStyle::StandardPixmap p)
+    {
+        return style()->standardIcon(p);
+    };
     auto th = [&ic](const char * /*themeName*/, QStyle::StandardPixmap fb)
-    { return ic(fb); };
+    {
+        return ic(fb);
+    };
 
     // File
     actionOpenFile->setIcon(th("document-open", QStyle::SP_DialogOpenButton));
-    actionOpenVSplit->setIcon(
-        th("document-open", QStyle::SP_DialogOpenButton));
-    actionOpenHSplit->setIcon(
-        th("document-open", QStyle::SP_DialogOpenButton));
+    actionOpenVSplit->setIcon(th("document-open", QStyle::SP_DialogOpenButton));
+    actionOpenHSplit->setIcon(th("document-open", QStyle::SP_DialogOpenButton));
     m_actionFileProperties->setIcon(
         th("document-properties", QStyle::SP_FileDialogInfoView));
     m_actionOpenContainingFolder->setIcon(
         th("folder-open", QStyle::SP_DirOpenIcon));
     m_recentFilesMenu->setIcon(
         th("document-open-recent", QStyle::SP_FileDialogDetailedView));
-    m_actionSaveFile->setIcon(
-        th("document-save", QStyle::SP_DialogSaveButton));
+    m_actionSaveFile->setIcon(th("document-save", QStyle::SP_DialogSaveButton));
     m_actionSaveAsFile->setIcon(
         th("document-save-as", QStyle::SP_DialogSaveButton));
     sessionMenu->setIcon(
         th("preferences-system-session", QStyle::SP_ComputerIcon));
-    m_actionSessionSave->setIcon(
-        th("document-save", QStyle::SP_DriveHDIcon));
+    m_actionSessionSave->setIcon(th("document-save", QStyle::SP_DriveHDIcon));
     m_actionSessionSaveAs->setIcon(
         th("document-save-as", QStyle::SP_DriveHDIcon));
-    m_actionSessionLoad->setIcon(
-        th("document-open", QStyle::SP_DirLinkIcon));
+    m_actionSessionLoad->setIcon(th("document-open", QStyle::SP_DirLinkIcon));
     m_actionCloseFile->setIcon(
         th("window-close", QStyle::SP_DialogCloseButton));
-    actionQuit->setIcon(
-        th("application-exit", QStyle::SP_TitleBarCloseButton));
+    actionQuit->setIcon(th("application-exit", QStyle::SP_TitleBarCloseButton));
 
     // Edit
     m_actionUndo->setIcon(th("edit-undo", QStyle::SP_ArrowBack));
@@ -689,8 +691,7 @@ Lektra::initMenubar() noexcept
         th("zoom-fit-height", QStyle::SP_DialogApplyButton));
     m_actionFitWindow->setIcon(
         th("zoom-fit-best", QStyle::SP_DialogApplyButton));
-    m_actionAutoresize->setIcon(
-        th("view-restore", QStyle::SP_BrowserReload));
+    m_actionAutoresize->setIcon(th("view-restore", QStyle::SP_BrowserReload));
     // Narrow to Region is a "crop the visible area" action, not a zoom —
     // use the Freedesktop crop icon when the theme has one, and the shade
     // (collapse-to-titlebar) button as the SP_* fallback since it also
@@ -736,8 +737,7 @@ Lektra::initMenubar() noexcept
         th("document-edit", QStyle::SP_FileDialogListView));
     m_actionAnnotPopup->setIcon(
         th("insert-text", QStyle::SP_MessageBoxInformation));
-    m_actionNoneMode->setIcon(
-        th("edit-clear", QStyle::SP_DialogCancelButton));
+    m_actionNoneMode->setIcon(th("edit-clear", QStyle::SP_DialogCancelButton));
 
     // Tools
     m_actionEncrypt->setIcon(
@@ -761,11 +761,9 @@ Lektra::initMenubar() noexcept
     m_actionNextLocation->setIcon(th("edit-redo", QStyle::SP_ArrowForward));
 
     // Marks
-    m_actionSetMark->setIcon(
-        th("bookmark-new", QStyle::SP_DialogOkButton));
+    m_actionSetMark->setIcon(th("bookmark-new", QStyle::SP_DialogOkButton));
     m_actionGotoMark->setIcon(th("go-jump", QStyle::SP_ArrowRight));
-    m_actionDeleteMark->setIcon(
-        th("edit-delete", QStyle::SP_TrashIcon));
+    m_actionDeleteMark->setIcon(th("edit-delete", QStyle::SP_TrashIcon));
 
     // Help
     m_actionAbout->setIcon(th("help-about", QStyle::SP_MessageBoxInformation));
@@ -788,6 +786,15 @@ Lektra::initDB() noexcept
         m_command_manager->loadUsageCounts(
             m_app_data_dir.filePath("command_usage.json"));
 }
+
+#ifdef WITH_LLM_SUPPORT
+void
+Lektra::initLLMView() noexcept
+{
+    m_llm_view = new LLMView(m_config, this);
+    this->addDockWidget(Qt::RightDockWidgetArea, m_llm_view);
+}
+#endif
 
 // Initialize the config related stuff
 void
@@ -1420,7 +1427,8 @@ Lektra::initConfig() noexcept
         set(split["dim_inactive"], m_config.split.dim_inactive);
         set(split["dim_inactive_opacity"], m_config.split.dim_inactive_opacity);
         set(split["focus_border"], m_config.split.focus_border);
-        set_color(split["focus_border_color"], m_config.split.focus_border_color);
+        set_color(split["focus_border_color"],
+                  m_config.split.focus_border_color);
         set(split["focus_border_width"], m_config.split.focus_border_width);
         set(split["maximize_indicator"], m_config.split.maximize_indicator);
         set_color(split["maximize_indicator_color"],
@@ -1442,15 +1450,13 @@ Lektra::initConfig() noexcept
         set(behavior["dont_invert_images"],
             m_config.behavior.dont_invert_images);
         set(behavior["auto_reload"], m_config.behavior.auto_reload);
-        set(behavior["cache_password"],
-            m_config.behavior.cache_password);
+        set(behavior["cache_password"], m_config.behavior.cache_password);
         set(behavior["recent_files"], m_config.behavior.recent_files);
         set(behavior["num_recent_files"], m_config.behavior.num_recent_files);
         set(behavior["cache_pages"], m_config.behavior.cache_pages);
         set(behavior["mupdf_store_size"], m_config.behavior.mupdf_store_size);
         set(behavior["auto_scroll"], m_config.behavior.auto_scroll);
-        set(behavior["close_on_last_tab"],
-            m_config.behavior.close_on_last_tab);
+        set(behavior["close_on_last_tab"], m_config.behavior.close_on_last_tab);
         set(behavior["high_contrast"], m_config.behavior.high_contrast);
         set(behavior["high_contrast_black_point"],
             m_config.behavior.high_contrast_black_point);
@@ -1466,8 +1472,7 @@ Lektra::initConfig() noexcept
     auto keybindings           = toml["keybindings"];
     const bool has_keybindings = static_cast<bool>(keybindings);
     const bool want_defaults
-        = !has_keybindings
-          || keybindings["load_defaults"].value_or(true);
+        = !has_keybindings || keybindings["load_defaults"].value_or(true);
     if (want_defaults)
         initDefaultKeybinds();
 
@@ -1806,8 +1811,9 @@ Lektra::updateUiEnabledState() noexcept
     m_actionPrevPage->setEnabled(showAdvancedTools);
     m_actionNextPage->setEnabled(showAdvancedTools);
     m_actionLastPage->setEnabled(showAdvancedTools);
-    // Mode menu: enabled for all file types (region select works for images too);
-    // individual actions inside are guarded by their own capability checks.
+    // Mode menu: enabled for all file types (region select works for images
+    // too); individual actions inside are guarded by their own capability
+    // checks.
     if (m_modeMenu)
         m_modeMenu->setEnabled(hasFile);
     if (m_layoutMenu)
@@ -2137,7 +2143,7 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 
         if (config_arg.endsWith(".lua", Qt::CaseInsensitive))
         {
-            m_init_file_path  = config_arg;
+            m_init_file_path   = config_arg;
             m_skip_toml_config = true;
         }
         else
@@ -2159,8 +2165,7 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 #endif
     const bool singleInstance = argparser.is_used("single-instance")
                                 || readSingleInstanceFromConfig();
-    if (hasSynctexForward
-        || (singleInstance && argparser.is_used("files")))
+    if (hasSynctexForward || (singleInstance && argparser.is_used("files")))
     {
         QLocalSocket probe;
         probe.connectToServer(ipcName);
@@ -2241,13 +2246,12 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
                 QLatin1Char('~'), QString::fromLatin1(HOME_DIR));
             const QString texPath = match.captured(2).replace(
                 QLatin1Char('~'), QString::fromLatin1(HOME_DIR));
-            const int line        = match.captured(3).toInt();
-            const int col         = match.captured(4).toInt();
+            const int line = match.captured(3).toInt();
+            const int col  = match.captured(4).toInt();
 
             // Pass as callback so remember_last_visited doesn't override the
             // synctex jump position (callback presence suppresses savedPage).
-            OpenFileInNewTab(pdfPath,
-                             [texPath, line, col](void *ptr)
+            OpenFileInNewTab(pdfPath, [texPath, line, col](void *ptr)
             {
                 auto *lektra = static_cast<Lektra *>(ptr);
                 if (auto *view = lektra->currentDocument())
@@ -2332,8 +2336,8 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
                 // synchronously before any file had parsed, so e.g.
                 // `lektra a.pdf b.pdf --command "goto 5"` executed against
                 // whatever tab was current before (usually nothing).
-                OpenFileInNewTab(
-                    qtFiles[0], [pageOverride, this, runCliCommands](void *)
+                OpenFileInNewTab(qtFiles[0],
+                                 [pageOverride, this, runCliCommands](void *)
                 {
                     if (pageOverride > 0)
                         gotoPage(pageOverride);
@@ -3466,13 +3470,14 @@ Lektra::GenerateOutline() noexcept
 
     if (!m_doc->model()->supports_outline())
     {
-        QMessageBox::information(this, tr("Generate Outline"),
-                                 tr("Outline generation is not supported for this file type."));
+        QMessageBox::information(
+            this, tr("Generate Outline"),
+            tr("Outline generation is not supported for this file type."));
         return;
     }
 
-    const float ratio  = m_config.outline.generate_heading_ratio;
-    const int   levels = m_config.outline.generate_max_levels;
+    const float ratio = m_config.outline.generate_heading_ratio;
+    const int levels  = m_config.outline.generate_max_levels;
 
     fz_outline *outline = m_doc->model()->generateOutline(ratio, levels);
     if (!outline)
@@ -3490,9 +3495,8 @@ Lektra::GenerateOutline() noexcept
     {
         m_outline_picker = new OutlinePicker(m_config.outline, this);
         m_outline_picker->setKeybindings(m_picker_keybinds);
-        connect(m_outline_picker, &OutlinePicker::jumpToLocationRequested, this,
-                [this](int page, const QPointF &pos)
-        {
+        connect(m_outline_picker, &OutlinePicker::jumpToLocationRequested,
+                this, [this](int page, const QPointF &pos) {
             m_doc->GotoLocationWithHistory(
                 {page, (float)pos.x(), (float)pos.y()});
         });
@@ -3564,9 +3568,8 @@ Lektra::LoadOutline() noexcept
     {
         m_outline_picker = new OutlinePicker(m_config.outline, this);
         m_outline_picker->setKeybindings(m_picker_keybinds);
-        connect(m_outline_picker, &OutlinePicker::jumpToLocationRequested, this,
-                [this](int page, const QPointF &pos)
-        {
+        connect(m_outline_picker, &OutlinePicker::jumpToLocationRequested,
+                this, [this](int page, const QPointF &pos) {
             m_doc->GotoLocationWithHistory(
                 {page, (float)pos.x(), (float)pos.y()});
         });
@@ -3775,9 +3778,8 @@ Lektra::NarrowToSection(const QStringList &args) noexcept
 
     if (!outline)
     {
-        QMessageBox::information(
-            this, tr("Narrow to Section"),
-            tr("This document has no outline."));
+        QMessageBox::information(this, tr("Narrow to Section"),
+                                 tr("This document has no outline."));
         return;
     }
 
@@ -3906,10 +3908,10 @@ Lektra::NarrowToSection(const QStringList &args) noexcept
         for (const auto &s : sections)
             items << QString(s.depth * 2, ' ') + s.title;
 
-        bool ok = false;
+        bool ok              = false;
         const QString picked = QInputDialog::getItem(
-            this, tr("Narrow to Section"), tr("Select a section:"),
-            items, 0, false, &ok);
+            this, tr("Narrow to Section"), tr("Select a section:"), items, 0,
+            false, &ok);
 
         if (!ok)
             return;
@@ -4004,8 +4006,7 @@ Lektra::initConnections() noexcept
     connect(m_tab_widget, &TabWidget::currentChanged, this,
             &Lektra::handleCurrentTabChanged);
 
-    connect(m_tab_widget, &TabWidget::tabAdded, this,
-            [this](int index)
+    connect(m_tab_widget, &TabWidget::tabAdded, this, [this](int index)
     {
 #ifdef WITH_LUA
         dispatchLuaEvent(DispatchType::OnTabAdded, &index);
@@ -4258,9 +4259,9 @@ Lektra::handleTabDropReceived(const TabBar::TabData &data) noexcept
         // version) and cannot be trusted — clamp page, snap rotation to a
         // valid 90° step, and skip the rotation loop entirely if a bogus
         // value would make it never terminate.
-        Model *model         = m_doc->model();
-        const int pageCount  = model ? model->numPages() : 0;
-        int page             = data.currentPage - 1;
+        Model *model        = m_doc->model();
+        const int pageCount = model ? model->numPages() : 0;
+        int page            = data.currentPage - 1;
         if (page < 0)
             page = 0;
         if (pageCount > 0 && page >= pageCount)
@@ -4274,7 +4275,7 @@ Lektra::handleTabDropReceived(const TabBar::TabData &data) noexcept
         // leave rotation untouched rather than spinning forever.
         if (model)
         {
-            const int raw    = data.rotation;
+            const int raw     = data.rotation;
             const int wrapped = ((raw % 360) + 360) % 360;
             if (wrapped % 90 == 0)
             {
@@ -5375,11 +5376,9 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("rotate_anticlock",
                            tr("Rotate page counter-clockwise"),
                            [this](const QStringList &) { RotateAnticlock(); });
-    m_command_manager->reg("flip_horizontal",
-                           tr("Flip page horizontally"),
+    m_command_manager->reg("flip_horizontal", tr("Flip page horizontally"),
                            [this](const QStringList &) { FlipH(); });
-    m_command_manager->reg("flip_vertical",
-                           tr("Flip page vertically"),
+    m_command_manager->reg("flip_vertical", tr("Flip page vertically"),
                            [this](const QStringList &) { FlipV(); });
 
     // Location history
@@ -5408,7 +5407,8 @@ Lektra::initCommands() noexcept
         "font_size_decrease", tr("Decrease text size (reflowable documents)"),
         [this](const QStringList &) { ReflowFontSizeDecrease(); });
     m_command_manager->reg(
-        "font_size_reset", tr("Reset text size to default (reflowable documents)"),
+        "font_size_reset",
+        tr("Reset text size to default (reflowable documents)"),
         [this](const QStringList &) { ReflowFontSizeReset(); });
 
     // Splits
@@ -5495,8 +5495,7 @@ Lektra::initCommands() noexcept
                            [this](const QStringList &)
     { Show_recent_files_picker(); });
     m_command_manager->reg("file_picker", tr("Open file picker"),
-                           [this](const QStringList &)
-    { Show_file_picker(); });
+                           [this](const QStringList &) { Show_file_picker(); });
 
     // Annotation modes
     m_command_manager->reg(
@@ -5521,9 +5520,9 @@ Lektra::initCommands() noexcept
     m_command_manager->reg(
         "selection_mode_region", tr("Switch to region selection mode"),
         [this](const QStringList &) { ToggleRegionSelect(); });
-    m_command_manager->reg(
-        "narrow_to_region", tr("Narrow view to selected region"),
-        [this](const QStringList &) { NarrowToRegion(); });
+    m_command_manager->reg("narrow_to_region",
+                           tr("Narrow view to selected region"),
+                           [this](const QStringList &) { NarrowToRegion(); });
     m_command_manager->reg(
         "narrow_to_section",
         tr("Narrow view to a document section from the outline"),
@@ -5578,9 +5577,8 @@ Lektra::initCommands() noexcept
 
         NarrowToPages(start, end);
     });
-    m_command_manager->reg(
-        "widen_region", tr("Exit narrow region (widen)"),
-        [this](const QStringList &) { WidenRegion(); });
+    m_command_manager->reg("widen_region", tr("Exit narrow region (widen)"),
+                           [this](const QStringList &) { WidenRegion(); });
 
     // Fit modes
     m_command_manager->reg("fit_width", tr("Fit page to window width"),
@@ -5596,10 +5594,12 @@ Lektra::initCommands() noexcept
     // matches the existing fit_* family; fit_to_page_width_smart /
     // fit_to_page_height_smart is the name from the feature request.
     {
-        auto width_smart_handler = [this](const QStringList &) {
+        auto width_smart_handler = [this](const QStringList &)
+        {
             Fit_width_smart();
         };
-        auto height_smart_handler = [this](const QStringList &) {
+        auto height_smart_handler = [this](const QStringList &)
+        {
             Fit_height_smart();
         };
         m_command_manager->reg("fit_width_smart",
@@ -5682,8 +5682,7 @@ Lektra::initCommands() noexcept
         [this](const QStringList &) { GenerateOutline(); });
     m_command_manager->reg("export_outline", tr("Export outline to JSON file"),
                            [this](const QStringList &) { ExportOutline(); });
-    m_command_manager->reg("load_outline",
-                           tr("Load outline from JSON file"),
+    m_command_manager->reg("load_outline", tr("Load outline from JSON file"),
                            [this](const QStringList &) { LoadOutline(); });
     m_command_manager->reg(
         "picker_highlight_search", tr("Search within highlights"),
@@ -5782,9 +5781,9 @@ Lektra::initCommands() noexcept
     m_command_manager->reg(
         "highlight_selection", tr("Highlight current text selection"),
         [this](const QStringList &) { TextHighlightCurrentSelection(); });
-    m_command_manager->reg("high_contrast",
-                           tr("Toggle high-contrast tone stretch"),
-                           [this](const QStringList &) { ToggleHighContrast(); });
+    m_command_manager->reg(
+        "high_contrast", tr("Toggle high-contrast tone stretch"),
+        [this](const QStringList &) { ToggleHighContrast(); });
     m_command_manager->reg("invert_color",
                            tr("Toggle inverted colour rendering"),
                            [this](const QStringList &) { InvertColor(); });
@@ -6109,8 +6108,7 @@ Lektra::setFocusMode(bool enable) noexcept
         // (including any manual bar toggles they made this session).
         m_focus_saved.menubar_visible   = !m_menuBar->isHidden();
         m_focus_saved.statusbar_visible = !m_statusbar->isHidden();
-        m_focus_saved.tabbar_visible
-            = m_tab_widget->tabBar()->isVisible();
+        m_focus_saved.tabbar_visible    = m_tab_widget->tabBar()->isVisible();
 
         m_menuBar->setVisible(false);
         m_statusbar->setVisible(false);
@@ -6990,7 +6988,8 @@ Lektra::handleLinkPreviewRequested(DocumentView *view,
         connect(m_preview_view, &DocumentView::openFileFinished, this,
                 [this, navigateTo, zoom](DocumentView *, Model::FileType)
         {
-            QTimer::singleShot(0, this, [navigateTo, zoom]() { navigateTo(zoom); });
+            QTimer::singleShot(0, this,
+                               [navigateTo, zoom]() { navigateTo(zoom); });
         }, Qt::SingleShotConnection);
         m_preview_view->openAsync(view->filePath());
     }
@@ -7021,8 +7020,8 @@ Lektra::handleLinkOpenInNewTab(DocumentView *view,
     connect(newView, &DocumentView::openFileFinished, this,
             [newView, target](DocumentView *, Model::FileType)
     {
-        QTimer::singleShot(0, newView,
-                           [newView, target]() { newView->GotoLocation(target); });
+        QTimer::singleShot(0, newView, [newView, target]()
+        { newView->GotoLocation(target); });
     }, Qt::SingleShotConnection);
 }
 
@@ -7047,8 +7046,8 @@ Lektra::handleLinkOpenVSplit(DocumentView *view,
     connect(newView, &DocumentView::openFileFinished, this,
             [newView, target](DocumentView *, Model::FileType)
     {
-        QTimer::singleShot(0, newView,
-                           [newView, target]() { newView->GotoLocation(target); });
+        QTimer::singleShot(0, newView, [newView, target]()
+        { newView->GotoLocation(target); });
     }, Qt::SingleShotConnection);
 }
 
@@ -7073,8 +7072,8 @@ Lektra::handleLinkOpenHSplit(DocumentView *view,
     connect(newView, &DocumentView::openFileFinished, this,
             [newView, target](DocumentView *, Model::FileType)
     {
-        QTimer::singleShot(0, newView,
-                           [newView, target]() { newView->GotoLocation(target); });
+        QTimer::singleShot(0, newView, [newView, target]()
+        { newView->GotoLocation(target); });
     }, Qt::SingleShotConnection);
 }
 
@@ -7092,7 +7091,8 @@ Lektra::create_portal(DocumentView *sourceView,
     if (sourceView->portal() || sourceView->is_portal())
         return nullptr;
 
-    const QString target = filePath.isEmpty() ? sourceView->filePath() : filePath;
+    const QString target
+        = filePath.isEmpty() ? sourceView->filePath() : filePath;
 
     bool useHSplit = false;
     if (m_config.portal.split.compare("horizontal", Qt::CaseInsensitive) == 0)
@@ -7100,8 +7100,8 @@ Lektra::create_portal(DocumentView *sourceView,
     else if (m_config.portal.split.compare("smart", Qt::CaseInsensitive) == 0)
         useHSplit = sourceView->height() > sourceView->width();
 
-    DocumentView *newView = useHSplit ? OpenFileHSplit(target)
-                                      : OpenFileVSplit(target);
+    DocumentView *newView
+        = useHSplit ? OpenFileHSplit(target) : OpenFileVSplit(target);
     if (!newView)
         return nullptr;
 
@@ -7211,10 +7211,9 @@ Lektra::TogglePresentationMode() noexcept
         m_presentation.was_fullscreen    = isFullScreen();
         m_presentation.menubar_visible   = !m_menuBar->isHidden();
         m_presentation.statusbar_visible = !m_statusbar->isHidden();
-        m_presentation.tabbar_visible
-            = m_tab_widget->tabBar()->isVisible();
-        m_presentation.layout_mode     = m_doc->layoutMode();
-        m_presentation.fit_mode        = m_doc->fitMode();
+        m_presentation.tabbar_visible    = m_tab_widget->tabBar()->isVisible();
+        m_presentation.layout_mode       = m_doc->layoutMode();
+        m_presentation.fit_mode          = m_doc->fitMode();
 
         // Enter: chrome-less fullscreen, single-page layout, fit-to-window.
         // Scrollbars are left to the fit-to-window mode — a page fully
@@ -7529,17 +7528,19 @@ Lektra::OpenConfigFile() noexcept
 
 #ifdef WITH_LUA
     const QString init_file = m_init_file_path.isEmpty()
-                                   ? m_config_dir.filePath("init.lua")
-                                   : m_init_file_path;
-    const bool hasLua = QFile::exists(init_file);
+                                  ? m_config_dir.filePath("init.lua")
+                                  : m_init_file_path;
+    const bool hasLua       = QFile::exists(init_file);
 
     if (hasToml && hasLua)
     {
         QMessageBox dlg(this);
         dlg.setWindowTitle(tr("Open Config"));
         dlg.setText(tr("Which config file would you like to open?"));
-        QPushButton *tomlBtn = dlg.addButton("config.toml", QMessageBox::AcceptRole);
-        QPushButton *luaBtn  = dlg.addButton("init.lua", QMessageBox::AcceptRole);
+        QPushButton *tomlBtn
+            = dlg.addButton("config.toml", QMessageBox::AcceptRole);
+        QPushButton *luaBtn
+            = dlg.addButton("init.lua", QMessageBox::AcceptRole);
         dlg.addButton(QMessageBox::Cancel);
         dlg.exec();
 
@@ -7650,12 +7651,11 @@ Lektra::BookmarkImport(const QString &file_path) noexcept
 
     if (err.error != QJsonParseError::NoError || !doc.isArray())
     {
-        QMessageBox::warning(
-            this, tr("Import Bookmarks"),
-            tr("Invalid bookmarks file: %1")
-                .arg(err.error == QJsonParseError::NoError
-                         ? tr("root is not a JSON array")
-                         : err.errorString()));
+        QMessageBox::warning(this, tr("Import Bookmarks"),
+                             tr("Invalid bookmarks file: %1")
+                                 .arg(err.error == QJsonParseError::NoError
+                                          ? tr("root is not a JSON array")
+                                          : err.errorString()));
         return;
     }
 
@@ -7784,8 +7784,8 @@ Lektra::onIPCDataReady()
                 QLatin1Char('~'), QString::fromLatin1(HOME_DIR));
             const QString texPath = match.captured(2).replace(
                 QLatin1Char('~'), QString::fromLatin1(HOME_DIR));
-            const int fwdLine     = match.captured(3).toInt();
-            const int fwdCol      = match.captured(4).toInt();
+            const int fwdLine = match.captured(3).toInt();
+            const int fwdCol  = match.captured(4).toInt();
 
             // Find an already-open view for this PDF and jump in-place.
             DocumentView *existing = nullptr;
@@ -7949,14 +7949,15 @@ Lektra::loadLuaConfig() noexcept
         return;
 
     const QString init_file = m_init_file_path.isEmpty()
-                                   ? m_config_dir.filePath("init.lua")
-                                   : m_init_file_path;
+                                  ? m_config_dir.filePath("init.lua")
+                                  : m_init_file_path;
     if (QFile::exists(init_file))
     {
-        const std::string config_path = m_config_dir.absolutePath().toStdString();
-        const std::string path_snippet =
-            "package.path = \"" + config_path + "/?.lua;" +
-                                  config_path + "/?/init.lua;\" .. package.path";
+        const std::string config_path
+            = m_config_dir.absolutePath().toStdString();
+        const std::string path_snippet = "package.path = \"" + config_path
+                                         + "/?.lua;" + config_path
+                                         + "/?/init.lua;\" .. package.path";
         luaL_dostring(m_L, path_snippet.c_str());
 
         if (luaL_dofile(m_L, init_file.toStdString().c_str()) != LUA_OK)

@@ -9,6 +9,7 @@ file(WRITE "${CMAKE_BINARY_DIR}/version.txt" "${PROJECT_VERSION}")
 
 option(WITH_SYNCTEX "Enable synctex support" ON)
 option(WITH_LUA     "Enable lua scripting support" OFF)
+option(WITH_LLM_SUPPORT "Enable LLM support" OFF)
 
 # Internal option to build as AppImage (Linux only)
 option(IS_APPIMAGE "Build as AppImage (Linux only)" OFF)
@@ -175,6 +176,10 @@ file(GLOB LEKTRA_COMMAND_HEADERS    CONFIGURE_DEPENDS include/Commands/*.hpp)
 
 if (WITH_LUA)
     file(GLOB LEKTRA_LUA_HEADERS        CONFIGURE_DEPENDS include/lua/*.hpp)
+endif()
+
+if (WITH_LLM_SUPPORT)
+    file(GLOB LEKTRA_LLM_HEADERS        CONFIGURE_DEPENDS include/llm/*.hpp)
 endif()
 
 set(app_icon_resource_windows "")
@@ -376,6 +381,17 @@ if (WITH_LUA AND Lua_FOUND)
     target_include_directories(${PROJECT_NAME} PRIVATE ${LUA_INCLUDE_DIR})
     target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_LUA=1)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${LUA_LIBRARIES})
+endif()
+
+
+if (WITH_LLM_SUPPORT)
+    message(STATUS "LLM support: enabled")
+    target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/llm)
+    target_sources(${PROJECT_NAME} PRIVATE
+        src/llm/LLMView.cpp
+        src/llm/HTTPClient.cpp
+        ${LEKTRA_LLM_HEADERS})
+    target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_LLM_SUPPORT=1)
 endif()
 
 

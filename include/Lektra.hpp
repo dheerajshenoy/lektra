@@ -12,8 +12,8 @@
 #include "BookmarkManager.hpp"
 #include "BookmarkPicker.hpp"
 #include "CommandManager.hpp"
-#include "OutlinePicker.hpp"
 #include "FilePicker.hpp"
+#include "OutlinePicker.hpp"
 #include "RecentFilesPicker.hpp"
 #include "RecentFilesStore.hpp"
 #include "SearchBar.hpp"
@@ -46,6 +46,10 @@
     #include "LuaCallback.hpp"
 
     #include <lua.hpp>
+#endif
+
+#ifdef WITH_LLM_SUPPORT
+    #include "LLMView.hpp"
 #endif
 
 class Lektra : public QMainWindow
@@ -306,6 +310,9 @@ private:
     void construct() noexcept;
     void SetDPR() noexcept;
     void initDB() noexcept;
+#ifdef WITH_LLM_SUPPORT
+    void initLLMView() noexcept;
+#endif
     void initMenubar() noexcept;
     void initGui() noexcept;
     void initConfig() noexcept;
@@ -462,8 +469,8 @@ private:
     bool m_skip_lua_config  = false;
     QString m_lockedInputBuffer; // Used for link hints and waiting input event
                                  // like for marks etc.
-    bool m_link_hint_mode                 = false;
-    bool m_focus_mode                     = false;
+    bool m_link_hint_mode = false;
+    bool m_focus_mode     = false;
 
     // Focus mode: like presentation, save the exact chrome state on enter so
     // exiting restores what the user had — not the config-file baseline
@@ -479,13 +486,14 @@ private:
     // restores exactly what the user had. `active` gates the toggle.
     struct PresentationSaved
     {
-        bool active                = false;
-        bool was_fullscreen        = false;
-        bool menubar_visible       = true;
-        bool statusbar_visible     = true;
-        bool tabbar_visible        = true;
-        DocumentView::LayoutMode layout_mode = DocumentView::LayoutMode::VERTICAL;
-        DocumentView::FitMode fit_mode       = DocumentView::FitMode::Width;
+        bool active            = false;
+        bool was_fullscreen    = false;
+        bool menubar_visible   = true;
+        bool statusbar_visible = true;
+        bool tabbar_visible    = true;
+        DocumentView::LayoutMode layout_mode
+            = DocumentView::LayoutMode::VERTICAL;
+        DocumentView::FitMode fit_mode = DocumentView::FitMode::Width;
     } m_presentation;
     StartupWidget *m_startup_widget       = nullptr;
     LinkHintMode m_link_hint_current_mode = LinkHintMode::None;
@@ -592,6 +600,10 @@ private:
     {
         m_lua_event_dispatcher[type].clear();
     }
+    #endif
+
+    #ifdef WITH_LLM_SUPPORT
+    LLMView *m_llm_view = nullptr;
     #endif
 #endif
 };
