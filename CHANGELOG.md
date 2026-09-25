@@ -25,6 +25,7 @@
 
 ### Bug Fixes
 
+- Fix command in CONTRIBUTING.md file
 - Fix most Lua document/view events (`OnFileOpen`, `OnReady`, `OnFileClose`, `OnPageChanged`, `OnZoomChanged`, `OnLinkClicked`, `OnTextSelected`, `OnSearchStarted`/`Finished`/`Cancelled`, and both context-menu-requested events) never reaching listeners registered globally via `lektra.event.register`/`.once` — they only ever reached listeners registered per-view via `view:register`. A script like `init.lua` that hooks `OnFileOpen` before any document is open (so it has no view to call `:register` on) silently never fired.
 - Wire up two previously-unimplemented Lua events, `OnTabAdded` and `OnViewChanged` (fires on split-pane focus changes too, not just tab switches).
 - Fix `OnZoomChanged` not firing for the zoom paths most people actually use — mouse wheel, pinch, and Zoom In/Out with the default `zoom.anchor_to_mouse = true` all bypassed the code path that dispatched it; only `zoom_set`/`zoom_reset` fired it.

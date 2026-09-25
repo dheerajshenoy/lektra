@@ -54,6 +54,9 @@ public:
         EPUB,
         FB2,
         MOBI,
+        HTML,
+        MD,
+        TXT,
         // Images
         JPG,
         PNG,
@@ -165,6 +168,8 @@ public:
             case FileType::XPS:
             case FileType::FB2:
             case FileType::MOBI:
+            case FileType::HTML:
+            case FileType::MD:
                 return true;
             default:
                 return false;
@@ -179,6 +184,8 @@ public:
             case FileType::EPUB:
             case FileType::XPS:
             case FileType::FB2:
+            case FileType::HTML:
+            case FileType::MD:
                 return true;
             default:
                 return false;
@@ -194,6 +201,9 @@ public:
             case FileType::XPS:
             case FileType::FB2:
             case FileType::MOBI:
+            case FileType::HTML:
+            case FileType::MD:
+            case FileType::TXT:
                 return true;
             default:
                 return false;
@@ -209,18 +219,23 @@ public:
     {
         return m_filetype == FileType::PDF || m_filetype == FileType::EPUB
                || m_filetype == FileType::XPS || m_filetype == FileType::FB2
-               || m_filetype == FileType::DJVU || m_filetype == FileType::MOBI;
+               || m_filetype == FileType::DJVU || m_filetype == FileType::MOBI
+               || m_filetype == FileType::HTML || m_filetype == FileType::MD;
     }
 
     // True for HTML-backed formats whose pagination MuPDF computes by
     // actually reflowing text into a page box of a given size
     // (fz_layout_document). XPS is chaptered the same way EPUB is but is
     // a fixed-layout format — its pages are not reflowable — so it is
-    // deliberately excluded here.
+    // deliberately excluded here. HTML/Markdown/plain text are all opened
+    // via the same shared HTML-document backend as EPUB (MuPDF converts
+    // Markdown/text to HTML internally before laying it out), so they
+    // reflow the same way.
     [[nodiscard]] inline bool supports_reflow() const noexcept
     {
         return m_filetype == FileType::EPUB || m_filetype == FileType::FB2
-               || m_filetype == FileType::MOBI;
+               || m_filetype == FileType::MOBI || m_filetype == FileType::HTML
+               || m_filetype == FileType::MD || m_filetype == FileType::TXT;
     }
 
     [[nodiscard]] inline bool supports_annotations() const noexcept

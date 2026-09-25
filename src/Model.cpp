@@ -5994,6 +5994,18 @@ Model::visual_line_index_at_pos(
 Model::FileType
 Model::getFileType(const QString &path) noexcept
 {
+    // HTML/Markdown/plain text have no reliable content "magic" (unlike
+    // PDF/EPUB/DjVu), so MatchContent sniffing below can't identify them —
+    // go by extension instead, mirroring the extension lists MuPDF's own
+    // html/md/txt document handlers use internally.
+    const QString suffix = QFileInfo(path).suffix().toLower();
+    if (suffix == "html" || suffix == "htm" || suffix == "xhtml")
+        return FileType::HTML;
+    if (suffix == "md")
+        return FileType::MD;
+    if (suffix == "txt" || suffix == "text" || suffix == "log")
+        return FileType::TXT;
+
     const QMimeType mime
         = QMimeDatabase().mimeTypeForFile(path, QMimeDatabase::MatchContent);
     const QString name = mime.name();
@@ -6233,6 +6245,12 @@ Model::fileTypeToString() const noexcept
             return "CBZ/CBT";
         case FileType::FB2:
             return "FB2";
+        case FileType::HTML:
+            return "HTML";
+        case FileType::MD:
+            return "Markdown";
+        case FileType::TXT:
+            return "Text";
         case FileType::DJVU:
             return "DJVU";
         case FileType::JPG:
