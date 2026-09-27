@@ -1102,13 +1102,29 @@ static const LuaField tabsFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::Tabs *>(p)->auto_hide = lua_toboolean(L, 3); }},
-    {"closable",
+    // "all" | "current" | "hidden"
+    {"close_button_mode",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L, static_cast<Config::Tabs *>(p)->closable);
+    using CBM = Config::Tabs::CloseButtonMode;
+    switch (static_cast<Config::Tabs *>(p)->close_button_mode)
+    {
+        case CBM::Current: lua_pushstring(L, "current"); break;
+        case CBM::Hidden:   lua_pushstring(L, "hidden");  break;
+        case CBM::All:
+        default:            lua_pushstring(L, "all");     break;
+    }
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Tabs *>(p)->closable = lua_toboolean(L, 3); }},
+{
+    using CBM     = Config::Tabs::CloseButtonMode;
+    const char *v = luaL_checkstring(L, 3);
+    auto *tabs    = static_cast<Config::Tabs *>(p);
+    if (!v)                          return;
+    if (!strcmp(v, "current"))       tabs->close_button_mode = CBM::Current;
+    else if (!strcmp(v, "hidden"))   tabs->close_button_mode = CBM::Hidden;
+    else                             tabs->close_button_mode = CBM::All;
+}},
     // "right" | "left" | "middle" | "none"
     {"elide_mode",
      [](lua_State *L, P p)

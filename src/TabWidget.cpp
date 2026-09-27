@@ -18,7 +18,8 @@ TabWidget::TabWidget(QWidget *parent) : QWidget(parent)
     m_stacked_widget = new QStackedWidget(this);
 
     setTabPosition(QTabWidget::TabPosition::North);
-    setTabsClosable(true);
+    // TabBar's own constructor already defaults to CloseButtonMode::All;
+    // the real config value is applied afterward via setCloseButtonMode().
     setAcceptDrops(true);
     setStyleSheet("border: 0");
     // Movable handling is done manually in TabBar

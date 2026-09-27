@@ -64,9 +64,9 @@ public:
         m_tab_bar->setMovable(movable);
     }
 
-    inline void setTabsClosable(bool closable) noexcept
+    inline void setCloseButtonMode(TabBar::CloseButtonMode mode) noexcept
     {
-        m_tab_bar->setTabsClosable(closable);
+        m_tab_bar->setCloseButtonMode(mode);
     }
 
     inline void setCurrentIndex(int index) noexcept

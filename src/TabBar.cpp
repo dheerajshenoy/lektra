@@ -10,6 +10,67 @@ TabBar::TabBar(QWidget *parent) : QTabBar(parent)
     setDrawBase(false);
     setMovable(false); // We handle reordering manually
     setAcceptDrops(true);
+    setTabsClosable(true); // matches the CloseButtonMode::All default
+
+    connect(this, &QTabBar::currentChanged, this, &TabBar::refreshCloseButtons);
+}
+
+void
+TabBar::setCloseButtonMode(CloseButtonMode mode) noexcept
+{
+    if (m_close_button_mode == mode)
+        return;
+    m_close_button_mode = mode;
+
+    // Clear any custom Current-mode buttons before switching representation
+    // — setTabsClosable(true) below would otherwise leave them in place
+    // alongside (or instead of) Qt's own buttons.
+    for (int i = 0; i < count(); ++i)
+        setTabButton(i, QTabBar::RightSide, nullptr);
+
+    switch (mode)
+    {
+        case CloseButtonMode::All:
+            setTabsClosable(true);
+            break;
+        case CloseButtonMode::Hidden:
+            setTabsClosable(false);
+            break;
+        case CloseButtonMode::Current:
+            setTabsClosable(false); // managed manually from here on
+            refreshCloseButtons();
+            break;
+    }
+}
+
+void
+TabBar::refreshCloseButtons() noexcept
+{
+    if (m_close_button_mode != CloseButtonMode::Current)
+        return;
+
+    for (int i = 0; i < count(); ++i)
+    {
+        if (i == currentIndex())
+        {
+            if (tabButton(i, QTabBar::RightSide))
+                continue; // already has one
+
+            auto *button = new QToolButton(this);
+            button->setText(QStringLiteral("✕"));
+            button->setAutoRaise(true);
+            button->setCursor(Qt::ArrowCursor);
+            // The button only ever lives on whichever tab is current, so
+            // closing "the tab this button is on" is always currentIndex().
+            connect(button, &QToolButton::clicked, this,
+                    [this]() { emit tabCloseRequested(currentIndex()); });
+            setTabButton(i, QTabBar::RightSide, button);
+        }
+        else
+        {
+            setTabButton(i, QTabBar::RightSide, nullptr);
+        }
+    }
 }
 
 void
@@ -46,6 +107,7 @@ TabBar::tabInserted(int index)
     if (index > m_split_counts.size())
         m_split_counts.resize(index);
     m_split_counts.insert(index, 1);
+    refreshCloseButtons();
 }
 
 void
@@ -55,6 +117,7 @@ TabBar::tabRemoved(int index)
     if (index < 0 || index >= m_split_counts.size())
         return;
     m_split_counts.removeAt(index);
+    refreshCloseButtons();
 }
 
 void

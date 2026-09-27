@@ -33,13 +33,13 @@
 - [ ] Remove Deleted Files From History command - removes files that no longer exist on disk from the list of recently opened files.
 - [ ] Citation and reference hover preview
 - [ ] Drag images out of documents
+- [ ] Open File Without History (command)
 - [x] Digital signature info in Document Properties
 - [x] Configurable tab close button (on current tab, on all tabs, or none)
 - [x] Page number in tabs
 - [x] Links with file:// URIs now open the file as a local document instead of sending it to the browser
 - [x] Zoom to Selection
-- [ ] Files that fail to open get their own tab (title in red)
-- [ ] Open File Without History (command)
+- [x] Files that fail to open get their own tab (title in red)
 
 ## LOW PRIORITY
 

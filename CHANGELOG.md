@@ -11,6 +11,9 @@
 - Document links (and keyboard link-hints) with a `file://` URI now open the target as a local document in a new tab, if it's a format Lektra can open, instead of always handing it to the OS/browser.
 - Added support for opening HTML/XHTML, Markdown, and plain text files, plus DOCX/XLSX/PPTX.
 - New `view:region_select_image(callback)` Lua API — like `region_select`, but the callback receives the selected region as a base64-encoded PNG image instead of just the rect.
+- New `zoom_to_selection` command and "Zoom to Selection" region-selection context menu entry — select a region and zoom in to fill the viewport with it, without cropping the rest of the document out of view like Narrow to Region does.
+- New `llm_view` command to toggle the LLM chat panel.
+- File Properties for PDFs now shows digital signature info (signer, date, reason, location) when the document has signature fields — this reports what the signature claims, not whether it's cryptographically valid.
 - File Properties for images now also shows DPI. For CBZ/CBT it now shows the image count and the list of image files inside the archive (previously just page count).
 - **Text reflow for EPUB/FB2/MOBI**, via new `font_size_increase`/`font_size_decrease`/`font_size_reset` commands — re-paginates the document at a larger or smaller text size without changing the page dimensions or affecting `zoom_in`/`zoom_out` (which stay pure raster scaling). Opt-in only; pagination never changes on its own. No default keybinding.
 - Menu icons switched to `QStyle` system icons only, for a consistent look across all platforms (previously mixed with Freedesktop theme icons that only rendered well on some Linux setups).

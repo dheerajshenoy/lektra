@@ -818,6 +818,7 @@ private:
                                                          int pageno) noexcept;
     void populatePDFProperties(Properties &props) noexcept;
     void populateCBZProperties(Properties &props) noexcept;
+    void populateSignatureProperties(Properties &props) noexcept;
     [[nodiscard]] fz_point getFirstCharPos(const int pageno) noexcept;
     [[nodiscard]] std::vector<Model::RenderLink>
     detectUrlLinksForPage(const RenderJob &job) noexcept;

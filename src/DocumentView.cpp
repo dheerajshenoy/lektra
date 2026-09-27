@@ -5610,6 +5610,8 @@ DocumentView::handleRegionSelectRequested(QRectF area) noexcept
 
     menu->addAction(tr("Narrow to Region"),
                     [this, area]() { applyNarrow(area); });
+    menu->addAction(tr("Zoom to Selection"),
+                    [this, area]() { ZoomToRegion(area); });
     menu->addSeparator();
     menu->addAction(tr("Copy Region as Image"),
                     [this, area]() { CopyRegionAsImage(area); });
@@ -5860,6 +5862,56 @@ DocumentView::NarrowToRegion() noexcept
         return;
     }
     startRegionSelect([this](QRectF area) { applyNarrow(area); });
+}
+
+void
+DocumentView::ZoomToRegion(QRectF sceneRect) noexcept
+{
+    int pageno;
+    GraphicsImageItem *pageItem;
+    if (!pageAtScenePos(sceneRect.center(), pageno, pageItem))
+        return;
+
+    const QRectF localRect = pageItem->mapFromScene(sceneRect).boundingRect();
+    const QSizeF sz        = pageItem->boundingRect().size();
+    if (sz.isEmpty())
+        return;
+
+    // Selection midpoint in page-local normalized coords, captured before
+    // the zoom change so it can be re-mapped to the new page geometry below
+    // — same idea as the anchor-restore used for cursor-anchored zoom.
+    const double relX
+        = (localRect.left() + localRect.width() / 2.0) / sz.width();
+    const double relY
+        = (localRect.top() + localRect.height() / 2.0) / sz.height();
+
+    const double vw = m_gview->viewport()->width();
+    const double vh = m_gview->viewport()->height();
+    const double nw = sceneRect.width();
+    const double nh = sceneRect.height();
+    if (nw <= 0 || nh <= 0)
+        return;
+
+    const double fitZoom
+        = std::min(vw * m_current_zoom / nw, vh * m_current_zoom / nh);
+    setZoom(std::clamp(fitZoom, MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR), false);
+
+    // Re-fetch the page item — repositionPages() may have rebuilt it — then
+    // center the viewport on the selection's midpoint at the new zoom.
+    GraphicsImageItem *newItem = m_page_items_hash.value(pageno, nullptr);
+    if (newItem)
+    {
+        const QSizeF newSz = newItem->boundingRect().size();
+        m_gview->centerOn(newItem->mapToScene(
+            QPointF(relX * newSz.width(), relY * newSz.height())));
+    }
+    m_gview->flashScrollbars();
+}
+
+void
+DocumentView::ZoomToSelection() noexcept
+{
+    startRegionSelect([this](QRectF area) { ZoomToRegion(area); });
 }
 
 void

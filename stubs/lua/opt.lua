@@ -256,9 +256,14 @@ lektra.opt.link_hints = {}
 ---| '"start"'         # Insert at index 0.
 ---| '"after_current"' # Insert immediately after the current tab.
 
+---@alias TabsCloseButtonMode
+---| '"all"'     # Every tab shows its own close button (default).
+---| '"current"' # Only the active tab shows a close button.
+---| '"hidden"'  # No close buttons at all.
+
 ---@class OptTabs
 ---@field auto_hide boolean Hide the tab bar when only one tab is open.
----@field closable boolean Show a close button on each tab.
+---@field close_button_mode TabsCloseButtonMode When to show the tab close (x) button.
 ---@field elide_mode TabsElideMode Where to elide long tab titles.
 ---@field full_path boolean Display the full file path as the tab title.
 ---@field lazy_load boolean Defer loading of background tabs until they are activated.

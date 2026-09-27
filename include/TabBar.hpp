@@ -11,6 +11,7 @@
 #include <QStyle>
 #include <QStyleOptionTab>
 #include <QTabBar>
+#include <QToolButton>
 #include <QVariant>
 #include <QVector>
 
@@ -22,6 +23,17 @@ public:
     explicit TabBar(QWidget *parent = nullptr);
 
     static constexpr const char *MIME_TYPE = "application/lektra-tab";
+
+    enum class CloseButtonMode
+    {
+        All = 0,
+        Current,
+        Hidden
+    };
+
+    // Switches between Qt's native tabsClosable() (All/Hidden) and manually
+    // attaching a single close button to just the current tab (Current).
+    void setCloseButtonMode(CloseButtonMode mode) noexcept;
 
     struct TabData
     {
@@ -87,7 +99,13 @@ protected:
     void tabMoved(int from, int to);
 
 private:
+    // Re-applies m_close_button_mode's per-tab button placement. A no-op
+    // unless mode == Current — All/Hidden are handled entirely by Qt's own
+    // setTabsClosable(), no per-tab bookkeeping needed.
+    void refreshCloseButtons() noexcept;
+
     QPoint m_drag_start_pos;
     int m_drag_tab_index = -1;
     QVector<int> m_split_counts;
+    CloseButtonMode m_close_button_mode = CloseButtonMode::All;
 };

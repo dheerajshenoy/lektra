@@ -810,11 +810,18 @@ struct Config
         // @added 0.3.0
         bool auto_hide = false;
 
-        // @desc Show the tab close buttons
-        // @type bool
-        // @default true
+        // @desc When to show the tab close (x) button
+        // @type str
+        // @choice all, current, hidden
+        // @default all
         // @added 0.3.0
-        bool closable = true;
+        enum class CloseButtonMode
+        {
+            All = 0, // every tab shows its own close button (default)
+            Current, // only the active tab shows a close button
+            Hidden   // no close buttons at all
+        };
+        CloseButtonMode close_button_mode = CloseButtonMode::All;
 
         // @desc Tabs can be rearranged
         // @type bool

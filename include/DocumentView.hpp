@@ -485,6 +485,13 @@ public:
     void NarrowToPages(int startPage1, int endPage1) noexcept;
     void NarrowToSectionByTitle(const QString &title) noexcept;
     void WidenRegion() noexcept;
+    // Zooms so `sceneRect` fills the viewport as closely as possible and
+    // centers on it — unlike NarrowToRegion(), the rest of the page/document
+    // stays reachable by scrolling, nothing is cropped out of view.
+    void ZoomToRegion(QRectF sceneRect) noexcept;
+    // Starts region selection; once the user drags out a rect, zooms to it
+    // via ZoomToRegion().
+    void ZoomToSelection() noexcept;
     inline bool isNarrowed() const noexcept
     {
         return m_is_narrow;

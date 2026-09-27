@@ -112,6 +112,9 @@ public:
     void ToggleVisualLineMode() noexcept;
     void TogglePresentationMode() noexcept;
     void ToggleThumbnailPanel() noexcept;
+#ifdef WITH_LLM_SUPPORT
+    void ToggleLLMView() noexcept;
+#endif
     void ToggleAutoResize() noexcept;
     void ToggleFocusMode() noexcept;
     void ToggleMenubar() noexcept;
@@ -122,6 +125,7 @@ public:
     void ToggleTextHighlight() noexcept;
     void ToggleRegionSelect() noexcept;
     void NarrowToRegion() noexcept;
+    void ZoomToSelection() noexcept;
     void NarrowToPages(int startPage1, int endPage1) noexcept;
     void NarrowToSection(const QStringList &args) noexcept;
     void WidenRegion() noexcept;

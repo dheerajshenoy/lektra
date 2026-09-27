@@ -932,8 +932,18 @@ Lektra::initConfig() noexcept
     {
         set(tabs["visible"], m_config.tabs.visible);
         set(tabs["auto_hide"], m_config.tabs.auto_hide);
-        set(tabs["closable"], m_config.tabs.closable);
         set(tabs["movable"], m_config.tabs.movable);
+
+        if (auto str = tabs["close_button_mode"])
+        {
+            using CBM = Config::Tabs::CloseButtonMode;
+            if (str == "current")
+                m_config.tabs.close_button_mode = CBM::Current;
+            else if (str == "hidden")
+                m_config.tabs.close_button_mode = CBM::Hidden;
+            else
+                m_config.tabs.close_button_mode = CBM::All;
+        }
         if (auto str = tabs["elide_mode"])
         {
             Qt::TextElideMode mode;
@@ -1733,7 +1743,8 @@ Lektra::initGui() noexcept
 
     m_layout->addWidget(m_tab_widget, 1);
 
-    m_tab_widget->setTabsClosable(m_config.tabs.closable);
+    m_tab_widget->setCloseButtonMode(
+        static_cast<TabBar::CloseButtonMode>(m_config.tabs.close_button_mode));
     m_tab_widget->setMovable(m_config.tabs.movable);
     m_tab_widget->setTabPosition(m_config.tabs.location);
 
@@ -3781,6 +3792,14 @@ Lektra::NarrowToRegion() noexcept
 }
 
 void
+Lektra::ZoomToSelection() noexcept
+{
+    if (!m_doc)
+        return;
+    m_doc->ZoomToSelection();
+}
+
+void
 Lektra::WidenRegion() noexcept
 {
     if (!m_doc)
@@ -5311,6 +5330,11 @@ Lektra::initCommands() noexcept
                            [this](const QStringList &)
     { ToggleThumbnailPanel(); });
 
+#ifdef WITH_LLM_SUPPORT
+    m_command_manager->reg("llm_view", tr("Toggle LLM chat panel"),
+                           [this](const QStringList &) { ToggleLLMView(); });
+#endif
+
     m_command_manager->reg("presentation_mode", tr("Toggle presentation mode"),
                            [this](const QStringList &)
     { TogglePresentationMode(); });
@@ -5556,6 +5580,9 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("narrow_to_region",
                            tr("Narrow view to selected region"),
                            [this](const QStringList &) { NarrowToRegion(); });
+    m_command_manager->reg(
+        "zoom_to_selection", tr("Select a region and zoom in to fill it"),
+        [this](const QStringList &) { ZoomToSelection(); });
     m_command_manager->reg(
         "narrow_to_section",
         tr("Narrow view to a document section from the outline"),
@@ -7628,6 +7655,17 @@ Lektra::ToggleThumbnailPanel() noexcept
 
     m_doc->ToggleThumbnailPanel();
 }
+
+#ifdef WITH_LLM_SUPPORT
+void
+Lektra::ToggleLLMView() noexcept
+{
+    if (!m_llm_view)
+        return;
+
+    m_llm_view->setVisible(!m_llm_view->isVisible());
+}
+#endif
 
 void
 Lektra::AddBookmark() noexcept

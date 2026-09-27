@@ -3301,7 +3301,10 @@ Model::properties() noexcept
         props.push_back(qMakePair("Page Count", QString::number(m_page_count)));
 
         if (m_pdf_doc)
+        {
             populatePDFProperties(props);
+            populateSignatureProperties(props);
+        }
         else if (m_filetype == FileType::CBZ)
             populateCBZProperties(props);
     }
@@ -3362,6 +3365,104 @@ Model::populatePDFProperties(
         qMakePair("PDF Version", QString("%1.%2")
                                      .arg(m_pdf_doc->version / 10)
                                      .arg(m_pdf_doc->version % 10)));
+}
+
+namespace
+{
+// Reads dict[key] as a PDF text string, decoding the UTF-16BE-with-BOM form
+// PDF text strings may use (same handling as the Info dict values above).
+// Returns an empty string for a missing/non-string value.
+QString
+pdfStringValue(fz_context *ctx, pdf_obj *dict, pdf_obj *key) noexcept
+{
+    pdf_obj *val = pdf_dict_get(ctx, dict, key);
+    if (!val || !pdf_is_string(ctx, val))
+        return {};
+
+    const char *s = pdf_to_str_buf(ctx, val);
+    const int slen = pdf_to_str_len(ctx, val);
+
+    if (slen >= 2 && (quint8)s[0] == 0xFE && (quint8)s[1] == 0xFF)
+    {
+        QStringDecoder decoder(QStringDecoder::Utf16BE);
+        return decoder(QByteArray(s + 2, slen - 2));
+    }
+    return QString::fromUtf8(s, slen);
+}
+} // namespace
+
+// Digital signature info (signer/date/reason/location, no cryptographic
+// verification — that would need a pdf_pkcs7_verifier backed by OpenSSL,
+// which isn't linked in this build). Signature widgets can live on any
+// page, so every page is scanned for PDF_WIDGET_TYPE_SIGNATURE annots.
+void
+Model::populateSignatureProperties(Properties &props) noexcept
+{
+    const int sigCount = pdf_count_signatures(m_ctx, m_pdf_doc);
+    if (sigCount <= 0)
+        return;
+
+    props.emplace_back("Digital Signatures", QString::number(sigCount));
+
+    int index = 1;
+    std::lock_guard<std::mutex> lock(m_doc_mutex);
+    for (int pageno = 0; pageno < m_page_count; ++pageno)
+    {
+        pdf_page *page = nullptr;
+        fz_try(m_ctx)
+        {
+            page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+
+            for (pdf_annot *widget = pdf_first_widget(m_ctx, page); widget;
+                 widget             = pdf_next_widget(m_ctx, widget))
+            {
+                if (pdf_widget_type(m_ctx, widget)
+                    != PDF_WIDGET_TYPE_SIGNATURE)
+                    continue;
+
+                pdf_obj *field = pdf_annot_obj(m_ctx, widget);
+                const bool isSigned
+                    = pdf_signature_is_signed(m_ctx, m_pdf_doc, field);
+
+                const QString prefix
+                    = QString("Signature %1").arg(index++);
+                props.emplace_back(prefix + " Status",
+                                   isSigned ? "Signed" : "Unsigned");
+
+                if (!isSigned)
+                    continue;
+
+                pdf_obj *v = pdf_dict_get(m_ctx, field, PDF_NAME(V));
+                if (!v)
+                    continue;
+
+                const QString name = pdfStringValue(m_ctx, v, PDF_NAME(Name));
+                const QString date = pdfStringValue(m_ctx, v, PDF_NAME(M));
+                const QString reason
+                    = pdfStringValue(m_ctx, v, PDF_NAME(Reason));
+                const QString location
+                    = pdfStringValue(m_ctx, v, PDF_NAME(Location));
+
+                if (!name.isEmpty())
+                    props.emplace_back(prefix + " Signer", name);
+                if (!date.isEmpty())
+                    props.emplace_back(prefix + " Date", date);
+                if (!reason.isEmpty())
+                    props.emplace_back(prefix + " Reason", reason);
+                if (!location.isEmpty())
+                    props.emplace_back(prefix + " Location", location);
+            }
+        }
+        fz_always(m_ctx)
+        {
+            pdf_drop_page(m_ctx, page);
+        }
+        fz_catch(m_ctx)
+        {
+            qWarning() << "populateSignatureProperties(): failed on page"
+                       << pageno << ":" << fz_caught_message(m_ctx);
+        }
+    }
 }
 
 // Lists the image files inside a CBZ/CBT archive. fz_open_archive() reopens
