@@ -97,7 +97,7 @@ show = true
 [tabs]
 visible    = true
 auto_hide  = false          # hide the tab bar when only one tab is open
-closable   = true
+close_button_mode = "all"  # all | current | hidden
 movable    = true
 elide_mode = "right"        # right | left | middle | none
 location   = "top"          # top | bottom | left | right
