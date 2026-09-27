@@ -8,6 +8,7 @@
 - New optional AI chat panel (opt-in `WITH_LLM_SUPPORT` build flag) for talking to a local/remote OpenAI-compatible LLM (e.g. Ollama) from a dock widget; configurable via `lektra.opt.llm_view` / `[llm_view]` in `config.toml`.
 - Added support for opening HTML/XHTML, Markdown, and plain text files, plus DOCX/XLSX/PPTX.
 - New `view:region_select_image(callback)` Lua API — like `region_select`, but the callback receives the selected region as a base64-encoded PNG image instead of just the rect.
+- File Properties for images now also shows DPI. For CBZ/CBT it now shows the image count and the list of image files inside the archive (previously just page count).
 - **Text reflow for EPUB/FB2/MOBI**, via new `font_size_increase`/`font_size_decrease`/`font_size_reset` commands — re-paginates the document at a larger or smaller text size without changing the page dimensions or affecting `zoom_in`/`zoom_out` (which stay pure raster scaling). Opt-in only; pagination never changes on its own. No default keybinding.
 - Menu icons switched to `QStyle` system icons only, for a consistent look across all platforms (previously mixed with Freedesktop theme icons that only rendered well on some Linux setups).
 - Recent Files entries now show real per-file-type icons from the OS instead of one generic glyph.
@@ -62,6 +63,7 @@
 - Fix a race that could double-fire the open-finished handler on rapid consecutive opens.
 - Fix File Properties freezing on a DjVu file with a broken annotation job.
 - Fix `lektra.opt.<section> = {...}` whole-table assignment silently discarding the real config instead of applying it — this affected every `opt` section, including nested ones like `picker.shadow`.
+- Fix CBZ files failing to open — content-based file-type detection can't distinguish a CBZ from a plain zip, so it's now recognized by extension like MuPDF itself does.
 
 ---
 
