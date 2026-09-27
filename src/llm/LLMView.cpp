@@ -2,8 +2,9 @@
 
 #include <QJsonObject>
 #include <QLabel>
-#include <QTextCursor>
-#include <QTextDocument>
+#include <QScrollArea>
+#include <QScrollBar>
+#include <QTimer>
 
 LLMView::LLMView(const Config &config, QWidget *parent)
     : QDockWidget(parent), m_config(config)
@@ -37,9 +38,13 @@ LLMView::initUI()
     setWidget(m_container);
     m_container->setMinimumWidth(300);
 
-    m_response_edit = new QTextEdit(m_container);
-    m_response_edit->setReadOnly(true);
-    m_response_edit->setAcceptRichText(true);
+    m_messages_widget = new QWidget();
+    m_messages_layout = new QVBoxLayout(m_messages_widget);
+    m_messages_layout->addStretch();
+
+    m_scroll_area = new QScrollArea(m_container);
+    m_scroll_area->setWidgetResizable(true);
+    m_scroll_area->setWidget(m_messages_widget);
 
     m_input_edit = new QTextEdit(m_container);
     m_input_edit->setMaximumHeight(80);
@@ -52,7 +57,7 @@ LLMView::initUI()
     m_status_label->hide();
 
     m_layout = new QVBoxLayout();
-    m_layout->addWidget(m_response_edit);
+    m_layout->addWidget(m_scroll_area);
     m_layout->addWidget(m_status_label);
 
     QHBoxLayout *input_layout = new QHBoxLayout();
@@ -66,6 +71,23 @@ LLMView::initUI()
 }
 
 void
+LLMView::addBubble(ChatBubble *bubble) noexcept
+{
+    m_messages_layout->insertWidget(m_messages_layout->count() - 1, bubble);
+    scrollToBottom();
+}
+
+void
+LLMView::scrollToBottom() noexcept
+{
+    QTimer::singleShot(0, this, [this]
+    {
+        QScrollBar *bar = m_scroll_area->verticalScrollBar();
+        bar->setValue(bar->maximum());
+    });
+}
+
+void
 LLMView::sendMessage()
 {
     if (m_awaiting_response)
@@ -75,14 +97,8 @@ LLMView::sendMessage()
     if (user_input.isEmpty())
         return;
 
-    // Display the user's message in the response edit. The label is on its
-    // own line (blank line after it) so that if `user_input` opens with a
-    // fenced code block, the ``` delimiter is still alone on its own line
-    // and gets recognized as a fence rather than swallowed into a paragraph.
-    m_response_markdown += tr("**User:**\n\n%1\n\n").arg(user_input);
-    m_response_edit->document()->setMarkdown(m_response_markdown);
-    m_response_edit->moveCursor(QTextCursor::End);
-    m_response_edit->ensureCursorVisible();
+    addBubble(new ChatBubble(ChatBubble::Role::User, user_input,
+                             m_messages_widget));
 
     setAwaitingResponse(true);
     m_http_client->send(user_input);
@@ -106,18 +122,16 @@ LLMView::displayResponse(const QString &response)
 
     if (m_streaming_active)
     {
-        // Already shown progressively via appendStreamChunk() — just close
-        // out the paragraph and reset for the next exchange.
-        m_streaming_active = false;
-        m_response_markdown += "\n\n";
-        m_response_edit->document()->setMarkdown(m_response_markdown);
+        // Already shown progressively via appendStreamChunk() — nothing
+        // left to do but reset for the next exchange.
+        m_streaming_active         = false;
+        m_active_assistant_bubble  = nullptr;
+        m_streaming_markdown.clear();
         return;
     }
 
-    m_response_markdown += tr("**LLM:**\n\n%1\n\n").arg(response);
-    m_response_edit->document()->setMarkdown(m_response_markdown);
-    m_response_edit->moveCursor(QTextCursor::End);
-    m_response_edit->ensureCursorVisible();
+    addBubble(new ChatBubble(ChatBubble::Role::Assistant, response,
+                             m_messages_widget));
 }
 
 void
@@ -127,23 +141,26 @@ LLMView::appendStreamChunk(const QString &deltaText)
     {
         m_streaming_active = true;
         m_status_label->hide(); // first token arrived — no longer "thinking"
-        m_response_markdown += tr("**LLM:**\n\n");
+        m_streaming_markdown.clear();
+        m_active_assistant_bubble
+            = new ChatBubble(ChatBubble::Role::Assistant, QString(),
+                             m_messages_widget);
+        addBubble(m_active_assistant_bubble);
     }
 
-    m_response_markdown += deltaText;
-    m_response_edit->document()->setMarkdown(m_response_markdown);
-    m_response_edit->moveCursor(QTextCursor::End);
-    m_response_edit->ensureCursorVisible();
+    m_streaming_markdown += deltaText;
+    m_active_assistant_bubble->setText(m_streaming_markdown);
+    scrollToBottom();
 }
 
 void
 LLMView::displayError(const QString &message)
 {
     setAwaitingResponse(false);
-    m_streaming_active = false;
+    m_streaming_active        = false;
+    m_active_assistant_bubble = nullptr;
+    m_streaming_markdown.clear();
 
-    m_response_markdown += tr("**Error:** %1\n\n").arg(message);
-    m_response_edit->document()->setMarkdown(m_response_markdown);
-    m_response_edit->moveCursor(QTextCursor::End);
-    m_response_edit->ensureCursorVisible();
+    addBubble(
+        new ChatBubble(ChatBubble::Role::Error, message, m_messages_widget));
 }

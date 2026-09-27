@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ChatBubble.hpp"
 #include "Config.hpp"
 #include "HTTPClient.hpp"
 
@@ -9,6 +10,7 @@
 #include <QVBoxLayout>
 
 class QLabel;
+class QScrollArea;
 
 class LLMView : public QDockWidget
 {
@@ -31,22 +33,29 @@ private:
     // Disables the Send button and shows/hides the "Thinking..." label for
     // the duration of one request/response exchange.
     void setAwaitingResponse(bool awaiting);
+    // Adds a bubble as the last message in the transcript and scrolls to it.
+    void addBubble(ChatBubble *bubble) noexcept;
+    void scrollToBottom() noexcept;
 
-    HTTPClient *m_http_client  = nullptr;
-    QTextEdit *m_response_edit = nullptr;
-    QTextEdit *m_input_edit    = nullptr;
-    QPushButton *m_send_button = nullptr;
-    QLabel *m_status_label     = nullptr;
-    QVBoxLayout *m_layout      = nullptr;
-    QWidget *m_container       = nullptr;
-    // Accumulated conversation as Markdown source, re-rendered into
-    // m_response_edit on every update via setMarkdown() — append() only
-    // auto-detects actual HTML, not Markdown syntax, so LLM output would
-    // otherwise show up as literal "**bold**"/"# heading" text.
-    QString m_response_markdown;
+    HTTPClient *m_http_client       = nullptr;
+    QScrollArea *m_scroll_area      = nullptr;
+    QWidget *m_messages_widget      = nullptr;
+    QVBoxLayout *m_messages_layout  = nullptr;
+    QTextEdit *m_input_edit         = nullptr;
+    QPushButton *m_send_button      = nullptr;
+    QLabel *m_status_label          = nullptr;
+    QVBoxLayout *m_layout           = nullptr;
+    QWidget *m_container            = nullptr;
+    // The in-progress assistant bubble while a streamed reply is arriving —
+    // nullptr when no stream is active. Only this one bubble is touched per
+    // chunk, unlike the old whole-transcript re-render.
+    ChatBubble *m_active_assistant_bubble = nullptr;
+    // Markdown source accumulated for the in-progress streamed bubble only
+    // (not the whole conversation) — reset per exchange.
+    QString m_streaming_markdown;
     // True while a streamed response is being appended chunk-by-chunk, so
     // displayResponse() (which always fires once, streamed or not) knows
-    // the text was already shown and doesn't append it a second time.
+    // the bubble was already created/filled and doesn't add a second one.
     bool m_streaming_active  = false;
     // True from sendMessage() until the exchange fully completes (reply or
     // error) — kept disabled through the whole streamed response, not just

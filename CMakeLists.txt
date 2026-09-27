@@ -390,6 +390,7 @@ if (WITH_LLM_SUPPORT)
     target_sources(${PROJECT_NAME} PRIVATE
         src/llm/LLMView.cpp
         src/llm/HTTPClient.cpp
+        src/llm/ChatBubble.cpp
         ${LEKTRA_LLM_HEADERS})
     target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_LLM_SUPPORT=1)
 endif()
