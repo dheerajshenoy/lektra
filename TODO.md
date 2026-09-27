@@ -9,22 +9,19 @@
 
 ## MEDIUM PRIORITY
 
+- [ ] Trim marings - hides the empty margins around page content, as if they weren’t there. Margins are detected as pages are shown.
+- [ ] Your reading position is saved as a chapter bookmark, so it survives font-size changes. (For reflowable documents, the bookmark is anchored to the chapter and a y-fraction of the chapter's height, so it survives font-size changes. For fixed-layout documents, the bookmark is anchored to the page number.)
 - [ ] Uniform Page Width (shows pages of different sizes at the same width at percentage zoom levels, using page 1 as the reference)
 - [ ] Chrome-style tabs (Ctrl+Tab to switch, Ctrl+Shift+Tab to switch backwards)
-- [ ] Configurable close button (on current tab, on all tabs, or none)
 - [ ] Configurable line scroll distance
-- [ ] Keep view position when turning pages
+- [ ] Keep view position when turning pages (command)
 - [ ] Ebook font and line spacing settings
 - [ ] Click away to deselect an annotation
-- [ ] Files that fail to open get their own tab (title in red)
 - [ ] Link descriptions on hover
 - [ ] Laser pointer for presentation view
-- [ ] Zoom to Selection
 - [ ] Tab hover preview
 - [ ] Keyboard shortcuts cheat sheet
-- [ ] Drag Drop image file in PDF document
 - [ ] Annotation save as temp file and auto-save on exit
-- [ ] Links with file:// URIs now open the file as a local document instead of sending it to the browser
 - [ ] Table of contents for comic books from ComicInfo.xml
 - [ ] Use `djvudec` for DjVu rendering (https://github.com/kjk/djvudec)
 - [ ] Clickable Plain text DOIs in PDF text
@@ -32,23 +29,28 @@
 - [ ] Citation preview for plain-text references
 - [ ] Smoother find-as-you-type
 - [ ] Duplicating a tab keeps the page, zoom and scroll position of the original tab.
-- [ ] Add support for JPEG xl (.jxl) images
-- [ ] Add support for JPEG XR (.jxr, .hdp, .wdp, .jfif and .heif) images
-- [ ] Add no invert image for DjVu documents
 - [ ] Password on the command line
 - [ ] Remove Deleted Files From History command - removes files that no longer exist on disk from the list of recently opened files.
 - [ ] Citation and reference hover preview
-- [ ] Open PDFs inside .p7m files
-- [ ] Digital signature info in Document Properties
-- [ ] Add `run_last_command()` command that runs the last command with arguments or whatever was executed interactively.
 - [ ] Drag images out of documents
-- [ ] Comic book archive support with libarchive instead of MuPDF
+- [x] Digital signature info in Document Properties
+- [x] Configurable tab close button (on current tab, on all tabs, or none)
+- [x] Page number in tabs
+- [x] Links with file:// URIs now open the file as a local document instead of sending it to the browser
+- [x] Zoom to Selection
+- [ ] Files that fail to open get their own tab (title in red)
+- [ ] Open File Without History (command)
 
 ## LOW PRIORITY
 
+- [ ] Add support for JPEG xl (.jxl) images
+- [ ] Add support for JPEG XR (.jxr, .hdp, .wdp, .jfif and .heif) images
+- [ ] Add no invert image for DjVu documents
+- [ ] Open PDFs inside .p7m files
+- [ ] Add `run_last_command()` command that runs the last command with arguments or whatever was executed interactively.
+- [ ] Comic book archive support with libarchive instead of MuPDF
 - [ ] Bookmarks/history/sessions store raw `PageLocation{pageno,x,y}` (`include/PageLocation.hpp`), which an EPUB/reflowable-document relayout invalidates. Short-term (already shipped alongside reflow): clamp to new page count on load (approximately right page, not exact position). Real fix — anchoring EPUB bookmarks to `(chapter, uri-fragment, y-fraction)` like the outline now does (see `Model::resolveOutlineNode`) — is a `PageLocation`/`BookmarkManager` schema change and belongs in its own follow-up.
 - [ ] Decorate form fields
-- [ ] Trim margins
 - [ ] Add support for directory local config files
 - [ ] Allow for command arguments
 - [ ] Don't add connection to annotation when in non-annotatable mode
@@ -61,6 +63,7 @@
 
 ## LUA PLUGIN IDEAS
 
+- [ ] Search region with Google Lens
 - [ ] Read Aloud (text-to-speech)
 - [ ] Equation OCR to LaTeX
 - [ ] Table exporter to tex/CSV/Excel/Numpy
