@@ -1494,7 +1494,7 @@ struct Config
         // @type str
         // @default ""
         // @added 0.7.8
-        QString api_url = "https://localhost:11434/v1/chat/completions";
+        QString api_url = "http://localhost:11434/v1/chat/completions";
 
         // @desc Extra body to send in the API request (JSON format)
         // @type map

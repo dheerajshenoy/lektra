@@ -1347,6 +1347,36 @@ Lektra::initConfig() noexcept
     }
 #endif
 
+    if (auto llm_view = toml["llm_view"])
+    {
+        set(llm_view["enabled"], m_config.llm_view.enabled);
+        set(llm_view["separate_window"], m_config.llm_view.separate_window);
+        set(llm_view["dock_area"], m_config.llm_view.dock_area);
+        set(llm_view["model"], m_config.llm_view.model);
+        set(llm_view["api_key"], m_config.llm_view.api_key);
+        set(llm_view["api_url"], m_config.llm_view.api_url);
+
+        if (auto extra_body = llm_view["extra_body"])
+        {
+            m_config.llm_view.extra_body.clear();
+            for (auto &[key, value] : *extra_body.as_table())
+            {
+                const QString qkey
+                    = QString::fromStdString(std::string(key.str()));
+                if (auto v = value.value<bool>())
+                    m_config.llm_view.extra_body.insert(qkey, *v);
+                else if (auto v = value.value<int64_t>())
+                    m_config.llm_view.extra_body.insert(
+                        qkey, static_cast<qlonglong>(*v));
+                else if (auto v = value.value<double>())
+                    m_config.llm_view.extra_body.insert(qkey, *v);
+                else if (auto v = value.value<std::string>())
+                    m_config.llm_view.extra_body.insert(
+                        qkey, QString::fromStdString(*v));
+            }
+        }
+    }
+
     // Rendering
     if (auto rendering = toml["rendering"])
     {

@@ -459,6 +459,11 @@ public:
     void FlipH() noexcept;
     void FlipV() noexcept;
     void startRegionSelect(std::function<void(QRectF)> cb) noexcept;
+    // Crops the already-rendered page pixmap to the given scene-space region
+    // and returns it as a standalone QImage (empty if the region doesn't map
+    // onto a rendered page). Shared by CopyRegionAsImage() and the Lua
+    // region_select_image() API.
+    QImage regionImage(QRectF area) noexcept;
     QMap<int, Model::LinkInfo> LinkKB() noexcept;
     void ClearTextSelection() noexcept;
     void YankSelection(bool formatted = true) noexcept;

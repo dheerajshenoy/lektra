@@ -235,6 +235,14 @@ function View:set_mode(mode) end
 ---@param dpr number The desired device pixel ratio (e.g., 1.0 for standard displays, 2.0 for high-DPI displays). Setting the DPR can improve rendering quality on high-DPI screens.
 function View:set_dpr(dpr) end
 
+---Puts the view into region-selection mode; once the user drags out a rubber-band and releases, `callback` is called once with the selected area and the interaction mode reverts to normal (no context menu is shown for this one selection).
+---@param callback fun(area: { x: number, y: number, w: number, h: number }) Callback invoked with the selected region in scene coordinates.
+function View:region_select(callback) end
+
+---Same interaction as `region_select`, but `callback` is passed the selected region rendered as a base64-encoded PNG string instead of the rect — handy for feeding a screenshot region to an OCR/vision-model API or saving it out via `io.open` plus a base64 decoder. The string is empty if the dragged region didn't land on a rendered page.
+---@param callback fun(image_base64: string) Callback invoked with the selected region as a base64-encoded PNG string.
+function View:region_select_image(callback) end
+
 ---Gets the current device pixel ratio (DPR) for the view
 ---@return number dpr The current device pixel ratio (e.g., 1.0 for standard displays, 2.0 for high-DPI displays).
 function View:dpr() end

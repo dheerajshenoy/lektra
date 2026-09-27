@@ -1833,6 +1833,113 @@ static const LuaField previewFields[] = {
 }},
 };
 
+// --- llm_view ---
+// Field order must stay alphabetical — findField() below is a binary search.
+static const LuaField llmViewFields[] = {
+    {"api_key",
+     [](lua_State *L, P p)
+{
+    lua_pushstring(L,
+                   static_cast<Config::LLMView *>(p)->api_key.toUtf8()
+                       .constData());
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::LLMView *>(p)->api_key = lua_tostring(L, 3); }},
+    {"api_url",
+     [](lua_State *L, P p)
+{
+    lua_pushstring(L,
+                   static_cast<Config::LLMView *>(p)->api_url.toUtf8()
+                       .constData());
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::LLMView *>(p)->api_url = lua_tostring(L, 3); }},
+    {"dock_area",
+     [](lua_State *L, P p)
+{
+    lua_pushstring(L,
+                   static_cast<Config::LLMView *>(p)->dock_area.toUtf8()
+                       .constData());
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::LLMView *>(p)->dock_area = lua_tostring(L, 3); }},
+    {"enabled",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::LLMView *>(p)->enabled);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::LLMView *>(p)->enabled = lua_toboolean(L, 3); }},
+    {"extra_body",
+     [](lua_State *L, P p)
+{
+    lua_newtable(L);
+    const auto &map = static_cast<Config::LLMView *>(p)->extra_body;
+    for (auto it = map.constBegin(); it != map.constEnd(); ++it)
+    {
+        switch (it.value().typeId())
+        {
+            case QMetaType::Bool:
+                lua_pushboolean(L, it.value().toBool());
+                break;
+            case QMetaType::Int:
+            case QMetaType::LongLong:
+                lua_pushinteger(L, it.value().toLongLong());
+                break;
+            case QMetaType::Double:
+                lua_pushnumber(L, it.value().toDouble());
+                break;
+            default:
+                lua_pushstring(L, it.value().toString().toUtf8().constData());
+                break;
+        }
+        lua_setfield(L, -2, it.key().toUtf8().constData());
+    }
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    if (!lua_istable(L, 3))
+        return;
+    auto &map = static_cast<Config::LLMView *>(p)->extra_body;
+    map.clear();
+    lua_pushnil(L);
+    while (lua_next(L, 3) != 0)
+    {
+        // key is at -2, value at -1
+        const QString key = lua_tostring(L, -2);
+        if (lua_isboolean(L, -1))
+            map.insert(key, static_cast<bool>(lua_toboolean(L, -1)));
+        else if (lua_isinteger(L, -1))
+            map.insert(key, static_cast<qlonglong>(lua_tointeger(L, -1)));
+        else if (lua_isnumber(L, -1))
+            map.insert(key, lua_tonumber(L, -1));
+        else if (lua_isstring(L, -1))
+            map.insert(key, QString(lua_tostring(L, -1)));
+        lua_pop(L, 1); // pop value, keep key for lua_next
+    }
+}},
+    {"model",
+     [](lua_State *L, P p)
+{
+    lua_pushstring(L,
+                   static_cast<Config::LLMView *>(p)->model.toUtf8()
+                       .constData());
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::LLMView *>(p)->model = lua_tostring(L, 3); }},
+    {"separate_window",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::LLMView *>(p)->separate_window);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::LLMView *>(p)->separate_window = lua_toboolean(L, 3);
+}},
+};
+
 // --- misc ---
 static const LuaField miscFields[] = {
     {"color_dialog_colors",
@@ -1882,47 +1989,176 @@ findField(const LuaField *fields, int count, const char *key)
     return nullptr;
 }
 
-static int
-genericIndex(lua_State *L)
+// Raw (non-metamethod-aware) field access on the table at `idx`. Used
+// internally by sectionIndex/sectionNewIndex to read/write their own
+// bookkeeping keys (__ptr, __fields, __count, __lektra, __children) —
+// using the metamethod-aware lua_getfield/lua_setfield for these would
+// recurse right back into sectionIndex/sectionNewIndex itself.
+static void
+rawGetField(lua_State *L, int idx, const char *key)
 {
-    lua_getfield(L, 1, "__ptr");
-    void *ptr = lua_touserdata(L, -1);
-    lua_getfield(L, 1, "__fields");
-    auto *fields = static_cast<const LuaField *>(lua_touserdata(L, -1));
-    lua_getfield(L, 1, "__count");
-    int count = lua_tointeger(L, -1);
-    lua_pop(L, 3);
+    const int abs = lua_absindex(L, idx);
+    lua_pushstring(L, key);
+    lua_rawget(L, abs); // pops key, pushes value
+}
 
-    const LuaField *f = findField(fields, count, lua_tostring(L, 2));
+// Expects the new value on top of the stack (consumes it), mirroring
+// lua_setfield's calling convention.
+static void
+rawSetField(lua_State *L, int idx, const char *key)
+{
+    const int abs = lua_absindex(L, idx);
+    lua_pushstring(L, key);   // ..., value, key
+    lua_insert(L, -2);        // ..., key, value
+    lua_rawset(L, abs);       // pops key, value
+}
+
+// Looks up `key` as a scalar Config-struct field of the section object at
+// `obj_idx` (via its __fields/__count/__ptr bookkeeping). Returns nullptr
+// for a pure grouping table (no __fields at all) or an unknown key.
+static const LuaField *
+sectionScalarField(lua_State *L, int obj_idx, const char *key, void **out_ptr)
+{
+    const int abs = lua_absindex(L, obj_idx);
+
+    rawGetField(L, abs, "__fields");
+    const LuaField *fields = lua_isuserdata(L, -1)
+                                  ? static_cast<const LuaField *>(
+                                        lua_touserdata(L, -1))
+                                  : nullptr;
+    lua_pop(L, 1);
+    if (!fields)
+    {
+        if (out_ptr)
+            *out_ptr = nullptr;
+        return nullptr;
+    }
+
+    rawGetField(L, abs, "__count");
+    const int count = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    rawGetField(L, abs, "__ptr");
+    void *ptr = lua_touserdata(L, -1);
+    lua_pop(L, 1);
+
+    if (out_ptr)
+        *out_ptr = ptr;
+    return findField(fields, count, key);
+}
+
+// __index for every section/grouping object: scalar Config fields first,
+// then fall through to a nested child section (__children), e.g.
+// `opt.picker.shadow` or `opt.annotations.highlight`.
+static int
+sectionIndex(lua_State *L)
+{
+    const char *key = lua_tostring(L, 2);
+    void *ptr        = nullptr;
+    const LuaField *f = sectionScalarField(L, 1, key, &ptr);
     if (f)
         return f->get(L, ptr);
+
+    rawGetField(L, 1, "__children");
+    if (lua_istable(L, -1))
+    {
+        lua_getfield(L, -1, key);
+        lua_remove(L, -2); // drop __children table, keep the child value
+        return 1;
+    }
+    lua_pop(L, 1);
     lua_pushnil(L);
     return 1;
 }
 
+// __newindex for every section/grouping object. A scalar Config field is
+// set directly. Otherwise, if `key` names a nested child section and the
+// assigned value is a table, the table is MERGED into the existing child
+// via lua_settable() (which invokes the child's own __newindex for each
+// key, recursing naturally into further nested children) rather than
+// replacing the child with a disconnected plain table — that's what makes
+// `lektra.opt.llm_view = {...}` (or `opt.annotations = {...}`,
+// `opt.picker.shadow = {...}`, etc.) actually reach the real config.
 static int
-genericNewIndex(lua_State *L)
+sectionNewIndex(lua_State *L)
 {
-    lua_getfield(L, 1, "__ptr");
-    void *ptr = lua_touserdata(L, -1);
-    lua_getfield(L, 1, "__fields");
-    auto *fields = static_cast<const LuaField *>(lua_touserdata(L, -1));
-    lua_getfield(L, 1, "__count");
-    int count = lua_tointeger(L, -1);
-    lua_getfield(L, 1, "__lektra");
-    auto *lektra = static_cast<Lektra *>(lua_touserdata(L, -1));
-    lua_pop(L, 4);
-
-    const LuaField *f = findField(fields, count, lua_tostring(L, 2));
+    const char *key = lua_tostring(L, 2);
+    void *ptr        = nullptr;
+    const LuaField *f = sectionScalarField(L, 1, key, &ptr);
     if (f)
     {
         f->set(L, ptr);
-        if (f->callback && lektra)
+        if (f->callback)
         {
-            f->callback(lektra);
+            rawGetField(L, 1, "__lektra");
+            auto *lektra = static_cast<Lektra *>(lua_touserdata(L, -1));
+            lua_pop(L, 1);
+            if (lektra)
+                f->callback(lektra);
         }
+        return 0;
     }
+
+    rawGetField(L, 1, "__children");
+    if (lua_istable(L, -1))
+    {
+        const int children_idx = lua_absindex(L, -1);
+        lua_getfield(L, children_idx, key);
+        if (lua_istable(L, -1) && lua_istable(L, 3))
+        {
+            const int child_idx = lua_absindex(L, -1);
+            lua_pushnil(L);
+            while (lua_next(L, 3) != 0)
+            {
+                lua_pushvalue(L, -2); // dup key
+                lua_pushvalue(L, -2); // dup value
+                lua_settable(L, child_idx); // pops dup key + dup value
+                lua_pop(L, 1); // pop value, keep original key for lua_next
+            }
+        }
+        lua_pop(L, 1); // pop child value (table or nil)
+    }
+    lua_pop(L, 1); // pop __children (table or nil)
     return 0;
+}
+
+// Adds the value on top of the stack as a named child of the section object
+// at `obj_idx`, creating its __children table on first use. Consumes the
+// child value, mirroring lua_setfield's calling convention.
+static void
+addChild(lua_State *L, int obj_idx, const char *name)
+{
+    const int abs = lua_absindex(L, obj_idx);
+    // stack: ..., child
+
+    rawGetField(L, abs, "__children"); // ..., child, children_or_nil
+    if (!lua_istable(L, -1))
+    {
+        lua_pop(L, 1);                         // ..., child
+        lua_newtable(L);                       // ..., child, children
+        lua_pushvalue(L, -1);                  // ..., child, children, children
+        rawSetField(L, abs, "__children");      // ..., child, children
+    }
+    // stack: ..., child, children
+    lua_insert(L, -2); // ..., children, child
+    rawSetField(L, lua_absindex(L, -2), name); // ..., children (consumes child)
+    lua_pop(L, 1); // pop children table; net effect: only child consumed
+}
+
+// Attaches sectionIndex/sectionNewIndex as the metatable of the table on
+// top of the stack (not consumed). Used both for pushSection()'s proxies
+// and for pure grouping tables with no scalar fields of their own (opt,
+// opt.annotations, opt.statusbar.components) so whole-table assignment
+// works uniformly everywhere.
+static void
+setSectionMetatable(lua_State *L)
+{
+    lua_newtable(L);
+    lua_pushcfunction(L, sectionIndex);
+    lua_setfield(L, -2, "__index");
+    lua_pushcfunction(L, sectionNewIndex);
+    lua_setfield(L, -2, "__newindex");
+    lua_setmetatable(L, -2);
 }
 
 template <int N>
@@ -1940,161 +2176,172 @@ pushSection(lua_State *L, void *ptr, const LuaField (&fields)[N],
     lua_pushlightuserdata(L, lektra);
     lua_setfield(L, -2, "__lektra");
 
-    lua_newtable(L);
-    lua_pushcfunction(L, genericIndex);
-    lua_setfield(L, -2, "__index");
-    lua_pushcfunction(L, genericNewIndex);
-    lua_setfield(L, -2, "__newindex");
-    lua_setmetatable(L, -2);
-    // caller is responsible for lua_setfield into parent
+    setSectionMetatable(L);
+    // caller is responsible for lua_setfield/addChild into parent
 }
 
 static void
 initLuaSections(lua_State *L, Config &config, Lektra *lektra)
 {
-    // lektra.opt {}
+    // lektra.opt {} — a pure grouping table; gets the section metatable too
+    // so `lektra.opt.<section> = {...}` merges into the real child instead
+    // of replacing it with a disconnected plain table.
     lua_newtable(L);
+    setSectionMetatable(L);
+    const int opt_idx = lua_absindex(L, -1);
 
     // lektra.opt.page
     pushSection(L, &config.page, pageFields, lektra);
-    lua_setfield(L, -2, "page");
+    addChild(L, opt_idx, "page");
 
     // lektra.opt.synctex
     pushSection(L, &config.synctex, synctexFields, lektra);
-    lua_setfield(L, -2, "synctex");
+    addChild(L, opt_idx, "synctex");
 
     // lektra.opt.search
     pushSection(L, &config.search, searchFields, lektra);
-    lua_setfield(L, -2, "search");
+    addChild(L, opt_idx, "search");
 
     // lektra.opt.annotations {}
     lua_newtable(L);
+    setSectionMetatable(L);
+    const int annotations_idx = lua_absindex(L, -1);
 
     // lektra.opt.annotations.highlight
     pushSection(L, &config.annotations.highlight, annotHighlightFields, lektra);
-    lua_setfield(L, -2, "highlight");
+    addChild(L, annotations_idx, "highlight");
 
     // lektra.opt.annotations.rect
     pushSection(L, &config.annotations.rect, annotRectFields, lektra);
-    lua_setfield(L, -2, "rect");
+    addChild(L, annotations_idx, "rect");
 
     // lektra.opt.annotations.popup
     pushSection(L, &config.annotations.popup, annotPopupFields, lektra);
-    lua_setfield(L, -2, "popup");
+    addChild(L, annotations_idx, "popup");
 
-    // lektra.opt.annotations
-    lua_setfield(L, -2, "annotations");
+    addChild(L, opt_idx, "annotations");
 
     // lektra.opt.thumbnail_panel
     pushSection(L, &config.thumbnail, thumbnailPanelFields, lektra);
-    lua_setfield(L, -2, "thumbnail_panel");
+    addChild(L, opt_idx, "thumbnail_panel");
 
     // lektra.opt.portal
     pushSection(L, &config.portal, portalFields, lektra);
-    lua_setfield(L, -2, "portal");
+    addChild(L, opt_idx, "portal");
 
     // lektra.opt.window
     pushSection(L, &config.window, windowFields, lektra);
-    lua_setfield(L, -2, "window");
+    addChild(L, opt_idx, "window");
 
     // lektra.opt.layout
     pushSection(L, &config.layout, layoutFields, lektra);
-    lua_setfield(L, -2, "layout");
+    addChild(L, opt_idx, "layout");
 
     // lektra.opt.statusbar
     pushSection(L, &config.statusbar, statusbarFields, lektra);
-    // Attach lektra.opt.statusbar.components as a plain table on top of the
-    // proxy; direct fields take precedence over the metatable's __index, so
-    // this coexists with visible / padding on the same object.
+    const int statusbar_idx = lua_absindex(L, -1);
+
+    // lektra.opt.statusbar.components {}
     lua_newtable(L);
+    setSectionMetatable(L);
+    const int components_idx = lua_absindex(L, -1);
+
     pushSection(L, &config.statusbar.component.mode, statusbarModeFields,
                 lektra);
-    lua_setfield(L, -2, "mode");
+    addChild(L, components_idx, "mode");
     pushSection(L, &config.statusbar.component.pagenumber,
                 statusbarPagenumberFields, lektra);
-    lua_setfield(L, -2, "pagenumber");
+    addChild(L, components_idx, "pagenumber");
     pushSection(L, &config.statusbar.component.session,
                 statusbarSessionFields, lektra);
-    lua_setfield(L, -2, "session");
+    addChild(L, components_idx, "session");
     pushSection(L, &config.statusbar.component.zoom, statusbarZoomFields,
                 lektra);
-    lua_setfield(L, -2, "zoom");
+    addChild(L, components_idx, "zoom");
     pushSection(L, &config.statusbar.component.filename,
                 statusbarFilenameFields, lektra);
-    lua_setfield(L, -2, "filename");
+    addChild(L, components_idx, "filename");
     pushSection(L, &config.statusbar.component.progress,
                 statusbarProgressFields, lektra);
-    lua_setfield(L, -2, "progress");
-    lua_setfield(L, -2, "components");
-    lua_setfield(L, -2, "statusbar");
+    addChild(L, components_idx, "progress");
+
+    addChild(L, statusbar_idx, "components");
+    addChild(L, opt_idx, "statusbar");
 
     // lektra.opt.zoom
     pushSection(L, &config.zoom, zoomFields, lektra);
-    lua_setfield(L, -2, "zoom");
+    addChild(L, opt_idx, "zoom");
 
     // lektra.opt.selection
     pushSection(L, &config.selection, selectionFields, lektra);
-    lua_setfield(L, -2, "selection");
+    addChild(L, opt_idx, "selection");
 
     // lektra.opt.split
     pushSection(L, &config.split, splitFields, lektra);
-    lua_setfield(L, -2, "split");
+    addChild(L, opt_idx, "split");
 
     // lektra.opt.scrollbars
     pushSection(L, &config.scrollbars, scrollbarsFields, lektra);
-    lua_setfield(L, -2, "scrollbars");
+    addChild(L, opt_idx, "scrollbars");
 
     // lektra.opt.jump_marker
     pushSection(L, &config.jump_marker, jumpMarkerFields, lektra);
-    lua_setfield(L, -2, "jump_marker");
+    addChild(L, opt_idx, "jump_marker");
 
     // lektra.opt.links
     pushSection(L, &config.links, linksFields, lektra);
-    lua_setfield(L, -2, "links");
+    addChild(L, opt_idx, "links");
 
     // lektra.opt.link_hints
     pushSection(L, &config.link_hints, linkHintsFields, lektra);
-    lua_setfield(L, -2, "link_hints");
+    addChild(L, opt_idx, "link_hints");
 
     // lektra.opt.tabs
     pushSection(L, &config.tabs, tabsFields, lektra);
-    lua_setfield(L, -2, "tabs");
+    addChild(L, opt_idx, "tabs");
 
-    // lektra.opt.picker (with .shadow attached as a nested table)
+    // lektra.opt.picker (with .shadow attached as a nested child)
     pushSection(L, &config.picker, pickerFields, lektra);
+    const int picker_idx = lua_absindex(L, -1);
     pushSection(L, &config.picker.shadow, pickerShadowFields, lektra);
-    lua_setfield(L, -2, "shadow");
-    lua_setfield(L, -2, "picker");
+    addChild(L, picker_idx, "shadow");
+    addChild(L, opt_idx, "picker");
 
     // lektra.opt.outline
     pushSection(L, &config.outline, outlineFields, lektra);
-    lua_setfield(L, -2, "outline");
+    addChild(L, opt_idx, "outline");
 
     // lektra.opt.highlight_search
     pushSection(L, &config.highlight_search, highlightSearchFields, lektra);
-    lua_setfield(L, -2, "highlight_search");
+    addChild(L, opt_idx, "highlight_search");
 
     // lektra.opt.command_palette
     pushSection(L, &config.command_palette, commandPaletteFields, lektra);
-    lua_setfield(L, -2, "command_palette");
+    addChild(L, opt_idx, "command_palette");
 
     // lektra.opt.rendering
     pushSection(L, &config.rendering, renderingFields, lektra);
-    lua_setfield(L, -2, "rendering");
+    addChild(L, opt_idx, "rendering");
 
     // lektra.opt.behavior
     pushSection(L, &config.behavior, behaviorFields, lektra);
-    lua_setfield(L, -2, "behavior");
+    addChild(L, opt_idx, "behavior");
 
     // lektra.opt.preview
     pushSection(L, &config.preview, previewFields, lektra);
-    lua_setfield(L, -2, "preview");
+    addChild(L, opt_idx, "preview");
 
     // lektra.opt.misc
     pushSection(L, &config.misc, miscFields, lektra);
-    lua_setfield(L, -2, "misc");
+    addChild(L, opt_idx, "misc");
 
-    // lektra.opt
+    // lektra.opt.llm_view
+    pushSection(L, &config.llm_view, llmViewFields, lektra);
+    addChild(L, opt_idx, "llm_view");
+
+    // lektra.opt — plain assignment into the "lektra" global table (not a
+    // section object), so this one line is unrelated to the __newindex
+    // machinery above.
     lua_setfield(L, -2, "opt");
 }
 } // namespace

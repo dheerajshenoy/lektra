@@ -2,6 +2,8 @@
 #include "Model.hpp"
 #include "utils.hpp"
 
+#include <QBuffer>
+#include <QByteArray>
 #include <QMenu>
 #include <cstring>
 
@@ -1097,6 +1099,50 @@ static const luaL_Reg DocumentViewMethods[] = {
                         if (lua_pcall(L, 1, 0, 0) != LUA_OK)
                         {
                             fprintf(stderr, "Lua error in region_select callback: %s\n",
+                                    lua_tostring(L, -1));
+                            lua_pop(L, 1);
+                        }
+                    });
+                    return 0;
+                }),
+
+    // Same interaction as region_select, but instead of the selected
+    // rect, the callback is passed the selected region rendered as a
+    // base64-encoded PNG string (empty string if the region didn't map
+    // onto a rendered page) — handy for feeding a screenshot region to an
+    // OCR/vision-model API or saving it out via io.open + a base64 decoder.
+    VIEW_METHOD("region_select_image",
+                {
+                    luaL_checktype(L, 2, LUA_TFUNCTION);
+                    lua_pushvalue(L, 2);
+                    int cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+                    DocumentView *self = *view;
+                    (*view)->startRegionSelect(
+                        [L, cb_ref, self](QRectF area)
+                    {
+                        lua_rawgeti(L, LUA_REGISTRYINDEX, cb_ref);
+                        luaL_unref(L, LUA_REGISTRYINDEX, cb_ref);
+
+                        QByteArray bytes;
+                        if (self)
+                        {
+                            const QImage img = self->regionImage(area);
+                            if (!img.isNull())
+                            {
+                                QBuffer buf(&bytes);
+                                buf.open(QIODevice::WriteOnly);
+                                img.save(&buf, "PNG");
+                            }
+                        }
+                        const QByteArray b64 = bytes.toBase64();
+                        lua_pushlstring(L, b64.constData(), b64.size());
+
+                        if (lua_pcall(L, 1, 0, 0) != LUA_OK)
+                        {
+                            fprintf(stderr,
+                                    "Lua error in region_select_image "
+                                    "callback: %s\n",
                                     lua_tostring(L, -1));
                             lua_pop(L, 1);
                         }

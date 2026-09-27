@@ -5316,20 +5316,27 @@ DocumentView::CopyTextFromRegion(QRectF area) noexcept
     clip->setText(QString::fromStdString(text));
 }
 
-void
-DocumentView::CopyRegionAsImage(QRectF area) noexcept
+QImage
+DocumentView::regionImage(QRectF area) noexcept
 {
     int pageno;
     GraphicsImageItem *pageItem;
 
     if (!pageAtScenePos(area.center(), pageno, pageItem))
-        return;
+        return {};
 
     QRectF pageRect;
     QRect pixelRect;
     if (!mapRegionToPageRects(area, pageItem, pageRect, pixelRect))
-        return;
-    const QImage img = pageItem->image().copy(pixelRect);
+        return {};
+
+    return pageItem->image().copy(pixelRect);
+}
+
+void
+DocumentView::CopyRegionAsImage(QRectF area) noexcept
+{
+    const QImage img = regionImage(area);
 
     if (!img.isNull())
     {
