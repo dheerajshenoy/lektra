@@ -11,6 +11,7 @@
 
 class QLabel;
 class QScrollArea;
+class QTimer;
 
 class LLMView : public QDockWidget
 {
@@ -42,6 +43,9 @@ private:
     // Adds a bubble as the last message in the transcript and scrolls to it.
     void addBubble(ChatBubble *bubble) noexcept;
     void scrollToBottom() noexcept;
+    // Reflects an HTTPClient::connectionStatusChanged() result in
+    // m_connection_indicator.
+    void updateConnectionIndicator(bool connected) noexcept;
 
     HTTPClient *m_http_client       = nullptr;
     QScrollArea *m_scroll_area      = nullptr;
@@ -50,6 +54,10 @@ private:
     QTextEdit *m_input_edit         = nullptr;
     QPushButton *m_send_button      = nullptr;
     QLabel *m_status_label          = nullptr;
+    // Shows "Connected"/"Disconnected" for the configured LLM endpoint,
+    // refreshed by m_connection_check_timer.
+    QLabel *m_connection_indicator      = nullptr;
+    QTimer *m_connection_check_timer    = nullptr;
     QVBoxLayout *m_layout           = nullptr;
     QWidget *m_container            = nullptr;
     // The in-progress assistant bubble while a streamed reply is arriving —

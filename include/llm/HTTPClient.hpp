@@ -22,6 +22,13 @@ public:
     // destroyed (e.g. on application shutdown) so a pending request
     // doesn't keep the connection open past the app closing.
     void closeConnection() noexcept;
+    // Fires a lightweight HEAD probe against the configured URL to check
+    // whether the LLM server (local or remote) is currently reachable —
+    // emits connectionStatusChanged() once it completes. Any real HTTP
+    // response (even an error status like 404/405) counts as "connected";
+    // only a network-layer failure (connection refused, host not found,
+    // timed out) counts as "disconnected".
+    void checkConnection() noexcept;
 
 signals:
     // Full final reply text — always emitted exactly once per send(),
@@ -31,6 +38,8 @@ signals:
     // text fragment per Server-Sent-Events chunk, as it arrives.
     void streamChunkReceived(const QString &deltaText);
     void errorOccurred(const QString &message);
+    // Emitted after every checkConnection() call completes.
+    void connectionStatusChanged(bool connected);
 
 private:
     QNetworkAccessManager m_networkManager;
@@ -42,4 +51,7 @@ private:
     // Server-Sent-Events parsing state for the in-flight streamed request.
     QByteArray m_sseBuffer;
     QString m_streamedText;
+    // In-flight checkConnection() probe, if any — a fresh call aborts a
+    // still-pending one rather than letting two race.
+    QNetworkReply *m_probeReply = nullptr;
 };

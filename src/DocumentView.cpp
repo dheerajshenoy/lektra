@@ -2581,7 +2581,7 @@ DocumentView::FollowLink(const Model::LinkInfo &info) noexcept
     {
         case BrowseLinkItem::LinkType::External:
             if (!info.uri.isEmpty())
-                QDesktopServices::openUrl(QUrl(info.uri));
+                emit externalLinkRequested(info.uri);
             break;
 
         case BrowseLinkItem::LinkType::FitH:
@@ -3868,6 +3868,8 @@ void
 DocumentView::handleDocumentRelayouted() noexcept
 {
     const int newPageCount = m_model->numPages();
+    emit totalPageCountChanged(newPageCount);
+
     const int targetPage
         = newPageCount > 0
             ? qBound(0, qRound(m_relayout_saved_fraction * newPageCount),
@@ -4709,6 +4711,9 @@ DocumentView::renderLinks(int pageno,
         connect(item, &BrowseLinkItem::linkOpenHSplitRequested, this,
                 [this](const BrowseLinkItem *link)
         { emit linkOpenHSplitRequested(this, link); });
+
+        connect(item, &BrowseLinkItem::externalLinkRequested, this,
+                &DocumentView::externalLinkRequested);
 
         // Map link rect to scene coordinates
         const QRectF sceneRect

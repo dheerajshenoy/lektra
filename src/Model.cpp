@@ -6305,6 +6305,12 @@ Model::fileTypeToString() const noexcept
     switch (m_filetype)
     {
         case FileType::PDF:
+            // Adobe Illustrator files are PDF-compatible (valid PDF under
+            // the hood, opened via the same PDF path) and have no distinct
+            // content "magic" of their own to detect by — recognized here
+            // by extension purely for a more accurate label.
+            if (m_filepath.endsWith(".ai", Qt::CaseInsensitive))
+                return "AI";
             return "PDF";
         case FileType::EPUB:
             return "EPUB";

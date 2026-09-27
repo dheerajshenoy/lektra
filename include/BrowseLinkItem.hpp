@@ -3,7 +3,6 @@
 // This class represents a clickable link area in the document view
 
 #include <QBrush>
-#include <QDesktopServices>
 #include <QGraphicsRectItem>
 #include <QGraphicsSceneHoverEvent>
 #include <QMenu>
@@ -120,6 +119,12 @@ signals:
     void linkOpenPreviewRequested(const BrowseLinkItem *link);
     void linkOpenVSplitRequested(const BrowseLinkItem *link);
     void linkOpenHSplitRequested(const BrowseLinkItem *link);
+    // Fired for LinkType::External instead of opening the URL directly —
+    // the caller decides whether it's a file:// URI pointing at something
+    // Lektra can open as a local document, falling back to the OS/browser
+    // otherwise (BrowseLinkItem has no access to Model to check that
+    // itself).
+    void externalLinkRequested(const QString &uri);
 
 protected:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *e) override
@@ -150,7 +155,7 @@ protected:
                     break;
 
                 case LinkType::External:
-                    QDesktopServices::openUrl(QUrl(_link));
+                    emit externalLinkRequested(_link);
                     break;
             }
 

@@ -23,11 +23,25 @@ LLMView::LLMView(const Config &config, QWidget *parent)
             &LLMView::appendStreamChunk);
     connect(m_http_client, &HTTPClient::errorOccurred, this,
             &LLMView::displayError);
+    connect(m_http_client, &HTTPClient::connectionStatusChanged, this,
+            &LLMView::updateConnectionIndicator);
+
+    // Poll periodically so the indicator reflects reality even when the
+    // user isn't actively chatting — most relevant for a local server
+    // (e.g. Ollama) that might not be running yet or gets stopped/restarted.
+    m_connection_check_timer = new QTimer(this);
+    m_connection_check_timer->setInterval(15000);
+    connect(m_connection_check_timer, &QTimer::timeout, m_http_client,
+            &HTTPClient::checkConnection);
+    m_connection_check_timer->start();
+    m_http_client->checkConnection();
 }
 
 void
 LLMView::closeConnection() noexcept
 {
+    if (m_connection_check_timer)
+        m_connection_check_timer->stop();
     if (m_http_client)
         m_http_client->closeConnection();
 }
@@ -56,6 +70,9 @@ LLMView::initUI()
     setWidget(m_container);
     m_container->setMinimumWidth(300);
 
+    m_connection_indicator = new QLabel(tr("● Checking..."), m_container);
+    m_connection_indicator->setStyleSheet("color: gray;");
+
     m_messages_widget = new QWidget();
     m_messages_layout = new QVBoxLayout(m_messages_widget);
     m_messages_layout->addStretch();
@@ -76,6 +93,7 @@ LLMView::initUI()
     m_status_label->hide();
 
     m_layout = new QVBoxLayout();
+    m_layout->addWidget(m_connection_indicator);
     m_layout->addWidget(m_scroll_area);
     m_layout->addWidget(m_status_label);
 
@@ -94,6 +112,21 @@ LLMView::addBubble(ChatBubble *bubble) noexcept
 {
     m_messages_layout->insertWidget(m_messages_layout->count() - 1, bubble);
     scrollToBottom();
+}
+
+void
+LLMView::updateConnectionIndicator(bool connected) noexcept
+{
+    if (connected)
+    {
+        m_connection_indicator->setText(tr("● Connected"));
+        m_connection_indicator->setStyleSheet("color: #2e9e44;");
+    }
+    else
+    {
+        m_connection_indicator->setText(tr("● Disconnected"));
+        m_connection_indicator->setStyleSheet("color: #c0392b;");
+    }
 }
 
 void

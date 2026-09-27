@@ -346,6 +346,11 @@ private:
                               const BrowseLinkItem *linkItem) noexcept;
     void handleLinkOpenHSplit(DocumentView *view,
                               const BrowseLinkItem *linkItem) noexcept;
+    // A document link's External URI (click or keyboard hint-follow) — if
+    // it's a file:// URI pointing at something Lektra can open locally
+    // (Model::getFileType() recognizes it), opens it as a new tab instead
+    // of handing it to the OS/browser.
+    void handleExternalLinkRequested(const QString &uri) noexcept;
 
     void gotoPage(int pageno) noexcept;
     void setFocusMode(bool state) noexcept;

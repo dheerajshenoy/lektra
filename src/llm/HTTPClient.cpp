@@ -109,9 +109,42 @@ HTTPClient::send(const QString &userText)
 void
 HTTPClient::closeConnection() noexcept
 {
-    if (!m_activeReply)
-        return;
+    if (m_activeReply)
+        m_activeReply->abort(); // triggers the finished lambda above, which
+                                 // clears m_activeReply and deletes the reply
+    if (m_probeReply)
+        m_probeReply->abort();
+}
 
-    m_activeReply->abort(); // triggers the finished lambda above, which
-                             // clears m_activeReply and deletes the reply
+void
+HTTPClient::checkConnection() noexcept
+{
+    if (m_url.isEmpty())
+    {
+        emit connectionStatusChanged(false);
+        return;
+    }
+
+    if (m_probeReply)
+        m_probeReply->abort(); // superseded by this call
+
+    QNetworkRequest request(m_url);
+    request.setTransferTimeout(2000); // ms — don't let a dead host hang the
+                                       // indicator
+
+    QNetworkReply *reply = m_networkManager.head(request);
+    m_probeReply         = reply;
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]
+    {
+        if (reply == m_probeReply)
+            m_probeReply = nullptr;
+        reply->deleteLater();
+
+        const bool connected
+            = reply->error() == QNetworkReply::NoError
+              || reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)
+                     .isValid();
+        emit connectionStatusChanged(connected);
+    });
 }

@@ -1,5 +1,7 @@
 #include "Lektra.hpp"
 
+#include <QDesktopServices>
+
 // Pretty print anything, table or value, to a string
 static std::string
 inspect(lua_State *L, int index, int depth = 0) noexcept

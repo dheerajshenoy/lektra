@@ -4931,6 +4931,9 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
 
     connect(docwidget, &DocumentView::linkOpenHSplitRequested, this,
             &Lektra::handleLinkOpenHSplit);
+
+    connect(docwidget, &DocumentView::externalLinkRequested, this,
+            &Lektra::handleExternalLinkRequested);
 }
 
 // Insert file to store when tab is closed to track
@@ -7105,6 +7108,24 @@ Lektra::handleLinkOpenHSplit(DocumentView *view,
         QTimer::singleShot(0, newView, [newView, target]()
         { newView->GotoLocation(target); });
     }, Qt::SingleShotConnection);
+}
+
+void
+Lektra::handleExternalLinkRequested(const QString &uri) noexcept
+{
+    const QUrl url(uri);
+    if (url.isLocalFile())
+    {
+        const QString path = url.toLocalFile();
+        if (QFileInfo::exists(path)
+            && Model::getFileTypeForPath(path) != Model::FileType::NONE)
+        {
+            OpenFilesInNewTab({path});
+            return;
+        }
+    }
+
+    QDesktopServices::openUrl(url);
 }
 
 /*

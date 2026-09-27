@@ -604,6 +604,13 @@ public:
     QString getHighlightText(const int pageno, const int objNum) noexcept;
     int get_obj_num_at_rect(int pageno, fz_rect targetRect) noexcept;
     QString fileTypeToString() const noexcept;
+    // Pure path->FileType lookup (extension/mime), usable without an open
+    // Model instance — e.g. by link-following to decide whether a file://
+    // URI points at something Lektra can open locally.
+    [[nodiscard]] static FileType getFileTypeForPath(const QString &path) noexcept
+    {
+        return getFileType(path);
+    }
 
 signals:
     void undoStackCleanChanged(bool clean);
@@ -814,7 +821,7 @@ private:
     [[nodiscard]] fz_point getFirstCharPos(const int pageno) noexcept;
     [[nodiscard]] std::vector<Model::RenderLink>
     detectUrlLinksForPage(const RenderJob &job) noexcept;
-    [[nodiscard]] FileType getFileType(const QString &filepath) noexcept;
+    [[nodiscard]] static FileType getFileType(const QString &filepath) noexcept;
     [[nodiscard]] bool reloadDocument() noexcept;
     void waitForPendingRenders() noexcept;
     [[nodiscard]] FileSize computeFileSize() noexcept;

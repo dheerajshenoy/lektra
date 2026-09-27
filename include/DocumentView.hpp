@@ -515,6 +515,11 @@ signals:
                                  const BrowseLinkItem *linkItem);
     void linkOpenHSplitRequested(DocumentView *view,
                                  const BrowseLinkItem *linkItem);
+    // Fired for an External link's URI (from a click or from keyboard
+    // link-hint following) — the receiver (Lektra) decides whether it's a
+    // file:// URI pointing at something openable locally, falling back to
+    // QDesktopServices::openUrl otherwise.
+    void externalLinkRequested(const QString &uri);
     void requestFocus(DocumentView *view);
     void openFileFailed(DocumentView *doc);
     void openFileFinished(DocumentView *doc, Model::FileType filetype);

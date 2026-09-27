@@ -197,6 +197,7 @@ supportedFormats()
 {
     return "Documents ("
            "*.pdf "
+           "*.ai " // Adobe Illustrator — PDF-compatible, opens via the PDF path
            "*.djvu *.djv"
            "*.oxps *.xps "
            "*.cbz *.cbt "
