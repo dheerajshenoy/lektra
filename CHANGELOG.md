@@ -5,7 +5,10 @@
 ### New Features
 
 - Updated bundled MuPDF to 1.28.5.
-- New optional AI chat panel (opt-in `WITH_LLM_SUPPORT` build flag) for talking to a local/remote OpenAI-compatible LLM (e.g. Ollama) from a dock widget; configurable via `lektra.opt.llm_view` / `[llm_view]` in `config.toml`.
+- New optional AI chat panel (opt-in `WITH_LLM_SUPPORT` build flag) for talking to a local/remote OpenAI-compatible LLM (e.g. Ollama) from a dock widget; configurable via `lektra.opt.llm_view` / `[llm_view]` in `config.toml`. Messages now render as messenger-style chat bubbles, Shift+Return sends, and a connection status indicator shows whether the configured endpoint is currently reachable.
+- Recognize Adobe Illustrator (`.ai`) files — they're PDF-compatible and already opened fine, but now show up in the Open File dialog and are labelled "AI" (not generic "PDF") in File Properties.
+- New `[tabs].close_button_mode` config (`all`/`current`/`hidden`) controlling when tab close buttons are shown; also exposed to Lua.
+- Document links (and keyboard link-hints) with a `file://` URI now open the target as a local document in a new tab, if it's a format Lektra can open, instead of always handing it to the OS/browser.
 - Added support for opening HTML/XHTML, Markdown, and plain text files, plus DOCX/XLSX/PPTX.
 - New `view:region_select_image(callback)` Lua API — like `region_select`, but the callback receives the selected region as a base64-encoded PNG image instead of just the rect.
 - File Properties for images now also shows DPI. For CBZ/CBT it now shows the image count and the list of image files inside the archive (previously just page count).
@@ -64,6 +67,7 @@
 - Fix File Properties freezing on a DjVu file with a broken annotation job.
 - Fix `lektra.opt.<section> = {...}` whole-table assignment silently discarding the real config instead of applying it — this affected every `opt` section, including nested ones like `picker.shadow`.
 - Fix CBZ files failing to open — content-based file-type detection can't distinguish a CBZ from a plain zip, so it's now recognized by extension like MuPDF itself does.
+- Fix the total page count shown in the statusbar not updating after changing font size in a reflowable document (EPUB/FB2/MOBI), even though the number of pages actually changes when text re-paginates.
 
 ---
 
