@@ -1,6 +1,7 @@
 #include "LLMView.hpp"
 
 #include <QJsonObject>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QScrollArea>
 #include <QScrollBar>
@@ -31,6 +32,23 @@ LLMView::closeConnection() noexcept
         m_http_client->closeConnection();
 }
 
+bool
+LLMView::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == m_input_edit && event->type() == QEvent::KeyPress)
+    {
+        auto *keyEvent = static_cast<QKeyEvent *>(event);
+        if ((keyEvent->key() == Qt::Key_Return
+             || keyEvent->key() == Qt::Key_Enter)
+            && (keyEvent->modifiers() & Qt::ShiftModifier))
+        {
+            sendMessage();
+            return true; // consume — don't insert a newline
+        }
+    }
+    return QDockWidget::eventFilter(watched, event);
+}
+
 void
 LLMView::initUI()
 {
@@ -49,6 +67,7 @@ LLMView::initUI()
     m_input_edit = new QTextEdit(m_container);
     m_input_edit->setMaximumHeight(80);
     m_input_edit->setPlaceholderText(tr("Type your message here..."));
+    m_input_edit->installEventFilter(this);
 
     m_send_button = new QPushButton(tr("Send"), m_container);
 

@@ -22,6 +22,12 @@ public:
     // shutdown.
     void closeConnection() noexcept;
 
+protected:
+    // Installed on m_input_edit so Shift+Return sends the message instead
+    // of inserting a newline (plain Return still inserts a newline, the
+    // QTextEdit default).
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 private:
     void initUI();
     void sendMessage();
