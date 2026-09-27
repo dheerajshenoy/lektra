@@ -3270,6 +3270,24 @@ Model::properties() noexcept
         props.emplace_back("Format", reader.format().constData());
         props.emplace_back("Animated",
                            reader.supportsAnimation() ? "Yes" : "No");
+
+        // m_image_cache is already the fully-decoded image (loaded when the
+        // file was opened), so this reuses it instead of decoding again just
+        // for its DPI metadata. Not populated for animated images (those are
+        // driven by QMovie instead), so DPI is skipped for those.
+        if (!m_image_cache.isNull() && m_image_cache.dotsPerMeterX() > 0
+            && m_image_cache.dotsPerMeterY() > 0)
+        {
+            const double dpiX = m_image_cache.dotsPerMeterX() * 0.0254;
+            const double dpiY = m_image_cache.dotsPerMeterY() * 0.0254;
+            if (qFuzzyCompare(dpiX, dpiY))
+                props.emplace_back("DPI", QString::number(qRound(dpiX)));
+            else
+                props.emplace_back(
+                    "DPI",
+                    QString("%1 x %2").arg(qRound(dpiX)).arg(qRound(dpiY)));
+        }
+
         populateExifProperties(m_filepath, props);
     }
 
@@ -3284,6 +3302,8 @@ Model::properties() noexcept
 
         if (m_pdf_doc)
             populatePDFProperties(props);
+        else if (m_filetype == FileType::CBZ)
+            populateCBZProperties(props);
     }
 
     return props;
@@ -3342,6 +3362,45 @@ Model::populatePDFProperties(
         qMakePair("PDF Version", QString("%1.%2")
                                      .arg(m_pdf_doc->version / 10)
                                      .arg(m_pdf_doc->version % 10)));
+}
+
+// Lists the image files inside a CBZ/CBT archive. fz_open_archive() reopens
+// the file independently of the fz_document (which only exposes it as a
+// page sequence, not the raw archive entries) and auto-detects zip vs tar,
+// so this covers both CBZ and CBT with the same code.
+void
+Model::populateCBZProperties(Properties &props) noexcept
+{
+    fz_archive *arch = nullptr;
+    fz_try(m_ctx)
+    {
+        arch = fz_open_archive(m_ctx, m_filepath.toUtf8().constData());
+    }
+    fz_catch(m_ctx)
+    {
+        return;
+    }
+    if (!arch)
+        return;
+
+    static const QSet<QString> imageExts
+        = {"jpg", "jpeg", "png", "gif", "bmp", "webp", "tif", "tiff"};
+
+    QStringList images;
+    const int n = fz_count_archive_entries(m_ctx, arch);
+    for (int i = 0; i < n; ++i)
+    {
+        const char *name = fz_list_archive_entry(m_ctx, arch, i);
+        if (!name)
+            continue;
+        const QString qname = QString::fromUtf8(name);
+        if (imageExts.contains(QFileInfo(qname).suffix().toLower()))
+            images.push_back(qname);
+    }
+    fz_drop_archive(m_ctx, arch);
+
+    props.emplace_back("Image Count", QString::number(images.size()));
+    props.emplace_back("Images", images.join("\n"));
 }
 
 // Returns page dimensions in points (1/72 inch) if known, otherwise (-1,
@@ -5994,10 +6053,14 @@ Model::visual_line_index_at_pos(
 Model::FileType
 Model::getFileType(const QString &path) noexcept
 {
-    // HTML/Markdown/plain text have no reliable content "magic" (unlike
+    // HTML/Markdown/plain text/CBZ have no reliable content "magic" (unlike
     // PDF/EPUB/DjVu), so MatchContent sniffing below can't identify them —
     // go by extension instead, mirroring the extension lists MuPDF's own
-    // html/md/txt document handlers use internally.
+    // html/md/txt document handlers use internally. CBZ in particular is
+    // just a plain ZIP of images with no internal marker distinguishing it
+    // from a generic zip, so content-only sniffing always reports it as
+    // "application/zip", never "application/vnd.comicbook+zip" — the mime
+    // type below is glob-registered only, matching *.cbz by name.
     const QString suffix = QFileInfo(path).suffix().toLower();
     if (suffix == "html" || suffix == "htm" || suffix == "xhtml")
         return FileType::HTML;
@@ -6011,6 +6074,8 @@ Model::getFileType(const QString &path) noexcept
         return FileType::XLSX;
     if (suffix == "pptx")
         return FileType::PPTX;
+    if (suffix == "cbz")
+        return FileType::CBZ;
 
     const QMimeType mime
         = QMimeDatabase().mimeTypeForFile(path, QMimeDatabase::MatchContent);
