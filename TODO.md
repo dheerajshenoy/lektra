@@ -4,10 +4,38 @@
 
 ## HIGH PRIORITY
 
+- [ ] Caret Mode Press F7 (Select Text With Keyboard, CmdSelectTextViaKeyboard) to put a text cursor on the page, like caret browsing in a web browser. Move it with the arrow keys and hold Shift to select. Ctrl + arrows move by word and Home / End / PageUp / PageDown also work. v switches to Vim-style visual mode. Ctrl + C or y copies, and Esc or F7 exits (#4684, #4116).
 - [ ] Per-filetype config support
 
 ## MEDIUM PRIORITY
 
+- [ ] Uniform Page Width (shows pages of different sizes at the same width at percentage zoom levels, using page 1 as the reference)
+- [ ] Chrome-style tabs (Ctrl+Tab to switch, Ctrl+Shift+Tab to switch backwards)
+- [ ] Configurable close button (on current tab, on all tabs, or none)
+- [ ] Configurable line scroll distance
+- [ ] Keep view position when turning pages
+- [ ] Ebook font and line spacing settings
+- [ ] Click away to deselect an annotation
+- [ ] Files that fail to open get their own tab (title in red)
+- [ ] Link descriptions on hover
+- [ ] Laser pointer for presentation view
+- [ ] Zoom to Selection
+- [ ] Tab hover preview
+- [ ] Keyboard shortcuts cheat sheet
+- [ ] Drag Drop image file in PDF document
+- [ ] Annotation save as temp file and auto-save on exit
+- [ ] Links with file:// URIs now open the file as a local document instead of sending it to the browser
+- [ ] Table of contents for comic books from ComicInfo.xml
+- [ ] Use `djvudec` for DjVu rendering (https://github.com/kjk/djvudec)
+- [ ] Clickable Plain text DOIs in PDF text
+- [ ] Show images stored in separate files
+- [ ] Citation preview for plain-text references
+- [ ] Smoother find-as-you-type
+- [ ] Duplicating a tab keeps the page, zoom and scroll position of the original tab.
+- [ ] Add support for JPEG xl (.jxl) images
+- [ ] Add support for JPEG XR (.jxr, .hdp, .wdp, .jfif and .heif) images
+- [ ] Add no invert image for DjVu documents
+- [ ] Password on the command line
 - [ ] Remove Deleted Files From History command - removes files that no longer exist on disk from the list of recently opened files.
 - [ ] Citation and reference hover preview
 - [ ] Open PDFs inside .p7m files
