@@ -6264,6 +6264,16 @@ Model::visual_line_index_at_pos(
     return closest;
 }
 
+std::vector<Model::CachedTextChar>
+Model::textCharsForPage(int pageno) noexcept
+{
+    buildTextCacheForPages({pageno});
+
+    std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+    const CachedTextPage *cache = m_text_cache.find(pageno);
+    return cache ? cache->chars : std::vector<CachedTextChar>{};
+}
+
 Model::FileType
 Model::getFileType(const QString &path) noexcept
 {

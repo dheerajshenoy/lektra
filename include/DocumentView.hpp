@@ -324,6 +324,11 @@ public:
         return m_visual_line_mode;
     }
 
+    inline bool caretMode() const noexcept
+    {
+        return m_caret_mode;
+    }
+
     inline bool isThumbnailView() const noexcept
     {
         return m_thumbnail_mode;
@@ -410,6 +415,22 @@ public:
     void setPortal(DocumentView *portal) noexcept;
     void clearPortal() noexcept;
     void set_visual_line_mode(bool state) noexcept;
+
+    // Caret mode (accessibility feature, cf. Firefox/Okular "caret
+    // browsing"): a keyboard-driven, character-granularity text cursor.
+    // Movement/select-extend are separate commands (mirroring
+    // scroll_left/right/up/down) so they get independent keybindings.
+    void ToggleCaretMode() noexcept;
+    void caretMoveLeft() noexcept;
+    void caretMoveRight() noexcept;
+    void caretMoveUp() noexcept;
+    void caretMoveDown() noexcept;
+    void caretMoveLineStart() noexcept;
+    void caretMoveLineEnd() noexcept;
+    void caretSelectLeft() noexcept;
+    void caretSelectRight() noexcept;
+    void caretSelectUp() noexcept;
+    void caretSelectDown() noexcept;
     void FollowLink(const Model::LinkInfo &info) noexcept;
     void setInvertColor(bool invert) noexcept;
     void openAsync(const QString &filePath) noexcept;
@@ -742,6 +763,31 @@ private:
     void visual_line_move(Direction direction) noexcept;
     void snapVisualLine(bool centerView = true) noexcept;
 
+    // Caret mode internals. A "caret index" i is the gap before
+    // m_caret_chars[i] (i in [0, m_caret_chars.size()]); the synthetic '\n'
+    // entries buildTextCacheForPages() inserts at each line break are
+    // skipped over automatically by the move helpers so every stop is a
+    // real, visually distinct position.
+    void ensureCaretCharsLoaded() noexcept;
+    bool caretIsValidStop(int index) const noexcept;
+    void caretLineRange(int index, int &lineStart, int &lineEnd) const noexcept;
+    double caretCharCenterX(int charIndex) const noexcept;
+    // Scene-space rect (thin sliver) for the caret at m_caret_index: left
+    // edge of m_caret_chars[index] if that's a real character, otherwise the
+    // right edge of the previous one (end-of-line / end-of-text). Empty if
+    // it can't be resolved (no page item, empty page, etc).
+    QRectF caretSceneRect(int pageno, int index) const noexcept;
+    // Pure index-stepping, shared by the plain move and select-extend
+    // commands: crosses a page boundary (updating m_caret_pageno/
+    // m_caret_chars) but does not touch the selection anchor or render
+    // anything — callers do that afterwards.
+    void caretStepLeft() noexcept;
+    void caretStepRight() noexcept;
+    void caretMoveVertical(bool up) noexcept;
+    void renderCaret() noexcept;
+    void hideCaret() noexcept;
+    void updateCaretSelection() noexcept;
+
 #ifdef WITH_SYNCTEX
     void initSynctex() noexcept;
 #endif
@@ -821,6 +867,20 @@ private:
     QGraphicsPathItem *m_visual_line_item = nullptr;
     int m_visual_line_index               = -1;
     bool m_visual_line_mode               = false;
+    // Caret Mode
+    bool m_caret_mode                          = false;
+    int m_caret_pageno                         = -1;
+    int m_caret_index                          = -1;
+    // Sticky horizontal column (page-point space) used by Up/Down, like a
+    // text editor: unset (-1) until the first vertical move, then held
+    // across moves until a horizontal move/click resets it.
+    double m_caret_pref_x                      = -1.0;
+    // Set only while extending a selection (Shift+caret move); -1 otherwise.
+    int m_caret_anchor_index                   = -1;
+    int m_caret_anchor_pageno                  = -1;
+    std::vector<Model::CachedTextChar> m_caret_chars;
+    QGraphicsPathItem *m_caret_item            = nullptr;
+    QTimer *m_caret_blink_timer                = nullptr;
     bool m_thumbnail_mode                 = false;
     int m_thumbnail_highlighted_page      = -1;
 #ifdef WITH_SYNCTEX

@@ -422,6 +422,20 @@ selection_mode_region = "4"
 annot_popup_mode      = "5"
 visual_line_mode      = "v"
 
+# Caret mode (accessibility: keyboard-driven character-level text cursor,
+# cf. Firefox/Okular "caret browsing")
+caret_mode         = "F7"
+caret_left         = "Left"
+caret_right        = "Right"
+caret_up           = "Up"
+caret_down         = "Down"
+caret_line_start   = "Home"
+caret_line_end     = "End"
+caret_select_left  = "Shift+Left"
+caret_select_right = "Shift+Right"
+caret_select_up    = "Shift+Up"
+caret_select_down  = "Shift+Down"
+
 # Files
 link_hint_visit = "f"
 file_open_tab   = "o"

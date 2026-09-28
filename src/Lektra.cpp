@@ -1642,6 +1642,17 @@ Lektra::initDefaultKeybinds() noexcept
         {"split_focus_down", "Ctrl+W,j"},
         {"split_close", "Ctrl+W,c"},
         {"files_recent", "Alt+Shift+o"},
+        {"caret_mode", "F7"},
+        {"caret_left", "Left"},
+        {"caret_right", "Right"},
+        {"caret_up", "Up"},
+        {"caret_down", "Down"},
+        {"caret_line_start", "Home"},
+        {"caret_line_end", "End"},
+        {"caret_select_left", "Shift+Left"},
+        {"caret_select_right", "Shift+Right"},
+        {"caret_select_up", "Shift+Up"},
+        {"caret_select_down", "Shift+Down"},
     };
 
     for (const auto &binding : defaults)
@@ -5346,6 +5357,39 @@ Lektra::initCommands() noexcept
         "trim_margins", tr("Toggle trim margins (hide blank page margins)"),
         [this](const QStringList &) { ToggleTrimMargins(); });
 
+    // Caret mode (accessibility: keyboard-driven character-level text
+    // cursor, cf. Firefox/Okular "caret browsing"). Left/Right/Up/Down also
+    // work via h/j/k/l when caret mode is active, same as visual line mode.
+    m_command_manager->reg(
+        "caret_mode", tr("Toggle caret mode (keyboard text cursor)"),
+        [this](const QStringList &) { ToggleCaretMode(); });
+    m_command_manager->reg("caret_left", tr("Caret mode: move left"),
+                           [this](const QStringList &) { CaretLeft(); });
+    m_command_manager->reg("caret_right", tr("Caret mode: move right"),
+                           [this](const QStringList &) { CaretRight(); });
+    m_command_manager->reg("caret_up", tr("Caret mode: move up"),
+                           [this](const QStringList &) { CaretUp(); });
+    m_command_manager->reg("caret_down", tr("Caret mode: move down"),
+                           [this](const QStringList &) { CaretDown(); });
+    m_command_manager->reg(
+        "caret_line_start", tr("Caret mode: move to start of line"),
+        [this](const QStringList &) { CaretLineStart(); });
+    m_command_manager->reg(
+        "caret_line_end", tr("Caret mode: move to end of line"),
+        [this](const QStringList &) { CaretLineEnd(); });
+    m_command_manager->reg(
+        "caret_select_left", tr("Caret mode: extend selection left"),
+        [this](const QStringList &) { CaretSelectLeft(); });
+    m_command_manager->reg(
+        "caret_select_right", tr("Caret mode: extend selection right"),
+        [this](const QStringList &) { CaretSelectRight(); });
+    m_command_manager->reg(
+        "caret_select_up", tr("Caret mode: extend selection up"),
+        [this](const QStringList &) { CaretSelectUp(); });
+    m_command_manager->reg(
+        "caret_select_down", tr("Caret mode: extend selection down"),
+        [this](const QStringList &) { CaretSelectDown(); });
+
 #ifdef WITH_LLM_SUPPORT
     m_command_manager->reg("llm_view", tr("Toggle LLM chat panel"),
                            [this](const QStringList &) { ToggleLLMView(); });
@@ -7696,6 +7740,83 @@ Lektra::ToggleTrimMargins() noexcept
         return;
 
     m_doc->ToggleTrimMargins();
+}
+
+void
+Lektra::ToggleCaretMode() noexcept
+{
+    if (m_doc)
+        m_doc->ToggleCaretMode();
+}
+
+void
+Lektra::CaretLeft() noexcept
+{
+    if (m_doc)
+        m_doc->caretMoveLeft();
+}
+
+void
+Lektra::CaretRight() noexcept
+{
+    if (m_doc)
+        m_doc->caretMoveRight();
+}
+
+void
+Lektra::CaretUp() noexcept
+{
+    if (m_doc)
+        m_doc->caretMoveUp();
+}
+
+void
+Lektra::CaretDown() noexcept
+{
+    if (m_doc)
+        m_doc->caretMoveDown();
+}
+
+void
+Lektra::CaretLineStart() noexcept
+{
+    if (m_doc)
+        m_doc->caretMoveLineStart();
+}
+
+void
+Lektra::CaretLineEnd() noexcept
+{
+    if (m_doc)
+        m_doc->caretMoveLineEnd();
+}
+
+void
+Lektra::CaretSelectLeft() noexcept
+{
+    if (m_doc)
+        m_doc->caretSelectLeft();
+}
+
+void
+Lektra::CaretSelectRight() noexcept
+{
+    if (m_doc)
+        m_doc->caretSelectRight();
+}
+
+void
+Lektra::CaretSelectUp() noexcept
+{
+    if (m_doc)
+        m_doc->caretSelectUp();
+}
+
+void
+Lektra::CaretSelectDown() noexcept
+{
+    if (m_doc)
+        m_doc->caretSelectDown();
 }
 
 #ifdef WITH_LLM_SUPPORT

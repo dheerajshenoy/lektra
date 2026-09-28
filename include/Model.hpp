@@ -909,6 +909,13 @@ private:
     visual_line_index_at_pos(QPointF scenePos,
                              const std::vector<VisualLineInfo> &lines) noexcept;
 
+    // Flat per-page character list (rune + quad, in page-point space), with
+    // a synthetic '\n' entry (empty quad) marking each line break — the same
+    // cache buildTextCacheForPages() maintains for search/mouse selection.
+    // Used for caret mode's character-level keyboard navigation.
+    [[nodiscard]] std::vector<CachedTextChar>
+    textCharsForPage(int pageno) noexcept;
+
     friend class TextHighlightAnnotationCommand;
     friend class RectAnnotationCommand;
     friend class TextAnnotationCommand;

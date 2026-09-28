@@ -4,7 +4,6 @@
 
 ## HIGH PRIORITY
 
-- [ ] Caret Mode Press F7 (Select Text With Keyboard, CmdSelectTextViaKeyboard) to put a text cursor on the page, like caret browsing in a web browser. Move it with the arrow keys and hold Shift to select. Ctrl + arrows move by word and Home / End / PageUp / PageDown also work. v switches to Vim-style visual mode. Ctrl + C or y copies, and Esc or F7 exits (#4684, #4116).
 - [ ] Per-filetype config support
 - [ ] Annotation save as temp file and auto-save on exit
 
@@ -22,7 +21,6 @@
 - [ ] Keyboard shortcuts cheat sheet
 - [ ] Clickable Plain text DOIs in PDF text
 - [ ] Smoother find-as-you-type
-- [ ] Drag images out of documents
 - [ ] Duplicating a tab keeps the page, zoom and scroll position of the original tab.
 
 ## LOW PRIORITY

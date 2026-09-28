@@ -113,6 +113,17 @@ public:
     void TogglePresentationMode() noexcept;
     void ToggleThumbnailPanel() noexcept;
     void ToggleTrimMargins() noexcept;
+    void ToggleCaretMode() noexcept;
+    void CaretLeft() noexcept;
+    void CaretRight() noexcept;
+    void CaretUp() noexcept;
+    void CaretDown() noexcept;
+    void CaretLineStart() noexcept;
+    void CaretLineEnd() noexcept;
+    void CaretSelectLeft() noexcept;
+    void CaretSelectRight() noexcept;
+    void CaretSelectUp() noexcept;
+    void CaretSelectDown() noexcept;
 #ifdef WITH_LLM_SUPPORT
     void ToggleLLMView() noexcept;
 #endif
