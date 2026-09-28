@@ -38,6 +38,9 @@ public:
     void upsert(const QString &filePath, int pageNumber,
                 const QDateTime &accessed) noexcept;
     void trim(int maxEntries) noexcept;
+    // Drops entries whose file_path no longer exists on disk. Returns the
+    // number of entries removed; does not save() on its own.
+    int removeMissingFiles() noexcept;
 
 private:
     void sortByAccessedDesc() noexcept;

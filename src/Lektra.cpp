@@ -3107,8 +3107,8 @@ Lektra::OpenFilesInNewTab(const QStringList &files,
 }
 
 DocumentView *
-Lektra::OpenFileInNewTab(const QString &filename,
-                         const CallbackFn &callback) noexcept
+Lektra::OpenFileInNewTab(const QString &filename, const CallbackFn &callback,
+                         bool noHistory) noexcept
 {
     if (filename.isEmpty())
     {
@@ -3121,7 +3121,7 @@ Lektra::OpenFileInNewTab(const QString &filename,
         {
             QStringList selected = dialog.selectedFiles();
             if (!selected.isEmpty())
-                return OpenFileInNewTab(selected.first(), callback);
+                return OpenFileInNewTab(selected.first(), callback, noHistory);
         }
         return nullptr;
     }
@@ -3134,6 +3134,7 @@ Lektra::OpenFileInNewTab(const QString &filename,
 
     // Create a new DocumentView
     DocumentView *view = new DocumentView(m_config, m_dpr, this);
+    view->setNoHistory(noHistory);
 
     connect(view, &DocumentView::openFileInNewTabRequested, this,
             [this](const QString &filePath, const CallbackFn &cb)
@@ -3162,7 +3163,8 @@ Lektra::OpenFileInNewTab(const QString &filename,
             [this](DocumentView *closedView)
     {
         if (m_config.behavior.remember_last_visited && closedView
-            && !closedView->filePath().isEmpty() && !closedView->is_portal())
+            && !closedView->filePath().isEmpty() && !closedView->is_portal()
+            && !closedView->noHistory())
         {
             const int page = closedView->pageNo() + 1;
             insertFileToDB(closedView->filePath(), page > 0 ? page : 1);
@@ -4149,7 +4151,8 @@ Lektra::handleTabCloseRequested(int index) noexcept
                          << "filePath:" << (view ? view->filePath() : "null")
                          << "is_portal:" << (view ? view->is_portal() : false);
 #endif
-                if (view && !view->filePath().isEmpty() && !view->is_portal())
+                if (view && !view->filePath().isEmpty() && !view->is_portal()
+                    && !view->noHistory())
                 {
                     const int page = view->pageNo() + 1;
                     insertFileToDB(view->filePath(), page > 0 ? page : 1);
@@ -4399,7 +4402,8 @@ Lektra::closeEvent(QCloseEvent *e)
             if (!doc)
                 continue;
 
-            if (m_config.behavior.remember_last_visited && !doc->is_portal())
+            if (m_config.behavior.remember_last_visited && !doc->is_portal()
+                && !doc->noHistory())
             {
                 const int page = doc->pageNo() + 1;
                 insertFileToDB(doc->filePath(), page > 0 ? page : 1);
@@ -5513,6 +5517,13 @@ Lektra::initCommands() noexcept
         else
             OpenFileInNewTab(args.at(0));
     });
+    m_command_manager->reg(
+        "file_open_no_history",
+        tr("Open file in new tab without adding it to recent files"),
+        [this](const QStringList &args)
+    {
+        OpenFileInNewTab(args.isEmpty() ? QString() : args.at(0), {}, true);
+    });
     m_command_manager->reg("file_open_vsplit",
                            tr("Open file in vertical split"),
                            [this](const QStringList &args)
@@ -5559,6 +5570,10 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("files_recent", tr("Show recently opened files"),
                            [this](const QStringList &)
     { Show_recent_files_picker(); });
+    m_command_manager->reg(
+        "files_recent_clean",
+        tr("Remove recent-files entries whose file no longer exists on disk"),
+        [this](const QStringList &) { cleanRecentFilesDatabase(); });
     m_command_manager->reg("file_picker", tr("Open file picker"),
                            [this](const QStringList &) { Show_file_picker(); });
 
@@ -5892,6 +5907,19 @@ Lektra::trimRecentFilesDatabase() noexcept
     m_recent_files_store.trim(m_config.behavior.num_recent_files);
     if (!m_recent_files_store.save())
         qWarning() << tr("Failed to trim recent files store");
+}
+
+void
+Lektra::cleanRecentFilesDatabase() noexcept
+{
+    const int removed = m_recent_files_store.removeMissingFiles();
+    if (removed <= 0)
+        return;
+
+    if (!m_recent_files_store.save())
+        qWarning() << tr("Failed to save recent files store after cleaning");
+
+    populateRecentFiles();
 }
 
 // Sets the DPR of the current document

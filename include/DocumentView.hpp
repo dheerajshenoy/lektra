@@ -279,6 +279,19 @@ public:
         return m_source_view != nullptr;
     }
 
+    // When set, this view is never recorded in the recent-files history
+    // (checked alongside is_portal() everywhere a tab close/window close
+    // would otherwise call insertFileToDB()).
+    inline void setNoHistory(bool state) noexcept
+    {
+        m_no_history = state;
+    }
+
+    inline bool noHistory() const noexcept
+    {
+        return m_no_history;
+    }
+
     inline DocumentView *portal() const noexcept
     {
         return m_portal_view;
@@ -767,6 +780,7 @@ private:
     // Portal
     DocumentView *m_source_view               = nullptr;
     DocumentView *m_portal_view               = nullptr;
+    bool m_no_history                         = false;
     // Narrow to region / pages. m_narrow_page is the first page; for a
     // region-narrow (single page) m_narrow_page_end == m_narrow_page and
     // m_narrow_local_normalized holds the local rect fractions. For a

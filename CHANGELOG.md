@@ -13,6 +13,9 @@
 - New `view:region_select_image(callback)` Lua API — like `region_select`, but the callback receives the selected region as a base64-encoded PNG image instead of just the rect.
 - New `zoom_to_selection` command and "Zoom to Selection" region-selection context menu entry — select a region and zoom in to fill the viewport with it, without cropping the rest of the document out of view like Narrow to Region does.
 - New `llm_view` command to toggle the LLM chat panel.
+- New `file_open_no_history` command — opens a file without adding it to the recent-files list.
+- New `files_recent_clean` command — removes recent-files entries whose file no longer exists on disk.
+- A file that fails to open now keeps its own tab instead of vanishing — the tab title shows in red and the tab itself shows a centered error message, instead of a blocking "file not found" dialog with no trace of the attempt afterward.
 - File Properties for PDFs now shows digital signature info (signer, date, reason, location) when the document has signature fields — this reports what the signature claims, not whether it's cryptographically valid.
 - File Properties for images now also shows DPI. For CBZ/CBT it now shows the image count and the list of image files inside the archive (previously just page count).
 - **Text reflow for EPUB/FB2/MOBI**, via new `font_size_increase`/`font_size_decrease`/`font_size_reset` commands — re-paginates the document at a larger or smaller text size without changing the page dimensions or affecting `zoom_in`/`zoom_out` (which stay pure raster scaling). Opt-in only; pagination never changes on its own. No default keybinding.
@@ -70,6 +73,7 @@
 - Fix File Properties freezing on a DjVu file with a broken annotation job.
 - Fix `lektra.opt.<section> = {...}` whole-table assignment silently discarding the real config instead of applying it — this affected every `opt` section, including nested ones like `picker.shadow`.
 - Fix CBZ files failing to open — content-based file-type detection can't distinguish a CBZ from a plain zip, so it's now recognized by extension like MuPDF itself does.
+- Fix a long-standing bug where a failed or password-protected open could silently go nowhere: `openAsync()` disconnects and never reconnects the signals that report those outcomes back to the view, on every single open attempt (not just retries).
 - Fix the total page count shown in the statusbar not updating after changing font size in a reflowable document (EPUB/FB2/MOBI), even though the number of pages actually changes when text re-paginates.
 
 ---

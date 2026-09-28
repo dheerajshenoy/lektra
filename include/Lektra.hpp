@@ -170,7 +170,8 @@ public:
                            const std::vector<CallbackFn> &callbacks
                            = {}) noexcept;
     DocumentView *OpenFileInNewTab(const QString &filename    = {},
-                                   const CallbackFn &callback = {}) noexcept;
+                                   const CallbackFn &callback = {},
+                                   bool noHistory              = false) noexcept;
     bool OpenFileInNewWindow(const QString &filename    = {},
                              const CallbackFn &callback = {}) noexcept;
     void OpenFilesInNewWindow(const QStringList &filenames) noexcept;
@@ -332,6 +333,8 @@ private:
     void initTabConnections(DocumentView *) noexcept;
     void initCommands() noexcept;
     void trimRecentFilesDatabase() noexcept;
+    // Drops recent-files entries whose file no longer exists on disk.
+    void cleanRecentFilesDatabase() noexcept;
     void reloadDocument() noexcept;
     void handleScreenChange(QScreen *screen) noexcept;
     void handleTabDataRequested(int index, TabBar::TabData *outData) noexcept;

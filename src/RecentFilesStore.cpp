@@ -187,6 +187,17 @@ RecentFilesStore::trim(int maxEntries) noexcept
         m_entries.resize(maxEntries);
 }
 
+int
+RecentFilesStore::removeMissingFiles() noexcept
+{
+    const size_t before = m_entries.size();
+    m_entries.erase(std::remove_if(m_entries.begin(), m_entries.end(),
+                                   [](const RecentFileEntry &entry)
+    { return !QFile::exists(entry.file_path); }),
+                    m_entries.end());
+    return static_cast<int>(before - m_entries.size());
+}
+
 void
 RecentFilesStore::sortByAccessedDesc() noexcept
 {
