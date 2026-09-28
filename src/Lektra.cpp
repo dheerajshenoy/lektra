@@ -1660,6 +1660,13 @@ Lektra::initDefaultKeybinds() noexcept
         setupKeybinding(QString::fromLatin1(binding.action),
                         {QString::fromLatin1(binding.key)});
     }
+
+    // Vim visual-mode-style selection in caret mode: Shift+H/L alongside
+    // Shift+Left/Right (Shift+J/K are handled specially in
+    // Lektra::NextPage()/PrevPage(), since those keys are already bound to
+    // page_next/page_prev outside caret mode).
+    setupKeybinding("caret_select_left", {"Shift+Left", "Shift+H"});
+    setupKeybinding("caret_select_right", {"Shift+Right", "Shift+L"});
 }
 
 void
@@ -3997,6 +4004,17 @@ Lektra::PrevPage() noexcept
 {
     if (!m_doc)
         return;
+
+    // In caret mode, Shift+K follows vim visual-mode convention (K = up)
+    // and extends the selection instead of paging — matches Shift+H/L
+    // already doing caret_select_left/right, and Shift+Up already doing
+    // caret_select_up.
+    if (m_doc->caretMode())
+    {
+        m_doc->caretSelectUp();
+        return;
+    }
+
     m_doc->GotoPrevPage();
     updatePageNavigationActions();
 }
@@ -4007,6 +4025,14 @@ Lektra::NextPage() noexcept
 {
     if (!m_doc)
         return;
+
+    // See PrevPage(): Shift+J (vim visual-mode "down") extends the
+    // selection in caret mode instead of paging.
+    if (m_doc->caretMode())
+    {
+        m_doc->caretSelectDown();
+        return;
+    }
 
     m_doc->GotoNextPage();
     updatePageNavigationActions();

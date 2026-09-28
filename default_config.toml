@@ -431,8 +431,10 @@ caret_up           = "Up"
 caret_down         = "Down"
 caret_line_start   = "Home"
 caret_line_end     = "End"
-caret_select_left  = "Shift+Left"
-caret_select_right = "Shift+Right"
+# Shift+J/K also extend the selection (down/up) while caret mode is active
+# — handled specially, since those keys are page_next/page_prev otherwise.
+caret_select_left  = [ "Shift+Left", "Shift+H" ]
+caret_select_right = [ "Shift+Right", "Shift+L" ]
 caret_select_up    = "Shift+Up"
 caret_select_down  = "Shift+Down"
 
