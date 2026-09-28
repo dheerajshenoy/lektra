@@ -642,10 +642,19 @@ GraphicsView::updateScrollbars()
 {
     QScrollBar *vbar   = verticalScrollBar();
     QScrollBar *hbar   = horizontalScrollBar();
+
+    // layoutScrollbars() below bails out (leaving whatever geometry the
+    // scrollbar widgets last had — the Qt default top-left corner if they've
+    // never been positioned yet) when the viewport has no real size. Don't
+    // let a scrollbar become visible in that state, or it flashes at (0,0)
+    // until the next resize repositions it.
+    QWidget *vp             = viewport();
+    const bool validViewport = vp && vp->width() > 0 && vp->height() > 0;
+
     const bool vNeeded = vbar && vbar->maximum() > vbar->minimum();
     const bool hNeeded = hbar && hbar->maximum() > hbar->minimum();
-    const bool showV   = m_scrollbarsVisible && m_vbarEnabled && vNeeded;
-    const bool showH   = m_scrollbarsVisible && m_hbarEnabled && hNeeded;
+    const bool showV = validViewport && m_scrollbarsVisible && m_vbarEnabled && vNeeded;
+    const bool showH = validViewport && m_scrollbarsVisible && m_hbarEnabled && hNeeded;
 
     if (vbar)
         vbar->setVisible(showV);

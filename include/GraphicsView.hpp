@@ -269,6 +269,20 @@ private:
             showScrollbars();
     }
 
+public:
+    // Forces the scrollbars off right now, regardless of pin/auto-hide
+    // state — used when a document fails to open so a leftover/transient
+    // scrollbar doesn't linger over an empty view until the idle auto-hide
+    // timer eventually kicks it away.
+    inline void forceHideScrollbars() noexcept
+    {
+        m_scrollbarsPinned  = false;
+        m_scrollbarsVisible = false;
+        updateScrollbars();
+    }
+
+private:
+
     inline void restartHideTimer()
     {
         if (m_autoHide && !m_activeScrollbar)

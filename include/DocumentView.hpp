@@ -754,6 +754,7 @@ private:
     double m_current_zoom                     = MIN_ZOOM_FACTOR;
     bool m_auto_resize                        = false;
     bool m_trim_margins                       = false;
+    bool m_awaiting_first_render              = false;
     bool m_auto_reload                        = false;
     ScrollBar *m_hscroll                      = nullptr;
     ScrollBar *m_vscroll                      = nullptr;

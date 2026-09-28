@@ -355,6 +355,7 @@ DocumentView::openAsync(const QString &filePath) noexcept
     // that also severs these — re-establish them for this open attempt.
     connectModelFailureSignals();
 
+    m_gview->forceHideScrollbars();
     m_spinner->start();
     m_spinner->show();
 
@@ -375,6 +376,7 @@ DocumentView::handleOpenFileFailed() noexcept
 {
     m_spinner->stop();
     m_spinner->hide();
+    m_gview->forceHideScrollbars();
 
     // Captured before emitting openFileFailed(this) below — Lektra's
     // handler for that signal calls CloseFile(), which clears the model's
@@ -404,16 +406,17 @@ DocumentView::handleOpenFileFinished() noexcept
         << "DocumentView::handleOpenFileFinished(): File opened successfully";
 #endif
 
-    m_spinner->stop();
-    m_spinner->hide();
-
     // This future-watcher slot fires whenever the QFuture completes,
     // including the trivial no-op future used by Model::openAsync()'s
     // FileType::NONE fast-fail path — i.e. it fires for failed opens too,
     // racing handleOpenFileFailed() (which sets the message below). Only
     // clear it here once we know this was an actual success.
     if (!m_model->success())
+    {
+        m_spinner->stop();
+        m_spinner->hide();
         return;
+    }
 
     m_gview->setOpenFailedMessage(QString());
 
@@ -434,6 +437,11 @@ DocumentView::handleOpenFileFinished() noexcept
             startGifPlayback();
         }
         // QTimer::singleShot(0, this, [this]() { renderImage(); });
+
+        // Image rendering above happens synchronously, so content is
+        // already showing by this point.
+        m_spinner->stop();
+        m_spinner->hide();
     }
     else
     {
@@ -451,6 +459,13 @@ DocumentView::handleOpenFileFinished() noexcept
         m_hscroll->blockSignals(false);
 
         initConnections();
+
+        // Rendering the first page is dispatched asynchronously below, so
+        // keep the spinner up until that first page image actually arrives
+        // (see startNextRenderJob()) instead of hiding it now, which would
+        // leave a blank view (just scrollbars) for however long the render
+        // takes.
+        m_awaiting_first_render = true;
 
         // Always defer fitmode to next event loop tick so geometry is settled
         QTimer::singleShot(0, this, [this]()
@@ -2838,6 +2853,7 @@ DocumentView::CloseFile() noexcept
     clearDocumentItems();
     resetConnections();
     m_model->close();
+    m_awaiting_first_render = false;
 
 #ifdef WITH_LUA
     dispatchLuaEvent(DispatchType::OnFileClose);
@@ -3518,6 +3534,13 @@ DocumentView::startNextRenderJob() noexcept
 
             if (!image.isNull())
             {
+                if (view->m_awaiting_first_render)
+                {
+                    view->m_awaiting_first_render = false;
+                    view->m_spinner->stop();
+                    view->m_spinner->hide();
+                }
+
                 if (view->m_layout_mode == LayoutMode::SINGLE
                     && pageno != view->m_pageno)
                 {
