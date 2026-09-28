@@ -438,6 +438,10 @@ caret_select_right = [ "Shift+Right", "Shift+L" ]
 caret_select_up    = "Shift+Up"
 caret_select_down  = "Shift+Down"
 
+# Yank (copy) the current selection — works for a mouse selection or a
+# caret-mode selection alike
+selection_copy = "y"
+
 # Files
 link_hint_visit = "f"
 file_open_tab   = "o"

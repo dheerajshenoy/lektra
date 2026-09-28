@@ -1653,6 +1653,7 @@ Lektra::initDefaultKeybinds() noexcept
         {"caret_select_right", "Shift+Right"},
         {"caret_select_up", "Shift+Up"},
         {"caret_select_down", "Shift+Down"},
+        {"selection_copy", "y"},
     };
 
     for (const auto &binding : defaults)
