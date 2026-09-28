@@ -226,7 +226,7 @@ DocumentView::pageSceneSize(int pageno) const noexcept
 {
     const float scale = m_model->logicalScale();
 
-    const auto pageDim = m_model->page_dimension_pts(pageno);
+    const auto pageDim = pageDimensionsPts(pageno);
     double w           = pageDim.width_pts * scale;
     double h           = pageDim.height_pts * scale;
 
@@ -236,6 +236,41 @@ DocumentView::pageSceneSize(int pageno) const noexcept
         std::swap(w, h);
 
     return QSizeF(w, h);
+}
+
+// Full page dims, or (m_trim_margins) the tight content-bbox dims — points,
+// pre-scale/rotation. See header comment.
+Model::PageDimension
+DocumentView::pageDimensionsPts(int pageno) const noexcept
+{
+    if (!m_trim_margins)
+        return m_model->page_dimension_pts(pageno);
+
+    const auto bbox = m_model->contentBBox(pageno);
+    if (bbox.isEmpty())
+        return m_model->page_dimension_pts(pageno);
+
+    return Model::PageDimension{bbox.width(), bbox.height()};
+}
+
+// Content-bbox rect mapped into the rendered image's own pixel space. See
+// header comment.
+QRect
+DocumentView::contentCropRectPixels(int pageno) const noexcept
+{
+    const auto bbox = m_model->contentBBox(pageno);
+    if (bbox.isEmpty())
+        return {};
+
+    const QPointF p0
+        = m_model->toPixelSpace(pageno, fz_point{bbox.x0, bbox.y0});
+    const QPointF p1
+        = m_model->toPixelSpace(pageno, fz_point{bbox.x1, bbox.y1});
+
+    // normalized() handles the corner swap rotation introduces (top-left
+    // and bottom-right of the page-space rect don't necessarily map to
+    // top-left/bottom-right in device space once rotated).
+    return QRectF(p0, p1).normalized().toRect();
 }
 
 void
@@ -1382,6 +1417,40 @@ DocumentView::rotateHelper() noexcept
     for (int pageno : trackedPages)
     {
         // m_model->invalidatePageCache(pageno);
+        clearLinksForPage(pageno);
+        clearAnnotationsForPage(pageno);
+        clearSearchItemsForPage(pageno);
+    }
+
+    renderPages();
+    GotoPage(m_pageno);
+}
+
+// Toggles cropping every rendered page to its tight content bounding box
+// (Model::contentBBox), hiding blank margins entirely. Changing this changes
+// every page's effective pixel dimensions, exactly like a rotation change —
+// same "re-layout + re-render everything visible" sequence as rotateHelper()
+// above (not calling it by that name here since "rotateHelper" would be
+// misleading for a non-rotation toggle).
+void
+DocumentView::ToggleTrimMargins() noexcept
+{
+    m_trim_margins = !m_trim_margins;
+
+    if (m_model->isImage())
+    {
+        renderImage();
+        return;
+    }
+
+    cachePageStride();
+    const std::set<int> &trackedPages = getVisiblePages();
+
+    if (trackedPages.empty())
+        return;
+
+    for (int pageno : trackedPages)
+    {
         clearLinksForPage(pageno);
         clearAnnotationsForPage(pageno);
         clearSearchItemsForPage(pageno);
@@ -3439,6 +3508,14 @@ DocumentView::startNextRenderJob() noexcept
 
             QImage image = std::move(result.image);
 
+            if (!image.isNull() && view->m_trim_margins)
+            {
+                const QRect crop = view->contentCropRectPixels(pageno)
+                                       .intersected(image.rect());
+                if (crop.isValid() && !crop.isEmpty())
+                    image = image.copy(crop);
+            }
+
             if (!image.isNull())
             {
                 if (view->m_layout_mode == LayoutMode::SINGLE
@@ -3609,7 +3686,7 @@ DocumentView::cachePageStride() noexcept
     // Helper to get extent quickly
     auto getExtents = [&](int p, double &w, double &h)
     {
-        const auto dim = m_model->page_dimension_pts(p);
+        const auto dim = pageDimensionsPts(p);
         w = (dim.width_pts / 72.0) * m_model->DPI() * m_current_zoom;
         h = (dim.height_pts / 72.0) * m_model->DPI() * m_current_zoom;
         if (rotated)
@@ -6178,7 +6255,7 @@ DocumentView::repositionPages()
             // physical pixel height for *this* page at the new zoom level.
             // For images rotated 90°/270° the rendered height corresponds to
             // the original page width, so swap the dimension used.
-            const auto &pageDimR = m_model->page_dimension_pts(i);
+            const auto &pageDimR = pageDimensionsPts(i);
             const double rot90
                 = std::fmod(std::abs(m_model->rotation()), 360.0);
             const bool swapped

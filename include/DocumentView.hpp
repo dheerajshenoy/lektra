@@ -488,6 +488,14 @@ public:
     void ToggleThumbnailPanel() noexcept;
     [[nodiscard]] GraphicsImageItem *pageItemAt(int pageno) const noexcept;
     void ToggleAutoResize() noexcept;
+    // Crops every rendered page to its tight content bounding box (see
+    // Model::contentBBox), hiding blank margins entirely rather than just
+    // fitting zoom to the content region like the *Smart fit modes do.
+    void ToggleTrimMargins() noexcept;
+    inline bool isTrimMargins() const noexcept
+    {
+        return m_trim_margins;
+    }
     void ToggleTextHighlight() noexcept;
     void ToggleRegionSelect() noexcept;
     void ToggleAnnotRect() noexcept;
@@ -709,6 +717,16 @@ private:
         QMap<int, std::vector<Model::SearchHit>> &results) const noexcept;
     QGraphicsPathItem *m_current_search_hit_item{nullptr};
     QSizeF pageSceneSize(int pageno) const noexcept;
+    // Full page dims, or (m_trim_margins) the tight content-bbox dims —
+    // points, pre-scale/rotation. Drop-in replacement for
+    // Model::page_dimension_pts() at every layout site so trimmed pages are
+    // actually laid out smaller, not just rendered smaller and stretched
+    // back up.
+    Model::PageDimension pageDimensionsPts(int pageno) const noexcept;
+    // Content-bbox rect mapped into the rendered image's own pixel space,
+    // via Model::toPixelSpace() (the same transform the real render used).
+    // Empty QRect means "no crop" (full page / bbox unavailable).
+    QRect contentCropRectPixels(int pageno) const noexcept;
     std::vector<Annotation *> annotationsInArea(int pageno,
                                                 QRectF area) noexcept;
     Annotation *annotationAtPoint(int pageno, QPointF point) noexcept;
@@ -735,6 +753,7 @@ private:
     int m_spacing                             = 10;
     double m_current_zoom                     = MIN_ZOOM_FACTOR;
     bool m_auto_resize                        = false;
+    bool m_trim_margins                       = false;
     bool m_auto_reload                        = false;
     ScrollBar *m_hscroll                      = nullptr;
     ScrollBar *m_vscroll                      = nullptr;

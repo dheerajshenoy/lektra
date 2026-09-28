@@ -5342,6 +5342,10 @@ Lektra::initCommands() noexcept
                            [this](const QStringList &)
     { ToggleThumbnailPanel(); });
 
+    m_command_manager->reg(
+        "trim_margins", tr("Toggle trim margins (hide blank page margins)"),
+        [this](const QStringList &) { ToggleTrimMargins(); });
+
 #ifdef WITH_LLM_SUPPORT
     m_command_manager->reg("llm_view", tr("Toggle LLM chat panel"),
                            [this](const QStringList &) { ToggleLLMView(); });
@@ -7683,6 +7687,15 @@ Lektra::ToggleThumbnailPanel() noexcept
         return;
 
     m_doc->ToggleThumbnailPanel();
+}
+
+void
+Lektra::ToggleTrimMargins() noexcept
+{
+    if (!m_doc)
+        return;
+
+    m_doc->ToggleTrimMargins();
 }
 
 #ifdef WITH_LLM_SUPPORT

@@ -112,6 +112,7 @@ public:
     void ToggleVisualLineMode() noexcept;
     void TogglePresentationMode() noexcept;
     void ToggleThumbnailPanel() noexcept;
+    void ToggleTrimMargins() noexcept;
 #ifdef WITH_LLM_SUPPORT
     void ToggleLLMView() noexcept;
 #endif
