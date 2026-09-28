@@ -6,10 +6,11 @@
 
 - [ ] Caret Mode Press F7 (Select Text With Keyboard, CmdSelectTextViaKeyboard) to put a text cursor on the page, like caret browsing in a web browser. Move it with the arrow keys and hold Shift to select. Ctrl + arrows move by word and Home / End / PageUp / PageDown also work. v switches to Vim-style visual mode. Ctrl + C or y copies, and Esc or F7 exits (#4684, #4116).
 - [ ] Per-filetype config support
+- [ ] Annotation save as temp file and auto-save on exit
 
 ## MEDIUM PRIORITY
 
-- [ ] Trim marings - hides the empty margins around page content, as if they weren’t there. Margins are detected as pages are shown.
+- [ ] Trim margins - hides the empty margins around page content, as if they weren’t there. Margins are detected as pages are shown.
 - [ ] Your reading position is saved as a chapter bookmark, so it survives font-size changes. (For reflowable documents, the bookmark is anchored to the chapter and a y-fraction of the chapter's height, so it survives font-size changes. For fixed-layout documents, the bookmark is anchored to the page number.)
 - [ ] Uniform Page Width (shows pages of different sizes at the same width at percentage zoom levels, using page 1 as the reference)
 - [ ] Chrome-style tabs (Ctrl+Tab to switch, Ctrl+Shift+Tab to switch backwards)
@@ -21,28 +22,19 @@
 - [ ] Laser pointer for presentation view
 - [ ] Tab hover preview
 - [ ] Keyboard shortcuts cheat sheet
-- [ ] Annotation save as temp file and auto-save on exit
-- [ ] Table of contents for comic books from ComicInfo.xml
-- [ ] Use `djvudec` for DjVu rendering (https://github.com/kjk/djvudec)
 - [ ] Clickable Plain text DOIs in PDF text
-- [ ] Show images stored in separate files
-- [ ] Citation preview for plain-text references
 - [ ] Smoother find-as-you-type
-- [ ] Duplicating a tab keeps the page, zoom and scroll position of the original tab.
-- [ ] Password on the command line
-- [ ] Remove Deleted Files From History command - removes files that no longer exist on disk from the list of recently opened files.
-- [ ] Citation and reference hover preview
 - [ ] Drag images out of documents
-- [ ] Open File Without History (command)
-- [x] Digital signature info in Document Properties
-- [x] Configurable tab close button (on current tab, on all tabs, or none)
-- [x] Page number in tabs
-- [x] Links with file:// URIs now open the file as a local document instead of sending it to the browser
-- [x] Zoom to Selection
-- [x] Files that fail to open get their own tab (title in red)
+- [ ] Duplicating a tab keeps the page, zoom and scroll position of the original tab.
 
 ## LOW PRIORITY
 
+- [ ] Table of contents for comic books from ComicInfo.xml
+- [ ] Use `djvudec` for DjVu rendering (https://github.com/kjk/djvudec)
+- [ ] Show images stored in separate files
+- [ ] Citation preview for plain-text references
+- [ ] Password on the command line
+- [ ] Citation and reference hover preview
 - [ ] Add support for JPEG xl (.jxl) images
 - [ ] Add support for JPEG XR (.jxr, .hdp, .wdp, .jfif and .heif) images
 - [ ] Add no invert image for DjVu documents
