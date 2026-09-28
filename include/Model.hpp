@@ -735,6 +735,20 @@ private:
     };
     [[nodiscard]] ContentBBox contentBBox(int pageno) noexcept;
 
+    // Topmost embedded raster image under a given point, if any — used to
+    // let the user drag an image out of the document (e.g. onto a file
+    // manager or another app) instead of just copying a rendered region.
+    // logicalPt is in the same item-local logical-pixel space as
+    // renderRegionAtDPI()'s logicalRect. The image is decoded at its native
+    // resolution, independent of the current view zoom.
+    struct ImageHit
+    {
+        bool valid = false;
+        QRectF page_rect_pts;
+        QImage image;
+    };
+    [[nodiscard]] ImageHit imageAt(int pageno, QPointF logicalPt) noexcept;
+
     struct PageCacheEntry
     {
         int pageno;

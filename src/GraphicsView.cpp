@@ -4,14 +4,19 @@
 #include "utils.hpp"
 
 #include <QApplication>
+#include <QDir>
+#include <QDrag>
 #include <QGraphicsItem>
 #include <QGuiApplication>
 #include <QLineF>
 #include <QMenu>
+#include <QMimeData>
 #include <QNativeGestureEvent>
 #include <QOpenGLContext>
 #include <QOpenGLWidget>
 #include <QScroller>
+#include <QTemporaryFile>
+#include <QUrl>
 #include <algorithm>
 #include <qsurfaceformat.h>
 
@@ -189,6 +194,26 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         return;
     }
 
+    // Drag-image-out: works in the normal reading modes only.
+    // RegionSelection/AnnotRect/AnnotSelect have their own deliberate
+    // drag meaning (the user switched into that mode for it), so leave
+    // those alone. itemAt() is a cheap early-out for clicks that don't land
+    // on any page content (gutters, background) before asking the model.
+    if (event->button() == Qt::LeftButton && m_imageDragProvider
+        && (m_mode == Mode::None || m_mode == Mode::TextSelection
+            || m_mode == Mode::TextHighlight)
+        && itemAt(event->pos()))
+    {
+        const QImage img = m_imageDragProvider(mapToScene(event->pos()));
+        if (!img.isNull())
+        {
+            m_pendingDragImage    = img;
+            m_pendingDragStartPos = event->pos();
+            event->accept();
+            return;
+        }
+    }
+
     // Necessary to check mode before button, otherwise right-click context menu
     // won’t work
     // if (event->button() != Qt::LeftButton)
@@ -354,6 +379,15 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
         return;
     }
 
+    if (!m_pendingDragImage.isNull())
+    {
+        if ((event->pos() - m_pendingDragStartPos).manhattanLength()
+            > m_drag_threshold)
+            startImageDrag();
+        event->accept();
+        return;
+    }
+
     if (m_mode == Mode::None)
     {
         QGraphicsView::mouseMoveEvent(event);
@@ -422,6 +456,15 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
 void
 GraphicsView::mouseReleaseEvent(QMouseEvent *event)
 {
+    // A pending image drag that never crossed the threshold was just a
+    // plain click — discard it instead of starting a selection retroactively.
+    if (!m_pendingDragImage.isNull())
+    {
+        m_pendingDragImage = QImage();
+        event->accept();
+        return;
+    }
+
     if (m_panning
         && resolveMouseAction(event->button(), event->modifiers())
                == MouseAction::Pan)
@@ -701,6 +744,46 @@ GraphicsView::layoutScrollbars()
                           w - SCROLLBAR_MARGIN - right, m_scrollbarSize);
         hbar->raise();
     }
+}
+
+void
+GraphicsView::startImageDrag() noexcept
+{
+    const QImage img   = m_pendingDragImage;
+    m_pendingDragImage = QImage();
+
+    if (img.isNull())
+        return;
+
+    auto *mime = new QMimeData();
+    mime->setImageData(img);
+
+    // Also write a real file and offer it as a URL — apps that only accept
+    // file drops (most file managers, some chat clients) need this; raw
+    // image/png mime data alone isn't enough for those. Left behind in the
+    // temp dir rather than deleted immediately after exec() returns, since
+    // the drop target may read it asynchronously.
+    auto *tmp = new QTemporaryFile(
+        QDir::temp().filePath(QStringLiteral("lektra-image-XXXXXX.png")),
+        this);
+    tmp->setAutoRemove(false);
+    if (tmp->open())
+    {
+        img.save(tmp, "PNG");
+        tmp->close();
+        mime->setUrls({QUrl::fromLocalFile(tmp->fileName())});
+    }
+    tmp->deleteLater();
+
+    auto *drag = new QDrag(this);
+    drag->setMimeData(mime);
+
+    const QPixmap thumb = QPixmap::fromImage(
+        img.scaled(128, 128, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    drag->setPixmap(thumb);
+    drag->setHotSpot(thumb.rect().center());
+
+    drag->exec(Qt::CopyAction);
 }
 
 void

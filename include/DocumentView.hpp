@@ -477,6 +477,10 @@ public:
     // onto a rendered page). Shared by CopyRegionAsImage() and the Lua
     // region_select_image() API.
     QImage regionImage(QRectF area) noexcept;
+    // Decoded embedded image (native resolution) at a scene position, or a
+    // null QImage if there isn't one there. Used to drag an image out of the
+    // document (GraphicsView::setImageDragProvider()).
+    QImage imageAt(QPointF scenePos) noexcept;
     QMap<int, Model::LinkInfo> LinkKB() noexcept;
     void ClearTextSelection() noexcept;
     void YankSelection(bool formatted = true) noexcept;

@@ -4282,6 +4282,114 @@ Model::renderRegionAtDPI(int pageno, QRectF logicalRect,
     return result;
 }
 
+Model::ImageHit
+Model::imageAt(int pageno, QPointF logicalPt) noexcept
+{
+    ImageHit result;
+
+    // Raster sources (plain images, DjVu) have no notion of "an embedded
+    // image within the page" separate from the page itself.
+    if (m_is_image || m_filetype == FileType::DJVU)
+        return result;
+
+    const fz_matrix dev_to_page = buildPageTransforms(pageno).second;
+    const fz_point pagePt = fz_transform_point(
+        {float(logicalPt.x()), float(logicalPt.y())}, dev_to_page);
+
+    fz_context *ctx = cloneContext();
+    if (!ctx)
+        return result;
+
+    fz_display_list *dlist = nullptr;
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+        const PageCacheEntry *entry = m_page_lru_cache.get(pageno);
+        if (!entry || !entry->display_list)
+        {
+            fz_drop_context(ctx);
+            return result;
+        }
+        dlist = fz_keep_display_list(ctx, entry->display_list);
+    }
+
+    fz_device *tracker = nullptr;
+    fz_pixmap *pix     = nullptr;
+
+    fz_try(ctx)
+    {
+        // Identity ctm: the tracked bboxes come out directly in page-point
+        // space, matching pagePt.
+        tracker = new_image_tracker_device(ctx, nullptr, fz_identity);
+        fz_run_display_list(ctx, dlist, tracker, fz_identity,
+                            fz_infinite_rect, nullptr);
+        fz_close_device(ctx, tracker);
+
+        auto *td = reinterpret_cast<fz_image_tracker_device *>(tracker);
+
+        // Later-painted images are drawn on top; walk back-to-front so a
+        // click picks the topmost image at that point.
+        for (int i = td->rect_count - 1; i >= 0; --i)
+        {
+            const ImageRect &ir = td->rects[i];
+            const fz_rect r     = fz_rect_from_irect(ir.bbox);
+            if (pagePt.x < r.x0 || pagePt.x > r.x1 || pagePt.y < r.y0
+                || pagePt.y > r.y1)
+                continue;
+
+            fz_pixmap *native = fz_get_unscaled_pixmap_from_image(ctx, ir.image);
+            pix = fz_convert_pixmap(ctx, native, m_colorspace, nullptr, nullptr,
+                                    fz_default_color_params, 1);
+            fz_drop_pixmap(ctx, native);
+
+            const int width  = fz_pixmap_width(ctx, pix);
+            const int height = fz_pixmap_height(ctx, pix);
+            const int n      = fz_pixmap_components(ctx, pix);
+            const int stride = fz_pixmap_stride(ctx, pix);
+
+            QImage::Format fmt;
+            switch (n)
+            {
+                case 1:
+                    fmt = QImage::Format_Grayscale8;
+                    break;
+                case 3:
+                    fmt = QImage::Format_RGB888;
+                    break;
+                case 4:
+                    fmt = QImage::Format_RGBA8888;
+                    break;
+                default:
+                    fz_throw(ctx, FZ_ERROR_GENERIC,
+                             "Unsupported component count");
+            }
+
+            result.image
+                = QImage(fz_pixmap_samples(ctx, pix), width, height, stride,
+                         fmt)
+                      .copy();
+            result.page_rect_pts
+                = QRectF(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
+            result.valid = !result.image.isNull();
+            break;
+        }
+    }
+    fz_always(ctx)
+    {
+        if (tracker)
+            fz_drop_device(ctx, tracker);
+        fz_drop_pixmap(ctx, pix);
+        fz_drop_display_list(ctx, dlist);
+    }
+    fz_catch(ctx)
+    {
+        qWarning() << "Model::imageAt failed:" << fz_caught_message(ctx);
+        result = {};
+    }
+
+    fz_drop_context(ctx);
+    return result;
+}
+
 void
 Model::highlight_text_selection(int pageno, QPointF start, QPointF end,
                                 const QString &comment) noexcept

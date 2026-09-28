@@ -4,10 +4,12 @@
 #include <QElapsedTimer>
 #include <QGestureEvent>
 #include <QGraphicsView>
+#include <QImage>
 #include <QMouseEvent>
 #include <QRubberBand>
 #include <QScrollBar>
 #include <QTimer>
+#include <functional>
 
 struct Config;
 
@@ -96,6 +98,17 @@ public:
     inline void setSelectionDragThreshold(int value) noexcept
     {
         m_drag_threshold = value;
+    }
+
+    // Supplies the decoded embedded image at a scene position, or a null
+    // QImage if there isn't one there — set by DocumentView (backed by
+    // Model::imageAt()) so pressing and dragging on an image in the document
+    // starts an OS-level drag carrying that image out (e.g. onto a file
+    // manager or another app), instead of starting a text selection.
+    inline void
+    setImageDragProvider(std::function<QImage(QPointF)> provider) noexcept
+    {
+        m_imageDragProvider = std::move(provider);
     }
 
     inline QPointF getCursorPos() const noexcept
@@ -328,6 +341,14 @@ private:
     Mode m_default_mode                              = Mode::None;
     QRubberBand *m_rubberBand                        = nullptr;
     int m_drag_threshold                             = 50;
+
+    // Drag-image-out state: set in mousePressEvent() when the press landed
+    // on an embedded image; consumed in mouseMoveEvent() once the drag
+    // threshold is crossed (or discarded on release, for a plain click).
+    std::function<QImage(QPointF)> m_imageDragProvider;
+    QImage m_pendingDragImage;
+    QPoint m_pendingDragStartPos;
+    void startImageDrag() noexcept;
     int m_clickCount                                 = 0;
     static constexpr int SCROLLBAR_MARGIN            = 2;
     static constexpr int MULTI_CLICK_INTERVAL        = 400;

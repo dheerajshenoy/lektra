@@ -212,6 +212,9 @@ DocumentView::initGui() noexcept
     m_gview->setHorizontalScrollbarEnabled(m_config.scrollbars.horizontal);
     m_gview->setAutoHideScrollbars(m_config.scrollbars.auto_hide);
 
+    m_gview->setImageDragProvider(
+        [this](QPointF scenePos) { return imageAt(scenePos); });
+
     m_auto_resize       = m_config.layout.auto_resize;
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setAlignment(Qt::AlignCenter);
@@ -5463,6 +5466,18 @@ DocumentView::regionImage(QRectF area) noexcept
         return {};
 
     return pageItem->image().copy(pixelRect);
+}
+
+QImage
+DocumentView::imageAt(QPointF scenePos) noexcept
+{
+    int pageno;
+    GraphicsImageItem *pageItem;
+    if (!pageAtScenePos(scenePos, pageno, pageItem) || !pageItem)
+        return {};
+
+    const QPointF logicalPt = pageItem->mapFromScene(scenePos);
+    return m_model->imageAt(pageno, logicalPt).image;
 }
 
 void
