@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QDebug>
 #include <QElapsedTimer>
 #include <QGestureEvent>
 #include <QGraphicsView>
@@ -226,6 +227,18 @@ private:
         m_is_split_maximized = state;
     }
 
+    // Centered red message drawn over the viewport in paintEvent() — used
+    // for "failed to open this file" (empty string hides it again). Drawn
+    // directly in this widget's own paint cycle (like the maximize-indicator
+    // badge below) rather than via a separate overlay widget, since a
+    // sibling QLabel child ends up painted under the viewport in this
+    // environment regardless of raise()/lower() calls.
+    inline void setOpenFailedMessage(const QString &message) noexcept
+    {
+        m_open_failed_message = message;
+        viewport()->update();
+    }
+
     inline bool isSplitMaximized() const noexcept
     {
         return m_is_split_maximized;
@@ -328,6 +341,7 @@ private:
     bool m_is_active                                 = false;
     bool m_is_portal                                 = false;
     bool m_is_split_maximized                        = false;
+    QString m_open_failed_message;
     bool m_is_narrow_clip                            = false;
     QRectF m_narrow_scene_rect;
     const Config &m_config;

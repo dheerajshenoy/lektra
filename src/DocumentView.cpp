@@ -76,17 +76,7 @@ DocumentView::DocumentView(const Config &config, float dpr, QWidget *parent,
     m_model = new Model(m_config, this);
     m_model->setDPR(dpr);
 
-    connect(m_model, &Model::openFileFailed, this,
-            &DocumentView::handleOpenFileFailed);
-
-    // connect(m_model, &Model::openFileFinished, this,
-    //         &DocumentView::handleOpenFileFinished, Qt::UniqueConnection);
-
-    connect(m_model, &Model::passwordRequired, this,
-            &DocumentView::handle_password_required);
-
-    connect(m_model, &Model::wrongPassword, this,
-            &DocumentView::handle_wrong_password);
+    connectModelFailureSignals();
 
     initGui();
 #ifdef WITH_LUA
@@ -305,6 +295,19 @@ DocumentView::initSynctex() noexcept
 #endif
 
 void
+DocumentView::connectModelFailureSignals() noexcept
+{
+    connect(m_model, &Model::openFileFailed, this,
+            &DocumentView::handleOpenFileFailed, Qt::UniqueConnection);
+
+    connect(m_model, &Model::passwordRequired, this,
+            &DocumentView::handle_password_required, Qt::UniqueConnection);
+
+    connect(m_model, &Model::wrongPassword, this,
+            &DocumentView::handle_wrong_password, Qt::UniqueConnection);
+}
+
+void
 DocumentView::openAsync(const QString &filePath) noexcept
 {
 #ifndef NDEBUG
@@ -312,6 +315,10 @@ DocumentView::openAsync(const QString &filePath) noexcept
 #endif
 
     CloseFile();
+
+    // CloseFile() -> resetConnections() does a blanket m_model->disconnect(this)
+    // that also severs these — re-establish them for this open attempt.
+    connectModelFailureSignals();
 
     m_spinner->start();
     m_spinner->show();
@@ -334,10 +341,23 @@ DocumentView::handleOpenFileFailed() noexcept
     m_spinner->stop();
     m_spinner->hide();
 
-    QMessageBox::critical(this, tr("Error"),
-                          tr("Failed to open the file. Please check if the "
-                             "file exists and is a supported format."));
+    // Captured before emitting openFileFailed(this) below — Lektra's
+    // handler for that signal calls CloseFile(), which clears the model's
+    // filepath, so the name must be grabbed now to show in the tab's
+    // content area.
+    const QString name = fileName();
+    m_gview->setOpenFailedMessage(
+        name.isEmpty()
+            ? tr("Failed to open file.\nPlease check if it exists and is a "
+                 "supported format.")
+            : tr("Failed to open \"%1\".\nPlease check if it exists and is "
+                 "a supported format.")
+                  .arg(name));
 
+    // No blocking modal dialog here anymore — the failure is already
+    // visible in-place (this message, plus the red tab title Lektra sets in
+    // response to the signal below), without stalling the whole app on a
+    // dismiss click.
     emit openFileFailed(this);
 }
 
@@ -352,8 +372,15 @@ DocumentView::handleOpenFileFinished() noexcept
     m_spinner->stop();
     m_spinner->hide();
 
+    // This future-watcher slot fires whenever the QFuture completes,
+    // including the trivial no-op future used by Model::openAsync()'s
+    // FileType::NONE fast-fail path — i.e. it fires for failed opens too,
+    // racing handleOpenFileFailed() (which sets the message below). Only
+    // clear it here once we know this was an actual success.
     if (!m_model->success())
         return;
+
+    m_gview->setOpenFailedMessage(QString());
 
     stopGifPlayback();
 

@@ -1572,7 +1572,12 @@ Model::cleanup_djvu() noexcept
 QFuture<void>
 Model::openAsync(const QString &filePath) noexcept
 {
-    m_filepath              = QFileInfo(filePath).canonicalFilePath();
+    // canonicalFilePath() returns empty for a nonexistent/unreadable path —
+    // fall back to the originally-requested path so the failure path below
+    // still has something meaningful to show (e.g. a tab title) for what
+    // couldn't be opened, instead of an empty filename.
+    const QString canon = QFileInfo(filePath).canonicalFilePath();
+    m_filepath              = canon.isEmpty() ? filePath : canon;
     const QString canonPath = m_filepath;
     m_success               = false;
 

@@ -175,9 +175,6 @@ Lektra::construct() noexcept
     initGui();
     // warnShortcutConflicts();
     initDB();
-#ifdef WITH_LLM_SUPPORT
-    initLLMView();
-#endif
     trimRecentFilesDatabase();
     populateRecentFiles();
     populateBookmarks();
@@ -2899,13 +2896,11 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
         return false;
     }
 
-    if (!QFile(filename).exists())
-    {
-        QMessageBox::critical(
-            this, tr("Error"),
-            tr("The specified file does not exist:\n%1").arg(filename));
-        return false;
-    }
+    // No existence pre-check here — openAsync() below fails cleanly via
+    // Model's own FileType::NONE fast-path and the view shows the failure
+    // itself (see DocumentView::handleOpenFileFailed()), so a nonexistent
+    // path gets the same in-tab treatment as any other file that fails to
+    // open, instead of a dialog-only dead end.
 
     DocumentView *view = targetView ? targetView : container->view();
     if (!view)
@@ -3131,14 +3126,11 @@ Lektra::OpenFileInNewTab(const QString &filename,
         return nullptr;
     }
 
-    // Check if file exists
-    if (!QFile(filename).exists())
-    {
-        QMessageBox::critical(
-            this, tr("Error"),
-            tr("The specified file does not exist:\n%1").arg(filename));
-        return nullptr;
-    }
+    // No existence pre-check here — the tab is created below regardless,
+    // and openAsync() fails cleanly (Model's FileType::NONE fast-path) with
+    // the failure shown directly in that tab (red title + centered message
+    // — see DocumentView::handleOpenFileFailed()) instead of a dialog-only
+    // dead end that leaves no trace of the attempt.
 
     // Create a new DocumentView
     DocumentView *view = new DocumentView(m_config, m_dpr, this);
@@ -4805,6 +4797,9 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
                 m_tab_widget->tabBar()->setTabText(
                     index, m_config.tabs.full_path ? doc->filePath()
                                                    : doc->fileName());
+                // Clear any red left over from a previous failed open in
+                // this same tab (e.g. retried with a different file).
+                m_tab_widget->tabBar()->setTabFailed(index, false);
             }
             updateUiEnabledState();
         }
@@ -4822,19 +4817,32 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::openFileFailed, this,
             [this](DocumentView *doc)
     {
-        const bool wasCurrentView = (m_doc == doc);
-        doc->CloseFile();
+        const bool wasCurrentView    = (m_doc == doc);
         DocumentContainer *container = doc->container();
         if (!container)
             return;
 
-        // If this is the only view in the container, remove the entire tab
-        // Otherwise just close this view within the split
+        // Capture before CloseFile() — Model::close() clears the filepath,
+        // and the tab title below still needs to show what failed to open.
+        const QString failedTitle
+            = m_config.tabs.full_path ? doc->filePath() : doc->fileName();
+
+        // If this is the only view in the container, keep the tab open
+        // (rather than closing it) so the failure is visible/identifiable
+        // instead of silently vanishing — its title turns red and shows
+        // the filename that failed to load. A failed view inside a split
+        // still gets closed, since the split's other pane(s) may still
+        // have a perfectly good document open.
+        doc->CloseFile();
+
         if (container->getViewCount() <= 1)
         {
             const int tabIndex = m_tab_widget->indexOf(container);
             if (tabIndex != -1)
-                m_tab_widget->removeTab(tabIndex);
+            {
+                m_tab_widget->tabBar()->setTabText(tabIndex, failedTitle);
+                m_tab_widget->tabBar()->setTabFailed(tabIndex, true);
+            }
         }
         else
         {
@@ -5580,9 +5588,9 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("narrow_to_region",
                            tr("Narrow view to selected region"),
                            [this](const QStringList &) { NarrowToRegion(); });
-    m_command_manager->reg(
-        "zoom_to_selection", tr("Select a region and zoom in to fill it"),
-        [this](const QStringList &) { ZoomToSelection(); });
+    m_command_manager->reg("zoom_to_selection",
+                           tr("Select a region and zoom in to fill it"),
+                           [this](const QStringList &) { ZoomToSelection(); });
     m_command_manager->reg(
         "narrow_to_section",
         tr("Narrow view to a document section from the outline"),
@@ -6819,15 +6827,8 @@ Lektra::restoreSplitNode(DocumentContainer *container, DocumentView *targetView,
             return;
         }
 
-        // Check if file exists
-        if (!QFile(path).exists())
-        {
-            QMessageBox::critical(
-                this, tr("Error"),
-                tr("The specified file does not exist:\n%1").arg(path));
-            return;
-        }
-
+        // No existence pre-check — openAsync() below fails cleanly and the
+        // view shows the failure itself if the saved path is gone.
         targetView->openAsync(path);
 
         connect(targetView, &DocumentView::openFileFinished, this,
@@ -7661,7 +7662,10 @@ void
 Lektra::ToggleLLMView() noexcept
 {
     if (!m_llm_view)
+    {
+        initLLMView();
         return;
+    }
 
     m_llm_view->setVisible(!m_llm_view->isVisible());
 }

@@ -8,6 +8,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPixmap>
+#include <QSet>
 #include <QStyle>
 #include <QStyleOptionTab>
 #include <QTabBar>
@@ -77,6 +78,14 @@ public:
     void set_split_count(int index, int count) noexcept;
     int splitCount(int index) const noexcept;
 
+    // Marks a tab as failed-to-open — its title is repainted in red,
+    // manually overdrawn on top of the normal text. Not done via
+    // setTabTextColor(): some Qt platform themes ignore per-tab palette
+    // overrides and always paint tab text in the theme's own color, so that
+    // API silently has no visual effect under those styles.
+    void setTabFailed(int index, bool failed) noexcept;
+    bool isTabFailed(int index) const noexcept;
+
 signals:
     void tabDataRequested(int index, TabData *outData);
     void tabDropReceived(const TabData &data);
@@ -108,4 +117,5 @@ private:
     int m_drag_tab_index = -1;
     QVector<int> m_split_counts;
     CloseButtonMode m_close_button_mode = CloseButtonMode::All;
+    QSet<int> m_failed_tabs;
 };

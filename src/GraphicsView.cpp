@@ -949,6 +949,19 @@ GraphicsView::paintEvent(QPaintEvent *event)
         painter.drawText(badge, Qt::AlignCenter, label);
     }
 
+    if (!m_open_failed_message.isEmpty())
+    {
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        painter.setRenderHint(QPainter::TextAntialiasing, true);
+        painter.setPen(QColor(Qt::red));
+        QFont f = painter.font();
+        f.setPointSize(f.pointSize() + 1);
+        painter.setFont(f);
+        painter.drawText(viewport()->rect().adjusted(20, 20, -20, -20),
+                         Qt::AlignCenter | Qt::TextWordWrap,
+                         m_open_failed_message);
+    }
+
     if (m_config.portal.border_width > 0 && m_config.portal.enabled
         && m_is_portal)
     {

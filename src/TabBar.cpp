@@ -74,6 +74,24 @@ TabBar::refreshCloseButtons() noexcept
 }
 
 void
+TabBar::setTabFailed(int index, bool failed) noexcept
+{
+    if (index < 0 || index >= count())
+        return;
+    if (failed)
+        m_failed_tabs.insert(index);
+    else
+        m_failed_tabs.remove(index);
+    update(tabRect(index));
+}
+
+bool
+TabBar::isTabFailed(int index) const noexcept
+{
+    return m_failed_tabs.contains(index);
+}
+
+void
 TabBar::set_split_count(int index, int count) noexcept
 {
     if (index < 0 || index >= this->count())
@@ -118,6 +136,21 @@ TabBar::tabRemoved(int index)
         return;
     m_split_counts.removeAt(index);
     refreshCloseButtons();
+
+    // Shift m_failed_tabs indices down past the removed tab.
+    if (!m_failed_tabs.isEmpty())
+    {
+        QSet<int> shifted;
+        for (int i : std::as_const(m_failed_tabs))
+        {
+            if (i < index)
+                shifted.insert(i);
+            else if (i > index)
+                shifted.insert(i - 1);
+            // i == index: the failed tab itself was removed, drop it.
+        }
+        m_failed_tabs = shifted;
+    }
 }
 
 void
@@ -129,6 +162,12 @@ TabBar::tabMoved(int from, int to)
     if (to < 0 || to >= m_split_counts.size())
         return;
     m_split_counts.move(from, to);
+
+    if (m_failed_tabs.contains(from))
+    {
+        m_failed_tabs.remove(from);
+        m_failed_tabs.insert(to);
+    }
 }
 
 void
@@ -248,6 +287,34 @@ TabBar::paintEvent(QPaintEvent *event)
     QTabBar::paintEvent(event);
     if (count() == 0)
         return;
+
+    if (!m_failed_tabs.isEmpty())
+    {
+        // Overdraw the title in red for failed tabs, manually — some Qt
+        // platform styles/themes ignore per-tab setTabTextColor() and
+        // always paint tab text in the theme's own fixed color, so that
+        // API alone can silently have no visible effect.
+        QPainter textPainter(this);
+        textPainter.setRenderHint(QPainter::Antialiasing, true);
+        for (int i : std::as_const(m_failed_tabs))
+        {
+            if (i < 0 || i >= count())
+                continue;
+
+            QStyleOptionTab opt;
+            initStyleOption(&opt, i);
+            const QRect textRect
+                = style()->subElementRect(QStyle::SE_TabBarTabText, &opt, this);
+            if (!textRect.isValid())
+                continue;
+
+            const QString elided = fontMetrics().elidedText(
+                tabText(i), elideMode(), textRect.width());
+            textPainter.setPen(QColor(Qt::red));
+            textPainter.setFont(font());
+            textPainter.drawText(textRect, Qt::AlignCenter, elided);
+        }
+    }
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, true);

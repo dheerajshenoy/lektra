@@ -674,6 +674,13 @@ private:
     void applyReflow(float em) noexcept;
     void initConnections() noexcept;
     void resetConnections() noexcept;
+    // openFileFailed/passwordRequired/wrongPassword — connected once in the
+    // constructor, but resetConnections() (called by CloseFile(), which
+    // openAsync() runs before every open attempt, including the very first)
+    // does a blanket m_model->disconnect(this) that severs them. Re-run
+    // right after CloseFile() in openAsync() so a failed/password-protected
+    // open still reaches DocumentView instead of silently going nowhere.
+    void connectModelFailureSignals() noexcept;
     QGraphicsPathItem *ensureSearchItemForPage(int pageno) noexcept;
 
     std::set<int> getPreloadPages(const std::set<int> &visiblePages) noexcept;
