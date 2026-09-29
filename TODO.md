@@ -4,6 +4,7 @@
 
 ## HIGH PRIORITY
 
+- [ ] statusbar layout customization
 - [ ] Per-filetype config support
 - [ ] Annotation save as temp file and auto-save on exit
 
