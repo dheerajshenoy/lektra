@@ -49,7 +49,13 @@ if(MSVC)
     set(REL_WITH_DEB_INFO_FLAGS /O2;/Zi;/DNDEBUG;/W4)
 else()
     set(DEBUG_FLAGS          -fno-omit-frame-pointer;-ggdb3;-O0;-fsanitize=address;-Wall;-Wextra)
-    set(RELEASE_FLAGS        -O3;-DNDEBUG;-fno-rtti)
+    # -g/-fno-omit-frame-pointer are kept in Release too (not just
+    # RelWithDebInfo): without them, CrashHandler's backtrace() has nothing
+    # reliable to unwind and no line info to resolve against, so a crash from
+    # a Release build produces a useless report. The extra debug info can be
+    # split out with `objcopy --only-keep-debug` + `--add-gnu-debuglink` at
+    # packaging time if a slimmer shipped binary is wanted later.
+    set(RELEASE_FLAGS        -O3;-g;-fno-omit-frame-pointer;-DNDEBUG;-fno-rtti)
     set(REL_WITH_DEB_INFO_FLAGS -O2;-g;-fno-omit-frame-pointer;-DNDEBUG)
 endif()
 
@@ -328,6 +334,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Concurrent Qt6::OpenGLWidgets Qt6::Network Qt6::Svg
 )
 
+if(NOT MSVC)
+    # dladdr() — used by CrashHandler to resolve each stack frame's module
+    # and load base for symbolization. Folded into libc on glibc >= 2.34,
+    # but CMAKE_DL_LIBS is a no-op there and still correct on older glibc.
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_DL_LIBS})
+endif()
+
 # Qt6Network on Arch/Qt 6.11+ has an undeclared dep on libbrotlidec.
 # Link it explicitly on Linux to avoid "DSO missing from command line".
 if(PLATFORM_LINUX)
@@ -407,6 +420,12 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:Release>:${RELEASE_FLAGS}>
     $<$<CONFIG:RelWithDebInfo>:${REL_WITH_DEB_INFO_FLAGS}>
 )
+
+# Portable -rdynamic: keeps Lektra's own function symbols in the dynamic
+# symbol table so CrashHandler's backtrace_symbols_fd() can name our frames
+# (Qt/libc frames already resolve without this via their own exported
+# symbols; ours wouldn't without it).
+set_target_properties(${PROJECT_NAME} PROPERTIES ENABLE_EXPORTS ON)
 
 if (MSVC)
     target_link_options(${PROJECT_NAME} PRIVATE

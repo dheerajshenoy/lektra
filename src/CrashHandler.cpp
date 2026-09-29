@@ -9,9 +9,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 #if !defined(_WIN32)
 
+#include <dlfcn.h>
 #include <execinfo.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -31,6 +33,23 @@ static void sig_write(int fd, const char *s)
         s   += n;
         len -= (size_t)n;
     }
+}
+
+// Async-signal-safe unsigned-hex formatter (no malloc, no snprintf).
+static void sig_write_hex(int fd, uintptr_t v)
+{
+    char buf[2 + sizeof(uintptr_t) * 2 + 1];
+    char *p = buf + sizeof(buf) - 1;
+    *p      = '\0';
+    if (v == 0) { *--p = '0'; }
+    else
+    {
+        static const char digits[] = "0123456789abcdef";
+        while (v) { *--p = digits[v & 0xF]; v >>= 4; }
+    }
+    *--p = 'x';
+    *--p = '0';
+    sig_write(fd, p);
 }
 
 static const char *sig_name(int sig)
@@ -67,6 +86,32 @@ static void posixCrashHandler(int sig, siginfo_t *, void *) noexcept
     int   n = backtrace(frames, 128);
     backtrace_symbols_fd(frames, n, fd);
     sig_write(fd, "\n");
+
+    // Module-relative offsets, one per frame, for the crash reporter to
+    // resolve with addr2line — backtrace_symbols_fd() above only names a
+    // frame when the symbol is exported (and never gives file:line), so on
+    // its own it's close to useless for a stripped-of-debug-info-looking
+    // Release build. dladdr's dli_fbase is the module's runtime load base;
+    // subtracting it from the absolute frame address gives the file-relative
+    // virtual address addr2line -e <module> expects, which stays correct
+    // under ASLR since a PIE is only ever rebased as a whole.
+    sig_write(fd, "=== Frame Offsets (for symbolization) ===\n");
+    for (int i = 0; i < n; ++i)
+    {
+        Dl_info info{};
+        if (dladdr(frames[i], &info) && info.dli_fname && info.dli_fbase)
+        {
+            sig_write(fd, info.dli_fname);
+            sig_write(fd, " ");
+            sig_write_hex(fd, (uintptr_t)frames[i] - (uintptr_t)info.dli_fbase);
+        }
+        else
+        {
+            sig_write(fd, "? ");
+            sig_write_hex(fd, (uintptr_t)frames[i]);
+        }
+        sig_write(fd, "\n");
+    }
 
     if (fd != STDERR_FILENO) close(fd);
 
