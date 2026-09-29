@@ -3,6 +3,7 @@ set -eu
 
 WITH_SYNCTEX=${WITH_SYNCTEX:-on}
 WITH_LUA=${WITH_LUA:-on}
+WITH_LLM_SUPPORT=${WITH_LLM_SUPPORT:-on}
 
 
 ROOT_DIR=$(cd "$(dirname "$0")" && pwd)

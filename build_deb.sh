@@ -17,6 +17,7 @@ ARCH=${ARCH:-$(command -v dpkg >/dev/null 2>&1 && dpkg --print-architecture || u
 JOBS=${JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)}
 BUILD_TYPE=${BUILD_TYPE:-Release}
 WITH_SYNCTEX=${WITH_SYNCTEX:-ON}
+WITH_LLM_SUPPORT=${WITH_LLM_SUPPORT:-ON}
 WITH_LUA=${WITH_LUA:-ON}
 
 CLEAN_BUILD=${CLEAN_BUILD:-0}
@@ -40,6 +41,7 @@ cmake -S "$ROOT_DIR" -B "$BUILD_DIR" \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -DWITH_SYNCTEX="$WITH_SYNCTEX" \
+    -DWITH_LLM_SUPPORT="$WITH_LLM_SUPPORT" \
     -DWITH_LUA="$WITH_LUA"
 cmake --build "$BUILD_DIR" -j"$JOBS"
 
