@@ -15,11 +15,6 @@ option(WITH_LLM_SUPPORT "Enable LLM support" OFF)
 option(IS_APPIMAGE "Build as AppImage (Linux only)" OFF)
 
 
-if (IS_APPIMAGE)
-    message(STATUS "Building as AppImage")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE IS_APPIMAGE=1)
-endif()
-
 # ---------------------------------------------------------------------------
 # Build type default
 # ---------------------------------------------------------------------------
@@ -255,6 +250,12 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}/include   # generated headers (TranslationsDir.hpp etc.)
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty
 )
+
+if (IS_APPIMAGE)
+    message(STATUS "Building as AppImage")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE IS_APPIMAGE=1)
+endif()
+
 
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
