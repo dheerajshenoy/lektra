@@ -104,7 +104,6 @@ if [ "$(uname -s)" != "Darwin" ]; then
 fi
 
 need cmake
-need macdeployqt
 need hdiutil
 need iconutil
 need sips
@@ -113,8 +112,18 @@ need ditto
 need install_name_tool
 need otool
 
+# Homebrew's qt is keg-only — its bin/ (where macdeployqt, qmake6, etc. live)
+# is never added to PATH by `brew install`, only by an explicit `brew link
+# --force qt` most people haven't run. Resolve it and prepend it to PATH
+# before checking for macdeployqt, or that check (and the actual
+# macdeployqt invocation later) fails even though it's sitting right there
+# on disk.
 resolve_qt_prefix
 check_qt_tools
+PATH="$QT_PREFIX/bin:$PATH"
+export PATH
+
+need macdeployqt
 
 mkdir -p "$DIST_DIR"
 
