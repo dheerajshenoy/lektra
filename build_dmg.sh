@@ -48,6 +48,36 @@ resolve_qt_prefix() {
     fi
 }
 
+# Homebrew's qt formula installs its tool binaries under versioned names
+# (qtpaths6, qmake6, ...), but Qt6CoreToolsTargets.cmake (shipped inside the
+# same formula) looks for the unversioned "qtpaths" — present as a symlink
+# on a clean install, but missing after some brew upgrade/relink sequences.
+# When that symlink is gone, find_package(Qt6) fails with a confusing
+# "references the file ... but this file does not exist" error instead of
+# anything mentioning qtpaths by name, so detect and fix it (or explain the
+# fix) here before cmake ever runs.
+check_qt_tools() {
+    [ -e "$QT_PREFIX/bin/qtpaths" ] && return
+
+    if [ -e "$QT_PREFIX/bin/qtpaths6" ]; then
+        echo "Note: $QT_PREFIX/bin/qtpaths is missing (a known Homebrew qt" >&2
+        echo "  issue after some upgrade/relink sequences) — linking it to" >&2
+        echo "  qtpaths6." >&2
+        if ln -sf qtpaths6 "$QT_PREFIX/bin/qtpaths" 2>/dev/null; then
+            return
+        fi
+        echo "Error: could not create that symlink (no write access to" >&2
+        echo "  $QT_PREFIX/bin). Run this yourself, then re-run this script:" >&2
+        echo "    ln -sf qtpaths6 \"$QT_PREFIX/bin/qtpaths\"" >&2
+        exit 1
+    fi
+
+    echo "Error: $QT_PREFIX/bin/qtpaths (and qtpaths6) not found — the Qt" >&2
+    echo "  installation looks incomplete or broken. Try:" >&2
+    echo "    brew reinstall qt" >&2
+    exit 1
+}
+
 copy_icon() {
     mkdir -p "$ICONSET_DIR"
 
@@ -84,6 +114,7 @@ need install_name_tool
 need otool
 
 resolve_qt_prefix
+check_qt_tools
 
 mkdir -p "$DIST_DIR"
 

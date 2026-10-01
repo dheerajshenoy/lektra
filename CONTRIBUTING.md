@@ -59,3 +59,18 @@ A flake is provided that handles all dependencies including mupdf:
 nix develop
 nix build
 ```
+
+### macOS: `Qt6::qtpaths references ... but this file does not exist`
+
+If `find_package(Qt6 ...)` fails with this error against a Homebrew-installed
+`qt`, it's a known Homebrew packaging quirk, not a Lektra issue: the Qt
+CMake config looks for an unversioned `qtpaths` binary, but Homebrew's `qt`
+formula only ships the versioned `qtpaths6` — the unversioned symlink is
+supposed to exist too, but goes missing after some brew upgrade/relink
+sequences. Fix it with:
+
+```bash
+ln -sf qtpaths6 "$(brew --prefix qt)/bin/qtpaths"
+```
+
+(`build_dmg.sh` detects and fixes this automatically before configuring.)
