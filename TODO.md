@@ -21,20 +21,14 @@
 - [ ] Clickable Plain text DOIs in PDF text
 - [ ] Smoother find-as-you-type
 - [ ] Duplicating a tab keeps the page, zoom and scroll position of the original tab.
-- [ ] Add `run_last_command()` command that runs the last command with arguments or whatever was executed interactively.
 
 ## LOW PRIORITY
 
-- [ ] Table of contents for comic books from ComicInfo.xml
 - [ ] Use `djvudec` for DjVu rendering (https://github.com/kjk/djvudec)
-- [ ] Show images stored in separate files
 - [ ] Citation preview for plain-text references
-- [ ] Password on the command line
 - [ ] Citation and reference hover preview
-- [ ] Open PDFs inside .p7m files
 - [ ] Comic book archive support with libarchive instead of MuPDF
 - [ ] Bookmarks/history/sessions store raw `PageLocation{pageno,x,y}` (`include/PageLocation.hpp`), which an EPUB/reflowable-document relayout invalidates. Short-term (already shipped alongside reflow): clamp to new page count on load (approximately right page, not exact position). Real fix — anchoring EPUB bookmarks to `(chapter, uri-fragment, y-fraction)` like the outline now does (see `Model::resolveOutlineNode`) — is a `PageLocation`/`BookmarkManager` schema change and belongs in its own follow-up.
-- [ ] Decorate form fields
 - [ ] Don't add connection to annotation when in non-annotatable mode
 - [ ] Link hint lua api and then callback to lua
 - [ ] Add luajit support
