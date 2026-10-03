@@ -368,7 +368,8 @@ DocumentContainer::createViewFromTemplate(DocumentView *templateView) noexcept
         return nullptr;
 
     DocumentView *newView
-        = new DocumentView(templateView->config(), templateView->dpr(), this);
+        = new DocumentView(templateView->globalConfig(), templateView->dpr(),
+                           this, false, &templateView->config());
     newView->setContainer(this);
     newView->setDPR(templateView->dpr());
     newView->setInvertColor(templateView->invertColor());
@@ -714,7 +715,7 @@ DocumentContainer::createThumbnailView(DocumentView *view) noexcept
     if (!view)
         return;
 
-    auto *thumbView = new ThumbnailView(view->config(), view->dpr(), this);
+    auto *thumbView = new ThumbnailView(view->globalConfig(), view->dpr(), this);
 
     // Forward page clicks to the main view
     connect(thumbView, &ThumbnailView::pageClicked, view,

@@ -1,6 +1,7 @@
 ---@meta
 
 lektra = lektra or {}
+---Global options. Setting one changes the default for views created later and the current view; other open views keep their own values (see `View:opt()`).
 lektra.opt = {}
 
 ---@class Screen

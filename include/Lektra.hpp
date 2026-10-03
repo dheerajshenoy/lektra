@@ -64,6 +64,15 @@ public:
            const QJsonArray &sessionArray) noexcept; // load from session
     ~Lektra() noexcept;
 
+    // Lua option bridge: the config an option table writes to (global for
+    // view id -1, else that view's local copy; nullptr if the view is gone),
+    // and view:opt().
+    Config *luaOptConfig(int viewId) noexcept;
+    DocumentView *get_view_by_id(const DocumentView::Id) const noexcept;
+#ifdef WITH_LUA
+    void pushViewOptTable(lua_State *L, DocumentView *view) noexcept;
+#endif
+
     inline DocumentView *currentDocument() const noexcept
     {
         return m_doc;
@@ -385,7 +394,6 @@ private:
     void debug_command() noexcept;
 #endif
 
-    DocumentView *get_view_by_id(const DocumentView::Id) const noexcept;
     void handleFileNameChanged(const QString &name) noexcept;
     void handleCurrentTabChanged(int index) noexcept;
     void openInExplorerForIndex(int index) noexcept;

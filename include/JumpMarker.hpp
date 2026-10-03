@@ -31,6 +31,12 @@ public:
         });
     }
 
+    inline void setColor(const QColor &color) noexcept
+    {
+        m_color = color;
+        update();
+    }
+
     inline void setFadeDuration(float duration_s) noexcept
     {
         duration_s = std::max(0.0f, duration_s);

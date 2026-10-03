@@ -2054,13 +2054,25 @@ sectionScalarField(lua_State *L, int obj_idx, const char *key, void **out_ptr)
     const int count = lua_tointeger(L, -1);
     lua_pop(L, 1);
 
-    rawGetField(L, abs, "__ptr");
-    void *ptr = lua_touserdata(L, -1);
-    lua_pop(L, 1);
-
+    const LuaField *field = findField(fields, count, key);
     if (out_ptr)
-        *out_ptr = ptr;
-    return findField(fields, count, key);
+    {
+        rawGetField(L, abs, "__view_id");
+        const int viewId = static_cast<int>(lua_tointeger(L, -1));
+        lua_pop(L, 1);
+        rawGetField(L, abs, "__offset");
+        const lua_Integer offset = lua_tointeger(L, -1);
+        lua_pop(L, 1);
+        rawGetField(L, abs, "__lektra");
+        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, -1));
+        lua_pop(L, 1);
+
+        Config *base = lektra ? lektra->luaOptConfig(viewId) : nullptr;
+        if (field && !base)
+            luaL_error(L, "option table belongs to a view that was closed");
+        *out_ptr = base ? reinterpret_cast<char *>(base) + offset : nullptr;
+    }
+    return field;
 }
 
 // __index for every section/grouping object: scalar Config fields first,
@@ -2104,13 +2116,36 @@ sectionNewIndex(lua_State *L)
     if (f)
     {
         f->set(L, ptr);
-        if (f->callback)
+
+        rawGetField(L, 1, "__lektra");
+        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, -1));
+        lua_pop(L, 1);
+        rawGetField(L, 1, "__view_id");
+        const int viewId = static_cast<int>(lua_tointeger(L, -1));
+        lua_pop(L, 1);
+        rawGetField(L, 1, "__section");
+        const QString section = QString::fromUtf8(lua_tostring(L, -1));
+        lua_pop(L, 1);
+        if (!lektra)
+            return 0;
+
+        if (viewId < 0)
         {
-            rawGetField(L, 1, "__lektra");
-            auto *lektra = static_cast<Lektra *>(lua_touserdata(L, -1));
-            lua_pop(L, 1);
-            if (lektra)
+            // lektra.opt: the global default (above) and the current view.
+            if (DocumentView *doc = lektra->currentDocument())
+            {
+                rawGetField(L, 1, "__offset");
+                const lua_Integer offset = lua_tointeger(L, -1);
+                lua_pop(L, 1);
+                f->set(L, reinterpret_cast<char *>(&doc->localConfig()) + offset);
+                doc->localConfigChanged(section);
+            }
+            if (f->callback)
                 f->callback(lektra);
+        }
+        else if (DocumentView *view = lektra->get_view_by_id(viewId))
+        {
+            view->localConfigChanged(section);
         }
         return 0;
     }
@@ -2177,28 +2212,49 @@ setSectionMetatable(lua_State *L)
     lua_setmetatable(L, -2);
 }
 
+// Where a section table's fields live: the global config (view_id < 0) or a
+// view's local copy, located by id on each access so a table outliving its
+// view errors out instead of touching freed memory.
+struct OptScope
+{
+    Config &root;   // config the offsets are measured from
+    Lektra *lektra;
+    int view_id;    // -1 for lektra.opt
+};
+
 template <int N>
 static void
-pushSection(lua_State *L, void *ptr, const LuaField (&fields)[N],
-            Lektra *lektra)
+pushSection(lua_State *L, const OptScope &scope, void *ptr,
+            const LuaField (&fields)[N], const char *section)
 {
     lua_newtable(L);
-    lua_pushlightuserdata(L, ptr);
-    lua_setfield(L, -2, "__ptr");
+    lua_pushinteger(L, static_cast<lua_Integer>(
+                           static_cast<char *>(ptr)
+                           - reinterpret_cast<char *>(&scope.root)));
+    lua_setfield(L, -2, "__offset");
+    lua_pushstring(L, section);
+    lua_setfield(L, -2, "__section");
+    lua_pushinteger(L, scope.view_id);
+    lua_setfield(L, -2, "__view_id");
     lua_pushlightuserdata(L, (void *)fields);
     lua_setfield(L, -2, "__fields");
     lua_pushinteger(L, N);
     lua_setfield(L, -2, "__count");
-    lua_pushlightuserdata(L, lektra);
+    lua_pushlightuserdata(L, scope.lektra);
     lua_setfield(L, -2, "__lektra");
 
     setSectionMetatable(L);
     // caller is responsible for lua_setfield/addChild into parent
 }
 
+// Builds the option table for `scope`. lektra.opt gets every section;
+// view:opt() gets only the sections that are meaningful per view.
 static void
-initLuaSections(lua_State *L, Config &config, Lektra *lektra)
+buildOptTable(lua_State *L, const OptScope &scope)
 {
+    Config &config      = scope.root;
+    const bool viewOnly = scope.view_id >= 0;
+
     // lektra.opt {} — a pure grouping table; gets the section metatable too
     // so `lektra.opt.<section> = {...}` merges into the real child instead
     // of replacing it with a disconnected plain table.
@@ -2207,15 +2263,18 @@ initLuaSections(lua_State *L, Config &config, Lektra *lektra)
     const int opt_idx = lua_absindex(L, -1);
 
     // lektra.opt.page
-    pushSection(L, &config.page, pageFields, lektra);
+    pushSection(L, scope, &config.page, pageFields, "page");
     addChild(L, opt_idx, "page");
 
-    // lektra.opt.synctex
-    pushSection(L, &config.synctex, synctexFields, lektra);
-    addChild(L, opt_idx, "synctex");
+    if (!viewOnly)
+    {
+        // lektra.opt.synctex
+        pushSection(L, scope, &config.synctex, synctexFields, "synctex");
+        addChild(L, opt_idx, "synctex");
+    }
 
     // lektra.opt.search
-    pushSection(L, &config.search, searchFields, lektra);
+    pushSection(L, scope, &config.search, searchFields, "search");
     addChild(L, opt_idx, "search");
 
     // lektra.opt.annotations {}
@@ -2224,141 +2283,171 @@ initLuaSections(lua_State *L, Config &config, Lektra *lektra)
     const int annotations_idx = lua_absindex(L, -1);
 
     // lektra.opt.annotations.highlight
-    pushSection(L, &config.annotations.highlight, annotHighlightFields, lektra);
+    pushSection(L, scope, &config.annotations.highlight, annotHighlightFields, "annotations");
     addChild(L, annotations_idx, "highlight");
 
     // lektra.opt.annotations.rect
-    pushSection(L, &config.annotations.rect, annotRectFields, lektra);
+    pushSection(L, scope, &config.annotations.rect, annotRectFields, "annotations");
     addChild(L, annotations_idx, "rect");
 
     // lektra.opt.annotations.popup
-    pushSection(L, &config.annotations.popup, annotPopupFields, lektra);
+    pushSection(L, scope, &config.annotations.popup, annotPopupFields, "annotations");
     addChild(L, annotations_idx, "popup");
 
     addChild(L, opt_idx, "annotations");
 
-    // lektra.opt.thumbnail_panel
-    pushSection(L, &config.thumbnail, thumbnailPanelFields, lektra);
-    addChild(L, opt_idx, "thumbnail_panel");
+    if (!viewOnly)
+    {
+        // lektra.opt.thumbnail_panel
+        pushSection(L, scope, &config.thumbnail, thumbnailPanelFields, "thumbnail");
+        addChild(L, opt_idx, "thumbnail_panel");
+    }
 
-    // lektra.opt.portal
-    pushSection(L, &config.portal, portalFields, lektra);
-    addChild(L, opt_idx, "portal");
+    if (!viewOnly)
+    {
+        // lektra.opt.portal
+        pushSection(L, scope, &config.portal, portalFields, "portal");
+        addChild(L, opt_idx, "portal");
+    }
 
-    // lektra.opt.window
-    pushSection(L, &config.window, windowFields, lektra);
-    addChild(L, opt_idx, "window");
+    if (!viewOnly)
+    {
+        // lektra.opt.window
+        pushSection(L, scope, &config.window, windowFields, "window");
+        addChild(L, opt_idx, "window");
+    }
 
     // lektra.opt.layout
-    pushSection(L, &config.layout, layoutFields, lektra);
+    pushSection(L, scope, &config.layout, layoutFields, "layout");
     addChild(L, opt_idx, "layout");
 
-    // lektra.opt.statusbar
-    pushSection(L, &config.statusbar, statusbarFields, lektra);
-    const int statusbar_idx = lua_absindex(L, -1);
+    if (!viewOnly)
+    {
+        // lektra.opt.statusbar
+        pushSection(L, scope, &config.statusbar, statusbarFields, "statusbar");
+        const int statusbar_idx = lua_absindex(L, -1);
 
-    // lektra.opt.statusbar.components {}
-    lua_newtable(L);
-    setSectionMetatable(L);
-    const int components_idx = lua_absindex(L, -1);
+        // lektra.opt.statusbar.components {}
+        lua_newtable(L);
+        setSectionMetatable(L);
+        const int components_idx = lua_absindex(L, -1);
 
-    pushSection(L, &config.statusbar.component.mode, statusbarModeFields,
-                lektra);
-    addChild(L, components_idx, "mode");
-    pushSection(L, &config.statusbar.component.pagenumber,
-                statusbarPagenumberFields, lektra);
-    addChild(L, components_idx, "pagenumber");
-    pushSection(L, &config.statusbar.component.session,
-                statusbarSessionFields, lektra);
-    addChild(L, components_idx, "session");
-    pushSection(L, &config.statusbar.component.zoom, statusbarZoomFields,
-                lektra);
-    addChild(L, components_idx, "zoom");
-    pushSection(L, &config.statusbar.component.filename,
-                statusbarFilenameFields, lektra);
-    addChild(L, components_idx, "filename");
-    pushSection(L, &config.statusbar.component.progress,
-                statusbarProgressFields, lektra);
-    addChild(L, components_idx, "progress");
+        pushSection(L, scope, &config.statusbar.component.mode, statusbarModeFields, "statusbar");
+        addChild(L, components_idx, "mode");
+        pushSection(L, scope, &config.statusbar.component.pagenumber, statusbarPagenumberFields, "statusbar");
+        addChild(L, components_idx, "pagenumber");
+        pushSection(L, scope, &config.statusbar.component.session, statusbarSessionFields, "statusbar");
+        addChild(L, components_idx, "session");
+        pushSection(L, scope, &config.statusbar.component.zoom, statusbarZoomFields, "statusbar");
+        addChild(L, components_idx, "zoom");
+        pushSection(L, scope, &config.statusbar.component.filename, statusbarFilenameFields, "statusbar");
+        addChild(L, components_idx, "filename");
+        pushSection(L, scope, &config.statusbar.component.progress, statusbarProgressFields, "statusbar");
+        addChild(L, components_idx, "progress");
 
-    addChild(L, statusbar_idx, "components");
-    addChild(L, opt_idx, "statusbar");
+        addChild(L, statusbar_idx, "components");
+        addChild(L, opt_idx, "statusbar");
+    }
 
     // lektra.opt.zoom
-    pushSection(L, &config.zoom, zoomFields, lektra);
+    pushSection(L, scope, &config.zoom, zoomFields, "zoom");
     addChild(L, opt_idx, "zoom");
 
     // lektra.opt.selection
-    pushSection(L, &config.selection, selectionFields, lektra);
+    pushSection(L, scope, &config.selection, selectionFields, "selection");
     addChild(L, opt_idx, "selection");
 
     // lektra.opt.split
-    pushSection(L, &config.split, splitFields, lektra);
+    pushSection(L, scope, &config.split, splitFields, "split");
     addChild(L, opt_idx, "split");
 
     // lektra.opt.scrollbars
-    pushSection(L, &config.scrollbars, scrollbarsFields, lektra);
+    pushSection(L, scope, &config.scrollbars, scrollbarsFields, "scrollbars");
     addChild(L, opt_idx, "scrollbars");
 
     // lektra.opt.jump_marker
-    pushSection(L, &config.jump_marker, jumpMarkerFields, lektra);
+    pushSection(L, scope, &config.jump_marker, jumpMarkerFields, "jump_marker");
     addChild(L, opt_idx, "jump_marker");
 
     // lektra.opt.links
-    pushSection(L, &config.links, linksFields, lektra);
+    pushSection(L, scope, &config.links, linksFields, "links");
     addChild(L, opt_idx, "links");
 
     // lektra.opt.link_hints
-    pushSection(L, &config.link_hints, linkHintsFields, lektra);
+    pushSection(L, scope, &config.link_hints, linkHintsFields, "link_hints");
     addChild(L, opt_idx, "link_hints");
 
-    // lektra.opt.tabs
-    pushSection(L, &config.tabs, tabsFields, lektra);
-    addChild(L, opt_idx, "tabs");
+    if (!viewOnly)
+    {
+        // lektra.opt.tabs
+        pushSection(L, scope, &config.tabs, tabsFields, "tabs");
+        addChild(L, opt_idx, "tabs");
+    }
 
-    // lektra.opt.picker (with .shadow attached as a nested child)
-    pushSection(L, &config.picker, pickerFields, lektra);
-    const int picker_idx = lua_absindex(L, -1);
-    pushSection(L, &config.picker.shadow, pickerShadowFields, lektra);
-    addChild(L, picker_idx, "shadow");
-    addChild(L, opt_idx, "picker");
+    if (!viewOnly)
+    {
+        // lektra.opt.picker (with .shadow attached as a nested child)
+        pushSection(L, scope, &config.picker, pickerFields, "picker");
+        const int picker_idx = lua_absindex(L, -1);
+        pushSection(L, scope, &config.picker.shadow, pickerShadowFields, "picker");
+        addChild(L, picker_idx, "shadow");
+        addChild(L, opt_idx, "picker");
+    }
 
-    // lektra.opt.outline
-    pushSection(L, &config.outline, outlineFields, lektra);
-    addChild(L, opt_idx, "outline");
+    if (!viewOnly)
+    {
+        // lektra.opt.outline
+        pushSection(L, scope, &config.outline, outlineFields, "outline");
+        addChild(L, opt_idx, "outline");
+    }
 
-    // lektra.opt.highlight_search
-    pushSection(L, &config.highlight_search, highlightSearchFields, lektra);
-    addChild(L, opt_idx, "highlight_search");
+    if (!viewOnly)
+    {
+        // lektra.opt.highlight_search
+        pushSection(L, scope, &config.highlight_search, highlightSearchFields, "highlight_search");
+        addChild(L, opt_idx, "highlight_search");
+    }
 
-    // lektra.opt.command_palette
-    pushSection(L, &config.command_palette, commandPaletteFields, lektra);
-    addChild(L, opt_idx, "command_palette");
+    if (!viewOnly)
+    {
+        // lektra.opt.command_palette
+        pushSection(L, scope, &config.command_palette, commandPaletteFields, "command_palette");
+        addChild(L, opt_idx, "command_palette");
+    }
 
     // lektra.opt.rendering
-    pushSection(L, &config.rendering, renderingFields, lektra);
+    pushSection(L, scope, &config.rendering, renderingFields, "rendering");
     addChild(L, opt_idx, "rendering");
 
     // lektra.opt.behavior
-    pushSection(L, &config.behavior, behaviorFields, lektra);
+    pushSection(L, scope, &config.behavior, behaviorFields, "behavior");
     addChild(L, opt_idx, "behavior");
 
-    // lektra.opt.preview
-    pushSection(L, &config.preview, previewFields, lektra);
-    addChild(L, opt_idx, "preview");
+    if (!viewOnly)
+    {
+        // lektra.opt.preview
+        pushSection(L, scope, &config.preview, previewFields, "preview");
+        addChild(L, opt_idx, "preview");
+    }
 
-    // lektra.opt.misc
-    pushSection(L, &config.misc, miscFields, lektra);
-    addChild(L, opt_idx, "misc");
+    if (!viewOnly)
+    {
+        // lektra.opt.misc
+        pushSection(L, scope, &config.misc, miscFields, "misc");
+        addChild(L, opt_idx, "misc");
+    }
 
-    // lektra.opt.llm_view
-    pushSection(L, &config.llm_view, llmViewFields, lektra);
-    addChild(L, opt_idx, "llm_view");
+    if (!viewOnly)
+    {
+        // lektra.opt.llm_view
+        pushSection(L, scope, &config.llm_view, llmViewFields, "llm_view");
+        addChild(L, opt_idx, "llm_view");
+    }
 
     // lektra.opt — plain assignment into the "lektra" global table (not a
     // section object), so this one line is unrelated to the __newindex
     // machinery above.
-    lua_setfield(L, -2, "opt");
+    // The table is left on the stack; the caller stores it.
 }
 } // namespace
 
@@ -2366,5 +2455,22 @@ void
 Lektra::initLuaOpt() noexcept
 {
     initLuaEnums(m_L);
-    initLuaSections(m_L, m_config, this);
+    buildOptTable(m_L, OptScope{m_config, this, -1});
+    lua_setfield(m_L, -2, "opt");
+}
+
+// view:opt() — the same option tables, bound to one view's local copy.
+void
+Lektra::pushViewOptTable(lua_State *L, DocumentView *view) noexcept
+{
+    buildOptTable(L, OptScope{m_config, this, view->id()});
+}
+
+Config *
+Lektra::luaOptConfig(int viewId) noexcept
+{
+    if (viewId < 0)
+        return &m_config;
+    DocumentView *view = get_view_by_id(viewId);
+    return view ? &view->localConfig() : nullptr;
 }

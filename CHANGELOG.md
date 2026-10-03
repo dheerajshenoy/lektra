@@ -13,6 +13,8 @@
 - Tabs with splits get a "Move Splits to Separate Tabs" menu item, which keeps the first split in place and opens the others as tabs at their current page.
 - New tab commands: `tabs_select_toggle`, `tabs_select_all`, `tabs_select_clear`, `tabs_close_selected`, `tabs_merge_vertical`, `tabs_merge_horizontal`, `tabs_split_out`, `tabs_move_to_window`, `tabs_save_session [name]`. Operations act on the selected tabs, or the current tab when nothing is selected.
 - New `lektra.tabs` Lua functions mirroring these: `selected`, `select`, `select_all`, `clear_selection`, `close_selected`, `merge`, `split_out`, `move_to_window`, `save_session`.
+- Per-view options, like Vim's window-local options: each view and split keeps its own copy of the view settings (page colours, zoom, layout, rendering, scrollbars, selection, search, annotations, links, behaviour). `view:opt()` changes one view; `lektra.opt` now sets the global default and the current view, instead of every view. Splits inherit the options of the view they were split from.
+- Per-file-type options in `config.toml`: `[filetype.pdf.behavior]`, `[filetype.epub.layout]` and so on override the view settings for documents of that type.
 
 ### Bug Fixes
 

@@ -7,6 +7,10 @@
 #include <QHash>
 #include <Qt>
 #include <array>
+#include <functional>
+#include <map>
+#include <memory>
+#include <string>
 
 struct Config
 {
@@ -1510,4 +1514,10 @@ struct Config
         QVariantMap extra_body = {};
 
     } llm_view;
+
+    // Per-file-type option overrides from [filetype.<type>.*] in the config
+    // file, keyed by lower-case type ("pdf", "epub", ...). Each one applies
+    // the view-scoped options onto a Config. Shared, so views copy it cheaply.
+    std::shared_ptr<const std::map<std::string, std::function<void(Config &)>>>
+        filetype_overrides;
 };

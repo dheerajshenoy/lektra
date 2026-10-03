@@ -1111,6 +1111,21 @@ static const luaL_Reg DocumentViewMethods[] = {
     // base64-encoded PNG string (empty string if the region didn't map
     // onto a rendered page) — handy for feeding a screenshot region to an
     // OCR/vision-model API or saving it out via io.open + a base64 decoder.
+    // view:opt() -> this view's local options. Writes affect only this view;
+    // lektra.opt sets the global default and the current view.
+    VIEW_METHOD("opt",
+                {
+                    auto *lektra = *view ? qobject_cast<Lektra *>((*view)->window())
+                                         : nullptr;
+                    if (!lektra)
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    lektra->pushViewOptTable(L, *view);
+                    return 1;
+                }),
+
     VIEW_METHOD("region_select_image",
                 {
                     luaL_checktype(L, 2, LUA_TFUNCTION);

@@ -794,6 +794,186 @@ Lektra::initLLMView() noexcept
 #endif
 
 // Initialize the config related stuff
+// The settings a view keeps its own copy of. Used for the global [section]
+// tables and again for [filetype.<type>.section] overrides, so both accept
+// exactly the same keys.
+static void
+applyViewToml(toml::table &toml, Config &cfg)
+{
+    if (auto page = toml["page"])
+    {
+        set_color(page["bg"], cfg.page.bg);
+        set_color(page["fg"], cfg.page.fg);
+    }
+
+    if (auto annots = toml["annotations"])
+    {
+
+        if (auto highlight = annots["highlight"])
+        {
+            set_color(highlight["color"], cfg.annotations.highlight.color);
+            set(highlight["hover_glow"],
+                cfg.annotations.highlight.hover_glow);
+            set(highlight["comment"], cfg.annotations.highlight.comment);
+            set(highlight["comment_marker"],
+                cfg.annotations.highlight.comment_marker);
+            set(highlight["glow_width"],
+                cfg.annotations.highlight.glow_width);
+            set_color(highlight["glow_color"],
+                      cfg.annotations.highlight.glow_color);
+            set(highlight["comment_font_size"],
+                cfg.annotations.highlight.comment_font_size);
+        }
+
+        if (auto rect = annots["rect"])
+        {
+            set_color(rect["color"], cfg.annotations.rect.color);
+            set(rect["hover_glow"], cfg.annotations.rect.hover_glow);
+            set(rect["comment"], cfg.annotations.rect.comment);
+            set(rect["comment_marker"],
+                cfg.annotations.rect.comment_marker);
+            set(rect["glow_width"], cfg.annotations.rect.glow_width);
+            set_color(rect["glow_color"], cfg.annotations.rect.glow_color);
+            set(rect["comment_font_size"],
+                cfg.annotations.rect.comment_font_size);
+        }
+
+        if (auto popup = annots["popup"])
+        {
+            set(popup["hover_glow"], cfg.annotations.popup.hover_glow);
+            set(popup["comment"], cfg.annotations.popup.comment);
+            set(popup["glow_width"], cfg.annotations.popup.glow_width);
+            set_color(popup["glow_color"],
+                      cfg.annotations.popup.glow_color);
+            set(popup["comment_font_size"],
+                cfg.annotations.popup.comment_font_size);
+        }
+    }
+
+    if (auto layout = toml["layout"])
+    {
+        if (auto str = layout["mode"])
+        {
+            DocumentView::LayoutMode mode;
+
+            if (str == "vertical")
+                mode = DocumentView::LayoutMode::VERTICAL;
+            else if (str == "single")
+                mode = DocumentView::LayoutMode::SINGLE;
+            else if (str == "horizontal")
+                mode = DocumentView::LayoutMode::HORIZONTAL;
+            else if (str == "book")
+                mode = DocumentView::LayoutMode::BOOK;
+            else
+                mode = DocumentView::LayoutMode::VERTICAL;
+
+            cfg.layout.mode = mode;
+        }
+        if (auto str = layout["initial_fit"])
+        {
+            DocumentView::FitMode initial_fit;
+
+            if (str == "width")
+            {
+                initial_fit = DocumentView::FitMode::Width;
+            }
+            else if (str == "height")
+            {
+                initial_fit = DocumentView::FitMode::Height;
+            }
+            else if (str == "window")
+            {
+                initial_fit = DocumentView::FitMode::Window;
+            }
+            else
+            {
+                initial_fit = DocumentView::FitMode::Width;
+            }
+
+            cfg.layout.initial_fit = initial_fit;
+        }
+        set(layout["auto_resize"], cfg.layout.auto_resize);
+        set(layout["spacing"], cfg.layout.spacing);
+    }
+
+    if (auto zoom = toml["zoom"])
+    {
+        set(zoom["level"], cfg.zoom.level);
+        set(zoom["factor"], cfg.zoom.factor);
+        set(zoom["anchor_to_mouse"], cfg.zoom.anchor_to_mouse);
+    }
+
+    if (auto selection = toml["selection"])
+    {
+        set(selection["drag_threshold"], cfg.selection.drag_threshold);
+        set(selection["copy_on_select"], cfg.selection.copy_on_select);
+        set_color(selection["color"], cfg.selection.color);
+    }
+
+    if (auto scrollbars = toml["scrollbars"])
+    {
+        set(scrollbars["vertical"], cfg.scrollbars.vertical);
+        set(scrollbars["horizontal"], cfg.scrollbars.horizontal);
+        set(scrollbars["search_hits"], cfg.scrollbars.search_hits);
+        set(scrollbars["auto_hide"], cfg.scrollbars.auto_hide);
+        set(scrollbars["size"], cfg.scrollbars.size);
+        set(scrollbars["hide_timeout"], cfg.scrollbars.hide_timeout);
+    }
+
+    if (auto jump_marker = toml["jump_marker"])
+    {
+        set(jump_marker["enabled"], cfg.jump_marker.enabled);
+        set_color(jump_marker["jump_marker"], cfg.jump_marker.color);
+        set(jump_marker["fade_duration"], cfg.jump_marker.fade_duration);
+    }
+
+    if (auto links = toml["links"])
+    {
+        set(links["enabled"], cfg.links.enabled);
+        set(links["boundary"], cfg.links.boundary);
+        set(links["detect_urls"], cfg.links.detect_urls);
+        set(links["url_regex"], cfg.links.url_regex);
+    }
+
+    if (auto search = toml["search"])
+    {
+        // set(search["case_sensitive"], cfg.search.case_sensitive);
+        // set(search["whole_words"], cfg.search.whole_words);
+        set(search["highlight_matches"], cfg.search.highlight_matches);
+        set(search["progressive"], cfg.search.progressive);
+        set(search["absolute_jump"], cfg.search.absolute_jump);
+        set_color(search["match_color"], cfg.search.match_color);
+        set_color(search["index_color"], cfg.search.index_color);
+    }
+
+    if (auto behavior = toml["behavior"])
+    {
+        set(behavior["preload_pages"], cfg.behavior.preload_pages);
+        set(behavior["confirm_on_quit"], cfg.behavior.confirm_on_quit);
+        set(behavior["undo_limit"], cfg.behavior.undo_limit);
+        set(behavior["remember_last_visited"],
+            cfg.behavior.remember_last_visited);
+        set(behavior["single_instance"], cfg.behavior.single_instance);
+        set(behavior["page_history"], cfg.behavior.page_history_limit);
+        set(behavior["invert_mode"], cfg.behavior.invert_mode);
+        set(behavior["dont_invert_images"],
+            cfg.behavior.dont_invert_images);
+        set(behavior["auto_reload"], cfg.behavior.auto_reload);
+        set(behavior["cache_password"], cfg.behavior.cache_password);
+        set(behavior["recent_files"], cfg.behavior.recent_files);
+        set(behavior["num_recent_files"], cfg.behavior.num_recent_files);
+        set(behavior["cache_pages"], cfg.behavior.cache_pages);
+        set(behavior["mupdf_store_size"], cfg.behavior.mupdf_store_size);
+        set(behavior["auto_scroll"], cfg.behavior.auto_scroll);
+        set(behavior["close_on_last_tab"], cfg.behavior.close_on_last_tab);
+        set(behavior["high_contrast"], cfg.behavior.high_contrast);
+        set(behavior["high_contrast_black_point"],
+            cfg.behavior.high_contrast_black_point);
+        set(behavior["high_contrast_white_point"],
+            cfg.behavior.high_contrast_white_point);
+    }
+}
+
 void
 Lektra::initConfig() noexcept
 {
@@ -871,11 +1051,31 @@ Lektra::initConfig() noexcept
         }
     }
 
-    if (auto page = toml["page"])
+    applyViewToml(toml, m_config);
+
+    // Per-file-type overrides: [filetype.pdf.behavior], [filetype.epub.layout]
+    // ... Each is applied on top of a view's options when a document of that
+    // type is opened in it.
+    if (auto *filetypes = toml["filetype"].as_table())
     {
-        set_color(page["bg"], m_config.page.bg);
-        set_color(page["fg"], m_config.page.fg);
+        auto overrides = std::make_shared<
+            std::map<std::string, std::function<void(Config &)>>>();
+        for (auto &[key, node] : *filetypes)
+        {
+            auto *section = node.as_table();
+            if (!section)
+                continue;
+            const std::string name
+                = QString::fromUtf8(key.data(), key.length())
+                      .toLower()
+                      .toStdString();
+            auto table = std::make_shared<toml::table>(*section);
+            (*overrides)[name]
+                = [table](Config &cfg) { applyViewToml(*table, cfg); };
+        }
+        m_config.filetype_overrides = std::move(overrides);
     }
+
 
     // Portals
     if (auto portal = toml["portal"])
@@ -1018,49 +1218,6 @@ Lektra::initConfig() noexcept
     }
 
     // Annotations
-    if (auto annots = toml["annotations"])
-    {
-
-        if (auto highlight = annots["highlight"])
-        {
-            set_color(highlight["color"], m_config.annotations.highlight.color);
-            set(highlight["hover_glow"],
-                m_config.annotations.highlight.hover_glow);
-            set(highlight["comment"], m_config.annotations.highlight.comment);
-            set(highlight["comment_marker"],
-                m_config.annotations.highlight.comment_marker);
-            set(highlight["glow_width"],
-                m_config.annotations.highlight.glow_width);
-            set_color(highlight["glow_color"],
-                      m_config.annotations.highlight.glow_color);
-            set(highlight["comment_font_size"],
-                m_config.annotations.highlight.comment_font_size);
-        }
-
-        if (auto rect = annots["rect"])
-        {
-            set_color(rect["color"], m_config.annotations.rect.color);
-            set(rect["hover_glow"], m_config.annotations.rect.hover_glow);
-            set(rect["comment"], m_config.annotations.rect.comment);
-            set(rect["comment_marker"],
-                m_config.annotations.rect.comment_marker);
-            set(rect["glow_width"], m_config.annotations.rect.glow_width);
-            set_color(rect["glow_color"], m_config.annotations.rect.glow_color);
-            set(rect["comment_font_size"],
-                m_config.annotations.rect.comment_font_size);
-        }
-
-        if (auto popup = annots["popup"])
-        {
-            set(popup["hover_glow"], m_config.annotations.popup.hover_glow);
-            set(popup["comment"], m_config.annotations.popup.comment);
-            set(popup["glow_width"], m_config.annotations.popup.glow_width);
-            set_color(popup["glow_color"],
-                      m_config.annotations.popup.glow_color);
-            set(popup["comment_font_size"],
-                m_config.annotations.popup.comment_font_size);
-        }
-    }
 
     // Statusbar
     if (auto statusbar = toml["statusbar"])
@@ -1120,78 +1277,12 @@ Lektra::initConfig() noexcept
     }
 
     // Layout
-    if (auto layout = toml["layout"])
-    {
-        if (auto str = layout["mode"])
-        {
-            DocumentView::LayoutMode mode;
-
-            if (str == "vertical")
-                mode = DocumentView::LayoutMode::VERTICAL;
-            else if (str == "single")
-                mode = DocumentView::LayoutMode::SINGLE;
-            else if (str == "horizontal")
-                mode = DocumentView::LayoutMode::HORIZONTAL;
-            else if (str == "book")
-                mode = DocumentView::LayoutMode::BOOK;
-            else
-                mode = DocumentView::LayoutMode::VERTICAL;
-
-            m_config.layout.mode = mode;
-        }
-        if (auto str = layout["initial_fit"])
-        {
-            DocumentView::FitMode initial_fit;
-
-            if (str == "width")
-            {
-                initial_fit = DocumentView::FitMode::Width;
-            }
-            else if (str == "height")
-            {
-                initial_fit = DocumentView::FitMode::Height;
-            }
-            else if (str == "window")
-            {
-                initial_fit = DocumentView::FitMode::Window;
-            }
-            else
-            {
-                initial_fit = DocumentView::FitMode::Width;
-            }
-
-            m_config.layout.initial_fit = initial_fit;
-        }
-        set(layout["auto_resize"], m_config.layout.auto_resize);
-        set(layout["spacing"], m_config.layout.spacing);
-    }
 
     // Zoom
-    if (auto zoom = toml["zoom"])
-    {
-        set(zoom["level"], m_config.zoom.level);
-        set(zoom["factor"], m_config.zoom.factor);
-        set(zoom["anchor_to_mouse"], m_config.zoom.anchor_to_mouse);
-    }
 
     // Selection
-    if (auto selection = toml["selection"])
-    {
-        set(selection["drag_threshold"], m_config.selection.drag_threshold);
-        set(selection["copy_on_select"], m_config.selection.copy_on_select);
-        set_color(selection["color"], m_config.selection.color);
-    }
 
     /* scrollbars */
-    if (auto scrollbars = toml["scrollbars"])
-    {
-        set(scrollbars["vertical"], m_config.scrollbars.vertical);
-        set(scrollbars["horizontal"], m_config.scrollbars.horizontal);
-        set(scrollbars["search_hits"], m_config.scrollbars.search_hits);
-        set(scrollbars["auto_hide"], m_config.scrollbars.auto_hide);
-        set(scrollbars["size"], m_config.scrollbars.size);
-        set(scrollbars["hide_timeout"], m_config.scrollbars.hide_timeout);
-    }
 
     // Picker
     if (auto picker = toml["picker"])
@@ -1291,21 +1382,8 @@ Lektra::initConfig() noexcept
     }
 
     // Markers
-    if (auto jump_marker = toml["jump_marker"])
-    {
-        set(jump_marker["enabled"], m_config.jump_marker.enabled);
-        set_color(jump_marker["jump_marker"], m_config.jump_marker.color);
-        set(jump_marker["fade_duration"], m_config.jump_marker.fade_duration);
-    }
 
     // Links
-    if (auto links = toml["links"])
-    {
-        set(links["enabled"], m_config.links.enabled);
-        set(links["boundary"], m_config.links.boundary);
-        set(links["detect_urls"], m_config.links.detect_urls);
-        set(links["url_regex"], m_config.links.url_regex);
-    }
 
     // Link Hints
     if (auto link_hints = toml["link_hints"])
@@ -1335,16 +1413,6 @@ Lektra::initConfig() noexcept
     }
 
     // Search
-    if (auto search = toml["search"])
-    {
-        // set(search["case_sensitive"], m_config.search.case_sensitive);
-        // set(search["whole_words"], m_config.search.whole_words);
-        set(search["highlight_matches"], m_config.search.highlight_matches);
-        set(search["progressive"], m_config.search.progressive);
-        set(search["absolute_jump"], m_config.search.absolute_jump);
-        set_color(search["match_color"], m_config.search.match_color);
-        set_color(search["index_color"], m_config.search.index_color);
-    }
 
 #ifdef WITH_SYNCTEX
     if (auto synctex = toml["synctex"])
@@ -1474,32 +1542,6 @@ Lektra::initConfig() noexcept
 
     // Behavior
 
-    if (auto behavior = toml["behavior"])
-    {
-        set(behavior["preload_pages"], m_config.behavior.preload_pages);
-        set(behavior["confirm_on_quit"], m_config.behavior.confirm_on_quit);
-        set(behavior["undo_limit"], m_config.behavior.undo_limit);
-        set(behavior["remember_last_visited"],
-            m_config.behavior.remember_last_visited);
-        set(behavior["single_instance"], m_config.behavior.single_instance);
-        set(behavior["page_history"], m_config.behavior.page_history_limit);
-        set(behavior["invert_mode"], m_config.behavior.invert_mode);
-        set(behavior["dont_invert_images"],
-            m_config.behavior.dont_invert_images);
-        set(behavior["auto_reload"], m_config.behavior.auto_reload);
-        set(behavior["cache_password"], m_config.behavior.cache_password);
-        set(behavior["recent_files"], m_config.behavior.recent_files);
-        set(behavior["num_recent_files"], m_config.behavior.num_recent_files);
-        set(behavior["cache_pages"], m_config.behavior.cache_pages);
-        set(behavior["mupdf_store_size"], m_config.behavior.mupdf_store_size);
-        set(behavior["auto_scroll"], m_config.behavior.auto_scroll);
-        set(behavior["close_on_last_tab"], m_config.behavior.close_on_last_tab);
-        set(behavior["high_contrast"], m_config.behavior.high_contrast);
-        set(behavior["high_contrast_black_point"],
-            m_config.behavior.high_contrast_black_point);
-        set(behavior["high_contrast_white_point"],
-            m_config.behavior.high_contrast_white_point);
-    }
 
     // Defaults are loaded here (exactly once) rather than in construct(),
     // so `load_defaults = false` in the user's [keybindings] block can
@@ -1858,6 +1900,9 @@ Lektra::updateUiEnabledState() noexcept
     m_fitMenu->setEnabled(hasFile);
     m_actionInvertColor->setEnabled(hasFile);
     m_actionInvertColor->setChecked(hasFile && m_doc->invertColor());
+    m_actionHighContrast->setChecked(
+        m_doc ? m_doc->config().behavior.high_contrast
+              : m_config.behavior.high_contrast);
     m_actionSessionSave->setEnabled(hasFile);
     updateHistoryNavigationActions();
     m_actionSessionSaveAs->setEnabled(!m_session_name.isEmpty());
@@ -3693,31 +3738,23 @@ Lektra::InvertColor() noexcept
     }
 }
 
-// Toggle the high-contrast tone stretch. Unlike invert (per-view), high
-// contrast is a global config flag applied at render time — so a toggle
-// walks every open view, invalidates its page cache, and re-renders.
+// Toggle the high-contrast tone stretch. Like any option change, this sets
+// the global default (for views created later) and the current view.
 void
 Lektra::ToggleHighContrast() noexcept
 {
-    m_config.behavior.high_contrast = !m_config.behavior.high_contrast;
+    const bool on = m_doc ? !m_doc->config().behavior.high_contrast
+                          : !m_config.behavior.high_contrast;
+    m_config.behavior.high_contrast = on;
 
-    const int n = m_tab_widget ? m_tab_widget->count() : 0;
-    for (int i = 0; i < n; ++i)
+    if (m_doc)
     {
-        DocumentContainer *c = m_tab_widget->rootContainer(i);
-        if (!c)
-            continue;
-        for (DocumentView *v : c->getAllViews())
-        {
-            if (!v || !v->model())
-                continue;
-            v->model()->invalidatePageCaches();
-            v->renderPages();
-        }
+        m_doc->localConfig().behavior.high_contrast = on;
+        m_doc->localConfigChanged("behavior");
     }
 
     if (m_actionHighContrast)
-        m_actionHighContrast->setChecked(m_config.behavior.high_contrast);
+        m_actionHighContrast->setChecked(on);
 }
 
 // Toggle text highlight mode
@@ -7913,11 +7950,12 @@ Lektra::ToggleCommentMarkers() noexcept
     if (!m_doc)
         return;
 
-    // Toggle in config so that new documents also reflect the change
-    m_config.annotations.highlight.comment_marker
-        = !m_config.annotations.highlight.comment_marker;
-    m_config.annotations.rect.comment_marker
-        = !m_config.annotations.rect.comment_marker;
+    // Global default (for views created later) and the current view.
+    Config::Annotations &local = m_doc->localConfig().annotations;
+    local.highlight.comment_marker = !local.highlight.comment_marker;
+    local.rect.comment_marker      = !local.rect.comment_marker;
+    m_config.annotations.highlight.comment_marker = local.highlight.comment_marker;
+    m_config.annotations.rect.comment_marker      = local.rect.comment_marker;
 
     m_doc->ToggleCommentMarkers();
 }

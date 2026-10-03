@@ -36,6 +36,7 @@ extern "C"
 #include <QTimer>
 #include <QWidget>
 #include <qevent.h>
+#include <memory>
 #include <set>
 #include <unordered_map>
 
@@ -76,9 +77,13 @@ public:
     using Id                  = int;
     using SelectedAnnotations = std::vector<std::pair<int, Annotation *>>;
 
+    // `config` is the global config (kept by reference). The view's local
+    // options start as a copy of `inheritFrom` if given (e.g. the view a
+    // split was made from, like vim's :split), else of `config`.
     DocumentView(const Config &config, const float dpr = 1.0f,
-                 QWidget *parent    = nullptr,
-                 bool thumbnailMode = false) noexcept;
+                 QWidget *parent              = nullptr,
+                 bool thumbnailMode           = false,
+                 const Config *inheritFrom    = nullptr) noexcept;
 
     DocumentView(const DocumentView &)            = delete;
     DocumentView &operator=(const DocumentView &) = delete;
@@ -116,10 +121,28 @@ public:
         COUNT
     };
 
+    // This view's local options: a copy of the global config taken when the
+    // view is created, so changing it only affects this view. Model,
+    // GraphicsView and the annotation items read from it too.
     inline const Config &config() const noexcept
     {
         return m_config;
     }
+
+    inline Config &localConfig() noexcept
+    {
+        return m_config;
+    }
+
+    inline const Config &globalConfig() const noexcept
+    {
+        return m_global;
+    }
+
+    // Applies a change to this view's local options. `section` is the
+    // top-level config section that changed (e.g. "page", "scrollbars");
+    // several changes in one event-loop tick are applied together.
+    void localConfigChanged(const QString &section) noexcept;
 
     inline void setSpacing(int spacing) noexcept
     {
@@ -807,7 +830,17 @@ private:
     void initSynctex() noexcept;
 #endif
 
-    const Config &m_config;
+    // Declaration order matters: m_local_config is copied from m_global, and
+    // m_config is bound to *m_local_config. Held through a pointer because
+    // Config.hpp includes this header (for LayoutMode/FitMode).
+    const Config &m_global;
+    std::unique_ptr<Config> m_local_config;
+    Config &m_config;
+    QSet<QString> m_pending_config_sections;
+    void applyLocalConfigChanges() noexcept;
+    // Applies the [filetype.<type>] overrides of the opened document.
+    void applyFiletypeOverrides() noexcept;
+    std::string m_override_type;
     Id m_id               = 0;
     Model *m_model        = nullptr;
     GraphicsView *m_gview = nullptr;

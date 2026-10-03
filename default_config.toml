@@ -512,3 +512,16 @@ dismiss               = "Escape"
 toggle_structure_mode = "Ctrl+Space"
 history_prev          = "Ctrl+Up"
 history_next          = "Ctrl+Down"
+
+# Per-file-type overrides. Any of the view settings ([page], [layout], [zoom],
+# [selection], [scrollbars], [search], [jump_marker], [annotations], [links],
+# [behavior]) can be set for one document type; the type is lower-case
+# (pdf, epub, djvu, ...). Options not listed keep their normal value.
+# Dotted keys keep each type in one table:
+#
+# [filetype.epub]
+# layout.mode          = "single"
+# behavior.invert_mode = true
+#
+# [filetype.djvu]
+# behavior.high_contrast = true

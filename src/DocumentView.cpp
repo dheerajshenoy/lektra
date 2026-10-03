@@ -65,8 +65,12 @@ g_newId() noexcept
 }
 
 DocumentView::DocumentView(const Config &config, float dpr, QWidget *parent,
-                           bool thumbnailMode) noexcept
-    : QWidget(parent), m_config(config), m_id(g_newId()),
+                           bool thumbnailMode,
+                           const Config *inheritFrom) noexcept
+    : QWidget(parent), m_global(config),
+      m_local_config(
+          std::make_unique<Config>(inheritFrom ? *inheritFrom : config)),
+      m_config(*m_local_config), m_id(g_newId()),
       m_thumbnail_mode(thumbnailMode)
 {
 #ifndef NDEBUG
@@ -114,6 +118,14 @@ DocumentView::~DocumentView() noexcept
 
     if (m_current_search_hit_item)
         delete m_current_search_hit_item;
+
+    // Model and GraphicsView hold references to this view's local config,
+    // which is a member and is destroyed before QWidget's destructor deletes
+    // child objects. Delete them here, while the config is still alive.
+    delete m_gview;
+    m_gview = nullptr;
+    delete m_model;
+    m_model = nullptr;
 }
 
 void
@@ -212,8 +224,8 @@ DocumentView::initGui() noexcept
     m_gview->setHorizontalScrollbarEnabled(m_config.scrollbars.horizontal);
     m_gview->setAutoHideScrollbars(m_config.scrollbars.auto_hide);
 
-    m_gview->setImageDragProvider(
-        [this](QPointF scenePos) { return imageAt(scenePos); });
+    m_gview->setImageDragProvider([this](QPointF scenePos)
+    { return imageAt(scenePos); });
 
     m_auto_resize       = m_config.layout.auto_resize;
     QVBoxLayout *layout = new QVBoxLayout(this);
@@ -354,8 +366,9 @@ DocumentView::openAsync(const QString &filePath) noexcept
 
     CloseFile();
 
-    // CloseFile() -> resetConnections() does a blanket m_model->disconnect(this)
-    // that also severs these — re-establish them for this open attempt.
+    // CloseFile() -> resetConnections() does a blanket
+    // m_model->disconnect(this) that also severs these — re-establish them for
+    // this open attempt.
     connectModelFailureSignals();
 
     m_gview->forceHideScrollbars();
@@ -423,6 +436,8 @@ DocumentView::handleOpenFileFinished() noexcept
     }
 
     m_gview->setOpenFailedMessage(QString());
+
+    applyFiletypeOverrides();
 
     stopGifPlayback();
 
@@ -887,8 +902,7 @@ DocumentView::handleSearchResults(
     if (m_config.scrollbars.search_hits)
         renderSearchHitsInScrollbar();
 
-    emit searchCountChanged(
-        static_cast<int>(m_search_hit_flat_refs.size()));
+    emit searchCountChanged(static_cast<int>(m_search_hit_flat_refs.size()));
 
     if (m_config.search.absolute_jump)
         GotoHit(m_search_index);
@@ -918,8 +932,7 @@ DocumentView::handlePartialSearchResults(
 
     buildFlatSearchHitIndex();
 
-    emit searchCountChanged(
-        static_cast<int>(m_search_hit_flat_refs.size()));
+    emit searchCountChanged(static_cast<int>(m_search_hit_flat_refs.size()));
 
     if (m_config.scrollbars.search_hits)
         renderSearchHitsInScrollbar();
@@ -1174,7 +1187,8 @@ DocumentView::synctexForwardSearch(const QString &texPath, int line,
 {
     if (!m_synctex_scanner)
     {
-        qWarning() << "DocumentView::synctexForwardSearch(): no synctex scanner";
+        qWarning()
+            << "DocumentView::synctexForwardSearch(): no synctex scanner";
         return;
     }
 
@@ -1738,15 +1752,13 @@ DocumentView::setFitMode(FitMode mode) noexcept
         {
             const auto dim         = m_model->page_dimension_pts(m_pageno);
             const QRectF localRect = pageItem->boundingRect();
-            const double pw
-                = std::max(1.0, static_cast<double>(dim.width_pts));
+            const double pw = std::max(1.0, static_cast<double>(dim.width_pts));
             const double ph
                 = std::max(1.0, static_cast<double>(dim.height_pts));
             const double fx = 0.5 * (contentPtBox.x0 + contentPtBox.x1) / pw;
             const double fy = 0.5 * (contentPtBox.y0 + contentPtBox.y1) / ph;
-            const QPointF localCenter(
-                localRect.x() + fx * localRect.width(),
-                localRect.y() + fy * localRect.height());
+            const QPointF localCenter(localRect.x() + fx * localRect.width(),
+                                      localRect.y() + fy * localRect.height());
             m_gview->centerOn(pageItem->mapToScene(localCenter));
         }
     }
@@ -2243,11 +2255,11 @@ DocumentView::filterHitsToNarrow(
         if (sz.isEmpty())
             continue;
 
-        const QRectF narrowLocal(
-            m_narrow_local_normalized.left() * sz.width(),
-            m_narrow_local_normalized.top() * sz.height(),
-            m_narrow_local_normalized.width() * sz.width(),
-            m_narrow_local_normalized.height() * sz.height());
+        const QRectF narrowLocal(m_narrow_local_normalized.left() * sz.width(),
+                                 m_narrow_local_normalized.top() * sz.height(),
+                                 m_narrow_local_normalized.width() * sz.width(),
+                                 m_narrow_local_normalized.height()
+                                     * sz.height());
 
         std::vector<Model::SearchHit> kept;
         kept.reserve(it.value().size());
@@ -2299,7 +2311,6 @@ DocumentView::Search(const QString &term, bool useRegex) noexcept
         return;
     }
 
-
     clearSearchHits();
     if (term.isEmpty())
     {
@@ -2323,8 +2334,7 @@ DocumentView::Search(const QString &term, bool useRegex) noexcept
     if (m_is_narrow)
     {
         pageFrom = m_narrow_page;
-        pageTo   = (m_narrow_page_end < 0) ? m_narrow_page
-                                           : m_narrow_page_end;
+        pageTo   = (m_narrow_page_end < 0) ? m_narrow_page : m_narrow_page_end;
     }
     else if (m_search_scope == SearchScope::Below)
     {
@@ -2364,7 +2374,6 @@ DocumentView::SearchInPage(const int pageno, const QString &term) noexcept
             tr("This document has no text layer, so it can't be searched."));
         return;
     }
-
 
     clearSearchHits();
     if (term.isEmpty())
@@ -3389,17 +3398,17 @@ DocumentView::PageRenderKey
 DocumentView::currentPageRenderKey() const noexcept
 {
     PageRenderKey key;
-    key.zoom             = m_current_zoom;
-    key.rotation         = m_model->rotation();
-    key.dpr              = m_model->DPR();
-    key.fg               = m_model->foregroundColor();
-    key.bg               = m_model->backgroundColor();
-    key.flip_h           = m_model->isFlippedH();
-    key.flip_v           = m_model->isFlippedV();
-    key.invert           = m_model->invertColor();
-    key.trim             = m_trim_margins;
-    key.high_contrast    = m_config.behavior.high_contrast;
-    key.dont_invert_img  = m_config.behavior.dont_invert_images;
+    key.zoom            = m_current_zoom;
+    key.rotation        = m_model->rotation();
+    key.dpr             = m_model->DPR();
+    key.fg              = m_model->foregroundColor();
+    key.bg              = m_model->backgroundColor();
+    key.flip_h          = m_model->isFlippedH();
+    key.flip_v          = m_model->isFlippedV();
+    key.invert          = m_model->invertColor();
+    key.trim            = m_trim_margins;
+    key.high_contrast   = m_config.behavior.high_contrast;
+    key.dont_invert_img = m_config.behavior.dont_invert_images;
     return key;
 }
 
@@ -3470,8 +3479,9 @@ DocumentView::renderPagesImpl(bool skipCurrent) noexcept
     // If any rendered page revealed dimensions that differ from what
     // cachePageStride() assumed, recompute offsets before determining visible
     // pages — otherwise the wrong pages get rendered and gaps remain missing.
-    if (m_page_layout_stale) {
-        cachePageStride();  // clears m_page_layout_stale
+    if (m_page_layout_stale)
+    {
+        cachePageStride(); // clears m_page_layout_stale
         updateSceneRect();
         repositionPages();
         invalidateVisiblePagesCache();
@@ -3663,12 +3673,13 @@ DocumentView::startNextRenderJob() noexcept
 
         // Capture zoom at dispatch time so stale callbacks from a previous
         // zoom level can be detected and dropped in the lambda below.
-        const double dispatchZoom = m_current_zoom;
+        const double dispatchZoom       = m_current_zoom;
         const PageRenderKey dispatchKey = currentPageRenderKey();
 
         QPointer<DocumentView> self(this);
-        m_model->requestPageRender(
-            job, [self, pageno, dispatchZoom, dispatchKey](const Model::PageRenderResult &result)
+        m_model->requestPageRender(job,
+                                   [self, pageno, dispatchZoom, dispatchKey](
+                                       const Model::PageRenderResult &result)
         {
             if (!self)
                 return;
@@ -3689,8 +3700,9 @@ DocumentView::startNextRenderJob() noexcept
 
             if (!image.isNull() && view->m_trim_margins && !result.partial)
             {
-                const QRect crop = view->contentCropRectPixels(pageno)
-                                       .intersected(image.rect());
+                const QRect crop
+                    = view->contentCropRectPixels(pageno).intersected(
+                        image.rect());
                 if (crop.isValid() && !crop.isEmpty())
                     image = image.copy(crop);
             }
@@ -4014,8 +4026,8 @@ DocumentView::updateSceneRect() noexcept
         const double xMargin    = std::max(0.0, (viewW - totalWidth) / 2.0);
         const double yMargin
             = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
-        layoutRect = QRectF(-xMargin, -yMargin, totalWidth + 2.0 * xMargin,
-                            sceneH);
+        layoutRect
+            = QRectF(-xMargin, -yMargin, totalWidth + 2.0 * xMargin, sceneH);
     }
     else if (m_layout_mode == LayoutMode::BOOK)
     {
@@ -4024,8 +4036,8 @@ DocumentView::updateSceneRect() noexcept
         const double cappedSceneW = std::min(sceneW, 20000.0);
         const double yMargin
             = std::max(0.0, (viewH - pageSceneSize(m_pageno).height()) / 2.0);
-        layoutRect = QRectF(0, -yMargin, cappedSceneW,
-                            totalHeight + 2.0 * yMargin);
+        layoutRect
+            = QRectF(0, -yMargin, cappedSceneW, totalHeight + 2.0 * yMargin);
     }
     else
     {
@@ -4170,9 +4182,9 @@ DocumentView::handleDocumentRelayouted() noexcept
 
     const int targetPage
         = newPageCount > 0
-            ? qBound(0, qRound(m_relayout_saved_fraction * newPageCount),
-                    newPageCount - 1)
-            : 0;
+              ? qBound(0, qRound(m_relayout_saved_fraction * newPageCount),
+                       newPageCount - 1)
+              : 0;
 
     m_vscroll->blockSignals(true);
     m_hscroll->blockSignals(true);
@@ -4436,7 +4448,7 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
                     m_pageno, selectedAnnots.at(0).second->index());
             }
 
-            ColorDialog cp(m_config.misc.color_dialog_colors, current_color,
+            ColorDialog cp(m_global.misc.color_dialog_colors, current_color,
                            this);
 
             cp.setWindowTitle(tr("Select Annotation Color"));
@@ -4692,7 +4704,7 @@ DocumentView::renderPageFromImage(int pageno, QImage image, QSize fullSize,
         << "for pageno = " << pageno;
 #endif
     bool wasHighlighted = false;
-    auto it = m_page_items_hash.find(pageno);
+    auto it             = m_page_items_hash.find(pageno);
     if (it != m_page_items_hash.end())
     {
         GraphicsImageItem *old = it.value();
@@ -4726,16 +4738,16 @@ DocumentView::renderPageFromImage(int pageno, QImage image, QSize fullSize,
     // assumed (e.g. cover page is a different size than content pages). In
     // that case the cached offsets are wrong and gaps between pages disappear
     // visually. Flag for a re-layout on the next renderPages() pass.
-    if (!m_page_layout_stale
-        && m_layout_mode != LayoutMode::SINGLE
+    if (!m_page_layout_stale && m_layout_mode != LayoutMode::SINGLE
         && m_layout_mode != LayoutMode::BOOK
         && pageno + 1 < static_cast<int>(m_page_offsets.size()))
     {
-        const bool    hz         = (m_layout_mode == LayoutMode::HORIZONTAL);
-        const QSizeF  sz         = pageSceneSize(pageno);
-        const double  trueExtent = hz ? sz.width() : sz.height();
-        const double  usedStride = m_page_offsets[pageno + 1] - m_page_offsets[pageno];
-        const double  trueStride = trueExtent + m_spacing * m_current_zoom;
+        const bool hz           = (m_layout_mode == LayoutMode::HORIZONTAL);
+        const QSizeF sz         = pageSceneSize(pageno);
+        const double trueExtent = hz ? sz.width() : sz.height();
+        const double usedStride
+            = m_page_offsets[pageno + 1] - m_page_offsets[pageno];
+        const double trueStride = trueExtent + m_spacing * m_current_zoom;
         if (std::abs(usedStride - trueStride) > 0.5)
             m_page_layout_stale = true;
     }
@@ -4764,7 +4776,7 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
     const double pageW = logicalSize.width();
     const double pageH = logicalSize.height();
     const QRectF sr    = m_layout_scene_rect.isValid() ? m_layout_scene_rect
-                                                        : m_gview->sceneRect();
+                                                       : m_gview->sceneRect();
 
     if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
@@ -4808,8 +4820,8 @@ DocumentView::createAndAddPageItem(int pageno, QImage img, QSize fullSize,
     const QSizeF logicalSize = pageSceneSize(pageno);
     const double pageW       = logicalSize.width();
     const double pageH       = logicalSize.height();
-    const QRectF sr          = m_layout_scene_rect.isValid() ? m_layout_scene_rect
-                                                              : m_gview->sceneRect();
+    const QRectF sr = m_layout_scene_rect.isValid() ? m_layout_scene_rect
+                                                    : m_gview->sceneRect();
 
     if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
@@ -4882,7 +4894,8 @@ DocumentView::renderLinks(int pageno,
             case BrowseLinkItem::LinkType::FitV:
             case BrowseLinkItem::LinkType::FitH:
                 if (link.target_page >= 0)
-                    item->setToolTip(tr("Go to page %1").arg(link.target_page + 1));
+                    item->setToolTip(
+                        tr("Go to page %1").arg(link.target_page + 1));
                 break;
             case BrowseLinkItem::LinkType::External:
                 break;
@@ -5123,7 +5136,7 @@ DocumentView::renderAnnotations(
         {
             QColor oldColor
                 = m_model->getAnnotColor(pageno, annot_item->index());
-            ColorDialog colorDialog(m_config.misc.color_dialog_colors,
+            ColorDialog colorDialog(m_global.misc.color_dialog_colors,
                                     QColor::fromRgba(oldColor.rgba()), this);
             colorDialog.setWindowTitle(tr("Select Annotation Color"));
 
@@ -5154,9 +5167,9 @@ DocumentView::setModified(bool modified) noexcept
         return;
 
     m_is_modified = modified;
-    QString title = m_config.window.title_format;
+    QString title = m_global.window.title_format;
     QString fileName;
-    if (m_config.statusbar.component.filename.full_path)
+    if (m_global.statusbar.component.filename.full_path)
         fileName = filePath();
     else
         fileName = this->fileName();
@@ -5382,6 +5395,9 @@ DocumentView::addToHistory(const PageLocation &location) noexcept
 void
 DocumentView::setInvertColor(bool invert) noexcept
 {
+    // The view's local option is the source of truth, so re-applying the
+    // behavior section later keeps the toggled state.
+    m_config.behavior.invert_mode = invert;
     m_model->setInvertColor(invert);
     if (m_model->isAnimated())
     {
@@ -5669,9 +5685,10 @@ DocumentView::CopyRegionAsImage(QRectF area) noexcept
 void
 DocumentView::CopyRegionAsImageAtDPI(QRectF area) noexcept
 {
-    bool ok      = false;
-    int targetDPI = QInputDialog::getInt(this, tr("Copy Region at Custom DPI"),
-                                         tr("Render DPI:"), 300, 72, 1200, 72, &ok);
+    bool ok = false;
+    int targetDPI
+        = QInputDialog::getInt(this, tr("Copy Region at Custom DPI"),
+                               tr("Render DPI:"), 300, 72, 1200, 72, &ok);
     if (!ok)
         return;
 
@@ -5681,13 +5698,14 @@ DocumentView::CopyRegionAsImageAtDPI(QRectF area) noexcept
         return;
 
     QRectF logicalRect;
-    QRect  pixelRect;
+    QRect pixelRect;
     if (!mapRegionToPageRects(area, pageItem, logicalRect, pixelRect))
         return;
 
     // Pass the logical rect — buildPageTransforms uses logicalScale() so
     // dev_to_page maps logical pixels (item-local coords / DPR) → PDF pts.
-    QImage img = m_model->renderRegionAtDPI(pageno, logicalRect, float(targetDPI));
+    QImage img
+        = m_model->renderRegionAtDPI(pageno, logicalRect, float(targetDPI));
 
     if (img.isNull())
     {
@@ -5859,7 +5877,8 @@ DocumentView::tryReloadLater(int attempt) noexcept
     const qint64 currentSize = fi.exists() ? fi.size() : 0;
 
     // File must be non-empty and its size must be stable across two ticks
-    const bool stable = currentSize > 0 && currentSize == m_last_reload_observed_size;
+    const bool stable
+        = currentSize > 0 && currentSize == m_last_reload_observed_size;
     m_last_reload_observed_size = currentSize;
 
     if (!stable)
@@ -5910,7 +5929,7 @@ DocumentView::handleRegionSelectRequested(QRectF area) noexcept
 {
     if (m_region_select_cb)
     {
-        auto cb = std::move(m_region_select_cb);
+        auto cb            = std::move(m_region_select_cb);
         m_region_select_cb = nullptr;
         m_gview->clearRubberBand();
         cb(area);
@@ -5932,7 +5951,8 @@ DocumentView::handleRegionSelectRequested(QRectF area) noexcept
     menu->addAction(tr("Copy Region as Image"),
                     [this, area]() { CopyRegionAsImage(area); });
     // Re-rendering at a custom DPI only makes sense for vector/text-based
-    // formats (PDF, EPUB, XPS…); for raster images it would just upscale pixels.
+    // formats (PDF, EPUB, XPS…); for raster images it would just upscale
+    // pixels.
     if (!m_model->isImage())
         menu->addAction(tr("Copy Region as Image (Custom DPI)..."),
                         [this, area]() { CopyRegionAsImageAtDPI(area); });
@@ -5984,8 +6004,7 @@ DocumentView::narrowSceneRect() const noexcept
     // pre-computed page offsets rather than from materialized page items.
     // Items may not exist yet for the whole range, so using m_page_items_hash
     // produces an incomplete / empty rect that makes scrolling wonky.
-    if (isPageRange
-        && static_cast<int>(m_page_offsets.size()) > endPage + 1)
+    if (isPageRange && static_cast<int>(m_page_offsets.size()) > endPage + 1)
     {
         const double start = m_page_offsets[m_narrow_page];
         const double end   = m_page_offsets[endPage + 1];
@@ -6008,14 +6027,13 @@ DocumentView::narrowSceneRect() const noexcept
         const QSizeF sz = pageItem->boundingRect().size();
         if (sz.isEmpty())
             continue;
-        const QRectF localRect(
-            m_narrow_local_normalized.left() * sz.width(),
-            m_narrow_local_normalized.top() * sz.height(),
-            m_narrow_local_normalized.width() * sz.width(),
-            m_narrow_local_normalized.height() * sz.height());
+        const QRectF localRect(m_narrow_local_normalized.left() * sz.width(),
+                               m_narrow_local_normalized.top() * sz.height(),
+                               m_narrow_local_normalized.width() * sz.width(),
+                               m_narrow_local_normalized.height()
+                                   * sz.height());
         const QRectF sceneRect = pageItem->mapToScene(localRect).boundingRect();
-        unioned                = unioned.isNull() ? sceneRect
-                                                  : unioned.united(sceneRect);
+        unioned = unioned.isNull() ? sceneRect : unioned.united(sceneRect);
     }
     return unioned;
 }
@@ -6044,13 +6062,12 @@ DocumentView::applyNarrow(QRectF sceneRect) noexcept
     if (sz.isEmpty())
         return;
 
-    m_narrow_page              = pageno;
-    m_narrow_page_end          = pageno;
-    m_narrow_local_normalized  = QRectF(localRect.left() / sz.width(),
-                                        localRect.top() / sz.height(),
-                                        localRect.width() / sz.width(),
-                                        localRect.height() / sz.height());
-    m_is_narrow                = true;
+    m_narrow_page             = pageno;
+    m_narrow_page_end         = pageno;
+    m_narrow_local_normalized = QRectF(
+        localRect.left() / sz.width(), localRect.top() / sz.height(),
+        localRect.width() / sz.width(), localRect.height() / sz.height());
+    m_is_narrow = true;
 
     // Zoom to fit the narrow region in the viewport
     const double vw = m_gview->viewport()->width();
@@ -6059,8 +6076,8 @@ DocumentView::applyNarrow(QRectF sceneRect) noexcept
     const double nh = sceneRect.height();
     if (nw > 0 && nh > 0)
     {
-        const double fitZoom = std::min(vw * m_current_zoom / nw,
-                                        vh * m_current_zoom / nh);
+        const double fitZoom
+            = std::min(vw * m_current_zoom / nw, vh * m_current_zoom / nh);
         setZoom(std::clamp(fitZoom, MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR), false);
     }
 
@@ -6125,13 +6142,12 @@ DocumentView::NarrowToSectionByTitle(const QString &title) noexcept
     {
         const QString cp1 = sections[i].title + ".";
         const QString cp2 = sections[i].title + " ";
-        int end            = totalPages - 1;
+        int end           = totalPages - 1;
         for (int j = i + 1; j < sections.size(); ++j)
         {
-            const bool descendant
-                = sections[j].depth > sections[i].depth
-                  || sections[j].title.startsWith(cp1)
-                  || sections[j].title.startsWith(cp2);
+            const bool descendant = sections[j].depth > sections[i].depth
+                                    || sections[j].title.startsWith(cp1)
+                                    || sections[j].title.startsWith(cp2);
             if (sections[j].startPage0 > sections[i].startPage0 && !descendant)
             {
                 end = sections[j].startPage0;
@@ -6235,9 +6251,9 @@ DocumentView::WidenRegion() noexcept
 {
     if (!m_is_narrow)
         return;
-    m_is_narrow       = false;
-    m_narrow_page     = -1;
-    m_narrow_page_end = -1;
+    m_is_narrow               = false;
+    m_narrow_page             = -1;
+    m_narrow_page_end         = -1;
     m_narrow_local_normalized = {};
     m_gview->clearNarrowRect();
     updateSceneRect();
@@ -6426,7 +6442,7 @@ void
 DocumentView::repositionPages()
 {
     const QRectF sr = m_layout_scene_rect.isValid() ? m_layout_scene_rect
-                                                     : m_gview->sceneRect();
+                                                    : m_gview->sceneRect();
 
     // For VERTICAL, each page may have a different width so we must
     // compute the centering offset per-page inside the loop. Using a single
@@ -6871,13 +6887,165 @@ DocumentView::set_visual_line_mode(bool state) noexcept
 }
 
 void
+DocumentView::localConfigChanged(const QString &section) noexcept
+{
+    const bool first = m_pending_config_sections.isEmpty();
+    m_pending_config_sections.insert(section);
+    // Batch: several option writes in one Lua chunk or one event-loop tick
+    // cost a single apply (and at most one re-render).
+    if (first)
+        QTimer::singleShot(0, this, &DocumentView::applyLocalConfigChanges);
+}
+
+void
+DocumentView::applyFiletypeOverrides() noexcept
+{
+    if (m_thumbnail_mode || !m_global.filetype_overrides)
+        return;
+
+    const std::string type
+        = m_model->fileTypeToString().toLower().toStdString();
+    if (type == m_override_type)
+        return;
+
+    // Switching file type in a view that already took another type's
+    // overrides: start again from the defaults.
+    if (!m_override_type.empty())
+        *m_local_config = m_global;
+    m_override_type = type;
+
+    const auto it = m_global.filetype_overrides->find(type);
+    if (it == m_global.filetype_overrides->end())
+        return;
+
+    it->second(*m_local_config);
+    for (const char *section :
+         {"page", "behavior", "rendering", "scrollbars", "selection", "search",
+          "jump_marker", "annotations", "links", "layout"})
+        localConfigChanged(section);
+}
+
+// Pushes changed options into the objects that copied them at construction.
+// Options that are read on use (zoom step, link hint keys, ...) need nothing.
+void
+DocumentView::applyLocalConfigChanges() noexcept
+{
+    const QSet<QString> sections = std::exchange(m_pending_config_sections, {});
+    if (sections.isEmpty())
+        return;
+
+    bool rerender = false;
+    bool relayout = false;
+
+    if (sections.contains("page"))
+    {
+        m_model->setBackgroundColor(m_config.page.bg);
+        m_model->setForegroundColor(m_config.page.fg);
+        rerender = true;
+    }
+
+    if (sections.contains("behavior"))
+    {
+        m_model->setInvertColor(m_config.behavior.invert_mode);
+        m_model->setCacheCapacity(m_config.behavior.cache_pages);
+        m_model->undoStack()->setUndoLimit(m_config.behavior.undo_limit);
+        rerender = true;
+    }
+
+    if (sections.contains("rendering"))
+    {
+        m_gview->setRenderHint(QPainter::Antialiasing,
+                               m_config.rendering.antialiasing);
+        m_gview->setRenderHint(QPainter::SmoothPixmapTransform,
+                               m_config.rendering.smooth_pixmap_transform);
+        m_gview->setRenderHint(QPainter::TextAntialiasing,
+                               m_config.rendering.text_antialiasing);
+        rerender = true;
+    }
+
+    if (sections.contains("scrollbars"))
+    {
+        m_vscroll->setSize(m_config.scrollbars.size);
+        m_hscroll->setSize(m_config.scrollbars.size);
+        m_gview->setScrollbarSize(m_config.scrollbars.size);
+        m_gview->setScrollbarIdleTimeout(m_config.scrollbars.hide_timeout
+                                         * 1000);
+        m_gview->setVerticalScrollbarEnabled(m_config.scrollbars.vertical);
+        m_gview->setHorizontalScrollbarEnabled(m_config.scrollbars.horizontal);
+        m_gview->setAutoHideScrollbars(m_config.scrollbars.auto_hide);
+    }
+
+    if (sections.contains("selection"))
+    {
+        m_model->setSelectionColor(rgbaToQColor(m_config.selection.color));
+        if (m_selection_path_item)
+            m_selection_path_item->setBrush(
+                QBrush(rgbaToQColor(m_config.selection.color)));
+    }
+
+    if (sections.contains("search") && m_current_search_hit_item)
+        m_current_search_hit_item->setBrush(
+            rgbaToQColor(m_config.search.index_color));
+
+    if (sections.contains("jump_marker") && m_jump_marker)
+    {
+        m_jump_marker->setColor(rgbaToQColor(m_config.jump_marker.color));
+        m_jump_marker->setFadeDuration(m_config.jump_marker.fade_duration);
+    }
+
+    if (sections.contains("annotations"))
+    {
+        m_model->setAnnotRectColor(
+            rgbaToQColor(m_config.annotations.rect.color).toRgb());
+        m_model->setHighlightColor(
+            rgbaToQColor(m_config.annotations.highlight.color));
+    }
+
+    if (sections.contains("links"))
+    {
+        m_model->setDetectUrlLinks(m_config.links.detect_urls);
+        m_model->setUrlLinkRegex(m_config.links.url_regex);
+        rerender = true;
+    }
+
+    if (sections.contains("layout"))
+    {
+        m_auto_resize = m_config.layout.auto_resize;
+        if (m_spacing != m_config.layout.spacing)
+        {
+            m_spacing = m_config.layout.spacing;
+            relayout  = true;
+        }
+    }
+
+    if (relayout && !m_model->isImage())
+    {
+        cachePageStride();
+        updateSceneRect();
+        repositionPages();
+        rerender = true;
+    }
+
+    if (rerender)
+    {
+        m_model->invalidatePageCaches();
+        m_page_render_keys.clear();
+        if (m_model->isImage())
+            renderImage();
+        else
+            renderPages();
+    }
+
+    m_gview->viewport()->update();
+}
+
+void
 DocumentView::ToggleCaretMode() noexcept
 {
     if (!m_model->supports_text_selection())
     {
-        QMessageBox::information(
-            this, tr("Caret Mode"),
-            tr("Document does not support caret mode."));
+        QMessageBox::information(this, tr("Caret Mode"),
+                                 tr("Document does not support caret mode."));
         return;
     }
 
@@ -6936,8 +7104,8 @@ DocumentView::caretLineRange(int index, int &lineStart,
                              int &lineEnd) const noexcept
 {
     const int n = static_cast<int>(m_caret_chars.size());
-    lineStart    = 0;
-    lineEnd      = n;
+    lineStart   = 0;
+    lineEnd     = n;
     if (n == 0)
         return;
 
@@ -6996,9 +7164,9 @@ DocumentView::caretSceneRect(int pageno, int index) const noexcept
         q = m_caret_chars[j].quad;
     }
 
-    const double x = useLeftEdge ? std::min(q.ul.x, q.ll.x)
-                                 : std::max(q.ur.x, q.lr.x);
-    const double top = std::min({q.ul.y, q.ur.y, q.ll.y, q.lr.y});
+    const double x
+        = useLeftEdge ? std::min(q.ul.x, q.ll.x) : std::max(q.ur.x, q.lr.x);
+    const double top    = std::min({q.ul.y, q.ur.y, q.ll.y, q.lr.y});
     const double bottom = std::max({q.ul.y, q.ur.y, q.ll.y, q.lr.y});
     const QRectF pagePts(x - 0.6, top, 1.2, std::max(1.0, bottom - top));
 
@@ -7006,10 +7174,10 @@ DocumentView::caretSceneRect(int pageno, int index) const noexcept
     const QRectF itemRect(pagePts.x() * scale, pagePts.y() * scale,
                           pagePts.width() * scale, pagePts.height() * scale);
 
-    return pageItem->mapRectToScene(
-        QRectF(itemRect.x() / pageItem->scale(), itemRect.y() / pageItem->scale(),
-              itemRect.width() / pageItem->scale(),
-              itemRect.height() / pageItem->scale()));
+    return pageItem->mapRectToScene(QRectF(
+        itemRect.x() / pageItem->scale(), itemRect.y() / pageItem->scale(),
+        itemRect.width() / pageItem->scale(),
+        itemRect.height() / pageItem->scale()));
 }
 
 void
@@ -7042,7 +7210,7 @@ DocumentView::caretStepRight() noexcept
         return;
 
     const int n = static_cast<int>(m_caret_chars.size());
-    int i        = m_caret_index + 1;
+    int i       = m_caret_index + 1;
     while (i <= n && !caretIsValidStop(i))
         i++;
 
@@ -7096,7 +7264,7 @@ DocumentView::caretMoveVertical(bool up) noexcept
                 return;
             }
             caretLineRange(static_cast<int>(m_caret_chars.size()), targetStart,
-                          targetEnd);
+                           targetEnd);
         }
         else
         {
@@ -7132,8 +7300,8 @@ DocumentView::caretMoveVertical(bool up) noexcept
     }
     else
     {
-        int best      = targetStart;
-        double bestD  = std::numeric_limits<double>::max();
+        int best     = targetStart;
+        double bestD = std::numeric_limits<double>::max();
         for (int k = targetStart; k < targetEnd; ++k)
         {
             const double d = std::abs(caretCharCenterX(k) - m_caret_pref_x);
@@ -7179,7 +7347,8 @@ DocumentView::renderCaret() noexcept
     m_caret_item->setVisible(true);
 
     if (m_caret_blink_timer)
-        m_caret_blink_timer->start(); // restart so it's solid right after a move
+        m_caret_blink_timer
+            ->start(); // restart so it's solid right after a move
 
     m_gview->ensureVisible(rect, 40, 40);
 }
@@ -7199,7 +7368,8 @@ DocumentView::updateCaretSelection() noexcept
 
     const QPointF anchorPos
         = caretSceneRect(m_caret_anchor_pageno, m_caret_anchor_index).center();
-    const QPointF focusPos = caretSceneRect(m_caret_pageno, m_caret_index).center();
+    const QPointF focusPos
+        = caretSceneRect(m_caret_pageno, m_caret_index).center();
 
     handleTextSelection(anchorPos, focusPos);
 }
@@ -7352,13 +7522,13 @@ DocumentView::handleReloadRequested(int pageno) noexcept
 void
 DocumentView::handleReloadPasswordRequired() noexcept
 {
-    const QString msg =
-        m_config.behavior.cache_password
-            ? tr("Auto-reload failed: the document is password-protected "
-                 "and the cached password no longer works.")
-            : tr("Auto-reload failed: the document is password-protected. "
-                 "Enable \"cache_password\" in the config to allow "
-                 "automatic re-authentication on reload.");
+    const QString msg
+        = m_config.behavior.cache_password
+              ? tr("Auto-reload failed: the document is password-protected "
+                   "and the cached password no longer works.")
+              : tr("Auto-reload failed: the document is password-protected. "
+                   "Enable \"cache_password\" in the config to allow "
+                   "automatic re-authentication on reload.");
     QMessageBox::warning(this, tr("Auto-reload failed"), msg);
 }
 
