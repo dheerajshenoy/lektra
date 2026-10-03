@@ -1020,6 +1020,35 @@ Lektra::initConfig() noexcept
     {
         toml = toml::parse_file(m_config_file_path.toStdString());
     }
+    catch (const toml::parse_error &e)
+    {
+        const auto &begin = e.source().begin;
+        QString text      = tr("%1\n\nLine %2, column %3")
+                           .arg(QString::fromUtf8(e.description().data(),
+                                                  e.description().length()))
+                           .arg(begin.line)
+                           .arg(begin.column);
+
+        // Show the offending line so the problem can be spotted at a glance.
+        QFile file(m_config_file_path);
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+        {
+            const QList<QByteArray> lines = file.readAll().split('\n');
+            if (begin.line >= 1 && begin.line <= lines.size())
+            {
+                const QString src
+                    = QString::fromUtf8(lines[begin.line - 1]).trimmed();
+                text += QString(":\n\n    %1").arg(src);
+            }
+        }
+
+        QMessageBox::critical(
+            this, tr("Error in configuration file"),
+            tr("%1\n\n%2\n\nLoading default config.")
+                .arg(m_config_file_path, text));
+        initDefaultKeybinds();
+        return;
+    }
     catch (std::exception &e)
     {
         QMessageBox::critical(
@@ -1069,6 +1098,29 @@ Lektra::initConfig() noexcept
                 = QString::fromUtf8(key.data(), key.length())
                       .toLower()
                       .toStdString();
+            static const QSet<QString> kSections
+                = {"page",       "layout",      "zoom",
+                   "selection",  "scrollbars",  "search",
+                   "jump_marker", "annotations", "links",
+                   "behavior"};
+            for (const auto &[sec, value] : *section)
+            {
+                const QString secName
+                    = QString::fromUtf8(sec.data(), sec.length());
+                if (!kSections.contains(secName))
+                    qWarning().noquote()
+                        << QString("config.toml line %1: [filetype.%2]: "
+                                   "unknown section '%3'")
+                               .arg(value.source().begin.line)
+                               .arg(QString::fromStdString(name), secName);
+                else if (!value.is_table())
+                    qWarning().noquote()
+                        << QString("config.toml line %1: [filetype.%2]: '%3' is "
+                                   "a section; set an option inside it, e.g. "
+                                   "%3.<option> = ...")
+                               .arg(value.source().begin.line)
+                               .arg(QString::fromStdString(name), secName);
+            }
             auto table = std::make_shared<toml::table>(*section);
             (*overrides)[name]
                 = [table](Config &cfg) { applyViewToml(*table, cfg); };
