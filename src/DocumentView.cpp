@@ -2274,6 +2274,15 @@ DocumentView::Search(const QString &term, bool useRegex) noexcept
     if (!m_model->supports_text_search())
         return;
 
+    if (!m_model->hasTextLayer())
+    {
+        QMessageBox::information(
+            this, tr("Search"),
+            tr("This document has no text layer, so it can't be searched."));
+        return;
+    }
+
+
     clearSearchHits();
     if (term.isEmpty())
     {
@@ -2330,6 +2339,15 @@ DocumentView::SearchInPage(const int pageno, const QString &term) noexcept
 #endif
     if (!m_model->supports_text_search())
         return;
+
+    if (!m_model->hasTextLayer())
+    {
+        QMessageBox::information(
+            this, tr("Search"),
+            tr("This document has no text layer, so it can't be searched."));
+        return;
+    }
+
 
     clearSearchHits();
     if (term.isEmpty())

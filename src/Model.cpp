@@ -1462,6 +1462,7 @@ Model::cleanup_mupdf() noexcept
         std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
         m_page_lru_cache.clear();
         m_text_cache.clear();
+        m_has_text_layer = -1;
         m_stext_page_cache.clear();
     }
 
@@ -1530,6 +1531,7 @@ Model::cleanup_djvu() noexcept
         std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
         m_page_lru_cache.clear();
         m_text_cache.clear();
+        m_has_text_layer = -1;
     }
 
     {
@@ -2090,6 +2092,7 @@ Model::relayoutForViewport(float widthPts, float heightPts,
                 std::lock_guard<std::recursive_mutex> lk(m_page_cache_mutex);
                 m_page_lru_cache.clear();
                 m_text_cache.clear();
+        m_has_text_layer = -1;
                 m_stext_page_cache.clear();
             }
             {
@@ -4918,6 +4921,7 @@ Model::invalidatePageCaches() noexcept
     std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
     m_page_lru_cache.clear();
     m_text_cache.clear();
+        m_has_text_layer = -1;
     m_stext_page_cache.clear();
 
     std::lock_guard<std::mutex> lk(m_page_dim_mutex);
@@ -6293,6 +6297,53 @@ Model::visual_line_index_at_pos(
     }
 
     return closest;
+}
+
+bool
+Model::hasTextLayer() noexcept
+{
+    if (m_has_text_layer >= 0)
+        return m_has_text_layer == 1;
+
+    if (!supports_text_selection())
+        return false;
+
+    fz_context *ctx = cloneContext();
+    if (!ctx)
+        return false;
+
+    bool found  = false;
+    bool failed = false;
+    fz_try(ctx)
+    {
+        for (int p = 0; p < m_page_count && !found; ++p)
+        {
+            const fz_stext_page *stext = get_or_build_stext_page(ctx, p);
+            for (const fz_stext_block *b = stext->first_block; b && !found;
+                 b = b->next)
+            {
+                if (b->type != FZ_STEXT_BLOCK_TEXT)
+                    continue;
+                for (const fz_stext_line *l = b->u.t.first_line; l && !found;
+                     l = l->next)
+                    for (const fz_stext_char *c = l->first_char; c; c = c->next)
+                        if (c->c > ' ')
+                        {
+                            found = true;
+                            break;
+                        }
+            }
+        }
+    }
+    fz_catch(ctx)
+    {
+        failed = true;
+    }
+
+    fz_drop_context(ctx);
+    if (!failed)
+        m_has_text_layer = found ? 1 : 0;
+    return found;
 }
 
 std::vector<Model::CachedTextChar>

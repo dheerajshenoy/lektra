@@ -227,6 +227,10 @@ public:
         return supports_text_selection();
     }
 
+    // True if at least one page has extractable text. Scans pages until one
+    // is found; the answer is cached until the document changes.
+    [[nodiscard]] bool hasTextLayer() noexcept;
+
     [[nodiscard]] inline bool supports_outline() const noexcept
     {
         return m_filetype == FileType::PDF || m_filetype == FileType::EPUB
@@ -804,6 +808,7 @@ private:
     QString m_filepath;
     QString m_cached_password;
     int m_page_count = 0;
+    int m_has_text_layer = -1; // -1 unknown, 0 no, 1 yes
     float m_dpr = 1.0f, m_dpi = 96.0f, m_zoom = 1.0f, m_rotation = 0.0f,
           m_inv_dpr     = 1.0f;
     bool m_invert_color = false;
