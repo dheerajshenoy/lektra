@@ -8,6 +8,11 @@
 - New **caret mode** (`caret_mode` command, default `F7`) — a keyboard-driven text cursor for character-by-character navigation, cf. Firefox/Okular "caret browsing". Left/Right/Up/Down (also `hjkl`), Home/End, and Shift+movement (also vim-style `H`/`J`/`K`/`L`) to extend a selection; the existing yank command now has a default binding (`y`) to copy it.
 - New statusbar layout customization: `[statusbar].layout` (also `lektra.opt.statusbar.layout`) takes an ordered list of modules, with `"|"` dividing the left/center/right groups.
 - New `zoom` statusbar module showing the current zoom level (e.g. `150%`); previously `[statusbar.components.zoom]` existed but nothing was shown.
+- Multi-select tabs with Ctrl+click (toggle) and Shift+click (range); selected tabs are highlighted.
+- Right-clicking a selected tab opens a menu for the group: close, merge into a vertical or horizontal split, move to a new window, or save as a session.
+- Tabs with splits get a "Move Splits to Separate Tabs" menu item, which keeps the first split in place and opens the others as tabs at their current page.
+- New tab commands: `tabs_select_toggle`, `tabs_select_all`, `tabs_select_clear`, `tabs_close_selected`, `tabs_merge_vertical`, `tabs_merge_horizontal`, `tabs_split_out`, `tabs_move_to_window`, `tabs_save_session [name]`. Operations act on the selected tabs, or the current tab when nothing is selected.
+- New `lektra.tabs` Lua functions mirroring these: `selected`, `select`, `select_all`, `clear_selection`, `close_selected`, `merge`, `split_out`, `move_to_window`, `save_session`.
 
 ### Bug Fixes
 

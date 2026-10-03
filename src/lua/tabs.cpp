@@ -361,5 +361,144 @@ Lektra::initLuaTabs() noexcept
     }, 1);
     lua_setfield(m_L, -2, "get_id");
 
+    // Multi-tab selection and operations. Indices are 0-based. Operations
+    // take an optional list of indices; by default they act on the selected
+    // tabs, or on the current tab when nothing is selected.
+    auto setFn = [this](const char *name, lua_CFunction fn)
+    {
+        lua_pushlightuserdata(m_L, this);
+        lua_pushcclosure(m_L, fn, 1);
+        lua_setfield(m_L, -2, name);
+    };
+
+    // Reads an optional index list at stack position `idx`, keeping only
+    // indices that refer to an existing tab.
+    static auto readIndices = [](lua_State *L, int idx, Lektra *lektra)
+    {
+        QList<int> out;
+        if (!lektra->m_tab_widget)
+            return out;
+        if (lua_istable(L, idx))
+        {
+            const int count = lektra->m_tab_widget->count();
+            const lua_Integer n = luaL_len(L, idx);
+            for (lua_Integer i = 1; i <= n; ++i)
+            {
+                lua_rawgeti(L, idx, i);
+                const int v = static_cast<int>(luaL_checkinteger(L, -1));
+                lua_pop(L, 1);
+                if (v >= 0 && v < count)
+                    out << v;
+            }
+        }
+        else
+        {
+            out = lektra->targetTabs();
+        }
+        return out;
+    };
+
+    // lektra.tabs.selected() -> integer[]
+    setFn("selected", [](lua_State *L) -> int
+    {
+        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        lua_newtable(L);
+        if (!lektra->m_tab_widget)
+            return 1;
+        int i = 1;
+        for (int index : lektra->m_tab_widget->tabBar()->selectedTabs())
+        {
+            lua_pushinteger(L, index);
+            lua_rawseti(L, -2, i++);
+        }
+        return 1;
+    });
+
+    // lektra.tabs.select(index, selected = true)
+    setFn("select", [](lua_State *L) -> int
+    {
+        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        if (!lektra->m_tab_widget)
+            return 0;
+        const int index = static_cast<int>(luaL_checkinteger(L, 1));
+        const bool selected = lua_isnoneornil(L, 2) ? true : lua_toboolean(L, 2);
+        lektra->m_tab_widget->tabBar()->setTabSelected(index, selected);
+        return 0;
+    });
+
+    setFn("select_all", [](lua_State *L) -> int
+    {
+        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        if (!lektra->m_tab_widget)
+            return 0;
+        lektra->m_tab_widget->tabBar()->selectAllTabs();
+        return 0;
+    });
+
+    setFn("clear_selection", [](lua_State *L) -> int
+    {
+        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        if (!lektra->m_tab_widget)
+            return 0;
+        lektra->m_tab_widget->tabBar()->clearTabSelection();
+        return 0;
+    });
+
+    // lektra.tabs.close_selected([indices])
+    setFn("close_selected", [](lua_State *L) -> int
+    {
+        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        if (!lektra->m_tab_widget)
+            return 0;
+        lektra->closeTabs(readIndices(L, 1, lektra));
+        return 0;
+    });
+
+    // lektra.tabs.merge(mode, [indices]) — mode is "vertical" or "horizontal"
+    setFn("merge", [](lua_State *L) -> int
+    {
+        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        if (!lektra->m_tab_widget)
+            return 0;
+        const QString mode = QString::fromUtf8(luaL_checkstring(L, 1));
+        if (mode != QLatin1String("vertical") && mode != QLatin1String("horizontal"))
+            return luaL_error(L, "tabs.merge: mode must be \"vertical\" or \"horizontal\"");
+        lektra->mergeTabsAsSplits(readIndices(L, 2, lektra), mode == QLatin1String("vertical"));
+        return 0;
+    });
+
+    // lektra.tabs.split_out([indices])
+    setFn("split_out", [](lua_State *L) -> int
+    {
+        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        if (!lektra->m_tab_widget)
+            return 0;
+        lektra->splitTabsIntoTabs(readIndices(L, 1, lektra));
+        return 0;
+    });
+
+    // lektra.tabs.move_to_window([indices])
+    setFn("move_to_window", [](lua_State *L) -> int
+    {
+        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        if (!lektra->m_tab_widget)
+            return 0;
+        lektra->moveTabsToNewWindow(readIndices(L, 1, lektra));
+        return 0;
+    });
+
+    // lektra.tabs.save_session(name, [indices]) — name may be nil to be asked
+    setFn("save_session", [](lua_State *L) -> int
+    {
+        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        if (!lektra->m_tab_widget)
+            return 0;
+        const QString name = lua_isnoneornil(L, 1)
+                                 ? QString()
+                                 : QString::fromUtf8(luaL_checkstring(L, 1));
+        lektra->saveTabsAsSession(readIndices(L, 2, lektra), name);
+        return 0;
+    });
+
     lua_setfield(m_L, -2, "tabs");
 }

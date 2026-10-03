@@ -4763,6 +4763,8 @@ Lektra::tabFilePaths(const QList<int> &indices) noexcept
 QList<int>
 Lektra::targetTabs() const noexcept
 {
+    if (!m_tab_widget)
+        return {};
     QList<int> tabs = m_tab_widget->tabBar()->selectedTabs();
     if (tabs.isEmpty() && m_tab_widget->currentIndex() >= 0)
         tabs << m_tab_widget->currentIndex();
