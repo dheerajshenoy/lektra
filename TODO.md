@@ -23,6 +23,7 @@
 - [ ] Clickable Plain text DOIs in PDF text
 - [ ] Smoother find-as-you-type
 - [ ] Duplicating a tab keeps the page, zoom and scroll position of the original tab.
+- [ ] Multi tab select and operate (split, close, duplicate, move, etc.)
 
 ## LOW PRIORITY
 
