@@ -728,16 +728,29 @@ DocumentView::initConnections() noexcept
     connect(m_gview, &GraphicsView::zoomOutRequested, this,
             &DocumentView::ZoomOut);
 
-    connect(m_gview, QOverload<QRectF>::of(&GraphicsView::annotSelectRequested),
-            this, [this](QRectF sceneRect)
-    { handleAnnotSelectRequested(sceneRect); });
+    // Annotation handlers are only wired up for documents that can have
+    // annotations; otherwise the signals have no receiver at all.
+    if (m_model->supports_annotations())
+    {
+        connect(m_gview,
+                QOverload<QRectF>::of(&GraphicsView::annotSelectRequested),
+                this, [this](QRectF sceneRect)
+        { handleAnnotSelectRequested(sceneRect); });
 
-    connect(m_gview,
-            QOverload<QPointF>::of(&GraphicsView::annotSelectRequested), this,
-            [this](QPointF scenePos) { handleAnnotSelectRequested(scenePos); });
+        connect(m_gview,
+                QOverload<QPointF>::of(&GraphicsView::annotSelectRequested),
+                this, [this](QPointF scenePos)
+        { handleAnnotSelectRequested(scenePos); });
 
-    connect(m_gview, &GraphicsView::annotSelectClearRequested, this,
-            &DocumentView::handleAnnotSelectClearRequested);
+        connect(m_gview, &GraphicsView::annotSelectClearRequested, this,
+                &DocumentView::handleAnnotSelectClearRequested);
+
+        connect(m_gview, &GraphicsView::annotRectRequested, this,
+                &DocumentView::handleAnnotRectRequested);
+
+        connect(m_gview, &GraphicsView::annotPopupRequested, this,
+                &DocumentView::handleAnnotPopupRequested);
+    }
 
     connect(m_gview, &GraphicsView::textSelectionRequested, this,
             &DocumentView::handleTextSelection);
@@ -753,12 +766,6 @@ DocumentView::initConnections() noexcept
 
     connect(m_gview, &GraphicsView::regionSelectRequested, this,
             &DocumentView::handleRegionSelectRequested);
-
-    connect(m_gview, &GraphicsView::annotRectRequested, this,
-            &DocumentView::handleAnnotRectRequested);
-
-    connect(m_gview, &GraphicsView::annotPopupRequested, this,
-            &DocumentView::handleAnnotPopupRequested);
 
     connect(m_gview, &GraphicsView::linkCtrlClickRequested, this,
             &DocumentView::handleLinkCtrlClickRequested);
