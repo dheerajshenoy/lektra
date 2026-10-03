@@ -9,24 +9,22 @@
 
 ## MEDIUM PRIORITY
 
+- [ ] Make tab sizes fixed while closing tabs rapidly (like Chrome) instead of shrinking them to fit
 - [ ] Pin Tabs
-- [ ] Your reading position is saved as a chapter bookmark, so it survives font-size changes. (For reflowable documents, the bookmark is anchored to the chapter and a y-fraction of the chapter's height, so it survives font-size changes. For fixed-layout documents, the bookmark is anchored to the page number.)
-- [ ] Chrome-style tabs (Ctrl+Tab to switch, Ctrl+Shift+Tab to switch backwards)
 - [ ] Configurable line scroll distance
-- [ ] Click away to deselect an annotation
-- [ ] Link descriptions on hover
 - [ ] Laser pointer for presentation view
-- [ ] Tab hover preview
-- [ ] Keyboard shortcuts cheat sheet
-- [ ] Clickable Plain text DOIs in PDF text
-- [ ] Smoother find-as-you-type
+- [ ] Citation and reference hover preview
 - [ ] Duplicating a tab keeps the page, zoom and scroll position of the original tab.
 
 ## LOW PRIORITY
 
+- [ ] Your reading position is saved as a chapter bookmark, so it survives font-size changes. (For reflowable documents, the bookmark is anchored to the chapter and a y-fraction of the chapter's height, so it survives font-size changes. For fixed-layout documents, the bookmark is anchored to the page number.)
+- [ ] Click away to deselect an annotation
+- [ ] Clickable Plain text DOIs in PDF text
+- [ ] Smoother find-as-you-type
+- [ ] Tab hover preview
 - [ ] Use `djvudec` for DjVu rendering (https://github.com/kjk/djvudec)
 - [ ] Citation preview for plain-text references
-- [ ] Citation and reference hover preview
 - [ ] Comic book archive support with libarchive instead of MuPDF
 - [ ] Bookmarks/history/sessions store raw `PageLocation{pageno,x,y}` (`include/PageLocation.hpp`), which an EPUB/reflowable-document relayout invalidates. Short-term (already shipped alongside reflow): clamp to new page count on load (approximately right page, not exact position). Real fix — anchoring EPUB bookmarks to `(chapter, uri-fragment, y-fraction)` like the outline now does (see `Model::resolveOutlineNode`) — is a `PageLocation`/`BookmarkManager` schema change and belongs in its own follow-up.
 - [ ] Don't add connection to annotation when in non-annotatable mode
@@ -39,6 +37,7 @@
 
 ## LUA PLUGIN IDEAS
 
+- [ ] Text selection word count
 - [ ] Search region with Google Lens
 - [ ] Read Aloud (text-to-speech)
 - [ ] Equation OCR to LaTeX
