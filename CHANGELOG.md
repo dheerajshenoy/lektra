@@ -4,9 +4,17 @@
 
 ### New Features
 
+- You can now click-and-drag an embedded image straight out of a document (PDF) onto another app or a file manager, saving/pasting it as a real PNG — instead of only being able to copy a selected region.
+- New **caret mode** (`caret_mode` command, default `F7`) — a keyboard-driven text cursor for character-by-character navigation, cf. Firefox/Okular "caret browsing". Left/Right/Up/Down (also `hjkl`), Home/End, and Shift+movement (also vim-style `H`/`J`/`K`/`L`) to extend a selection; the existing yank command now has a default binding (`y`) to copy it.
+- New statusbar layout customization: `[statusbar].layout` (also `lektra.opt.statusbar.layout`) takes an ordered list of modules, with `"|"` dividing the left/center/right groups.
+- New `zoom` statusbar module showing the current zoom level (e.g. `150%`); previously `[statusbar.components.zoom]` existed but nothing was shown.
+
 ### Bug Fixes
 
 - Fix the `url_regex` string in the default_config.toml file
+- Fix scrolling through image-heavy/scanned documents re-rendering every visible page on each scroll tick, even when nothing changed; pages already rendered with identical settings are now left alone.
+- Fix the macOS `build_dmg.sh` failing when Homebrew's Qt tools aren't on `PATH` or the unversioned `qtpaths` symlink is missing; it now resolves and fixes both automatically.
+- Fix crash reports being useless on a normal (Release) build — no debug info was kept and the app's own functions weren't even resolvable by name. Crash reports now include a properly symbolized stack trace (function names + file/line) alongside the raw one.
 
 ## 0.7.8
 
@@ -24,8 +32,6 @@
 - New `file_open_no_history` command — opens a file without adding it to the recent-files list.
 - New `files_recent_clean` command — removes recent-files entries whose file no longer exists on disk.
 - New `trim_margins` command — hides the blank margins around each page's content, detected as pages are shown.
-- You can now click-and-drag an embedded image straight out of a document (PDF) onto another app or a file manager, saving/pasting it as a real PNG — instead of only being able to copy a selected region.
-- New **caret mode** (`caret_mode` command, default `F7`) — a keyboard-driven text cursor for character-by-character navigation, cf. Firefox/Okular "caret browsing". Left/Right/Up/Down (also `hjkl`), Home/End, and Shift+movement (also vim-style `H`/`J`/`K`/`L`) to extend a selection; the existing yank command now has a default binding (`y`) to copy it.
 - A file that fails to open now keeps its own tab instead of vanishing — the tab title shows in red and the tab itself shows a centered error message, instead of a blocking "file not found" dialog with no trace of the attempt afterward.
 - File Properties for PDFs now shows digital signature info (signer, date, reason, location) when the document has signature fields — this reports what the signature claims, not whether it's cryptographically valid.
 - File Properties for images now also shows DPI. For CBZ/CBT it now shows the image count and the list of image files inside the archive (previously just page count).
@@ -88,7 +94,6 @@
 - Fix the total page count shown in the statusbar not updating after changing font size in a reflowable document (EPUB/FB2/MOBI), even though the number of pages actually changes when text re-paginates.
 - Fix a brief blank view (just scrollbars, no page) right after a document finishes opening — the loading spinner now stays up until the first page has actually rendered, instead of stopping as soon as the document's metadata finished parsing.
 - Fix scrollbars briefly flashing in the wrong spot (top-left corner) instead of staying hidden when a file fails to open.
-- Fix crash reports being useless on a normal (Release) build — no debug info was kept and the app's own functions weren't even resolvable by name. Crash reports now include a properly symbolized stack trace (function names + file/line) alongside the raw one.
 
 ---
 
