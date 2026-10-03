@@ -20,6 +20,7 @@
 - New Lua `View` functions: `links`, `follow_link`, `link_hints`, `select_range`, `select_region`, `scroll`, `scroll_to`, `scroll_position`, `visible_pages`, `page_size` and `page_sizes`.
 - New Lua APIs: `lektra.tabs.rename` and `Tab:rename`; `View:container()` now works, with `vsplit`, `hsplit`, `views`, `focus`, `close_view`, `close_others` and more; `lektra.sessions` (`list`, `exists`, `load`, `delete`), `lektra.recent_files.list` and `lektra.window.open`.
 - New `tab_rename` command to give a tab a custom title.
+- The config file now reports settings with the wrong type (or an invalid colour) in a dialog with the line number, instead of ignoring them silently.
 
 ### Bug Fixes
 

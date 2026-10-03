@@ -54,12 +54,41 @@ set_title_format_if_present(toml::node_view<toml::node> n,
     }
 }
 
+// Problems found while reading the config file, shown together once it has
+// been read. Values of the wrong type used to be skipped without a word.
+static QStringList g_config_issues;
+
+static void
+configIssue(const toml::node *node, const QString &message)
+{
+    const int line = node ? static_cast<int>(node->source().begin.line) : 0;
+    g_config_issues << (line > 0 ? QString("line %1: %2").arg(line).arg(message)
+                                 : message);
+}
+
+template <typename T>
+static inline QString
+expectedType()
+{
+    if constexpr (std::is_same_v<T, bool>)
+        return QObject::tr("true or false");
+    else if constexpr (std::is_integral_v<T>)
+        return QObject::tr("a whole number");
+    else if constexpr (std::is_floating_point_v<T>)
+        return QObject::tr("a number");
+    else
+        return QObject::tr("a different type of value");
+}
+
 template <typename T>
 static inline void
 set(toml::node_view<toml::node> node, T &target)
 {
     if (auto v = node.value<T>())
         target = *v;
+    else if (node)
+        configIssue(node.node(),
+                    QObject::tr("expected %1").arg(expectedType<T>()));
 }
 
 static inline void
@@ -67,6 +96,8 @@ set(toml::node_view<toml::node> n, QString &dst)
 {
     if (auto v = n.value<std::string>())
         dst = QString::fromStdString(*v);
+    else if (n)
+        configIssue(n.node(), QObject::tr("expected text in quotes"));
 }
 
 static inline void
@@ -77,7 +108,13 @@ set_color(toml::node_view<toml::node> n, uint32_t &dst)
         uint32_t tmp = dst;
         if (parseHexColor(*s, tmp))
             dst = tmp;
+        else
+            configIssue(n.node(), QObject::tr("'%1' is not a color; use "
+                                              "\"#RRGGBB\" or \"#RRGGBBAA\"")
+                                      .arg(QString::fromStdString(*s)));
     }
+    else if (n)
+        configIssue(n.node(), QObject::tr("expected a color like \"#RRGGBB\""));
 }
 
 static inline void
@@ -1025,6 +1062,7 @@ Lektra::initConfig() noexcept
         return;
     }
 
+    g_config_issues.clear();
     toml::table toml;
 
     try
@@ -1119,22 +1157,28 @@ Lektra::initConfig() noexcept
                 const QString secName
                     = QString::fromUtf8(sec.data(), sec.length());
                 if (!kSections.contains(secName))
-                    qWarning().noquote()
-                        << QString("config.toml line %1: [filetype.%2]: "
-                                   "unknown section '%3'")
-                               .arg(value.source().begin.line)
-                               .arg(QString::fromStdString(name), secName);
+                    configIssue(&value,
+                                QString("[filetype.%1]: unknown section '%2'")
+                                    .arg(QString::fromStdString(name), secName));
                 else if (!value.is_table())
-                    qWarning().noquote()
-                        << QString("config.toml line %1: [filetype.%2]: '%3' is "
-                                   "a section; set an option inside it, e.g. "
-                                   "%3.<option> = ...")
-                               .arg(value.source().begin.line)
-                               .arg(QString::fromStdString(name), secName);
+                    configIssue(&value,
+                                QString("[filetype.%1]: '%2' is a section; set "
+                                        "an option inside it, e.g. "
+                                        "%2.<option> = ...")
+                                    .arg(QString::fromStdString(name), secName));
             }
             auto table = std::make_shared<toml::table>(*section);
-            (*overrides)[name]
-                = [table](Config &cfg) { applyViewToml(*table, cfg); };
+            // Read it once now so wrong values are reported at startup, not
+            // silently the first time a document of this type is opened.
+            {
+                Config scratch = m_config;
+                applyViewToml(*section, scratch); // the copy has no line info
+            }
+            (*overrides)[name] = [table](Config &cfg)
+            {
+                applyViewToml(*table, cfg);
+                g_config_issues.clear(); // already reported at startup
+            };
         }
         m_config.filetype_overrides = std::move(overrides);
     }
@@ -1657,6 +1701,22 @@ Lektra::initConfig() noexcept
                     QString::fromStdString(value.value_or<std::string>("")));
             }
         }
+    }
+
+    if (!g_config_issues.isEmpty())
+    {
+        constexpr int kMaxShown = 15;
+        QStringList shown       = g_config_issues.mid(0, kMaxShown);
+        if (g_config_issues.size() > kMaxShown)
+            shown << tr("... and %1 more")
+                         .arg(g_config_issues.size() - kMaxShown);
+        for (const QString &issue : std::as_const(g_config_issues))
+            qWarning().noquote() << "config:" << issue;
+        QMessageBox::warning(
+            this, tr("Problems in configuration file"),
+            tr("%1\n\nThese settings were ignored:\n\n%2")
+                .arg(m_config_file_path, shown.join('\n')));
+        g_config_issues.clear();
     }
 
 #ifndef NDEBUG
