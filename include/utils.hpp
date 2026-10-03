@@ -200,7 +200,7 @@ supportedFormats()
            "*.ai " // Adobe Illustrator — PDF-compatible, opens via the PDF path
            "*.djvu *.djv"
            "*.oxps *.xps "
-           "*.cbz *.cbt "
+           "*.cbz *.cbr *.cb7 *.cbt "
            "*.epub "
            "*.fb2 *.fbz "
            "*.mobi "

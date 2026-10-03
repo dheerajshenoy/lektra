@@ -9,6 +9,7 @@ file(WRITE "${CMAKE_BINARY_DIR}/version.txt" "${PROJECT_VERSION}")
 
 option(WITH_SYNCTEX "Enable synctex support" ON)
 option(WITH_FONTCONFIG "Look up fonts via fontconfig when available (otherwise scan the system font folders)" ON)
+option(WITH_LIBARCHIVE "Open RAR/7z comic books (cbr, cb7) via libarchive when available" ON)
 option(WITH_LUA     "Enable lua scripting support" OFF)
 option(WITH_LLM_SUPPORT "Enable LLM support" OFF)
 
@@ -174,6 +175,17 @@ if (FONTCONFIG_FOUND)
     message(STATUS "fontconfig support: enabled (EPUB font_family)")
 else()
     message(STATUS "fontconfig not used - EPUB font_family scans the system font folders")
+endif()
+
+# Optional: RAR/7z comic books (cbr, cb7). The installed MuPDF is usually built
+# without libarchive, so Lektra unpacks these itself.
+if (WITH_LIBARCHIVE AND PkgConfig_FOUND)
+    pkg_check_modules(LIBARCHIVE QUIET IMPORTED_TARGET libarchive)
+endif()
+if (LIBARCHIVE_FOUND)
+    message(STATUS "libarchive support: enabled (cbr, cb7)")
+else()
+    message(STATUS "libarchive not used - cbr/cb7 comic books unsupported")
 endif()
 
 message(STATUS "librsvg support: runtime probe (uses librsvg-2.so.2 + libcairo.so.2 if installed)")
@@ -368,6 +380,11 @@ endif()
 # --- MuPDF ---
 target_include_directories(${PROJECT_NAME} PRIVATE ${MUPDF_INCLUDE_DIRS})
 target_compile_definitions(${PROJECT_NAME} PRIVATE HAS_MUPDF=1)
+
+if (LIBARCHIVE_FOUND)
+    target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::LIBARCHIVE)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_LIBARCHIVE=1)
+endif()
 
 if (FONTCONFIG_FOUND)
     target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::FONTCONFIG)

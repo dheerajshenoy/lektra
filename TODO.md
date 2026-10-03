@@ -9,8 +9,8 @@
 
 ## MEDIUM PRIORITY
 
+- [ ] Pin Tabs
 - [ ] Your reading position is saved as a chapter bookmark, so it survives font-size changes. (For reflowable documents, the bookmark is anchored to the chapter and a y-fraction of the chapter's height, so it survives font-size changes. For fixed-layout documents, the bookmark is anchored to the page number.)
-- [ ] Uniform Page Width (shows pages of different sizes at the same width at percentage zoom levels, using page 1 as the reference)
 - [ ] Chrome-style tabs (Ctrl+Tab to switch, Ctrl+Shift+Tab to switch backwards)
 - [ ] Configurable line scroll distance
 - [ ] Click away to deselect an annotation

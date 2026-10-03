@@ -1740,6 +1740,117 @@ Model::setReflowStyle(const QString &fontFamily, float lineSpacing) noexcept
     m_layout_em = 0.0f;
 }
 
+#ifdef HAVE_LIBARCHIVE
+#include <archive.h>
+#include <archive_entry.h>
+
+// Reads a RAR/7z/... comic archive with libarchive and repackages its files
+// as an in-memory zip, which MuPDF's comic handler opens. (The installed
+// MuPDF is typically built without libarchive, so it can't read them itself.)
+// The whole archive is held in memory while the document is open.
+static fz_buffer *
+archive_to_zip(fz_context *ctx, const char *path)
+{
+    struct archive *ar = archive_read_new();
+    fz_buffer *zipbuf  = nullptr;
+    fz_output *out     = nullptr;
+    fz_zip_writer *zip = nullptr;
+
+    fz_try(ctx)
+    {
+        archive_read_support_format_all(ar);
+        archive_read_support_filter_all(ar);
+        if (archive_read_open_filename(ar, path, 1 << 16) != ARCHIVE_OK)
+            fz_throw(ctx, FZ_ERROR_FORMAT, "cannot read archive: %s",
+                     archive_error_string(ar));
+
+        zipbuf = fz_new_buffer(ctx, 1 << 20);
+        out    = fz_new_output_with_buffer(ctx, zipbuf);
+        zip    = fz_new_zip_writer_with_output(ctx, out);
+        out    = nullptr; // the zip writer owns it now
+
+        struct archive_entry *entry = nullptr;
+        int r;
+        while ((r = archive_read_next_header(ar, &entry)) == ARCHIVE_OK
+               || r == ARCHIVE_WARN)
+        {
+            if (archive_entry_filetype(entry) != AE_IFREG)
+                continue;
+            const char *name = archive_entry_pathname(entry);
+            if (!name || !*name)
+                continue;
+
+            fz_buffer *data = fz_new_buffer(ctx, 1 << 16);
+            fz_try(ctx)
+            {
+                char block[1 << 16];
+                la_ssize_t n;
+                while ((n = archive_read_data(ar, block, sizeof block)) > 0)
+                    fz_append_data(ctx, data, block, static_cast<size_t>(n));
+                if (n < 0)
+                    fz_throw(ctx, FZ_ERROR_FORMAT, "cannot read '%s': %s", name,
+                             archive_error_string(ar));
+                // Pages are already compressed images: store, don't deflate.
+                fz_write_zip_entry(ctx, zip, name, data, 0);
+            }
+            fz_always(ctx)
+                fz_drop_buffer(ctx, data);
+            fz_catch(ctx)
+                fz_rethrow(ctx);
+        }
+        if (r != ARCHIVE_EOF)
+            fz_throw(ctx, FZ_ERROR_FORMAT, "cannot read archive: %s",
+                     archive_error_string(ar));
+
+        fz_close_zip_writer(ctx, zip);
+    }
+    fz_always(ctx)
+    {
+        fz_drop_zip_writer(ctx, zip);
+        fz_drop_output(ctx, out);
+        archive_read_free(ar);
+    }
+    fz_catch(ctx)
+    {
+        fz_drop_buffer(ctx, zipbuf);
+        fz_rethrow(ctx);
+    }
+    return zipbuf;
+}
+#endif
+
+// Opens a document. RAR (cbr) and 7z (cb7) comic archives go through
+// libarchive when it is available; everything else is MuPDF's own business.
+static fz_document *
+open_document_any(fz_context *ctx, const char *path)
+{
+    const QString suffix = QFileInfo(QString::fromUtf8(path)).suffix().toLower();
+    if (suffix != "cbr" && suffix != "cb7")
+        return fz_open_document(ctx, path);
+
+#ifdef HAVE_LIBARCHIVE
+    fz_buffer *zipbuf = archive_to_zip(ctx, path);
+    fz_stream *stm    = nullptr;
+    fz_document *doc  = nullptr;
+    fz_try(ctx)
+    {
+        stm = fz_open_buffer(ctx, zipbuf);
+        doc = fz_open_document_with_stream(ctx, "comic.cbz", stm);
+    }
+    fz_always(ctx)
+    {
+        fz_drop_stream(ctx, stm);
+        fz_drop_buffer(ctx, zipbuf);
+    }
+    fz_catch(ctx)
+        fz_rethrow(ctx);
+    return doc;
+#else
+    fz_throw(ctx, FZ_ERROR_UNSUPPORTED,
+             "this build of Lektra has no support for RAR/7z archives");
+#endif
+}
+
 void
 Model::initMuPDF() noexcept
 {
@@ -2197,7 +2308,7 @@ Model::openAsync_mupdf(const QString &canonPath) noexcept
         const std::string pathStr(pathBytes.constData(), pathBytes.size());
         fz_try(bg_ctx)
         {
-            doc = fz_open_document(bg_ctx, pathStr.c_str());
+            doc = open_document_any(bg_ctx, pathStr.c_str());
             if (!doc)
             {
                 fz_warn(bg_ctx, "Failed to open document: Unknown error");
@@ -2979,7 +3090,7 @@ Model::reloadDocument() noexcept
         const QByteArray filePathBytes = m_filepath.toUtf8();
         const std::string filePathStr(filePathBytes.constData(),
                                       filePathBytes.size());
-        new_doc = fz_open_document(m_ctx, filePathStr.c_str());
+        new_doc = open_document_any(m_ctx, filePathStr.c_str());
         if (!new_doc)
             return false;
 
@@ -6734,7 +6845,11 @@ Model::getFileType(const QString &path) noexcept
         return FileType::XLSX;
     if (suffix == "pptx")
         return FileType::PPTX;
-    if (suffix == "cbz")
+    // Comic archives: MuPDF reads zip (cbz), tar (cbt), and rar/7z (cbr, cb7)
+    // via libarchive. Archives have no content marker that says "comic", so
+    // go by extension.
+    if (suffix == "cbz" || suffix == "cbr" || suffix == "cb7"
+        || suffix == "cbt")
         return FileType::CBZ;
 
     const QMimeType mime

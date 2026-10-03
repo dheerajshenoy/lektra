@@ -21,6 +21,7 @@
 - New Lua APIs: `lektra.tabs.rename` and `Tab:rename`; `View:container()` now works, with `vsplit`, `hsplit`, `views`, `focus`, `close_view`, `close_others` and more; `lektra.sessions` (`list`, `exists`, `load`, `delete`), `lektra.recent_files.list` and `lektra.window.open`.
 - New `tab_rename` command to give a tab a custom title.
 - The config file now reports settings with the wrong type (or an invalid colour) in a dialog with the line number, instead of ignoring them silently.
+- Open `.cbr` (RAR) and `.cb7` (7z) comic books, in addition to `.cbz` and `.cbt`.
 
 ### Bug Fixes
 
