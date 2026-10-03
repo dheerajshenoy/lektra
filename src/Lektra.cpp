@@ -1726,6 +1726,7 @@ Lektra::initDefaultKeybinds() noexcept
         {"invert_color", "i"},
         {"menubar", "Ctrl+Shift+m"},
         {"command_palette", ":"},
+        {"run_last_command", "."},
         {"rotate_clock", ">"},
         {"rotate_anticlock", "<"},
         {"flip_horizontal", "|"},
@@ -5768,6 +5769,13 @@ Lektra::initCommands() noexcept
     { TogglePresentationMode(); });
     m_command_manager->reg("fullscreen", tr("Toggle fullscreen"),
                            [this](const QStringList &) { ToggleFullscreen(); });
+    m_command_manager->reg("run_last_command",
+                           tr("Run the last command again"),
+                           [this](const QStringList &)
+    {
+        if (!m_command_manager->runLast())
+            m_message_bar->showMessage(tr("No command to repeat"));
+    });
     m_command_manager->reg("command_palette", tr("Open command palette"),
                            [this](const QStringList &)
     { Show_command_picker(); });

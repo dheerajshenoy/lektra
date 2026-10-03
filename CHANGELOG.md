@@ -16,6 +16,7 @@
 - Per-view options, like Vim's window-local options: each view and split keeps its own copy of the view settings (page colours, zoom, layout, rendering, scrollbars, selection, search, annotations, links, behaviour). `view:opt()` changes one view; `lektra.opt` now sets the global default and the current view, instead of every view. Splits inherit the options of the view they were split from.
 - Per-file-type options in `config.toml`: `[filetype.pdf.behavior]`, `[filetype.epub.layout]` and so on override the view settings for documents of that type.
 - New `[reflow]` options `font_family`, `font_size` and `line_spacing` for EPUB and other reflowable documents. Any installed font can be used.
+- New `run_last_command` command (default key `.`) repeats the last command that was run, with the same arguments.
 
 ### Bug Fixes
 

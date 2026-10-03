@@ -30,7 +30,33 @@ public:
     reg(const QString &name, const QString &description,
         std::function<void(const QStringList &args)> action) noexcept
     {
-        m_commands[name] = {description, std::move(action)};
+        // Every registered command remembers itself as "the last command" so
+        // run_last_command works no matter how it was triggered (keybinding,
+        // palette, Lua, command line). Palette/repeat commands are skipped:
+        // repeating those would be useless.
+        m_commands[name]
+            = {description,
+               [this, name, action = std::move(action)](const QStringList &args)
+        {
+            if (name != "run_last_command" && name != "command_palette")
+            {
+                m_last_name = name;
+                m_last_args = args;
+            }
+            action(args);
+        }};
+    }
+
+    // Runs the command that was run most recently again, with the same
+    // arguments. Returns false if nothing has been run yet.
+    inline bool runLast() const noexcept
+    {
+        if (m_last_name.isEmpty())
+            return false;
+        // Copy: the command may record itself again while running.
+        const QString name       = m_last_name;
+        const QStringList args   = m_last_args;
+        return execute(name, args);
     }
 
     inline bool execute(const QString &name,
@@ -139,5 +165,7 @@ public:
 
 private:
     Commands m_commands;
+    QString m_last_name;
+    QStringList m_last_args;
     std::unordered_map<QString, int> m_usage_counts;
 };
