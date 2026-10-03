@@ -1483,32 +1483,115 @@ load_system_font(fz_context *ctx, const char *name, int bold, int italic,
 #else // !HAVE_FONTCONFIG
 
 #include <QDirIterator>
-#include <QRawFont>
+#include <QFile>
 #include <QStandardPaths>
 
 // Without fontconfig (Windows, macOS), find fonts by scanning the system font
-// folders once and indexing them by family name.
+// folders once and indexing them by family name. Only the few KB of each font
+// file that hold its names are read, and the scan runs on a background thread
+// so it normally finishes before a document needs it.
 namespace
 {
 struct IndexedFont
 {
     QString path;
+    int index   = 0; // face within a .ttc collection
     bool bold   = false;
     bool italic = false;
 };
 
-std::mutex g_font_index_mutex;
-bool g_font_index_built = false;
 QHash<QString, std::vector<IndexedFont>> g_font_index; // lower-case family
+QFuture<void> g_font_index_future;
+std::once_flag g_font_index_once;
+
+quint32
+be32(const QByteArray &b, int o)
+{
+    if (o < 0 || o + 4 > b.size())
+        return 0;
+    return (quint32(uchar(b[o])) << 24) | (quint32(uchar(b[o + 1])) << 16)
+           | (quint32(uchar(b[o + 2])) << 8) | quint32(uchar(b[o + 3]));
+}
+
+quint16
+be16(const QByteArray &b, int o)
+{
+    if (o < 0 || o + 2 > b.size())
+        return 0;
+    return (quint16(uchar(b[o])) << 8) | quint16(uchar(b[o + 1]));
+}
+
+// Reads one face (the sfnt starting at `base`) and adds it to the index.
+void
+indexFace(QFile &f, const QString &path, quint32 base, int faceIndex,
+          QHash<QString, std::vector<IndexedFont>> &out)
+{
+    f.seek(base);
+    const QByteArray hdr = f.read(12);
+    if (hdr.size() < 12)
+        return;
+    const int numTables = be16(hdr, 4);
+    const QByteArray dir = f.read(qint64(numTables) * 16);
+
+    quint32 nameOff = 0, nameLen = 0, headOff = 0;
+    for (int i = 0; i < numTables && (i + 1) * 16 <= dir.size(); ++i)
+    {
+        const QByteArray tag = dir.mid(i * 16, 4);
+        if (tag == "name")
+        {
+            nameOff = be32(dir, i * 16 + 8);
+            nameLen = be32(dir, i * 16 + 12);
+        }
+        else if (tag == "head")
+            headOff = be32(dir, i * 16 + 8);
+    }
+    if (!nameOff || nameLen < 6 || nameLen > (1u << 20))
+        return;
+
+    IndexedFont font;
+    font.path  = path;
+    font.index = faceIndex;
+    if (headOff && f.seek(headOff))
+    {
+        const QByteArray head = f.read(54); // macStyle at offset 44
+        const quint16 mac     = be16(head, 44);
+        font.bold             = mac & 1;
+        font.italic           = mac & 2;
+    }
+
+    f.seek(nameOff);
+    const QByteArray t = f.read(nameLen);
+    const int count = be16(t, 2), strings = be16(t, 4);
+    QStringList names;
+    for (int i = 0; i < count; ++i)
+    {
+        const int rec = 6 + i * 12;
+        if (rec + 12 > t.size())
+            break;
+        const int platform = be16(t, rec), id = be16(t, rec + 6);
+        const int len = be16(t, rec + 8), off = strings + be16(t, rec + 10);
+        // Legacy family (1) and typographic family (16).
+        if ((id != 1 && id != 16) || off + len > t.size())
+            continue;
+        QString name;
+        if (platform == 3 || platform == 0) // UTF-16BE
+        {
+            for (int k = 0; k + 1 < len; k += 2)
+                name += QChar(be16(t, off + k));
+        }
+        else if (platform == 1) // Mac Roman; ASCII-compatible for names
+            name = QString::fromLatin1(t.constData() + off, len);
+        if (!name.isEmpty() && !names.contains(name, Qt::CaseInsensitive))
+            names << name;
+    }
+    for (const QString &n : names)
+        out[n.toLower()].push_back(font);
+}
 
 void
 buildFontIndex()
 {
-    std::lock_guard<std::mutex> lock(g_font_index_mutex);
-    if (g_font_index_built)
-        return;
-    g_font_index_built = true;
-
+    QHash<QString, std::vector<IndexedFont>> index;
     const QStringList filters{"*.ttf", "*.otf", "*.ttc", "*.otc"};
     for (const QString &dir :
          QStandardPaths::standardLocations(QStandardPaths::FontsLocation))
@@ -1518,23 +1601,40 @@ buildFontIndex()
         while (it.hasNext())
         {
             const QString path = it.next();
-            const QRawFont raw(path, 12.0);
-            if (!raw.isValid())
+            QFile f(path);
+            if (!f.open(QIODevice::ReadOnly))
                 continue;
-            IndexedFont f;
-            f.path   = path;
-            f.bold   = raw.weight() >= QFont::DemiBold;
-            f.italic = raw.style() != QFont::StyleNormal;
-            g_font_index[raw.familyName().toLower()].push_back(std::move(f));
+            const QByteArray tag = f.read(4);
+            if (tag == "ttcf")
+            {
+                f.seek(8);
+                const QByteArray n = f.read(4);
+                const quint32 faces = be32(n, 0);
+                const QByteArray offs = f.read(qint64(faces) * 4);
+                for (quint32 i = 0; i < faces && i < 64; ++i)
+                    indexFace(f, path, be32(offs, i * 4), int(i), index);
+            }
+            else
+                indexFace(f, path, 0, 0, index);
         }
     }
+    g_font_index = std::move(index);
+}
+
+void
+startFontIndex()
+{
+    std::call_once(g_font_index_once,
+                   [] { g_font_index_future = QtConcurrent::run(buildFontIndex); });
 }
 
 fz_font *
 load_system_font(fz_context *ctx, const char *name, int bold, int italic,
                  int /*needs_exact_metrics*/)
 {
-    std::lock_guard<std::mutex> lock(g_font_index_mutex);
+    startFontIndex();
+    g_font_index_future.waitForFinished(); // no-op once the scan is done
+
     const auto it = g_font_index.constFind(QString::fromUtf8(name).toLower());
     if (it == g_font_index.cend() || it->empty())
         return nullptr;
@@ -1553,10 +1653,11 @@ load_system_font(fz_context *ctx, const char *name, int bold, int italic,
         }
     }
 
-    fz_font *font = nullptr;
+    fz_font *font         = nullptr;
     const QByteArray path = best->path.toUtf8();
     fz_try(ctx)
-        font = fz_new_font_from_file(ctx, nullptr, path.constData(), 0, 0);
+        font = fz_new_font_from_file(ctx, nullptr, path.constData(),
+                                     best->index, 0);
     fz_catch(ctx)
         font = nullptr;
     return font;
@@ -1565,15 +1666,22 @@ load_system_font(fz_context *ctx, const char *name, int bold, int italic,
 #endif
 
 void
+Model::prewarmFontIndex() noexcept
+{
+#ifndef HAVE_FONTCONFIG
+    startFontIndex();
+#endif
+}
+
+void
 Model::setReflowStyle(const QString &fontFamily, float lineSpacing) noexcept
 {
     if (!m_ctx)
         return;
 
 #ifndef HAVE_FONTCONFIG
-    // Index on the calling (GUI) thread; MuPDF's worker threads only read it.
     if (!fontFamily.isEmpty())
-        buildFontIndex();
+        startFontIndex(); // background scan; the loader waits for it
 #endif
 
     QString css;

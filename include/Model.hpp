@@ -548,6 +548,11 @@ public:
     // at the next layout, so follow it with relayoutForViewport().
     void setReflowStyle(const QString &fontFamily, float lineSpacing) noexcept;
 
+    // Starts indexing the system fonts in the background (platforms without
+    // fontconfig), so a configured font_family is ready by the time a
+    // document needs it. Safe to call repeatedly.
+    static void prewarmFontIndex() noexcept;
+
     // Current reflow page-box size in points — the last size passed to
     // relayoutForViewport(), or MuPDF's own default (FZ_DEFAULT_LAYOUT_W/H,
     // 420x595) when the document hasn't been laid out yet. Font-size

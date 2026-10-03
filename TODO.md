@@ -13,7 +13,6 @@
 - [ ] Uniform Page Width (shows pages of different sizes at the same width at percentage zoom levels, using page 1 as the reference)
 - [ ] Chrome-style tabs (Ctrl+Tab to switch, Ctrl+Shift+Tab to switch backwards)
 - [ ] Configurable line scroll distance
-- [ ] Ebook font and line spacing settings
 - [ ] Click away to deselect an annotation
 - [ ] Link descriptions on hover
 - [ ] Laser pointer for presentation view

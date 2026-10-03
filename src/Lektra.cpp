@@ -911,6 +911,9 @@ applyViewToml(toml::table &toml, Config &cfg)
         set(reflow["line_spacing"], cfg.reflow.line_spacing);
     }
 
+    if (!cfg.reflow.font_family.isEmpty())
+        Model::prewarmFontIndex();
+
     if (auto selection = toml["selection"])
     {
         set(selection["drag_threshold"], cfg.selection.drag_threshold);
