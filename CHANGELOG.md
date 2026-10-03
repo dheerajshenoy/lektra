@@ -22,6 +22,7 @@
 - Fix the macOS `build_dmg.sh` failing when Homebrew's Qt tools aren't on `PATH` or the unversioned `qtpaths` symlink is missing; it now resolves and fixes both automatically.
 - Fix diagonal colour stripes and blotches on scanned pages when `behavior.dont_invert_images` is enabled together with `invert_mode` or `high_contrast`. Images are now restored exactly as they render normally, so a scanned page that is entirely one image is left un-inverted while that option is on.
 - Fix crash reports being useless on a normal (Release) build — no debug info was kept and the app's own functions weren't even resolvable by name. Crash reports now include a properly symbolized stack trace (function names + file/line) alongside the raw one.
+- Search on a document with no text layer (e.g. a scanned PDF) now shows an information box explaining that it can't be searched, instead of silently finding nothing.
 
 ## 0.7.8
 
