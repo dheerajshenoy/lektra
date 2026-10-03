@@ -17,6 +17,9 @@
 - Per-file-type options in `config.toml`: `[filetype.pdf.behavior]`, `[filetype.epub.layout]` and so on override the view settings for documents of that type.
 - New `[reflow]` options `font_family`, `font_size` and `line_spacing` for EPUB and other reflowable documents. Any installed font can be used.
 - New `run_last_command` command (default key `.`) repeats the last command that was run, with the same arguments.
+- New Lua `View` functions: `links`, `follow_link`, `link_hints`, `select_range`, `select_region`, `scroll`, `scroll_to`, `scroll_position`, `visible_pages`, `page_size` and `page_sizes`.
+- New Lua APIs: `lektra.tabs.rename` and `Tab:rename`; `View:container()` now works, with `vsplit`, `hsplit`, `views`, `focus`, `close_view`, `close_others` and more; `lektra.sessions` (`list`, `exists`, `load`, `delete`), `lektra.recent_files.list` and `lektra.window.open`.
+- New `tab_rename` command to give a tab a custom title.
 
 ### Bug Fixes
 
@@ -29,7 +32,7 @@
 - Fix crash reports being useless on a normal (Release) build — no debug info was kept and the app's own functions weren't even resolvable by name. Crash reports now include a properly symbolized stack trace (function names + file/line) alongside the raw one.
 - Search on a document with no text layer (e.g. a scanned PDF) now shows an information box explaining that it can't be searched, instead of silently finding nothing.
 
-## 0.7.8
+## 0.7.8 (2026-09-29)
 
 ### New Features
 

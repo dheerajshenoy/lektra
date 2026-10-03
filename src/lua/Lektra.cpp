@@ -87,7 +87,9 @@ Lektra::initLua() noexcept
     initLuaCmd();
     initLuaUI();
     initLuaTabs();
+    initLuaSessions();
     initLuaEventDispatcher();
+    initLuaContainer();
     initLuaView();
     initLuaKeymaps();
     initLuaMousemaps();

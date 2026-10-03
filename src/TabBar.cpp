@@ -107,6 +107,38 @@ TabBar::set_split_count(int index, int count) noexcept
     update(tabRect(index));
 }
 
+void
+TabBar::setTabText(int index, const QString &text)
+{
+    if (hasCustomTitle(index))
+        return;
+    QTabBar::setTabText(index, text);
+}
+
+void
+TabBar::setCustomTitle(int index, const QString &title)
+{
+    if (index < 0 || index >= count())
+        return;
+    m_custom_titles.insert(tabData(index).toInt(), title);
+    QTabBar::setTabText(index, title);
+}
+
+void
+TabBar::clearCustomTitle(int index)
+{
+    if (index < 0 || index >= count())
+        return;
+    m_custom_titles.remove(tabData(index).toInt());
+}
+
+bool
+TabBar::hasCustomTitle(int index) const noexcept
+{
+    return index >= 0 && index < count()
+           && m_custom_titles.contains(tabData(index).toInt());
+}
+
 int
 TabBar::splitCount(int index) const noexcept
 {

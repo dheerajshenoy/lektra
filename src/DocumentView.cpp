@@ -2683,6 +2683,68 @@ DocumentView::ScrollDown() noexcept
     }
 }
 
+void
+DocumentView::ScrollBy(int dx, int dy) noexcept
+{
+    if (dx)
+        m_hscroll->setValue(m_hscroll->value() + dx);
+    if (dy)
+        m_vscroll->setValue(m_vscroll->value() + dy);
+}
+
+void
+DocumentView::ScrollTo(int x, int y) noexcept
+{
+    m_hscroll->setValue(x);
+    m_vscroll->setValue(y);
+}
+
+QPoint
+DocumentView::scrollPosition() const noexcept
+{
+    return {m_hscroll->value(), m_vscroll->value()};
+}
+
+QPoint
+DocumentView::scrollMaximum() const noexcept
+{
+    return {m_hscroll->maximum(), m_vscroll->maximum()};
+}
+
+std::vector<int>
+DocumentView::VisiblePages() noexcept
+{
+    if (m_model->isImage())
+        return {0};
+    const std::set<int> &pages = getVisiblePages();
+    return {pages.begin(), pages.end()};
+}
+
+bool
+DocumentView::SelectTextRange(const PageLocation &from,
+                              const PageLocation &to) noexcept
+{
+    if (!m_model->supports_text_selection())
+        return false;
+
+    GraphicsImageItem *a = m_page_items_hash.value(from.pageno, nullptr);
+    GraphicsImageItem *b = m_page_items_hash.value(to.pageno, nullptr);
+    if (!a || !b || m_placeholder_pages.contains(from.pageno)
+        || m_placeholder_pages.contains(to.pageno))
+        return false;
+
+    const QPointF start
+        = a->mapToScene(m_model->toPixelSpace(from.pageno, {from.x, from.y}));
+    const QPointF end
+        = b->mapToScene(m_model->toPixelSpace(to.pageno, {to.x, to.y}));
+
+    // handleTextSelection ignores an unchanged selection; clear first so
+    // re-selecting the same range after a clear still takes effect.
+    ClearTextSelection();
+    handleTextSelection(start, end);
+    return hasTextSelection();
+}
+
 // Get the link KB for the current document
 QMap<int, Model::LinkInfo>
 DocumentView::LinkKB() noexcept

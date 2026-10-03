@@ -519,6 +519,18 @@ public:
     void ScrollUp() noexcept;
     void ScrollDown() noexcept;
     void ScrollDown_HalfPage() noexcept;
+    // Scrolls by (dx, dy) pixels, or to an absolute scroll position.
+    void ScrollBy(int dx, int dy) noexcept;
+    void ScrollTo(int x, int y) noexcept;
+    [[nodiscard]] QPoint scrollPosition() const noexcept;
+    [[nodiscard]] QPoint scrollMaximum() const noexcept;
+    // Pages (0-based) currently on screen, in order.
+    [[nodiscard]] std::vector<int> VisiblePages() noexcept;
+    // Selects the text from `from` to `to` (page-space points), reading
+    // order. Both pages must be rendered (visible or preloaded); returns
+    // false otherwise, or if the format has no selectable text.
+    bool SelectTextRange(const PageLocation &from,
+                         const PageLocation &to) noexcept;
     void ScrollUp_HalfPage() noexcept;
     void RotateClock() noexcept;
     void RotateAnticlock() noexcept;

@@ -50,6 +50,94 @@ push_outline_nodes(lua_State *L, fz_outline *node, Model *model)
     }
 }
 
+const char *
+linkTypeName(BrowseLinkItem::LinkType t)
+{
+    switch (t)
+    {
+        case BrowseLinkItem::LinkType::Page:
+            return "page";
+        case BrowseLinkItem::LinkType::Section:
+            return "section";
+        case BrowseLinkItem::LinkType::FitV:
+            return "fit_v";
+        case BrowseLinkItem::LinkType::FitH:
+            return "fit_h";
+        case BrowseLinkItem::LinkType::Location:
+            return "location";
+        case BrowseLinkItem::LinkType::External:
+            return "external";
+    }
+    return "external";
+}
+
+// Reads a page location (1-based page, page-space x/y in points) from the
+// table at `idx`: {page=, x=, y=} or {page, x, y}.
+static bool
+readLocation(lua_State *L, int idx, int *pageno, float *x, float *y)
+{
+    if (!lua_istable(L, idx))
+        return false;
+    auto field = [&](const char *name, int pos) -> lua_Number
+    {
+        lua_getfield(L, idx, name);
+        if (lua_isnil(L, -1))
+        {
+            lua_pop(L, 1);
+            lua_rawgeti(L, idx, pos);
+        }
+        const lua_Number v = lua_tonumber(L, -1);
+        lua_pop(L, 1);
+        return v;
+    };
+    *pageno = static_cast<int>(field("page", 1)) - 1;
+    *x      = static_cast<float>(field("x", 2));
+    *y      = static_cast<float>(field("y", 3));
+    return true;
+}
+
+static void
+pushLink(lua_State *L, const Model::PageLink &link, int pageno, int index)
+{
+    lua_newtable(L);
+    lua_pushinteger(L, pageno + 1);
+    lua_setfield(L, -2, "page");
+    lua_pushinteger(L, index + 1);
+    lua_setfield(L, -2, "index");
+
+    lua_newtable(L);
+    lua_pushnumber(L, link.rect.left());
+    lua_setfield(L, -2, "x0");
+    lua_pushnumber(L, link.rect.top());
+    lua_setfield(L, -2, "y0");
+    lua_pushnumber(L, link.rect.right());
+    lua_setfield(L, -2, "x1");
+    lua_pushnumber(L, link.rect.bottom());
+    lua_setfield(L, -2, "y1");
+    lua_setfield(L, -2, "rect");
+
+    lua_pushstring(L, link.info.uri.toUtf8().constData());
+    lua_setfield(L, -2, "uri");
+    lua_pushstring(L, linkTypeName(link.info.type));
+    lua_setfield(L, -2, "type");
+
+    if (link.info.target_page >= 0)
+    {
+        lua_pushinteger(L, link.info.target_page + 1);
+        lua_setfield(L, -2, "target_page");
+        if (!std::isnan(link.info.target_loc.x))
+        {
+            lua_pushnumber(L, link.info.target_loc.x);
+            lua_setfield(L, -2, "target_x");
+        }
+        if (!std::isnan(link.info.target_loc.y))
+        {
+            lua_pushnumber(L, link.info.target_loc.y);
+            lua_setfield(L, -2, "target_y");
+        }
+    }
+}
+
 #define VIEW_METHOD(name, body)                                                \
     {name, [](lua_State *L) -> int                                             \
     {                                                                          \
@@ -1047,6 +1135,246 @@ static const luaL_Reg DocumentViewMethods[] = {
                         lua_pushnil(L);
                     }
 
+                    return 1;
+                }),
+
+    // --- links ---------------------------------------------------------
+    VIEW_METHOD("links",
+                {
+                    if (!*view)
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    const int pageno = lua_isnoneornil(L, 2)
+                                           ? (*view)->pageNo()
+                                           : static_cast<int>(
+                                                 luaL_checkinteger(L, 2) - 1);
+                    const auto links = (*view)->model()->pageLinks(pageno);
+                    lua_createtable(L, static_cast<int>(links.size()), 0);
+                    for (size_t i = 0; i < links.size(); ++i)
+                    {
+                        pushLink(L, links[i], pageno, static_cast<int>(i));
+                        lua_rawseti(L, -2, static_cast<lua_Integer>(i + 1));
+                    }
+                    return 1;
+                }),
+
+    VIEW_METHOD("follow_link",
+                {
+                    if (!*view)
+                        return 0;
+                    // A link table from view:links(), or (page, index).
+                    int pageno = 0;
+                    int index  = 0;
+                    if (lua_istable(L, 2))
+                    {
+                        lua_getfield(L, 2, "page");
+                        pageno = static_cast<int>(lua_tointeger(L, -1)) - 1;
+                        lua_getfield(L, 2, "index");
+                        index = static_cast<int>(lua_tointeger(L, -1)) - 1;
+                        lua_pop(L, 2);
+                    }
+                    else
+                    {
+                        pageno = static_cast<int>(luaL_checkinteger(L, 2)) - 1;
+                        index  = static_cast<int>(luaL_checkinteger(L, 3)) - 1;
+                    }
+                    const auto links = (*view)->model()->pageLinks(pageno);
+                    if (index < 0 || index >= static_cast<int>(links.size()))
+                    {
+                        lua_pushboolean(L, 0);
+                        return 1;
+                    }
+                    (*view)->FollowLink(links[index].info);
+                    lua_pushboolean(L, 1);
+                    return 1;
+                }),
+
+    VIEW_METHOD("link_hints",
+                {
+                    // Starts hint mode in the current tab: "visit" (default)
+                    // follows the chosen link, "copy" copies its address.
+                    auto *lektra = qobject_cast<Lektra *>((*view)->window());
+                    if (!lektra || lektra->currentDocument() != *view)
+                    {
+                        lua_pushboolean(L, 0);
+                        return 1;
+                    }
+                    const QString mode = lua_isnoneornil(L, 2)
+                                             ? QStringLiteral("visit")
+                                             : QString::fromUtf8(
+                                                   luaL_checkstring(L, 2));
+                    if (mode == "copy")
+                        lektra->CopyLinkKB();
+                    else if (mode == "visit")
+                        lektra->VisitLinkKB();
+                    else
+                        return luaL_error(L, "mode must be \"visit\" or "
+                                             "\"copy\"");
+                    lua_pushboolean(L, 1);
+                    return 1;
+                }),
+
+    // --- text selection ------------------------------------------------
+    VIEW_METHOD("select_range",
+                {
+                    if (!*view)
+                        return 0;
+                    PageLocation a{};
+                    PageLocation b{};
+                    int pa = 0;
+                    int pb = 0;
+                    if (lua_istable(L, 2) && lua_istable(L, 3))
+                    {
+                        readLocation(L, 2, &pa, &a.x, &a.y);
+                        readLocation(L, 3, &pb, &b.x, &b.y);
+                    }
+                    else
+                    {
+                        pa  = static_cast<int>(luaL_checkinteger(L, 2)) - 1;
+                        a.x = static_cast<float>(luaL_checknumber(L, 3));
+                        a.y = static_cast<float>(luaL_checknumber(L, 4));
+                        pb  = static_cast<int>(luaL_checkinteger(L, 5)) - 1;
+                        b.x = static_cast<float>(luaL_checknumber(L, 6));
+                        b.y = static_cast<float>(luaL_checknumber(L, 7));
+                    }
+                    a.pageno = pa;
+                    b.pageno = pb;
+                    lua_pushboolean(L, (*view)->SelectTextRange(a, b));
+                    return 1;
+                }),
+
+    VIEW_METHOD("select_region",
+                {
+                    if (!*view)
+                        return 0;
+                    const int pageno
+                        = static_cast<int>(luaL_checkinteger(L, 2)) - 1;
+                    const auto x0 = static_cast<float>(luaL_checknumber(L, 3));
+                    const auto y0 = static_cast<float>(luaL_checknumber(L, 4));
+                    const auto x1 = static_cast<float>(luaL_checknumber(L, 5));
+                    const auto y1 = static_cast<float>(luaL_checknumber(L, 6));
+                    PageLocation from{};
+                    PageLocation to{};
+                    from.pageno = to.pageno = pageno;
+                    from.x                  = std::min(x0, x1);
+                    from.y                  = std::min(y0, y1);
+                    to.x                    = std::max(x0, x1);
+                    to.y                    = std::max(y0, y1);
+                    lua_pushboolean(L, (*view)->SelectTextRange(from, to));
+                    return 1;
+                }),
+
+    // --- scrolling and geometry ---------------------------------------
+    VIEW_METHOD("scroll",
+                {
+                    if (*view)
+                        (*view)->ScrollBy(
+                            static_cast<int>(luaL_optinteger(L, 2, 0)),
+                            static_cast<int>(luaL_optinteger(L, 3, 0)));
+                    return 0;
+                }),
+
+    VIEW_METHOD("scroll_to",
+                {
+                    if (*view)
+                    {
+                        const QPoint cur = (*view)->scrollPosition();
+                        (*view)->ScrollTo(
+                            static_cast<int>(luaL_optinteger(L, 2, cur.x())),
+                            static_cast<int>(luaL_optinteger(L, 3, cur.y())));
+                    }
+                    return 0;
+                }),
+
+    VIEW_METHOD("scroll_position",
+                {
+                    if (!*view)
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    const QPoint pos = (*view)->scrollPosition();
+                    const QPoint max = (*view)->scrollMaximum();
+                    lua_pushinteger(L, pos.x());
+                    lua_pushinteger(L, pos.y());
+                    lua_pushinteger(L, max.x());
+                    lua_pushinteger(L, max.y());
+                    return 4;
+                }),
+
+    VIEW_METHOD("visible_pages",
+                {
+                    if (!*view)
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    const auto pages = (*view)->VisiblePages();
+                    lua_createtable(L, static_cast<int>(pages.size()), 0);
+                    for (size_t i = 0; i < pages.size(); ++i)
+                    {
+                        lua_pushinteger(L, pages[i] + 1);
+                        lua_rawseti(L, -2, static_cast<lua_Integer>(i + 1));
+                    }
+                    return 1;
+                }),
+
+    VIEW_METHOD("page_size",
+                {
+                    if (!*view)
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    const int pageno
+                        = lua_isnoneornil(L, 2)
+                              ? (*view)->pageNo()
+                              : static_cast<int>(luaL_checkinteger(L, 2) - 1);
+                    if (pageno < 0 || pageno >= (*view)->numPages())
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    const QSizeF dim
+                        = (*view)->model()->pageSizePts(pageno, true);
+                    lua_pushnumber(L, dim.width());
+                    lua_pushnumber(L, dim.height());
+                    return 2;
+                }),
+
+    VIEW_METHOD("page_sizes",
+                {
+                    // {{width=, height=, known=}, ...}. Sizes of pages that
+                    // were never loaded are the document default (known =
+                    // false); use page_size() for an exact value.
+                    if (!*view)
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    Model *model    = (*view)->model();
+                    const int count = (*view)->numPages();
+                    const int first = std::max<int>(
+                        1, static_cast<int>(luaL_optinteger(L, 2, 1)));
+                    const int last = std::min<int>(
+                        count, static_cast<int>(luaL_optinteger(L, 3, count)));
+                    lua_createtable(L, std::max(0, last - first + 1), 0);
+                    int n = 0;
+                    for (int p = first; p <= last; ++p)
+                    {
+                        bool known      = false;
+                        const QSizeF dim = model->pageSizePts(p - 1, false, &known);
+                        lua_createtable(L, 0, 3);
+                        lua_pushnumber(L, dim.width());
+                        lua_setfield(L, -2, "width");
+                        lua_pushnumber(L, dim.height());
+                        lua_setfield(L, -2, "height");
+                        lua_pushboolean(L, known);
+                        lua_setfield(L, -2, "known");
+                        lua_rawseti(L, -2, ++n);
+                    }
                     return 1;
                 }),
 

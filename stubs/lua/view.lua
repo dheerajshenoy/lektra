@@ -16,16 +16,49 @@ Mode = {
 }
 
 ---@class Container
----Represents the underlying document and rendering context for a view in Lektra.
+---The splits of a tab. Get one with `View:container()`.
 local Container = {}
 
----Splits the view vertically, creating a new view that shares the same document. The new view will be displayed alongside the original view, allowing for side-by-side comparison or reference.
----@return View new_view The newly created view that shares the same document as the original view.
-function Container:vsplit() end
+---Splits the focused view, putting a new view beside it (with a vertical divider, like the `split_vertical` command). The new view shows the same document unless a file is given.
+---@param file? string Document to open in the new view.
+---@return View? new_view The new view; nil if the split could not be made.
+function Container:vsplit(file) end
 
----Splits the view horizontally, creating a new view that shares the same document. The new view will be displayed above or below the original view, allowing for side-by-side comparison or reference.
----@return View new_view The newly created view that shares the same document as the original view.
-function Container:hsplit() end
+---Splits the focused view, putting a new view below it (like the `split_horizontal` command).
+---@param file? string Document to open in the new view.
+---@return View? new_view The new view; nil if the split could not be made.
+function Container:hsplit(file) end
+
+---All views (splits) in the tab.
+---@return View[] views
+function Container:views() end
+
+---Number of splits in the tab.
+---@return integer count
+function Container:view_count() end
+
+---The focused view.
+---@return View? view
+function Container:view() end
+
+---Moves focus to a split.
+---@param target View|"left"|"right"|"up"|"down" A view, or a direction from the focused split.
+function Container:focus(target) end
+
+---Closes a split. The last remaining split is never closed.
+---@param view? View Split to close (default: the focused one).
+---@return boolean closed
+function Container:close_view(view) end
+
+---Closes every split except one.
+---@param view? View Split to keep (default: the focused one).
+function Container:close_others(view) end
+
+---Maximizes the focused split, or restores it if it is already maximized.
+function Container:toggle_maximize() end
+
+---@return boolean maximized
+function Container:is_maximized() end
 
 ---@class View
 ---Represents a View in Lektra.
@@ -342,3 +375,108 @@ lektra.view.current = function() end
 ---`Note` If not provided, it will return all documents in the current tab.
 ---@return View[] documents
 lektra.view.list = function(tabindex) end
+
+-- ##########################################
+-- Links, selection by position, scrolling and page geometry.
+-- Pages are 1-based. Page coordinates (x, y, rect) are in points on the
+-- unrotated page with the origin at its top-left.
+
+---@class PageRect
+---@field x0 number
+---@field y0 number
+---@field x1 number
+---@field y1 number
+
+---A link on a page, as returned by `View:links()`.
+---@class PageLink
+---@field page integer Page the link is on.
+---@field index integer Position in the page's link list.
+---@field rect PageRect Where the link is on its page.
+---@field uri string The link's address.
+---@field type "page"|"section"|"fit_v"|"fit_h"|"location"|"external"
+---@field target_page integer? Page an internal link goes to.
+---@field target_x number? Position on the target page.
+---@field target_y number? Position on the target page.
+
+---A position in the document.
+---@class PagePosition
+---@field page integer
+---@field x number
+---@field y number
+
+---Lists the links on a page. Loads the page if it was never shown, so it can
+---take a moment. Empty for formats without links.
+---@param pageno? integer Page (default: current page).
+---@return PageLink[] links
+function View:links(pageno) end
+
+---Follows a link, as if it had been clicked (jumps, or opens an external address).
+---@overload fun(self: View, pageno: integer, index: integer): boolean
+---@param link PageLink A link from `View:links()`.
+---@return boolean ok False if the link doesn't exist.
+function View:follow_link(link) end
+
+---Starts link hint mode in the current tab, like the `link_hint_visit` and
+---`link_hint_copy` commands. The view must be the current tab.
+---@param mode? "visit"|"copy" "visit" follows the chosen link (default); "copy" copies its address.
+---@return boolean started
+function View:link_hints(mode) end
+
+---Selects the text between two positions, in reading order. Both pages must be
+---rendered (visible or preloaded), so call this after the page has shown up
+---(e.g. from `OnPageChanged` or a timer).
+---@overload fun(self: View, page1: integer, x1: number, y1: number, page2: integer, x2: number, y2: number): boolean
+---@param from PagePosition|number[] `{page=, x=, y=}` or `{page, x, y}`.
+---@param to PagePosition|number[]
+---@return boolean selected False if the pages aren't rendered or have no text.
+function View:select_range(from, to) end
+
+---Selects the text inside a rectangle on one page (from its top-left corner to
+---its bottom-right, in reading order). Same requirements as `View:select_range`.
+---@param pageno integer
+---@param x0 number
+---@param y0 number
+---@param x1 number
+---@param y1 number
+---@return boolean selected
+function View:select_region(pageno, x0, y0, x1, y1) end
+
+---Scrolls by a number of pixels. Positive values scroll right and down.
+---@param dx? integer
+---@param dy? integer
+function View:scroll(dx, dy) end
+
+---Scrolls to an absolute position in pixels. Omit an axis to leave it unchanged.
+---@param x? integer
+---@param y? integer
+function View:scroll_to(x, y) end
+
+---Current scroll position and its limits, in pixels.
+---@return integer x
+---@return integer y
+---@return integer max_x
+---@return integer max_y
+function View:scroll_position() end
+
+---Pages currently on screen, in order.
+---@return integer[] pages
+function View:visible_pages() end
+
+---Size of a page in points (before rotation and zoom). Loads the page if
+---needed, so the size is exact.
+---@param pageno? integer Page (default: current page).
+---@return number? width nil if the page doesn't exist.
+---@return number? height
+function View:page_size(pageno) end
+
+---@class PageSize
+---@field width number
+---@field height number
+---@field known boolean False if the page was never loaded and this is the document's default size.
+
+---Sizes of a range of pages in points, without loading them. Use
+---`View:page_size()` when you need an exact value for one page.
+---@param first? integer First page (default: 1).
+---@param last? integer Last page (default: last page).
+---@return PageSize[] sizes
+function View:page_sizes(first, last) end

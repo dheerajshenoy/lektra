@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QApplication>
+#include <QHash>
 #include <QDrag>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -75,6 +76,14 @@ public:
         }
     };
 
+    // Hides QTabBar::setTabText so a tab the user renamed keeps its title when
+    // the app later refreshes titles (file name, split count, ...).
+    void setTabText(int index, const QString &text);
+    // Pins `title` as the tab's text until clearCustomTitle().
+    void setCustomTitle(int index, const QString &title);
+    void clearCustomTitle(int index);
+    bool hasCustomTitle(int index) const noexcept;
+
     void set_split_count(int index, int count) noexcept;
     int splitCount(int index) const noexcept;
 
@@ -125,6 +134,7 @@ private:
     QVector<int> m_split_counts;
     CloseButtonMode m_close_button_mode = CloseButtonMode::All;
     QSet<int> m_failed_tabs;
+    QHash<int, QString> m_custom_titles; // keyed by the tab id (tabData)
     QSet<int> m_selected_tabs;
     int m_selection_anchor = -1;
 };

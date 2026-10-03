@@ -72,6 +72,21 @@ static const luaL_Reg TabMethods[]
         return 1;
     }
 }},
+       {"rename",
+        [](lua_State *L) -> int
+{
+    auto *tab = static_cast<TabHandle *>(luaL_checkudata(L, 1, "TabMetaTable"));
+    if (tab && tab->widget && tab->index >= 0
+        && tab->index < tab->widget->count())
+    {
+        const QString title = lua_isnoneornil(L, 2)
+                                  ? QString()
+                                  : QString::fromUtf8(luaL_checkstring(L, 2));
+        if (auto *lektra = qobject_cast<Lektra *>(tab->widget->window()))
+            lektra->renameTab(tab->index, title);
+    }
+    return 0;
+}},
        {"index",
         [](lua_State *L) -> int
 {
@@ -497,6 +512,18 @@ Lektra::initLuaTabs() noexcept
                                  ? QString()
                                  : QString::fromUtf8(luaL_checkstring(L, 1));
         lektra->saveTabsAsSession(readIndices(L, 2, lektra), name);
+        return 0;
+    });
+
+    // lektra.tabs.rename(index, title) — nil or "" restores the default title
+    setFn("rename", [](lua_State *L) -> int
+    {
+        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        const int index = static_cast<int>(luaL_checkinteger(L, 1));
+        const QString title = lua_isnoneornil(L, 2)
+                                  ? QString()
+                                  : QString::fromUtf8(luaL_checkstring(L, 2));
+        lektra->renameTab(index, title);
         return 0;
     });
 

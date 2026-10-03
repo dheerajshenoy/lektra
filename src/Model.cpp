@@ -1673,6 +1673,38 @@ Model::prewarmFontIndex() noexcept
 #endif
 }
 
+std::vector<Model::PageLink>
+Model::pageLinks(int pageno) noexcept
+{
+    std::vector<PageLink> out;
+    if (!supports_links() || pageno < 0 || pageno >= m_page_count)
+        return out;
+
+    ensurePageCached(pageno);
+
+    std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+    const PageCacheEntry *entry = m_page_lru_cache.find(pageno);
+    if (!entry)
+        return out;
+
+    out.reserve(entry->links.size());
+    for (const CachedLink &l : entry->links)
+    {
+        PageLink p;
+        p.rect = QRectF(l.rect.x0, l.rect.y0, l.rect.x1 - l.rect.x0,
+                        l.rect.y1 - l.rect.y0);
+        p.info.uri         = l.uri;
+        p.info.dest        = fz_make_link_dest_none();
+        p.info.type        = l.type;
+        p.info.target_page = l.target_page;
+        p.info.target_loc  = {l.target_loc.x, l.target_loc.y, l.zoom};
+        p.info.source_loc  = {l.source_loc.x, l.source_loc.y, 0.0f};
+        p.info.source_page = pageno;
+        out.push_back(std::move(p));
+    }
+    return out;
+}
+
 void
 Model::setReflowStyle(const QString &fontFamily, float lineSpacing) noexcept
 {

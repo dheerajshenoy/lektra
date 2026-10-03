@@ -73,6 +73,11 @@ public:
     void pushViewOptTable(lua_State *L, DocumentView *view) noexcept;
 #endif
 
+    // Gives a tab a title of its own, kept until it is cleared (empty title).
+    void renameTab(int index, const QString &title) noexcept;
+    // Refreshes a tab's split count after its splits changed.
+    void syncTabSplits(DocumentContainer *container) noexcept;
+
     inline DocumentView *currentDocument() const noexcept
     {
         return m_doc;
@@ -425,6 +430,9 @@ private:
     void closeTabs(QList<int> indices) noexcept;
     void mergeTabsAsSplits(const QList<int> &indices, bool vertical) noexcept;
     void moveTabsToNewWindow(const QList<int> &indices) noexcept;
+    // Deletes a saved session by name. False if it doesn't exist.
+    bool deleteSession(const QString &name) noexcept;
+    bool sessionExists(const QString &name) const noexcept;
     void saveTabsAsSession(const QList<int> &indices, const QString &name = {}) noexcept;
     QList<int> targetTabs() const noexcept;
     void splitTabsIntoTabs(const QList<int> &indices) noexcept;
@@ -594,6 +602,12 @@ private:
 
     // lektra.tabs
     void initLuaTabs() noexcept;
+
+    // lektra.sessions, lektra.recent_files, lektra.window
+    void initLuaSessions() noexcept;
+
+    // Container (the splits of a tab) userdata type
+    void initLuaContainer() noexcept;
 
     // lektra.event
     void initLuaEventDispatcher() noexcept;

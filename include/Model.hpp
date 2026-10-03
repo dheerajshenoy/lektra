@@ -87,6 +87,32 @@ public:
         int source_page                         = -1;
     };
 
+    // A link on a page: where it is (page space, points) and where it goes.
+    struct PageLink
+    {
+        QRectF rect;
+        LinkInfo info;
+    };
+
+    // Links of a page, in the order the document lists them. Loads the page
+    // if needed, so it can take a moment on a page that was never shown.
+    // Empty for formats without links or an out-of-range page.
+    [[nodiscard]] std::vector<PageLink> pageLinks(int pageno) noexcept;
+
+    // Page size in points (before rotation and zoom). `known` is false when
+    // the page was never loaded and the size is the document default;
+    // `exact` loads the page first so the size is always real.
+    [[nodiscard]] inline QSizeF pageSizePts(int pageno, bool exact = false,
+                                            bool *known = nullptr) noexcept
+    {
+        if (exact)
+            ensurePageCached(pageno);
+        if (known)
+            *known = page_dimension_known(pageno);
+        const PageDimension d = page_dimension_pts(pageno);
+        return {d.width_pts, d.height_pts};
+    }
+
     struct SearchHit
     {
         int page;

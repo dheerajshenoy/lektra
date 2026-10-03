@@ -4958,6 +4958,56 @@ Lektra::moveTabsToNewWindow(const QList<int> &indices) noexcept
 }
 
 void
+Lektra::renameTab(int index, const QString &title) noexcept
+{
+    if (!m_tab_widget || !validTabIndex(index))
+        return;
+
+    TabBar *bar = m_tab_widget->tabBar();
+    if (!title.trimmed().isEmpty())
+    {
+        bar->setCustomTitle(index, title.trimmed());
+        return;
+    }
+
+    // Empty title: go back to the file name.
+    bar->clearCustomTitle(index);
+    if (DocumentContainer *container = m_tab_widget->rootContainer(index))
+        if (DocumentView *view = container->view())
+            bar->setTabText(index, m_config.tabs.full_path ? view->filePath()
+                                                           : view->fileName());
+}
+
+void
+Lektra::syncTabSplits(DocumentContainer *container) noexcept
+{
+    if (!m_tab_widget || !container)
+        return;
+    const int index = m_tab_widget->indexOf(container);
+    if (index < 0)
+        return;
+    m_tab_widget->tabBar()->set_split_count(index, container->getViewCount());
+}
+
+bool
+Lektra::sessionExists(const QString &name) const noexcept
+{
+    // Session names are file names: no paths.
+    if (name.isEmpty() || name.contains('/') || name.contains('\\')
+        || name.startsWith('.'))
+        return false;
+    return QFile::exists(m_session_dir.filePath(name + ".json"));
+}
+
+bool
+Lektra::deleteSession(const QString &name) noexcept
+{
+    if (!sessionExists(name))
+        return false;
+    return QFile::remove(m_session_dir.filePath(name + ".json"));
+}
+
+void
 Lektra::saveTabsAsSession(const QList<int> &indices, const QString &name) noexcept
 {
     QString sessionName = name.trimmed();
@@ -5701,6 +5751,27 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("tabs_select_clear", tr("Clear tab selection"),
                            [this](const QStringList &)
     { m_tab_widget->tabBar()->clearTabSelection(); });
+    m_command_manager->reg(
+        "tab_rename", tr("Rename the current tab (empty name resets it)"),
+        [this](const QStringList &args)
+    {
+        if (!m_tab_widget || !validTabIndex(m_tab_widget->currentIndex()))
+            return;
+        const int index = m_tab_widget->currentIndex();
+        QString title;
+        if (!args.isEmpty())
+            title = args.join(' ');
+        else
+        {
+            bool ok = false;
+            title   = QInputDialog::getText(
+                this, tr("Rename Tab"), tr("Tab name (empty to reset):"),
+                QLineEdit::Normal, m_tab_widget->tabText(index), &ok);
+            if (!ok)
+                return;
+        }
+        renameTab(index, title);
+    });
     m_command_manager->reg("tabs_close_selected",
                            tr("Close the selected tabs"),
                            [this](const QStringList &)
