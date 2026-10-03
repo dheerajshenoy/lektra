@@ -462,6 +462,14 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 # symbols; ours wouldn't without it).
 set_target_properties(${PROJECT_NAME} PROPERTIES ENABLE_EXPORTS ON)
 
+# ...but never export the symbols of the static libraries linked in (MuPDF and
+# its bundled libjpeg, zlib, freetype, ...). Exported, they take precedence over
+# the system libraries that Qt's plugins use, and mismatched versions crash
+# (e.g. opening any JPEG: "Wrong JPEG library version").
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_options(${PROJECT_NAME} PRIVATE -Wl,--exclude-libs,ALL)
+endif()
+
 if (MSVC)
     target_link_options(${PROJECT_NAME} PRIVATE
         $<$<CONFIG:Debug>:$<IF:$<CXX_COMPILER_ID:MSVC>,/DEBUG,--fsanitize=address>>
