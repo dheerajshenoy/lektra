@@ -4,7 +4,7 @@
 
 ### New Features
 
-- You can now click-and-drag an embedded image straight out of a document (PDF) onto another app or a file manager, saving/pasting it as a real PNG — instead of only being able to copy a selected region.
+- Click-and-drag an image out of a document (PDF) onto another app or a file manager to save or paste it as a PNG. The drag saves what the page shows in that area, including text on scanned/stencil pages, at the image's native resolution, with the current invert, tint and high-contrast settings applied. Anything else the page draws inside that rectangle is included too.
 - New **caret mode** (`caret_mode` command, default `F7`) — a keyboard-driven text cursor for character-by-character navigation, cf. Firefox/Okular "caret browsing". Left/Right/Up/Down (also `hjkl`), Home/End, and Shift+movement (also vim-style `H`/`J`/`K`/`L`) to extend a selection; the existing yank command now has a default binding (`y`) to copy it.
 - New statusbar layout customization: `[statusbar].layout` (also `lektra.opt.statusbar.layout`) takes an ordered list of modules, with `"|"` dividing the left/center/right groups.
 - New `zoom` statusbar module showing the current zoom level (e.g. `150%`); previously `[statusbar.components.zoom]` existed but nothing was shown.

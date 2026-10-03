@@ -4306,20 +4306,72 @@ Model::imageAt(int pageno, QPointF logicalPt) noexcept
 
         auto *td = reinterpret_cast<fz_image_tracker_device *>(tracker);
 
-        // Later-painted images are drawn on top; walk back-to-front so a
-        // click picks the topmost image at that point.
-        for (int i = td->rect_count - 1; i >= 0; --i)
+        // Several images can cover the point (e.g. a full-page scan plus a
+        // smaller overlay). Dragging should take the one that is the page
+        // content, which is the largest such image, not the topmost overlay.
+        const ImageRect *best = nullptr;
+        fz_rect bestRect      = fz_empty_rect;
+        for (int i = 0; i < td->rect_count; ++i)
         {
             const ImageRect &ir = td->rects[i];
             const fz_rect r     = fz_rect_from_irect(ir.bbox);
             if (pagePt.x < r.x0 || pagePt.x > r.x1 || pagePt.y < r.y0
                 || pagePt.y > r.y1)
                 continue;
+            if (!best || (r.x1 - r.x0) * (r.y1 - r.y0)
+                             >= (bestRect.x1 - bestRect.x0) * (bestRect.y1 - bestRect.y0))
+            {
+                best     = &ir;
+                bestRect = r;
+            }
+        }
+        if (best)
+        {
+            const ImageRect &ir = *best;
+            const fz_rect r     = bestRect;
 
-            fz_pixmap *native = fz_get_unscaled_pixmap_from_image(ctx, ir.image);
-            pix = fz_convert_pixmap(ctx, native, m_colorspace, nullptr, nullptr,
-                                    fz_default_color_params, 1);
-            fz_drop_pixmap(ctx, native);
+            // Render the page's own appearance inside this image's rect, at the
+            // image's native pixel size. Decoding the image alone is wrong for
+            // stencil/mask images (e.g. text on a scanned page): it yields only
+            // the mask shape, not the colours the page paints with it.
+            const int pw = ir.image->w;
+            const int ph = ir.image->h;
+            const float wpt = r.x1 - r.x0;
+            const float hpt = r.y1 - r.y0;
+            const fz_matrix m = fz_concat(
+                fz_translate(-r.x0, -r.y0),
+                fz_scale(pw / wpt, ph / hpt));
+            pix = fz_new_pixmap_with_bbox(ctx, m_colorspace,
+                                          fz_make_irect(0, 0, pw, ph), nullptr, 0);
+            fz_clear_pixmap_with_value(ctx, pix, 255);
+            fz_device *rdev = fz_new_draw_device(ctx, fz_identity, pix);
+            fz_run_display_list(ctx, dlist, rdev, m, r, nullptr);
+            fz_close_device(ctx, rdev);
+            fz_drop_device(ctx, rdev);
+
+            // Match what the page render does to its pixels, so the dragged
+            // image looks like it does on screen. With dont_invert_images the
+            // page leaves images untouched, so do the same here.
+            if (!(m_config.behavior.dont_invert_images && supports_image_blocks()))
+            {
+                const int fg = (m_fg_color >> 8) & 0xFFFFFF;
+                const int bg = (m_bg_color >> 8) & 0xFFFFFF;
+                if (fg != 0 || bg != 0)
+                    fz_tint_pixmap(ctx, pix, fg, bg);
+                if (m_invert_color)
+                    fz_invert_pixmap(ctx, pix);
+                if (m_config.behavior.high_contrast)
+                {
+                    unsigned char lut[256];
+                    buildHighContrastLUT(lut,
+                                         m_config.behavior.high_contrast_black_point,
+                                         m_config.behavior.high_contrast_white_point);
+                    const size_t nbytes
+                        = static_cast<size_t>(fz_pixmap_stride(ctx, pix))
+                          * static_cast<size_t>(fz_pixmap_height(ctx, pix));
+                    applyHighContrastSamples(fz_pixmap_samples(ctx, pix), nbytes, lut);
+                }
+            }
 
             const int width  = fz_pixmap_width(ctx, pix);
             const int height = fz_pixmap_height(ctx, pix);
@@ -4350,7 +4402,6 @@ Model::imageAt(int pageno, QPointF logicalPt) noexcept
             result.page_rect_pts
                 = QRectF(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
             result.valid = !result.image.isNull();
-            break;
         }
     }
     fz_always(ctx)
