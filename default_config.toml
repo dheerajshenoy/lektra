@@ -280,7 +280,7 @@ fade_duration = 1.0           # seconds
 enabled     = true                               # master switch for PDF links + detected URLs
 boundary    = false                              # show the clickable rect boundary
 detect_urls = false                              # find bare URLs in the page text
-url_regex   = '(https?://|www\.)[^\s<>()"'']+'   # used when detect_urls = true
+url_regex = '''(https?://|www\.)[^\s<>()"']+''' # used when detect_urls = true
 
 
 # -----------------------------------------------------------------------------
