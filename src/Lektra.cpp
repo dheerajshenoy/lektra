@@ -4685,7 +4685,20 @@ Lektra::dropEvent(QDropEvent *e) noexcept
 void
 Lektra::handleTabContextMenu(int index, const QPoint &globalPos) noexcept
 {
+    const QList<int> selected = m_tab_widget->tabBar()->selectedTabs();
+    if (selected.size() > 1 && selected.contains(index))
+    {
+        showMultiTabMenu(selected, globalPos);
+        return;
+    }
+
     QMenu menu;
+    if (DocumentContainer *container = m_tab_widget->rootContainer(index);
+        container && container->getViewCount() > 1)
+    {
+        menu.addAction(tr("Move Splits to Separate Tabs"), this,
+                       [this, index]() { splitTabsIntoTabs({index}); });
+    }
     menu.addAction(tr("Move Tab to New Window"), this, [this, index]()
     {
         TabBar::TabData data;
@@ -4698,6 +4711,192 @@ Lektra::handleTabContextMenu(int index, const QPoint &globalPos) noexcept
                    [this, index]() { m_tab_widget->tabCloseRequested(index); });
 
     menu.exec(globalPos);
+}
+
+void
+Lektra::showMultiTabMenu(const QList<int> &indices, const QPoint &globalPos) noexcept
+{
+    QMenu menu;
+    menu.addAction(tr("Close %1 Tabs").arg(indices.size()), this,
+                   [this, indices]() { closeTabs(indices); });
+
+    QMenu *mergeMenu = menu.addMenu(tr("Merge Into Split"));
+    mergeMenu->addAction(tr("Vertical Split (Side by Side)"), this,
+                         [this, indices]() { mergeTabsAsSplits(indices, true); });
+    mergeMenu->addAction(tr("Horizontal Split (Stacked)"), this,
+                         [this, indices]() { mergeTabsAsSplits(indices, false); });
+
+    bool anySplits = false;
+    for (int index : indices)
+    {
+        DocumentContainer *container = m_tab_widget->rootContainer(index);
+        if (container && container->getViewCount() > 1)
+            anySplits = true;
+    }
+    if (anySplits)
+        menu.addAction(tr("Move Splits to Separate Tabs"), this,
+                       [this, indices]() { splitTabsIntoTabs(indices); });
+
+    menu.addAction(tr("Move to New Window"), this,
+                   [this, indices]() { moveTabsToNewWindow(indices); });
+    menu.addAction(tr("Save Selection as Session..."), this,
+                   [this, indices]() { saveTabsAsSession(indices); });
+
+    menu.exec(globalPos);
+}
+
+QStringList
+Lektra::tabFilePaths(const QList<int> &indices) noexcept
+{
+    QStringList paths;
+    for (int index : indices)
+    {
+        TabBar::TabData data;
+        handleTabDataRequested(index, &data);
+        if (!data.filePath.isEmpty())
+            paths << data.filePath;
+    }
+    return paths;
+}
+
+// The tabs a multi-tab operation acts on: the selection, or else the current tab.
+QList<int>
+Lektra::targetTabs() const noexcept
+{
+    QList<int> tabs = m_tab_widget->tabBar()->selectedTabs();
+    if (tabs.isEmpty() && m_tab_widget->currentIndex() >= 0)
+        tabs << m_tab_widget->currentIndex();
+    return tabs;
+}
+
+// Closes highest index first so the remaining indices stay valid.
+void
+Lektra::closeTabs(QList<int> indices) noexcept
+{
+    std::sort(indices.begin(), indices.end(), std::greater<int>());
+    for (int index : indices)
+        m_tab_widget->tabCloseRequested(index);
+    m_tab_widget->tabBar()->clearTabSelection();
+}
+
+void
+Lektra::mergeTabsAsSplits(const QList<int> &indices, bool vertical) noexcept
+{
+    if (indices.size() < 2)
+    {
+        m_message_bar->showMessage(tr("Select at least two tabs to merge"));
+        return;
+    }
+
+    QList<int> sorted = indices;
+    std::sort(sorted.begin(), sorted.end());
+
+    m_tab_widget->tabBar()->clearTabSelection();
+
+    // The lowest-index tab stays and receives the others as splits. Its
+    // index is unaffected by closing the higher ones, so close those first.
+    const QStringList others = tabFilePaths(sorted.mid(1));
+    closeTabs(sorted.mid(1));
+
+    m_tab_widget->setCurrentIndex(sorted.first());
+    for (const QString &path : others)
+    {
+        if (vertical)
+            OpenFileVSplit(path);
+        else
+            OpenFileHSplit(path);
+    }
+}
+
+// For each tab with splits, keeps its first view in place and opens every other
+// split as a tab of its own (at the same page), then closes the split.
+void
+Lektra::splitTabsIntoTabs(const QList<int> &indices) noexcept
+{
+    m_tab_widget->tabBar()->clearTabSelection();
+    for (int index : indices)
+    {
+        DocumentContainer *container = m_tab_widget->rootContainer(index);
+        if (!container || container->getViewCount() < 2)
+            continue;
+
+        const QList<DocumentView *> views = container->getAllViews();
+        for (int i = 1; i < views.size(); ++i)
+        {
+            DocumentView *view = views.at(i);
+            const QString path = view->filePath();
+            if (path.isEmpty())
+                continue;
+
+            const int page = view->pageNo();
+            OpenFileInNewTab(path, [page](void *ptr)
+            {
+                if (auto *doc = static_cast<Lektra *>(ptr)->currentDocument())
+                    doc->GotoPage(page);
+            });
+            container->closeView(view);
+        }
+    }
+}
+
+void
+Lektra::moveTabsToNewWindow(const QList<int> &indices) noexcept
+{
+    const QStringList paths = tabFilePaths(indices);
+    if (paths.isEmpty())
+        return;
+
+    if (!QProcess::startDetached(QCoreApplication::applicationFilePath(), paths))
+    {
+        m_message_bar->showMessage(tr("Failed to open tabs in new window"));
+        return;
+    }
+    closeTabs(indices);
+}
+
+void
+Lektra::saveTabsAsSession(const QList<int> &indices, const QString &name) noexcept
+{
+    QString sessionName = name.trimmed();
+    if (sessionName.isEmpty())
+    {
+        bool ok = false;
+        sessionName = QInputDialog::getText(
+            this, tr("Save Session"), tr("Session name:"), QLineEdit::Normal,
+            QString(), &ok).trimmed();
+        if (!ok || sessionName.isEmpty())
+            return;
+    }
+
+    const QString fileName = m_session_dir.filePath(sessionName + ".json");
+    if (QFile::exists(fileName))
+    {
+        if (QMessageBox::question(this, tr("Overwrite Session"),
+                                  tr("Session \"%1\" already exists. Overwrite it?")
+                                      .arg(sessionName))
+            != QMessageBox::Yes)
+            return;
+    }
+
+    QJsonArray sessionArray;
+    for (int index : indices)
+    {
+        DocumentContainer *container = m_tab_widget->rootContainer(index);
+        if (!container)
+            continue;
+        QJsonObject tabEntry;
+        tabEntry["splits"] = container->serializeSplits();
+        sessionArray.append(tabEntry);
+    }
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly))
+    {
+        QMessageBox::critical(this, tr("Save Session"),
+                              tr("Could not save session: %1").arg(sessionName));
+        return;
+    }
+    file.write(QJsonDocument(sessionArray).toJson());
 }
 
 bool
@@ -5380,6 +5579,49 @@ Lektra::initCommands() noexcept
     m_command_manager->reg(
         "trim_margins", tr("Toggle trim margins (hide blank page margins)"),
         [this](const QStringList &) { ToggleTrimMargins(); });
+
+    // Multi-tab selection and operations. Operations act on the selected
+    // tabs, or on the current tab when nothing is selected.
+    m_command_manager->reg("tabs_select_toggle",
+                           tr("Toggle selection of the current tab"),
+                           [this](const QStringList &)
+    {
+        if (m_tab_widget->currentIndex() >= 0)
+            m_tab_widget->tabBar()->setTabSelected(
+                m_tab_widget->currentIndex(),
+                !m_tab_widget->tabBar()->selectedTabs().contains(
+                    m_tab_widget->currentIndex()));
+    });
+    m_command_manager->reg("tabs_select_all", tr("Select all tabs"),
+                           [this](const QStringList &)
+    { m_tab_widget->tabBar()->selectAllTabs(); });
+    m_command_manager->reg("tabs_select_clear", tr("Clear tab selection"),
+                           [this](const QStringList &)
+    { m_tab_widget->tabBar()->clearTabSelection(); });
+    m_command_manager->reg("tabs_close_selected",
+                           tr("Close the selected tabs"),
+                           [this](const QStringList &)
+    { closeTabs(targetTabs()); });
+    m_command_manager->reg("tabs_merge_vertical",
+                           tr("Merge the selected tabs into a vertical split"),
+                           [this](const QStringList &)
+    { mergeTabsAsSplits(targetTabs(), true); });
+    m_command_manager->reg("tabs_merge_horizontal",
+                           tr("Merge the selected tabs into a horizontal split"),
+                           [this](const QStringList &)
+    { mergeTabsAsSplits(targetTabs(), false); });
+    m_command_manager->reg("tabs_split_out",
+                           tr("Move the splits of the selected tabs into separate tabs"),
+                           [this](const QStringList &)
+    { splitTabsIntoTabs(targetTabs()); });
+    m_command_manager->reg("tabs_move_to_window",
+                           tr("Move the selected tabs to a new window"),
+                           [this](const QStringList &)
+    { moveTabsToNewWindow(targetTabs()); });
+    m_command_manager->reg("tabs_save_session",
+                           tr("Save the selected tabs as a session (optional name)"),
+                           [this](const QStringList &args)
+    { saveTabsAsSession(targetTabs(), args.join(QLatin1Char(' '))); });
 
     // Caret mode (accessibility: keyboard-driven character-level text
     // cursor, cf. Firefox/Okular "caret browsing"). Left/Right/Up/Down also

@@ -137,6 +137,18 @@ TabBar::tabRemoved(int index)
     m_split_counts.removeAt(index);
     refreshCloseButtons();
 
+    if (!m_selected_tabs.isEmpty())
+    {
+        QSet<int> shifted;
+        for (int i : std::as_const(m_selected_tabs))
+            if (i < index)
+                shifted.insert(i);
+            else if (i > index)
+                shifted.insert(i - 1);
+        m_selected_tabs = shifted;
+        m_selection_anchor = -1;
+    }
+
     // Shift m_failed_tabs indices down past the removed tab.
     if (!m_failed_tabs.isEmpty())
     {
@@ -163,6 +175,24 @@ TabBar::tabMoved(int from, int to)
         return;
     m_split_counts.move(from, to);
 
+    if (!m_selected_tabs.isEmpty())
+    {
+        QSet<int> moved;
+        for (int i : std::as_const(m_selected_tabs))
+        {
+            if (i == from)
+                moved.insert(to);
+            else if (from < to && i > from && i <= to)
+                moved.insert(i - 1);
+            else if (from > to && i >= to && i < from)
+                moved.insert(i + 1);
+            else
+                moved.insert(i);
+        }
+        m_selected_tabs = moved;
+        m_selection_anchor = -1;
+    }
+
     if (m_failed_tabs.contains(from))
     {
         m_failed_tabs.remove(from);
@@ -175,10 +205,78 @@ TabBar::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
+        const int index = tabAt(event->pos());
+        const bool ctrl = event->modifiers() & Qt::ControlModifier;
+        const bool shift = event->modifiers() & Qt::ShiftModifier;
+
+        if (index >= 0 && (ctrl || shift))
+        {
+            if (shift && m_selection_anchor >= 0)
+            {
+                m_selected_tabs.clear();
+                for (int i = qMin(m_selection_anchor, index);
+                     i <= qMax(m_selection_anchor, index); ++i)
+                    m_selected_tabs.insert(i);
+            }
+            else if (ctrl && m_selected_tabs.contains(index))
+            {
+                m_selected_tabs.remove(index);
+            }
+            else
+            {
+                if (!ctrl)
+                    m_selected_tabs.clear();
+                m_selected_tabs.insert(index);
+                m_selection_anchor = index;
+            }
+            update();
+            return;
+        }
+
+        clearTabSelection();
         m_drag_start_pos = event->pos();
-        m_drag_tab_index = tabAt(event->pos());
+        m_drag_tab_index = index;
     }
     QTabBar::mousePressEvent(event);
+}
+
+QList<int>
+TabBar::selectedTabs() const
+{
+    QList<int> result(m_selected_tabs.begin(), m_selected_tabs.end());
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+void
+TabBar::setTabSelected(int index, bool selected) noexcept
+{
+    if (index < 0 || index >= count())
+        return;
+    if (selected)
+        m_selected_tabs.insert(index);
+    else
+        m_selected_tabs.remove(index);
+    m_selection_anchor = index;
+    update();
+}
+
+void
+TabBar::selectAllTabs() noexcept
+{
+    for (int i = 0; i < count(); ++i)
+        m_selected_tabs.insert(i);
+    update();
+}
+
+void
+TabBar::clearTabSelection() noexcept
+{
+    if (m_selected_tabs.isEmpty())
+        return;
+    m_selected_tabs.clear();
+    m_selection_anchor = -1;
+    update();
 }
 
 void
@@ -287,6 +385,14 @@ TabBar::paintEvent(QPaintEvent *event)
     QTabBar::paintEvent(event);
     if (count() == 0)
         return;
+
+    if (!m_selected_tabs.isEmpty())
+    {
+        QPainter selPainter(this);
+        for (int i : std::as_const(m_selected_tabs))
+            if (i >= 0 && i < count())
+                selPainter.fillRect(tabRect(i), QColor(64, 128, 255, 90));
+    }
 
     if (!m_failed_tabs.isEmpty())
     {

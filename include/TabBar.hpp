@@ -84,6 +84,13 @@ public:
     // overrides and always paint tab text in the theme's own color, so that
     // API silently has no visual effect under those styles.
     void setTabFailed(int index, bool failed) noexcept;
+
+    // Multi-selection: Ctrl+click toggles a tab, Shift+click selects a range
+    // from the last Ctrl/plain-selected tab. Plain clicks clear it.
+    QList<int> selectedTabs() const;
+    void clearTabSelection() noexcept;
+    void setTabSelected(int index, bool selected) noexcept;
+    void selectAllTabs() noexcept;
     bool isTabFailed(int index) const noexcept;
 
 signals:
@@ -118,4 +125,6 @@ private:
     QVector<int> m_split_counts;
     CloseButtonMode m_close_button_mode = CloseButtonMode::All;
     QSet<int> m_failed_tabs;
+    QSet<int> m_selected_tabs;
+    int m_selection_anchor = -1;
 };

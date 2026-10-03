@@ -412,6 +412,14 @@ private:
     void deleteMark(const QString &key) noexcept;
     bool handleLinkHintEvent(QEvent *event) noexcept;
     void handleTabContextMenu(int index, const QPoint &globalPos) noexcept;
+    void showMultiTabMenu(const QList<int> &indices, const QPoint &globalPos) noexcept;
+    QStringList tabFilePaths(const QList<int> &indices) noexcept;
+    void closeTabs(QList<int> indices) noexcept;
+    void mergeTabsAsSplits(const QList<int> &indices, bool vertical) noexcept;
+    void moveTabsToNewWindow(const QList<int> &indices) noexcept;
+    void saveTabsAsSession(const QList<int> &indices, const QString &name = {}) noexcept;
+    QList<int> targetTabs() const noexcept;
+    void splitTabsIntoTabs(const QList<int> &indices) noexcept;
     void applyCommandLineOverrides(
         const argparse::ArgumentParser &argparser) noexcept;
     DocumentView *create_portal(DocumentView *sourceView,
