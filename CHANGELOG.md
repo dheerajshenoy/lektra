@@ -1,5 +1,13 @@
 # LEKTRA CHANGELOG
 
+## 0.7.9
+
+### New Features
+
+### Bug Fixes
+
+- Fix the `url_regex` string in the default_config.toml file
+
 ## 0.7.8
 
 ### New Features
