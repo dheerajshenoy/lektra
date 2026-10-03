@@ -434,6 +434,10 @@ public:
     void FollowLink(const Model::LinkInfo &info) noexcept;
     void setInvertColor(bool invert) noexcept;
     void openAsync(const QString &filePath) noexcept;
+    // Page to jump to once the file's first layout and render are done (see
+    // handleOpenFileFinished()). GotoPage() can't be used earlier: on large
+    // documents the page offsets it depends on are not cached yet.
+    inline void setPendingPage(int pageno) noexcept { m_pending_page = pageno; }
     bool EncryptDocument() noexcept;
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
@@ -808,6 +812,7 @@ private:
     double m_current_zoom                     = MIN_ZOOM_FACTOR;
     bool m_auto_resize                        = false;
     bool m_trim_margins                       = false;
+    int m_pending_page                        = -1;
     bool m_awaiting_first_render              = false;
     bool m_auto_reload                        = false;
     ScrollBar *m_hscroll                      = nullptr;

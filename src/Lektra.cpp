@@ -2932,18 +2932,14 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
 
     const int tabIndex = m_tab_widget->currentIndex();
 
-    if (m_config.behavior.remember_last_visited || callback)
+    if (callback)
     {
-        const int savedPage = m_config.behavior.remember_last_visited
-                                  ? m_recent_files_store.pageNumber(filename)
-                                  : 0;
         connect(view, &DocumentView::openFileFinished, this,
-                [this, callback, savedPage](DocumentView *view, Model::FileType)
+                [this, callback](DocumentView *, Model::FileType)
         {
-            if (savedPage > 0 && !callback)
-                view->GotoPage(savedPage - 1);
-            if (callback)
-                callback(this);
+            // Deferred so the saved-page jump (queued by the view when its
+            // file finishes opening) runs before the callback.
+            QTimer::singleShot(0, this, [this, callback]() { callback(this); });
         }, Qt::SingleShotConnection);
     }
     else
@@ -2961,6 +2957,12 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
         }, Qt::SingleShotConnection);
     }
 
+    if (m_config.behavior.remember_last_visited)
+    {
+        const int savedPage = m_recent_files_store.pageNumber(filename);
+        if (savedPage > 0)
+            view->setPendingPage(savedPage - 1);
+    }
     view->openAsync(filename);
     setCurrentDocumentView(view);
     m_tab_widget->tabBar()->set_split_count(tabIndex,
@@ -3203,6 +3205,12 @@ Lektra::OpenFileInNewTab(const QString &filename, const CallbackFn &callback,
     initTabConnections(view);
 
     // Open the file asynchronously
+    if (m_config.behavior.remember_last_visited)
+    {
+        const int savedPage = m_recent_files_store.pageNumber(filename);
+        if (savedPage > 0)
+            view->setPendingPage(savedPage - 1);
+    }
     view->openAsync(filename);
 
     // Add the container as a tab. Block signals so QTabBar's insertTab does
@@ -3221,26 +3229,14 @@ Lektra::OpenFileInNewTab(const QString &filename, const CallbackFn &callback,
     // Wire up m_doc now that the tab is in place.
     setCurrentDocumentView(view);
 
-    // Restore saved page number after file loads (if remember_last_visited
-    // is enabled)
-    if (m_config.behavior.remember_last_visited)
-    {
-        const int savedPage = m_recent_files_store.pageNumber(filename);
-        if (savedPage > 0)
-        {
-            connect(view, &DocumentView::openFileFinished, this,
-                    [view, savedPage](DocumentView *, Model::FileType)
-            { view->GotoPage(savedPage - 1); }, Qt::SingleShotConnection);
-        }
-    }
-
     if (callback)
     {
         connect(view, &DocumentView::openFileFinished, this,
-                [this, callback](DocumentView *view, Model::FileType)
+                [this, callback](DocumentView *, Model::FileType)
         {
-            Q_UNUSED(view);
-            callback(this);
+            // Deferred so the saved-page jump (queued by the view when its
+            // file finishes opening) runs before the callback.
+            QTimer::singleShot(0, this, [this, callback]() { callback(this); });
         }, Qt::SingleShotConnection);
     }
 
@@ -3309,7 +3305,8 @@ Lektra::openFileSplitHelper(const QString &filename, const CallbackFn &callback,
     {
         connect(newView, &DocumentView::openFileFinished, this,
                 [this, callback](DocumentView *, Model::FileType)
-        { callback(this); }, Qt::SingleShotConnection);
+        { QTimer::singleShot(0, this, [this, callback]() { callback(this); }); },
+                Qt::SingleShotConnection);
     }
 
     return newView;

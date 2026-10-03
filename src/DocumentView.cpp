@@ -418,6 +418,7 @@ DocumentView::handleOpenFileFinished() noexcept
     {
         m_spinner->stop();
         m_spinner->hide();
+        m_pending_page = -1;
         return;
     }
 
@@ -475,6 +476,11 @@ DocumentView::handleOpenFileFinished() noexcept
         {
             setFitMode(m_config.layout.initial_fit);
             renderPages();
+            if (m_pending_page >= 0)
+            {
+                GotoPage(m_pending_page);
+                m_pending_page = -1;
+            }
         });
 
         // Reflowable documents (EPUB/FB2/MOBI) start at MuPDF's built-in
