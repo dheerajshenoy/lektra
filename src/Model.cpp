@@ -1278,75 +1278,56 @@ new_image_tracker_device(fz_context *ctx, fz_device *target,
     return reinterpret_cast<fz_device *>(dev);
 }
 
-// Helper to restore image regions after inversion
+// Restores the original pixels of each tracked image rect. The image is not
+// re-drawn on its own: that would skip the page's graphics state (clip paths,
+// blend modes, transparency groups) and visibly corrupt images that depend on
+// it. Instead the page's display list is replayed into a pixmap covering just
+// that rect, so every pixel comes out exactly as the plain render produced it.
 static void
 restore_image_regions(fz_context *ctx, fz_pixmap *pix,
                       fz_image_tracker_device *tracker,
+                      fz_display_list *dlist, fz_matrix transform,
                       fz_colorspace *colorspace)
 {
     if (tracker->rect_count == 0)
         return;
 
-    // For each tracked image, render it directly to the pixmap region
+    const int n = fz_pixmap_components(ctx, pix);
+
     for (int i = 0; i < tracker->rect_count; ++i)
     {
+        const ImageRect &ir = tracker->rects[i];
 
-        ImageRect &ir = tracker->rects[i];
-
-        // Clip bbox to pixmap bounds
-        fz_irect clipped
+        const fz_irect clipped
             = fz_intersect_irect(ir.bbox, fz_pixmap_bbox(ctx, pix));
         if (fz_is_empty_irect(clipped))
             continue;
 
-        // Create a sub-pixmap for just this region
         fz_pixmap *sub      = nullptr;
         fz_device *draw_dev = nullptr;
 
         fz_try(ctx)
         {
-            // Create a temporary pixmap for this region. Critical: match
-            // the alpha channel of the main pixmap — mismatched component
-            // counts would make the row memcpy below drift by 1 byte per
-            // pixel and paint the images as slanted colour stripes.
-            const int alpha = fz_pixmap_alpha(ctx, pix);
-            sub = fz_new_pixmap_with_bbox(ctx, colorspace, clipped, nullptr,
-                                          alpha);
+            sub = fz_new_pixmap_with_bbox(ctx, colorspace, clipped, nullptr, 0);
             fz_clear_pixmap_with_value(ctx, sub, 255);
 
-            // The draw device needs a translation to map from device coords
-            // to sub-pixmap coords (which start at 0,0)
             draw_dev = fz_new_draw_device(ctx, fz_identity, sub);
-
-            // ir.ctm is already the full transformation that was used during
-            // the original render (page coords -> device coords), so use it
-            // directly
-            fz_fill_image(ctx, draw_dev, ir.image, ir.ctm, ir.alpha,
-                          ir.color_params);
-
+            fz_run_display_list(ctx, dlist, draw_dev, transform,
+                                fz_rect_from_irect(clipped), nullptr);
             fz_close_device(ctx, draw_dev);
 
-            // Copy pixels from sub back to main pixmap
-            int n          = fz_pixmap_components(ctx, pix);
-            int sub_stride = fz_pixmap_stride(ctx, sub);
-            int pix_stride = fz_pixmap_stride(ctx, pix);
-
+            const int sub_stride = fz_pixmap_stride(ctx, sub);
+            const int pix_stride = fz_pixmap_stride(ctx, pix);
             unsigned char *sub_samples = fz_pixmap_samples(ctx, sub);
             unsigned char *pix_samples = fz_pixmap_samples(ctx, pix);
-
-            // Calculate offset in main pixmap
-            int pix_x0 = fz_pixmap_x(ctx, pix);
-            int pix_y0 = fz_pixmap_y(ctx, pix);
+            const int pix_x0 = fz_pixmap_x(ctx, pix);
+            const int pix_y0 = fz_pixmap_y(ctx, pix);
 
             for (int y = clipped.y0; y < clipped.y1; ++y)
             {
-                int sub_row = y - clipped.y0;
-                int pix_row = y - pix_y0;
-
-                unsigned char *src = sub_samples + sub_row * sub_stride;
-                unsigned char *dst = pix_samples + pix_row * pix_stride
+                unsigned char *src = sub_samples + (y - clipped.y0) * sub_stride;
+                unsigned char *dst = pix_samples + (y - pix_y0) * pix_stride
                                      + (clipped.x0 - pix_x0) * n;
-
                 std::memcpy(dst, src, (clipped.x1 - clipped.x0) * n);
             }
         }
@@ -1357,7 +1338,6 @@ restore_image_regions(fz_context *ctx, fz_pixmap *pix,
         }
         fz_catch(ctx)
         {
-            // Log error but continue with other images
             fz_warn(ctx, "Failed to restore image region: %s",
                     fz_caught_message(ctx));
         }
@@ -3930,7 +3910,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             restore_image_regions(
                 ctx, pix,
                 reinterpret_cast<fz_image_tracker_device *>(tracker),
-                m_colorspace);
+                dlist, transform, m_colorspace);
         }
 
         // fz_gamma_pixmap(ctx, pix, 1.0f);
