@@ -14,6 +14,7 @@
 - Fix the `url_regex` string in the default_config.toml file
 - Fix scrolling through image-heavy/scanned documents re-rendering every visible page on each scroll tick, even when nothing changed; pages already rendered with identical settings are now left alone.
 - Fix the macOS `build_dmg.sh` failing when Homebrew's Qt tools aren't on `PATH` or the unversioned `qtpaths` symlink is missing; it now resolves and fixes both automatically.
+- Fix diagonal colour stripes and blotches on scanned pages when `behavior.dont_invert_images` is enabled together with `invert_mode` or `high_contrast`. Images are now restored exactly as they render normally, so a scanned page that is entirely one image is left un-inverted while that option is on.
 - Fix crash reports being useless on a normal (Release) build — no debug info was kept and the app's own functions weren't even resolvable by name. Crash reports now include a properly symbolized stack trace (function names + file/line) alongside the raw one.
 
 ## 0.7.8
