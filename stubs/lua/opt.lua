@@ -316,6 +316,12 @@ lektra.opt.highlight_search = {}
 ---@field persist_frequency boolean Persist command-palette usage counts to disk so sort_by_frequency ranking survives across restarts. When false, usage is still tracked for the current session but nothing is loaded/saved to disk.
 lektra.opt.command_palette = {}
 
+---@class OptReflow
+---@field font_family string Font family for reflowable documents (installed font, serif, sans-serif or monospace); empty keeps the document's own.
+---@field font_size number Font size in points.
+---@field line_spacing number Line spacing as a multiple of the font size; 0 keeps the document's own.
+lektra.opt.reflow = {}
+
 ---@class OptRendering
 ---@field antialiasing boolean Enable antialiasing for page rendering.
 ---@field antialiasing_bits integer Number of multisampling bits for antialiasing (e.g. 4, 8).

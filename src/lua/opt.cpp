@@ -809,6 +809,43 @@ static const LuaField statusbarProgressFields[] = {
 }},
 };
 
+// --- reflow ---
+static const LuaField reflowFields[] = {
+    {"font_family",
+     [](lua_State *L, P p)
+{
+    lua_pushstring(
+        L, static_cast<Config::Reflow *>(p)->font_family.toUtf8().constData());
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::Reflow *>(p)->font_family
+        = QString::fromUtf8(luaL_checkstring(L, 3));
+}},
+
+    {"font_size",
+     [](lua_State *L, P p)
+{
+    lua_pushnumber(L, static_cast<Config::Reflow *>(p)->font_size);
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::Reflow *>(p)->font_size
+        = static_cast<float>(lua_tonumber(L, 3));
+}},
+
+    {"line_spacing",
+     [](lua_State *L, P p)
+{
+    lua_pushnumber(L, static_cast<Config::Reflow *>(p)->line_spacing);
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::Reflow *>(p)->line_spacing
+        = static_cast<float>(lua_tonumber(L, 3));
+}},
+};
+
 // --- zoom ---
 static const LuaField zoomFields[] = {
     {"anchor_to_mouse",
@@ -2348,6 +2385,10 @@ buildOptTable(lua_State *L, const OptScope &scope)
         addChild(L, statusbar_idx, "components");
         addChild(L, opt_idx, "statusbar");
     }
+
+    // lektra.opt.reflow
+    pushSection(L, scope, &config.reflow, reflowFields, "reflow");
+    addChild(L, opt_idx, "reflow");
 
     // lektra.opt.zoom
     pushSection(L, scope, &config.zoom, zoomFields, "zoom");

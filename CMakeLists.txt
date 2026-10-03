@@ -8,6 +8,7 @@ include(GNUInstallDirs)
 file(WRITE "${CMAKE_BINARY_DIR}/version.txt" "${PROJECT_VERSION}")
 
 option(WITH_SYNCTEX "Enable synctex support" ON)
+option(WITH_FONTCONFIG "Look up fonts via fontconfig when available (otherwise scan the system font folders)" ON)
 option(WITH_LUA     "Enable lua scripting support" OFF)
 option(WITH_LLM_SUPPORT "Enable LLM support" OFF)
 
@@ -162,6 +163,17 @@ if (WITH_LUA)
         message(WARNING "Lua not found – Lua scripting support disabled")
         set(WITH_LUA OFF)
     endif()
+endif()
+
+# Optional: lets EPUB/FB2 documents use any installed font via fontconfig.
+find_package(PkgConfig QUIET)
+if (WITH_FONTCONFIG AND PkgConfig_FOUND)
+    pkg_check_modules(FONTCONFIG QUIET IMPORTED_TARGET fontconfig)
+endif()
+if (FONTCONFIG_FOUND)
+    message(STATUS "fontconfig support: enabled (EPUB font_family)")
+else()
+    message(STATUS "fontconfig not used - EPUB font_family scans the system font folders")
 endif()
 
 message(STATUS "librsvg support: runtime probe (uses librsvg-2.so.2 + libcairo.so.2 if installed)")
@@ -356,6 +368,11 @@ endif()
 # --- MuPDF ---
 target_include_directories(${PROJECT_NAME} PRIVATE ${MUPDF_INCLUDE_DIRS})
 target_compile_definitions(${PROJECT_NAME} PRIVATE HAS_MUPDF=1)
+
+if (FONTCONFIG_FOUND)
+    target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::FONTCONFIG)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_FONTCONFIG=1)
+endif()
 
 if(MSVC)
     target_link_libraries(${PROJECT_NAME} PRIVATE

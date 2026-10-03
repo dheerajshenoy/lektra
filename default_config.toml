@@ -245,6 +245,16 @@ comment_font_size = 12
 
 
 # -----------------------------------------------------------------------------
+# [reflow]  (text style for EPUB, FB2, MOBI, HTML)
+# -----------------------------------------------------------------------------
+[reflow]
+# font_family  = ""      # any installed font, or serif / sans-serif / monospace;
+#                        # empty keeps the document's own fonts
+# font_size    = 11.0    # points
+# line_spacing = 0.0     # multiple of the font size, e.g. 1.4; 0 keeps the document's own
+
+
+# -----------------------------------------------------------------------------
 # [selection]
 # -----------------------------------------------------------------------------
 [selection]
@@ -514,7 +524,7 @@ history_prev          = "Ctrl+Up"
 history_next          = "Ctrl+Down"
 
 # Per-file-type overrides. Any of the view settings ([page], [layout], [zoom],
-# [selection], [scrollbars], [search], [jump_marker], [annotations], [links],
+# [selection], [reflow], [scrollbars], [search], [jump_marker], [annotations], [links],
 # [behavior]) can be set for one document type; the type is lower-case
 # (pdf, epub, djvu, ...). Options not listed keep their normal value.
 # Dotted keys keep each type in one table:

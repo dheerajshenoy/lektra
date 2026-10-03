@@ -839,7 +839,9 @@ private:
     QSet<QString> m_pending_config_sections;
     void applyLocalConfigChanges() noexcept;
     // Applies the [filetype.<type>] overrides of the opened document.
-    void applyFiletypeOverrides() noexcept;
+    void applyFiletypeOverrides(const QString &filePath) noexcept;
+    void applyReflowStyle(bool atOpen) noexcept;
+    QString m_reflow_style_key;
     std::string m_override_type;
     Id m_id               = 0;
     Model *m_model        = nullptr;

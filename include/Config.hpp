@@ -577,6 +577,35 @@ struct Config
     } zoom;
     // @endsection
 
+    // @section reflow
+    // @section_desc Text style for reflowable documents (EPUB, FB2, MOBI)
+    // @section_type struct
+    // @section_added 0.7.9
+    struct Reflow
+    {
+        // @desc Font family for the text (any installed font, or serif,
+        // sans-serif, monospace). Empty uses the document's own fonts
+        // @type str
+        // @default ""
+        // @added 0.7.9
+        QString font_family = QString();
+
+        // @desc Font size in points
+        // @type float
+        // @default 11.0f
+        // @added 0.7.9
+        float font_size = 11.0f;
+
+        // @desc Line spacing as a multiple of the font size (e.g. 1.4). 0 uses
+        // the document's own spacing
+        // @type float
+        // @default 0.0f
+        // @added 0.7.9
+        float line_spacing = 0.0f;
+
+    } reflow;
+    // @endsection
+
     // @section selection
     // @section_desc Selection options struct
     // @section_type struct

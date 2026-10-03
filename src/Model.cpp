@@ -1426,6 +1426,180 @@ Model::~Model() noexcept
         fz_drop_context(m_ctx);
 }
 
+#ifdef HAVE_FONTCONFIG
+#include <fontconfig/fontconfig.h>
+
+// Lets documents (EPUB/FB2 text styled with a font-family) use fonts that are
+// installed on the system. Only an exact family match is accepted: otherwise
+// fontconfig would answer every unknown name with its default font and
+// override MuPDF's own built-in font handling.
+static fz_font *
+load_system_font(fz_context *ctx, const char *name, int bold, int italic,
+                 int /*needs_exact_metrics*/)
+{
+    if (!FcInit())
+        return nullptr;
+
+    fz_font *font   = nullptr;
+    FcPattern *pat  = FcPatternCreate();
+    FcPattern *best = nullptr;
+    if (!pat)
+        return nullptr;
+
+    FcPatternAddString(pat, FC_FAMILY, reinterpret_cast<const FcChar8 *>(name));
+    FcPatternAddInteger(pat, FC_WEIGHT,
+                        bold ? FC_WEIGHT_BOLD : FC_WEIGHT_REGULAR);
+    FcPatternAddInteger(pat, FC_SLANT, italic ? FC_SLANT_ITALIC : FC_SLANT_ROMAN);
+    FcConfigSubstitute(nullptr, pat, FcMatchPattern);
+    FcDefaultSubstitute(pat);
+
+    FcResult result;
+    best = FcFontMatch(nullptr, pat, &result);
+    if (best)
+    {
+        FcChar8 *family = nullptr;
+        FcChar8 *file   = nullptr;
+        int index       = 0;
+        if (FcPatternGetString(best, FC_FAMILY, 0, &family) == FcResultMatch
+            && FcPatternGetString(best, FC_FILE, 0, &file) == FcResultMatch
+            && qstrnicmp(reinterpret_cast<const char *>(family), name,
+                         strlen(name))
+                   == 0
+            && strlen(reinterpret_cast<const char *>(family)) == strlen(name))
+        {
+            FcPatternGetInteger(best, FC_INDEX, 0, &index);
+            fz_try(ctx)
+                font = fz_new_font_from_file(
+                    ctx, nullptr, reinterpret_cast<const char *>(file), index,
+                    0);
+            fz_catch(ctx)
+                font = nullptr;
+        }
+        FcPatternDestroy(best);
+    }
+    FcPatternDestroy(pat);
+    return font;
+}
+#else // !HAVE_FONTCONFIG
+
+#include <QDirIterator>
+#include <QRawFont>
+#include <QStandardPaths>
+
+// Without fontconfig (Windows, macOS), find fonts by scanning the system font
+// folders once and indexing them by family name.
+namespace
+{
+struct IndexedFont
+{
+    QString path;
+    bool bold   = false;
+    bool italic = false;
+};
+
+std::mutex g_font_index_mutex;
+bool g_font_index_built = false;
+QHash<QString, std::vector<IndexedFont>> g_font_index; // lower-case family
+
+void
+buildFontIndex()
+{
+    std::lock_guard<std::mutex> lock(g_font_index_mutex);
+    if (g_font_index_built)
+        return;
+    g_font_index_built = true;
+
+    const QStringList filters{"*.ttf", "*.otf", "*.ttc", "*.otc"};
+    for (const QString &dir :
+         QStandardPaths::standardLocations(QStandardPaths::FontsLocation))
+    {
+        QDirIterator it(dir, filters, QDir::Files,
+                        QDirIterator::Subdirectories);
+        while (it.hasNext())
+        {
+            const QString path = it.next();
+            const QRawFont raw(path, 12.0);
+            if (!raw.isValid())
+                continue;
+            IndexedFont f;
+            f.path   = path;
+            f.bold   = raw.weight() >= QFont::DemiBold;
+            f.italic = raw.style() != QFont::StyleNormal;
+            g_font_index[raw.familyName().toLower()].push_back(std::move(f));
+        }
+    }
+}
+
+fz_font *
+load_system_font(fz_context *ctx, const char *name, int bold, int italic,
+                 int /*needs_exact_metrics*/)
+{
+    std::lock_guard<std::mutex> lock(g_font_index_mutex);
+    const auto it = g_font_index.constFind(QString::fromUtf8(name).toLower());
+    if (it == g_font_index.cend() || it->empty())
+        return nullptr;
+
+    // Prefer the requested bold/italic, else the closest face.
+    const IndexedFont *best = nullptr;
+    int bestScore           = -1;
+    for (const IndexedFont &f : *it)
+    {
+        const int score = (f.bold == bool(bold) ? 2 : 0)
+                          + (f.italic == bool(italic) ? 1 : 0);
+        if (score > bestScore)
+        {
+            best      = &f;
+            bestScore = score;
+        }
+    }
+
+    fz_font *font = nullptr;
+    const QByteArray path = best->path.toUtf8();
+    fz_try(ctx)
+        font = fz_new_font_from_file(ctx, nullptr, path.constData(), 0, 0);
+    fz_catch(ctx)
+        font = nullptr;
+    return font;
+}
+} // namespace
+#endif
+
+void
+Model::setReflowStyle(const QString &fontFamily, float lineSpacing) noexcept
+{
+    if (!m_ctx)
+        return;
+
+#ifndef HAVE_FONTCONFIG
+    // Index on the calling (GUI) thread; MuPDF's worker threads only read it.
+    if (!fontFamily.isEmpty())
+        buildFontIndex();
+#endif
+
+    QString css;
+    if (!fontFamily.isEmpty())
+    {
+        QString family = fontFamily;
+        family.remove('"').remove('\\').remove('{').remove('}').remove(';');
+        css += QString("body, p, div, span, li, td, th, blockquote, h1, h2, h3, "
+                       "h4, h5, h6 { font-family: \"%1\" !important; }\n")
+                   .arg(family);
+    }
+    if (lineSpacing > 0.0f)
+        css += QString("body, p, div, span, li, td, th, blockquote "
+                       "{ line-height: %1 !important; }\n")
+                   .arg(lineSpacing);
+
+    fz_try(m_ctx)
+        fz_set_user_css(m_ctx, css.toUtf8().constData());
+    fz_catch(m_ctx)
+        qWarning() << "Failed to set reflow style:" << fz_caught_message(m_ctx);
+
+    // Force the next relayoutForViewport() to run even if the page box and
+    // font size are unchanged.
+    m_layout_em = 0.0f;
+}
+
 void
 Model::initMuPDF() noexcept
 {
@@ -1437,6 +1611,7 @@ Model::initMuPDF() noexcept
         = static_cast<size_t>(m_config.behavior.mupdf_store_size) << 20;
     m_ctx = fz_new_context(nullptr, &m_fz_locks, storeBytes);
     fz_register_document_handlers(m_ctx);
+    fz_install_load_system_font_funcs(m_ctx, load_system_font, nullptr, nullptr);
     m_colorspace = fz_device_rgb(m_ctx);
 }
 
@@ -6647,14 +6822,20 @@ Model::contentBBox(int pageno) noexcept
 QString
 Model::fileTypeToString() const noexcept
 {
-    switch (m_filetype)
+    return fileTypeName(m_filetype, m_filepath);
+}
+
+QString
+Model::fileTypeName(FileType type, const QString &filepath) noexcept
+{
+    switch (type)
     {
         case FileType::PDF:
             // Adobe Illustrator files are PDF-compatible (valid PDF under
             // the hood, opened via the same PDF path) and have no distinct
             // content "magic" of their own to detect by — recognized here
             // by extension purely for a more accurate label.
-            if (m_filepath.endsWith(".ai", Qt::CaseInsensitive))
+            if (filepath.endsWith(".ai", Qt::CaseInsensitive))
                 return "AI";
             return "PDF";
         case FileType::EPUB:

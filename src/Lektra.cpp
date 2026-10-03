@@ -903,6 +903,14 @@ applyViewToml(toml::table &toml, Config &cfg)
         set(zoom["anchor_to_mouse"], cfg.zoom.anchor_to_mouse);
     }
 
+    // Reflowable documents
+    if (auto reflow = toml["reflow"])
+    {
+        set(reflow["font_family"], cfg.reflow.font_family);
+        set(reflow["font_size"], cfg.reflow.font_size);
+        set(reflow["line_spacing"], cfg.reflow.line_spacing);
+    }
+
     if (auto selection = toml["selection"])
     {
         set(selection["drag_threshold"], cfg.selection.drag_threshold);
@@ -1102,7 +1110,7 @@ Lektra::initConfig() noexcept
                 = {"page",       "layout",      "zoom",
                    "selection",  "scrollbars",  "search",
                    "jump_marker", "annotations", "links",
-                   "behavior"};
+                   "behavior",   "reflow"};
             for (const auto &[sec, value] : *section)
             {
                 const QString secName

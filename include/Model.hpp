@@ -543,6 +543,11 @@ public:
     QFuture<void> relayoutForViewport(float widthPts, float heightPts,
                                       float emPts) noexcept;
 
+    // Font family and line spacing (multiple of the font size) used for
+    // reflowable documents; empty / 0 keep the document's own. Takes effect
+    // at the next layout, so follow it with relayoutForViewport().
+    void setReflowStyle(const QString &fontFamily, float lineSpacing) noexcept;
+
     // Current reflow page-box size in points — the last size passed to
     // relayoutForViewport(), or MuPDF's own default (FZ_DEFAULT_LAYOUT_W/H,
     // 420x595) when the document hasn't been laid out yet. Font-size
@@ -618,6 +623,8 @@ public:
     QString getHighlightText(const int pageno, const int objNum) noexcept;
     int get_obj_num_at_rect(int pageno, fz_rect targetRect) noexcept;
     QString fileTypeToString() const noexcept;
+    [[nodiscard]] static QString fileTypeName(FileType type,
+                                              const QString &filepath) noexcept;
     // Pure path->FileType lookup (extension/mime), usable without an open
     // Model instance — e.g. by link-following to decide whether a file://
     // URI points at something Lektra can open locally.

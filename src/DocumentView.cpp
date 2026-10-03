@@ -375,6 +375,14 @@ DocumentView::openAsync(const QString &filePath) noexcept
     m_spinner->start();
     m_spinner->show();
 
+    // Options for this kind of document must be in place before it opens:
+    // MuPDF styles reflowable text (EPUB font, line spacing) while loading.
+    applyFiletypeOverrides(filePath);
+    m_model->setReflowStyle(m_config.reflow.font_family,
+                            m_config.reflow.line_spacing);
+    m_reflow_style_key = QString("%1|%2").arg(m_config.reflow.font_family)
+                             .arg(m_config.reflow.line_spacing);
+
     // Order matters: disconnect any previous watcher connection FIRST, then
     // establish the new one, THEN attach the future. If setFuture ran
     // before we reconnected, a rapid consecutive openAsync could see the
@@ -436,8 +444,6 @@ DocumentView::handleOpenFileFinished() noexcept
     }
 
     m_gview->setOpenFailedMessage(QString());
-
-    applyFiletypeOverrides();
 
     stopGifPlayback();
 
@@ -504,6 +510,7 @@ DocumentView::handleOpenFileFinished() noexcept
         // ReflowFontSizeIncrease()/Decrease() — reflow is opt-in, not
         // automatic.
         m_reflow_em = kReflowFontSizeDefault;
+        applyReflowStyle(true);
 
 #ifdef WITH_SYNCTEX
         if (m_model->fileType() == Model::FileType::PDF)
@@ -4142,6 +4149,37 @@ DocumentView::applyReflow(float em) noexcept
                                  m_model->layoutHeightPts(), em);
 }
 
+// Applies the [reflow] options (font, size, line spacing). At open it does
+// nothing unless something differs from MuPDF's defaults, so documents are
+// only re-paginated when the user asked for a style.
+void
+DocumentView::applyReflowStyle(bool atOpen) noexcept
+{
+    if (!m_model || !m_model->supports_reflow())
+        return;
+
+    const auto &e = m_config.reflow;
+    if (atOpen && qFuzzyCompare(e.font_size, kReflowFontSizeDefault))
+        return;
+
+    m_reflow_em = std::clamp(e.font_size, kReflowFontSizeMin,
+                             kReflowFontSizeMax);
+
+    // Font and line spacing are applied while MuPDF loads the text, so
+    // changing them on an open document means loading it again.
+    const QString key
+        = QString("%1|%2").arg(e.font_family).arg(e.line_spacing);
+    if (!atOpen && key != m_reflow_style_key)
+    {
+        m_model->setReflowStyle(e.font_family, e.line_spacing);
+        m_reflow_style_key = key;
+        reloadFile();
+        return;
+    }
+
+    applyReflow(m_reflow_em);
+}
+
 void
 DocumentView::ReflowFontSizeIncrease() noexcept
 {
@@ -4170,7 +4208,8 @@ DocumentView::ReflowFontSizeReset() noexcept
     if (!m_model || !m_model->supports_reflow())
         return;
 
-    m_reflow_em = kReflowFontSizeDefault;
+    m_reflow_em = std::clamp(m_config.reflow.font_size, kReflowFontSizeMin,
+                             kReflowFontSizeMax);
     applyReflow(m_reflow_em);
 }
 
@@ -6898,13 +6937,15 @@ DocumentView::localConfigChanged(const QString &section) noexcept
 }
 
 void
-DocumentView::applyFiletypeOverrides() noexcept
+DocumentView::applyFiletypeOverrides(const QString &filePath) noexcept
 {
     if (m_thumbnail_mode || !m_global.filetype_overrides)
         return;
 
     const std::string type
-        = m_model->fileTypeToString().toLower().toStdString();
+        = Model::fileTypeName(Model::getFileTypeForPath(filePath), filePath)
+              .toLower()
+              .toStdString();
     if (type == m_override_type)
         return;
 
@@ -6951,6 +6992,9 @@ DocumentView::applyLocalConfigChanges() noexcept
         m_model->undoStack()->setUndoLimit(m_config.behavior.undo_limit);
         rerender = true;
     }
+
+    if (sections.contains("reflow"))
+        applyReflowStyle(false);
 
     if (sections.contains("rendering"))
     {
