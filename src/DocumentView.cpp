@@ -614,7 +614,7 @@ DocumentView::initConnections() noexcept
         connect(m_hq_render_timer, &QTimer::timeout, this,
                 &DocumentView::renderPages);
         connect(m_scroll_page_update_timer, &QTimer::timeout, this,
-                &DocumentView::renderPages);
+                &DocumentView::refreshVisiblePages);
         return;
     }
 
@@ -649,7 +649,7 @@ DocumentView::initConnections() noexcept
                 &DocumentView::renderPages, Qt::UniqueConnection);
 
         connect(m_scroll_page_update_timer, &QTimer::timeout, this,
-                &DocumentView::renderPages, Qt::UniqueConnection);
+                &DocumentView::refreshVisiblePages, Qt::UniqueConnection);
     }
     else if (m_layout_mode == LayoutMode::VERTICAL
              || m_layout_mode == LayoutMode::BOOK)
@@ -661,7 +661,7 @@ DocumentView::initConnections() noexcept
                 &DocumentView::renderPages, Qt::UniqueConnection);
 
         connect(m_scroll_page_update_timer, &QTimer::timeout, this,
-                &DocumentView::renderPages, Qt::UniqueConnection);
+                &DocumentView::refreshVisiblePages, Qt::UniqueConnection);
     }
 
     else if (m_layout_mode == LayoutMode::SINGLE)
@@ -3335,6 +3335,36 @@ DocumentView::clearAnnotationsForPage(int pageno) noexcept
 void
 DocumentView::renderPages() noexcept
 {
+    renderPagesImpl(false);
+}
+
+void
+DocumentView::refreshVisiblePages() noexcept
+{
+    renderPagesImpl(true);
+}
+
+DocumentView::PageRenderKey
+DocumentView::currentPageRenderKey() const noexcept
+{
+    PageRenderKey key;
+    key.zoom             = m_current_zoom;
+    key.rotation         = m_model->rotation();
+    key.dpr              = m_model->DPR();
+    key.fg               = m_model->foregroundColor();
+    key.bg               = m_model->backgroundColor();
+    key.flip_h           = m_model->isFlippedH();
+    key.flip_v           = m_model->isFlippedV();
+    key.invert           = m_model->invertColor();
+    key.trim             = m_trim_margins;
+    key.high_contrast    = m_config.behavior.high_contrast;
+    key.dont_invert_img  = m_config.behavior.dont_invert_images;
+    return key;
+}
+
+void
+DocumentView::renderPagesImpl(bool skipCurrent) noexcept
+{
 
     // Guard
     if (m_layout_mode == LayoutMode::SINGLE)
@@ -3381,8 +3411,17 @@ DocumentView::renderPages() noexcept
 
         // Prioritize visible pages for rendering, but also include preload
         // pages in the queue
+        const PageRenderKey key = currentPageRenderKey();
         for (int pageno : visiblePages)
+        {
+            if (skipCurrent && m_page_render_keys.contains(pageno)
+                && m_page_render_keys.value(pageno) == key
+                && !m_pending_renders.contains(pageno)
+                && !m_placeholder_pages.contains(pageno)
+                && m_page_items_hash.value(pageno, nullptr))
+                continue;
             requestPageRender(pageno);
+        }
 
         // Preload pages
         for (int pageno : preloadPages)
@@ -3528,10 +3567,11 @@ DocumentView::startNextRenderJob() noexcept
         // Capture zoom at dispatch time so stale callbacks from a previous
         // zoom level can be detected and dropped in the lambda below.
         const double dispatchZoom = m_current_zoom;
+        const PageRenderKey dispatchKey = currentPageRenderKey();
 
         QPointer<DocumentView> self(this);
         m_model->requestPageRender(
-            job, [self, pageno, dispatchZoom](const Model::PageRenderResult &result)
+            job, [self, pageno, dispatchZoom, dispatchKey](const Model::PageRenderResult &result)
         {
             if (!self)
                 return;
@@ -3560,6 +3600,8 @@ DocumentView::startNextRenderJob() noexcept
 
             if (!image.isNull())
             {
+                view->m_page_render_keys[pageno] = dispatchKey;
+
                 if (view->m_awaiting_first_render)
                 {
                     view->m_awaiting_first_render = false;
@@ -4477,6 +4519,7 @@ void
 DocumentView::clearDocumentItems() noexcept
 {
     invalidateVisiblePagesCache();
+    m_page_render_keys.clear();
 
     // Reset narrow state when document is cleared
     m_is_narrow   = false;

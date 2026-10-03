@@ -440,6 +440,10 @@ public:
     void createAndAddPageItem(int pageno, QImage image) noexcept;
     void renderImage() noexcept;
     void renderPages() noexcept;
+    // Scroll-driven refresh: like renderPages(), but leaves alone visible
+    // pages that are already rendered with identical render settings.
+    void refreshVisiblePages() noexcept;
+    void renderPagesImpl(bool skipCurrent) noexcept;
     void renderPage() noexcept;
     void handleTextHighlightRequested() noexcept;
     void handleTextCommentRequested() noexcept;
@@ -904,6 +908,27 @@ private:
     QQueue<int> m_visible_render_queue;
     QQueue<int> m_render_queue;
     QSet<int> m_placeholder_pages;
+
+    // Render settings a page's current GraphicsImageItem was rendered with;
+    // lets scroll refreshes skip pages whose pixels would come out identical.
+    struct PageRenderKey
+    {
+        double zoom          = 0.0;
+        float rotation       = 0.0f;
+        float dpr            = 0.0f;
+        uint32_t fg          = 0;
+        uint32_t bg          = 0;
+        bool flip_h          = false;
+        bool flip_v          = false;
+        bool invert          = false;
+        bool trim            = false;
+        bool high_contrast   = false;
+        bool dont_invert_img = false;
+
+        bool operator==(const PageRenderKey &) const = default;
+    };
+    PageRenderKey currentPageRenderKey() const noexcept;
+    QHash<int, PageRenderKey> m_page_render_keys;
     QSet<int> m_preload_pages;
     QMap<int, std::vector<Model::SearchHit>> m_search_hits;
     std::vector<HitRef> m_search_hit_flat_refs;
