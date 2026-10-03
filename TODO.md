@@ -13,7 +13,6 @@
 - [ ] Pin Tabs
 - [ ] Configurable line scroll distance
 - [ ] Laser pointer for presentation view
-- [ ] Citation and reference hover preview
 - [ ] Duplicating a tab keeps the page, zoom and scroll position of the original tab.
 
 ## LOW PRIORITY
@@ -25,9 +24,7 @@
 - [ ] Tab hover preview
 - [ ] Use `djvudec` for DjVu rendering (https://github.com/kjk/djvudec)
 - [ ] Citation preview for plain-text references
-- [ ] Comic book archive support with libarchive instead of MuPDF
 - [ ] Bookmarks/history/sessions store raw `PageLocation{pageno,x,y}` (`include/PageLocation.hpp`), which an EPUB/reflowable-document relayout invalidates. Short-term (already shipped alongside reflow): clamp to new page count on load (approximately right page, not exact position). Real fix — anchoring EPUB bookmarks to `(chapter, uri-fragment, y-fraction)` like the outline now does (see `Model::resolveOutlineNode`) — is a `PageLocation`/`BookmarkManager` schema change and belongs in its own follow-up.
-- [ ] Don't add connection to annotation when in non-annotatable mode
 - [ ] Link hint lua api and then callback to lua
 - [ ] Add luajit support
 - [ ] Add support for embedded files in PDFs
