@@ -441,7 +441,8 @@ public:
     bool EncryptDocument() noexcept;
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
-    void createAndAddPageItem(int pageno, QImage image) noexcept;
+    void createAndAddPageItem(int pageno, QImage image, QSize fullSize = {},
+                              QRect region = {}) noexcept;
     void renderImage() noexcept;
     void renderPages() noexcept;
     // Scroll-driven refresh: like renderPages(), but leaves alone visible
@@ -692,7 +693,13 @@ private:
     void clearVisibleAnnotations() noexcept;
     void clearVisiblePages() noexcept;
     void clearVisibleLinks() noexcept;
-    void renderPageFromImage(int pageno, QImage image) noexcept;
+    void renderPageFromImage(int pageno, QImage image, QSize fullSize = {},
+                             QRect region = {}) noexcept;
+    // Tells the render job which part of the page is on screen, so a page that
+    // is too big to render whole is only rendered where it is looked at.
+    void setRenderClip(Model::RenderJob &job) const noexcept;
+    // True when a partially rendered page no longer covers what is visible.
+    bool regionNeedsRefresh(int pageno) const noexcept;
     void renderLinks(int pageno, const std::vector<Model::RenderLink> &links,
                      bool append = false) noexcept;
     void renderAnnotations(

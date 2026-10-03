@@ -674,6 +674,21 @@ DocumentView::initConnections() noexcept
     {
         connect(m_hq_render_timer, &QTimer::timeout, this,
                 &DocumentView::renderPage, Qt::UniqueConnection);
+
+        // Zooming only rescales the page that is already there; the sharp
+        // render follows once the zoom settles.
+        connect(m_scroll_page_update_timer, &QTimer::timeout, this,
+                &DocumentView::renderPage, Qt::UniqueConnection);
+
+        // A deeply zoomed page is only rendered around the visible part, so
+        // scrolling can leave that part and needs a fresh render.
+        auto refreshRegion = [this]
+        {
+            if (regionNeedsRefresh(m_pageno))
+                m_scroll_page_update_timer->start();
+        };
+        connect(m_vscroll, &QScrollBar::valueChanged, this, refreshRegion);
+        connect(m_hscroll, &QScrollBar::valueChanged, this, refreshRegion);
     }
 
     /* Graphics View Signals */
@@ -1867,9 +1882,11 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         repositionPages();
         m_gscene->blockSignals(false);
         m_gview->setUpdatesEnabled(true);
-        renderPage();
 
         restoreZoomAnchor(anchorPage, relX, relY, viewportRatio);
+
+        // Sharpen once zooming settles instead of on every step.
+        m_scroll_page_update_timer->start();
 
         m_gview->flashScrollbars();
 #ifdef WITH_LUA
@@ -3387,6 +3404,59 @@ DocumentView::currentPageRenderKey() const noexcept
 }
 
 void
+DocumentView::setRenderClip(Model::RenderJob &job) const noexcept
+{
+    if (m_model->isImage())
+        return;
+
+    const GraphicsImageItem *item = m_page_items_hash.value(job.pageno, nullptr);
+    if (!item)
+        return;
+
+    const QRectF br = item->boundingRect();
+    if (br.isEmpty())
+        return;
+
+    // What is on screen, plus half a window on each side so small scrolls and
+    // zoom steps keep landing on sharp pixels.
+    QRectF vis = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
+    vis.adjust(-vis.width() * 0.5, -vis.height() * 0.5, vis.width() * 0.5,
+               vis.height() * 0.5);
+
+    QRectF local = item->mapRectFromScene(vis).intersected(br);
+    if (local.isEmpty())
+    {
+        // Page is off screen (preloaded): render the part nearest its top.
+        const QSizeF view
+            = item->mapRectFromScene(QRectF(0, 0, vis.width(), vis.height()))
+                  .size();
+        local = QRectF(br.topLeft(), view.boundedTo(br.size()));
+    }
+
+    job.clip_frac = QRectF(local.x() / br.width(), local.y() / br.height(),
+                           local.width() / br.width(),
+                           local.height() / br.height());
+    job.has_clip  = true;
+}
+
+bool
+DocumentView::regionNeedsRefresh(int pageno) const noexcept
+{
+    const GraphicsImageItem *item = m_page_items_hash.value(pageno, nullptr);
+    if (!item || !item->isPartial() || !item->isVisible())
+        return false;
+
+    const QRectF vis
+        = item->mapRectFromScene(
+              m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect())
+              .intersected(item->boundingRect());
+    if (vis.isEmpty())
+        return false;
+
+    return !item->imageRect().adjusted(-1, -1, 1, 1).contains(vis);
+}
+
+void
 DocumentView::renderPagesImpl(bool skipCurrent) noexcept
 {
 
@@ -3442,7 +3512,8 @@ DocumentView::renderPagesImpl(bool skipCurrent) noexcept
                 && m_page_render_keys.value(pageno) == key
                 && !m_pending_renders.contains(pageno)
                 && !m_placeholder_pages.contains(pageno)
-                && m_page_items_hash.value(pageno, nullptr))
+                && m_page_items_hash.value(pageno, nullptr)
+                && !regionNeedsRefresh(pageno))
                 continue;
             requestPageRender(pageno);
         }
@@ -3587,6 +3658,8 @@ DocumentView::startNextRenderJob() noexcept
             continue;
 
         auto job = m_model->createRenderJob(pageno);
+        if (!m_trim_margins)
+            setRenderClip(job);
 
         // Capture zoom at dispatch time so stale callbacks from a previous
         // zoom level can be detected and dropped in the lambda below.
@@ -3614,7 +3687,7 @@ DocumentView::startNextRenderJob() noexcept
 
             QImage image = std::move(result.image);
 
-            if (!image.isNull() && view->m_trim_margins)
+            if (!image.isNull() && view->m_trim_margins && !result.partial)
             {
                 const QRect crop = view->contentCropRectPixels(pageno)
                                        .intersected(image.rect());
@@ -3641,7 +3714,8 @@ DocumentView::startNextRenderJob() noexcept
                     view->m_gscene->blockSignals(true);
                     view->setUpdatesEnabled(false);
                     {
-                        view->renderPageFromImage(pageno, std::move(image));
+                        view->renderPageFromImage(pageno, std::move(image), result.full_size,
+                                              result.region);
                         // Mark as preload and hide it for instant display later
                         if (view->m_page_items_hash.contains(pageno))
                         {
@@ -3660,7 +3734,8 @@ DocumentView::startNextRenderJob() noexcept
                 view->m_gscene->blockSignals(true);
                 view->setUpdatesEnabled(false);
                 {
-                    view->renderPageFromImage(pageno, std::move(image));
+                    view->renderPageFromImage(pageno, std::move(image), result.full_size,
+                                              result.region);
                     if (!view->m_thumbnail_mode)
                     {
                         view->renderLinks(pageno, result.links);
@@ -3672,6 +3747,10 @@ DocumentView::startNextRenderJob() noexcept
                 view->setUpdatesEnabled(true);
                 view->m_gscene->blockSignals(false);
                 // m_gview->viewport()->update();
+
+                // The view may have moved while this was rendering.
+                if (view->regionNeedsRefresh(pageno))
+                    view->m_scroll_page_update_timer->start();
 
                 if (view->m_pending_jump.pageno == pageno)
                     view->GotoLocation(view->m_pending_jump);
@@ -4600,7 +4679,8 @@ DocumentView::requestPageRender(int pageno, bool force, bool visible) noexcept
 }
 
 void
-DocumentView::renderPageFromImage(int pageno, QImage image) noexcept
+DocumentView::renderPageFromImage(int pageno, QImage image, QSize fullSize,
+                                   QRect region) noexcept
 {
     // Remove old item (placeholder OR real page) BEFORE adding the new
     // item, since createAndAddPageItem overwrites the hash entry.  Without
@@ -4628,7 +4708,7 @@ DocumentView::renderPageFromImage(int pageno, QImage image) noexcept
     // New item pointer will differ from the cached one — force one recompute.
     m_cached_hit_page_item = nullptr;
 
-    createAndAddPageItem(pageno, std::move(image));
+    createAndAddPageItem(pageno, std::move(image), fullSize, region);
 
     if (wasHighlighted)
         if (auto *newItem = m_page_items_hash.value(pageno, nullptr))
@@ -4711,14 +4791,18 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
 }
 
 void
-DocumentView::createAndAddPageItem(int pageno, QImage img) noexcept
+DocumentView::createAndAddPageItem(int pageno, QImage img, QSize fullSize,
+                                   QRect region) noexcept
 {
 #ifndef NDEBUG
     qDebug() << "DocumentView::createAndAddPageItem(): Adding page item for "
              << "pageno = " << pageno;
 #endif
     auto *pageItem = new GraphicsImageItem();
-    pageItem->setImage(std::move(img));
+    if (fullSize.isValid() && !region.isEmpty())
+        pageItem->setPartialImage(std::move(img), fullSize, region);
+    else
+        pageItem->setImage(std::move(img));
 
     // Logical scene size of the rendered image.
     const QSizeF logicalSize = pageSceneSize(pageno);
@@ -5555,7 +5639,7 @@ DocumentView::regionImage(QRectF area) noexcept
     if (!mapRegionToPageRects(area, pageItem, pageRect, pixelRect))
         return {};
 
-    return pageItem->image().copy(pixelRect);
+    return pageItem->imageRegion(pixelRect);
 }
 
 QImage
@@ -5608,7 +5692,7 @@ DocumentView::CopyRegionAsImageAtDPI(QRectF area) noexcept
     if (img.isNull())
     {
         // Raster / DjVu fallback: crop the existing render (physical pixels) and upscale.
-        img = pageItem->image().copy(pixelRect);
+        img = pageItem->imageRegion(pixelRect);
         if (!img.isNull())
         {
             const float currentScale
@@ -5640,7 +5724,7 @@ DocumentView::SaveRegionAsImage(QRectF area) noexcept
     if (!mapRegionToPageRects(area, pageItem, pageRect, pixelRect))
         return;
 
-    const QImage img = pageItem->image().copy(pixelRect);
+    const QImage img = pageItem->imageRegion(pixelRect);
     if (img.isNull())
         return;
 
@@ -5685,7 +5769,7 @@ DocumentView::OpenRegionInViewer(QRectF area, bool withDefaultViewer) noexcept
     if (!mapRegionToPageRects(area, pageItem, pageRect, pixelRect))
         return;
 
-    QImage img = pageItem->image().copy(pixelRect);
+    QImage img = pageItem->imageRegion(pixelRect);
     if (img.isNull())
         return;
 
@@ -6405,6 +6489,8 @@ DocumentView::repositionPages()
                 continue;
             }
 
+            // height() is the whole page's pixel height even when only part
+            // of it is resident.
             const double currentImageHeight
                 = static_cast<double>(item->height());
 
@@ -6569,7 +6655,7 @@ DocumentView::Copy_page_image() noexcept
     if (!pageAtScenePos(sceneCenter, pageno, pageItem))
         return;
 
-    const QImage img = pageItem->image().copy();
+    const QImage img = pageItem->imageRegion(QRect(0, 0, pageItem->width(), pageItem->height()));
 
     if (!img.isNull())
     {

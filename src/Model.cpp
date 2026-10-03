@@ -3855,7 +3855,39 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         fz_matrix transform = buildRenderTransform(
             bounds, job.zoom, job.rotation, job.flip_h, job.flip_v);
         fz_rect transformed = fz_transform_rect(bounds, transform);
-        fz_irect bbox       = fz_round_rect(transformed);
+        const fz_irect fullBox = fz_round_rect(transformed);
+        fz_irect bbox          = fullBox;
+
+        // A page that would be an enormous bitmap (deep zoom) is rendered
+        // only where it is being looked at. Memory and time then depend on
+        // the window size rather than on the zoom level.
+        constexpr double MAX_FULL_PAGE_PIXELS = 16.0 * 1024.0 * 1024.0;
+        constexpr int REGION_ALIGN            = 64;
+        const int fullW = fullBox.x1 - fullBox.x0;
+        const int fullH = fullBox.y1 - fullBox.y0;
+        bool partial    = false;
+        if (job.has_clip && fullW > 0 && fullH > 0
+            && static_cast<double>(fullW) * fullH > MAX_FULL_PAGE_PIXELS)
+        {
+            auto alignDown = [](int v) { return (v / REGION_ALIGN) * REGION_ALIGN; };
+            auto alignUp   = [](int v)
+            { return ((v + REGION_ALIGN - 1) / REGION_ALIGN) * REGION_ALIGN; };
+            fz_irect r;
+            r.x0 = fullBox.x0 + alignDown(static_cast<int>(
+                       std::floor(job.clip_frac.left() * fullW)));
+            r.y0 = fullBox.y0 + alignDown(static_cast<int>(
+                       std::floor(job.clip_frac.top() * fullH)));
+            r.x1 = fullBox.x0 + alignUp(static_cast<int>(
+                       std::ceil(job.clip_frac.right() * fullW)));
+            r.y1 = fullBox.y0 + alignUp(static_cast<int>(
+                       std::ceil(job.clip_frac.bottom() * fullH)));
+            r = fz_intersect_irect(r, fullBox);
+            if (!fz_is_empty_irect(r))
+            {
+                bbox    = r;
+                partial = true;
+            }
+        }
 
         // // --- Render page to QImage ---
         pix = fz_new_pixmap_with_bbox(ctx, job.colorspace, bbox, nullptr, 0);
@@ -3958,6 +3990,13 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         image.setDotsPerMeterY(static_cast<int>((job.dpi * 1000) / 25.4));
         image.setDevicePixelRatio(job.dpr);
         result.image = image;
+        if (partial)
+        {
+            result.partial   = true;
+            result.full_size = QSize(fullW, fullH);
+            result.region    = QRect(bbox.x0 - fullBox.x0, bbox.y0 - fullBox.y0,
+                                     width, height);
+        }
 
         // --- Extract links ---
         const float scale = m_inv_dpr;

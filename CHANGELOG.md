@@ -16,6 +16,7 @@
 
 ### Bug Fixes
 
+- Fix deep zoom being very slow: in single-page layout the page is now rescaled while zooming and re-rendered sharp once you stop, and very large pages are only rendered where they are visible.
 - Fix the `url_regex` string in the default_config.toml file
 - Fix scrolling through image-heavy/scanned documents re-rendering every visible page on each scroll tick, even when nothing changed; pages already rendered with identical settings are now left alone.
 - Fix `remember_last_visited` not restoring the last page on large documents (e.g. thousands of pages), and not restoring it at all when a file is opened from the command line. The saved page is now applied once the document's layout is ready, and `--command` steps run after it.

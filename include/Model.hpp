@@ -129,6 +129,11 @@ public:
         bool flip_v = false;
         fz_colorspace *colorspace = nullptr;
         QString filepath; // path to PDF
+        // Part of the page (fractions of its width/height) that should be
+        // sharp. Only used when the whole page would be too many pixels to
+        // render in one go.
+        QRectF clip_frac;
+        bool has_clip = false;
     };
 
     struct RenderLink
@@ -155,6 +160,11 @@ public:
     struct PageRenderResult
     {
         QImage image;
+        // When the page was too large to render whole, `image` only covers
+        // `region` (device pixels) of a `full_size` page.
+        QSize full_size;
+        QRect region;
+        bool partial = false;
         std::vector<RenderLink> links;
         std::vector<RenderAnnotation> annotations;
     };

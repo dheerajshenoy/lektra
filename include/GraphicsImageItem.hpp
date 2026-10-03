@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QColor>
 #include <QGraphicsItem>
 #include <QImage>
 #include <QPainter>
@@ -34,6 +35,8 @@ public:
     {
         prepareGeometryChange();
         m_image = image;
+        m_full_px = {};
+        m_region_px = {};
         updateBoundingRect();
         update();
     }
@@ -43,8 +46,61 @@ public:
     {
         prepareGeometryChange();
         m_image = std::move(image);
+        m_full_px = {};
+        m_region_px = {};
         updateBoundingRect();
         update();
+    }
+
+    // Set an image that only covers `regionPx` (device pixels) of a page whose
+    // full rendered size would be `fullPx`. The item keeps the geometry of the
+    // whole page, so layout, links and selection behave as for a full render,
+    // but only the region's pixels exist in memory.
+    void setPartialImage(QImage &&image, const QSize &fullPx,
+                         const QRect &regionPx) noexcept
+    {
+        prepareGeometryChange();
+        m_image     = std::move(image);
+        m_full_px   = fullPx;
+        m_region_px = regionPx;
+        m_fill      = m_image.isNull() ? QColor(Qt::white)
+                                       : QColor(m_image.pixel(0, 0));
+        updateBoundingRect();
+        update();
+    }
+
+    [[nodiscard]] inline bool isPartial() const noexcept
+    {
+        return m_full_px.isValid();
+    }
+
+    // Area (item coordinates) that actually has pixels.
+    [[nodiscard]] QRectF imageRect() const noexcept
+    {
+        if (!isPartial())
+            return m_bounding_rect;
+        const qreal dpr = m_image.devicePixelRatio();
+        return QRectF(m_region_px.x() / dpr, m_region_px.y() / dpr,
+                      m_region_px.width() / dpr, m_region_px.height() / dpr);
+    }
+
+    // Copy of `fullPx` (device pixels of the whole page); parts that are not
+    // resident come out blank.
+    [[nodiscard]] QImage imageRegion(const QRect &fullPx) const
+    {
+        if (!isPartial())
+            return m_image.copy(fullPx);
+        QImage out(fullPx.size(), m_image.format());
+        out.setDevicePixelRatio(m_image.devicePixelRatio());
+        out.fill(m_fill);
+        const QRect common = fullPx.intersected(m_region_px);
+        if (!common.isEmpty())
+        {
+            QPainter p(&out);
+            p.drawImage(common.topLeft() - fullPx.topLeft(), m_image,
+                        common.translated(-m_region_px.topLeft()));
+        }
+        return out;
     }
 
     // API compatibility with QGraphicsPixmapItem
@@ -63,16 +119,21 @@ public:
         return m_image.isNull() ? 1.0 : m_image.devicePixelRatioF();
     }
 
-    // Returns pixel width (not logical width)
+    // Returns pixel width (not logical width) of the whole page, even if only
+    // part of it is resident.
     [[nodiscard]] inline int width() const noexcept
     {
-        return m_image.isNull() ? 0 : m_image.width();
+        return m_image.isNull() ? 0
+                                : (isPartial() ? m_full_px.width()
+                                               : m_image.width());
     }
 
-    // Returns pixel height (not logical height)
+    // Returns pixel height (not logical height) of the whole page.
     [[nodiscard]] inline int height() const noexcept
     {
-        return m_image.isNull() ? 0 : m_image.height();
+        return m_image.isNull() ? 0
+                                : (isPartial() ? m_full_px.height()
+                                               : m_image.height());
     }
 
     [[nodiscard]] QRectF boundingRect() const override
@@ -106,7 +167,13 @@ public:
 
         painter->save();
         painter->setClipRect(exposed);
-        painter->drawImage(m_bounding_rect, m_image);
+        if (isPartial())
+        {
+            painter->fillRect(exposed, m_fill);
+            painter->drawImage(imageRect(), m_image);
+        }
+        else
+            painter->drawImage(m_bounding_rect, m_image);
         painter->restore();
 
         if (m_highlighted)
@@ -158,13 +225,16 @@ private:
         {
             // Logical size = pixel size / device pixel ratio
             const qreal dpr = m_image.devicePixelRatio();
-            m_bounding_rect
-                = QRectF(0, 0, m_image.width() / dpr, m_image.height() / dpr);
+            const QSize px  = isPartial() ? m_full_px : m_image.size();
+            m_bounding_rect = QRectF(0, 0, px.width() / dpr, px.height() / dpr);
         }
     }
 
     QGraphicsSimpleTextItem *m_label = nullptr;
     QImage m_image;
+    QSize m_full_px;   // valid only for partial images
+    QRect m_region_px; // where m_image sits inside the full page, in pixels
+    QColor m_fill = Qt::white;
     QRectF m_bounding_rect;
     bool m_highlighted = false;
 };
