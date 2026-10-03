@@ -117,6 +117,11 @@ signals:
     void linkOpenInNewTabRequested(const BrowseLinkItem *link);
     void linkOpenPortalRequested(const BrowseLinkItem *link);
     void linkOpenPreviewRequested(const BrowseLinkItem *link);
+    // The cursor rests on an internal link (hover preview): show / drop it.
+    // Only connected when the hover preview option is on.
+    void hoverPreviewRequested(const BrowseLinkItem *link,
+                               const QPoint &globalPos);
+    void hoverPreviewCancelled();
     void linkOpenVSplitRequested(const BrowseLinkItem *link);
     void linkOpenHSplitRequested(const BrowseLinkItem *link);
     // Fired for LinkType::External instead of opening the URL directly —
@@ -129,6 +134,7 @@ signals:
 protected:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *e) override
     {
+        emit hoverPreviewCancelled();
         if (e->button() == Qt::LeftButton)
         {
             switch (_type)
@@ -166,12 +172,15 @@ protected:
     void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override
     {
         setBrush(QBrush(QColor(255, 255, 0, 125)));
+        if (isInternal())
+            emit hoverPreviewRequested(this, e->screenPos());
         QGraphicsRectItem::hoverEnterEvent(e);
     }
 
     void hoverLeaveEvent(QGraphicsSceneHoverEvent *e) override
     {
         setBrush(Qt::transparent);
+        emit hoverPreviewCancelled();
         QGraphicsRectItem::hoverLeaveEvent(e);
     }
 

@@ -4621,10 +4621,28 @@ Model::renderRegionAtDPI(int pageno, QRectF logicalRect,
     const fz_rect page_rect_pts = {std::min(tl.x, br.x), std::min(tl.y, br.y),
                                    std::max(tl.x, br.x), std::max(tl.y, br.y)};
 
+    return renderPtsRegion(
+        pageno,
+        QRectF(page_rect_pts.x0, page_rect_pts.y0,
+               page_rect_pts.x1 - page_rect_pts.x0,
+               page_rect_pts.y1 - page_rect_pts.y0),
+        targetDPI);
+}
+
+QImage
+Model::renderPtsRegion(int pageno, QRectF ptsRect, float targetDPI) noexcept
+{
+    const fz_rect page_rect_pts
+        = {float(ptsRect.left()), float(ptsRect.top()), float(ptsRect.right()),
+           float(ptsRect.bottom())};
+
     // For raster sources (images, DjVu) there is no display list to re-render
     // from — return a null image so the caller can fall back to upscaling.
     if (m_is_image || m_filetype == FileType::DJVU)
         return {};
+
+    // The page may never have been shown (e.g. the target of a link).
+    ensurePageCached(pageno);
 
     auto [w, h] = getPageDimensions(pageno);
     if (w <= 0 || h <= 0)
@@ -4722,7 +4740,7 @@ Model::renderRegionAtDPI(int pageno, QRectF logicalRect,
     }
     fz_catch(ctx)
     {
-        qWarning() << "renderRegionAtDPI failed:" << fz_caught_message(ctx);
+        qWarning() << "renderPtsRegion failed:" << fz_caught_message(ctx);
         result = {};
     }
 

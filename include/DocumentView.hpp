@@ -7,6 +7,7 @@
 #include "GraphicsView.hpp"
 #include "JumpMarker.hpp"
 #include "LinkHint.hpp"
+#include "LinkHoverPreview.hpp"
 #include "Model.hpp"
 #include "PageLocation.hpp"
 #include "ScrollBar.hpp"
@@ -868,6 +869,29 @@ private:
     bool m_trim_margins                       = false;
     int m_pending_page                        = -1;
     bool m_awaiting_first_render              = false;
+
+    // Hover preview of internal links (see Config::Links::hover_preview).
+    struct HoverRequest
+    {
+        int page = -1;
+        float x  = 0.0f;
+        float y  = 0.0f;
+        QPoint globalPos;
+        quint64 generation = 0;
+    };
+    LinkHoverPreview *m_hover_preview = nullptr;
+    QTimer *m_hover_timer             = nullptr;
+    QFutureWatcher<QImage> m_hover_watcher;
+    HoverRequest m_hover_pending;  // waiting for the delay / a free worker
+    HoverRequest m_hover_inflight; // being rendered
+    bool m_has_hover_pending = false;
+    quint64 m_hover_generation = 0;
+    void showLinkHoverPreview(const BrowseLinkItem *link,
+                              const QPoint &globalPos) noexcept;
+    void hideLinkHoverPreview() noexcept;
+    void startHoverRender() noexcept;
+    void ensureHoverSetup() noexcept;
+
     bool m_auto_reload                        = false;
     ScrollBar *m_hscroll                      = nullptr;
     ScrollBar *m_vscroll                      = nullptr;

@@ -92,6 +92,10 @@ DocumentView::~DocumentView() noexcept
 {
     stopGifPlayback();
 
+    // The hover preview worker uses the model.
+    ++m_hover_generation;
+    m_hover_watcher.waitForFinished();
+
     // Stop and WAIT for all renders to finish before touching anything
     stopPendingRenders();
     resetConnections();
@@ -3411,6 +3415,121 @@ void
 DocumentView::invalidateVisiblePagesCache() noexcept
 {
     m_visible_pages_dirty = true;
+    // Called on every scroll and zoom: the page moves out from under a
+    // hover preview, so drop it.
+    if (m_has_hover_pending || m_hover_preview)
+        hideLinkHoverPreview();
+}
+
+void
+DocumentView::ensureHoverSetup() noexcept
+{
+    if (!m_hover_timer)
+    {
+        m_hover_timer = new QTimer(this);
+        m_hover_timer->setSingleShot(true);
+        connect(m_hover_timer, &QTimer::timeout, this,
+                &DocumentView::startHoverRender);
+        connect(&m_hover_watcher, &QFutureWatcher<QImage>::finished, this,
+                [this]
+        {
+            QImage image = m_hover_watcher.result();
+            const HoverRequest done = m_hover_inflight;
+            if (done.generation == m_hover_generation && !image.isNull())
+            {
+                if (!m_hover_preview)
+                    m_hover_preview = new LinkHoverPreview(this);
+                m_hover_preview->applyStyle(m_global.preview.border_radius,
+                                            m_global.preview.opacity);
+                m_hover_preview->showPreview(QPixmap::fromImage(image),
+                                             tr("Page %1").arg(done.page + 1),
+                                             done.globalPos);
+            }
+            // A newer hover may have been waiting for the worker.
+            if (m_has_hover_pending && !m_hover_timer->isActive())
+                startHoverRender();
+        });
+    }
+}
+
+void
+DocumentView::showLinkHoverPreview(const BrowseLinkItem *link,
+                                   const QPoint &globalPos) noexcept
+{
+    hideLinkHoverPreview();
+
+    if (!m_config.links.hover_preview || !link || !link->isInternal()
+        || m_thumbnail_mode)
+        return;
+
+    const int page = link->gotoPageNo();
+    if (page < 0 || page >= m_model->numPages())
+        return;
+
+    // The link item may be deleted before the delay is over (page
+    // re-rendered): keep a copy of what is needed.
+    m_hover_pending.page       = page;
+    m_hover_pending.x          = link->location().x;
+    m_hover_pending.y          = link->location().y;
+    m_hover_pending.globalPos  = globalPos;
+    m_hover_pending.generation = m_hover_generation;
+    m_has_hover_pending        = true;
+
+    ensureHoverSetup();
+    m_hover_timer->start(std::max(0, m_config.links.hover_preview_delay));
+}
+
+void
+DocumentView::hideLinkHoverPreview() noexcept
+{
+    ++m_hover_generation; // a render still running is now stale
+    m_has_hover_pending = false;
+    if (m_hover_timer)
+        m_hover_timer->stop();
+    if (m_hover_preview)
+        m_hover_preview->hide();
+}
+
+void
+DocumentView::startHoverRender() noexcept
+{
+    if (!m_has_hover_pending || m_hover_watcher.isRunning())
+        return;
+
+    m_hover_inflight    = m_hover_pending;
+    m_has_hover_pending = false;
+
+    const HoverRequest req = m_hover_inflight;
+    const QSize size(std::clamp(m_config.links.hover_preview_width, 120, 1600),
+                     std::clamp(m_config.links.hover_preview_height, 60, 1200));
+    const qreal dpr = devicePixelRatioF();
+    Model *model    = m_model;
+
+    m_hover_watcher.setFuture(QtConcurrent::run([=]() -> QImage
+    {
+        // The part of the target page to show: as wide as is readable, with
+        // the preview's proportions, starting just above the destination.
+        const QSizeF page = model->pageSizePts(req.page, true);
+        if (page.isEmpty())
+            return {};
+        const double regionW = std::min<double>(page.width(), 420.0);
+        const double regionH = std::min<double>(
+            page.height(), regionW * size.height() / size.width());
+        const double x0 = std::isnan(req.x) ? 0.0
+                                            : std::clamp<double>(req.x - 12.0, 0.0,
+                                                  page.width() - regionW);
+        const double y0 = std::isnan(req.y) ? 0.0
+                                            : std::clamp<double>(req.y - 24.0, 0.0,
+                                                  page.height() - regionH);
+
+        // Pixels needed: the region's width at the preview's device size.
+        const float dpi = static_cast<float>(size.width() * dpr / regionW * 72.0);
+        QImage image = model->renderPtsRegion(
+            req.page, QRectF(x0, y0, regionW, regionH), dpi);
+        if (!image.isNull())
+            image.setDevicePixelRatio(dpr);
+        return image;
+    }));
 }
 
 // Clear links for a specific page
@@ -5014,7 +5133,10 @@ DocumentView::renderLinks(int pageno,
             case BrowseLinkItem::LinkType::Location:
             case BrowseLinkItem::LinkType::FitV:
             case BrowseLinkItem::LinkType::FitH:
-                if (link.target_page >= 0)
+                if (m_config.links.hover_preview)
+                    // The preview replaces the tooltip.
+                    item->setToolTip(QString());
+                else if (link.target_page >= 0)
                     item->setToolTip(
                         tr("Go to page %1").arg(link.target_page + 1));
                 break;
@@ -5113,6 +5235,15 @@ DocumentView::renderLinks(int pageno,
 
             default:
                 break;
+        }
+
+        if (m_config.links.hover_preview && item->isInternal())
+        {
+            connect(item, &BrowseLinkItem::hoverPreviewRequested, this,
+                    [this](const BrowseLinkItem *l, const QPoint &pos)
+            { showLinkHoverPreview(l, pos); });
+            connect(item, &BrowseLinkItem::hoverPreviewCancelled, this,
+                    &DocumentView::hideLinkHoverPreview);
         }
 
         connect(item, &BrowseLinkItem::linkCopyRequested, this,

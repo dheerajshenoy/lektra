@@ -1089,6 +1089,38 @@ static const LuaField linksFields[] = {
 }, [](lua_State *L, P p)
 { static_cast<Config::Links *>(p)->enabled = lua_toboolean(L, 3); }},
 
+    {"hover_preview",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Links *>(p)->hover_preview);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Links *>(p)->hover_preview = lua_toboolean(L, 3); }},
+
+    {"hover_preview_delay",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Links *>(p)->hover_preview_delay);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Links *>(p)->hover_preview_delay = static_cast<int>(lua_tointeger(L, 3)); }},
+
+    {"hover_preview_height",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Links *>(p)->hover_preview_height);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Links *>(p)->hover_preview_height = static_cast<int>(lua_tointeger(L, 3)); }},
+
+    {"hover_preview_width",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Links *>(p)->hover_preview_width);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Links *>(p)->hover_preview_width = static_cast<int>(lua_tointeger(L, 3)); }},
+
     {"url_regex",
      [](lua_State *L, P p)
 {

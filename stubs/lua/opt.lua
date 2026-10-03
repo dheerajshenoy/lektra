@@ -231,6 +231,10 @@ lektra.opt.jump_marker = {}
 ---@field boundary boolean Draw a boundary box around detected links.
 ---@field detect_urls boolean Detect plain-text URLs as clickable links.
 ---@field enabled boolean Whether link detection and navigation is active.
+---@field hover_preview boolean Hovering an internal link shows a preview of its target, instead of the tooltip.
+---@field hover_preview_delay integer Milliseconds to hover before the preview shows.
+---@field hover_preview_height integer Height of the hover preview in pixels.
+---@field hover_preview_width integer Width of the hover preview in pixels.
 ---@field url_regex string Regular expression used to detect URLs.
 lektra.opt.links = {}
 

@@ -795,6 +795,31 @@ struct Config
         // @default R"((https?://|www\.)[^\s<>()\"']+)"
         // @added 0.5.3
         QString url_regex = R"((https?://|www\.)[^\s<>()\"']+)";
+
+        // @desc Show a small preview of where an internal link goes when
+        // hovering over it, instead of the plain tooltip
+        // @type bool
+        // @default false
+        // @added 0.7.9
+        bool hover_preview = false;
+
+        // @desc Milliseconds to hover over a link before its preview shows
+        // @type int
+        // @default 350
+        // @added 0.7.9
+        int hover_preview_delay = 350;
+
+        // @desc Width of the hover preview in pixels
+        // @type int
+        // @default 480
+        // @added 0.7.9
+        int hover_preview_width = 480;
+
+        // @desc Height of the hover preview in pixels
+        // @type int
+        // @default 240
+        // @added 0.7.9
+        int hover_preview_height = 240;
     } links;
     // @endsection
 

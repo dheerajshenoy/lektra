@@ -981,6 +981,10 @@ applyViewToml(toml::table &toml, Config &cfg)
         set(links["boundary"], cfg.links.boundary);
         set(links["detect_urls"], cfg.links.detect_urls);
         set(links["url_regex"], cfg.links.url_regex);
+        set(links["hover_preview"], cfg.links.hover_preview);
+        set(links["hover_preview_delay"], cfg.links.hover_preview_delay);
+        set(links["hover_preview_width"], cfg.links.hover_preview_width);
+        set(links["hover_preview_height"], cfg.links.hover_preview_height);
     }
 
     if (auto search = toml["search"])

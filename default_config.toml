@@ -291,6 +291,10 @@ enabled     = true                               # master switch for PDF links +
 boundary    = false                              # show the clickable rect boundary
 detect_urls = false                              # find bare URLs in the page text
 url_regex = '''(https?://|www\.)[^\s<>()"']+''' # used when detect_urls = true
+hover_preview        = false  # hovering an internal link shows a preview of its target
+hover_preview_delay  = 350    # ms to hover before the preview shows
+hover_preview_width  = 480    # preview size in pixels
+hover_preview_height = 240
 
 
 # -----------------------------------------------------------------------------

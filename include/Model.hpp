@@ -507,6 +507,12 @@ public:
     PageRenderResult renderPageWithExtrasAsync(const RenderJob &job) noexcept;
     [[nodiscard]] QImage renderRegionAtDPI(int pageno, QRectF logicalRect,
                                            float targetDPI) noexcept;
+    // Renders a rectangle of a page, given in page-space points, at the given
+    // DPI (with the document's current rotation, flips and colours). Loads the
+    // page if needed and uses its own MuPDF context, so it may run off the
+    // GUI thread. Null for image/DjVu documents.
+    [[nodiscard]] QImage renderPtsRegion(int pageno, QRectF ptsRect,
+                                         float targetDPI) noexcept;
 
     Properties properties() noexcept;
     fz_outline *getOutline() noexcept;
