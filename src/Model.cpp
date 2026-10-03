@@ -2688,7 +2688,7 @@ Model::buildPageCache(int pageno) noexcept
         }
 
         // Extract links and cache them
-        if (m_config.links.enabled)
+        if (m_config.links.enabled && supports_links())
         {
             head = fz_load_links(ctx, page);
             for (fz_link *link = head; link; link = link->next)

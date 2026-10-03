@@ -646,18 +646,24 @@ DocumentView::initConnections() noexcept
         return;
     }
 
-    connect(m_model, &Model::undoStackCleanChanged, this,
-            [this](bool clean) { setModified(!clean); });
+    // Only wire up what this kind of document can produce.
+    if (m_model->supports_annotations())
+        connect(m_model, &Model::undoStackCleanChanged, this,
+                [this](bool clean) { setModified(!clean); });
 
-    connect(m_model, &Model::searchResultsReady, this,
-            &DocumentView::handleSearchResults);
+    if (m_model->supports_text_search())
+    {
+        connect(m_model, &Model::searchResultsReady, this,
+                &DocumentView::handleSearchResults);
 
-    connect(m_model, &Model::searchPartialResultsReady, this,
-            &DocumentView::handlePartialSearchResults);
+        connect(m_model, &Model::searchPartialResultsReady, this,
+                &DocumentView::handlePartialSearchResults);
+    }
 
-    connect(m_model, &Model::urlLinksReady, this,
-            [this](int pageno, std::vector<Model::RenderLink> links)
-    { renderLinks(pageno, links, true); });
+    if (m_model->supports_links())
+        connect(m_model, &Model::urlLinksReady, this,
+                [this](int pageno, std::vector<Model::RenderLink> links)
+        { renderLinks(pageno, links, true); });
 
     connect(m_model, &Model::reloadRequested, this,
             &DocumentView::handleReloadRequested, Qt::UniqueConnection);
@@ -714,8 +720,9 @@ DocumentView::initConnections() noexcept
     }
 
     /* Graphics View Signals */
-    connect(m_gview, &GraphicsView::textHighlightRequested, this,
-            &DocumentView::handleTextHighlightRequested);
+    if (m_model->supports_text_selection())
+        connect(m_gview, &GraphicsView::textHighlightRequested, this,
+                &DocumentView::handleTextHighlightRequested);
 
     connect(m_gview, &GraphicsView::zoomInRequested, this,
             &DocumentView::ZoomIn);
@@ -752,14 +759,17 @@ DocumentView::initConnections() noexcept
                 &DocumentView::handleAnnotPopupRequested);
     }
 
-    connect(m_gview, &GraphicsView::textSelectionRequested, this,
-            &DocumentView::handleTextSelection);
+    if (m_model->supports_text_selection())
+    {
+        connect(m_gview, &GraphicsView::textSelectionRequested, this,
+                &DocumentView::handleTextSelection);
 
-    connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this,
-            &DocumentView::ClearTextSelection);
+        connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this,
+                &DocumentView::ClearTextSelection);
 
-    connect(m_gview, &GraphicsView::clickRequested, this,
-            &DocumentView::handleClickSelection);
+        connect(m_gview, &GraphicsView::clickRequested, this,
+                &DocumentView::handleClickSelection);
+    }
 
     connect(m_gview, &GraphicsView::contextMenuRequested, this,
             &DocumentView::handleContextMenuRequested);
@@ -767,14 +777,17 @@ DocumentView::initConnections() noexcept
     connect(m_gview, &GraphicsView::regionSelectRequested, this,
             &DocumentView::handleRegionSelectRequested);
 
-    connect(m_gview, &GraphicsView::linkCtrlClickRequested, this,
-            &DocumentView::handleLinkCtrlClickRequested);
+    if (m_model->supports_links())
+    {
+        connect(m_gview, &GraphicsView::linkCtrlClickRequested, this,
+                &DocumentView::handleLinkCtrlClickRequested);
 
-    connect(m_gview, &GraphicsView::linkPreviewRequested, this,
-            &DocumentView::handleLinkPreviewRequested);
+        connect(m_gview, &GraphicsView::linkPreviewRequested, this,
+                &DocumentView::handleLinkPreviewRequested);
 
-    connect(m_gview, &GraphicsView::linkMiddleClickRequested, this,
-            &DocumentView::handleLinkMiddleClickRequested);
+        connect(m_gview, &GraphicsView::linkMiddleClickRequested, this,
+                &DocumentView::handleLinkMiddleClickRequested);
+    }
 }
 
 void
