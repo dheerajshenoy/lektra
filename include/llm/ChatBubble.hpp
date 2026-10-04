@@ -6,6 +6,7 @@
 
 class QFrame;
 class QLabel;
+class QPushButton;
 class QVBoxLayout;
 
 // A single message in the LLM chat view — a messenger-style bubble, styled
@@ -48,10 +49,13 @@ private:
     struct Piece
     {
         QWidget *widget = nullptr;
-        QLabel *label   = nullptr;
+        QLabel *label   = nullptr;       // the text (prose, or the code itself)
+        QPushButton *header = nullptr;   // code blocks: "▾ lua · 12 lines", click to collapse
+        bool collapsed = false;
     };
     Piece makePiece(const Segment &segment);
-    void updatePiece(const Piece &piece, const Segment &segment);
+    void updatePiece(Piece &piece, const Segment &segment);
+    static void refreshHeader(const Piece &piece, const Segment &segment);
 
     QVBoxLayout *m_content = nullptr;
     QList<Segment> m_segments;

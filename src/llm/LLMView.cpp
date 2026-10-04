@@ -409,7 +409,10 @@ LLMView::addScriptActions(const QString &reply)
         row->setContentsMargins(4, 0, 4, 0);
 
         const int lines = code.count(QLatin1Char('\n')) + 1;
-        auto *label = new QLabel(tr("Lua script, %n line(s)", nullptr, lines), bar);
+        auto *label = new QLabel(
+            lines == 1 ? tr("Lua script, 1 line")
+                       : tr("Lua script, %1 lines").arg(lines),
+            bar);
         label->setStyleSheet("color: gray;");
         auto *copy = new QPushButton(tr("Copy"), bar);
         copy->setFlat(true);

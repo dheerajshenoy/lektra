@@ -6,6 +6,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPalette>
+#include <QPushButton>
 #include <QVBoxLayout>
 
 namespace
@@ -140,7 +141,19 @@ ChatBubble::makePiece(const Segment &segment)
                                  "border-radius: 6px; }")
                              .arg(box.name()));
     auto *layout = new QVBoxLayout(frame);
-    layout->setContentsMargins(8, 6, 8, 6);
+    layout->setContentsMargins(8, 4, 8, 6);
+    layout->setSpacing(2);
+
+    // A flat header button: language and size, and a click collapses the block.
+    piece.header = new QPushButton(frame);
+    piece.header->setObjectName("chatCodeToggle");
+    piece.header->setFlat(true);
+    piece.header->setCursor(Qt::PointingHandCursor);
+    piece.header->setFocusPolicy(Qt::NoFocus);
+    piece.header->setStyleSheet(
+        "QPushButton#chatCodeToggle { text-align: left; border: none; "
+        "padding: 1px 0; color: gray; }");
+    layout->addWidget(piece.header);
 
     piece.label = new QLabel(frame);
     piece.label->setTextFormat(Qt::RichText);
@@ -149,18 +162,50 @@ ChatBubble::makePiece(const Segment &segment)
     piece.label->setMaximumWidth(kMaxBubbleWidth - 20);
     layout->addWidget(piece.label);
     piece.widget = frame;
+
+    // The collapsed state lives on the header so the button can toggle it
+    // without knowing which piece it belongs to.
+    QLabel *body = piece.label;
+    QPushButton *header = piece.header;
+    connect(header, &QPushButton::clicked, header, [header, body]
+    {
+        const bool collapse = !header->property("collapsed").toBool();
+        body->setVisible(!collapse);
+        header->setProperty("collapsed", collapse);
+        const QString title = header->property("title").toString();
+        header->setText((collapse ? QStringLiteral("\u25B8 ") : QStringLiteral("\u25BE "))
+                        + title);
+    });
     return piece;
 }
 
 void
-ChatBubble::updatePiece(const Piece &piece, const Segment &segment)
+ChatBubble::refreshHeader(const Piece &piece, const Segment &segment)
+{
+    const int lines = segment.text.count(QLatin1Char('\n')) + 1;
+    const QString language = segment.language.isEmpty() ? QStringLiteral("code")
+                                                        : segment.language;
+    const QString size = lines == 1 ? tr("1 line") : tr("%1 lines").arg(lines);
+    const QString title = QStringLiteral("%1 \u00B7 %2").arg(language, size);
+    piece.header->setProperty("title", title);
+    const bool collapsed = piece.header->property("collapsed").toBool();
+    piece.header->setText((collapsed ? QStringLiteral("\u25B8 ") : QStringLiteral("\u25BE "))
+                          + title);
+}
+
+void
+ChatBubble::updatePiece(Piece &piece, const Segment &segment)
 {
     if (!segment.code)
+    {
         piece.label->setText(segment.text);
-    else if (segment.language == QLatin1String("lua"))
+        return;
+    }
+    if (segment.language == QLatin1String("lua"))
         piece.label->setText(luaToHtml(segment.text, palette()));
     else
         piece.label->setText(plainCodeToHtml(segment.text));
+    refreshHeader(piece, segment);
 }
 
 void

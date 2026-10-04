@@ -4,7 +4,7 @@
 
 ### New Features
 
-- The LLM panel now knows Lektra's Lua API and can drive the app: ask it to do something and it replies with a Lua script you run with the Run button, or automatically with `llm_view.auto_run = true`. Scripts run in a restricted environment (no `io`, `os.execute`, `require`, `load` or `ffi`) with a time limit, and the result is passed back to the model with your next message. Lua code in replies is syntax highlighted.
+- The LLM panel now knows Lektra's Lua API and can drive the app: ask it to do something and it replies with a Lua script you run with the Run button, or automatically with `llm_view.auto_run = true`. Scripts run in a restricted environment (no `io`, `os.execute`, `require`, `load` or `ffi`) with a time limit, and the result is passed back to the model with your next message. Lua code in replies is syntax highlighted, and every code block can be collapsed by clicking its header.
 - New `llm_view.show_at_startup` option opens the LLM panel when Lektra starts. It replaces `llm_view.enabled`, which was read but had no effect.
 - A JSON Schema for `config.toml` (`schema/lektra-config.schema.json`, installed to `share/lektra/`): with a TOML language server such as Taplo it gives completion, option descriptions on hover, and warnings for typos and wrong values. `default_config.toml` now points at it.
 - Lua scripting now uses a bundled LuaJIT, linked statically and enabled by default on Linux, macOS and Windows, so no Lua installation is needed to build or run Lektra. Scripts run as Lua 5.1 with LuaJIT's extensions: `goto` and the `bit` library are available, but Lua 5.3+ features such as integer division `//`, `utf8` and `string.pack` are not.
