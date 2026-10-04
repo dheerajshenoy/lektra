@@ -37,6 +37,8 @@
 
 ### Bug Fixes
 
+- Fix crash (SIGSEGV) on quit when the command palette had been opened and Lua commands were registered via `lektra.cmd.register`: `CommandPicker` stores a by-value copy of the commands vector, whose `Command` lambdas hold `shared_ptr<LuaRefGuard>` refs. Because `CommandPicker` is a child widget of `Lektra`, Qt destroyed it inside `~QWidget()` — after `lua_close()` had already freed the Lua state. The `LuaRefGuard` destructor then called `luaL_unref` on the dead state and segfaulted. Fixed by explicitly deleting `m_command_picker` at the start of `Lektra::~Lektra()`, before `lua_close()`.
+
 - Fix deep zoom being very slow: in single-page layout the page is now rescaled while zooming and re-rendered sharp once you stop, and very large pages are only rendered where they are visible.
 - Fix the `url_regex` string in the default_config.toml file
 - Fix scrolling through image-heavy/scanned documents re-rendering every visible page on each scroll tick, even when nothing changed; pages already rendered with identical settings are now left alone.

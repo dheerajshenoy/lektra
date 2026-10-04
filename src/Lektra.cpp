@@ -80,6 +80,13 @@ Lektra::~Lektra() noexcept
         m_command_manager->saveUsageCounts(
             m_app_data_dir.filePath("command_usage.json"));
 
+    // CommandPicker stores a by-value copy of the commands vector, which holds
+    // LuaRefGuard shared_ptrs. It is parented to this QWidget, so Qt would
+    // normally destroy it in ~QWidget() — after lua_close(). Delete it
+    // explicitly here so its Command copies are destroyed while m_L is alive.
+    delete m_command_picker;
+    m_command_picker = nullptr;
+
     // Commands registered from Lua hold LuaRefGuard shared_ptrs that call
     // luaL_unref in their destructor. Reset before lua_close so the Lua state
     // is still alive when those destructors run.
