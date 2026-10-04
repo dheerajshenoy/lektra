@@ -1,11 +1,62 @@
 #include "LLMView.hpp"
 
+#include <QAbstractTextDocumentLayout>
+#include <QFontMetrics>
+#include <QFrame>
+#include <QHBoxLayout>
+#include <QIcon>
 #include <QJsonObject>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QPainter>
+#include <QPainterPath>
+#include <QPixmap>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QStyle>
+#include <QTextDocument>
 #include <QTimer>
+#include <algorithm>
+#include <cmath>
+
+namespace
+{
+constexpr int kSendButtonSize = 32;
+constexpr int kInputMaxLines  = 6;
+
+// An "arrow up" glyph, drawn so it is crisp at any scale and takes its colour
+// from the palette.
+QPixmap
+sendGlyph(const QColor &color, qreal dpr)
+{
+    constexpr int size = 18;
+    QPixmap pm(QSize(size, size) * dpr);
+    pm.setDevicePixelRatio(dpr);
+    pm.fill(Qt::transparent);
+
+    QPainter p(&pm);
+    p.setRenderHint(QPainter::Antialiasing);
+    QPen pen(color, 2.2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+    p.setPen(pen);
+    p.drawLine(QPointF(9, 15), QPointF(9, 4));
+    QPainterPath head;
+    head.moveTo(4.5, 8.5);
+    head.lineTo(9, 4);
+    head.lineTo(13.5, 8.5);
+    p.drawPath(head);
+    return pm;
+}
+
+QString
+rgba(const QColor &c)
+{
+    return QString("rgba(%1, %2, %3, %4)")
+        .arg(c.red())
+        .arg(c.green())
+        .arg(c.blue())
+        .arg(c.alpha());
+}
+} // namespace
 
 LLMView::LLMView(const Config &config, QWidget *parent)
     : QDockWidget(parent), m_config(config)
@@ -49,6 +100,17 @@ LLMView::closeConnection() noexcept
 bool
 LLMView::eventFilter(QObject *watched, QEvent *event)
 {
+    if (watched == m_input_edit
+        && (event->type() == QEvent::FocusIn
+            || event->type() == QEvent::FocusOut))
+    {
+        // Highlight the frame, not the bare text field, while typing.
+        m_input_frame->setProperty("focused", event->type() == QEvent::FocusIn);
+        m_input_frame->style()->unpolish(m_input_frame);
+        m_input_frame->style()->polish(m_input_frame);
+        return false;
+    }
+
     if (watched == m_input_edit && event->type() == QEvent::KeyPress)
     {
         auto *keyEvent = static_cast<QKeyEvent *>(event);
@@ -81,30 +143,139 @@ LLMView::initUI()
     m_scroll_area->setWidgetResizable(true);
     m_scroll_area->setWidget(m_messages_widget);
 
-    m_input_edit = new QTextEdit(m_container);
-    m_input_edit->setMaximumHeight(80);
-    m_input_edit->setPlaceholderText(tr("Type your message here..."));
+    // m_scroll_area->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::);
+
+    // The input is one rounded frame holding a borderless text field and a
+    // round send button, like a chat app's composer.
+    m_input_frame = new QFrame(m_container);
+    m_input_frame->setObjectName("llmInputFrame");
+    m_input_frame->setProperty("focused", false);
+
+    m_input_frame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
+
+    m_input_edit = new QTextEdit(m_input_frame);
+    m_input_edit->setObjectName("llmInputEdit");
+    m_input_edit->setAcceptRichText(false);
+    m_input_edit->setFrameShape(QFrame::NoFrame);
+    m_input_edit->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    m_input_edit->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_input_edit->document()->setDocumentMargin(2);
+    m_input_edit->setPlaceholderText(
+        tr("Ask something...  (Shift+Enter to send)"));
     m_input_edit->installEventFilter(this);
 
-    m_send_button = new QPushButton(tr("Send"), m_container);
+    m_send_button = new QToolButton(m_input_frame);
+    m_send_button->setObjectName("llmSendButton");
+    m_send_button->setCursor(Qt::PointingHandCursor);
+    m_send_button->setToolTip(tr("Send (Shift+Enter)"));
+    m_send_button->setFixedSize(kSendButtonSize, kSendButtonSize);
+    m_send_button->setIconSize(QSize(18, 18));
+    m_send_button->setFocusPolicy(Qt::NoFocus);
+    m_send_button->setEnabled(false);
+
+    auto *input_row = new QHBoxLayout(m_input_frame);
+    input_row->setContentsMargins(12, 6, 6, 6);
+    input_row->setSpacing(8);
+    input_row->addWidget(m_input_edit, 1);
+    input_row->addWidget(m_send_button, 0, Qt::AlignBottom);
 
     m_status_label = new QLabel(tr("Thinking..."), m_container);
     m_status_label->setStyleSheet("color: gray; font-style: italic;");
     m_status_label->hide();
 
     m_layout = new QVBoxLayout();
+    m_layout->setContentsMargins(8, 8, 8, 8);
+    m_layout->setSpacing(8);
     m_layout->addWidget(m_connection_indicator);
     m_layout->addWidget(m_scroll_area);
     m_layout->addWidget(m_status_label);
-
-    QHBoxLayout *input_layout = new QHBoxLayout();
-    input_layout->addWidget(m_input_edit);
-    input_layout->addWidget(m_send_button);
-    m_layout->addLayout(input_layout);
+    m_layout->addWidget(m_input_frame);
 
     m_container->setLayout(m_layout);
 
-    connect(m_send_button, &QPushButton::clicked, this, &LLMView::sendMessage);
+    updateInputStyle();
+    adjustInputHeight();
+
+    connect(m_input_edit, &QTextEdit::textChanged, this,
+            &LLMView::updateSendEnabled);
+    connect(m_input_edit->document()->documentLayout(),
+            &QAbstractTextDocumentLayout::documentSizeChanged, this,
+            [this] { adjustInputHeight(); });
+    connect(m_send_button, &QToolButton::clicked, this, &LLMView::sendMessage);
+}
+
+void
+LLMView::updateSendEnabled() noexcept
+{
+    m_send_button->setEnabled(
+        !m_awaiting_response
+        && !m_input_edit->toPlainText().trimmed().isEmpty());
+}
+
+void
+LLMView::adjustInputHeight() noexcept
+{
+    QTextDocument *doc = m_input_edit->document();
+    doc->setTextWidth(std::max(1, m_input_edit->viewport()->width()));
+
+    const int line   = QFontMetrics(m_input_edit->font()).lineSpacing();
+    const int pad    = 2 * static_cast<int>(doc->documentMargin());
+    const int minH   = line + pad;
+    const int maxH   = line * kInputMaxLines + pad;
+    const int wanted = static_cast<int>(std::ceil(doc->size().height()));
+    const int height = std::clamp(wanted, minH, maxH);
+
+    // The send button is taller than one line; keep the frame from shrinking
+    // below it so a single line sits centred next to the button.
+    m_input_edit->setFixedHeight(std::max(height, kSendButtonSize - 12));
+}
+
+void
+LLMView::updateInputStyle() noexcept
+{
+    if (m_updating_style)
+        return;
+    m_updating_style = true;
+
+    const QPalette pal  = palette();
+    const QColor accent = pal.color(QPalette::Highlight);
+    QColor border       = pal.color(QPalette::Mid);
+    border.setAlpha(170);
+    QColor off = pal.color(QPalette::Mid);
+    off.setAlpha(120);
+
+    m_input_frame->setStyleSheet(
+        QString("QFrame#llmInputFrame { background: %1; border: 1px solid %2; "
+                "border-radius: 16px; }"
+                "QFrame#llmInputFrame[focused=\"true\"] { border: 1px solid "
+                "%3; }"
+                "QTextEdit#llmInputEdit { background: transparent; border: "
+                "none; selection-background-color: %3; }"
+                "QToolButton#llmSendButton { background: %3; border: none; "
+                "border-radius: %7px; }"
+                "QToolButton#llmSendButton:hover { background: %4; }"
+                "QToolButton#llmSendButton:pressed { background: %5; }"
+                "QToolButton#llmSendButton:disabled { background: %6; }")
+            .arg(rgba(pal.color(QPalette::Base)), rgba(border), rgba(accent),
+                 rgba(accent.lighter(115)), rgba(accent.darker(115)), rgba(off))
+            .arg(kSendButtonSize / 2));
+
+    const qreal dpr = devicePixelRatioF();
+    QIcon icon;
+    icon.addPixmap(sendGlyph(pal.color(QPalette::HighlightedText), dpr),
+                   QIcon::Normal);
+    icon.addPixmap(sendGlyph(pal.color(QPalette::Base), dpr), QIcon::Disabled);
+    m_send_button->setIcon(icon);
+
+    m_updating_style = false;
+}
+
+void
+LLMView::changeEvent(QEvent *event)
+{
+    QDockWidget::changeEvent(event);
+    if (event->type() == QEvent::PaletteChange && m_input_frame)
+        updateInputStyle();
 }
 
 void
@@ -149,8 +320,8 @@ LLMView::sendMessage()
     if (user_input.isEmpty())
         return;
 
-    addBubble(new ChatBubble(ChatBubble::Role::User, user_input,
-                             m_messages_widget));
+    addBubble(
+        new ChatBubble(ChatBubble::Role::User, user_input, m_messages_widget));
 
     setAwaitingResponse(true);
     m_http_client->send(user_input);
@@ -163,7 +334,7 @@ void
 LLMView::setAwaitingResponse(bool awaiting)
 {
     m_awaiting_response = awaiting;
-    m_send_button->setEnabled(!awaiting);
+    updateSendEnabled();
     m_status_label->setVisible(awaiting);
 }
 
@@ -176,8 +347,8 @@ LLMView::displayResponse(const QString &response)
     {
         // Already shown progressively via appendStreamChunk() — nothing
         // left to do but reset for the next exchange.
-        m_streaming_active         = false;
-        m_active_assistant_bubble  = nullptr;
+        m_streaming_active        = false;
+        m_active_assistant_bubble = nullptr;
         m_streaming_markdown.clear();
         return;
     }
@@ -194,9 +365,8 @@ LLMView::appendStreamChunk(const QString &deltaText)
         m_streaming_active = true;
         m_status_label->hide(); // first token arrived — no longer "thinking"
         m_streaming_markdown.clear();
-        m_active_assistant_bubble
-            = new ChatBubble(ChatBubble::Role::Assistant, QString(),
-                             m_messages_widget);
+        m_active_assistant_bubble = new ChatBubble(
+            ChatBubble::Role::Assistant, QString(), m_messages_widget);
         addBubble(m_active_assistant_bubble);
     }
 

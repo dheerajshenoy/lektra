@@ -5,10 +5,11 @@
 #include "HTTPClient.hpp"
 
 #include <QDockWidget>
-#include <QPushButton>
+#include <QToolButton>
 #include <QTextEdit>
 #include <QVBoxLayout>
 
+class QFrame;
 class QLabel;
 class QScrollArea;
 class QTimer;
@@ -26,8 +27,11 @@ public:
 protected:
     // Installed on m_input_edit so Shift+Return sends the message instead
     // of inserting a newline (plain Return still inserts a newline, the
-    // QTextEdit default).
+    // QTextEdit default). Also tracks focus to highlight the input frame.
     bool eventFilter(QObject *watched, QEvent *event) override;
+    // Re-derives the input colours and send icon when the palette changes
+    // (e.g. light/dark theme switch).
+    void changeEvent(QEvent *event) override;
 
 private:
     void initUI();
@@ -46,13 +50,23 @@ private:
     // Reflects an HTTPClient::connectionStatusChanged() result in
     // m_connection_indicator.
     void updateConnectionIndicator(bool connected) noexcept;
+    // Colours of the input frame and send button, taken from the palette so
+    // they follow the theme.
+    void updateInputStyle() noexcept;
+    // The send button is only enabled when there is text and no request in
+    // flight.
+    void updateSendEnabled() noexcept;
+    // Grows the input with its text, from one line up to a few, then scrolls.
+    void adjustInputHeight() noexcept;
 
     HTTPClient *m_http_client       = nullptr;
     QScrollArea *m_scroll_area      = nullptr;
     QWidget *m_messages_widget      = nullptr;
     QVBoxLayout *m_messages_layout  = nullptr;
+    QFrame *m_input_frame           = nullptr;
     QTextEdit *m_input_edit         = nullptr;
-    QPushButton *m_send_button      = nullptr;
+    QToolButton *m_send_button      = nullptr;
+    bool m_updating_style           = false;
     QLabel *m_status_label          = nullptr;
     // Shows "Connected"/"Disconnected" for the configured LLM endpoint,
     // refreshed by m_connection_check_timer.
