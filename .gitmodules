@@ -7,3 +7,6 @@
 [submodule "thirdparty/synctex"]
 	path = thirdparty/synctex
 	url = https://github.com/jlaurens/synctex.git
+[submodule "thirdparty/luajit"]
+	path = thirdparty/luajit
+	url = https://github.com/LuaJIT/LuaJIT
