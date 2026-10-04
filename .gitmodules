@@ -10,3 +10,9 @@
 [submodule "thirdparty/luajit"]
 	path = thirdparty/luajit
 	url = https://github.com/LuaJIT/LuaJIT
+[submodule "thirdparty/microtex"]
+	path = thirdparty/microtex
+	url = https://github.com/NanoMichael/MicroTeX
+[submodule "thirdparty/tinyxml2"]
+	path = thirdparty/tinyxml2
+	url = https://github.com/leethomason/tinyxml2

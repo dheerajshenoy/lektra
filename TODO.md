@@ -15,7 +15,7 @@
     - [ ] File attachment
     - [x] Lua code block syntax highlighting
     - [x] Lua API code block execution
-    - [ ] latex rendering
+    - [x] latex math rendering
 
 - [ ] Make tab sizes fixed while closing tabs rapidly (like Chrome) instead of shrinking them to fit
 - [ ] Pin Tabs

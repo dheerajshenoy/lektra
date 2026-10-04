@@ -608,8 +608,47 @@ if (WITH_LLM_SUPPORT)
         src/llm/LuaHighlight.cpp
         src/llm/ChatStore.cpp
         src/llm/ImageEncode.cpp
+        src/llm/MathRender.cpp
         ${LEKTRA_LLM_HEADERS})
     target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_LLM_SUPPORT=1)
+
+    # Math in chat replies: MicroTeX (LaTeX renderer, Qt backend) and the
+    # tinyxml2 it reads its font tables with, built from the submodules. Its
+    # fonts and tables are embedded in the binary and unpacked on first use.
+    if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/microtex/src/latex.cpp"
+        OR NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.cpp")
+        message(FATAL_ERROR "MicroTeX is missing. Initialise the submodules: "
+                            "git submodule update --init thirdparty/microtex thirdparty/tinyxml2")
+    endif()
+    set(MICROTEX_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/microtex")
+    file(GLOB_RECURSE MICROTEX_SOURCES CONFIGURE_DEPENDS
+        "${MICROTEX_DIR}/src/atom/*.cpp" "${MICROTEX_DIR}/src/box/*.cpp"
+        "${MICROTEX_DIR}/src/core/*.cpp" "${MICROTEX_DIR}/src/fonts/*.cpp"
+        "${MICROTEX_DIR}/src/utils/*.cpp" "${MICROTEX_DIR}/src/res/*.cpp")
+    add_library(microtex STATIC ${MICROTEX_SOURCES}
+        "${MICROTEX_DIR}/src/latex.cpp" "${MICROTEX_DIR}/src/render.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/llm/MicroTeXQt.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.cpp")
+    target_include_directories(microtex PUBLIC "${MICROTEX_DIR}/src")
+    target_include_directories(microtex PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/tinyxml2"
+                                              "${CMAKE_CURRENT_SOURCE_DIR}/include/llm")
+    target_compile_definitions(microtex PUBLIC BUILD_QT)
+    target_compile_features(microtex PUBLIC cxx_std_17)
+    set_target_properties(microtex PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    if (MSVC)
+        target_compile_options(microtex PRIVATE /w /utf-8)
+    else()
+        target_compile_options(microtex PRIVATE -w)
+    endif()
+    target_link_libraries(microtex PRIVATE Qt6::Gui)
+    target_link_libraries(${PROJECT_NAME} PRIVATE microtex)
+
+    file(GLOB_RECURSE MICROTEX_RES CONFIGURE_DEPENDS "${MICROTEX_DIR}/res/*")
+    list(FILTER MICROTEX_RES EXCLUDE REGEX "(SAMPLES\\.tex|RES_README)$")
+    qt_add_resources(${PROJECT_NAME} microtex_res
+        PREFIX "/microtex"
+        BASE "${MICROTEX_DIR}"
+        FILES ${MICROTEX_RES})
 endif()
 
 
