@@ -109,9 +109,20 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 #else
     const bool hasSynctexForward = false;
 #endif
+    const bool newWindow = argparser.is_used("new-window");
     const bool singleInstance = argparser.is_used("single-instance")
                                 || readSingleInstanceFromConfig();
-    if (hasSynctexForward || (singleInstance && argparser.is_used("files")))
+    // A new window must not hand its files to the running instance, nor take
+    // over the socket it is listening on.
+    bool socketInUse = false;
+    if (newWindow)
+    {
+        QLocalSocket probe;
+        probe.connectToServer(ipcName);
+        socketInUse = probe.waitForConnected(300);
+    }
+    if (!newWindow
+        && (hasSynctexForward || (singleInstance && argparser.is_used("files"))))
     {
         QLocalSocket probe;
         probe.connectToServer(ipcName);
@@ -123,6 +134,7 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
             {
                 auto files = argparser.get<std::vector<std::string>>("files");
                 QJsonArray fileArr;
+                QStringList names;
                 for (const auto &f : files)
                     fileArr.append(QString::fromLocal8Bit(f.c_str()));
                 msg["files"]  = fileArr;
@@ -155,7 +167,7 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 
     applyCommandLineOverrides(argparser);
 
-    if (singleInstance || argparser.is_used("socket"))
+    if (!socketInUse && (singleInstance || argparser.is_used("socket")))
         startIPCServer(ipcName); // correct place — after construct()
 
     if (argparser.is_used("about"))

@@ -253,6 +253,10 @@ init_args(argparse::ArgumentParser &program)
         .help("Open file(s) in vertical split")
         .flag();
 
+    program.add_argument("-n", "--new-window")
+        .help("Open in a separate window, even if single-instance mode is on")
+        .flag();
+
     program.add_argument("--crash-reporter")
         .help("Internal: show crash reporter dialog for the given log file")
         .default_value(std::string{})
