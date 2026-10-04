@@ -161,6 +161,11 @@ Lektra::initLLMView() noexcept
     m_llm_view->setSystemPromptProvider([this] { return llmSystemPrompt(); });
     m_llm_view->setScriptRunner(
         [this](const QString &code) { return runLLMScript(code); });
+    m_llm_view->setCommandRunner(
+        [this](const QString &name, const QStringList &args)
+    { return runLLMCommand(name, args); });
+    m_llm_view->setApiLookup(
+        [this](const QString &query) { return llmLookupApi(query); });
 #endif
     // "Attach page" / "Attach region" in the chat use the open document.
     LLMView::ImageSources sources;

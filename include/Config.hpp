@@ -1566,6 +1566,19 @@ struct Config
         bool auto_run = false;
 
         // @desc {
+        // Let the assistant act through tools (run_command, run_lua and
+        // lookup_api) and look up the Lua API only when it needs it, which
+        // keeps every request small. Turn this off for models that do not
+        // support tool calling (many local models): the whole Lua API is then
+        // sent with every request and the assistant replies with Lua code
+        // blocks that you run with the Run button
+        // }
+        // @type bool
+        // @default true
+        // @added 0.7.9
+        bool tools = true;
+
+        // @desc {
         // Save LLM chats to disk so earlier conversations can be reopened from
         // the History menu of the panel. Chats are stored as plain JSON files
         // in Lektra's data folder (llm_chats)

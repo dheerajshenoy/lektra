@@ -7,6 +7,7 @@
 #include "HTTPClient.hpp"
 
 #include <QDockWidget>
+#include <QPointer>
 #include <functional>
 #include <QPushButton>
 #include <QToolButton>
@@ -29,6 +30,11 @@ struct LLMScriptResult
     QString error;  // message when !ok
 };
 using LLMScriptRunner = std::function<LLMScriptResult(const QString &code)>;
+// Runs one Lektra command by name; !ok (with an error) if there is none.
+using LLMCommandRunner = std::function<LLMScriptResult(
+    const QString &name, const QStringList &args)>;
+// Returns the documentation of the Lua API that matches a query.
+using LLMApiLookup = std::function<QString(const QString &query)>;
 
 class LLMView : public QDockWidget
 {
@@ -46,6 +52,11 @@ public:
     // Lets replies that contain a ```lua block be run from the chat. Without
     // a runner no Run button is shown.
     void setScriptRunner(LLMScriptRunner runner);
+    // With llm_view.tools on, the model gets the tools run_command (needs a
+    // command runner), run_lua (needs a script runner) and lookup_api (needs
+    // an API lookup), for each handler that is set.
+    void setCommandRunner(LLMCommandRunner runner);
+    void setApiLookup(LLMApiLookup lookup);
     // Folder where chats are saved (and listed in the History menu). Without
     // one, or with llm_view.save_history off, nothing is saved.
     void setHistoryFolder(const QString &folder);
@@ -94,6 +105,23 @@ private:
     // them straight away when llm_view.auto_run is on).
     void addScriptActions(const QString &reply, bool allowAutoRun = true);
     void runScript(const QString &code, QPushButton *runButton);
+    // Fills in m_http_client's tools from the config and the handlers set.
+    void updateTools();
+    // The model asked for tool calls: runs or offers each one (Run / Skip,
+    // unless llm_view.auto_run), and once all have an answer sends the
+    // results back so the model can continue.
+    void handleToolCalls(const QList<LLMToolCall> &calls);
+    void runTool(int index);
+    void completeTool(int index, const QString &result, const QString &status);
+    // Answers calls the user never decided on, so a new message can be sent.
+    void skipPendingTools();
+    // What the user sees and what the model is told after a script ran.
+    void describeResult(const LLMScriptResult &r, QString &shown,
+                        QString &told) const;
+    QPushButton *makeRunButton(QWidget *parent, const QString &text,
+                               const QString &tooltip);
+    // A small grey line in the transcript (e.g. "Looked up the API: view").
+    void addNote(const QString &text);
     void scrollToBottom() noexcept;
     // Reflects an HTTPClient::connectionStatusChanged() result in
     // m_connection_indicator.
@@ -188,6 +216,21 @@ private:
     QJsonArray m_transcript;
 
     LLMScriptRunner m_script_runner;
+    LLMCommandRunner m_command_runner;
+    LLMApiLookup m_api_lookup;
+
+    struct PendingTool
+    {
+        LLMToolCall call;
+        QPointer<QFrame> bar;
+        QPointer<QLabel> status;
+        QPointer<QWidget> buttons;
+        bool done = false;
+    };
+    QList<PendingTool> m_pending_tools;
+    // Rounds of tool calls since the user's last message; stops a model that
+    // keeps calling tools.
+    int m_tool_rounds = 0;
     // What the last script did, handed to the model with the next message so
     // it knows whether its script worked.
     QString m_pending_result;

@@ -348,6 +348,11 @@ private:
     // model, and running a script it wrote in the restricted environment.
     QString llmSystemPrompt() const noexcept;
     LLMScriptResult runLLMScript(const QString &code) noexcept;
+    LLMScriptResult runLLMCommand(const QString &name,
+                                  const QStringList &args) noexcept;
+    // The documentation of the Lua API that matches a query (the lookup_api
+    // tool).
+    QString llmLookupApi(const QString &query) const noexcept;
 #endif
 #endif
     void initMenubar() noexcept;

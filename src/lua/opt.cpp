@@ -2037,6 +2037,13 @@ static const LuaField llmViewFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::LLMView *>(p)->show_at_startup = lua_toboolean(L, 3); }},
+    {"tools",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::LLMView *>(p)->tools);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::LLMView *>(p)->tools = lua_toboolean(L, 3); }},
 };
 
 // --- misc ---

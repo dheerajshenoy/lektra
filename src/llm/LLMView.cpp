@@ -15,6 +15,7 @@
 #include <QToolTip>
 #include <QDateTime>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QLocale>
 #include <QMenu>
 #include <QMessageBox>
@@ -93,6 +94,8 @@ LLMView::LLMView(const Config &config, QWidget *parent)
             &LLMView::displayResponse);
     connect(m_http_client, &HTTPClient::streamChunkReceived, this,
             &LLMView::appendStreamChunk);
+    connect(m_http_client, &HTTPClient::toolCallsRequested, this,
+            &LLMView::handleToolCalls);
     connect(m_http_client, &HTTPClient::errorOccurred, this,
             &LLMView::displayError);
     connect(m_http_client, &HTTPClient::connectionStatusChanged, this,
@@ -129,6 +132,90 @@ void
 LLMView::setScriptRunner(LLMScriptRunner runner)
 {
     m_script_runner = std::move(runner);
+    updateTools();
+}
+
+void
+LLMView::setCommandRunner(LLMCommandRunner runner)
+{
+    m_command_runner = std::move(runner);
+    updateTools();
+}
+
+void
+LLMView::setApiLookup(LLMApiLookup lookup)
+{
+    m_api_lookup = std::move(lookup);
+    updateTools();
+}
+
+void
+LLMView::updateTools()
+{
+    QJsonArray tools;
+    if (m_config.llm_view.tools)
+    {
+        auto tool = [](const QString &name, const QString &description,
+                       const QJsonObject &properties,
+                       const QJsonArray &required)
+        {
+            return QJsonObject{
+                {"type", "function"},
+                {"function",
+                 QJsonObject{
+                     {"name", name},
+                     {"description", description},
+                     {"parameters",
+                      QJsonObject{{"type", "object"},
+                                  {"properties", properties},
+                                  {"required", required}}},
+                 }},
+            };
+        };
+        if (m_command_runner)
+            tools.append(tool(
+                QStringLiteral("run_command"),
+                QStringLiteral(
+                    "Run one Lektra command from the command list, for "
+                    "simple actions such as zooming, going to a page or "
+                    "opening a file."),
+                QJsonObject{
+                    {"name", QJsonObject{{"type", "string"},
+                                         {"description", "Command name"}}},
+                    {"args",
+                     QJsonObject{{"type", "array"},
+                                 {"items", QJsonObject{{"type", "string"}}},
+                                 {"description", "Arguments, as strings"}}},
+                },
+                QJsonArray{"name"}));
+        if (m_script_runner)
+            tools.append(tool(
+                QStringLiteral("run_lua"),
+                QStringLiteral(
+                    "Run a Lua script in Lektra, for what the commands "
+                    "cannot do: reading state, changing options, or several "
+                    "steps in one go. print() and returned values are "
+                    "reported back."),
+                QJsonObject{{"code", QJsonObject{{"type", "string"},
+                                                 {"description", "Lua code"}}}},
+                QJsonArray{"code"}));
+        if (m_api_lookup)
+            tools.append(tool(
+                QStringLiteral("lookup_api"),
+                QStringLiteral(
+                    "Look up the documentation of Lektra's Lua API. Use it "
+                    "before writing a script that calls functions you are "
+                    "not sure about. A module name (view, tabs, opt, ...) "
+                    "returns the list of its functions; other text (e.g. "
+                    "\"zoom\" or \"add annotation\") returns the matching "
+                    "functions with their full documentation."),
+                QJsonObject{
+                    {"query", QJsonObject{{"type", "string"},
+                                          {"description",
+                                           "Module name or search words"}}}},
+                QJsonArray{"query"}));
+    }
+    m_http_client->setTools(tools);
 }
 
 void
@@ -520,6 +607,11 @@ LLMView::sendMessage()
     if (user_input.isEmpty() && m_attachments.isEmpty())
         return;
 
+    // Tool calls the user never decided on are answered first, so the
+    // conversation stays valid.
+    skipPendingTools();
+    m_tool_rounds = 0;
+
     // Attached images are scaled and encoded for the model now; the bubble
     // shows small previews of them.
     QStringList image_urls;
@@ -581,12 +673,15 @@ LLMView::displayResponse(const QString &response)
         m_active_assistant_bubble  = nullptr;
         m_streaming_markdown.clear();
     }
-    else
+    else if (!response.trimmed().isEmpty())
     {
         addBubble(new ChatBubble(ChatBubble::Role::Assistant, response,
                                  m_messages_widget));
     }
 
+    // A reply that only asks for tool calls has no text to show or keep.
+    if (response.trimmed().isEmpty())
+        return;
     record(QStringLiteral("assistant"), response);
     addScriptActions(response);
 }
@@ -624,22 +719,7 @@ LLMView::addScriptActions(const QString &reply, bool allowAutoRun)
         auto *copy = new QPushButton(tr("Copy"), bar);
         copy->setFlat(true);
         copy->setCursor(Qt::PointingHandCursor);
-        auto *run = new QPushButton(tr("Run"), bar);
-        run->setObjectName("llmRunButton");
-        run->setCursor(Qt::PointingHandCursor);
-        run->setToolTip(tr("Run this script in Lektra"));
-
-        const QPalette pal = palette();
-        const QColor accent = pal.color(QPalette::Highlight);
-        run->setStyleSheet(
-            QString("QPushButton#llmRunButton { background: %1; color: %2; "
-                    "border: none; border-radius: 10px; padding: 3px 14px; }"
-                    "QPushButton#llmRunButton:hover { background: %3; }"
-                    "QPushButton#llmRunButton:disabled { background: %4; }")
-                .arg(accent.name(),
-                     pal.color(QPalette::HighlightedText).name(),
-                     accent.lighter(115).name(),
-                     pal.color(QPalette::Mid).name()));
+        auto *run = makeRunButton(bar, tr("Run"), tr("Run this script in Lektra"));
 
         row->addWidget(label);
         row->addStretch();
@@ -684,9 +764,284 @@ LLMView::runScript(const QString &code, QPushButton *runButton)
     runButton->setText(tr("Run again"));
     runButton->setEnabled(true);
 
-    // What the user sees, and what the model is told next time.
     QString shown;
     QString told;
+    describeResult(r, shown, told);
+
+    addBubble(new ChatBubble(r.ok ? ChatBubble::Role::Result
+                                  : ChatBubble::Role::Error,
+                             shown, m_messages_widget));
+    m_pending_result = told;
+    record(r.ok ? QStringLiteral("result") : QStringLiteral("error"), shown);
+}
+
+QPushButton *
+LLMView::makeRunButton(QWidget *parent, const QString &text,
+                       const QString &tooltip)
+{
+    auto *run = new QPushButton(text, parent);
+    run->setObjectName("llmRunButton");
+    run->setCursor(Qt::PointingHandCursor);
+    run->setToolTip(tooltip);
+
+    const QPalette pal = palette();
+    const QColor accent = pal.color(QPalette::Highlight);
+    run->setStyleSheet(
+        QString("QPushButton#llmRunButton { background: %1; color: %2; "
+                "border: none; border-radius: 10px; padding: 3px 14px; }"
+                "QPushButton#llmRunButton:hover { background: %3; }"
+                "QPushButton#llmRunButton:disabled { background: %4; }")
+            .arg(accent.name(), pal.color(QPalette::HighlightedText).name(),
+                 accent.lighter(115).name(), pal.color(QPalette::Mid).name()));
+    return run;
+}
+
+void
+LLMView::addNote(const QString &text)
+{
+    auto *note = new QLabel(text, m_messages_widget);
+    note->setObjectName("llmToolNote");
+    note->setWordWrap(true);
+    note->setContentsMargins(6, 0, 6, 0);
+    note->setStyleSheet("color: gray; font-size: 90%;");
+    addBubble(note);
+}
+
+void
+LLMView::handleToolCalls(const QList<LLMToolCall> &calls)
+{
+    constexpr int kMaxToolRounds = 10;
+
+    m_pending_tools.clear();
+    if (++m_tool_rounds > kMaxToolRounds)
+    {
+        for (const LLMToolCall &call : calls)
+            m_http_client->addToolResult(
+                call.id, QStringLiteral("Not run: too many tool calls in a row."));
+        const QString message
+            = tr("Stopped after %1 rounds of tool calls. Send a message to "
+                 "continue.").arg(kMaxToolRounds);
+        addBubble(new ChatBubble(ChatBubble::Role::Error, message,
+                                 m_messages_widget));
+        record(QStringLiteral("error"), message);
+        return;
+    }
+
+    for (const LLMToolCall &call : calls)
+    {
+        PendingTool pending;
+        pending.call = call;
+        m_pending_tools.append(pending);
+    }
+
+    // A "Run / Skip" bar for a call that changes something in Lektra.
+    auto makeBar = [this](int index, const QString &label, const QString &code)
+    {
+        auto *bar = new QFrame(m_messages_widget);
+        bar->setObjectName("llmScriptBar");
+        auto *row = new QHBoxLayout(bar);
+        row->setContentsMargins(4, 0, 4, 0);
+
+        auto *text = new QLabel(label, bar);
+        text->setStyleSheet("color: gray;");
+        text->setWordWrap(true);
+        row->addWidget(text, 1);
+
+        if (!code.isEmpty())
+        {
+            auto *copy = new QPushButton(tr("Copy"), bar);
+            copy->setFlat(true);
+            copy->setCursor(Qt::PointingHandCursor);
+            connect(copy, &QPushButton::clicked, this, [this, code, copy]
+            {
+                QApplication::clipboard()->setText(code);
+                copy->setText(tr("✓ Copied"));
+                QTimer::singleShot(1500, copy, [this, copy]
+                { copy->setText(tr("Copy")); });
+            });
+            row->addWidget(copy);
+        }
+
+        auto *buttons = new QWidget(bar);
+        auto *buttonRow = new QHBoxLayout(buttons);
+        buttonRow->setContentsMargins(0, 0, 0, 0);
+        auto *skip = new QPushButton(tr("Skip"), buttons);
+        skip->setFlat(true);
+        skip->setCursor(Qt::PointingHandCursor);
+        auto *run = makeRunButton(buttons, tr("Run"), tr("Run this in Lektra"));
+        buttonRow->addWidget(skip);
+        buttonRow->addWidget(run);
+        row->addWidget(buttons);
+
+        connect(run, &QPushButton::clicked, this, [this, index] { runTool(index); });
+        connect(skip, &QPushButton::clicked, this, [this, index]
+        { completeTool(index, QStringLiteral("The user chose not to run this."),
+                       tr("skipped")); });
+
+        m_pending_tools[index].bar     = bar;
+        m_pending_tools[index].status  = text;
+        m_pending_tools[index].buttons = buttons;
+        addBubble(bar);
+    };
+
+    for (int i = 0; i < calls.size() && i < m_pending_tools.size(); ++i)
+    {
+        const LLMToolCall &call = calls.at(i);
+        const QJsonObject args
+            = QJsonDocument::fromJson(call.arguments.toUtf8()).object();
+        bool needsRun = false;
+
+        if (call.name == QLatin1String("lookup_api") && m_api_lookup)
+        {
+            // Only reads documentation, so it needs no confirmation.
+            const QString query = args.value("query").toString();
+            const QString note  = tr("Looked up the Lua API: %1").arg(query);
+            addNote(note);
+            record(QStringLiteral("note"), note, /*save=*/false);
+            completeTool(i, m_api_lookup(query), QString());
+        }
+        else if (call.name == QLatin1String("run_command") && m_command_runner
+                 && !args.value("name").toString().isEmpty())
+        {
+            QStringList list;
+            for (const QJsonValue &v : args.value("args").toArray())
+                list << v.toVariant().toString();
+            const QString label
+                = tr("Command: %1").arg((args.value("name").toString()
+                                         + QLatin1Char(' ') + list.join(QLatin1Char(' ')))
+                                            .trimmed());
+            record(QStringLiteral("note"), label, /*save=*/false);
+            makeBar(i, label, QString());
+            needsRun = true;
+        }
+        else if (call.name == QLatin1String("run_lua") && m_script_runner
+                 && !args.value("code").toString().trimmed().isEmpty())
+        {
+            const QString code = args.value("code").toString().trimmed();
+            const QString block = QStringLiteral("```lua\n") + code + QStringLiteral("\n```");
+            addBubble(new ChatBubble(ChatBubble::Role::Assistant, block,
+                                     m_messages_widget));
+            record(QStringLiteral("tool"), block, /*save=*/false);
+            const int lines = code.count(QLatin1Char('\n')) + 1;
+            makeBar(i,
+                    lines == 1 ? tr("Lua script, 1 line")
+                               : tr("Lua script, %1 lines").arg(lines),
+                    code);
+            needsRun = true;
+        }
+        else
+        {
+            completeTool(i,
+                         QStringLiteral("Error: unknown tool or missing arguments (")
+                             + call.name + QStringLiteral(")."),
+                         QString());
+        }
+
+        if (needsRun && m_config.llm_view.auto_run)
+            runTool(i);
+        if (m_pending_tools.isEmpty())
+            break; // everything is answered and the conversation went on
+    }
+}
+
+void
+LLMView::runTool(int index)
+{
+    if (index < 0 || index >= m_pending_tools.size()
+        || m_pending_tools.at(index).done)
+        return;
+
+    const LLMToolCall call = m_pending_tools.at(index).call;
+    const QJsonObject args
+        = QJsonDocument::fromJson(call.arguments.toUtf8()).object();
+
+    if (call.name == QLatin1String("run_command"))
+    {
+        QStringList list;
+        for (const QJsonValue &v : args.value("args").toArray())
+            list << v.toVariant().toString();
+        const LLMScriptResult r
+            = m_command_runner(args.value("name").toString(), list);
+        if (r.ok)
+        {
+            completeTool(index, QStringLiteral("The command ran."), tr("✓ done"));
+            return;
+        }
+        const QString shown = QStringLiteral("**") + tr("Error:") + QStringLiteral("** `")
+                              + r.error + QStringLiteral("`");
+        addBubble(new ChatBubble(ChatBubble::Role::Error, shown, m_messages_widget));
+        record(QStringLiteral("error"), shown, /*save=*/false);
+        completeTool(index, QStringLiteral("The command failed: ") + r.error,
+                     tr("✗ failed"));
+        return;
+    }
+
+    const LLMScriptResult r = m_script_runner(args.value("code").toString());
+    QString shown;
+    QString told;
+    describeResult(r, shown, told);
+    if (!r.ok || !r.output.isEmpty() || !r.value.isEmpty())
+    {
+        addBubble(new ChatBubble(r.ok ? ChatBubble::Role::Result
+                                      : ChatBubble::Role::Error,
+                                 shown, m_messages_widget));
+        record(r.ok ? QStringLiteral("result") : QStringLiteral("error"), shown,
+               /*save=*/false);
+    }
+    completeTool(index, told, r.ok ? tr("✓ done") : tr("✗ failed"));
+}
+
+void
+LLMView::completeTool(int index, const QString &result, const QString &status)
+{
+    if (index < 0 || index >= m_pending_tools.size()
+        || m_pending_tools.at(index).done)
+        return;
+
+    PendingTool &tool = m_pending_tools[index];
+    tool.done         = true;
+    m_http_client->addToolResult(tool.call.id, result);
+    if (tool.status && !status.isEmpty())
+        tool.status->setText(tool.status->text() + QStringLiteral("  ·  ") + status);
+    if (tool.buttons)
+        tool.buttons->hide();
+
+    for (const PendingTool &other : std::as_const(m_pending_tools))
+        if (!other.done)
+            return;
+
+    // Every call has an answer: the model continues from the results.
+    m_pending_tools.clear();
+    saveChat();
+    setAwaitingResponse(true);
+    m_http_client->resume();
+}
+
+void
+LLMView::skipPendingTools()
+{
+    for (PendingTool &tool : m_pending_tools)
+    {
+        if (tool.done)
+            continue;
+        tool.done = true;
+        m_http_client->addToolResult(
+            tool.call.id,
+            QStringLiteral("Not run: the user sent a new message instead."));
+        if (tool.status)
+            tool.status->setText(tool.status->text() + QStringLiteral("  ·  ")
+                                 + tr("skipped"));
+        if (tool.buttons)
+            tool.buttons->hide();
+    }
+    m_pending_tools.clear();
+}
+
+void
+LLMView::describeResult(const LLMScriptResult &r, QString &shown,
+                        QString &told) const
+{
+    // What the user sees, and what the model is told next time.
     if (r.ok)
     {
         if (!r.output.isEmpty())
@@ -714,12 +1069,6 @@ LLMView::runScript(const QString &code, QPushButton *runButton)
         told = QStringLiteral("[The script you wrote failed: ") + r.error.left(1500)
                + QStringLiteral("]");
     }
-
-    addBubble(new ChatBubble(r.ok ? ChatBubble::Role::Result
-                                  : ChatBubble::Role::Error,
-                             shown, m_messages_widget));
-    m_pending_result = told;
-    record(r.ok ? QStringLiteral("result") : QStringLiteral("error"), shown);
 }
 
 void
@@ -821,6 +1170,7 @@ LLMView::newChat()
     if (m_awaiting_response)
         return;
     clearTranscriptWidgets();
+    m_pending_tools.clear();
     m_http_client->clearMessages();
     m_transcript = QJsonArray();
     m_chat_id.clear();
@@ -840,6 +1190,7 @@ LLMView::loadChat(const QString &id)
         return;
 
     clearTranscriptWidgets();
+    m_pending_tools.clear();
     m_http_client->setMessages(chat->messages);
     m_transcript   = chat->transcript;
     m_chat_id      = chat->id;
@@ -870,6 +1221,10 @@ LLMView::loadChat(const QString &id)
             addBubble(new ChatBubble(ChatBubble::Role::Assistant, text, m_messages_widget));
             addScriptActions(text, /*allowAutoRun=*/false); // never re-run old scripts
         }
+        else if (kind == QLatin1String("tool"))
+            addBubble(new ChatBubble(ChatBubble::Role::Assistant, text, m_messages_widget));
+        else if (kind == QLatin1String("note"))
+            addNote(text);
         else if (kind == QLatin1String("result"))
             addBubble(new ChatBubble(ChatBubble::Role::Result, text, m_messages_widget));
         else

@@ -330,6 +330,7 @@ lektra.opt.command_palette = {}
 ---@field save_history boolean Save chats to disk so they can be reopened from the History menu.
 ---@field separate_window boolean Show the panel in a separate window.
 ---@field show_at_startup boolean Open the LLM panel when Lektra starts.
+---@field tools boolean Let the assistant use tools (run_command, run_lua, lookup_api) and look up the Lua API on demand instead of receiving all of it with every request. Turn off for models without tool calling.
 lektra.opt.llm_view = {}
 
 ---@class OptReflow

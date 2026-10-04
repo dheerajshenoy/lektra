@@ -1,6 +1,8 @@
 #include "HTTPClient.hpp"
 
 #include <QDateTime>
+#include <QJsonDocument>
+#include <QSet>
 
 HTTPClient::HTTPClient(QObject *parent) : QObject(parent) {}
 
@@ -25,6 +27,116 @@ HTTPClient::setSystemPromptProvider(std::function<QString()> provider)
     m_systemPrompt = std::move(provider);
 }
 
+namespace
+{
+// A tool call as the API wants it back in the conversation: an id, the
+// "function" type, and the arguments as a JSON string.
+QJsonObject
+normalizedToolCall(QJsonObject call, int fallbackNumber)
+{
+    call.remove("index");
+    if (call.value("id").toString().isEmpty())
+        call["id"] = QStringLiteral("call_%1").arg(fallbackNumber);
+    call["type"] = QStringLiteral("function");
+    QJsonObject function = call.value("function").toObject();
+    if (function.value("arguments").isObject())
+        function["arguments"] = QString::fromUtf8(
+            QJsonDocument(function.value("arguments").toObject())
+                .toJson(QJsonDocument::Compact));
+    else if (function.value("arguments").toString().isEmpty())
+        function["arguments"] = QStringLiteral("{}");
+    call["function"] = function;
+    return call;
+}
+} // namespace
+
+void
+HTTPClient::setMessages(const QJsonArray &messages)
+{
+    m_messages = messages;
+
+    int assistant = -1;
+    for (int i = static_cast<int>(m_messages.size()) - 1; i >= 0; --i)
+    {
+        const QJsonObject m = m_messages.at(i).toObject();
+        if (m.value("role").toString() == QLatin1String("assistant")
+            && m.contains("tool_calls"))
+        {
+            assistant = i;
+            break;
+        }
+    }
+    if (assistant < 0)
+        return;
+
+    QSet<QString> answered;
+    for (int i = assistant + 1; i < m_messages.size(); ++i)
+        answered.insert(
+            m_messages.at(i).toObject().value("tool_call_id").toString());
+    const QJsonArray calls
+        = m_messages.at(assistant).toObject().value("tool_calls").toArray();
+    for (const QJsonValue &call : calls)
+    {
+        const QString id = call.toObject().value("id").toString();
+        if (!answered.contains(id))
+            addToolResult(id, QStringLiteral("Skipped: not run."));
+    }
+}
+
+void
+HTTPClient::addToolResult(const QString &callId, const QString &content)
+{
+    m_messages.append(QJsonObject{{"role", "tool"},
+                                  {"tool_call_id", callId},
+                                  {"content", content}});
+}
+
+void
+HTTPClient::resume()
+{
+    dispatch();
+}
+
+void
+HTTPClient::mergeToolCallDelta(const QJsonObject &delta)
+{
+    // Servers number the fragments of one call with "index"; a few leave it
+    // out and send each call whole.
+    int index;
+    if (delta.contains("index"))
+        index = delta.value("index").toInt();
+    else if (m_streamToolCalls.isEmpty()
+             || !delta.value("id").toString().isEmpty())
+        index = m_streamToolCalls.isEmpty() ? 0 : m_streamToolCalls.lastKey() + 1;
+    else
+        index = m_streamToolCalls.lastKey();
+
+    QJsonObject call = m_streamToolCalls.value(index);
+    for (auto it = delta.constBegin(); it != delta.constEnd(); ++it)
+    {
+        if (it.key() == QLatin1String("index"))
+            continue;
+        if (it.key() == QLatin1String("function"))
+        {
+            QJsonObject function = call.value("function").toObject();
+            const QJsonObject part = it.value().toObject();
+            for (auto jt = part.constBegin(); jt != part.constEnd(); ++jt)
+            {
+                if (jt.key() == QLatin1String("arguments"))
+                    function["arguments"]
+                        = function.value("arguments").toString()
+                          + jt.value().toString();
+                else if (!jt.value().toString().isEmpty() || !jt.value().isString())
+                    function[jt.key()] = jt.value();
+            }
+            call["function"] = function;
+        }
+        else if (!it.value().isString() || !it.value().toString().isEmpty())
+            call[it.key()] = it.value();
+    }
+    m_streamToolCalls[index] = call;
+}
+
 void
 HTTPClient::send(const QString &userText, const QStringList &imageUrls)
 {
@@ -44,7 +156,12 @@ HTTPClient::send(const QString &userText, const QStringList &imageUrls)
             });
         m_messages.append(QJsonObject{{"role", "user"}, {"content", parts}});
     }
+    dispatch();
+}
 
+void
+HTTPClient::dispatch()
+{
     QNetworkRequest request(m_url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("Authorization",
@@ -65,6 +182,8 @@ HTTPClient::send(const QString &userText, const QStringList &imageUrls)
     for (auto it = m_extraBodyFields.constBegin();
          it != m_extraBodyFields.constEnd(); ++it)
         body[it.key()] = it.value();
+    if (!m_tools.isEmpty())
+        body["tools"] = m_tools;
 
     // When extra_body.stream is true, the server responds with
     // Server-Sent-Events chunks (`data: {...}\n\n`, OpenAI format) instead
@@ -77,6 +196,7 @@ HTTPClient::send(const QString &userText, const QStringList &imageUrls)
     m_activeReply = reply;
     m_sseBuffer.clear();
     m_streamedText.clear();
+    m_streamToolCalls.clear();
 
     if (streaming)
     {
@@ -100,6 +220,10 @@ HTTPClient::send(const QString &userText, const QStringList &imageUrls)
                         continue;
 
                     const auto chunk = QJsonDocument::fromJson(payload);
+                    const QJsonArray toolDeltas
+                        = chunk["choices"][0]["delta"]["tool_calls"].toArray();
+                    for (const QJsonValue &toolDelta : toolDeltas)
+                        mergeToolCallDelta(toolDelta.toObject());
                     const QString delta
                         = chunk["choices"][0]["delta"]["content"].toString();
                     if (!delta.isEmpty())
@@ -129,19 +253,45 @@ HTTPClient::send(const QString &userText, const QStringList &imageUrls)
         }
 
         QString text;
+        QJsonArray rawCalls;
         if (streaming)
         {
             text = m_streamedText;
+            for (const QJsonObject &call : std::as_const(m_streamToolCalls))
+                rawCalls.append(call);
         }
         else
         {
             const auto doc = QJsonDocument::fromJson(reply->readAll());
             text            = doc["choices"][0]["message"]["content"].toString();
+            rawCalls = doc["choices"][0]["message"]["tool_calls"].toArray();
         }
 
-        m_messages.append(
-            QJsonObject{{"role", "assistant"}, {"content", text}});
+        QJsonArray calls;
+        QList<LLMToolCall> requested;
+        for (int i = 0; i < rawCalls.size(); ++i)
+        {
+            const QJsonObject call = normalizedToolCall(
+                rawCalls.at(i).toObject(), static_cast<int>(m_messages.size()) * 100 + i);
+            const QJsonObject function = call.value("function").toObject();
+            if (function.value("name").toString().isEmpty())
+                continue;
+            calls.append(call);
+            requested.append({call.value("id").toString(),
+                              function.value("name").toString(),
+                              function.value("arguments").toString()});
+        }
+
+        QJsonObject assistant{{"role", "assistant"}};
+        if (!text.isEmpty() || calls.isEmpty())
+            assistant["content"] = text;
+        if (!calls.isEmpty())
+            assistant["tool_calls"] = calls;
+        m_messages.append(assistant);
+
         emit replyReceived(text);
+        if (!requested.isEmpty())
+            emit toolCallsRequested(requested);
     });
 }
 

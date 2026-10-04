@@ -1391,6 +1391,11 @@
           "default": false,
           "description": "Run the Lua script the assistant writes as soon as its reply is complete, instead of waiting for you to press Run. The script gets the same access to Lektra as your init.lua, in a restricted environment (no io, os.execute, require, load or ffi) (since 0.7.9)"
         },
+        "tools": {
+          "type": "boolean",
+          "default": true,
+          "description": "Let the assistant act through tools (run_command, run_lua and lookup_api) and look up the Lua API only when it needs it, which keeps every request small. Turn this off for models that do not support tool calling (many local models): the whole Lua API is then sent with every request and the assistant replies with Lua code blocks that you run with the Run button (since 0.7.9)"
+        },
         "save_history": {
           "type": "boolean",
           "default": true,
