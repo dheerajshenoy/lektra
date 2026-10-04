@@ -21,6 +21,7 @@
 #include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
+#include <algorithm>
 
 namespace
 {
@@ -177,7 +178,7 @@ bubbleStyleSheet(ChatBubble::Role role, const QPalette &palette)
 
 ChatBubble::ChatBubble(Role role, const QString &markdownText,
                        QWidget *parent)
-    : QWidget(parent)
+    : QWidget(parent), m_user(role == Role::User)
 {
     auto *frame = new QFrame(this);
     frame->setObjectName("chatBubbleFrame");
@@ -217,18 +218,27 @@ ChatBubble::ChatBubble(Role role, const QString &markdownText,
     outerLayout->setSpacing(4);
     if (role == Role::User)
     {
+        frame->setMaximumWidth(kMaxBubbleWidth);
         outerLayout->addStretch();
         outerLayout->addWidget(m_copy_button, 0, Qt::AlignTop);
         outerLayout->addWidget(frame);
     }
     else
     {
-        outerLayout->addWidget(frame);
+        // Replies use the whole width of the panel.
+        outerLayout->addWidget(frame, 1);
         outerLayout->addWidget(m_copy_button, 0, Qt::AlignTop);
-        outerLayout->addStretch();
     }
 
     setText(markdownText);
+}
+
+int
+ChatBubble::mathWidth() const
+{
+    // Formulas wrap at the width the bubble has (replies fill the panel).
+    const int panel = parentWidget() ? parentWidget()->width() - 60 : 0;
+    return m_user ? kMaxBubbleWidth : std::max(kMaxBubbleWidth, panel);
 }
 
 QFont
@@ -309,7 +319,6 @@ ChatBubble::makePiece(const Segment &segment)
         piece.label = new QLabel(this);
         piece.label->setAlignment(Qt::AlignCenter);
         piece.label->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        piece.label->setMaximumWidth(kMaxBubbleWidth);
         piece.widget = piece.label;
         return piece;
     }
@@ -320,7 +329,6 @@ ChatBubble::makePiece(const Segment &segment)
         piece.label->setTextFormat(Qt::MarkdownText);
         piece.label->setWordWrap(true);
         piece.label->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        piece.label->setMaximumWidth(kMaxBubbleWidth);
         piece.widget = piece.label;
         return piece;
     }
@@ -355,7 +363,6 @@ ChatBubble::makePiece(const Segment &segment)
     piece.label->setTextFormat(Qt::RichText);
     piece.label->setWordWrap(true);
     piece.label->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    piece.label->setMaximumWidth(kMaxBubbleWidth - 20);
     layout->addWidget(piece.label);
     piece.widget = frame;
 
@@ -481,7 +488,7 @@ ChatBubble::proseWithMath(const QString &markdown) const
     for (int n = 0; n < found.size(); ++n)
     {
         const QImage image = renderMath(found[n].latex, pixelSize, color,
-                                        kMaxBubbleWidth, devicePixelRatioF());
+                                        mathWidth(), devicePixelRatioF());
         const QString source = t.mid(found[n].start, found[n].end - found[n].start);
         html.replace(QChar(0xE000) + QString::number(n) + QChar(0xE001),
                      image.isNull() ? source.toHtmlEscaped()
@@ -498,7 +505,7 @@ ChatBubble::updatePiece(Piece &piece, const Segment &segment)
         const QImage image
             = renderMath(segment.text, QFontInfo(contentFont()).pixelSize() * 115 / 100,
                          palette().color(QPalette::WindowText),
-                         kMaxBubbleWidth - 20, devicePixelRatioF());
+                         mathWidth() - 20, devicePixelRatioF());
         if (image.isNull())
         {
             // not valid LaTeX: show what the model wrote

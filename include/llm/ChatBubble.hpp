@@ -90,6 +90,9 @@ private:
     // The font of the text in the bubble: the panel's font, at the size set
     // with setFontSize().
     QFont contentFont() const;
+    // The width available to a formula before it wraps.
+    int mathWidth() const;
+    bool m_user;
     QToolButton *m_copy_button = nullptr;
     QString m_source;
     QVBoxLayout *m_content = nullptr;
