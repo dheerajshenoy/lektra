@@ -27,7 +27,7 @@ extern "C"
 }
 
 // Forward declaration
-class QMovie;
+class ImageAnimation;
 class TextHighlightAnnotationCommand;
 class TextAnnotationCommand;
 class DocumentView;
@@ -992,9 +992,9 @@ private:
     QImage m_image_cache;
     bool m_is_image    = false;
     bool m_is_animated = false;
-    QMovie *m_movie    = nullptr;
+    ImageAnimation *m_movie = nullptr;
 
-    [[nodiscard]] inline QMovie *movie() const noexcept
+    [[nodiscard]] inline ImageAnimation *movie() const noexcept
     {
         return m_movie;
     }

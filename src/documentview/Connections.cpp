@@ -1,5 +1,7 @@
 #include "DocumentView.hpp"
 
+#include "ImageAnimation.hpp"
+
 #include <QMovie>
 
 // Annotations
@@ -272,19 +274,19 @@ DocumentView::startGifPlayback() noexcept
     if (m_thumbnail_mode || !m_model->isAnimated())
         return;
 
-    QMovie *movie = m_model->movie();
-    if (!movie || movie->state() == QMovie::Running)
+    ImageAnimation *movie = m_model->movie();
+    if (!movie || movie->isRunning())
         return;
 
-    connect(movie, &QMovie::frameChanged, this,
-            [this](int /* frame */) { renderImage(); });
+    connect(movie, &ImageAnimation::frameChanged, this,
+            [this]() { renderImage(); });
     movie->start();
 }
 
 void
 DocumentView::stopGifPlayback() noexcept
 {
-    QMovie *movie = m_model->movie();
+    ImageAnimation *movie = m_model->movie();
     if (!movie)
         return;
 

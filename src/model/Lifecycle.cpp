@@ -11,6 +11,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLibrary>
+#include "ImageAnimation.hpp"
+
 #include <QMovie>
 #include <QPainter>
 #include <QSvgRenderer>
@@ -891,7 +893,9 @@ Model::openAsync_image(const QString &canonPath) noexcept
         }
 
         const int frameCount = qMax(1, reader.imageCount());
-        const bool animated  = frameCount > 1;
+        // Qt reports one frame for an APNG, so the file is looked at too.
+        const bool animated
+            = frameCount > 1 || ImageAnimation::isApng(canonPath);
 
         QImage first = reader.read();
         if (first.isNull())
@@ -924,21 +928,24 @@ Model::openAsync_image(const QString &canonPath) noexcept
             return;
         }
 
-        // Animated: hand off to QMovie — it decodes one frame at a time,
-        // keeping memory at O(1 frame) instead of O(all frames).
-        QMetaObject::invokeMethod(this, [this, canonPath, w, h]()
+        // Animated: hand off to an ImageAnimation (QMovie for GIF and WebP,
+        // our own decoder for APNG) — it decodes one frame at a time, keeping
+        // memory at O(1 frame) instead of O(all frames).
+        QMetaObject::invokeMethod(this, [this, canonPath, first = std::move(first), w, h]() mutable
         {
             waitForPendingRenders();
             cleanup_image();
             m_is_image         = true;
-            m_is_animated      = true;
             m_success          = true;
             m_page_count       = 1;
             m_default_page_dim = {w * 72.0f / m_dpi, h * 72.0f / m_dpi};
             m_page_dim_cache.dimensions.assign(1, m_default_page_dim);
             m_page_dim_cache.known.assign(1, true);
-            m_movie = new QMovie(canonPath);
-            m_movie->setCacheMode(QMovie::CacheNone);
+            m_movie       = ImageAnimation::open(canonPath, this);
+            m_is_animated = m_movie != nullptr;
+            // Could not be played after all: show its first frame instead.
+            if (!m_movie)
+                m_image_cache = std::move(first);
             emit openFileFinished();
         }, Qt::QueuedConnection);
     });

@@ -11,6 +11,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLibrary>
+#include "ImageAnimation.hpp"
+
 #include <QMovie>
 #include <QPainter>
 #include <QSvgRenderer>

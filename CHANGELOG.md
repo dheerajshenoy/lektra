@@ -40,6 +40,7 @@
 
 ### Bug Fixes
 
+- Animated PNG (APNG) files now play. Qt only reads the first frame of an APNG, so Lektra decodes the animation itself, one frame at a time, following the file's frame delays, blend and dispose settings and loop count.
 - Fix crash (SIGSEGV) on quit when the command palette had been opened and Lua commands were registered via `lektra.cmd.register`: `CommandPicker` stores a by-value copy of the commands vector, whose `Command` lambdas hold `shared_ptr<LuaRefGuard>` refs. Because `CommandPicker` is a child widget of `Lektra`, Qt destroyed it inside `~QWidget()` — after `lua_close()` had already freed the Lua state. The `LuaRefGuard` destructor then called `luaL_unref` on the dead state and segfaulted. Fixed by explicitly deleting `m_command_picker` at the start of `Lektra::~Lektra()`, before `lua_close()`.
 
 - Fix deep zoom being very slow: in single-page layout the page is now rescaled while zooming and re-rendered sharp once you stop, and very large pages are only rendered where they are visible.
