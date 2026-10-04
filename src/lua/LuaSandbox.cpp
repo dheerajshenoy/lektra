@@ -194,8 +194,10 @@ pushEnvironment(lua_State *L)
     lua_pop(L, 1);
     lua_setfield(L, -2, "os");
 
-    lua_getglobal(L, "lektra");
-    lua_setfield(L, -2, "lektra");
+    // lektra, without job: the assistant must not be able to run commands
+    // (os.execute is not available to it either)
+    static const char *const kNoJob[] = {"job", nullptr};
+    copyGlobalTable(L, "lektra", kNoJob);
 
     lua_pushstring(L, "Lua 5.1");
     lua_setfield(L, -2, "_VERSION");

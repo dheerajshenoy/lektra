@@ -561,6 +561,19 @@ v:open("/path/to/document.pdf")
 \end{tcolorbox}
 
 
+\textbf{Run a command in the background and get called back:}
+
+\begin{tcolorbox}[colback=gray!5, colframe=gray!40, boxrule=0.4pt, arc=4pt,
+    fontupper=\ttfamily\small]
+\begin{minted}{lua}
+lektra.job.async({"sleep", "3"}, { timeout = 10 }, function(r)
+    lektra.ui.message(r.ok and "Finished" or ("Failed: " .. tostring(r.error)))
+end)
+-- the script (and the window) carry on immediately
+\end{minted}
+\end{tcolorbox}
+
+
 \textbf{Copy the text of a page and react to new bookmarks:}
 
 \begin{tcolorbox}[colback=gray!5, colframe=gray!40, boxrule=0.4pt, arc=4pt,

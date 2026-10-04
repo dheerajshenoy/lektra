@@ -660,6 +660,8 @@ private:
     // lektra.utils
     void initLuaUtils() noexcept;
     void initLuaClipboard() noexcept;
+    void initLuaJob() noexcept;
+    void killLuaJobs() noexcept;
 
     // lektra.bookmark
     void initLuaBookmarks() noexcept;

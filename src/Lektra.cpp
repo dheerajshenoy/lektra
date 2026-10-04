@@ -87,6 +87,11 @@ Lektra::~Lektra() noexcept
     delete m_command_picker;
     m_command_picker = nullptr;
 
+#ifdef WITH_LUA
+    // Jobs that are still running must not call back into Lua once it is closed.
+    killLuaJobs();
+#endif
+
     // Commands registered from Lua hold LuaRefGuard shared_ptrs that call
     // luaL_unref in their destructor. Reset before lua_close so the Lua state
     // is still alive when those destructors run.

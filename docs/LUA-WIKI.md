@@ -561,6 +561,57 @@ t:destroy()
 
 ---
 
+## lektra.job
+
+Run a command in the background without freezing the window. `lektra.job.async` returns at
+once; the callback is called later, when the command has finished. Not available to the
+LLM assistant's scripts.
+
+- `lektra.job.async(command, [options], callback) -> Job`
+  `command` is a string (run by the shell, `sh -c`) or a list `{"program", "arg", ...}` (run
+  directly, nothing to quote). `callback(result)` can also be given as `options.on_done`.
+
+### Options
+
+| Option | Description |
+|---|---|
+| `cwd` | Folder to run in. |
+| `env` | Table of environment variables to add or change. |
+| `stdin` | Text given to the command's standard input (closed afterwards; without it, closed at once). |
+| `timeout` | Seconds after which the command is stopped. |
+| `on_stdout`, `on_stderr` | `function(chunk)` called with the output as it arrives. |
+| `on_done` | Same as the `callback` argument. |
+
+### Result
+
+`{ ok, code, stdout, stderr, timed_out, cancelled, error }` — `ok` is true only for exit code 0;
+`code` is -1 if the command could not start or was killed; `error` says why when it did not
+simply exit ("timed out", "cancelled", "could not start: ...").
+
+### Job methods
+
+| Method | Description |
+|---|---|
+| `j:cancel()` | Stop the command and what it started. The callback is still called, with `cancelled = true`. |
+| `j:running()` | Whether it is still running. |
+| `j:pid()` | Process id while running, otherwise `nil`. |
+
+Jobs still running when Lektra quits are killed and their callbacks are not called.
+
+### Example
+
+```lua
+lektra.job.async({"tesseract", "page.png", "out", "-l", "eng"}, { timeout = 60 }, function(r)
+    if r.ok then
+        lektra.ui.message("OCR done")
+    else
+        lektra.ui.message("OCR failed: " .. (r.error or r.stderr))
+    end
+end)
+```
+
+---
+
 ## lektra.utils
 
 General utilities.
