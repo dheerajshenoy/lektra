@@ -1565,6 +1565,16 @@ struct Config
         // @added 0.7.9
         bool auto_run = false;
 
+        // @desc {
+        // Save LLM chats to disk so earlier conversations can be reopened from
+        // the History menu of the panel. Chats are stored as plain JSON files
+        // in Lektra's data folder (llm_chats)
+        // }
+        // @type bool
+        // @default true
+        // @added 0.7.9
+        bool save_history = true;
+
         // @desc Show the LLM view in a separate window
         // @type bool
         // @default false

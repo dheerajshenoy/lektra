@@ -1,6 +1,12 @@
 #include "LLMView.hpp"
 
 #include <QAbstractTextDocumentLayout>
+#include <QAction>
+#include <QDateTime>
+#include <QJsonArray>
+#include <QLocale>
+#include <QMenu>
+#include <QMessageBox>
 #include <QApplication>
 #include <QClipboard>
 #include <QFontMetrics>
@@ -104,6 +110,22 @@ LLMView::setScriptRunner(LLMScriptRunner runner)
 }
 
 void
+LLMView::setHistoryFolder(const QString &folder)
+{
+    m_store = ChatStore(m_config.llm_view.save_history ? folder : QString());
+    updateChatButtons();
+}
+
+void
+LLMView::updateChatButtons()
+{
+    // Switching chats while a reply is on its way would mix the two up.
+    m_history_button->setVisible(m_store.isEnabled());
+    m_history_button->setEnabled(!m_awaiting_response);
+    m_new_chat_button->setEnabled(!m_awaiting_response);
+}
+
+void
 LLMView::closeConnection() noexcept
 {
     if (m_connection_check_timer)
@@ -201,7 +223,31 @@ LLMView::initUI()
     m_layout = new QVBoxLayout();
     m_layout->setContentsMargins(8, 8, 8, 8);
     m_layout->setSpacing(8);
-    m_layout->addWidget(m_connection_indicator);
+    // Top bar: connection state on the left, chat controls on the right.
+    m_history_button = new QToolButton(m_container);
+    m_history_button->setObjectName("llmHistoryButton");
+    m_history_button->setText(tr("History"));
+    m_history_button->setToolTip(tr("Earlier chats"));
+    m_history_button->setPopupMode(QToolButton::InstantPopup);
+    m_history_button->setAutoRaise(true);
+    m_history_menu = new QMenu(m_history_button);
+    m_history_button->setMenu(m_history_menu);
+    connect(m_history_menu, &QMenu::aboutToShow, this,
+            &LLMView::refreshHistoryMenu);
+
+    m_new_chat_button = new QToolButton(m_container);
+    m_new_chat_button->setObjectName("llmNewChatButton");
+    m_new_chat_button->setText(tr("New chat"));
+    m_new_chat_button->setToolTip(tr("Start a new chat"));
+    m_new_chat_button->setAutoRaise(true);
+    connect(m_new_chat_button, &QToolButton::clicked, this, &LLMView::newChat);
+
+    auto *top_bar = new QHBoxLayout();
+    top_bar->setContentsMargins(0, 0, 0, 0);
+    top_bar->addWidget(m_connection_indicator, 1);
+    top_bar->addWidget(m_history_button);
+    top_bar->addWidget(m_new_chat_button);
+    m_layout->addLayout(top_bar);
     m_layout->addWidget(m_scroll_area);
     m_layout->addWidget(m_status_label);
     m_layout->addWidget(m_input_frame);
@@ -337,6 +383,9 @@ LLMView::sendMessage()
 
     addBubble(
         new ChatBubble(ChatBubble::Role::User, user_input, m_messages_widget));
+    // Saved together with the reply (or its error), so a stored chat never
+    // has a question the stored conversation has not seen.
+    record(QStringLiteral("user"), user_input, /*save=*/false);
 
     // Tell the model what its last script did. The transcript shows only what
     // the user typed.
@@ -359,6 +408,7 @@ LLMView::setAwaitingResponse(bool awaiting)
 {
     m_awaiting_response = awaiting;
     updateSendEnabled();
+    updateChatButtons();
     m_status_label->setVisible(awaiting);
 }
 
@@ -381,11 +431,12 @@ LLMView::displayResponse(const QString &response)
                                  m_messages_widget));
     }
 
+    record(QStringLiteral("assistant"), response);
     addScriptActions(response);
 }
 
 void
-LLMView::addScriptActions(const QString &reply)
+LLMView::addScriptActions(const QString &reply, bool allowAutoRun)
 {
     if (!m_script_runner)
         return;
@@ -454,7 +505,7 @@ LLMView::addScriptActions(const QString &reply)
         scripts.append({code, run});
     }
 
-    if (m_config.llm_view.auto_run)
+    if (allowAutoRun && m_config.llm_view.auto_run)
     {
         for (const auto &[code, button] : scripts)
         {
@@ -512,6 +563,7 @@ LLMView::runScript(const QString &code, QPushButton *runButton)
                                   : ChatBubble::Role::Error,
                              shown, m_messages_widget));
     m_pending_result = told;
+    record(r.ok ? QStringLiteral("result") : QStringLiteral("error"), shown);
 }
 
 void
@@ -542,4 +594,159 @@ LLMView::displayError(const QString &message)
 
     addBubble(
         new ChatBubble(ChatBubble::Role::Error, message, m_messages_widget));
+    record(QStringLiteral("error"), message);
+}
+
+// ---------------------------------------------------------------------------
+// chat history
+// ---------------------------------------------------------------------------
+
+void
+LLMView::record(const QString &kind, const QString &text, bool save)
+{
+    m_transcript.append(QJsonObject{{"kind", kind}, {"text", text}});
+    if (save)
+        saveChat();
+}
+
+void
+LLMView::saveChat()
+{
+    if (!m_store.isEnabled() || m_transcript.isEmpty())
+        return;
+
+    if (m_chat_id.isEmpty())
+    {
+        m_chat_id      = ChatStore::newId();
+        m_chat_created = QDateTime::currentDateTime();
+    }
+    if (m_chat_title.isEmpty())
+    {
+        for (const QJsonValue &v : std::as_const(m_transcript))
+            if (v.toObject().value("kind").toString() == QLatin1String("user"))
+            {
+                m_chat_title = ChatStore::titleFrom(v.toObject().value("text").toString());
+                break;
+            }
+    }
+
+    ChatStore::Chat chat;
+    chat.id         = m_chat_id;
+    chat.title      = m_chat_title;
+    chat.created    = m_chat_created;
+    chat.updated    = QDateTime::currentDateTime();
+    chat.messages   = m_http_client->messages();
+    chat.transcript = m_transcript;
+    m_store.save(chat);
+}
+
+void
+LLMView::clearTranscriptWidgets()
+{
+    // the last item of the layout is the stretch that keeps messages at the top
+    while (m_messages_layout->count() > 1)
+    {
+        QLayoutItem *item = m_messages_layout->takeAt(0);
+        if (QWidget *w = item->widget())
+            w->deleteLater();
+        delete item;
+    }
+    m_active_assistant_bubble = nullptr;
+    m_streaming_active        = false;
+    m_streaming_markdown.clear();
+}
+
+void
+LLMView::newChat()
+{
+    if (m_awaiting_response)
+        return;
+    clearTranscriptWidgets();
+    m_http_client->clearMessages();
+    m_transcript = QJsonArray();
+    m_chat_id.clear();
+    m_chat_title.clear();
+    m_pending_result.clear();
+    m_input_edit->setFocus();
+}
+
+void
+LLMView::loadChat(const QString &id)
+{
+    if (m_awaiting_response || id == m_chat_id)
+        return;
+    const auto chat = m_store.load(id);
+    if (!chat)
+        return;
+
+    clearTranscriptWidgets();
+    m_http_client->setMessages(chat->messages);
+    m_transcript   = chat->transcript;
+    m_chat_id      = chat->id;
+    m_chat_title   = chat->title;
+    m_chat_created = chat->created;
+    m_pending_result.clear();
+
+    for (const QJsonValue &v : std::as_const(m_transcript))
+    {
+        const QString kind = v.toObject().value("kind").toString();
+        const QString text = v.toObject().value("text").toString();
+        if (kind == QLatin1String("user"))
+            addBubble(new ChatBubble(ChatBubble::Role::User, text, m_messages_widget));
+        else if (kind == QLatin1String("assistant"))
+        {
+            addBubble(new ChatBubble(ChatBubble::Role::Assistant, text, m_messages_widget));
+            addScriptActions(text, /*allowAutoRun=*/false); // never re-run old scripts
+        }
+        else if (kind == QLatin1String("result"))
+            addBubble(new ChatBubble(ChatBubble::Role::Result, text, m_messages_widget));
+        else
+            addBubble(new ChatBubble(ChatBubble::Role::Error, text, m_messages_widget));
+    }
+    scrollToBottom();
+}
+
+void
+LLMView::deleteCurrentChat()
+{
+    if (m_chat_id.isEmpty())
+        return;
+    m_store.remove(m_chat_id);
+    newChat();
+}
+
+void
+LLMView::refreshHistoryMenu()
+{
+    m_history_menu->clear();
+
+    const QList<ChatStore::Summary> chats = m_store.list();
+    if (chats.isEmpty())
+        m_history_menu->addAction(tr("No saved chats"))->setEnabled(false);
+    for (const ChatStore::Summary &c : chats)
+    {
+        const QString when = QLocale().toString(c.updated, QLocale::ShortFormat);
+        auto *action = m_history_menu->addAction(
+            QStringLiteral("%1   \u00B7   %2").arg(c.title, when));
+        action->setCheckable(true);
+        action->setChecked(c.id == m_chat_id);
+        const QString id = c.id;
+        connect(action, &QAction::triggered, this, [this, id] { loadChat(id); });
+    }
+
+    m_history_menu->addSeparator();
+    QAction *del = m_history_menu->addAction(tr("Delete this chat"));
+    del->setEnabled(!m_chat_id.isEmpty());
+    connect(del, &QAction::triggered, this, [this] { deleteCurrentChat(); });
+    QAction *all = m_history_menu->addAction(tr("Delete all chats..."));
+    all->setEnabled(!chats.isEmpty());
+    connect(all, &QAction::triggered, this, [this]
+    {
+        if (QMessageBox::question(this, tr("Delete all chats"),
+                                  tr("Delete every saved chat? This cannot be undone."))
+            != QMessageBox::Yes)
+            return;
+        m_store.removeAll();
+        newChat();
+    });
 }

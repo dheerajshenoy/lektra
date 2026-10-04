@@ -899,6 +899,7 @@ Lektra::initConfig() noexcept
     {
         set(llm_view["show_at_startup"], m_config.llm_view.show_at_startup);
         set(llm_view["auto_run"], m_config.llm_view.auto_run);
+        set(llm_view["save_history"], m_config.llm_view.save_history);
         set(llm_view["separate_window"], m_config.llm_view.separate_window);
         set(llm_view["dock_area"], m_config.llm_view.dock_area);
         set(llm_view["model"], m_config.llm_view.model);

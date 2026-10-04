@@ -22,6 +22,12 @@ public:
     // each send(), so it can reflect the current state (e.g. the commands
     // that exist right now). It is not part of the stored conversation.
     void setSystemPromptProvider(std::function<QString()> provider);
+    // The stored conversation (without the system prompt): what the model has
+    // been sent and has answered. Replace or clear it to resume or restart a
+    // chat; do not do that while a request is in flight.
+    QJsonArray messages() const { return m_messages; }
+    void setMessages(const QJsonArray &messages) { m_messages = messages; }
+    void clearMessages() { m_messages = QJsonArray(); }
     void send(const QString &text);
     // Aborts any in-flight request. Call this before the client is
     // destroyed (e.g. on application shutdown) so a pending request

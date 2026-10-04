@@ -2013,6 +2013,13 @@ static const LuaField llmViewFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::LLMView *>(p)->model = lua_tostring(L, 3); }},
+    {"save_history",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::LLMView *>(p)->save_history);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::LLMView *>(p)->save_history = lua_toboolean(L, 3); }},
     {"separate_window",
      [](lua_State *L, P p)
 {

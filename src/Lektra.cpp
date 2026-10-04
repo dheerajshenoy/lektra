@@ -155,6 +155,7 @@ void
 Lektra::initLLMView() noexcept
 {
     m_llm_view = new LLMView(m_config, this);
+    m_llm_view->setHistoryFolder(m_app_data_dir.filePath("llm_chats"));
 #ifdef WITH_LUA
     // The model is told about the Lua API, and its scripts can be run.
     m_llm_view->setSystemPromptProvider([this] { return llmSystemPrompt(); });

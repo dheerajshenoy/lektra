@@ -327,6 +327,7 @@ lektra.opt.command_palette = {}
 ---@field dock_area "left"|"right"|"top"|"bottom" Where the panel is docked.
 ---@field extra_body table Extra fields merged into every request body.
 ---@field model string Model name sent with each request.
+---@field save_history boolean Save chats to disk so they can be reopened from the History menu.
 ---@field separate_window boolean Show the panel in a separate window.
 ---@field show_at_startup boolean Open the LLM panel when Lektra starts.
 lektra.opt.llm_view = {}

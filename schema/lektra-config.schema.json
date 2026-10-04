@@ -1391,6 +1391,11 @@
           "default": false,
           "description": "Run the Lua script the assistant writes as soon as its reply is complete, instead of waiting for you to press Run. The script gets the same access to Lektra as your init.lua, in a restricted environment (no io, os.execute, require, load or ffi) (since 0.7.9)"
         },
+        "save_history": {
+          "type": "boolean",
+          "default": true,
+          "description": "Save LLM chats to disk so earlier conversations can be reopened from the History menu of the panel. Chats are stored as plain JSON files in Lektra's data folder (llm_chats) (since 0.7.9)"
+        },
         "separate_window": {
           "type": "boolean",
           "default": false,

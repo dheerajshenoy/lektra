@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ChatBubble.hpp"
+#include "ChatStore.hpp"
 #include "Config.hpp"
 #include "HTTPClient.hpp"
 
@@ -12,6 +13,7 @@
 #include <QVBoxLayout>
 
 class QFrame;
+class QMenu;
 class QLabel;
 class QScrollArea;
 class QTimer;
@@ -42,6 +44,9 @@ public:
     // Lets replies that contain a ```lua block be run from the chat. Without
     // a runner no Run button is shown.
     void setScriptRunner(LLMScriptRunner runner);
+    // Folder where chats are saved (and listed in the History menu). Without
+    // one, or with llm_view.save_history off, nothing is saved.
+    void setHistoryFolder(const QString &folder);
 
 protected:
     // Installed on m_input_edit so Shift+Return sends the message instead
@@ -67,7 +72,7 @@ private:
     void addBubble(QWidget *bubble) noexcept;
     // Under a finished reply: one "Run / Copy" bar per ```lua block (and runs
     // them straight away when llm_view.auto_run is on).
-    void addScriptActions(const QString &reply);
+    void addScriptActions(const QString &reply, bool allowAutoRun = true);
     void runScript(const QString &code, QPushButton *runButton);
     void scrollToBottom() noexcept;
     // Reflects an HTTPClient::connectionStatusChanged() result in
@@ -114,6 +119,28 @@ private:
     // request: a second send() while one is still streaming would corrupt
     // its SSE parsing state.
     bool m_awaiting_response = false;
+
+    // --- chat history ---------------------------------------------------
+    // Starts an empty chat (the current one stays saved).
+    void newChat();
+    // Shows a saved chat and continues from it.
+    void loadChat(const QString &id);
+    void deleteCurrentChat();
+    // Remembers what the transcript shows, then writes the chat to disk.
+    void record(const QString &kind, const QString &text, bool save = true);
+    void saveChat();
+    void clearTranscriptWidgets();
+    void refreshHistoryMenu();
+    void updateChatButtons();
+
+    ChatStore m_store;
+    QMenu *m_history_menu             = nullptr;
+    QToolButton *m_history_button     = nullptr;
+    QToolButton *m_new_chat_button    = nullptr;
+    QString m_chat_id;                // empty until the first message
+    QString m_chat_title;
+    QDateTime m_chat_created;
+    QJsonArray m_transcript;
 
     LLMScriptRunner m_script_runner;
     // What the last script did, handed to the model with the next message so
