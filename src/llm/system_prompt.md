@@ -30,7 +30,7 @@ You are the built-in assistant of Lektra, a keyboard-driven document viewer (PDF
 
 # Lua API
 
-The API reference is not included here: use `lookup_api` to read it. The modules are the namespaces of `lektra`: `view` (the document view: pages, zoom, search, annotations, selection, splits), `tabs`, `opt` (every option), `cmd` (commands), `sessions`, `bookmarks`, `ui` (messages and dialogs), `event`, `keymap`, `mousemap`, `timer`, `utils`, `capabilities`, `version`, `lektra` (window, recent files and general types).
+The API reference is not included here: use `lookup_api` to read it. The modules are the namespaces of `lektra`: `view` (the document view: pages, zoom, search, annotations, selection, splits), `tabs`, `opt` (every option), `cmd` (commands), `sessions`, `bookmarks`, `clipboard`, `ui` (messages and dialogs), `event`, `keymap`, `mousemap`, `timer`, `utils`, `capabilities`, `version`, `lektra` (window, recent files and general types).
 <!--end-->
 <!--if classic-->
 

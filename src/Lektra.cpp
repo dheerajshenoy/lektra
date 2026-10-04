@@ -68,6 +68,10 @@ Lektra::Lektra(const QString &sessionName,
     openSessionFromArray(sessionArray);
     setSessionName(sessionName);
     m_statusbar->setSessionName(sessionName);
+#ifdef WITH_LUA
+    QString loadedName = sessionName;
+    dispatchLuaEvent(DispatchType::OnSessionLoaded, &loadedName);
+#endif
 }
 
 Lektra::~Lektra() noexcept

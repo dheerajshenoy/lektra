@@ -183,6 +183,7 @@ public:
     void applyBackend() noexcept;
 
 signals:
+    void modeChanged(Mode mode);
     void textSelectionRequested(QPointF a, QPointF b);
     void textHighlightRequested(QPointF a, QPointF b);
     void linkCtrlClickRequested(QPointF scenePos);

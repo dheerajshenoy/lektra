@@ -266,6 +266,8 @@ public:
     void Copy_page_image() noexcept;
     void Reopen_last_closed_file() noexcept;
     void AddBookmark() noexcept;
+    // Adds a bookmark and tells the OnBookmarkAdded listeners.
+    void addBookmark(const Bookmark &bookmark) noexcept;
     void RemoveBookmark() noexcept;
     // Write the current bookmark set to a JSON file. Empty path opens a
     // save-file dialog. Format matches the on-disk bookmarks.json layout so
@@ -637,6 +639,7 @@ private:
 
     // lektra.utils
     void initLuaUtils() noexcept;
+    void initLuaClipboard() noexcept;
 
     // lektra.bookmark
     void initLuaBookmarks() noexcept;

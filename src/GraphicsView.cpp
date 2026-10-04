@@ -173,8 +173,11 @@ GraphicsView::setMode(Mode mode) noexcept
             break;
     }
 
-    m_mode = mode;
+    const bool changed = m_mode != mode;
+    m_mode             = mode;
     updateCursorForMode();
+    if (changed)
+        emit modeChanged(mode);
 }
 
 void

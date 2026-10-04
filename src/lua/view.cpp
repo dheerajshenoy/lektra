@@ -1100,6 +1100,30 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 1;
                 }),
 
+    VIEW_METHOD("page_text",
+                {
+                    // page_text([pageno], [formatted]): the text of a page
+                    // (default: the current one), "" if it has none.
+                    if (!*view)
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    const int pageno
+                        = lua_isnoneornil(L, 2)
+                              ? (*view)->pageNo()
+                              : static_cast<int>(luaL_checkinteger(L, 2) - 1);
+                    if (pageno < 0 || pageno >= (*view)->numPages())
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    const bool formatted = lua_toboolean(L, 3);
+                    const QString text = (*view)->pageText(pageno, formatted);
+                    lua_pushstring(L, text.toUtf8().constData());
+                    return 1;
+                }),
+
     VIEW_METHOD("container",
                 {
                     if (*view)

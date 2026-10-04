@@ -351,6 +351,11 @@ DocumentView::initConnections() noexcept
             &DocumentView::handleSynctexJumpRequested);
 #endif
 
+#ifdef WITH_LUA
+    connect(m_gview, &GraphicsView::modeChanged, this,
+            [this](GraphicsView::Mode) { dispatchLuaEvent(DispatchType::OnModeChanged); });
+#endif
+
     if (m_model->isImage())
     {
         connect(m_hq_render_timer, &QTimer::timeout, this,
@@ -675,6 +680,9 @@ DocumentView::SaveFile() noexcept
 #ifndef NDEBUG
         qDebug() << "DocumentView::SaveFile(): Save successful";
 #endif
+#ifdef WITH_LUA
+        dispatchLuaEvent(DispatchType::OnFileSaved);
+#endif
     }
     else
     {
@@ -702,7 +710,11 @@ DocumentView::SaveAsFile() noexcept
         QMessageBox::critical(
             this, tr("Saving as failed"),
             tr("Could not perform save as operation on the file"));
+        return;
     }
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnFileSaved);
+#endif
 }
 
 // Close the current file

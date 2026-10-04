@@ -27,6 +27,10 @@ enum class DispatchType
     OnViewChanged                         = 18,
     OnScreenChanged                       = 19,
     OnAppShutdown                         = 20,
+    OnModeChanged                         = 21,
+    OnSessionLoaded                       = 22,
+    OnBookmarkAdded                       = 23,
+    OnFileSaved                           = 24,
     COUNT
 };
 
@@ -54,6 +58,10 @@ static const QHash<QString, DispatchType> s_dispatchEventMap = {
     {"OnViewChanged", DispatchType::OnViewChanged},
     {"OnScreenChanged", DispatchType::OnScreenChanged},
     {"OnAppShutdown", DispatchType::OnAppShutdown},
+    {"OnModeChanged", DispatchType::OnModeChanged},
+    {"OnSessionLoaded", DispatchType::OnSessionLoaded},
+    {"OnBookmarkAdded", DispatchType::OnBookmarkAdded},
+    {"OnFileSaved", DispatchType::OnFileSaved},
 };
 
 inline static DispatchType

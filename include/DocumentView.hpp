@@ -371,8 +371,14 @@ public:
 
     inline QString extractText(bool formatted) const noexcept
     {
+        return pageText(m_pageno, formatted);
+    }
+
+    // The text of any page (0-based), "" if it has none.
+    inline QString pageText(int pageno, bool formatted) const noexcept
+    {
         return QString::fromStdString(
-            m_model->getTextInPage(m_pageno, formatted));
+            m_model->getTextInPage(pageno, formatted));
     }
 
 #ifdef WITH_LUA

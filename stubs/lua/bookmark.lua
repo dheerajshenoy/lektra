@@ -3,25 +3,18 @@ lektra = lektra or {}
 lektra.bookmarks = {}
 
 ---@class Bookmark
----@field id integer bookmark uuid
----@field file_path string filepath of the bookmark
----@field pageno integer page number of the bookmark (0-based)
----@field x integer xlocation
----@field y integer ylocation
----@field created string datetime of when the bookmark was created
+---@field id string Bookmark uuid.
+---@field file_path string File the bookmark is in.
+---@field pageno integer Page number of the bookmark (1-based).
+---@field x number Horizontal position on the page.
+---@field y number Vertical position on the page.
+---@field created string When the bookmark was created.
 
---- Adds a bookmark
----@param bookmark Bookmark
+--- Adds a bookmark. Without an argument, bookmarks the current location of the current view.
+---@param bookmark? {file_path?: string, pageno?: integer, x?: number, y?: number} Where to put it (pageno is 1-based); anything left out comes from the current view.
+---@return string id The new bookmark's id.
 lektra.bookmarks.add = function (bookmark) end
-
---- Removes a bookmark with the id `id`
-lektra.bookmarks.remove = function(id) end
 
 --- Lists all the bookmarks
 ---@return Bookmark[] bookmarks list of bookmarks
 lektra.bookmarks.list = function() end
-
---- Goes to the bookmark with the id `id`
----@param id integer
-lektra.bookmarks.goto = function(id) end
-

@@ -211,6 +211,9 @@ Lektra::LoadSession(QString sessionName) noexcept
         {
             // Open here in this window
             openSessionFromArray(doc.array());
+#ifdef WITH_LUA
+            dispatchLuaEvent(DispatchType::OnSessionLoaded, &sessionName);
+#endif
         }
     }
     else
@@ -510,8 +513,18 @@ Lektra::AddBookmark() noexcept
     if (!m_doc)
         return;
 
-    m_bookmark_manager.addBookmark({m_doc->filePath(), m_doc->CurrentLocation(),
-                                    QDateTime::currentDateTime()});
+    addBookmark({m_doc->filePath(), m_doc->CurrentLocation(),
+                 QDateTime::currentDateTime()});
+}
+
+void
+Lektra::addBookmark(const Bookmark &bookmark) noexcept
+{
+    m_bookmark_manager.addBookmark(bookmark);
+#ifdef WITH_LUA
+    Bookmark added = bookmark;
+    dispatchLuaEvent(DispatchType::OnBookmarkAdded, &added);
+#endif
 }
 
 void

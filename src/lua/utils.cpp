@@ -1,6 +1,8 @@
 #include "Lektra.hpp"
 
+#include <QClipboard>
 #include <QDesktopServices>
+#include <QGuiApplication>
 
 // Pretty print anything, table or value, to a string
 static std::string
@@ -129,4 +131,31 @@ Lektra::initLuaUtils() noexcept
     lua_setfield(m_L, -2, "platform");
 
     lua_setfield(m_L, -2, "utils");
+}
+
+// lektra.clipboard.get() -> string, lektra.clipboard.set(text)
+void
+Lektra::initLuaClipboard() noexcept
+{
+    lua_newtable(m_L);
+
+    lua_pushcclosure(m_L, [](lua_State *L) -> int
+    {
+        lua_pushstring(
+            L, QGuiApplication::clipboard()->text().toUtf8().constData());
+        return 1;
+    }, 0);
+    lua_setfield(m_L, -2, "get");
+
+    lua_pushcclosure(m_L, [](lua_State *L) -> int
+    {
+        size_t length    = 0;
+        const char *text = luaL_checklstring(L, 1, &length);
+        QGuiApplication::clipboard()->setText(
+            QString::fromUtf8(text, static_cast<qsizetype>(length)));
+        return 0;
+    }, 0);
+    lua_setfield(m_L, -2, "set");
+
+    lua_setfield(m_L, -2, "clipboard");
 }

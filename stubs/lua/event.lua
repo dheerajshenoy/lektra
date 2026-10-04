@@ -25,6 +25,10 @@ lektra.event.EventType = {
     OnViewChanged = 18,
     OnScreenChanged = 19,
     OnAppShutdown = 20,
+    OnModeChanged = 21,
+    OnSessionLoaded = 22,
+    OnBookmarkAdded = 23,
+    OnFileSaved = 24,
 }
 
 --- Registers a callback to be called when the specified event is triggered.
@@ -50,6 +54,10 @@ lektra.event.EventType = {
 ---@overload fun(event: "OnTabAdded", callback: fun(tab: integer)): integer
 ---@overload fun(event: "OnTabRemoved", callback: fun(tab: integer)): integer
 ---@overload fun(event: "OnAppShutdown", callback: fun()): integer
+---@overload fun(event: "OnModeChanged", callback: fun(view: View)): integer
+---@overload fun(event: "OnSessionLoaded", callback: fun(name: string)): integer
+---@overload fun(event: "OnBookmarkAdded", callback: fun(bookmark: Bookmark)): integer
+---@overload fun(event: "OnFileSaved", callback: fun(view: View)): integer
 ---@param event EventType|string
 ---@param callback fun(arg: any)
 ---@return integer handle
@@ -82,6 +90,10 @@ lektra.event.unregister = function (event, handle) end
 ---@overload fun(event: "OnTabAdded", callback: fun(tab: integer)): integer
 ---@overload fun(event: "OnTabRemoved", callback: fun(tab: integer)): integer
 ---@overload fun(event: "OnAppShutdown", callback: fun()): integer
+---@overload fun(event: "OnModeChanged", callback: fun(view: View)): integer
+---@overload fun(event: "OnSessionLoaded", callback: fun(name: string)): integer
+---@overload fun(event: "OnBookmarkAdded", callback: fun(bookmark: Bookmark)): integer
+---@overload fun(event: "OnFileSaved", callback: fun(view: View)): integer
 ---@param event EventType|string
 ---@param callback fun(arg: any)
 ---@return integer handle

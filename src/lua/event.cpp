@@ -2,6 +2,8 @@
 #include "DocumentView.hpp"
 #include "Lektra.hpp"
 
+#include "LuaBookmark.hpp"
+
 #include <QScreen>
 
 bool
@@ -94,6 +96,12 @@ push_event_arg(lua_State *L, DispatchType type, void *data)
         lua_setfield(L, -2, "geometry");
         break;
     }
+    case DispatchType::OnSessionLoaded:
+        lua_pushstring(L, static_cast<QString *>(data)->toUtf8().constData());
+        break;
+    case DispatchType::OnBookmarkAdded:
+        pushLuaBookmark(L, *static_cast<Bookmark *>(data));
+        break;
     case DispatchType::OnTabChanged:
     case DispatchType::OnTabRemoved:
     case DispatchType::OnTabAdded:
@@ -115,6 +123,8 @@ push_event_arg(lua_State *L, DispatchType type, void *data)
     case DispatchType::OnRegionSelectionContextMenuRequested:
     case DispatchType::OnTextSelectionContextMenuRequested:
     case DispatchType::OnViewChanged:
+    case DispatchType::OnModeChanged:
+    case DispatchType::OnFileSaved:
     {
         if (!data)
         {

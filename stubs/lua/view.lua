@@ -243,10 +243,16 @@ function View:save() end
 ---@param file_path string The file path to save the document to.
 function View:save_as(file_path) end
 
----Returns the text content of the document in the view. This may return an empty string for certain file types (e.g., images) or if the document does not contain extractable text.
+---Returns the text of the current page. This may return an empty string for certain file types (e.g., images) or if the page does not contain extractable text. Use `View:page_text()` for another page.
 ---@param formatted boolean Whether to return the text content with formatting (e.g., newlines, tabs) or as plain text. Default is false (plain text).
 ---@return string text_content
 function View:extract_text(formatted) end
+
+---Returns the text of a page, "" if it has none (e.g. a scanned page or an image).
+---@param pageno? integer Page number, 1-based (default: the current page).
+---@param formatted? boolean Keep the layout (newlines, tabs) instead of plain text. Default false.
+---@return string? text nil if the page does not exist.
+function View:page_text(pageno, formatted) end
 
 ---Returns the unique identifier of the view.
 ---@return integer id
