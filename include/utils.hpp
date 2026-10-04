@@ -5,6 +5,8 @@
 #include <QColor>
 #include <QDebug>
 #include <QDir>
+#include <QFileInfo>
+#include <QRegularExpression>
 #include <QPointF>
 #include <algorithm>
 #include <cstdint>
@@ -198,7 +200,7 @@ supportedFormats()
     return "Documents ("
            "*.pdf "
            "*.ai " // Adobe Illustrator — PDF-compatible, opens via the PDF path
-           "*.djvu *.djv"
+           "*.djvu *.djv "
            "*.oxps *.xps "
            "*.cbz *.cbr *.cb7 *.cbt "
            "*.epub "
