@@ -4,6 +4,7 @@
 
 ### New Features
 
+- Add `--new-window` CLI flag to open file(s) in a new window even when `single_instance` is on.
 - The LLM panel now knows Lektra's Lua API and can drive the app: ask it to do something and it replies with a Lua script you run with the Run button, or automatically with `llm_view.auto_run = true`. Scripts run in a restricted environment (no `io`, `os.execute`, `require`, `load` or `ffi`) with a time limit, and the result is passed back to the model with your next message. Lua code in replies is syntax highlighted, and every code block can be collapsed by clicking its header.
 - LLM chat: images can be attached to a message (paste, drop, an image file, the current page, or a region of the page) and are sent to vision models such as Gemini. Chats are now saved and can be reopened from the new History menu; "New chat" starts a fresh one. Turn saving off with `llm_view.save_history = false`.
 - Lektra now checks once a day whether a newer release is available and says so in a small banner (one request to the GitHub releases API, nothing about you is sent). Turn it off with `[updates] check = false`. The `check_for_updates` command (and Help ▸ Check for Updates) checks on demand.
