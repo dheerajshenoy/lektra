@@ -436,8 +436,14 @@ LLMView::addScriptActions(const QString &reply)
         row->addWidget(copy);
         row->addWidget(run);
 
-        connect(copy, &QPushButton::clicked, this,
-                [code] { QApplication::clipboard()->setText(code); });
+        connect(copy, &QPushButton::clicked, this, [this, code, copy]
+        {
+            QApplication::clipboard()->setText(code);
+            // Show that the click did something, then go back to "Copy".
+            copy->setText(tr("\u2713 Copied"));
+            QTimer::singleShot(1500, copy, [this, copy]
+            { copy->setText(tr("Copy")); });
+        });
         connect(run, &QPushButton::clicked, this,
                 [this, code, run] { runScript(code, run); });
 

@@ -1386,6 +1386,11 @@
           "default": false,
           "description": "Show the LLM view when Lektra starts (since 0.7.9)"
         },
+        "auto_run": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run the Lua script the assistant writes as soon as its reply is complete, instead of waiting for you to press Run. The script gets the same access to Lektra as your init.lua, in a restricted environment (no io, os.execute, require, load or ffi) (since 0.7.9)"
+        },
         "separate_window": {
           "type": "boolean",
           "default": false,

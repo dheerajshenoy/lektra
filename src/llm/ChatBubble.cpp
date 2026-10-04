@@ -1,9 +1,12 @@
 #include "ChatBubble.hpp"
 
+#include "LuaHighlight.hpp"
+
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPalette>
+#include <QVBoxLayout>
 
 namespace
 {
@@ -48,15 +51,9 @@ ChatBubble::ChatBubble(Role role, const QString &markdownText,
     frame->setObjectName("chatBubbleFrame");
     frame->setStyleSheet(bubbleStyleSheet(role, palette()));
 
-    m_label = new QLabel(frame);
-    m_label->setTextFormat(Qt::MarkdownText);
-    m_label->setWordWrap(true);
-    m_label->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    m_label->setMaximumWidth(kMaxBubbleWidth);
-    m_label->setText(markdownText);
-
-    auto *frameLayout = new QHBoxLayout(frame);
-    frameLayout->addWidget(m_label);
+    m_content = new QVBoxLayout(frame);
+    m_content->setContentsMargins(10, 7, 10, 7);
+    m_content->setSpacing(6);
 
     auto *outerLayout = new QHBoxLayout(this);
     outerLayout->setContentsMargins(0, 0, 0, 0);
@@ -70,10 +67,131 @@ ChatBubble::ChatBubble(Role role, const QString &markdownText,
         outerLayout->addWidget(frame);
         outerLayout->addStretch();
     }
+
+    setText(markdownText);
+}
+
+QList<ChatBubble::Segment>
+ChatBubble::split(const QString &markdownText)
+{
+    QList<Segment> out;
+    Segment current;
+    bool inFence = false;
+
+    auto flush = [&]
+    {
+        if (current.code || !current.text.trimmed().isEmpty())
+        {
+            if (!current.code)
+                current.text = current.text.trimmed();
+            else
+                while (current.text.endsWith(QLatin1Char('\n')))
+                    current.text.chop(1);
+            out.append(current);
+        }
+        current = {};
+    };
+
+    for (const QString &line : markdownText.split(QLatin1Char('\n')))
+    {
+        const QString trimmed = line.trimmed();
+        if (!inFence && trimmed.startsWith(QLatin1String("```")))
+        {
+            flush();
+            current.code     = true;
+            current.language = trimmed.mid(3).trimmed().section(QLatin1Char(' '), 0, 0).toLower();
+            inFence = true;
+            continue;
+        }
+        if (inFence && trimmed == QLatin1String("```"))
+        {
+            flush();
+            inFence = false;
+            continue;
+        }
+        current.text += line + QLatin1Char('\n');
+    }
+    flush();
+    return out;
+}
+
+ChatBubble::Piece
+ChatBubble::makePiece(const Segment &segment)
+{
+    Piece piece;
+    if (!segment.code)
+    {
+        piece.label = new QLabel(this);
+        piece.label->setTextFormat(Qt::MarkdownText);
+        piece.label->setWordWrap(true);
+        piece.label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        piece.label->setMaximumWidth(kMaxBubbleWidth);
+        piece.widget = piece.label;
+        return piece;
+    }
+
+    // Code box: darker than the bubble on a dark theme, lighter-gray on a
+    // light one, so the code stands out either way.
+    const QColor base = palette().color(QPalette::Base);
+    const QColor box  = base.lightness() < 128 ? base.darker(135) : base.darker(104);
+    auto *frame = new QFrame(this);
+    frame->setObjectName("chatCodeBlock");
+    frame->setStyleSheet(QString("QFrame#chatCodeBlock { background-color: %1; "
+                                 "border-radius: 6px; }")
+                             .arg(box.name()));
+    auto *layout = new QVBoxLayout(frame);
+    layout->setContentsMargins(8, 6, 8, 6);
+
+    piece.label = new QLabel(frame);
+    piece.label->setTextFormat(Qt::RichText);
+    piece.label->setWordWrap(true);
+    piece.label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    piece.label->setMaximumWidth(kMaxBubbleWidth - 20);
+    layout->addWidget(piece.label);
+    piece.widget = frame;
+    return piece;
+}
+
+void
+ChatBubble::updatePiece(const Piece &piece, const Segment &segment)
+{
+    if (!segment.code)
+        piece.label->setText(segment.text);
+    else if (segment.language == QLatin1String("lua"))
+        piece.label->setText(luaToHtml(segment.text, palette()));
+    else
+        piece.label->setText(plainCodeToHtml(segment.text));
 }
 
 void
 ChatBubble::setText(const QString &markdownText) noexcept
 {
-    m_label->setText(markdownText);
+    QList<Segment> segments = split(markdownText);
+    if (segments.isEmpty())
+        segments.append(Segment{}); // keep a (empty) label so the bubble has a body
+
+    // Reuse the pieces that still match (most of them, while streaming),
+    // replace the ones whose kind changed, drop the extra ones.
+    int keep = 0;
+    while (keep < m_pieces.size() && keep < segments.size()
+           && m_segments[keep].code == segments[keep].code)
+        ++keep;
+
+    while (m_pieces.size() > keep)
+    {
+        Piece piece = m_pieces.takeLast();
+        m_content->removeWidget(piece.widget);
+        delete piece.widget;
+    }
+    for (int i = keep; i < segments.size(); ++i)
+    {
+        Piece piece = makePiece(segments[i]);
+        m_content->addWidget(piece.widget);
+        m_pieces.append(piece);
+    }
+    for (int i = 0; i < segments.size(); ++i)
+        if (i >= keep || m_segments.value(i) != segments[i])
+            updatePiece(m_pieces[i], segments[i]);
+
+    m_segments = segments;
 }
