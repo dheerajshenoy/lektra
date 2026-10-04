@@ -57,6 +57,10 @@ public:
     // destroyed (e.g. on application shutdown) so a pending request
     // doesn't keep the connection open past the app closing.
     void closeConnection() noexcept;
+    // Stops the reply that is being received (the user pressed Stop). What
+    // was streamed so far is kept as the model's answer; emits cancelled().
+    // Does nothing if no request is in flight.
+    void cancel() noexcept;
     // Fires a lightweight HEAD probe against the configured URL to check
     // whether the LLM server (local or remote) is currently reachable —
     // emits connectionStatusChanged() once it completes. Any real HTTP
@@ -76,6 +80,9 @@ signals:
     // (the text may then be empty).
     void toolCallsRequested(const QList<LLMToolCall> &calls);
     void errorOccurred(const QString &message);
+    // The request was stopped with cancel(); `partialText` is what had been
+    // streamed (empty if nothing, or when not streaming).
+    void cancelled(const QString &partialText);
     // Emitted after every checkConnection() call completes.
     void connectionStatusChanged(bool connected);
     // The details of the same check: the HTTP status (0 if there was no HTTP
@@ -97,6 +104,7 @@ private:
     // Tool calls being assembled from streamed fragments, by their index.
     QMap<int, QJsonObject> m_streamToolCalls;
     QNetworkReply *m_activeReply = nullptr;
+    bool m_cancelled             = false;
     // Server-Sent-Events parsing state for the in-flight streamed request.
     QByteArray m_sseBuffer;
     QString m_streamedText;

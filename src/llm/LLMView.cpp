@@ -68,6 +68,23 @@ sendGlyph(const QColor &color, qreal dpr)
     return pm;
 }
 
+// A rounded square, the "stop" symbol.
+QPixmap
+stopGlyph(const QColor &color, qreal dpr)
+{
+    constexpr int size = 18;
+    QPixmap pm(QSize(size, size) * dpr);
+    pm.setDevicePixelRatio(dpr);
+    pm.fill(Qt::transparent);
+
+    QPainter p(&pm);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(Qt::NoPen);
+    p.setBrush(color);
+    p.drawRoundedRect(QRectF(4.5, 4.5, 9, 9), 1.8, 1.8);
+    return pm;
+}
+
 QString
 rgba(const QColor &c)
 {
@@ -98,6 +115,8 @@ LLMView::LLMView(const Config &config, QWidget *parent)
             &LLMView::handleToolCalls);
     connect(m_http_client, &HTTPClient::errorOccurred, this,
             &LLMView::displayError);
+    connect(m_http_client, &HTTPClient::cancelled, this,
+            &LLMView::handleCancelled);
     connect(m_http_client, &HTTPClient::connectionStatusChanged, this,
             &LLMView::updateConnectionIndicator);
     connect(m_http_client, &HTTPClient::connectionChecked, this,
@@ -268,6 +287,11 @@ LLMView::eventFilter(QObject *watched, QEvent *event)
     if (watched == m_input_edit && event->type() == QEvent::KeyPress)
     {
         auto *keyEvent = static_cast<QKeyEvent *>(event);
+        if (keyEvent->key() == Qt::Key_Escape && m_awaiting_response)
+        {
+            stopResponse();
+            return true;
+        }
         if ((keyEvent->key() == Qt::Key_Return
              || keyEvent->key() == Qt::Key_Enter)
             && (keyEvent->modifiers() & Qt::ShiftModifier))
@@ -437,16 +461,52 @@ LLMView::initUI()
     connect(m_input_edit->document()->documentLayout(),
             &QAbstractTextDocumentLayout::documentSizeChanged, this,
             [this] { adjustInputHeight(); });
-    connect(m_send_button, &QToolButton::clicked, this, &LLMView::sendMessage);
+    connect(m_send_button, &QToolButton::clicked, this, [this]
+    {
+        if (m_awaiting_response)
+            stopResponse();
+        else
+            sendMessage();
+    });
 }
 
 void
 LLMView::updateSendEnabled() noexcept
 {
+    // While a reply is coming in, the button is the Stop button.
+    m_send_button->setIcon(m_awaiting_response ? m_stop_icon : m_send_icon);
+    m_send_button->setToolTip(m_awaiting_response ? tr("Stop (Esc)")
+                                                  : tr("Send (Shift+Enter)"));
     m_send_button->setEnabled(
-        !m_awaiting_response
-        && (!m_input_edit->toPlainText().trimmed().isEmpty()
-            || !m_attachments.isEmpty()));
+        m_awaiting_response
+        || !m_input_edit->toPlainText().trimmed().isEmpty()
+        || !m_attachments.isEmpty());
+}
+
+void
+LLMView::stopResponse()
+{
+    if (m_awaiting_response)
+        m_http_client->cancel();
+}
+
+void
+LLMView::handleCancelled(const QString &partialText)
+{
+    setAwaitingResponse(false);
+
+    // What had arrived stays in the chat as the (cut short) answer. It is not
+    // searched for scripts: half a script must not be run.
+    m_streaming_active        = false;
+    m_active_assistant_bubble = nullptr;
+    m_streaming_markdown.clear();
+    if (!partialText.trimmed().isEmpty())
+        record(QStringLiteral("assistant"), partialText, /*save=*/false);
+
+    const QString note = tr("Stopped");
+    addNote(note);
+    record(QStringLiteral("note"), note);
+    m_input_edit->setFocus();
 }
 
 void
@@ -504,11 +564,15 @@ LLMView::updateInputStyle() noexcept
             .arg(pal.color(QPalette::Text).name(), rgba(off)));
 
     const qreal dpr = devicePixelRatioF();
-    QIcon icon;
-    icon.addPixmap(sendGlyph(pal.color(QPalette::HighlightedText), dpr),
-                   QIcon::Normal);
-    icon.addPixmap(sendGlyph(pal.color(QPalette::Base), dpr), QIcon::Disabled);
-    m_send_button->setIcon(icon);
+    m_send_icon = QIcon();
+    m_send_icon.addPixmap(sendGlyph(pal.color(QPalette::HighlightedText), dpr),
+                          QIcon::Normal);
+    m_send_icon.addPixmap(sendGlyph(pal.color(QPalette::Base), dpr),
+                          QIcon::Disabled);
+    m_stop_icon = QIcon();
+    m_stop_icon.addPixmap(stopGlyph(pal.color(QPalette::HighlightedText), dpr),
+                          QIcon::Normal);
+    m_send_button->setIcon(m_awaiting_response ? m_stop_icon : m_send_icon);
 
     m_updating_style = false;
 }

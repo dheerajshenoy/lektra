@@ -197,6 +197,7 @@ HTTPClient::dispatch()
     m_sseBuffer.clear();
     m_streamedText.clear();
     m_streamToolCalls.clear();
+    m_cancelled = false;
 
     if (streaming)
     {
@@ -241,6 +242,21 @@ HTTPClient::dispatch()
         if (reply == m_activeReply)
             m_activeReply = nullptr;
         reply->deleteLater();
+
+        if (m_cancelled)
+        {
+            m_cancelled         = false;
+            const QString partial = streaming ? m_streamedText : QString();
+            if (!partial.isEmpty())
+                m_messages.append(
+                    QJsonObject{{"role", "assistant"}, {"content", partial}});
+            else if (!m_messages.isEmpty()
+                     && m_messages.last().toObject().value("role") == "user")
+                m_messages.removeLast(); // no answer: the question is dropped
+            emit cancelled(partial);
+            return;
+        }
+
         if (reply->error() != QNetworkReply::NoError)
         {
             // The question got no answer: drop it, so the stored
@@ -293,6 +309,15 @@ HTTPClient::dispatch()
         if (!requested.isEmpty())
             emit toolCallsRequested(requested);
     });
+}
+
+void
+HTTPClient::cancel() noexcept
+{
+    if (!m_activeReply)
+        return;
+    m_cancelled = true;
+    m_activeReply->abort(); // runs the finished handler above
 }
 
 void

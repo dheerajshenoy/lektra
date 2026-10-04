@@ -10,6 +10,7 @@
 - LLM chat: LaTeX math in replies is rendered (`$...$` inline, `$$...$$` on its own line), using the bundled MicroTeX library.
 - LLM chat: hovering a message shows a Copy button that copies it as written, with LaTeX and code blocks as source.
 - New Lua API: `lektra.clipboard.get()`/`set()`, `view:page_text(pageno)` for the text of any page, and `lektra.bookmarks.add()`. New events `OnModeChanged`, `OnSessionLoaded`, `OnBookmarkAdded` and `OnFileSaved`.
+- LLM chat: you can stop a reply while it is coming in. The Send button turns into a Stop button (or press `Esc`), and what had arrived stays in the chat.
 - New `llm_view.font_size` option sets the text size of the messages in the LLM panel.
 - New `llm_view.show_at_startup` option opens the LLM panel when Lektra starts. It replaces `llm_view.enabled`, which was read but had no effect.
 - A JSON Schema for `config.toml` (`schema/lektra-config.schema.json`, installed to `share/lektra/`): with a TOML language server such as Taplo it gives completion, option descriptions on hover, and warnings for typos and wrong values. `default_config.toml` now points at it.

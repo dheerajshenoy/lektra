@@ -91,6 +91,9 @@ protected:
 private:
     void initUI();
     void sendMessage();
+    // The send button sends, or stops the reply while one is coming in.
+    void stopResponse();
+    void handleCancelled(const QString &partialText);
     void displayResponse(const QString &response);
     // Appends one incremental streamed fragment (extra_body.stream = true)
     // to the display as it arrives, instead of waiting for the full reply.
@@ -152,6 +155,7 @@ private:
     QFrame *m_input_frame           = nullptr;
     ChatInput *m_input_edit         = nullptr;
     QToolButton *m_send_button      = nullptr;
+    QIcon m_send_icon, m_stop_icon;
     QToolButton *m_attach_button    = nullptr;
     QMenu *m_attach_menu            = nullptr;
     QWidget *m_attachment_bar       = nullptr;
