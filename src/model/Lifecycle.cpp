@@ -1064,7 +1064,7 @@ Model::openAsync_mupdf(const QString &canonPath) noexcept
         return QtConcurrent::run([] {});
     }
 
-    return QtConcurrent::run([this, canonPath, bg_ctx]
+    return QtConcurrent::run([this, canonPath, bg_ctx, css = m_reflow_css]
     {
         struct Guard
         {
@@ -1099,6 +1099,11 @@ Model::openAsync_mupdf(const QString &canonPath) noexcept
                 return;
             }
             g.doc = doc;
+
+            // The font and line spacing for reflowable documents (EPUB, ...),
+            // before anything lays the document out. Documents that cannot
+            // be styled ignore it.
+            fz_style_document(bg_ctx, doc, 1, css.constData());
 
             // --- encrypted? park and stop ---
             if (m_filetype == FileType::PDF && fz_needs_password(bg_ctx, doc))

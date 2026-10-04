@@ -964,6 +964,9 @@ private:
     // fz_layout_document + page-count recompute. 0 means "never laid out"
     // (still at fz_open_document's default layout).
     float m_layout_w = 0.0f, m_layout_h = 0.0f, m_layout_em = 0.0f;
+    // The stylesheet for reflowable documents (font, line spacing) from
+    // setReflowStyle(), applied to a document when it is opened.
+    QByteArray m_reflow_css;
 
     void *m_ddjvu_ctx = nullptr;
     void *m_ddjvu_doc = nullptr;

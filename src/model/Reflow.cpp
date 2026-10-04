@@ -334,10 +334,10 @@ Model::setReflowStyle(const QString &fontFamily, float lineSpacing) noexcept
                        "{ line-height: %1 !important; }\n")
                    .arg(lineSpacing);
 
-    fz_try(m_ctx)
-        fz_set_user_css(m_ctx, css.toUtf8().constData());
-    fz_catch(m_ctx)
-        qWarning() << "Failed to set reflow style:" << fz_caught_message(m_ctx);
+    // Applied to each document as it opens (see openAsync_mupdf), with
+    // fz_style_document. The context-wide fz_set_user_css it replaces is
+    // deprecated.
+    m_reflow_css = css.toUtf8();
 
     // Force the next relayoutForViewport() to run even if the page box and
     // font size are unchanged.
