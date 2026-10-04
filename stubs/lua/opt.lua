@@ -320,6 +320,16 @@ lektra.opt.highlight_search = {}
 ---@field persist_frequency boolean Persist command-palette usage counts to disk so sort_by_frequency ranking survives across restarts. When false, usage is still tracked for the current session but nothing is loaded/saved to disk.
 lektra.opt.command_palette = {}
 
+---@class OptLLMView
+---@field api_key string API key for the LLM endpoint (empty for local models).
+---@field api_url string Chat-completions URL of the LLM endpoint.
+---@field dock_area "left"|"right"|"top"|"bottom" Where the panel is docked.
+---@field extra_body table Extra fields merged into every request body.
+---@field model string Model name sent with each request.
+---@field separate_window boolean Show the panel in a separate window.
+---@field show_at_startup boolean Open the LLM panel when Lektra starts.
+lektra.opt.llm_view = {}
+
 ---@class OptReflow
 ---@field font_family string Font family for reflowable documents (installed font, serif, sans-serif or monospace); empty keeps the document's own.
 ---@field font_size number Font size in points.

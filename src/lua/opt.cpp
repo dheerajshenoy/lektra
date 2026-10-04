@@ -1948,13 +1948,6 @@ static const LuaField llmViewFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::LLMView *>(p)->dock_area = lua_tostring(L, 3); }},
-    {"enabled",
-     [](lua_State *L, P p)
-{
-    lua_pushboolean(L, static_cast<Config::LLMView *>(p)->enabled);
-    return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::LLMView *>(p)->enabled = lua_toboolean(L, 3); }},
     {"extra_body",
      [](lua_State *L, P p)
 {
@@ -2023,6 +2016,13 @@ static const LuaField llmViewFields[] = {
 {
     static_cast<Config::LLMView *>(p)->separate_window = lua_toboolean(L, 3);
 }},
+    {"show_at_startup",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::LLMView *>(p)->show_at_startup);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::LLMView *>(p)->show_at_startup = lua_toboolean(L, 3); }},
 };
 
 // --- misc ---

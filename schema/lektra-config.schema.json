@@ -1381,10 +1381,10 @@
     "llm_view": {
       "type": "object",
       "properties": {
-        "enabled": {
+        "show_at_startup": {
           "type": "boolean",
           "default": false,
-          "description": "Show the LLM view (since 0.7.8)"
+          "description": "Show the LLM view when Lektra starts (since 0.7.9)"
         },
         "separate_window": {
           "type": "boolean",

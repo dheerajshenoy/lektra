@@ -1548,11 +1548,11 @@ struct Config
     // @section_added 0.7.8
     struct LLMView
     {
-        // @desc Show the LLM view
+        // @desc Show the LLM view when Lektra starts
         // @type bool
         // @default false
-        // @added 0.7.8
-        bool enabled = false;
+        // @added 0.7.9
+        bool show_at_startup = false;
 
         // @desc Show the LLM view in a separate window
         // @type bool

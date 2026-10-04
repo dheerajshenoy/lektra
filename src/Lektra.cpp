@@ -111,6 +111,12 @@ Lektra::construct() noexcept
     initConnections();
     updateUiEnabledState();
     setMinimumSize(200, 150);
+#ifdef WITH_LLM_SUPPORT
+    // Created before the window is first shown so the dock is part of the
+    // initial layout instead of appearing after it.
+    if (m_config.llm_view.show_at_startup)
+        initLLMView();
+#endif
     this->show();
     resize(m_config.window.initial_size[0], m_config.window.initial_size[1]);
     installEventFilter(this);
