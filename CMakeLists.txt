@@ -4,7 +4,7 @@ project(lektra VERSION 0.7.9 LANGUAGES C CXX)
 include(GNUInstallDirs)
 
 # Single source of truth for the project version, exposed to the Inno Setup
-# installer script (lektra.iss) so it doesn't need its own hardcoded copy.
+# installer script (packaging/lektra.iss) so it doesn't need its own hardcoded copy.
 file(WRITE "${CMAKE_BINARY_DIR}/version.txt" "${PROJECT_VERSION}")
 
 option(WITH_PCH "Use a precompiled header to speed up compilation" ON)
@@ -537,7 +537,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE HAS_MUPDF=1)
 # --- Precompiled header (Qt, std and MuPDF headers shared by most sources) ---
 if (WITH_PCH)
     target_precompile_headers(${PROJECT_NAME} PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/pch.hpp")
+        "${CMAKE_CURRENT_SOURCE_DIR}/include/pch.hpp")
 endif()
 
 if (LIBARCHIVE_FOUND)
@@ -722,7 +722,7 @@ file(GLOB TRANSLATION_FILES "${TRANSLATION_SRC_DIR}/*.ts")
 
 set(TRANSLATIONS_DIR "${CMAKE_INSTALL_FULL_DATADIR}/locale")
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/TranslationsDir.hpp.in"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/TranslationsDir.hpp.in"
     "${CMAKE_CURRENT_BINARY_DIR}/include/TranslationsDir.hpp"
     @ONLY
 )
@@ -767,7 +767,7 @@ if(APPLE)
         COMMAND ${CMAKE_COMMAND} -E make_directory
         "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/tutorial.pdf"
+        "${CMAKE_CURRENT_SOURCE_DIR}/docs/tutorial/tutorial.pdf"
         "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/tutorial.pdf"
         VERBATIM
     )
@@ -810,7 +810,7 @@ endif()
 
 # .desktop entry (Linux / freedesktop)
 configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/lektra-template.desktop.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/packaging/lektra-template.desktop.in
     ${CMAKE_CURRENT_BINARY_DIR}/lektra.desktop
     @ONLY
 )
@@ -823,7 +823,7 @@ if(PLATFORM_LINUX)
 endif()
 
 # Docs
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/tutorial.pdf
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/docs/tutorial/tutorial.pdf
     DESTINATION share/doc/${PROJECT_NAME})
 
 # JSON Schema for config.toml (editor completion/validation through Taplo);

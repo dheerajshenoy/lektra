@@ -4,7 +4,7 @@
 ; Version comes from CMakeLists.txt's project(... VERSION x.y.z ...), via
 ; build/version.txt written by CMake at configure time. Run configure.bat
 ; (or `cmake -S . -B build`) before compiling this script.
-#define VersionFile SourcePath + "build\version.txt"
+#define VersionFile SourcePath + "..\build\version.txt"
 #if FileExists(VersionFile)
   #define VersionHandle FileOpen(VersionFile)
   #define MyAppVersion Trim(FileRead(VersionHandle))
@@ -15,6 +15,8 @@
 
 [Setup]
 AppName={#MyAppName}
+; The script lives in packaging/; the paths below are relative to the repository root.
+SourceDir=..
 AppVersion={#MyAppVersion}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
@@ -26,7 +28,7 @@ SetupIconFile=.\resources\lektra.ico
 [Files]
 ; Icon is embedded in the exe via lektra.rc — no separate .ico needed here.
 Source: ".\build\release\*"; DestDir: "{app}";              Flags: recursesubdirs
-Source: ".\tutorial.pdf";    DestDir: "{userappdata}\{#MyAppName}"; Flags: ignoreversion
+Source: ".\docs\tutorial\tutorial.pdf";    DestDir: "{userappdata}\{#MyAppName}"; Flags: ignoreversion
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked

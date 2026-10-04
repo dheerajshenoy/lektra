@@ -1,4 +1,8 @@
 #!/bin/sh
+set -e
+
+# Everything below is relative to the repository root.
+cd "$(dirname "$0")/.."
 
 rm -rf build/
 rm -rf pkg/

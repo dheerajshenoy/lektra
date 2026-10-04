@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 
-ROOT_DIR=$(cd "$(dirname "$0")" && pwd)
+ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
+cd "$ROOT_DIR"
 OUT_DIR="$ROOT_DIR/dist"
 APP_VERSION=${APP_VERSION:-$(sed -n 's/^[[:space:]]*project(lektra VERSION \([0-9.]*\).*/\1/p' "$ROOT_DIR/CMakeLists.txt" | head -n 1)}
 
@@ -14,10 +15,10 @@ mkdir -p "$OUT_DIR"
 echo "Building release artifacts for version: $APP_VERSION"
 
 # Build .deb
-APP_VERSION="$APP_VERSION" "$ROOT_DIR/build_deb.sh"
+APP_VERSION="$APP_VERSION" "$ROOT_DIR/packaging/build_deb.sh"
 
 # Build AppImage
-APP_VERSION="$APP_VERSION" "$ROOT_DIR/build_appimage.sh"
+APP_VERSION="$APP_VERSION" "$ROOT_DIR/packaging/build_appimage.sh"
 
 # Move the newest AppImage into dist/
 APPIMAGE_FILE=$(ls -t "$ROOT_DIR"/*.AppImage 2>/dev/null | head -n 1 || true)

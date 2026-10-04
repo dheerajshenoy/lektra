@@ -11,6 +11,7 @@ _deb_stage/
 dist/
 scripts/*.pdf
 TAGS
+command_usage.json
 .envrc
 .direnv/
 pkg/

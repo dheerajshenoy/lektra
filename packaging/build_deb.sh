@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-ROOT_DIR=$(cd "$(dirname "$0")" && pwd)
+ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
 BUILD_DIR="$ROOT_DIR/build-deb"
 STAGE_DIR="$ROOT_DIR/_deb_stage"
 PKG_DIR="$ROOT_DIR/_deb_pkg"

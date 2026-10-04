@@ -6,7 +6,7 @@
 --   Windows:     %APPDATA%\lektra\init.lua
 -- Copy whatever you want from this file into that location.
 --
--- Full API reference: LUA-WIKI.md at the repo root.
+-- Full API reference: docs/LUA-WIKI.md.
 
 -- ---------------------------------------------------------------------
 -- Global events

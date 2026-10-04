@@ -6,7 +6,8 @@ WITH_LUA=${WITH_LUA:-on}
 WITH_LLM_SUPPORT=${WITH_LLM_SUPPORT:-on}
 
 
-ROOT_DIR=$(cd "$(dirname "$0")" && pwd)
+ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
+cd "$ROOT_DIR"
 BUILD_DIR="$ROOT_DIR/build-appimage"
 APPDIR="$ROOT_DIR/appimage/AppDir"
 
