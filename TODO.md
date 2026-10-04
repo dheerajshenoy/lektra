@@ -4,7 +4,6 @@
 
 ## HIGH PRIORITY
 
-- [ ] statusbar layout customization
 - [ ] Annotation save as temp file and auto-save on exit
 - [ ] Splits and Tab syncronization (e.g. scroll, zoom, page navigation)
 
