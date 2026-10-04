@@ -10,6 +10,11 @@
 
 ## MEDIUM PRIORITY
 
+- [ ] Macros
+- [ ] Multi-Document / Workspace Search
+- [ ] Telescope / FZF-style Fuzzy Text Search Across Document
+- [ ] Zotero / BibTeX Integration & Reference Inspection
+- [ ] Grid / Multi-Page Thumbnail Overview Sheet
 - LLM View
     - [x] Chat History
     - [x] Image attachment
