@@ -11,6 +11,7 @@
 \usepackage{longtable}
 \usepackage{booktabs}
 \usepackage{minted}
+\setminted{breaklines=true}
 \usepackage{seqsplit}
 % \pathtt renders a monospace path that is allowed to break at any
 % character — plain \texttt{} treats the whole path as one unbreakable
@@ -18,6 +19,8 @@
 \newcommand{\pathtt}[1]{{\ttfamily\seqsplit{#1}}}
 
 \onehalfspacing
+% Lists of long command names would otherwise poke into the margin.
+\setlength{\emergencystretch}{4em}
 
 % Fonts are looked up via the system font database (fontconfig on Linux).
 % Install: "Major Mono Display" (ttf-major-mono-display) and "Outfit"
@@ -114,7 +117,7 @@ You can also:
     \item Use \keys{:files\_recent} (or the \textit{File $\to$ Recent Files} menu) to reopen a previously viewed document at the last page you were on
 \end{itemize}
 
-When \texttt{behavior.auto\_reload} is enabled in \texttt{config.toml}, LEKTRA watches the open documents on disk and reloads them automatically when they change — useful for \texttt{latexmk} workflows or any tool that re-exports the PDF. With auto-reload disabled, use \keys{:file\_reload} to reload manually.
+When \texttt{behavior.auto\_\allowbreak{}reload} is enabled in \texttt{config.\allowbreak{}toml}, LEKTRA watches the open documents on disk and reloads them automatically when they change — useful for \texttt{latexmk} workflows or any tool that re-exports the PDF. With auto-reload disabled, use \keys{:file\_reload} to reload manually.
 
 \begin{ghnote}
     \textbf{First run:} On the first launch LEKTRA shows a support dialog with donation links (Ko-fi, Liberapay, GitHub Sponsors). You can reopen it any time from \textit{Help $\to$ Donate / Support} or via \keys{:donate}. LEKTRA is free forever — the dialog is entirely optional.
@@ -127,20 +130,22 @@ LEKTRA supports tabs and splits for viewing multiple documents simultaneously.
 \begin{itemize}[leftmargin=*]
     \item \keys{o} opens a file in a new tab
     \item \keys{Alt+1} \ldots\ \keys{Alt+9} jumps directly to tab 1 through 9
-    \item Cycling and closing tabs have no default keybinding — bind \texttt{tab\_next}, \texttt{tab\_prev}, \texttt{tab\_close} in your config, or invoke them from the \keys{:} command palette
+    \item Cycling and closing tabs have no default keybinding — bind \texttt{tab\_\allowbreak{}next}, \texttt{tab\_\allowbreak{}prev}, \texttt{tab\_\allowbreak{}close} in your config, or invoke them from the \keys{:} command palette
 \end{itemize}
 
 Splits use Vim-style \keys{Ctrl+W} chords:
 \begin{itemize}[leftmargin=*]
-    \item \keys{Ctrl+W,s} splits horizontally (\texttt{split\_horizontal})
-    \item \keys{Ctrl+W,v} splits vertically (\texttt{split\_vertical})
+    \item \keys{Ctrl+W,s} splits horizontally (\texttt{split\_\allowbreak{}horizontal})
+    \item \keys{Ctrl+W,v} splits vertically (\texttt{split\_\allowbreak{}vertical})
     \item \keys{Ctrl+W,h} / \keys{Ctrl+W,j} / \keys{Ctrl+W,k} / \keys{Ctrl+W,l} moves focus left / down / up / right
     \item \keys{Ctrl+W,c} closes the current split
 \end{itemize}
 
-Splits are independent views — each remembers its own zoom, page position, and fit mode. When \texttt{split.focus\_follows\_mouse} is enabled in the config, hovering over a pane also gives it focus.
+Splits are independent views — each remembers its own zoom, page position, and fit mode. When \texttt{split.focus\_\allowbreak{}follows\_\allowbreak{}mouse} is enabled in the config, hovering over a pane also gives it focus.
 
 \textbf{Tabs across windows:} You can drag a tab out of the tabbar to detach it into its own window, or drop it onto another LEKTRA window to move it there.
+
+\textbf{Selecting several tabs:} \keys{Ctrl+click} toggles a tab in the selection and \keys{Shift+click} selects a range; selected tabs are highlighted. Right-click a selected tab for a menu for the whole group: close them, merge them into a vertical or horizontal split, move them to a new window, or save them as a session. The same operations are commands --- \texttt{tabs\_\allowbreak{}select\_\allowbreak{}toggle}, \texttt{tabs\_\allowbreak{}select\_\allowbreak{}all}, \texttt{tabs\_\allowbreak{}select\_\allowbreak{}clear}, \texttt{tabs\_\allowbreak{}close\_\allowbreak{}selected}, \texttt{tabs\_\allowbreak{}merge\_\allowbreak{}vertical}, \texttt{tabs\_\allowbreak{}merge\_\allowbreak{}horizontal}, \texttt{tabs\_\allowbreak{}split\_\allowbreak{}out}, \texttt{tabs\_\allowbreak{}move\_\allowbreak{}to\_\allowbreak{}window} and \texttt{tabs\_\allowbreak{}save\_\allowbreak{}session} --- and they act on the selected tabs, or on the current tab when none is selected. A tab that holds several splits also has a \textit{Move Splits to Separate Tabs} item in its menu. \keys{:tab\_rename} gives a tab a custom title.
 
 \subsection{Keyboard Navigation and Keybindings}
 
@@ -199,6 +204,8 @@ Fit modes:
     \item \keys{Ctrl+Shift+R} toggle auto-resize
 \end{itemize}
 
+\keys{:trim\_margins} toggles trimming of blank page margins: each page is cropped to the area that holds its content, so text fills more of the screen. The content area of a page is measured in the background the first time the page is shown, so a long document settles page by page as you scroll.
+
 \subsubsection{Layout Modes}
 
 For multi-page documents you can pick how pages are arranged:
@@ -209,7 +216,7 @@ For multi-page documents you can pick how pages are arranged:
     \item \textbf{Book} — two-page facing spread with a cover offset (for magazines, novels, etc.)
 \end{itemize}
 
-Set a layout directly with one of \keys{:layout\_single}, \keys{:layout\_vertical}, \keys{:layout\_horizontal}, \keys{:layout\_book}, or use the \textit{View $\to$ Layout} menu. The default at startup is controlled by \texttt{layout.mode} in \texttt{config.toml}.
+Set a layout directly with one of \keys{:layout\_single}, \keys{:layout\_vertical}, \keys{:layout\_horizontal}, \keys{:layout\_book}, or use the \textit{View $\to$ Layout} menu. The default at startup is controlled by \texttt{layout.\allowbreak{}mode} in \texttt{config.\allowbreak{}toml}.
 
 \subsubsection{Reading Modes}
 \begin{itemize}[leftmargin=*]
@@ -255,10 +262,12 @@ Two independent mechanisms for jumping around:
 \begin{itemize}[leftmargin=*]
     \item \keys{f} link-hint visit (keyboard link navigation)
     \item \keys{o} open file in a new tab
-    \item \keys{Ctrl+Shift+O} open file picker (\texttt{file\_picker})
-    \item \keys{Alt+Shift+O} recent files picker (\texttt{files\_recent})
+    \item \keys{Ctrl+Shift+O} open file picker (\texttt{file\_\allowbreak{}picker})
+    \item \keys{Alt+Shift+O} recent files picker (\texttt{files\_\allowbreak{}recent})
     \item \keys{Ctrl+S} save current document
 \end{itemize}
+
+With \texttt{links.hover\_\allowbreak{}preview = true}, resting the cursor on an internal link shows a small picture of what it points at (a page, figure or reference) instead of a tooltip; its size and delay are \texttt{links.hover\_\allowbreak{}preview\_\allowbreak{}width}, \texttt{hover\_\allowbreak{}preview\_\allowbreak{}height} and \texttt{hover\_\allowbreak{}preview\_\allowbreak{}delay}.
 
 \subsubsection{Editing and UI}
 \begin{itemize}[leftmargin=*]
@@ -267,6 +276,16 @@ Two independent mechanisms for jumping around:
     \item \keys{i} invert colors
     \item \keys{Ctrl+Shift+M} toggle menubar
     \item \keys{:} open command palette
+    \item \keys{.} repeat the last command, with the same arguments (\texttt{run\_\allowbreak{}last\_\allowbreak{}command})
+\end{itemize}
+
+\subsubsection{Caret Mode}
+
+\keys{F7} (\keys{:caret\_mode}) shows a keyboard-driven text cursor, like Firefox's ``caret browsing'', for moving through the text one character at a time:
+\begin{itemize}[leftmargin=*]
+    \item Arrow keys or \keys{h} \keys{j} \keys{k} \keys{l} move the cursor; \keys{Home} / \keys{End} go to the start / end of the line
+    \item Hold \keys{Shift} with a movement key (or use \keys{H} \keys{J} \keys{K} \keys{L}) to extend a selection
+    \item \keys{y} copies the selection
 \end{itemize}
 
 \subsubsection{Rotation and Flip}
@@ -300,6 +319,7 @@ Portal mode links two views to the same document so that scrolling one drives th
 \begin{itemize}[leftmargin=*]
     \item \keys{:selection\_copy} — copy the current text selection to the clipboard
     \item \keys{:copy\_page\_image} — copy the current page as an image (context menu also has ``Copy Region as Image'' when a region is selected, with an optional custom DPI for vector documents)
+    \item \textbf{Drag an image out:} click and drag an image from a PDF page onto another application or a file manager to save or paste it as a PNG, at its native resolution
     \item \keys{:export\_outline} — write the document outline (real or generated) to JSON
     \item \keys{:file\_save\_as} — save the current PDF to a new location (including a copy of any annotations you have added)
 \end{itemize}
@@ -322,6 +342,16 @@ Press \keys{:} to open the command palette — a fuzzy-matching prompt that runs
     \item \keys{:picker\_outline} — outline / TOC
     \item \keys{:bookmarks} — bookmarks
     \item \keys{:picker\_highlight\_search} — search across highlight annotations
+\end{itemize}
+
+\subsection{Updates, What's New and Support Reminders}
+
+Now and then a slim banner appears at the bottom of the window, above the statusbar. It never blocks the document, and each one has a close button.
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{A newer release.} About once a day LEKTRA asks the GitHub releases page for the latest version (one request; nothing about you or your documents is sent). If a newer one exists, the banner offers \textit{Release notes} and \textit{Skip this version}. \keys{:check\_for\_updates} (or \textit{Help $\to$ Check for Updates}) checks right away and always tells you the answer. Turn the daily check off with \texttt{[updates] check = false}.
+    \item \textbf{What's new.} \keys{:whats\_new} (or \textit{Help $\to$ What's New}) lists the changes of the version you are running. With \texttt{[updates] whats\_\allowbreak{}new = true} a banner offers the list once after each update (off by default).
+    \item \textbf{A support reminder.} After a few weeks of use, and at most twice a year, a banner mentions that LEKTRA can be supported. \textit{Don't ask again} ends it for good, and \texttt{[donate] reminders = false} turns it off in the config.
 \end{itemize}
 
 % ---------------------------------------------------------------------------
@@ -358,13 +388,18 @@ Run \keys{:open\_config} to open whichever config file(s) exist — a chooser ap
 ]
     \item[{[window]}] Window size, fullscreen, menubar visibility, title format, accent color.
     \item[{[page]}] Page foreground and background colors.
-    \item[{[statusbar]}] Visibility and which fields to display (page number, progress, file info, etc.).
+    \item[{[statusbar]}] Visibility, padding, which modules to show and where (\texttt{layout}), and per-module options in \texttt{[statusbar.\allowbreak{}components.\allowbreak{}*]}.
     \item[{[split]}] Split behaviour — focus follows mouse, dim inactive panes, etc.
     \item[{[portal]}] Picture-in-picture portal overlay settings.
     \item[{[annotations.highlight] / [annotations.rect] / [annotations.popup]}] Per-annotation-type appearance (colours, hover glow, comment marker size).
     \item[{[thumbnail\_panel]}] Thumbnail strip width, page numbers, and scrollbar visibility.
     \item[{[keybindings]}] Override any keybinding by specifying \texttt{action = "Key"} or \texttt{action = [ "Key1", "Key2" ]}.
     \item[{[mousebindings]}] Mouse button bindings, similar to keybindings.
+    \item[{[reflow]}] Font family, font size and line spacing for EPUB and other reflowable documents.
+    \item[{[filetype.<type>.<section>]}] Overrides for one kind of document, e.g. \texttt{[filetype.\allowbreak{}epub.\allowbreak{}layout]}.
+    \item[{[updates]}] The daily update check and the ``what's new'' banner.
+    \item[{[donate]}] The support reminder.
+    \item[{[llm\_view]}] The AI assistant panel (see the \hyperref[sec:assistant]{AI Assistant} section).
 \end{description}
 
 \subsection{Example snippet}
@@ -378,14 +413,71 @@ accent = "#3daee9FF"
 
 [statusbar]
 visible = true
-show_page_number = true
-show_progress = true
+padding = 4
+layout = [ "filename", "|", "page", "zoom", "|", "progress", "mode" ]
 
 [page]
 bg = "#1e1e2e"
 fg = "#cdd6f4"
 \end{minted}
 \end{tcolorbox}
+
+\subsection{Per-view and per-file-type options}
+
+Every view and split keeps its own copy of the view settings (page colours, zoom, layout, rendering, scrollbars, selection, search, annotations, links, behaviour), like Vim's window-local options. A split starts with the options of the view it was split from. From Lua, \texttt{view:\allowbreak{}opt()} changes one view, while \texttt{lektra.\allowbreak{}opt} sets the global default and the current view.
+
+In \texttt{config.\allowbreak{}toml} you can override those settings for one kind of document, for example:
+
+\begin{tcolorbox}[colback=gray!5, colframe=gray!40, boxrule=0.4pt, arc=4pt,
+    fontupper=\ttfamily\small]
+\begin{minted}{toml}
+[filetype.epub.layout]
+mode = "single"
+
+[filetype.pdf.behavior]
+auto_reload = true
+\end{minted}
+\end{tcolorbox}
+
+\subsection{Editor support for the config file}
+
+LEKTRA ships a JSON Schema for \texttt{config.\allowbreak{}toml} (installed to \pathtt{\$prefix/share/lektra/lektra-config.schema.json}). With a TOML language server such as \href{https://taplo.tamasfe.dev}{Taplo} it gives completion, a description of each option on hover, and warnings for typos and wrong values. The default config starts with a \texttt{\#:schema} line that points at it. A setting with the wrong type (or an invalid colour) is also reported when LEKTRA starts, with its line number.
+
+\subsection{Customizing the statusbar}
+
+The statusbar is made of \textbf{modules}: \texttt{session}, \texttt{filename}, \texttt{page}, \texttt{zoom}, \texttt{progress}, \texttt{mode}, \texttt{portal} and \texttt{narrow}. \texttt{[statusbar].\allowbreak{}layout} says which are shown and where; a module that is not listed is not shown. \texttt{padding} is either one number (all four sides) or \texttt{[left, top, right, bottom]}.
+
+Items go from left to right and the free space goes to the \textbf{gaps}: \texttt{"|"} is a gap that takes all of it, \texttt{\{ stretch = 2 \}} a gap with twice the share of another one, and \texttt{\{ spacer = 12 \}} a gap of 12 pixels. So ``left, centre and right'' is just two gaps, and any other arrangement works as well.
+
+\begin{tcolorbox}[colback=gray!5, colframe=gray!40, boxrule=0.4pt, arc=4pt,
+    fontupper=\ttfamily\small]
+\begin{minted}{toml}
+[statusbar]
+padding = 4
+
+# page and zoom in the middle, the mode on the right
+layout = [ "filename", "|", "page", "zoom", "|", "mode" ]
+
+# everything on the right, with separators
+layout = [ "|", "filename", { text = "•" }, "page", { text = "•" },
+           "zoom", "mode" ]
+
+# gaps with different weights, and a fixed gap
+layout = [ "mode", { spacer = 16 }, "filename",
+           { stretch = 1 }, "page", { stretch = 3 }, "zoom" ]
+
+# modules at fixed positions along the bar (0 to 1)
+layout = [ "filename",
+           { module = "page", at = 0.25, anchor = "center" },
+           { module = "mode", at = 1.0,  anchor = "right" } ]
+
+# several rows: a list of lists
+layout = [ [ "filename", "|", "session" ],
+           [ "page", "|", "zoom", "progress", "mode" ] ]
+\end{minted}
+\end{tcolorbox}
+
+A module can also be a table with more options: \texttt{stretch} (takes a share of the free space), \texttt{min\_\allowbreak{}width} and \texttt{max\_\allowbreak{}width} (pixels), \texttt{margin} (a number or \texttt{[left, right]}), and \texttt{align} (\texttt{"left"}, \texttt{"center"} or \texttt{"right"} inside its slot). With \texttt{at} (the position along the bar, 0 to 1) and \texttt{anchor} (which edge of the item is put there) it is placed at a fixed spot instead of in the flow. \texttt{\{ text = "..." \}} shows a piece of text. Entries that are not valid are skipped and reported when LEKTRA starts. From Lua: \texttt{lektra.opt.statusbar.layout = \{ ... \}}, which takes effect at once.
 
 For the full list of options see the \href{https://dheerajshenoy.github.io/lektra/configuration.html}{configuration reference} on the homepage.
 
@@ -401,7 +493,7 @@ The full command reference is on the \href{https://dheerajshenoy.github.io/lektr
 \section{Lua API}
 % ---------------------------------------------------------------------------
 
-LEKTRA embeds a Lua 5.x interpreter (build with \texttt{-DWITH\_LUA=ON}). All APIs live under the global \texttt{lektra} table.
+LEKTRA embeds a bundled \textbf{LuaJIT} interpreter, linked statically and enabled by default (build with \texttt{-DWITH\_\allowbreak{}LUA=OFF} to leave it out), so no Lua installation is needed. Scripts run as Lua 5.1 with LuaJIT's extensions: \texttt{goto} and the \texttt{bit} library are available, but Lua 5.3 features such as \texttt{//}, \texttt{utf8} and \texttt{string.\allowbreak{}pack} are not. All APIs live under the global \texttt{lektra} table.
 
 \subsection{Configuration file}
 
@@ -410,18 +502,23 @@ Place your Lua init file at \pathtt{\$HOME/.config/lektra/init.lua} (Linux / mac
 \subsection{Namespaces}
 
 \begin{description}[leftmargin=0pt]
-    \item[\texttt{lektra.view}] Access the current view, get one by id, or list all views; the view object exposes navigation, zoom, rotation, layout, search, text extraction, outline, and per-view event listeners (\texttt{register}, \texttt{register\_once}, \texttt{unregister}, \texttt{clear\_listeners}, \texttt{register\_context\_menu}).
-    \item[\texttt{lektra.opt}]  Read/write runtime options (fit mode, layout mode, DPR, statusbar fields, …).
-    \item[\texttt{lektra.cmd}]  \texttt{register}, \texttt{unregister}, \texttt{execute}, \texttt{list}, \texttt{alias} — expose or invoke lektra commands from Lua.
-    \item[\texttt{lektra.keymap}] \texttt{set}, \texttt{get} — bind keys to Lua functions at runtime.
-    \item[\texttt{lektra.mousemap}] \texttt{set} — bind mouse buttons to Lua functions.
-    \item[\texttt{lektra.event}] \texttt{register}, \texttt{unregister}, \texttt{once}, \texttt{count}, and the \texttt{EventType} enum — global event listeners (file open/close, page change, zoom change, tab added/removed, …).
-    \item[\texttt{lektra.ui}]   \texttt{message}, \texttt{messagebox}, \texttt{input}, \texttt{menu}, \texttt{picker}, \texttt{file\_dialog}, \texttt{color\_dialog}.
-    \item[\texttt{lektra.bookmarks}] \texttt{list} and per-bookmark helpers — programmatic bookmark management.
-    \item[\texttt{lektra.tabs}] \texttt{list}, \texttt{count}, \texttt{current}, \texttt{close}, \texttt{goto}, \texttt{first}, \texttt{last}, \texttt{next}, \texttt{prev}, \texttt{move\_left}, \texttt{move\_right}, \texttt{get\_id}.
-    \item[\texttt{lektra.timer}] \texttt{new} — create one-shot / repeating timers driven by the Qt event loop.
-    \item[\texttt{lektra.utils}] \texttt{print}, \texttt{open\_url}, \texttt{platform}.
-    \item[\texttt{lektra.version}] \texttt{major}, \texttt{minor}, \texttt{patch}, \texttt{full} — LEKTRA's version at runtime.
+    \item[\texttt{lektra.\allowbreak{}view}] Access the current view, get one by id, or list all views; the view object exposes navigation, zoom, rotation, layout, search, text (\texttt{page\_\allowbreak{}text} gives the text of any page), links, scrolling, outline, and per-view event listeners (\texttt{register}, \texttt{register\_\allowbreak{}once}, \texttt{unregister}, \texttt{clear\_\allowbreak{}listeners}, \texttt{register\_\allowbreak{}context\_\allowbreak{}menu}).
+    \item[\texttt{lektra.\allowbreak{}opt}]  Read/write runtime options (fit mode, layout mode, DPR, statusbar layout, …); \texttt{view:\allowbreak{}opt()} does the same for one view.
+    \item[\texttt{lektra.\allowbreak{}cmd}]  \texttt{register}, \texttt{unregister}, \texttt{execute}, \texttt{list}, \texttt{alias} — expose or invoke lektra commands from Lua.
+    \item[\texttt{lektra.\allowbreak{}keymap}] \texttt{set}, \texttt{get} — bind keys to Lua functions at runtime.
+    \item[\texttt{lektra.\allowbreak{}mousemap}] \texttt{set} — bind mouse buttons to Lua functions.
+    \item[\texttt{lektra.\allowbreak{}event}] \texttt{register}, \texttt{unregister}, \texttt{once}, \texttt{count}, and the \texttt{EventType} enum — global event listeners. Events include \texttt{OnFileOpen}, \texttt{OnFileClose}, \texttt{OnFileSaved}, \texttt{OnPageChanged}, \texttt{OnZoomChanged}, \texttt{OnModeChanged}, \texttt{OnTabAdded}, \texttt{OnTabRemoved}, \texttt{OnSessionLoaded}, \texttt{OnBookmarkAdded}, the search events and more.
+    \item[\texttt{lektra.\allowbreak{}ui}]   \texttt{message}, \texttt{messagebox}, \texttt{input}, \texttt{menu}, \texttt{picker}, \texttt{file\_\allowbreak{}dialog}, \texttt{color\_\allowbreak{}dialog}.
+    \item[\texttt{lektra.\allowbreak{}bookmarks}] \texttt{list} and \texttt{add} — list the bookmarks, or add one (at the current location by default).
+    \item[\texttt{lektra.\allowbreak{}tabs}] \texttt{list}, \texttt{count}, \texttt{current}, \texttt{close}, \texttt{goto}, \texttt{first}, \texttt{last}, \texttt{next}, \texttt{prev}, \texttt{move\_\allowbreak{}left}, \texttt{move\_\allowbreak{}right}, \texttt{get\_\allowbreak{}id}, \texttt{rename}, and the multi-select helpers \texttt{selected}, \texttt{select}, \texttt{select\_\allowbreak{}all}, \texttt{clear\_\allowbreak{}selection}, \texttt{close\_\allowbreak{}selected}, \texttt{merge}, \texttt{split\_\allowbreak{}out}, \texttt{move\_\allowbreak{}to\_\allowbreak{}window}, \texttt{save\_\allowbreak{}session}.
+    \item[\texttt{lektra.\allowbreak{}sessions}] \texttt{list}, \texttt{exists}, \texttt{load}, \texttt{delete}.
+    \item[\texttt{lektra.recent\_\allowbreak{}files}] \texttt{list} — the recently opened files.
+    \item[\texttt{lektra.\allowbreak{}window}] \texttt{open} — open a file in a new window.
+    \item[\texttt{lektra.\allowbreak{}clipboard}] \texttt{get}, \texttt{set} — read and write the text on the clipboard.
+    \item[\texttt{lektra.\allowbreak{}capabilities}] \texttt{image}, \texttt{synctex}, \texttt{djvu} — what this build supports.
+    \item[\texttt{lektra.\allowbreak{}timer}] \texttt{new} — create one-shot / repeating timers driven by the Qt event loop.
+    \item[\texttt{lektra.\allowbreak{}utils}] \texttt{print}, \texttt{open\_\allowbreak{}url}, \texttt{platform}.
+    \item[\texttt{lektra.\allowbreak{}version}] \texttt{major}, \texttt{minor}, \texttt{patch}, \texttt{full} — LEKTRA's version at runtime.
 \end{description}
 
 \subsection{Quick examples}
@@ -462,10 +559,38 @@ v:open("/path/to/document.pdf")
 \end{minted}
 \end{tcolorbox}
 
+
+\textbf{Copy the text of a page and react to new bookmarks:}
+
+\begin{tcolorbox}[colback=gray!5, colframe=gray!40, boxrule=0.4pt, arc=4pt,
+    fontupper=\ttfamily\small]
+\begin{minted}{lua}
+lektra.cmd.register("copy_page_text", function()
+    local v = lektra.view.current()
+    lektra.clipboard.set(v:page_text(v:pageno()))
+    lektra.ui.message("Copied the text of page " .. v:pageno())
+end, "Copy the text of the current page")
+
+lektra.event.register("OnBookmarkAdded", function(b)
+    lektra.ui.message("Bookmarked page " .. b.pageno)
+end)
+\end{minted}
+\end{tcolorbox}
+
+\textbf{Change the statusbar layout while running:}
+
+\begin{tcolorbox}[colback=gray!5, colframe=gray!40, boxrule=0.4pt, arc=4pt,
+    fontupper=\ttfamily\small]
+\begin{minted}{lua}
+lektra.opt.statusbar.padding = 4
+lektra.opt.statusbar.layout = { "filename", "|", "page", "zoom", "|", "mode" }
+\end{minted}
+\end{tcolorbox}
+
 \subsection{Type stubs}
 
 LSP-friendly type stubs for the Lua API are installed at
-\pathtt{\$prefix/share/lektra/lua/} (Linux/macOS). Point your Lua language server at this directory for autocompletion.
+\pathtt{\$prefix/share/lektra/lua/} (Linux/macOS). Point your Lua language server at this directory for autocompletion. Every option in the stubs is optional, so assigning a partial table such as \texttt{lektra.opt.statusbar = \{ padding = 4 \}} does not raise a warning.
 
 \begin{tcolorbox}[colback=gray!5, colframe=gray!40, boxrule=0.4pt, arc=4pt,
     fontupper=\ttfamily\small]
@@ -480,6 +605,49 @@ LSP-friendly type stubs for the Lua API are installed at
 % For the complete API reference with all methods, types, and event names, see the \href{https://dheerajshenoy.github.io/lektra/lua-api.html}{Lua API} page on the homepage.
 
 % ---------------------------------------------------------------------------
+\section{AI Assistant}
+\label{sec:assistant}
+% ---------------------------------------------------------------------------
+
+LEKTRA has an optional chat panel for a language model. It is built only with \texttt{-DWITH\_\allowbreak{}LUA=ON -DWITH\_\allowbreak{}LLM\_\allowbreak{}SUPPORT=ON} (the second option is off by default). Toggle the panel with \keys{:llm\_view}, or open it at startup with \texttt{llm\_\allowbreak{}view.show\_\allowbreak{}at\_\allowbreak{}startup = true}.
+
+\subsection{Connecting to a model}
+
+The panel talks to any server with an OpenAI-compatible chat endpoint: a local one (Ollama, llama.cpp, LM Studio) or a hosted service. The indicator above the chat shows whether the endpoint is reachable; hover it for the model, provider and connection details.
+
+\begin{tcolorbox}[colback=gray!5, colframe=gray!40, boxrule=0.4pt, arc=4pt,
+    fontupper=\ttfamily\small]
+\begin{minted}{toml}
+[llm_view]
+api_url = "http://localhost:11434/v1/chat/completions"   # the default: Ollama
+model   = "qwen3:8b"
+api_key = ""                       # empty for local models
+extra_body = { stream = true }     # extra fields sent with every request
+\end{minted}
+\end{tcolorbox}
+
+Everything you type, and any image you attach, is sent to the configured endpoint; the API key is read from \texttt{config.\allowbreak{}toml} (or \texttt{init.\allowbreak{}lua}), so keep that file private.
+
+\subsection{What it can do}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Answer questions} about LEKTRA, in Markdown, with Lua code highlighted and every code block collapsible. LaTeX maths is drawn: \texttt{\$...\$} inside a line and \texttt{\$\$...\$\$} on its own line.
+    \item \textbf{Control LEKTRA.} The assistant acts through tools: \texttt{run\_\allowbreak{}command} for a single command, \texttt{run\_\allowbreak{}lua} for a Lua script (read state, change options, several steps), and \texttt{lookup\_\allowbreak{}api} to read the Lua API when it needs it, which keeps each request small. Every action asks for confirmation with \textit{Run} or \textit{Skip}, unless you set \texttt{llm\_\allowbreak{}view.auto\_\allowbreak{}run = true}. Scripts run in a restricted environment (no \texttt{io}, \texttt{os.\allowbreak{}execute}, \texttt{require}, \texttt{load} or \texttt{ffi}) with a time limit, and their result goes back to the model.
+    \item \textbf{See images.} Attach one with the \texttt{+} button, by pasting, or by dropping a file: the current page, a region of the page you select, or an image file. Vision-capable models can describe or analyse it.
+\end{itemize}
+
+Models that do not support tool calling (many local ones) work with \texttt{llm\_\allowbreak{}view.tools = false}: the whole Lua API is then sent with every request and the assistant replies with a Lua code block that you run with a button.
+
+\subsection{Using the chat}
+
+\begin{itemize}[leftmargin=*]
+    \item \keys{Shift+Enter} sends the message (plain \keys{Enter} makes a new line). While a reply is coming in, the send button becomes a \textbf{Stop} button (so does \keys{Esc}); what had arrived stays in the chat.
+    \item Hover a message and click the clipboard icon beside it to \textbf{copy} it as written, with its LaTeX and code blocks as source.
+    \item Chats are saved and can be reopened from the \textit{History} menu; \textit{New chat} starts a fresh one. Turn saving off with \texttt{llm\_\allowbreak{}view.save\_\allowbreak{}history = false}.
+    \item \texttt{llm\_\allowbreak{}view.font\_\allowbreak{}size} sets the size of the message text.
+\end{itemize}
+
+% ---------------------------------------------------------------------------
 \section{LaTeX \& SyncTeX}
 % ---------------------------------------------------------------------------
 
@@ -490,20 +658,20 @@ LEKTRA builds with SyncTeX support enabled by default. If your PDF was compiled 
     \item \textbf{Reverse-search} from LEKTRA back to your editor — click while holding the SyncTeX modifier (Ctrl by default) and LEKTRA runs your configured editor command with the source file and line.
 \end{itemize}
 
-Enable \texttt{behavior.auto\_reload} in \texttt{config.toml} and re-running \texttt{latexmk} on a source change reloads the PDF automatically without losing your page position or zoom. Otherwise use \keys{:file\_reload} to reload manually.
+Enable \texttt{behavior.auto\_\allowbreak{}reload} in \texttt{config.\allowbreak{}toml} and re-running \texttt{latexmk} on a source change reloads the PDF automatically without losing your page position or zoom. Otherwise use \keys{:file\_reload} to reload manually.
 
 % ---------------------------------------------------------------------------
 \section{Troubleshooting}
 % ---------------------------------------------------------------------------
 
 \subsection{DjVu files don't open}
-LEKTRA loads \texttt{libdjvulibre.so.21} at runtime. On Debian/Ubuntu install \texttt{libdjvulibre21}; on Arch install \texttt{djvulibre}; on Fedora \texttt{djvulibre}. No rebuild is needed — restart LEKTRA and DjVu will work.
+LEKTRA loads \texttt{libdjvulibre.\allowbreak{}so.21} at runtime. On Debian/Ubuntu install \texttt{libdjvulibre21}; on Arch install \texttt{djvulibre}; on Fedora \texttt{djvulibre}. No rebuild is needed — restart LEKTRA and DjVu will work.
 
 \subsection{SVGs look blurry or don't render vector graphics correctly}
-LEKTRA prefers \texttt{librsvg} + \texttt{libcairo} for SVG rendering; if either is missing it falls back to Qt's own SVG renderer, which handles a smaller subset of the spec. Install \texttt{librsvg2} (SONAME \texttt{.so.2}) for full quality.
+LEKTRA prefers \texttt{librsvg} + \texttt{libcairo} for SVG rendering; if either is missing it falls back to Qt's own SVG renderer, which handles a smaller subset of the spec. Install \texttt{librsvg2} (SONAME \texttt{.\allowbreak{}so.2}) for full quality.
 
 \subsection{No EXIF metadata in File Properties for images}
-Install \texttt{libexif} (SONAME \texttt{.so.12}). LEKTRA discovers it at runtime — no rebuild required.
+Install \texttt{libexif} (SONAME \texttt{.\allowbreak{}so.12}). LEKTRA discovers it at runtime — no rebuild required.
 
 \subsection{Where LEKTRA keeps its files}
 
@@ -516,10 +684,13 @@ Install \texttt{libexif} (SONAME \texttt{.so.12}). LEKTRA discovers it at runtim
     itemsep=0.2em,
     parsep=0pt
 ]
-    \item[\$HOME/.config/lektra/] \texttt{config.toml}, \texttt{init.lua}
+    \item[\$HOME/.config/lektra/] \texttt{config.\allowbreak{}toml}, \texttt{init.\allowbreak{}lua}
     \item[\$HOME/.local/share/lektra/] recent files DB, sessions, bookmarks
-    \item[\$HOME/.local/share/lektra/crashes/] crash logs (\texttt{crash\_latest.log})
+    \item[\$HOME/.local/share/lektra/crashes/] crash logs (\texttt{crash\_\allowbreak{}latest.log})
     \item[\$HOME/.local/share/lektra/sessions/] JSON session files
+    \item[\$HOME/.local/share/lektra/llm\_chats/] saved AI assistant chats (JSON)
+    \item[\$HOME/.local/share/lektra/app\_state.json] when LEKTRA was first used, how often it was started, and which banners were shown
+    \item[\$HOME/.cache/lektra/microtex/] fonts for the maths in assistant replies (unpacked on first use; safe to delete)
 \end{description}
 
 \textbf{Windows} (paths resolved via Qt's \texttt{QStandardPaths}; \texttt{\%APPDATA\%} is typically \texttt{C:\textbackslash Users\textbackslash <user>\textbackslash AppData\textbackslash Roaming}):
@@ -531,7 +702,7 @@ Install \texttt{libexif} (SONAME \texttt{.so.12}). LEKTRA discovers it at runtim
     itemsep=0.2em,
     parsep=0pt
 ]
-    \item[\%APPDATA\%\textbackslash lektra\textbackslash] \texttt{config.toml}, \texttt{init.lua}, recent files DB, sessions, bookmarks
+    \item[\%APPDATA\%\textbackslash lektra\textbackslash] \texttt{config.\allowbreak{}toml}, \texttt{init.\allowbreak{}lua}, recent files DB, sessions, bookmarks
     \item[\%APPDATA\%\textbackslash lektra\textbackslash sessions\textbackslash] JSON session files
     \item[\%TEMP\%\textbackslash lektra\_crash.log] latest crash log
 \end{description}
@@ -539,7 +710,7 @@ Install \texttt{libexif} (SONAME \texttt{.so.12}). LEKTRA discovers it at runtim
 Windows collapses the config and app-data locations because LEKTRA does not set a Qt organization name, so both \texttt{QStandardPaths::AppConfigLocation} and \texttt{AppDataLocation} resolve under the same \texttt{\%APPDATA\%\textbackslash lektra\textbackslash} directory.
 
 \subsection{LEKTRA crashed}
-A crash dialog appears with the log and a one-click ``Report on GitHub'' button that pre-fills an issue. You can also copy the log to the clipboard from that dialog, or find it later at \texttt{crash\_latest.log} in the crashes directory. Debug and \texttt{RelWithDebInfo} builds include function names and file/line numbers in the trace; release builds show addresses only — running \texttt{addr2line -e /usr/bin/lektra} on those addresses resolves them if the binary keeps symbols.
+A crash dialog appears with the log and a one-click ``Report on GitHub'' button that pre-fills an issue. You can also copy the log to the clipboard from that dialog, or find it later at \texttt{crash\_\allowbreak{}latest.log} in the crashes directory. Debug and \texttt{RelWithDebInfo} builds include function names and file/line numbers in the trace; release builds show addresses only — running \texttt{addr2line -e /usr/bin/lektra} on those addresses resolves them if the binary keeps symbols.
 
 % ---------------------------------------------------------------------------
 \section{Support}
@@ -553,7 +724,7 @@ LEKTRA is developed by Dheeraj Vittal Shenoy and contributors, and is free and o
     \item GitHub Sponsors — \url{https://github.com/sponsors/dheerajshenoy}
 \end{itemize}
 
-Bug reports and feature ideas are welcome at the issue tracker on Codeberg (\url{https://codeberg.org/lektra/lektra}) or on GitHub (\url{https://github.com/dheerajshenoy/lektra}). \keys{:donate} inside LEKTRA reopens the support dialog at any time.
+Bug reports and feature ideas are welcome at the issue tracker on Codeberg (\url{https://codeberg.org/lektra/lektra}) or on GitHub (\url{https://github.com/dheerajshenoy/lektra}). \keys{:donate} inside LEKTRA reopens the support dialog at any time. The occasional support banner can be turned off with \texttt{[donate] reminders = false}.
 
 \end{document}
 
