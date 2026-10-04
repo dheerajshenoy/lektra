@@ -13,11 +13,18 @@ lektra.ui = {}
 ---@field show fun(): nil Show the menu at the current cursor position
 ---@field add_item fun(label: string, callback?: function): nil Add an item to the menu
 
---- Options for the picker dialog
+---@alias FileDialogMode "open"|"open_multiple"|"save"|"directory"
+
+--- Options for `lektra.ui.file_dialog`. All of them are optional.
 ---@class FileDialogOptions
----@field title string Title of the file dialog
----@field directory string Initial directory to open in the file dialog, default is the current working directory
----@field filter string File filter to apply in the file dialog, default is "*.*"
+---@field mode? FileDialogMode Only when the options are given as the one argument (default "open").
+---@field title? string Title of the dialog (default: depends on the mode).
+---@field directory? string Folder to start in (default: the current folder). `default_path` is the older name for it.
+---@field filename? string A file name to suggest (for "save") or to select (for "open").
+---@field filters? string|string[] Which files to show: a list such as `{"Images (*.png *.jpg)", "All files (*)"}`, or the same as one text with `;;` between the filters. (`filter` is accepted too.) Not used for "directory".
+---@field selected_filter? string The filter to start with (default: the first one).
+---@field default_suffix? string For "save": added to a name that is typed without an extension, e.g. `"png"`.
+---@field confirm_overwrite? boolean For "save": ask before replacing an existing file (default true).
 
 ---@class PickerOptions
 ---@field flat boolean Whether to show items in a flat list or a tree view, default is false (tree view)
@@ -55,11 +62,16 @@ lektra.ui.input = function(title, prompt) end
 ---@param options? PickerOptions
 lektra.ui.picker = function (prompt, items, options) end
 
---- Shows a file dialog to the user and returns the selected file path as a string
----@overload fun(arg: {title: string, directory?: string, filter?: string}): string[]
----@param mode string "open" or "save"
----@param options FileDialogOptions Options for the file dialog
----@return string[] FilePaths List of selected file paths
+--- Shows a file dialog.
+--- The mode is `"open"` (one existing file, the default), `"open_multiple"` (several), `"save"` (a file name, which need not exist) or `"directory"` (a folder). The options can also be passed as the only argument, with the mode in them: `file_dialog({mode = "save", ...})`.
+--- Returns the chosen path, a list of paths for `"open_multiple"`, or nil if the dialog was cancelled. A second value is the filter that was selected (not for `"directory"`).
+---@overload fun(mode: "open"|"save"|"directory"?, options?: FileDialogOptions): string?, string?
+---@overload fun(mode: "open_multiple", options?: FileDialogOptions): string[]?, string?
+---@overload fun(options: FileDialogOptions): string|string[]|nil, string?
+---@param mode? FileDialogMode
+---@param options? FileDialogOptions
+---@return string|string[]|nil path
+---@return string? filter
 lektra.ui.file_dialog = function(mode, options) end
 
 --- Shows a color picker dialog to the user and returns the selected color as a string in hex format (e.g., "#RRGGBB")

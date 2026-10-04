@@ -194,9 +194,16 @@ UI helpers.
 - `lektra.ui.input(title, prompt) -> string | nil`
   Text input dialog. Returns `nil` if cancelled.
 
-- `lektra.ui.file_dialog(mode?, options?) -> string | nil`
-  File picker. `mode` is `"open"` or `"save"` (default `"open"`).
-  `options` table: `default_path`, `filters` (Qt filter string e.g. `"PDF (*.pdf);;All (*.*)"`).
+- `lektra.ui.file_dialog(mode?, options?) -> path | paths | nil, filter?`
+  File dialog. `mode` is `"open"` (one file, the default), `"open_multiple"` (a list of files),
+  `"save"` (a file name) or `"directory"` (a folder). The options can also be the only
+  argument, with `mode` in them. Returns `nil` if cancelled; the second value is the filter
+  that was selected (not for `"directory"`).
+  `options` table (all optional): `title`, `directory` (where to start; `default_path` is the
+  older name), `filename` (suggested for `"save"`, selected for `"open"`), `filters` (a list
+  such as `{"PDF (*.pdf)", "All files (*)"}`, or one text with `;;` between them),
+  `selected_filter` (the one to start with), `default_suffix` (`"save"`: added to a name typed
+  without an extension), `confirm_overwrite` (`"save"`: ask before replacing; default `true`).
 
 - `lektra.ui.color_dialog(colors: string[]) -> string | nil`
   Colour picker seeded with a list of colour strings.
@@ -214,10 +221,17 @@ UI helpers.
 ### Example
 
 ```lua
-local file = lektra.ui.file_dialog("open", { filters = "PDF (*.pdf);;All (*.*)" })
+local file = lektra.ui.file_dialog("open", { filters = { "PDF (*.pdf)", "All files (*)" } })
 if file then
     lektra.ui.message("Opened: " .. file, 3)
 end
+
+-- several files, or a folder
+local files = lektra.ui.file_dialog("open_multiple", { title = "Pick some PDFs", filters = "PDF (*.pdf)" })
+local folder = lektra.ui.file_dialog("directory", { directory = "/home" })
+
+-- a file name to save to
+local target = lektra.ui.file_dialog({ mode = "save", filename = "notes.txt", default_suffix = "txt" })
 ```
 
 ---

@@ -1,5 +1,6 @@
 #include "ColorDialog.hpp"
 #include "Lektra.hpp"
+#include "FileDialogRequest.hpp"
 #include "lua/LuaPicker.hpp"
 
 #include <QFileDialog>
@@ -377,70 +378,118 @@ Lektra::initLuaUI() noexcept
     }, 1);
     lua_setfield(m_L, -2, "picker");
 
-    // lektra.ui.file_dialog(mode, options)
+    // lektra.ui.file_dialog(mode, options) or lektra.ui.file_dialog{mode=..., ...}
+    //   mode: "open" (default), "open_multiple", "save", "directory"
+    //   options: title, directory, filename, filters (text with ";;" or a
+    //   list), selected_filter, default_suffix, confirm_overwrite
+    //   -> path (a list of paths for "open_multiple"), the chosen filter;
+    //      nil if the dialog was cancelled
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
-        const char *mode    = "open";
-        const char *def_dir = nullptr;
-        const char *filters = nullptr;
-        QString title       = nullptr;
-
-        if (lua_istable(L, 1))
-        {
-            lua_getfield(L, 1, "mode");
-            if (lua_isstring(L, -1))
-                mode = lua_tostring(L, -1);
-            lua_pop(L, 1);
-        }
-        else
-        {
-            mode = luaL_optstring(L, 1, "open");
-        }
-
-        if (lua_istable(L, 1))
-        {
-            lua_getfield(L, 1, "default_path");
-            if (lua_isstring(L, -1))
-                def_dir = lua_tostring(L, -1);
-            lua_pop(L, 1);
-
-            lua_getfield(L, 1, "filters");
-            if (lua_isstring(L, -1))
-                filters = lua_tostring(L, -1);
-            lua_pop(L, 1);
-        }
-
         auto *lektra
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
 
-        QString selected_file;
-        if (strcmp(mode, "open") == 0)
-        {
-            title         = tr("Open File");
-            selected_file = QFileDialog::getOpenFileName(
-                lektra, title, def_dir ? QString::fromUtf8(def_dir) : QString(),
-                filters ? QString::fromUtf8(filters) : QString());
-        }
-        else if (strcmp(mode, "save") == 0)
-        {
-            title         = tr("Save File");
-            selected_file = QFileDialog::getSaveFileName(
-                lektra, title, def_dir ? QString::fromUtf8(def_dir) : QString(),
-                filters ? QString::fromUtf8(filters) : QString());
-        }
+        // Called as (mode, options), (options) or (mode).
+        int opts = 0; // stack index of the options table, 0 if none
+        QString modeName = QStringLiteral("open");
+        if (lua_istable(L, 1))
+            opts = 1;
         else
         {
-            return luaL_error(L, "Invalid file dialog mode: %s", mode);
+            modeName = QString::fromUtf8(luaL_optstring(L, 1, "open"));
+            if (lua_istable(L, 2))
+                opts = 2;
         }
 
-        if (!selected_file.isEmpty())
+        auto text = [L, &opts](const char *key, QString &out)
         {
-            lua_pushstring(L, selected_file.toUtf8().constData());
+            if (!opts)
+                return;
+            lua_getfield(L, opts, key);
+            if (lua_isstring(L, -1))
+                out = QString::fromUtf8(lua_tostring(L, -1));
+            lua_pop(L, 1);
+        };
+
+        FileDialogRequest request;
+        if (opts && lua_istable(L, 1))
+            text("mode", modeName);
+        if (!FileDialogRequest::modeFromName(modeName, request.mode))
+            return luaL_error(L,
+                              "Invalid file dialog mode '%s' (use \"open\", "
+                              "\"open_multiple\", \"save\" or \"directory\")",
+                              qUtf8Printable(modeName));
+
+        text("title", request.title);
+        text("directory", request.directory);
+        if (request.directory.isEmpty())
+        {
+            text("default_path", request.directory); // the older name
+            if (request.directory.isEmpty())
+                text("dir", request.directory);
+        }
+        text("filename", request.filename);
+        text("selected_filter", request.selectedFilter);
+        text("default_suffix", request.defaultSuffix);
+
+        if (opts)
+        {
+            lua_getfield(L, opts, "confirm_overwrite");
+            if (!lua_isnil(L, -1))
+                request.confirmOverwrite = lua_toboolean(L, -1);
+            lua_pop(L, 1);
+
+            // filters: one text with ";;" between the filters, or a list
+            // ("filter" is accepted too: the documentation used that name)
+            for (const char *key : {"filters", "filter"})
+            {
+                lua_getfield(L, opts, key);
+                if (lua_istable(L, -1))
+                {
+                    const int n = static_cast<int>(lua_rawlen(L, -1));
+                    for (int i = 1; i <= n; ++i)
+                    {
+                        lua_rawgeti(L, -1, i);
+                        if (lua_isstring(L, -1))
+                            request.filters << QString::fromUtf8(lua_tostring(L, -1));
+                        lua_pop(L, 1);
+                    }
+                }
+                else if (lua_isstring(L, -1))
+                    request.filters
+                        = FileDialogRequest::splitFilters(QString::fromUtf8(lua_tostring(L, -1)));
+                lua_pop(L, 1);
+                if (!request.filters.isEmpty())
+                    break;
+            }
+        }
+
+        const auto dialog = request.makeDialog(lektra);
+        if (dialog->exec() != QDialog::Accepted || dialog->selectedFiles().isEmpty())
+        {
+            lua_pushnil(L);
             return 1;
         }
 
-        return 0;
+        const QStringList files = dialog->selectedFiles();
+        if (request.mode == FileDialogRequest::Mode::OpenMultiple)
+        {
+            lua_newtable(L);
+            for (int i = 0; i < files.size(); ++i)
+            {
+                lua_pushstring(L, files.at(i).toUtf8().constData());
+                lua_rawseti(L, -2, i + 1);
+            }
+        }
+        else
+            lua_pushstring(L, files.first().toUtf8().constData());
+
+        if (request.mode == FileDialogRequest::Mode::Directory
+            || request.filters.isEmpty())
+            return 1;
+        lua_pushstring(L, dialog->selectedNameFilter().toUtf8().constData());
+        return 2;
     }, 1);
     lua_setfield(m_L, -2, "file_dialog");
 
