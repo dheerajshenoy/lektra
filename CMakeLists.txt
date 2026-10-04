@@ -607,6 +607,7 @@ if (WITH_LLM_SUPPORT)
         src/llm/ChatBubble.cpp
         src/llm/LuaHighlight.cpp
         src/llm/ChatStore.cpp
+        src/llm/ImageEncode.cpp
         ${LEKTRA_LLM_HEADERS})
     target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_LLM_SUPPORT=1)
 endif()

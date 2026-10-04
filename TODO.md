@@ -9,6 +9,14 @@
 
 ## MEDIUM PRIORITY
 
+- LLM View
+    - [x] Chat History
+    - [x] Image attachment
+    - [ ] File attachment
+    - [x] Lua code block syntax highlighting
+    - [x] Lua API code block execution
+    - [ ] latex rendering
+
 - [ ] Make tab sizes fixed while closing tabs rapidly (like Chrome) instead of shrinking them to fit
 - [ ] Pin Tabs
 - [ ] Configurable line scroll distance

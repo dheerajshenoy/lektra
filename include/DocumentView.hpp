@@ -543,6 +543,9 @@ public:
     // onto a rendered page). Shared by CopyRegionAsImage() and the Lua
     // region_select_image() API.
     QImage regionImage(QRectF area) noexcept;
+    // The current page rendered as an image (about 150 dpi), for attaching to
+    // a chat message. Null if it cannot be rendered.
+    QImage currentPageImage() noexcept;
     // Decoded embedded image (native resolution) at a scene position, or a
     // null QImage if there isn't one there. Used to drag an image out of the
     // document (GraphicsView::setImageDragProvider()).

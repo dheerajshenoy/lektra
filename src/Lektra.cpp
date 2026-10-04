@@ -162,6 +162,23 @@ Lektra::initLLMView() noexcept
     m_llm_view->setScriptRunner(
         [this](const QString &code) { return runLLMScript(code); });
 #endif
+    // "Attach page" / "Attach region" in the chat use the open document.
+    LLMView::ImageSources sources;
+    sources.currentPage = [this]() -> QImage
+    { return m_doc ? m_doc->currentPageImage() : QImage(); };
+    sources.pickRegion
+        = [this](std::function<void(const QImage &)> done)
+    {
+        if (!m_doc)
+            return;
+        QPointer<DocumentView> view = m_doc;
+        m_doc->startRegionSelect([view, done](QRectF area)
+        {
+            if (view)
+                done(view->regionImage(area));
+        });
+    };
+    m_llm_view->setImageSources(std::move(sources));
     this->addDockWidget(Qt::RightDockWidgetArea, m_llm_view);
 }
 #endif

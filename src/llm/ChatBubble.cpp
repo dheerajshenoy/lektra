@@ -6,6 +6,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPalette>
+#include <QPixmap>
 #include <QPushButton>
 #include <QVBoxLayout>
 
@@ -239,4 +240,32 @@ ChatBubble::setText(const QString &markdownText) noexcept
             updatePiece(m_pieces[i], segments[i]);
 
     m_segments = segments;
+}
+
+void
+ChatBubble::setThumbnails(const QList<QImage> &thumbnails)
+{
+    delete m_thumbnails;
+    m_thumbnails = nullptr;
+    if (thumbnails.isEmpty())
+        return;
+
+    m_thumbnails = new QWidget(this);
+    auto *row    = new QHBoxLayout(m_thumbnails);
+    row->setContentsMargins(0, 0, 0, 0);
+    row->setSpacing(6);
+    for (const QImage &image : thumbnails)
+    {
+        auto *label = new QLabel(m_thumbnails);
+        label->setPixmap(QPixmap::fromImage(image));
+        label->setStyleSheet("border-radius: 4px;");
+        row->addWidget(label);
+    }
+    row->addStretch();
+    m_content->insertWidget(0, m_thumbnails);
+
+    // An image-only message has no text: do not leave an empty gap under it.
+    if (m_segments.size() == 1 && !m_segments[0].code && m_segments[0].text.isEmpty()
+        && !m_pieces.isEmpty())
+        m_pieces[0].widget->hide();
 }

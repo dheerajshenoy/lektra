@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ChatBubble.hpp"
+#include "ChatInput.hpp"
 #include "ChatStore.hpp"
 #include "Config.hpp"
 #include "HTTPClient.hpp"
@@ -14,6 +15,7 @@
 
 class QFrame;
 class QMenu;
+class QHBoxLayout;
 class QLabel;
 class QScrollArea;
 class QTimer;
@@ -48,11 +50,29 @@ public:
     // one, or with llm_view.save_history off, nothing is saved.
     void setHistoryFolder(const QString &folder);
 
+    // Where "Attach page" and "Attach region" get their images from (the open
+    // document). Without them those two menu entries are disabled.
+    struct ImageSources
+    {
+        std::function<QImage()> currentPage;
+        // Lets the user pick a part of the page, then calls back with it.
+        std::function<void(std::function<void(const QImage &)> done)> pickRegion;
+    };
+    void setImageSources(ImageSources sources);
+
+    // Attach an image to the message being written. Returns false if it
+    // could not be attached (not an image, or too many already).
+    bool attachImage(const QImage &image);
+    bool attachFile(const QString &path);
+
 protected:
     // Installed on m_input_edit so Shift+Return sends the message instead
     // of inserting a newline (plain Return still inserts a newline, the
     // QTextEdit default). Also tracks focus to highlight the input frame.
     bool eventFilter(QObject *watched, QEvent *event) override;
+    // Dropping an image or an image file anywhere on the panel attaches it.
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
     // Re-derives the input colours and send icon when the palette changes
     // (e.g. light/dark theme switch).
     void changeEvent(QEvent *event) override;
@@ -78,9 +98,19 @@ private:
     // Reflects an HTTPClient::connectionStatusChanged() result in
     // m_connection_indicator.
     void updateConnectionIndicator(bool connected) noexcept;
+    // Rich-text tooltip for the connection indicator: model, provider,
+    // endpoint, key, streaming, last check and the state of this chat.
+    QString connectionTooltip() const;
     // Colours of the input frame and send button, taken from the palette so
     // they follow the theme.
     void updateInputStyle() noexcept;
+    void rebuildAttachmentBar();
+    void clearAttachments();
+    // A short message under the transcript that goes away by itself.
+    void flashNote(const QString &note);
+    // The conversation as it is saved: images are replaced by a note, so saved
+    // chats stay small and old images are never sent again.
+    static QJsonArray withoutImages(const QJsonArray &messages);
     // The send button is only enabled when there is text and no request in
     // flight.
     void updateSendEnabled() noexcept;
@@ -92,8 +122,14 @@ private:
     QWidget *m_messages_widget      = nullptr;
     QVBoxLayout *m_messages_layout  = nullptr;
     QFrame *m_input_frame           = nullptr;
-    QTextEdit *m_input_edit         = nullptr;
+    ChatInput *m_input_edit         = nullptr;
     QToolButton *m_send_button      = nullptr;
+    QToolButton *m_attach_button    = nullptr;
+    QMenu *m_attach_menu            = nullptr;
+    QWidget *m_attachment_bar       = nullptr;
+    QHBoxLayout *m_attachment_layout = nullptr;
+    QList<QImage> m_attachments;
+    ImageSources m_image_sources;
     bool m_updating_style           = false;
     QLabel *m_status_label          = nullptr;
     // Shows "Connected"/"Disconnected" for the configured LLM endpoint,
@@ -127,11 +163,20 @@ private:
     void loadChat(const QString &id);
     void deleteCurrentChat();
     // Remembers what the transcript shows, then writes the chat to disk.
-    void record(const QString &kind, const QString &text, bool save = true);
+    void record(const QString &kind, const QString &text, bool save = true,
+                int images = 0);
     void saveChat();
     void clearTranscriptWidgets();
     void refreshHistoryMenu();
     void updateChatButtons();
+
+    // The last connection check (see HTTPClient::connectionChecked).
+    bool m_conn_known       = false;
+    bool m_conn_ok          = false;
+    int m_conn_status       = 0;
+    qint64 m_conn_latency   = 0;
+    QString m_conn_error;
+    QDateTime m_conn_time;
 
     ChatStore m_store;
     QMenu *m_history_menu             = nullptr;

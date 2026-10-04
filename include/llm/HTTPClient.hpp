@@ -28,7 +28,10 @@ public:
     QJsonArray messages() const { return m_messages; }
     void setMessages(const QJsonArray &messages) { m_messages = messages; }
     void clearMessages() { m_messages = QJsonArray(); }
-    void send(const QString &text);
+    // Sends a user message. `imageUrls` are `data:` URLs of attached images
+    // (see encodeImageForModel); with images the message content is a list of
+    // text and image parts, as vision models expect.
+    void send(const QString &text, const QStringList &imageUrls = {});
     // Aborts any in-flight request. Call this before the client is
     // destroyed (e.g. on application shutdown) so a pending request
     // doesn't keep the connection open past the app closing.
@@ -51,6 +54,10 @@ signals:
     void errorOccurred(const QString &message);
     // Emitted after every checkConnection() call completes.
     void connectionStatusChanged(bool connected);
+    // The details of the same check: the HTTP status (0 if there was no HTTP
+    // reply), how long it took, and the error text when it failed.
+    void connectionChecked(bool connected, int httpStatus, qint64 latencyMs,
+                           const QString &error);
 
 private:
     QNetworkAccessManager m_networkManager;

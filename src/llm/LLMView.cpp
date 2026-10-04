@@ -1,7 +1,18 @@
 #include "LLMView.hpp"
 
+#include "ImageEncode.hpp"
+#include "ProviderInfo.hpp"
+
 #include <QAbstractTextDocumentLayout>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QImageReader>
+#include <QMimeData>
 #include <QAction>
+#include <QHelpEvent>
+#include <QToolTip>
 #include <QDateTime>
 #include <QJsonArray>
 #include <QLocale>
@@ -71,6 +82,7 @@ LLMView::LLMView(const Config &config, QWidget *parent)
     : QDockWidget(parent), m_config(config)
 {
     initUI();
+    setAcceptDrops(true);
     m_http_client = new HTTPClient(this);
     m_http_client->setConfig(m_config.llm_view.api_key, m_config.llm_view.model,
                              QUrl(m_config.llm_view.api_url));
@@ -85,6 +97,16 @@ LLMView::LLMView(const Config &config, QWidget *parent)
             &LLMView::displayError);
     connect(m_http_client, &HTTPClient::connectionStatusChanged, this,
             &LLMView::updateConnectionIndicator);
+    connect(m_http_client, &HTTPClient::connectionChecked, this,
+            [this](bool ok, int status, qint64 latency, const QString &error)
+    {
+        m_conn_known   = true;
+        m_conn_ok      = ok;
+        m_conn_status  = status;
+        m_conn_latency = latency;
+        m_conn_error   = error;
+        m_conn_time    = QDateTime::currentDateTime();
+    });
 
     // Poll periodically so the indicator reflects reality even when the
     // user isn't actively chatting — most relevant for a local server
@@ -137,6 +159,14 @@ LLMView::closeConnection() noexcept
 bool
 LLMView::eventFilter(QObject *watched, QEvent *event)
 {
+    if (watched == m_connection_indicator && event->type() == QEvent::ToolTip)
+    {
+        auto *help = static_cast<QHelpEvent *>(event);
+        QToolTip::showText(help->globalPos(), connectionTooltip(),
+                           m_connection_indicator);
+        return true;
+    }
+
     if (watched == m_input_edit
         && (event->type() == QEvent::FocusIn
             || event->type() == QEvent::FocusOut))
@@ -171,6 +201,9 @@ LLMView::initUI()
 
     m_connection_indicator = new QLabel(tr("● Checking..."), m_container);
     m_connection_indicator->setStyleSheet("color: gray;");
+    m_connection_indicator->setObjectName("llmConnectionIndicator");
+    // The tooltip is built when it is shown so it is always current.
+    m_connection_indicator->installEventFilter(this);
 
     m_messages_widget = new QWidget();
     m_messages_layout = new QVBoxLayout(m_messages_widget);
@@ -190,7 +223,7 @@ LLMView::initUI()
 
     m_input_frame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
 
-    m_input_edit = new QTextEdit(m_input_frame);
+    m_input_edit = new ChatInput(m_input_frame);
     m_input_edit->setObjectName("llmInputEdit");
     m_input_edit->setAcceptRichText(false);
     m_input_edit->setFrameShape(QFrame::NoFrame);
@@ -200,6 +233,8 @@ LLMView::initUI()
     m_input_edit->setPlaceholderText(
         tr("Ask something...  (Shift+Enter to send)"));
     m_input_edit->installEventFilter(this);
+    m_input_edit->setHandlers([this](const QImage &image) { attachImage(image); },
+                              [this](const QString &path) { attachFile(path); });
 
     m_send_button = new QToolButton(m_input_frame);
     m_send_button->setObjectName("llmSendButton");
@@ -210,9 +245,58 @@ LLMView::initUI()
     m_send_button->setFocusPolicy(Qt::NoFocus);
     m_send_button->setEnabled(false);
 
+    // "+" opens the menu of things that can be attached.
+    m_attach_button = new QToolButton(m_input_frame);
+    m_attach_button->setObjectName("llmAttachButton");
+    m_attach_button->setText(QStringLiteral("+"));
+    m_attach_button->setToolTip(tr("Attach an image (you can also paste or drop one)"));
+    m_attach_button->setCursor(Qt::PointingHandCursor);
+    m_attach_button->setFixedSize(kSendButtonSize, kSendButtonSize);
+    m_attach_button->setPopupMode(QToolButton::InstantPopup);
+    m_attach_button->setFocusPolicy(Qt::NoFocus);
+    m_attach_menu = new QMenu(m_attach_button);
+    m_attach_button->setMenu(m_attach_menu);
+    connect(m_attach_menu, &QMenu::aboutToShow, this, [this]
+    {
+        m_attach_menu->clear();
+        m_attach_menu->addAction(tr("Image file..."), this, [this]
+        {
+            const QStringList files = QFileDialog::getOpenFileNames(
+                this, tr("Attach image"), QString(),
+                tr("Images (*.png *.jpg *.jpeg *.webp *.bmp *.gif *.tif *.tiff);;All files (*)"));
+            for (const QString &f : files)
+                attachFile(f);
+        });
+        QAction *page = m_attach_menu->addAction(tr("Current page"), this, [this]
+        {
+            const QImage image = m_image_sources.currentPage();
+            if (!attachImage(image) && image.isNull())
+                flashNote(tr("Could not get an image of the page"));
+        });
+        page->setEnabled(static_cast<bool>(m_image_sources.currentPage));
+        QAction *region = m_attach_menu->addAction(tr("Region of the page..."), this, [this]
+        {
+            flashNote(tr("Drag a box over the part of the page to attach"));
+            m_image_sources.pickRegion([this](const QImage &image)
+            {
+                if (!attachImage(image))
+                    flashNote(tr("Nothing was selected"));
+            });
+        });
+        region->setEnabled(static_cast<bool>(m_image_sources.pickRegion));
+    });
+
+    // Thumbnails of what is attached, above the input.
+    m_attachment_bar    = new QWidget(m_container);
+    m_attachment_layout = new QHBoxLayout(m_attachment_bar);
+    m_attachment_layout->setContentsMargins(4, 0, 4, 0);
+    m_attachment_layout->setSpacing(6);
+    m_attachment_bar->hide();
+
     auto *input_row = new QHBoxLayout(m_input_frame);
-    input_row->setContentsMargins(12, 6, 6, 6);
-    input_row->setSpacing(8);
+    input_row->setContentsMargins(6, 6, 6, 6);
+    input_row->setSpacing(6);
+    input_row->addWidget(m_attach_button, 0, Qt::AlignBottom);
     input_row->addWidget(m_input_edit, 1);
     input_row->addWidget(m_send_button, 0, Qt::AlignBottom);
 
@@ -250,6 +334,7 @@ LLMView::initUI()
     m_layout->addLayout(top_bar);
     m_layout->addWidget(m_scroll_area);
     m_layout->addWidget(m_status_label);
+    m_layout->addWidget(m_attachment_bar);
     m_layout->addWidget(m_input_frame);
 
     m_container->setLayout(m_layout);
@@ -270,7 +355,8 @@ LLMView::updateSendEnabled() noexcept
 {
     m_send_button->setEnabled(
         !m_awaiting_response
-        && !m_input_edit->toPlainText().trimmed().isEmpty());
+        && (!m_input_edit->toPlainText().trimmed().isEmpty()
+            || !m_attachments.isEmpty()));
 }
 
 void
@@ -316,10 +402,16 @@ LLMView::updateInputStyle() noexcept
                 "border-radius: %7px; }"
                 "QToolButton#llmSendButton:hover { background: %4; }"
                 "QToolButton#llmSendButton:pressed { background: %5; }"
-                "QToolButton#llmSendButton:disabled { background: %6; }")
+                "QToolButton#llmSendButton:disabled { background: %6; }"
+                "QToolButton#llmAttachButton { background: transparent; "
+                "border: none; border-radius: %7px; font-size: 20px; "
+                "color: %8; }"
+                "QToolButton#llmAttachButton:hover { background: %9; }"
+                "QToolButton#llmAttachButton::menu-indicator { image: none; }")
             .arg(rgba(pal.color(QPalette::Base)), rgba(border), rgba(accent),
                  rgba(accent.lighter(115)), rgba(accent.darker(115)), rgba(off))
-            .arg(kSendButtonSize / 2));
+            .arg(kSendButtonSize / 2)
+            .arg(pal.color(QPalette::Text).name(), rgba(off)));
 
     const qreal dpr = devicePixelRatioF();
     QIcon icon;
@@ -361,6 +453,53 @@ LLMView::updateConnectionIndicator(bool connected) noexcept
     }
 }
 
+QString
+LLMView::connectionTooltip() const
+{
+    const auto &c = m_config.llm_view;
+    const QUrl url(c.api_url);
+    // never show credentials or query strings that may be part of a URL
+    const QString endpoint = url.adjusted(QUrl::RemoveUserInfo | QUrl::RemoveQuery
+                                          | QUrl::RemoveFragment)
+                                 .toString();
+
+    QString status;
+    if (!m_conn_known)
+        status = tr("checking...");
+    else if (m_conn_ok)
+        status = tr("connected") + (m_conn_status > 0 ? QStringLiteral(" (HTTP %1, %2 ms)")
+                                                            .arg(m_conn_status)
+                                                            .arg(m_conn_latency)
+                                                      : QStringLiteral(" (%1 ms)").arg(m_conn_latency));
+    else
+        status = tr("not reachable") + (m_conn_error.isEmpty() ? QString()
+                                                               : QStringLiteral(": ") + m_conn_error.toHtmlEscaped());
+    if (m_conn_known)
+        status += QStringLiteral("<br><span style='color:gray'>%1 %2</span>")
+                      .arg(tr("checked"), QLocale().toString(m_conn_time.time(), QLocale::ShortFormat));
+
+    const bool streaming = c.extra_body.value(QStringLiteral("stream")).toBool();
+    const int messages   = static_cast<int>(m_http_client->messages().size());
+
+    auto row = [](const QString &label, const QString &value)
+    { return QStringLiteral("<tr><td style='color:gray; padding-right:10px'>%1</td><td>%2</td></tr>").arg(label, value); };
+
+    QString html = QStringLiteral("<table>");
+    html += row(tr("Model"), c.model.toHtmlEscaped());
+    html += row(tr("Provider"), providerName(url).toHtmlEscaped());
+    html += row(tr("Endpoint"), endpoint.toHtmlEscaped());
+    html += row(tr("API key"), c.api_key.isEmpty() ? tr("not set") : tr("set"));
+    html += row(tr("Streaming"), streaming ? tr("on") : tr("off"));
+    html += row(tr("Status"), status);
+    html += row(tr("This chat"),
+                messages == 0 ? tr("empty")
+                              : tr("%1 messages sent to the model").arg(messages));
+    html += row(tr("Run scripts"), c.auto_run ? tr("automatically") : tr("on request (Run button)"));
+    html += row(tr("Save chats"), m_store.isEnabled() ? tr("on") : tr("off"));
+    html += QStringLiteral("</table>");
+    return html;
+}
+
 void
 LLMView::scrollToBottom() noexcept
 {
@@ -378,14 +517,30 @@ LLMView::sendMessage()
         return; // a request is already in flight
 
     QString user_input = m_input_edit->toPlainText().trimmed();
-    if (user_input.isEmpty())
+    if (user_input.isEmpty() && m_attachments.isEmpty())
         return;
 
-    addBubble(
-        new ChatBubble(ChatBubble::Role::User, user_input, m_messages_widget));
+    // Attached images are scaled and encoded for the model now; the bubble
+    // shows small previews of them.
+    QStringList image_urls;
+    QList<QImage> previews;
+    for (const QImage &image : std::as_const(m_attachments))
+    {
+        const QString url = encodeImageForModel(image);
+        if (url.isEmpty())
+            continue;
+        image_urls << url;
+        previews << thumbnailFor(image, 120);
+    }
+
+    auto *bubble = new ChatBubble(ChatBubble::Role::User, user_input,
+                                  m_messages_widget);
+    bubble->setThumbnails(previews);
+    addBubble(bubble);
     // Saved together with the reply (or its error), so a stored chat never
     // has a question the stored conversation has not seen.
-    record(QStringLiteral("user"), user_input, /*save=*/false);
+    record(QStringLiteral("user"), user_input, /*save=*/false,
+           static_cast<int>(image_urls.size()));
 
     // Tell the model what its last script did. The transcript shows only what
     // the user typed.
@@ -397,10 +552,11 @@ LLMView::sendMessage()
     }
 
     setAwaitingResponse(true);
-    m_http_client->send(to_send);
+    m_http_client->send(to_send, image_urls);
 
     // Clear the input edit for the next message
     m_input_edit->clear();
+    clearAttachments();
 }
 
 void
@@ -602,9 +758,12 @@ LLMView::displayError(const QString &message)
 // ---------------------------------------------------------------------------
 
 void
-LLMView::record(const QString &kind, const QString &text, bool save)
+LLMView::record(const QString &kind, const QString &text, bool save, int images)
 {
-    m_transcript.append(QJsonObject{{"kind", kind}, {"text", text}});
+    QJsonObject entry{{"kind", kind}, {"text", text}};
+    if (images > 0)
+        entry["images"] = images;
+    m_transcript.append(entry);
     if (save)
         saveChat();
 }
@@ -635,7 +794,7 @@ LLMView::saveChat()
     chat.title      = m_chat_title;
     chat.created    = m_chat_created;
     chat.updated    = QDateTime::currentDateTime();
-    chat.messages   = m_http_client->messages();
+    chat.messages   = withoutImages(m_http_client->messages());
     chat.transcript = m_transcript;
     m_store.save(chat);
 }
@@ -667,6 +826,7 @@ LLMView::newChat()
     m_chat_id.clear();
     m_chat_title.clear();
     m_pending_result.clear();
+    clearAttachments();
     m_input_edit->setFocus();
 }
 
@@ -692,7 +852,19 @@ LLMView::loadChat(const QString &id)
         const QString kind = v.toObject().value("kind").toString();
         const QString text = v.toObject().value("text").toString();
         if (kind == QLatin1String("user"))
-            addBubble(new ChatBubble(ChatBubble::Role::User, text, m_messages_widget));
+        {
+            // the images themselves are not saved, only that there were some
+            const int images = v.toObject().value("images").toInt();
+            QString shown = text;
+            if (images > 0)
+            {
+                const QString note = images == 1 ? tr("1 image attached")
+                                                 : tr("%1 images attached").arg(images);
+                shown = QStringLiteral("*") + note + QStringLiteral("*")
+                        + (text.isEmpty() ? QString() : QStringLiteral("\n\n") + text);
+            }
+            addBubble(new ChatBubble(ChatBubble::Role::User, shown, m_messages_widget));
+        }
         else if (kind == QLatin1String("assistant"))
         {
             addBubble(new ChatBubble(ChatBubble::Role::Assistant, text, m_messages_widget));
@@ -749,4 +921,171 @@ LLMView::refreshHistoryMenu()
         m_store.removeAll();
         newChat();
     });
+}
+
+// ---------------------------------------------------------------------------
+// images
+// ---------------------------------------------------------------------------
+
+void
+LLMView::setImageSources(ImageSources sources)
+{
+    m_image_sources = std::move(sources);
+}
+
+bool
+LLMView::attachImage(const QImage &image)
+{
+    constexpr int kMaxAttachments = 6;
+    if (image.isNull())
+        return false;
+    if (m_attachments.size() >= kMaxAttachments)
+    {
+        flashNote(tr("At most %1 images per message").arg(kMaxAttachments));
+        return false;
+    }
+    m_attachments.append(image);
+    rebuildAttachmentBar();
+    updateSendEnabled();
+    return true;
+}
+
+bool
+LLMView::attachFile(const QString &path)
+{
+    constexpr qint64 kMaxFileBytes = 25 * 1024 * 1024;
+    if (QFileInfo(path).size() > kMaxFileBytes)
+    {
+        flashNote(tr("That file is too large to attach"));
+        return false;
+    }
+    QImageReader reader(path);
+    reader.setAutoTransform(true);
+    const QImage image = reader.read();
+    if (image.isNull())
+    {
+        flashNote(tr("Could not read that image"));
+        return false;
+    }
+    return attachImage(image);
+}
+
+void
+LLMView::clearAttachments()
+{
+    m_attachments.clear();
+    rebuildAttachmentBar();
+    updateSendEnabled();
+}
+
+void
+LLMView::rebuildAttachmentBar()
+{
+    while (QLayoutItem *item = m_attachment_layout->takeAt(0))
+    {
+        if (QWidget *w = item->widget())
+            w->deleteLater();
+        delete item;
+    }
+    m_attachment_bar->setVisible(!m_attachments.isEmpty());
+
+    for (int i = 0; i < m_attachments.size(); ++i)
+    {
+        auto *chip = new QFrame(m_attachment_bar);
+        chip->setObjectName("llmAttachment");
+        chip->setStyleSheet(
+            QString("QFrame#llmAttachment { border: 1px solid %1; border-radius: 8px; }")
+                .arg(palette().color(QPalette::Mid).name()));
+        auto *row = new QHBoxLayout(chip);
+        row->setContentsMargins(3, 3, 3, 3);
+        row->setSpacing(2);
+
+        auto *thumb = new QLabel(chip);
+        thumb->setPixmap(QPixmap::fromImage(thumbnailFor(m_attachments[i], 48)));
+        auto *remove = new QToolButton(chip);
+        remove->setObjectName("llmAttachmentRemove");
+        remove->setText(QStringLiteral("\u00D7"));
+        remove->setToolTip(tr("Remove"));
+        remove->setAutoRaise(true);
+        remove->setCursor(Qt::PointingHandCursor);
+        connect(remove, &QToolButton::clicked, this, [this, i]
+        {
+            if (i < m_attachments.size())
+                m_attachments.removeAt(i);
+            rebuildAttachmentBar();
+            updateSendEnabled();
+        });
+        row->addWidget(thumb);
+        row->addWidget(remove, 0, Qt::AlignTop);
+        m_attachment_layout->addWidget(chip);
+    }
+    m_attachment_layout->addStretch();
+}
+
+void
+LLMView::flashNote(const QString &note)
+{
+    m_status_label->setText(note);
+    m_status_label->show();
+    QTimer::singleShot(2500, this, [this]
+    {
+        m_status_label->setText(tr("Thinking..."));
+        m_status_label->setVisible(m_awaiting_response);
+    });
+}
+
+QJsonArray
+LLMView::withoutImages(const QJsonArray &messages)
+{
+    QJsonArray out;
+    for (const QJsonValue &m : messages)
+    {
+        QJsonObject message = m.toObject();
+        if (message.value("content").isArray())
+        {
+            QJsonArray parts;
+            for (const QJsonValue &part : message.value("content").toArray())
+            {
+                if (part.toObject().value("type").toString() == QLatin1String("image_url"))
+                    parts.append(QJsonObject{{"type", "text"},
+                                             {"text", "[image omitted]"}});
+                else
+                    parts.append(part);
+            }
+            message["content"] = parts;
+        }
+        out.append(message);
+    }
+    return out;
+}
+
+void
+LLMView::dragEnterEvent(QDragEnterEvent *event)
+{
+    const QMimeData *mime = event->mimeData();
+    if (mime->hasImage() || !ChatInput::imageFiles(mime).isEmpty())
+        event->acceptProposedAction();
+    else
+        QDockWidget::dragEnterEvent(event);
+}
+
+void
+LLMView::dropEvent(QDropEvent *event)
+{
+    const QMimeData *mime = event->mimeData();
+    if (mime->hasImage())
+    {
+        attachImage(qvariant_cast<QImage>(mime->imageData()));
+        event->acceptProposedAction();
+        return;
+    }
+    const QStringList files = ChatInput::imageFiles(mime);
+    if (!files.isEmpty())
+    {
+        for (const QString &f : files)
+            attachFile(f);
+        event->acceptProposedAction();
+        return;
+    }
+    QDockWidget::dropEvent(event);
 }

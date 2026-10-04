@@ -1620,3 +1620,29 @@ DocumentView::pageStride(int pageno) const noexcept
 
     return m_page_offsets[pageno + 1] - m_page_offsets[pageno];
 }
+
+QImage
+DocumentView::currentPageImage() noexcept
+{
+    const bool plainImage = m_model->isImage();
+    const int pageno      = plainImage ? 0 : m_pageno;
+
+    if (!plainImage)
+    {
+        const QSizeF size = m_model->pageSizePts(pageno, true);
+        if (!size.isEmpty())
+        {
+            const QImage image = m_model->renderPtsRegion(
+                pageno, QRectF(QPointF(0, 0), size), 150.0f);
+            if (!image.isNull())
+                return image;
+        }
+    }
+
+    // Image documents (and formats without a point-space renderer): what is
+    // already on screen.
+    GraphicsImageItem *item = m_page_items_hash.value(pageno, nullptr);
+    if (!item || m_placeholder_pages.contains(pageno))
+        return {};
+    return item->imageRegion(QRect(0, 0, item->width(), item->height()));
+}

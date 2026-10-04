@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QImage>
 #include <QList>
 #include <QString>
 #include <QWidget>
@@ -33,6 +34,10 @@ public:
     // parts that changed are touched.
     void setText(const QString &markdownText) noexcept;
 
+    // Small previews of the images that were sent with this message, shown
+    // above its text.
+    void setThumbnails(const QList<QImage> &thumbnails);
+
     // One run of prose or one fenced code block of a message.
     struct Segment
     {
@@ -58,6 +63,7 @@ private:
     static void refreshHeader(const Piece &piece, const Segment &segment);
 
     QVBoxLayout *m_content = nullptr;
+    QWidget *m_thumbnails  = nullptr;
     QList<Segment> m_segments;
     QList<Piece> m_pieces;
 };

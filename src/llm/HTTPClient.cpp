@@ -1,5 +1,7 @@
 #include "HTTPClient.hpp"
 
+#include <QDateTime>
+
 HTTPClient::HTTPClient(QObject *parent) : QObject(parent) {}
 
 void
@@ -24,9 +26,24 @@ HTTPClient::setSystemPromptProvider(std::function<QString()> provider)
 }
 
 void
-HTTPClient::send(const QString &userText)
+HTTPClient::send(const QString &userText, const QStringList &imageUrls)
 {
-    m_messages.append(QJsonObject{{"role", "user"}, {"content", userText}});
+    if (imageUrls.isEmpty())
+    {
+        m_messages.append(QJsonObject{{"role", "user"}, {"content", userText}});
+    }
+    else
+    {
+        QJsonArray parts;
+        if (!userText.isEmpty())
+            parts.append(QJsonObject{{"type", "text"}, {"text", userText}});
+        for (const QString &url : imageUrls)
+            parts.append(QJsonObject{
+                {"type", "image_url"},
+                {"image_url", QJsonObject{{"url", url}}},
+            });
+        m_messages.append(QJsonObject{{"role", "user"}, {"content", parts}});
+    }
 
     QNetworkRequest request(m_url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
@@ -156,8 +173,9 @@ HTTPClient::checkConnection() noexcept
 
     QNetworkReply *reply = m_networkManager.head(request);
     m_probeReply         = reply;
+    const qint64 started = QDateTime::currentMSecsSinceEpoch();
 
-    connect(reply, &QNetworkReply::finished, this, [this, reply]
+    connect(reply, &QNetworkReply::finished, this, [this, reply, started]
     {
         if (reply == m_probeReply)
             m_probeReply = nullptr;
@@ -167,6 +185,13 @@ HTTPClient::checkConnection() noexcept
             = reply->error() == QNetworkReply::NoError
               || reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)
                      .isValid();
+        const QVariant status
+            = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
+        emit connectionChecked(
+            connected, status.isValid() ? status.toInt() : 0,
+            QDateTime::currentMSecsSinceEpoch() - started,
+            reply->error() == QNetworkReply::NoError ? QString()
+                                                     : reply->errorString());
         emit connectionStatusChanged(connected);
     });
 }
