@@ -218,6 +218,13 @@ qt_add_executable(${PROJECT_NAME}
     src/CrashHandler.cpp
     src/CrashReporterDialog.cpp
     src/Lektra.cpp
+    src/lektra/Config.cpp
+    src/lektra/Commands.cpp
+    src/lektra/Menus.cpp
+    src/lektra/Tabs.cpp
+    src/lektra/Sessions.cpp
+    src/lektra/Files.cpp
+    src/lektra/Actions.cpp
     src/Statusbar.cpp
     src/Model.cpp
     src/PropertiesWidget.cpp
