@@ -39,17 +39,27 @@ When reporting a bug, include:
 
 ## Development setup
 
-Clone the repository:
+Clone the repository. MuPDF and LuaJIT are bundled as git submodules (LuaJIT
+is built and linked statically, so Lua scripting needs no system Lua):
 
 ```bash
-git clone https://codeberg.org/lektra/lektra.git
+git clone --recurse-submodules https://codeberg.org/lektra/lektra.git
 cd lektra
+# already cloned without it?  git submodule update --init --recursive
 
 mkdir -p build
 cmake -S . -B build -DCMAKE_INSTALL_TYPE=Debug
 cmake --build build --parallel
 cmake --install build --prefix build/debug
 ```
+
+### Windows
+
+LuaJIT is built with its own `msvcbuild.bat` as part of the normal build, so
+the Visual Studio C++ tools must be installed. CMake finds the matching
+`vcvarsall.bat` itself, so building from an IDE or a plain prompt works; if
+it cannot, run the build from a "Developer Command Prompt" or configure with
+`-DWITH_LUA=OFF` (`configure.bat --without-lua`).
 
 ### Nix
 

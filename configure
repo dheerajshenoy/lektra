@@ -16,7 +16,7 @@ print_help() {
     Valid values: Debug, Release, RelWithDebInfo
     --with-synctex          Enable SyncTeX support (default: true)
     --without-synctex       Disable SyncTeX support
-    --with-lua              Enable Lua scripting support (requires Lua) (default: false)
+    --with-lua              Enable Lua scripting support (bundled LuaJIT) (default: true)
     --without-lua           Disable Lua scripting support
     -h, --help              Show this help message and exit
 

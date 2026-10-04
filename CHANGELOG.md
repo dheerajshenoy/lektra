@@ -4,6 +4,7 @@
 
 ### New Features
 
+- Lua scripting now uses a bundled LuaJIT, linked statically and enabled by default on Linux, macOS and Windows, so no Lua installation is needed to build or run Lektra. Scripts run as Lua 5.1 with LuaJIT's extensions: `goto` and the `bit` library are available, but Lua 5.3+ features such as integer division `//`, `utf8` and `string.pack` are not.
 - Hover preview for internal links: with `links.hover_preview = true`, resting the cursor on a link shows a picture of what it points at (page, figure or reference) instead of the tooltip. Size and delay are `hover_preview_width`, `hover_preview_height` and `hover_preview_delay`.
 - Click-and-drag an image out of a document (PDF) onto another app or a file manager to save or paste it as a PNG. The drag saves what the page shows in that area, including text on scanned/stencil pages, at the image's native resolution, with the current invert, tint and high-contrast settings applied. Anything else the page draws inside that rectangle is included too.
 - New **caret mode** (`caret_mode` command, default `F7`) — a keyboard-driven text cursor for character-by-character navigation, cf. Firefox/Okular "caret browsing". Left/Right/Up/Down (also `hjkl`), Home/End, and Shift+movement (also vim-style `H`/`J`/`K`/`L`) to extend a selection; the existing yank command now has a default binding (`y`) to copy it.

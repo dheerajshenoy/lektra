@@ -11,7 +11,8 @@ option(WITH_PCH "Use a precompiled header to speed up compilation" ON)
 option(WITH_SYNCTEX "Enable synctex support" ON)
 option(WITH_FONTCONFIG "Look up fonts via fontconfig when available (otherwise scan the system font folders)" ON)
 option(WITH_LIBARCHIVE "Open RAR/7z comic books (cbr, cb7) via libarchive when available" ON)
-option(WITH_LUA     "Enable lua scripting support" OFF)
+# Lua scripting (LuaJIT, built from thirdparty/luajit and linked statically).
+option(WITH_LUA     "Enable lua scripting support (bundled LuaJIT)" ON)
 option(WITH_LLM_SUPPORT "Enable LLM support" OFF)
 
 # Internal option to build as AppImage (Linux only)
@@ -157,14 +158,131 @@ find_package(Qt6 REQUIRED COMPONENTS
     Core Gui Widgets Concurrent LinguistTools OpenGLWidgets Network Svg)
 
 
+# ---------------------------------------------------------------------------
+# LuaJIT (ExternalProject, linked statically)
+# ---------------------------------------------------------------------------
 if (WITH_LUA)
-    find_package(Lua QUIET)
-    if (Lua_FOUND)
-        message(STATUS "Lua support: enabled (Lua version: ${Lua_VERSION})")
-    else()
-        message(WARNING "Lua not found – Lua scripting support disabled")
-        set(WITH_LUA OFF)
+    set(LUAJIT_SOURCE_DIR  "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/luajit")
+    set(LUAJIT_BUILD_DIR   "${CMAKE_BINARY_DIR}/luajit-src")
+    set(LUAJIT_INSTALL_DIR "${CMAKE_BINARY_DIR}/luajit-install")
+
+    if (NOT EXISTS "${LUAJIT_SOURCE_DIR}/src/lua.h")
+        message(FATAL_ERROR
+            "LuaJIT source not found at ${LUAJIT_SOURCE_DIR}. "
+            "Initialise the submodule: git submodule update --init thirdparty/luajit "
+            "(or configure with -DWITH_LUA=OFF).")
     endif()
+
+    # LuaJIT builds in its own source tree, so build from a copy in the build
+    # directory and leave the submodule checkout clean.
+    #
+    # Its version number comes from git, which does not work in a copy (the
+    # submodule's .git is a pointer relative to its original location). Record
+    # the commit time now and hand it over as .relver, which both the Makefile
+    # and msvcbuild.bat fall back to when there is no .git.
+    execute_process(
+        COMMAND git -C "${LUAJIT_SOURCE_DIR}" show -s --format=%ct
+        OUTPUT_VARIABLE _luajit_relver
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET)
+    if (NOT _luajit_relver)
+        set(_luajit_relver 0)
+    endif()
+    file(WRITE "${CMAKE_BINARY_DIR}/luajit.relver" "${_luajit_relver}\n")
+    set(_luajit_copy
+        ${CMAKE_COMMAND} -E copy_directory "${LUAJIT_SOURCE_DIR}" "${LUAJIT_BUILD_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E remove -f "${LUAJIT_BUILD_DIR}/.git"
+        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/luajit.relver"
+                "${LUAJIT_BUILD_DIR}/.relver")
+
+    if (MSVC)
+        set(LUAJIT_LIB_FILE    "${LUAJIT_BUILD_DIR}/src/lua51.lib")
+        set(LUAJIT_INCLUDE_DIR "${LUAJIT_BUILD_DIR}/src")
+
+        # msvcbuild.bat must run inside a Visual Studio developer environment
+        # (it stops if INCLUDE is not set). A build started from the IDE, or
+        # from a plain prompt, does not have one, so the wrapper sets it up
+        # from the vcvarsall.bat that belongs to the compiler CMake picked:
+        #   <VS>/VC/Tools/MSVC/<ver>/bin/Host<arch>/<arch>/cl.exe
+        #   <VS>/VC/Auxiliary/Build/vcvarsall.bat
+        set(_luajit_vcvars "")
+        get_filename_component(_cl_dir "${CMAKE_C_COMPILER}" DIRECTORY)
+        foreach (_i RANGE 5)
+            get_filename_component(_cl_dir "${_cl_dir}" DIRECTORY)
+        endforeach ()
+        if (EXISTS "${_cl_dir}/Auxiliary/Build/vcvarsall.bat")
+            set(_luajit_vcvars "${_cl_dir}/Auxiliary/Build/vcvarsall.bat")
+        endif ()
+        if (CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|arm64|aarch64")
+            set(_luajit_vcarch "x64_arm64")
+        else ()
+            set(_luajit_vcarch "x64")
+        endif ()
+        file(TO_NATIVE_PATH "${_luajit_vcvars}" _luajit_vcvars_native)
+        file(TO_NATIVE_PATH "${LUAJIT_BUILD_DIR}/src" _luajit_src_native)
+
+        # The static library is built with the compiler's default runtime
+        # (/MT) unless told otherwise; match what Lektra links (/MD, or /MDd
+        # in Debug) through the CL environment variable.
+        file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/luajit_build_$<CONFIG>.bat"
+            CONTENT "@echo off
+setlocal
+if not defined INCLUDE (
+    if exist \"${_luajit_vcvars_native}\" call \"${_luajit_vcvars_native}\" ${_luajit_vcarch} >nul
+)
+if not defined INCLUDE (
+    echo LuaJIT: no Visual Studio environment found. Run from a Developer Command Prompt, or configure with -DWITH_LUA=OFF.
+    exit /b 1
+)
+set CL=$<IF:$<CONFIG:Debug>,/MDd,/MD>
+cd /d \"${_luajit_src_native}\"
+call msvcbuild.bat lua52compat static
+exit /b %errorlevel%
+")
+
+        ExternalProject_Add(luajit_external
+            SOURCE_DIR "${LUAJIT_BUILD_DIR}"
+            DOWNLOAD_COMMAND ${_luajit_copy}
+            CONFIGURE_COMMAND ""
+            BUILD_COMMAND cmd /c "${CMAKE_BINARY_DIR}/luajit_build_$<CONFIG>.bat"
+            INSTALL_COMMAND ""
+            BUILD_BYPRODUCTS "${LUAJIT_LIB_FILE}"
+            UPDATE_COMMAND ""
+        )
+    else()
+        set(LUAJIT_LIB_FILE    "${LUAJIT_INSTALL_DIR}/lib/libluajit-5.1.a")
+        set(LUAJIT_INCLUDE_DIR "${LUAJIT_INSTALL_DIR}/include/luajit-2.1")
+
+        # -fPIC: the static library is linked into a position-independent
+        # executable. LUA52COMPAT adds the Lua 5.2 features that are cheap
+        # and widely used in scripts (goto, __len on tables, ...).
+        set(_luajit_make_args
+            BUILDMODE=static
+            "XCFLAGS=-DLUAJIT_ENABLE_LUA52COMPAT -fPIC")
+
+        if (APPLE)
+            # LuaJIT's Makefile refuses to build on macOS without this.
+            if (CMAKE_OSX_DEPLOYMENT_TARGET)
+                set(_luajit_macos_target "${CMAKE_OSX_DEPLOYMENT_TARGET}")
+            else()
+                set(_luajit_macos_target "11.0")
+            endif()
+            list(APPEND _luajit_make_args
+                "MACOSX_DEPLOYMENT_TARGET=${_luajit_macos_target}")
+        endif()
+
+        ExternalProject_Add(luajit_external
+            SOURCE_DIR "${LUAJIT_BUILD_DIR}"
+            DOWNLOAD_COMMAND ${_luajit_copy}
+            CONFIGURE_COMMAND ""
+            BUILD_COMMAND make -C <SOURCE_DIR> ${_luajit_make_args}
+            INSTALL_COMMAND make -C <SOURCE_DIR> ${_luajit_make_args}
+                "PREFIX=${LUAJIT_INSTALL_DIR}" install
+            BUILD_BYPRODUCTS "${LUAJIT_LIB_FILE}"
+            UPDATE_COMMAND ""
+        )
+    endif()
+    message(STATUS "Lua support: enabled (bundled LuaJIT, static)")
 endif()
 
 # Optional: lets EPUB/FB2 documents use any installed font via fontconfig.
@@ -451,10 +569,20 @@ if (WITH_SYNCTEX)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_SYNCTEX=1)
 endif()
 
-if (WITH_LUA AND Lua_FOUND)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${LUA_INCLUDE_DIR})
+if (WITH_LUA)
+    add_dependencies(${PROJECT_NAME} luajit_external)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${LUAJIT_INCLUDE_DIR})
     target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_LUA=1)
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${LUA_LIBRARIES})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${LUAJIT_LIB_FILE})
+    if (NOT MSVC)
+        # LuaJIT needs libm and dlopen (for require() of C modules)
+        target_link_libraries(${PROJECT_NAME} PRIVATE m ${CMAKE_DL_LIBS})
+    endif()
+    if (APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+        # 64-bit LuaJIT on x86_64 macOS needs the low 4 GB of address space.
+        target_link_options(${PROJECT_NAME} PRIVATE
+            -Wl,-pagezero_size,10000 -Wl,-image_base,100000000)
+    endif()
 endif()
 
 

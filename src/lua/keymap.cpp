@@ -26,7 +26,7 @@ registerKeymaps(lua_State *L, Lektra *lektra) noexcept
 
         // Iterate over the keys table
         // Lua tables are 1-indexed
-        for (int i = 1; lua_rawgeti(L, 2, i) != LUA_TNIL; ++i)
+        for (int i = 1; (lua_rawgeti(L, 2, i), !lua_isnil(L, -1)); ++i)
         {
             if (!lua_isstring(L, -1))
             {

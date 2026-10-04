@@ -10,6 +10,7 @@
 
 #ifdef WITH_LUA
     #include <lua.hpp>
+    #include <luajit.h>
 #endif
 
 AboutDialog::AboutDialog(QWidget *parent)
@@ -121,10 +122,8 @@ AboutDialog::softwaresUsedSection() noexcept
     }
 
 #ifdef WITH_LUA
-    #define STRINGIFY(x) #x
-    layout->addRow("Lua",
-                   new QLabel(LUA_VERSION_MAJOR "." LUA_VERSION_MINOR
-                                                "." LUA_VERSION_RELEASE));
+    // e.g. "LuaJIT 2.1.1774896198" (Lua 5.1 compatible)
+    layout->addRow("Lua", new QLabel(LUAJIT_VERSION));
 #endif
 
     outerLayout->addLayout(layout, Qt::AlignCenter);

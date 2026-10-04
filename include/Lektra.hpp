@@ -45,7 +45,7 @@
     #include "DispatchType.hpp"
     #include "LuaCallback.hpp"
 
-    #include <lua.hpp>
+    #include "LuaCompat.hpp"
 #endif
 
 #ifdef WITH_LLM_SUPPORT

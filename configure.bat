@@ -4,7 +4,7 @@ setlocal enabledelayedexpansion
 :: Default values
 set "BUILD_TYPE=Release"
 set "PREFIX=%ProgramFiles%\lektra"
-set "WITH_LUA=off"
+set "WITH_LUA=on"
 
 :parse_args
 
@@ -67,7 +67,7 @@ echo Options:
 echo     --prefix PATH           Set the installation prefix [default: %%ProgramFiles%%\lektra]
 echo     --with-synctex          Enable SyncTeX support (requires SyncTeX library) (default: false)
 echo     --without-synctex       Disable SyncTeX support
-echo     --with-lua              Enable Lua scripting support (requires Lua library) (default: false)
+echo     --with-lua              Enable Lua scripting support (bundled LuaJIT) (default: true)
 echo     --without-lua           Disable Lua scripting support
 echo     --build-type TYPE       Set the CMake build type [default: Release]
 echo                             Valid values: Debug, Release, RelWithDebInfo
