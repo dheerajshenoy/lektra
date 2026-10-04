@@ -1659,10 +1659,19 @@ DocumentView::selectionText(bool formatted,
     int endP      = m_selection_end_page;
     QString fullText;
 
+    // No selection: both pages are -1. Looping from -1 used to look up a page
+    // item that doesn't exist and dereference it.
+    if (startP < 0 || endP < startP)
+        return fullText;
+
     for (int p = startP; p <= endP; ++p)
     {
+        // A page of a long selection can be out of the loaded range (its
+        // item was dropped while scrolling); there is no geometry to map
+        // the selection through, so it contributes no text.
         GraphicsImageItem *item = m_page_items_hash.value(p, nullptr);
-        assert(item && "Page is not yet in the hash map");
+        if (!item)
+            continue;
 
         QString text;
         if (p == startP && p == endP)
