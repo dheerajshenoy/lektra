@@ -239,29 +239,37 @@ struct Config
         // @added 0.6.9
         bool show_page_numbers = true;
 
-        // @desc Relative width of the thumbnail panel (compared to the main
+        // @desc {
+        // Relative width of the thumbnail panel (compared to the main
         // view)
+        // }
         // @type float
         // @default 0.15
         // @added 0.6.9
         float panel_width = 0.15;
 
-        // @desc Font size (in points) for page number labels in the thumbnail
+        // @desc {
+        // Font size (in points) for page number labels in the thumbnail
         // panel
+        // }
         // @type int
         // @default 10
         // @added 0.7.4
         int font_size = 10;
 
-        // @desc Highlight the thumbnail of the currently visible page with a
+        // @desc {
+        // Highlight the thumbnail of the currently visible page with a
         // border
+        // }
         // @type bool
         // @default true
         // @added 0.7.4
         bool highlight_current_page = true;
 
-        // @desc Automatically scroll the thumbnail panel to keep the
+        // @desc {
+        // Automatically scroll the thumbnail panel to keep the
         // currently visible page's thumbnail in view as pages change
+        // }
         // @type bool
         // @default true
         // @added 0.7.8
@@ -308,9 +316,11 @@ struct Config
         // @added 0.6.5
         bool dim_inactive = false;
 
-        // @desc Split direction for the portal view ("vertical", "horizontal",
+        // @desc {
+        // Split direction for the portal view ("vertical", "horizontal",
         // or "smart" — picks vertical when the view is wider than tall,
         // horizontal otherwise)
+        // }
         // @type str
         // @default "vertical"
         // @added 0.7.4
@@ -583,8 +593,10 @@ struct Config
     // @section_added 0.7.9
     struct Reflow
     {
-        // @desc Font family for the text (any installed font, or serif,
+        // @desc {
+        // Font family for the text (any installed font, or serif,
         // sans-serif, monospace). Empty uses the document's own fonts
+        // }
         // @type str
         // @default ""
         // @added 0.7.9
@@ -596,8 +608,10 @@ struct Config
         // @added 0.7.9
         float font_size = 11.0f;
 
-        // @desc Line spacing as a multiple of the font size (e.g. 1.4). 0 uses
+        // @desc {
+        // Line spacing as a multiple of the font size (e.g. 1.4). 0 uses
         // the document's own spacing
+        // }
         // @type float
         // @default 0.0f
         // @added 0.7.9
@@ -796,8 +810,10 @@ struct Config
         // @added 0.5.3
         QString url_regex = R"((https?://|www\.)[^\s<>()\"']+)";
 
-        // @desc Show a small preview of where an internal link goes when
+        // @desc {
+        // Show a small preview of where an internal link goes when
         // hovering over it, instead of the plain tooltip
+        // }
         // @type bool
         // @default false
         // @added 0.7.9
@@ -1147,21 +1163,25 @@ struct Config
         // @added 0.6.5
         bool description = false;
 
-        // @desc Sort commands by how often you've picked them from the
+        // @desc {
+        // Sort commands by how often you've picked them from the
         // command palette (most-used first), smex-style. Usage counts
         // persist across sessions when persist_frequency is on.
+        // }
         // @type bool
         // @default true
         // @added 0.7.8
         bool sort_by_frequency = true;
 
-        // @desc Persist command-palette usage counts to disk
+        // @desc {
+        // Persist command-palette usage counts to disk
         // (command_usage.json in the app data directory) so
         // sort_by_frequency ranking survives across restarts. When off,
         // usage is still tracked in-memory for the current session (so
         // sort_by_frequency still works within one run) but nothing is
         // loaded or saved to disk, and any previously saved history file
         // is left untouched.
+        // }
         // @type bool
         // @default true
         // @added 0.7.8
@@ -1313,15 +1333,19 @@ struct Config
         // @added 0.7.8
         bool high_contrast = false;
 
-        // @desc Pixel value (0-255) below which high-contrast pushes to pure
+        // @desc {
+        // Pixel value (0-255) below which high-contrast pushes to pure
         // black.
+        // }
         // @type int
         // @default 40
         // @added 0.7.8
         int high_contrast_black_point = 40;
 
-        // @desc Pixel value (0-255) above which high-contrast pushes to pure
+        // @desc {
+        // Pixel value (0-255) above which high-contrast pushes to pure
         // white.
+        // }
         // @type int
         // @default 220
         // @added 0.7.8

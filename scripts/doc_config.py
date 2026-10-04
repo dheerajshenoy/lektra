@@ -1,4 +1,5 @@
 import json
+import re
 import sys
 import os
 
@@ -31,6 +32,7 @@ class Parser:
         current_section = None
         current_tags = {}
         active_block_key = None
+        in_enum = False
 
         section_keywords = {f"section_{kw}": kw for kw in self.keywords}
 
@@ -47,6 +49,11 @@ class Parser:
 
                 # Section start
                 if key == "section":
+                    # A nested section (e.g. Picker.Keys inside picker) starts
+                    # before the outer one has ended: keep what the outer one
+                    # collected so far instead of dropping it.
+                    if current_section and current_section["fields"]:
+                        sections.append(current_section)
                     current_section = {
                             "name": value,
                             "fields": [],
@@ -108,6 +115,16 @@ class Parser:
                     active_block_key = None
                 continue
 
+            # An enum declared between an option's tags and the option itself
+            # (enum class X { ... }; X option = ...;) must not take the tags.
+            if re.match(r"enum\b", line):
+                in_enum = not (line.endswith("};") or line.endswith("}"))
+                continue
+            if in_enum:
+                if line.startswith("}"):
+                    in_enum = False
+                continue
+
             if current_section and current_tags and not line.startswith("//"):
                 code_part = line.split("{")[0].strip()
                 if code_part:
@@ -118,6 +135,10 @@ class Parser:
                     current_section["fields"].append(current_tags)
                     current_tags = {}
                     active_block_key = None
+
+        # the last section of the file may not be closed by @endsection
+        if current_section and current_section["fields"]:
+            sections.append(current_section)
 
         return sections
 

@@ -61,6 +61,35 @@ the Visual Studio C++ tools must be installed. CMake finds the matching
 it cannot, run the build from a "Developer Command Prompt" or configure with
 `-DWITH_LUA=OFF` (`configure.bat --without-lua`).
 
+### Editor completion for `config.toml`
+
+`schema/lektra-config.schema.json` is a JSON Schema of `config.toml`. With a
+TOML language server such as [Taplo](https://taplo.tamasfe.hu) (used by the VS
+Code "Even Better TOML" extension, Neovim's `taplo`, Helix and Zed) it gives
+completion, hover documentation and warnings for typos and wrong values.
+
+Point the server at it from the config file itself, with a first line like
+`#:schema https://codeberg.org/lektra/lektra/raw/branch/main/schema/lektra-config.schema.json`
+(`default_config.toml` already starts with it), or with a rule in `.taplo.toml`:
+
+```toml
+[[rule]]
+include = ["**/lektra/config.toml"]
+schema.path = "/usr/share/lektra/lektra-config.schema.json"
+```
+
+The schema is generated from the config loader (`src/lektra/Config.cpp`) and
+the `@desc`/`@type`/`@default`/`@choice` annotations in `include/Config.hpp`, so
+regenerate it after adding or changing an option, and run its checks:
+
+```bash
+python3 scripts/gen_config_schema.py     # rewrites schema/lektra-config.schema.json
+python3 scripts/test_config_schema.py    # needs the `jsonschema` package
+```
+
+A multi-line `@desc` must use the `{ ... }` form, otherwise only its first line
+is kept.
+
 ### Nix
 
 A flake is provided that handles all dependencies including mupdf:

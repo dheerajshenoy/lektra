@@ -1,3 +1,4 @@
+#:schema https://codeberg.org/lektra/lektra/raw/branch/main/schema/lektra-config.schema.json
 # =============================================================================
 # LEKTRA default configuration
 #
@@ -8,6 +9,11 @@
 #
 # You can override any subset of these keys in your own config file —
 # sections you omit fall back to the defaults compiled into the binary.
+#
+# Editor completion and checking: the line at the very top of this file points a
+# TOML language server (Taplo: VS Code "Even Better TOML", Neovim, Helix, Zed)
+# at Lektra's JSON Schema. Keep that line in your own config.toml to get
+# completion, hover documentation and warnings for typos and wrong values.
 #
 # Config file location:
 #   Linux / macOS : $HOME/.config/lektra/config.toml
