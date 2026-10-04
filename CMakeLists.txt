@@ -7,6 +7,7 @@ include(GNUInstallDirs)
 # installer script (lektra.iss) so it doesn't need its own hardcoded copy.
 file(WRITE "${CMAKE_BINARY_DIR}/version.txt" "${PROJECT_VERSION}")
 
+option(WITH_PCH "Use a precompiled header to speed up compilation" ON)
 option(WITH_SYNCTEX "Enable synctex support" ON)
 option(WITH_FONTCONFIG "Look up fonts via fontconfig when available (otherwise scan the system font folders)" ON)
 option(WITH_LIBARCHIVE "Open RAR/7z comic books (cbr, cb7) via libarchive when available" ON)
@@ -399,6 +400,12 @@ endif()
 # --- MuPDF ---
 target_include_directories(${PROJECT_NAME} PRIVATE ${MUPDF_INCLUDE_DIRS})
 target_compile_definitions(${PROJECT_NAME} PRIVATE HAS_MUPDF=1)
+
+# --- Precompiled header (Qt, std and MuPDF headers shared by most sources) ---
+if (WITH_PCH)
+    target_precompile_headers(${PROJECT_NAME} PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/pch.hpp")
+endif()
 
 if (LIBARCHIVE_FOUND)
     target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::LIBARCHIVE)
