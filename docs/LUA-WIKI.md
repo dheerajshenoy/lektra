@@ -77,6 +77,7 @@ Document view helpers and per-document actions.
 | `view:undo()` | — | Undo the last action. |
 | `view:redo()` | — | Redo the last undone action. |
 | `view:extract_text(formatted)` | `string` | Extract text from the current page. |
+| `view:export_pages(names, pages?, opts?)` | `string[]?, string?` | Save pages to files: pictures (png, jpg, webp, bmp, tif; one per page, `%d` in the name is the page number), or pdf, svg, txt, html, cbz, docx, odt. `pages`: a number, a list, or text like `"1-5,8"`, `"all"`, `"odd"` (default: current page). `opts`: `dpi` (default 150), `overwrite` (default `false`), `split` (make one file per page instead of one file, for pdf, txt, html, ...). Returns the files written, or `nil` and a reason. |
 | `view:has_selection()` | `boolean` | Whether text is selected. |
 | `view:selection_text(formatted)` | `string` | Selected text. |
 | `view:clear_selection()` | — | Clear the current selection. |

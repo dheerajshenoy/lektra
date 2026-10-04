@@ -318,6 +318,7 @@ Portal mode links two views to the same document so that scrolling one drives th
 
 \begin{itemize}[leftmargin=*]
     \item \keys{:selection\_copy} — copy the current text selection to the clipboard
+    \item \keys{:export\_pages} — save pages as images (PNG by default), PDF, SVG, text, HTML, CBZ and more. A dialog asks which pages (for example \texttt{1-5,8,10-}, \texttt{all}, \texttt{odd}, \texttt{current}) and the format, then where to save. For PDF, text and HTML a checkbox chooses between one file with all the pages and one file per page (pictures and SVG are always one per page); files made per page get the page number added to the name (\texttt{out-2.png}). Give a path, pages and a resolution to skip the dialogs, e.g.\ \keys{:export\_pages /tmp/p.png 3-5 200}, and add \texttt{split} to make one file per page (\keys{:export\_pages /tmp/p.pdf 3-5 150 split}). From Lua: \texttt{view:export\_pages("/tmp/p.png", "3-5", \{ dpi = 200 \})}, with \texttt{split = true} for one file per page
     \item \keys{:copy\_page\_image} — copy the current page as an image (context menu also has ``Copy Region as Image'' when a region is selected, with an optional custom DPI for vector documents)
     \item \textbf{Drag an image out:} click and drag an image from a PDF page onto another application or a file manager to save or paste it as a PNG, at its native resolution
     \item \keys{:export\_outline} — write the document outline (real or generated) to JSON

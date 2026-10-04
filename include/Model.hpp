@@ -299,6 +299,19 @@ public:
         return m_filetype == FileType::PDF;
     }
 
+    // Whether pages can be written with MuPDF's document writers (not for
+    // DjVu or image documents).
+    [[nodiscard]] inline bool supportsWriterExport() const noexcept
+    {
+        return m_doc != nullptr && !m_is_image && m_filetype != FileType::DJVU;
+    }
+    // Writes pages (0-based) as pdf, text (txt), html, xhtml, cbz, docx, odt
+    // or svg. All but svg make one file (`paths` has one name); svg makes one
+    // file per page (`paths` has a name for each). On failure returns false
+    // with the reason in `error`.
+    bool exportWithWriter(const std::vector<int> &pages, const QStringList &paths,
+                          const QString &format, QString *error = nullptr) noexcept;
+
     [[nodiscard]] inline bool supports_save() const noexcept
     {
         return supports_annotations();

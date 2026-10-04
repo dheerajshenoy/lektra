@@ -248,6 +248,16 @@ function View:save_as(file_path) end
 ---@return string text_content
 function View:extract_text(formatted) end
 
+---Saves pages to files, as pictures or in other formats. The format is the extension of the file: png (the default when there is none), jpg, webp, bmp, tif ... make one picture per page; pdf, txt, html, xhtml, cbz, docx and odt make one file with all the pages; svg makes one file per page. Images and DjVu can only be written as pictures or pdf. Nothing is written if anything is wrong, and an existing file is not replaced unless `overwrite` is true.
+---
+---With several pictures, one name is a pattern: `%d` (or `%03d`, padded) is replaced by the page number, and a name without it gets `-<number>` before its extension (`out.png` gives `out-2.png`, `out-3.png`). A list of names gives one name per page instead. A single page keeps the name as it is.
+---@param names string|string[] The file name, or a list of names (one per page).
+---@param pages? integer|string|integer[] Which pages (1-based): a number, a list of numbers, or text such as `"1-5,8"`, `"10-"`, `"all"`, `"odd"`, `"even"`, `"current"`, `"last"`. Default: the current page.
+---@param opts? {dpi?: integer, overwrite?: boolean, split?: boolean} `dpi` is the resolution of pictures (10 to 1200, default 150); a picture document is saved with its own pixels. With `split` the formats that make one file for all the pages (pdf, txt, html, ...) make one file per page instead, named like pictures.
+---@return string[]? files The files that were written, or nil if it failed.
+---@return string? err Why it failed.
+function View:export_pages(names, pages, opts) end
+
 ---Returns the text of a page, "" if it has none (e.g. a scanned page or an image).
 ---@param pageno? integer Page number, 1-based (default: the current page).
 ---@param formatted? boolean Keep the layout (newlines, tabs) instead of plain text. Default false.

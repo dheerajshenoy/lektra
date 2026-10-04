@@ -1,5 +1,8 @@
 #include "Lektra.hpp"
 
+#include "ExportPagesDialog.hpp"
+#include "PageRange.hpp"
+
 #include "AboutDialog.hpp"
 #include "AppPaths.hpp"
 #include "DispatchType.hpp"
@@ -1198,6 +1201,139 @@ Lektra::Reshow_jump_marker() noexcept
 {
     if (m_doc)
         m_doc->Reshow_jump_marker();
+}
+
+// export_pages [path] [pages] [dpi]
+// Without arguments: asks which pages, then where to save. With a path, the
+// pages (default: the current one) are written without asking anything.
+void
+Lektra::ExportPages(const QStringList &args) noexcept
+{
+    if (!m_doc || !m_doc->model() || m_doc->model()->numPages() <= 0)
+        return;
+
+    const int count   = m_doc->model()->numPages();
+    const int current = m_doc->pageNo();
+    const QString title = tr("Export Pages");
+    auto sentence = [](QString s)
+    {
+        if (!s.isEmpty())
+            s[0] = s[0].toUpper();
+        return s;
+    };
+
+    std::vector<int> pages;
+    QString path;
+    int dpi = 150;
+
+    bool split = false;
+    if (args.isEmpty())
+    {
+        // What to export: the pages, the format and, where it applies, one file
+        // or a file per page.
+        ExportPagesDialog options(count, current, m_doc->model()->supportsWriterExport(),
+                                  m_export_format, m_export_split, this);
+        if (options.exec() != QDialog::Accepted)
+            return;
+        const ExportPagesDialog::Result chosen = options.result();
+        m_export_format = chosen.format;
+        if (ExportPagesDialog::canSplit(chosen.format))
+            m_export_split = chosen.split; // the other formats have no choice
+        split = chosen.split;
+
+        QString problem;
+        pages = page_range::parse(chosen.pages, count, current, &problem);
+        if (pages.empty())
+            return; // the dialog does not accept what is not valid
+
+        // Where to save it: the dialog offers just the chosen format.
+        static const QHash<QString, QString> filters = {
+            {"png", tr("PNG Image (*.png)")},      {"jpg", tr("JPEG Image (*.jpg *.jpeg)")},
+            {"webp", tr("WebP Image (*.webp)")},   {"bmp", tr("BMP Image (*.bmp)")},
+            {"tif", tr("TIFF Image (*.tif *.tiff)")}, {"pdf", tr("PDF Document (*.pdf)")},
+            {"svg", tr("SVG Picture (*.svg)")},    {"txt", tr("Text (*.txt)")},
+            {"html", tr("HTML (*.html)")},
+        };
+        const bool several = pages.size() > 1;
+        const QFileInfo doc(m_doc->filePath());
+        const QString base = doc.completeBaseName().isEmpty() ? tr("pages")
+                                                              : doc.completeBaseName();
+        const QString name
+            = (pages.size() == 1)
+                  ? QStringLiteral("%1-page-%2.%3").arg(base).arg(pages.front() + 1).arg(chosen.format)
+                  : QStringLiteral("%1.%2").arg(base, chosen.format);
+        const bool perPage
+            = several && (split || !ExportPagesDialog::canSplit(chosen.format));
+        path = QFileDialog::getSaveFileName(
+            this,
+            perPage ? tr("Export %1 Pages (the page number is added to the name)")
+                          .arg(pages.size())
+                    : tr("Export Pages"),
+            QDir(doc.absolutePath()).filePath(name),
+            filters.value(chosen.format, tr("All Files (*)")));
+        if (path.isEmpty())
+            return;
+        if (QFileInfo(path).suffix().isEmpty())
+            path += QLatin1Char('.') + chosen.format;
+    }
+    else
+    {
+        path = args.at(0);
+        QString problem;
+        pages = page_range::parse(args.value(1, QStringLiteral("current")), count,
+                                  current, &problem);
+        if (pages.empty())
+        {
+            QMessageBox::warning(this, title, sentence(problem) + QLatin1Char('.'));
+            return;
+        }
+        split = args.size() > 3 && args.at(3).toLower() == QLatin1String("split");
+        if (args.size() > 2)
+        {
+            bool ok    = false;
+            const int v = args.at(2).toInt(&ok);
+            if (!ok)
+            {
+                QMessageBox::warning(this, title,
+                                     tr("\"%1\" is not a resolution (dpi)").arg(args.at(2)));
+                return;
+            }
+            dpi = v;
+        }
+    }
+
+    // The dialog has already asked about replacing the file that was chosen,
+    // which is the only file when the result is one file; otherwise (pages
+    // numbered into several files) we ask here.
+    const QString kind = QFileInfo(path).suffix().toLower();
+    static const QStringList oneFile = {"pdf", "txt", "text", "html", "xhtml", "cbz", "docx", "odt"};
+    const bool single
+        = pages.size() == 1 || (oneFile.contains(kind) && !split) || args.size() > 0;
+
+    QStringList written;
+    QString error;
+    bool existing = false;
+    bool ok       = m_doc->exportPages({path}, pages, dpi, single, &written, &error,
+                                       &existing, split);
+    if (!ok && existing
+        && QMessageBox::question(this, title,
+                                 tr("Some of the files already exist. Replace them?"))
+               == QMessageBox::Yes)
+        ok = m_doc->exportPages({path}, pages, dpi, true, &written, &error, &existing, split);
+
+    if (ok)
+        m_message_bar->showMessage(
+            written.size() == 1
+                ? (pages.size() == 1 ? tr("Saved page %1 as %2").arg(pages.front() + 1).arg(written.first())
+                                     : tr("Saved %1 pages as %2").arg(pages.size()).arg(written.first()))
+                : tr("Saved %1 files, from %2 to %3")
+                      .arg(written.size())
+                      .arg(QFileInfo(written.first()).fileName(),
+                           QFileInfo(written.last()).fileName()),
+            4.0f);
+    else if (!existing)
+        QMessageBox::warning(this, title,
+                             tr("Could not export the pages:\n%1").arg(error));
 }
 
 void

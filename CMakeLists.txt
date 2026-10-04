@@ -351,6 +351,7 @@ qt_add_executable(${PROJECT_NAME}
     src/StatusbarLayout.cpp
     src/Model.cpp
     src/model/Lifecycle.cpp
+    src/model/Export.cpp
     src/model/PageCache.cpp
     src/model/Text.cpp
     src/model/Render.cpp
@@ -359,6 +360,7 @@ qt_add_executable(${PROJECT_NAME}
     src/PropertiesWidget.cpp
     src/AboutDialog.cpp
     src/DonateDialog.cpp
+    src/ExportPagesDialog.cpp
     src/GraphicsView.cpp
     src/GraphicsScene.cpp
     src/DocumentView.cpp

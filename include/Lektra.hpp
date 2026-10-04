@@ -268,6 +268,9 @@ public:
     void Show_recent_files_picker() noexcept;
     void Show_file_picker() noexcept;
     void Copy_page_image() noexcept;
+    // export_pages [path] [pages] [dpi] [split]: without arguments asks which
+    // pages, the format and where to save them.
+    void ExportPages(const QStringList &args) noexcept;
     void Reopen_last_closed_file() noexcept;
     void AddBookmark() noexcept;
     // Adds a bookmark and tells the OnBookmarkAdded listeners.
@@ -577,6 +580,9 @@ private:
     RecentFilesStore m_recent_files_store;
     QString m_session_name;
     MessageBar *m_message_bar = nullptr;
+    // What the export dialog was last set to.
+    QString m_export_format = QStringLiteral("png");
+    bool m_export_split     = false;
     NoticeBar *m_notice_bar   = nullptr;
     QJsonObject m_app_state; // see Notices.cpp
     QNetworkAccessManager *m_update_net = nullptr;

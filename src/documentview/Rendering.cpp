@@ -1,3 +1,11 @@
+#include "PageRange.hpp"
+
+#include <QFileInfo>
+#include <QImageReader>
+#include <QPageSize>
+#include <QPdfWriter>
+#include <QPainter>
+#include <QImageWriter>
 #include "DocumentView.hpp"
 
 #include <QMovie>
@@ -1645,4 +1653,197 @@ DocumentView::currentPageImage() noexcept
     if (!item || m_placeholder_pages.contains(pageno))
         return {};
     return item->imageRegion(QRect(0, 0, item->width(), item->height()));
+}
+
+// A page as a picture for exporting. A document with pages is rendered at
+// `dpi`; a picture is taken with its own pixels (animated images and SVG as
+// they are shown).
+QImage
+DocumentView::renderPageForExport(int pageno, int dpi) noexcept
+{
+    QImage image;
+    if (m_model->isImage())
+    {
+        if (!m_model->isAnimated())
+        {
+            QImageReader reader(filePath());
+            reader.setAutoTransform(true);
+            const QByteArray kind = reader.format();
+            if (kind != "svg" && kind != "svgz")
+                image = reader.read();
+        }
+        if (image.isNull())
+            image = currentPageImage();
+        return image;
+    }
+
+    const QSizeF size = m_model->pageSizePts(pageno, true);
+    if (!size.isEmpty())
+        image = m_model->renderPtsRegion(pageno, QRectF(QPointF(0, 0), size),
+                                         static_cast<float>(dpi));
+    if (image.isNull() && pageno == m_pageno)
+        image = currentPageImage(); // what is on screen, if nothing else works
+    return image;
+}
+
+bool
+DocumentView::exportPages(const QStringList &namesIn,
+                          const std::vector<int> &pages, int dpi,
+                          bool overwrite, QStringList *written, QString *error,
+                          bool *existing, bool split) noexcept
+{
+    auto fail = [error](const QString &message)
+    {
+        if (error)
+            *error = message;
+        return false;
+    };
+    if (existing)
+        *existing = false;
+
+    if (!m_model || m_model->numPages() <= 0)
+        return fail(tr("There is no document"));
+    if (pages.empty())
+        return fail(tr("No pages were given"));
+    for (const int p : pages)
+        if (p < 0 || p >= m_model->numPages())
+            return fail(tr("There is no page %1").arg(p + 1));
+    if (dpi < 10 || dpi > 1200)
+        return fail(tr("The resolution must be between 10 and 1200 dpi"));
+
+    QStringList names;
+    for (const QString &n : namesIn)
+        if (!n.trimmed().isEmpty())
+            names << n.trimmed();
+    if (names.isEmpty())
+        return fail(tr("No file name was given"));
+
+    // PNG unless a name says something else.
+    for (QString &n : names)
+        if (QFileInfo(n).suffix().isEmpty())
+            n += QStringLiteral(".png");
+    const QString suffix = QFileInfo(names.first()).suffix().toLower();
+    for (const QString &n : std::as_const(names))
+        if (QFileInfo(n).suffix().toLower() != suffix)
+            return fail(tr("All the files must be of the same kind (%1)").arg(suffix));
+
+    static const QStringList writerFormats
+        = {"pdf", "svg", "txt", "text", "html", "xhtml", "cbz", "docx", "odt"};
+    const bool picture = suffix != QLatin1String("pdf") && suffix != QLatin1String("svg")
+                         && QImageWriter::supportedImageFormats().contains(suffix.toLatin1());
+    const bool writer = writerFormats.contains(suffix);
+    if (!picture && !writer)
+        return fail(tr("Cannot write \"%1\" files (try png, jpg, webp, bmp, tif, pdf, "
+                       "svg, txt, html, cbz, docx or odt)")
+                        .arg(suffix));
+    if (!picture && suffix != QLatin1String("pdf") && !m_model->supportsWriterExport())
+        return fail(tr("%1 cannot be written from an image or DjVu document (try "
+                       "png, jpg or pdf)")
+                        .arg(suffix));
+
+    // The files that will be made. Pictures and SVG are always one file per
+    // page; the other formats make one file for all the pages, unless asked to
+    // `split` them.
+    const bool oneFilePerPage = picture || suffix == QLatin1String("svg") || split;
+    QStringList targets;
+    if (!oneFilePerPage)
+    {
+        if (names.size() != 1)
+            return fail(tr("%1 is one file: give one file name").arg(suffix));
+        targets = names;
+    }
+    else if (names.size() == 1)
+    {
+        const int highest = *std::max_element(pages.begin(), pages.end()) + 1;
+        const int width   = QString::number(highest).size();
+        for (const int p : pages)
+            targets << ((pages.size() == 1 && !page_range::hasPlaceholder(names.first()))
+                            ? names.first()
+                            : page_range::nameForPage(names.first(), p + 1, width));
+    }
+    else if (names.size() == static_cast<qsizetype>(pages.size()))
+        targets = names;
+    else
+        return fail(tr("Give one name, or one name for each of the %1 pages")
+                        .arg(pages.size()));
+
+    QStringList sorted = targets;
+    sorted.sort();
+    if (std::adjacent_find(sorted.begin(), sorted.end()) != sorted.end())
+        return fail(tr("Two pages would be written to the same file"));
+    for (const QString &t : std::as_const(targets))
+    {
+        const QFileInfo info(t);
+        if (!info.dir().exists())
+            return fail(tr("The folder %1 does not exist").arg(info.absolutePath()));
+        if (!overwrite && info.exists())
+        {
+            if (existing)
+                *existing = true;
+            return fail(tr("%1 already exists").arg(t));
+        }
+    }
+
+    // Writing: each file gets its pages (one page for pictures, SVG and split
+    // files; all of them otherwise).
+    auto writeFile = [&](const std::vector<int> &filePages, const QString &target) -> bool
+    {
+        if (picture)
+        {
+            const int p        = filePages.front();
+            const QImage image = renderPageForExport(p, dpi);
+            if (image.isNull())
+                return fail(tr("Page %1 could not be rendered").arg(p + 1));
+            QImageWriter w(target, suffix.toLatin1());
+            if (!w.write(image))
+                return fail(tr("Page %1: %2").arg(p + 1).arg(w.errorString()));
+            return true;
+        }
+        if (m_model->supportsWriterExport())
+        {
+            QString problem;
+            if (!m_model->exportWithWriter(filePages, {target}, suffix, &problem))
+                return fail(problem);
+            return true;
+        }
+        // pdf from an image or DjVu document: the pages as pictures in a pdf
+        QPdfWriter pdf(target);
+        pdf.setResolution(dpi);
+        pdf.setPageMargins(QMarginsF(0, 0, 0, 0));
+        QPainter painter;
+        bool first = true;
+        for (const int p : filePages)
+        {
+            const QImage image = renderPageForExport(p, dpi);
+            if (image.isNull())
+                return fail(tr("Page %1 could not be rendered").arg(p + 1));
+            pdf.setPageSize(QPageSize(QSizeF(image.width() * 72.0 / dpi,
+                                             image.height() * 72.0 / dpi),
+                                      QPageSize::Point));
+            if (first)
+            {
+                if (!painter.begin(&pdf))
+                    return fail(tr("Could not write %1").arg(target));
+                first = false;
+            }
+            else
+                pdf.newPage();
+            painter.drawImage(QRect(0, 0, pdf.width(), pdf.height()), image);
+        }
+        painter.end();
+        return true;
+    };
+
+    if (oneFilePerPage)
+    {
+        for (qsizetype i = 0; i < targets.size(); ++i)
+            if (!writeFile({pages[i]}, targets.at(i)))
+                return false;
+    }
+    else if (!writeFile(pages, targets.first()))
+        return false;
+
+    if (written)
+        *written = targets;
+    return true;
 }

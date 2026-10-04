@@ -1,4 +1,5 @@
 #include "Lektra.hpp"
+#include "PageRange.hpp"
 #include "Model.hpp"
 #include "utils.hpp"
 
@@ -1298,6 +1299,112 @@ static const luaL_Reg DocumentViewMethods[] = {
                             static_cast<int>(luaL_optinteger(L, 2, 0)),
                             static_cast<int>(luaL_optinteger(L, 3, 0)));
                     return 0;
+                }),
+
+    VIEW_METHOD("export_pages",
+                {
+                    // export_pages(names, [pages], [{dpi=, overwrite=}])
+                    //   -> {paths...} | nil, error
+                    auto failure = [L](const char *message)
+                    {
+                        lua_pushnil(L);
+                        lua_pushstring(L, message);
+                        return 2;
+                    };
+                    if (!*view)
+                        return failure("the view is closed");
+                    DocumentView *doc = *view;
+
+                    // the file name(s): one string, or a list of strings
+                    QStringList names;
+                    if (lua_istable(L, 2))
+                    {
+                        const int n = static_cast<int>(lua_rawlen(L, 2));
+                        for (int i = 1; i <= n; ++i)
+                        {
+                            lua_rawgeti(L, 2, i);
+                            if (lua_isstring(L, -1))
+                                names << QString::fromUtf8(lua_tostring(L, -1));
+                            lua_pop(L, 1);
+                        }
+                    }
+                    else
+                        names << QString::fromUtf8(luaL_checkstring(L, 2));
+
+                    // the pages: nothing (the current one), a number, a text
+                    // like "1-5,8" (or "all"), or a list of numbers; 1-based
+                    const int count = doc->model() ? doc->model()->numPages() : 0;
+                    QString problem;
+                    std::vector<int> pages;
+                    if (lua_isnoneornil(L, 3))
+                        pages = {doc->pageNo()};
+                    else if (lua_type(L, 3) == LUA_TNUMBER)
+                    {
+                        const int p = static_cast<int>(lua_tointeger(L, 3));
+                        if (p < 1 || p > count)
+                            return failure(
+                                qUtf8Printable(QStringLiteral("page %1 does not exist (the pages are 1 to %2)")
+                                                   .arg(p)
+                                                   .arg(count)));
+                        pages = {p - 1};
+                    }
+                    else if (lua_type(L, 3) == LUA_TSTRING)
+                    {
+                        pages = page_range::parse(QString::fromUtf8(lua_tostring(L, 3)),
+                                                  count, doc->pageNo(), &problem);
+                        if (pages.empty())
+                            return failure(qUtf8Printable(problem));
+                    }
+                    else if (lua_istable(L, 3))
+                    {
+                        const int n = static_cast<int>(lua_rawlen(L, 3));
+                        for (int i = 1; i <= n; ++i)
+                        {
+                            lua_rawgeti(L, 3, i);
+                            const int p = static_cast<int>(lua_tointeger(L, -1));
+                            lua_pop(L, 1);
+                            if (p < 1 || p > count)
+                                return failure(
+                                    qUtf8Printable(QStringLiteral("page %1 does not exist (the pages are 1 to %2)")
+                                                       .arg(p)
+                                                       .arg(count)));
+                            pages.push_back(p - 1);
+                        }
+                        if (pages.empty())
+                            return failure("no pages were given");
+                    }
+                    else
+                        return failure("pages is a number, a text like \"1-5,8\", or a list of numbers");
+
+                    int dpi        = 150;
+                    bool overwrite = false;
+                    bool split     = false;
+                    if (lua_istable(L, 4))
+                    {
+                        lua_getfield(L, 4, "dpi");
+                        if (lua_isnumber(L, -1))
+                            dpi = static_cast<int>(lua_tointeger(L, -1));
+                        lua_pop(L, 1);
+                        lua_getfield(L, 4, "overwrite");
+                        overwrite = lua_toboolean(L, -1);
+                        lua_pop(L, 1);
+                        lua_getfield(L, 4, "split");
+                        split = lua_toboolean(L, -1);
+                        lua_pop(L, 1);
+                    }
+
+                    QStringList written;
+                    QString error;
+                    if (!doc->exportPages(names, pages, dpi, overwrite, &written, &error,
+                                          nullptr, split))
+                        return failure(qUtf8Printable(error));
+                    lua_newtable(L);
+                    for (int i = 0; i < written.size(); ++i)
+                    {
+                        lua_pushstring(L, written.at(i).toUtf8().constData());
+                        lua_rawseti(L, -2, i + 1);
+                    }
+                    return 1;
                 }),
 
     VIEW_METHOD("scroll_to",

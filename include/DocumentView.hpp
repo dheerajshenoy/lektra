@@ -552,6 +552,22 @@ public:
     // The current page rendered as an image (about 150 dpi), for attaching to
     // a chat message. Null if it cannot be rendered.
     QImage currentPageImage() noexcept;
+    // Writes pages (0-based, in the given order) to files.
+    //  * Pictures (png, jpg, webp, bmp, tif, ...): one file per page, rendered
+    //    at `dpi`. One name is a pattern (%d or %03d is the page number, or
+    //    "-<number>" is put before the extension); several names are one for
+    //    each page. The format is the extension, png when there is none.
+    //  * pdf, text (txt), html, xhtml, cbz, docx, odt: one file with all the
+    //    pages (one name). svg: one file per page.
+    // With `split`, the formats that make one file for all the pages make one
+    // file per page instead, named like pictures. Images and DjVu can only
+    // be written as pictures or pdf. Nothing is
+    // written unless everything is valid and, without `overwrite`, no file
+    // exists: then `existing` (if given) is set. `written` gets the files.
+    bool exportPages(const QStringList &names, const std::vector<int> &pages,
+                     int dpi = 150, bool overwrite = true,
+                     QStringList *written = nullptr, QString *error = nullptr,
+                     bool *existing = nullptr, bool split = false) noexcept;
     // Decoded embedded image (native resolution) at a scene position, or a
     // null QImage if there isn't one there. Used to drag an image out of the
     // document (GraphicsView::setImageDragProvider()).
@@ -691,6 +707,8 @@ protected:
     void enterEvent(QEnterEvent *event) override;
 
 private:
+    // A page as a picture for exporting (see exportPages()).
+    QImage renderPageForExport(int pageno, int dpi) noexcept;
     struct HitRef
     {
         int page;

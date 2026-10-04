@@ -998,6 +998,11 @@ Lektra::initCommands() noexcept
         [this](const QStringList &) { Reopen_last_closed_file(); });
     m_command_manager->reg("copy_page_image", tr("Copy current page as image"),
                            [this](const QStringList &) { Copy_page_image(); });
+    m_command_manager->reg(
+        "export_pages",
+        tr("Export pages as images (PNG by default), PDF or other formats; "
+           "asks for the pages and where to save"),
+        [this](const QStringList &args) { ExportPages(args); });
 #ifndef NDEBUG
     m_command_manager->reg("debug_command", tr("Run debug command"),
                            [this](const QStringList &) { debug_command(); });
