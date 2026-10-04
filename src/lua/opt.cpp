@@ -3,6 +3,7 @@
 #include "Lektra.hpp"
 #include "utils.hpp"
 
+#include <cmath>
 #include <cstring>
 #include <lua.h>
 #include <lauxlib.h>
@@ -650,8 +651,124 @@ static const LuaField layoutFields[] = {
 { static_cast<Config::Layout *>(p)->spacing = lua_tointeger(L, 3); }},
 };
 
+// Lua values as plain Qt data and back, for options with a free shape
+// (statusbar.layout): a table with only 1..n keys is a list, any other table a
+// map with text keys.
+static QVariant
+luaToVariant(lua_State *L, int idx, int depth = 0)
+{
+    idx = lua_absindex(L, idx);
+    if (depth > 8)
+        return {};
+    switch (lua_type(L, idx))
+    {
+        case LUA_TBOOLEAN:
+            return static_cast<bool>(lua_toboolean(L, idx));
+        case LUA_TNUMBER:
+        {
+            const double d = lua_tonumber(L, idx);
+            if (d == std::floor(d) && std::abs(d) < 1e15)
+                return static_cast<qlonglong>(d);
+            return d;
+        }
+        case LUA_TSTRING:
+            return QString::fromUtf8(lua_tostring(L, idx));
+        case LUA_TTABLE:
+        {
+            const int length = static_cast<int>(lua_rawlen(L, idx));
+            int keys         = 0;
+            for (lua_pushnil(L); lua_next(L, idx) != 0; lua_pop(L, 1))
+                ++keys;
+            if (keys == length)
+            {
+                QVariantList list;
+                for (int i = 1; i <= length; ++i)
+                {
+                    lua_rawgeti(L, idx, i);
+                    list << luaToVariant(L, -1, depth + 1);
+                    lua_pop(L, 1);
+                }
+                return list;
+            }
+            QVariantMap map;
+            for (lua_pushnil(L); lua_next(L, idx) != 0; lua_pop(L, 1))
+                if (lua_type(L, -2) == LUA_TSTRING)
+                    map.insert(QString::fromUtf8(lua_tostring(L, -2)),
+                               luaToVariant(L, -1, depth + 1));
+            return map;
+        }
+        default:
+            return {};
+    }
+}
+
+static void
+variantToLua(lua_State *L, const QVariant &v)
+{
+    switch (v.typeId())
+    {
+        case QMetaType::Bool:
+            lua_pushboolean(L, v.toBool());
+            break;
+        case QMetaType::Int:
+        case QMetaType::LongLong:
+        case QMetaType::UInt:
+        case QMetaType::ULongLong:
+            lua_pushinteger(L, v.toLongLong());
+            break;
+        case QMetaType::Double:
+        case QMetaType::Float:
+            lua_pushnumber(L, v.toDouble());
+            break;
+        case QMetaType::QVariantList:
+        case QMetaType::QStringList:
+        {
+            lua_newtable(L);
+            int i = 1;
+            for (const QVariant &item : v.toList())
+            {
+                variantToLua(L, item);
+                lua_rawseti(L, -2, i++);
+            }
+            break;
+        }
+        case QMetaType::QVariantMap:
+        {
+            lua_newtable(L);
+            const QVariantMap map = v.toMap();
+            for (auto it = map.constBegin(); it != map.constEnd(); ++it)
+            {
+                variantToLua(L, it.value());
+                lua_setfield(L, -2, it.key().toUtf8().constData());
+            }
+            break;
+        }
+        case QMetaType::QString:
+            lua_pushstring(L, v.toString().toUtf8().constData());
+            break;
+        default:
+            lua_pushnil(L);
+            break;
+    }
+}
+
 // --- statusbar ---
 static const LuaField statusbarFields[] = {
+    {"layout",
+     [](lua_State *L, P p)
+{
+    variantToLua(L, static_cast<Config::Statusbar *>(p)->layout);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    if (lua_istable(L, 3))
+        static_cast<Config::Statusbar *>(p)->layout
+            = luaToVariant(L, 3).toList();
+},
+     [](Lektra *lk)
+{ lk->applyStatusbarLayout(); }},
+
     {"padding",
      [](lua_State *L, P p)
 {
@@ -665,17 +782,22 @@ static const LuaField statusbarFields[] = {
 },
      [](lua_State *L, P p)
 {
+    auto &padding = static_cast<Config::Statusbar *>(p)->padding;
     if (lua_istable(L, 3))
     {
         for (int i = 0; i < 4; ++i)
         {
             lua_rawgeti(L, 3, i + 1);
-            static_cast<Config::Statusbar *>(p)->padding[i]
-                = lua_tointeger(L, -1);
+            padding[i] = static_cast<int>(lua_tointeger(L, -1));
             lua_pop(L, 1);
         }
     }
-}},
+    else if (lua_isnumber(L, 3))
+        // one number: the same padding on every side
+        padding.fill(static_cast<int>(lua_tointeger(L, 3)));
+},
+     [](Lektra *lk)
+{ lk->applyStatusbarLayout(); }},
 
     {"visible",
      [](lua_State *L, P p)

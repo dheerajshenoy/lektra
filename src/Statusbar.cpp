@@ -1,6 +1,7 @@
 #include "Statusbar.hpp"
 
 #include "GraphicsView.hpp"
+#include "StatusbarLayoutSpec.hpp"
 
 #include <mupdf/pdf/page.h>
 #include <qmessagebox.h>
@@ -33,39 +34,30 @@ Statusbar::initGui() noexcept
 
     setLayout(m_layout);
 
-    // Left
-    auto *leftLayout = new QHBoxLayout;
-
-    leftLayout->addWidget(m_session_label);
-    leftLayout->addWidget(m_filename_label);
-    leftLayout->addWidget(m_portal_label);
-    m_portal_label->setHidden(true);
-    leftLayout->addWidget(m_narrow_label);
-    m_narrow_label->setHidden(true);
-
-    // Center
-    auto *centerLayout = new QHBoxLayout;
     m_pageno_label->setFocusPolicy(Qt::ClickFocus);
+    m_portal_label->setHidden(true);
+    m_narrow_label->setHidden(true);
+    m_zoom_label->setHidden(true);
 
-    centerLayout->addWidget(m_pageno_label);
-    centerLayout->addWidget(m_pageno_separator);
-    centerLayout->addWidget(m_totalpage_label);
-
-    // Right
-    auto *rightLayout = new QHBoxLayout;
-
-    rightLayout->addWidget(m_progress_label);
-    rightLayout->addWidget(m_mode_color_label);
-    rightLayout->addWidget(m_mode_label);
-
-    m_layout->addLayout(leftLayout, 0, 0, Qt::AlignLeft | Qt::AlignVCenter);
-    m_layout->addLayout(centerLayout, 0, 1, Qt::AlignCenter | Qt::AlignVCenter);
-    m_layout->addLayout(rightLayout, 0, 2, Qt::AlignRight | Qt::AlignVCenter);
-
-    // Stretch the columns correctly
-    m_layout->setColumnStretch(0, 1); // left can expand
-    m_layout->setColumnStretch(1, 0); // center fixed
-    m_layout->setColumnStretch(2, 1); // right can expand
+    // The modules. Where each goes is decided by rebuildLayout().
+    auto addModule = [this](const QString &name, const QList<QWidget *> &parts)
+    {
+        auto *box = new QWidget(this);
+        auto *row = new QHBoxLayout(box);
+        row->setContentsMargins(0, 0, 0, 0);
+        for (QWidget *part : parts)
+            row->addWidget(part);
+        box->hide();
+        m_modules.insert(name, {box, parts});
+    };
+    addModule("session", {m_session_label});
+    addModule("filename", {m_filename_label});
+    addModule("portal", {m_portal_label});
+    addModule("narrow", {m_narrow_label});
+    addModule("page", {m_pageno_label, m_pageno_separator, m_totalpage_label});
+    addModule("zoom", {m_zoom_label});
+    addModule("progress", {m_progress_label});
+    addModule("mode", {m_mode_color_label, m_mode_label});
 
     connect(m_mode_label, &QPushButton::clicked,
             [&]() { emit modeChangeRequested(); });
@@ -79,6 +71,89 @@ Statusbar::initGui() noexcept
     m_mode_color_label->setVisible(m_config.component.mode.show);
     m_mode_label->setVisible(m_config.component.mode.show);
     m_progress_label->setVisible(m_config.component.progress.show);
+
+    rebuildLayout();
+}
+
+void
+Statusbar::rebuildLayout() noexcept
+{
+    const auto &padding = m_config.padding;
+    setContentsMargins(padding[0], padding[1], padding[2], padding[3]);
+
+    m_layout->clear();
+    qDeleteAll(m_texts);
+    m_texts.clear();
+    m_placed.clear();
+    for (const Module &module : std::as_const(m_modules))
+        module.box->hide();
+
+    QStringList warnings;
+    const statusbar_layout::Rows rows
+        = statusbar_layout::parse(m_config.layout, &warnings);
+    for (const QString &warning : std::as_const(warnings))
+        qWarning().noquote() << "[statusbar] layout:" << warning;
+
+    int rowNumber = 0;
+    for (const auto &row : rows)
+    {
+        for (const statusbar_layout::Item &item : row)
+        {
+            switch (item.kind)
+            {
+                case statusbar_layout::Item::Kind::Module:
+                {
+                    const auto it = m_modules.constFind(item.name);
+                    if (it == m_modules.constEnd())
+                        break;
+                    m_layout->addWidgetTo(rowNumber, it->box, item.spec);
+                    m_placed << item.name;
+                    break;
+                }
+                case statusbar_layout::Item::Kind::Text:
+                {
+                    auto *label = new QLabel(item.name, this);
+                    m_texts << label;
+                    m_layout->addWidgetTo(rowNumber, label, item.spec);
+                    label->show();
+                    break;
+                }
+                case statusbar_layout::Item::Kind::Gap:
+                    m_layout->addGapTo(rowNumber, item.spec);
+                    break;
+            }
+        }
+        ++rowNumber;
+    }
+
+    refreshModules();
+    m_layout->invalidate();
+    updateGeometry();
+}
+
+void
+Statusbar::refreshModules() noexcept
+{
+    for (auto it = m_modules.constBegin(); it != m_modules.constEnd(); ++it)
+    {
+        bool anyPart = false;
+        for (const QWidget *part : it->parts)
+            anyPart = anyPart || !part->isHidden();
+        it->box->setVisible(m_placed.contains(it.key()) && anyPart);
+    }
+}
+
+void
+Statusbar::setZoom(double factor) noexcept
+{
+    if (factor <= 0.0 || !m_config.component.zoom.show)
+        m_zoom_label->hide();
+    else
+    {
+        m_zoom_label->setText(QString("%1%").arg(qRound(factor * 100.0)));
+        m_zoom_label->show();
+    }
+    refreshModules();
 }
 
 void
@@ -115,6 +190,7 @@ Statusbar::setPageInfoVisible(bool state) noexcept
     m_totalpage_label->setVisible(show_page_info);
     m_mode_label->setVisible(show_mode);
     m_progress_label->setVisible(show_progress);
+    refreshModules();
 }
 
 void
@@ -130,6 +206,7 @@ Statusbar::setModeVisible(bool visible) noexcept
     {
         setMode(m_current_mode);
     }
+    refreshModules();
 }
 
 void
@@ -137,6 +214,7 @@ Statusbar::setProgressVisible(bool visible) noexcept
 {
     m_progress_forced_hidden = !visible;
     m_progress_label->setVisible(visible && m_config.component.progress.show);
+    refreshModules();
 }
 
 void
@@ -152,6 +230,7 @@ Statusbar::setSessionName(const QString &name) noexcept
             m_session_label->show();
         }
     }
+    refreshModules();
 }
 
 void
@@ -167,6 +246,7 @@ Statusbar::setPortalMode(bool state) noexcept
     {
         m_portal_label->hide();
     }
+    refreshModules();
 }
 
 void
@@ -183,6 +263,7 @@ Statusbar::setNarrowMode(bool state) noexcept
     {
         m_narrow_label->hide();
     }
+    refreshModules();
 }
 
 void
@@ -230,6 +311,7 @@ Statusbar::setMode(GraphicsView::Mode mode) noexcept
                                    && !m_mode_forced_hidden);
     m_mode_label->setVisible(cfg.show && !m_mode_forced_hidden);
     m_current_mode = mode;
+    refreshModules();
 }
 
 void

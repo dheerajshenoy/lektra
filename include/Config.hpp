@@ -440,10 +440,32 @@ struct Config
         using Padding   = std::array<int, 4>;
         // @desc Padding
         // @type table
-        // @note { Order is left, top, right, down }
+        // @note { Order is left, top, right, down. A single number sets all four }
         // @default [2, 2, 2, 2]
         // @added 0.5.5
         Padding padding = {2, 2, 2, 2};
+
+        // @desc {
+        // Which modules the statusbar shows and where. A list of items is one
+        // row, a list of lists is several rows. The modules are session,
+        // filename, page, zoom, progress, mode, portal and narrow. Items are
+        // placed from left to right, and the free space goes to the gaps: "|"
+        // is a gap that takes all of it, { stretch = 2 } a gap that takes
+        // twice the share of another, { spacer = 12 } a gap of 12 px. A module
+        // can also be a table, { module = "filename", stretch = 1,
+        // min_width = 80, max_width = 400, margin = 4, align = "right" }, and
+        // with at (0 to 1, the position along the bar) and anchor ("left",
+        // "center" or "right", the edge of the item put there) it is placed
+        // at a fixed position instead: { module = "page", at = 0.5, anchor =
+        // "center" }. { text = "|" } shows a piece of text, for example a
+        // separator. A module that is not listed is not shown
+        // }
+        // @type list
+        // @default ["session", "filename", "portal", "narrow", "|", "progress", "mode", { module = "page", at = 0.5, anchor = "center" }]
+        // @added 0.7.9
+        QList<QVariant> layout = {
+            "session", "filename", "portal", "narrow", "|", "progress", "mode",
+            QVariantMap{{"module", "page"}, {"at", 0.5}, {"anchor", "center"}}};
 
         // @section statusbar.component
         // @section_desc {

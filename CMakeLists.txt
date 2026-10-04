@@ -346,6 +346,7 @@ qt_add_executable(${PROJECT_NAME}
     src/lektra/Files.cpp
     src/lektra/Actions.cpp
     src/Statusbar.cpp
+    src/StatusbarLayout.cpp
     src/Model.cpp
     src/model/Lifecycle.cpp
     src/model/PageCache.cpp

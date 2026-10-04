@@ -104,6 +104,8 @@ public:
     DocumentView *VSplit(DocumentView::Id id = -1) noexcept;
     DocumentView *HSplit(DocumentView::Id id = -1) noexcept;
     void applyWindowBackground() noexcept;
+    // Places the statusbar's modules again after [statusbar].layout changed.
+    void applyStatusbarLayout() noexcept;
     void OpenConfigFile() noexcept;
     void Create_or_focus_portal() noexcept;
     void Close_split() noexcept;

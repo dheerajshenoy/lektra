@@ -5,6 +5,7 @@
 #include "DispatchType.hpp"
 #include "DocumentContainer.hpp"
 #include "DocumentView.hpp"
+#include "StatusbarLayoutSpec.hpp"
 #include "DonateDialog.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
@@ -62,6 +63,37 @@ configIssue(const toml::node *node, const QString &message)
     const int line = node ? static_cast<int>(node->source().begin.line) : 0;
     g_config_issues << (line > 0 ? QString("line %1: %2").arg(line).arg(message)
                                  : message);
+}
+
+// A TOML value as plain Qt data (lists, tables, text, numbers, booleans), for
+// options whose shape is free, like [statusbar].layout.
+static QVariant
+tomlToVariant(const toml::node &node)
+{
+    if (auto v = node.value<std::string>())
+        return QString::fromStdString(*v);
+    if (auto v = node.value<bool>())
+        return *v;
+    if (node.is_integer())
+        return static_cast<qlonglong>(*node.value<int64_t>());
+    if (node.is_floating_point())
+        return *node.value<double>();
+    if (auto *array = node.as_array())
+    {
+        QVariantList list;
+        for (const toml::node &item : *array)
+            list << tomlToVariant(item);
+        return list;
+    }
+    if (auto *table = node.as_table())
+    {
+        QVariantMap map;
+        for (auto &&[key, value] : *table)
+            map.insert(QString::fromUtf8(key.data(), static_cast<qsizetype>(key.length())),
+                       tomlToVariant(value));
+        return map;
+    }
+    return {};
 }
 
 template <typename T>
@@ -697,6 +729,8 @@ Lektra::initConfig() noexcept
     {
         set(statusbar["visible"], m_config.statusbar.visible);
 
+        // A list of four numbers (left, top, right, bottom), or one number
+        // for all four sides.
         if (auto padding_array = statusbar["padding"].as_array();
             padding_array && padding_array->size() >= 4)
         {
@@ -707,6 +741,25 @@ Lektra::initConfig() noexcept
                     m_config.statusbar.padding[i] = *v;
             }
         }
+        else if (auto all = statusbar["padding"].value<int>())
+            m_config.statusbar.padding.fill(*all);
+        else if (statusbar["padding"])
+            configIssue(statusbar["padding"].node(),
+                        QObject::tr("expected a number, or a list of four "
+                                    "numbers (left, top, right, bottom)"));
+
+        if (auto *order = statusbar["layout"].as_array())
+        {
+            m_config.statusbar.layout = tomlToVariant(*order).toList();
+            QStringList problems;
+            statusbar_layout::parse(m_config.statusbar.layout, &problems);
+            for (const QString &problem : std::as_const(problems))
+                configIssue(order,
+                            QObject::tr("layout: %1").arg(problem));
+        }
+        else if (statusbar["layout"])
+            configIssue(statusbar["layout"].node(),
+                        QObject::tr("expected a list for the layout"));
 
         if (auto components = statusbar["components"])
         {

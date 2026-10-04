@@ -515,6 +515,7 @@ Lektra::updateStatusbar() noexcept
         m_statusbar->setNarrowMode(m_doc->isNarrowed());
         m_statusbar->setMode(m_doc->selectionMode());
         m_statusbar->setHighlightColor(model->highlightAnnotColor());
+        m_statusbar->setZoom(m_doc->zoom());
 
         const int numPages = model->numPages();
 
@@ -543,6 +544,7 @@ Lektra::updateStatusbar() noexcept
         m_statusbar->setHighlightColor("");
         m_statusbar->setPortalMode(false);
         m_statusbar->setNarrowMode(false);
+        m_statusbar->setZoom(0);
     }
 }
 
@@ -982,6 +984,13 @@ Lektra::handleScreenChange(QScreen *screen) noexcept
 #ifdef WITH_LUA
     dispatchLuaEvent(DispatchType::OnScreenChanged, screen);
 #endif
+}
+
+void
+Lektra::applyStatusbarLayout() noexcept
+{
+    if (m_statusbar)
+        m_statusbar->rebuildLayout();
 }
 
 void

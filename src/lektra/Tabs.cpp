@@ -645,6 +645,13 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
             m_statusbar->setPageNo(pageno);
     });
 
+    connect(docwidget, &DocumentView::zoomChanged, this,
+            [this, docwidget](double zoom)
+    {
+        if (m_doc == docwidget)
+            m_statusbar->setZoom(zoom);
+    });
+
     connect(docwidget, &DocumentView::searchBarSpinnerShow, m_search_bar,
             &SearchBar::showSpinner);
 

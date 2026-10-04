@@ -756,13 +756,24 @@
           "description": "Show statusbar (since 0.5.5)"
         },
         "padding": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ],
+          "description": "Statusbar padding in pixels: one number for all four sides, or [left, top, right, bottom]."
+        },
+        "layout": {
           "type": "array",
-          "items": {
-            "type": "integer"
-          },
-          "minItems": 4,
-          "maxItems": 4,
-          "description": "Statusbar padding in pixels: [left, top, right, bottom]."
+          "description": "Which modules the statusbar shows and where. A list of items is one row, a list of lists is several rows. The modules are session, filename, page, zoom, progress, mode, portal and narrow. Items are placed from left to right, and the free space goes to the gaps: \"|\" is a gap that takes all of it, { stretch = 2 } a gap that takes twice the share of another, { spacer = 12 } a gap of 12 px. A module can also be a table, { module = \"filename\", stretch = 1, min_width = 80, max_width = 400, margin = 4, align = \"right\" }, and with at (0 to 1, the position along the bar) and anchor (\"left\", \"center\" or \"right\", the edge of the item put there) it is placed at a fixed position instead: { module = \"page\", at = 0.5, anchor = \"center\" }. { text = \"|\" } shows a piece of text, for example a separator. A module that is not listed is not shown (since 0.7.9)"
         },
         "components": {
           "type": "object",

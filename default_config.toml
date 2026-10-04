@@ -73,7 +73,30 @@ anchor_to_mouse = true     # zoom under the cursor instead of view centre
 # -----------------------------------------------------------------------------
 [statusbar]
 visible = true
-padding = [ 2, 2, 2, 2 ]   # left, top, right, bottom (pixels)
+padding = [ 2, 2, 2, 2 ]   # left, top, right, bottom (pixels); a single number, e.g. 4, sets all four
+
+# Which modules the statusbar shows and where. Modules: session, filename, page,
+# zoom, progress, mode, portal, narrow. A module that is not listed is not shown.
+#
+# Items go from left to right. The free space goes to the gaps:
+#   "|"                a gap that takes all of it
+#   { stretch = 2 }    a gap with twice the share of another one
+#   { spacer = 12 }    a gap of 12 pixels
+# A module can be a table to say more about it:
+#   { module = "filename", stretch = 1, min_width = 80, max_width = 400,
+#     margin = 4, align = "right" }          # stretch: it takes a share of the free space
+#   { module = "page", at = 0.5, anchor = "center" }   # at a fixed spot: 0 to 1 along the bar
+#   { text = "|" }                           # a piece of text, e.g. a separator
+# A list of lists is several rows.
+#
+# This is the default:
+layout = [ "session", "filename", "portal", "narrow", "|", "progress", "mode",
+           { module = "page", at = 0.5, anchor = "center" } ]
+#
+# Examples:
+#   layout = [ "filename", "|", "page", "zoom", "|", "mode" ]               # page and zoom in the middle
+#   layout = [ "mode", { text = "|" }, "page", { stretch = 1 }, "filename" ]
+#   layout = [ [ "filename", "|", "session" ], [ "page", "|", "zoom", "progress" ] ]   # two rows
 
 [statusbar.components.mode]
 show = true

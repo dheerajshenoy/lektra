@@ -481,11 +481,11 @@ SPECIAL = {
         "description": "Initial window size in pixels.",
     },
     ("statusbar", "padding"): {
-        "type": "array",
-        "items": {"type": "integer"},
-        "minItems": 4,
-        "maxItems": 4,
-        "description": "Statusbar padding in pixels: [left, top, right, bottom].",
+        "oneOf": [
+            {"type": "integer"},
+            {"type": "array", "items": {"type": "integer"}, "minItems": 4, "maxItems": 4},
+        ],
+        "description": "Statusbar padding in pixels: one number for all four sides, or [left, top, right, bottom].",
     },
     ("rendering", "dpr"): {
         "oneOf": [

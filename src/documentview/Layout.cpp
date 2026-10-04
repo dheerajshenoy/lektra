@@ -492,6 +492,7 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         if (!m_model->isAnimated())
             m_hq_render_timer->start();
 
+        emit zoomChanged(m_current_zoom);
 #ifdef WITH_LUA
         dispatchLuaEvent(DispatchType::OnZoomChanged);
 #endif
@@ -543,6 +544,7 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         m_scroll_page_update_timer->start();
 
         m_gview->flashScrollbars();
+        emit zoomChanged(m_current_zoom);
 #ifdef WITH_LUA
         dispatchLuaEvent(DispatchType::OnZoomChanged);
 #endif
@@ -580,6 +582,7 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
     }
 
     m_gview->flashScrollbars();
+    emit zoomChanged(m_current_zoom);
 #ifdef WITH_LUA
     dispatchLuaEvent(DispatchType::OnZoomChanged);
 #endif
@@ -1602,6 +1605,7 @@ DocumentView::zoomHelper(const PageLocation &loc) noexcept
             GotoPage(m_pageno);
     }
 
+    emit zoomChanged(m_current_zoom);
 #ifdef WITH_LUA
     dispatchLuaEvent(DispatchType::OnZoomChanged);
 #endif
