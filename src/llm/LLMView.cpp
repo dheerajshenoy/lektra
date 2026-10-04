@@ -285,6 +285,9 @@ LLMView::initUI()
     m_container = new QWidget(this);
     setWidget(m_container);
     m_container->setMinimumWidth(300);
+    // Only the text inside the message bubbles follows llm_view.font_size,
+    // not the input or the buttons.
+    ChatBubble::setFontSize(m_config.llm_view.font_size);
 
     m_connection_indicator = new QLabel(tr("● Checking..."), m_container);
     m_connection_indicator->setStyleSheet("color: gray;");

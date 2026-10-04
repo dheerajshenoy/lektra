@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QFont>
 #include <QImage>
 #include <QList>
 #include <QString>
@@ -56,6 +57,10 @@ public:
     // the end of the text; math that is not closed yet stays text.
     static QList<Segment> split(const QString &markdownText);
 
+    // Font size in points of the text inside bubbles created from now on (0:
+    // the application's). Math follows it.
+    static void setFontSize(float points) { s_font_size = points; }
+
     // The message as written (Markdown, with its LaTeX and code blocks as
     // source): what the Copy button puts on the clipboard.
     QString sourceText() const { return m_source; }
@@ -81,6 +86,10 @@ private:
     void updatePiece(Piece &piece, const Segment &segment);
     static void refreshHeader(const Piece &piece, const Segment &segment);
 
+    static inline float s_font_size = 0.0f;
+    // The font of the text in the bubble: the panel's font, at the size set
+    // with setFontSize().
+    QFont contentFont() const;
     QToolButton *m_copy_button = nullptr;
     QString m_source;
     QVBoxLayout *m_content = nullptr;

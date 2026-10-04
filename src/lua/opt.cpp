@@ -2004,6 +2004,16 @@ static const LuaField llmViewFields[] = {
         lua_pop(L, 1); // pop value, keep key for lua_next
     }
 }},
+    {"font_size",
+     [](lua_State *L, P p)
+{
+    lua_pushnumber(L, static_cast<Config::LLMView *>(p)->font_size);
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::LLMView *>(p)->font_size
+        = static_cast<float>(lua_tonumber(L, 3));
+}},
     {"model",
      [](lua_State *L, P p)
 {

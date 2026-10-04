@@ -9,6 +9,7 @@
 - LLM chat: the assistant now acts through tools (run a command, run a Lua script, look up the Lua API on demand) instead of receiving the whole API with every request, which makes requests much smaller. Each action asks for confirmation unless `llm_view.auto_run` is on. For models without tool support, set `llm_view.tools = false` to get the old behaviour.
 - LLM chat: LaTeX math in replies is rendered (`$...$` inline, `$$...$$` on its own line), using the bundled MicroTeX library.
 - LLM chat: hovering a message shows a Copy button that copies it as written, with LaTeX and code blocks as source.
+- New `llm_view.font_size` option sets the text size of the messages in the LLM panel.
 - New `llm_view.show_at_startup` option opens the LLM panel when Lektra starts. It replaces `llm_view.enabled`, which was read but had no effect.
 - A JSON Schema for `config.toml` (`schema/lektra-config.schema.json`, installed to `share/lektra/`): with a TOML language server such as Taplo it gives completion, option descriptions on hover, and warnings for typos and wrong values. `default_config.toml` now points at it.
 - Lua scripting now uses a bundled LuaJIT, linked statically and enabled by default on Linux, macOS and Windows, so no Lua installation is needed to build or run Lektra. Scripts run as Lua 5.1 with LuaJIT's extensions: `goto` and the `bit` library are available, but Lua 5.3+ features such as integer division `//`, `utf8` and `string.pack` are not.

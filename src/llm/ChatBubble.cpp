@@ -231,6 +231,15 @@ ChatBubble::ChatBubble(Role role, const QString &markdownText,
     setText(markdownText);
 }
 
+QFont
+ChatBubble::contentFont() const
+{
+    QFont f = font();
+    if (s_font_size > 0.0f)
+        f.setPointSizeF(s_font_size);
+    return f;
+}
+
 void
 ChatBubble::enterEvent(QEnterEvent *event)
 {
@@ -307,6 +316,7 @@ ChatBubble::makePiece(const Segment &segment)
     if (!segment.code)
     {
         piece.label = new QLabel(this);
+        piece.label->setFont(contentFont());
         piece.label->setTextFormat(Qt::MarkdownText);
         piece.label->setWordWrap(true);
         piece.label->setTextInteractionFlags(Qt::TextSelectableByMouse);
@@ -334,12 +344,14 @@ ChatBubble::makePiece(const Segment &segment)
     piece.header->setFlat(true);
     piece.header->setCursor(Qt::PointingHandCursor);
     piece.header->setFocusPolicy(Qt::NoFocus);
+    piece.header->setFont(contentFont());
     piece.header->setStyleSheet(
         "QPushButton#chatCodeToggle { text-align: left; border: none; "
         "padding: 1px 0; color: gray; }");
     layout->addWidget(piece.header);
 
     piece.label = new QLabel(frame);
+    piece.label->setFont(contentFont());
     piece.label->setTextFormat(Qt::RichText);
     piece.label->setWordWrap(true);
     piece.label->setTextInteractionFlags(Qt::TextSelectableByMouse);
@@ -451,7 +463,7 @@ ChatBubble::proseWithMath(const QString &markdown) const
 
     // Markdown cannot hold the images, so they replace markers that go
     // through it unchanged, and are put back in the HTML it produces.
-    const int pixelSize = QFontInfo(font()).pixelSize() * 115 / 100;
+    const int pixelSize = QFontInfo(contentFont()).pixelSize() * 115 / 100;
     const QColor color  = palette().color(QPalette::WindowText);
     QString marked;
     qsizetype last = 0;
@@ -484,7 +496,7 @@ ChatBubble::updatePiece(Piece &piece, const Segment &segment)
     if (segment.math)
     {
         const QImage image
-            = renderMath(segment.text, QFontInfo(font()).pixelSize() * 115 / 100,
+            = renderMath(segment.text, QFontInfo(contentFont()).pixelSize() * 115 / 100,
                          palette().color(QPalette::WindowText),
                          kMaxBubbleWidth - 20, devicePixelRatioF());
         if (image.isNull())

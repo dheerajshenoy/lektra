@@ -1588,6 +1588,15 @@ struct Config
         // @added 0.7.9
         bool save_history = true;
 
+        // @desc {
+        // Font size (in points) of the text in the LLM panel: messages,
+        // code and math. 0 uses the application's font size
+        // }
+        // @type float
+        // @default 0.0f
+        // @added 0.7.9
+        float font_size = 0.0f;
+
         // @desc Show the LLM view in a separate window
         // @type bool
         // @default false

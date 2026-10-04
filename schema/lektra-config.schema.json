@@ -1401,6 +1401,11 @@
           "default": true,
           "description": "Save LLM chats to disk so earlier conversations can be reopened from the History menu of the panel. Chats are stored as plain JSON files in Lektra's data folder (llm_chats) (since 0.7.9)"
         },
+        "font_size": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Font size (in points) of the text in the LLM panel: messages, code and math. 0 uses the application's font size (since 0.7.9)"
+        },
         "separate_window": {
           "type": "boolean",
           "default": false,
