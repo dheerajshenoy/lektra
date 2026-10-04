@@ -16,6 +16,9 @@
     - [x] Lua code block syntax highlighting
     - [x] Lua API code block execution
     - [x] latex math rendering
+    - [ ] `llm_view.max_history_messages` — sliding window: only send the last N message pairs to the model, drop oldest beyond that
+    - [ ] Summarization — when history exceeds a threshold, ask the model to summarize the conversation and replace old messages with the summary
+    - [ ] `llm_view.extra_body` passthrough for Ollama options (e.g. `{ options = { num_ctx = 8192 } }`) to increase local model context window beyond the 2048 default
 
 - [ ] Make tab sizes fixed while closing tabs rapidly (like Chrome) instead of shrinking them to fit
 - [ ] Pin Tabs
