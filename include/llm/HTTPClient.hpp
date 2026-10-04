@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QJsonArray>
+#include <functional>
 #include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -17,6 +18,10 @@ public:
     // Extra fields merged into the JSON request body on every send() (e.g.
     // Ollama's "think"/"stream"), from Config::LLMView::extra_body.
     void setExtraBodyFields(const QJsonObject &fields);
+    // Text for a "system" message sent first with every request. Called on
+    // each send(), so it can reflect the current state (e.g. the commands
+    // that exist right now). It is not part of the stored conversation.
+    void setSystemPromptProvider(std::function<QString()> provider);
     void send(const QString &text);
     // Aborts any in-flight request. Call this before the client is
     // destroyed (e.g. on application shutdown) so a pending request
@@ -46,6 +51,7 @@ private:
     QUrl m_url;
     QString m_apiKey, m_model;
     QJsonArray m_messages;
+    std::function<QString()> m_systemPrompt;
     QJsonObject m_extraBodyFields;
     QNetworkReply *m_activeReply = nullptr;
     // Server-Sent-Events parsing state for the in-flight streamed request.

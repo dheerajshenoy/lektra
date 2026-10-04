@@ -1939,6 +1939,13 @@ static const LuaField llmViewFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::LLMView *>(p)->api_url = lua_tostring(L, 3); }},
+    {"auto_run",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::LLMView *>(p)->auto_run);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::LLMView *>(p)->auto_run = lua_toboolean(L, 3); }},
     {"dock_area",
      [](lua_State *L, P p)
 {

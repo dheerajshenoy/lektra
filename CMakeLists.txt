@@ -485,6 +485,18 @@ endif()
 qt_add_resources(RESOURCES resources.qrc)
 target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 
+# The LLM panel tells the model about the Lua API: the stubs and the system
+# prompt are embedded in the binary so no installed files are needed.
+if (WITH_LLM_SUPPORT AND WITH_LUA)
+    file(GLOB LEKTRA_LUA_STUBS CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/stubs/lua/*.lua")
+    qt_add_resources(${PROJECT_NAME} llm_api
+        PREFIX "/llm"
+        BASE "${CMAKE_CURRENT_SOURCE_DIR}"
+        FILES ${LEKTRA_LUA_STUBS}
+              "${CMAKE_CURRENT_SOURCE_DIR}/src/llm/system_prompt.md")
+endif()
+
 # ---------------------------------------------------------------------------
 # Link libraries
 # ---------------------------------------------------------------------------

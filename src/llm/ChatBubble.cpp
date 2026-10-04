@@ -25,6 +25,10 @@ bubbleStyleSheet(ChatBubble::Role role, const QPalette &palette)
         case ChatBubble::Role::Error:
             bg = QColor(220, 60, 60, 60);
             break;
+        case ChatBubble::Role::Result:
+            bg = palette.color(QPalette::Mid);
+            bg.setAlpha(45);
+            break;
     }
 
     return QString("QFrame#chatBubbleFrame { background-color: rgba(%1, %2, "

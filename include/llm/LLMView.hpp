@@ -5,6 +5,8 @@
 #include "HTTPClient.hpp"
 
 #include <QDockWidget>
+#include <functional>
+#include <QPushButton>
 #include <QToolButton>
 #include <QTextEdit>
 #include <QVBoxLayout>
@@ -13,6 +15,16 @@ class QFrame;
 class QLabel;
 class QScrollArea;
 class QTimer;
+
+// Outcome of running one Lua script from the chat.
+struct LLMScriptResult
+{
+    bool ok = false;
+    QString output; // what the script printed
+    QString value;  // what it returned
+    QString error;  // message when !ok
+};
+using LLMScriptRunner = std::function<LLMScriptResult(const QString &code)>;
 
 class LLMView : public QDockWidget
 {
@@ -23,6 +35,13 @@ public:
     // closes so a pending request doesn't keep the connection open past
     // shutdown.
     void closeConnection() noexcept;
+
+    // Text sent to the model as the system message with every request (e.g.
+    // instructions and the Lua API reference).
+    void setSystemPromptProvider(std::function<QString()> provider);
+    // Lets replies that contain a ```lua block be run from the chat. Without
+    // a runner no Run button is shown.
+    void setScriptRunner(LLMScriptRunner runner);
 
 protected:
     // Installed on m_input_edit so Shift+Return sends the message instead
@@ -44,8 +63,12 @@ private:
     // Disables the Send button and shows/hides the "Thinking..." label for
     // the duration of one request/response exchange.
     void setAwaitingResponse(bool awaiting);
-    // Adds a bubble as the last message in the transcript and scrolls to it.
-    void addBubble(ChatBubble *bubble) noexcept;
+    // Adds a widget as the last message in the transcript and scrolls to it.
+    void addBubble(QWidget *bubble) noexcept;
+    // Under a finished reply: one "Run / Copy" bar per ```lua block (and runs
+    // them straight away when llm_view.auto_run is on).
+    void addScriptActions(const QString &reply);
+    void runScript(const QString &code, QPushButton *runButton);
     void scrollToBottom() noexcept;
     // Reflects an HTTPClient::connectionStatusChanged() result in
     // m_connection_indicator.
@@ -91,6 +114,11 @@ private:
     // request: a second send() while one is still streaming would corrupt
     // its SSE parsing state.
     bool m_awaiting_response = false;
+
+    LLMScriptRunner m_script_runner;
+    // What the last script did, handed to the model with the next message so
+    // it knows whether its script worked.
+    QString m_pending_result;
 
     const Config &m_config;
 };

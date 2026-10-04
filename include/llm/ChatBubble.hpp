@@ -15,6 +15,7 @@ public:
         User,
         Assistant,
         Error,
+        Result, // outcome of a script the user ran
     };
 
     explicit ChatBubble(Role role, const QString &markdownText,

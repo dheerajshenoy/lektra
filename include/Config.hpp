@@ -1554,6 +1554,17 @@ struct Config
         // @added 0.7.9
         bool show_at_startup = false;
 
+        // @desc {
+        // Run the Lua script the assistant writes as soon as its reply is
+        // complete, instead of waiting for you to press Run. The script gets
+        // the same access to Lektra as your init.lua, in a restricted
+        // environment (no io, os.execute, require, load or ffi)
+        // }
+        // @type bool
+        // @default false
+        // @added 0.7.9
+        bool auto_run = false;
+
         // @desc Show the LLM view in a separate window
         // @type bool
         // @default false

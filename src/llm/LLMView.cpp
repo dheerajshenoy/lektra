@@ -1,6 +1,8 @@
 #include "LLMView.hpp"
 
 #include <QAbstractTextDocumentLayout>
+#include <QApplication>
+#include <QClipboard>
 #include <QFontMetrics>
 #include <QFrame>
 #include <QHBoxLayout>
@@ -11,6 +13,7 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QPixmap>
+#include <QRegularExpression>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QStyle>
@@ -86,6 +89,18 @@ LLMView::LLMView(const Config &config, QWidget *parent)
             &HTTPClient::checkConnection);
     m_connection_check_timer->start();
     m_http_client->checkConnection();
+}
+
+void
+LLMView::setSystemPromptProvider(std::function<QString()> provider)
+{
+    m_http_client->setSystemPromptProvider(std::move(provider));
+}
+
+void
+LLMView::setScriptRunner(LLMScriptRunner runner)
+{
+    m_script_runner = std::move(runner);
 }
 
 void
@@ -279,7 +294,7 @@ LLMView::changeEvent(QEvent *event)
 }
 
 void
-LLMView::addBubble(ChatBubble *bubble) noexcept
+LLMView::addBubble(QWidget *bubble) noexcept
 {
     m_messages_layout->insertWidget(m_messages_layout->count() - 1, bubble);
     scrollToBottom();
@@ -323,8 +338,17 @@ LLMView::sendMessage()
     addBubble(
         new ChatBubble(ChatBubble::Role::User, user_input, m_messages_widget));
 
+    // Tell the model what its last script did. The transcript shows only what
+    // the user typed.
+    QString to_send = user_input;
+    if (!m_pending_result.isEmpty())
+    {
+        to_send = m_pending_result + QStringLiteral("\n\n") + user_input;
+        m_pending_result.clear();
+    }
+
     setAwaitingResponse(true);
-    m_http_client->send(user_input);
+    m_http_client->send(to_send);
 
     // Clear the input edit for the next message
     m_input_edit->clear();
@@ -347,14 +371,138 @@ LLMView::displayResponse(const QString &response)
     {
         // Already shown progressively via appendStreamChunk() — nothing
         // left to do but reset for the next exchange.
-        m_streaming_active        = false;
-        m_active_assistant_bubble = nullptr;
+        m_streaming_active         = false;
+        m_active_assistant_bubble  = nullptr;
         m_streaming_markdown.clear();
-        return;
+    }
+    else
+    {
+        addBubble(new ChatBubble(ChatBubble::Role::Assistant, response,
+                                 m_messages_widget));
     }
 
-    addBubble(new ChatBubble(ChatBubble::Role::Assistant, response,
-                             m_messages_widget));
+    addScriptActions(response);
+}
+
+void
+LLMView::addScriptActions(const QString &reply)
+{
+    if (!m_script_runner)
+        return;
+
+    static const QRegularExpression block(
+        QStringLiteral("```[ \\t]*lua[^\\n]*\\n(.*?)```"),
+        QRegularExpression::DotMatchesEverythingOption
+            | QRegularExpression::CaseInsensitiveOption);
+
+    QList<QPair<QString, QPushButton *>> scripts;
+    auto it = block.globalMatch(reply);
+    while (it.hasNext())
+    {
+        const QString code = it.next().captured(1).trimmed();
+        if (code.isEmpty())
+            continue;
+
+        auto *bar = new QFrame(m_messages_widget);
+        bar->setObjectName("llmScriptBar");
+        auto *row = new QHBoxLayout(bar);
+        row->setContentsMargins(4, 0, 4, 0);
+
+        const int lines = code.count(QLatin1Char('\n')) + 1;
+        auto *label = new QLabel(tr("Lua script, %n line(s)", nullptr, lines), bar);
+        label->setStyleSheet("color: gray;");
+        auto *copy = new QPushButton(tr("Copy"), bar);
+        copy->setFlat(true);
+        copy->setCursor(Qt::PointingHandCursor);
+        auto *run = new QPushButton(tr("Run"), bar);
+        run->setObjectName("llmRunButton");
+        run->setCursor(Qt::PointingHandCursor);
+        run->setToolTip(tr("Run this script in Lektra"));
+
+        const QPalette pal = palette();
+        const QColor accent = pal.color(QPalette::Highlight);
+        run->setStyleSheet(
+            QString("QPushButton#llmRunButton { background: %1; color: %2; "
+                    "border: none; border-radius: 10px; padding: 3px 14px; }"
+                    "QPushButton#llmRunButton:hover { background: %3; }"
+                    "QPushButton#llmRunButton:disabled { background: %4; }")
+                .arg(accent.name(),
+                     pal.color(QPalette::HighlightedText).name(),
+                     accent.lighter(115).name(),
+                     pal.color(QPalette::Mid).name()));
+
+        row->addWidget(label);
+        row->addStretch();
+        row->addWidget(copy);
+        row->addWidget(run);
+
+        connect(copy, &QPushButton::clicked, this,
+                [code] { QApplication::clipboard()->setText(code); });
+        connect(run, &QPushButton::clicked, this,
+                [this, code, run] { runScript(code, run); });
+
+        addBubble(bar);
+        scripts.append({code, run});
+    }
+
+    if (m_config.llm_view.auto_run)
+    {
+        for (const auto &[code, button] : scripts)
+        {
+            runScript(code, button);
+            if (!button->property("lastRunOk").toBool())
+                break; // do not run later scripts after a failure
+        }
+    }
+}
+
+void
+LLMView::runScript(const QString &code, QPushButton *runButton)
+{
+    if (!m_script_runner)
+        return;
+
+    runButton->setEnabled(false);
+    const LLMScriptResult r = m_script_runner(code);
+    runButton->setProperty("lastRunOk", r.ok);
+    runButton->setText(tr("Run again"));
+    runButton->setEnabled(true);
+
+    // What the user sees, and what the model is told next time.
+    QString shown;
+    QString told;
+    if (r.ok)
+    {
+        if (!r.output.isEmpty())
+            shown += QStringLiteral("```\n") + r.output.trimmed()
+                     + QStringLiteral("\n```\n");
+        if (!r.value.isEmpty())
+            shown += tr("Returned:") + QStringLiteral("\n```\n") + r.value
+                     + QStringLiteral("\n```\n");
+        if (shown.isEmpty())
+            shown = tr("Done.");
+        told = QStringLiteral("[The script you wrote ran without errors.");
+        if (!r.output.isEmpty())
+            told += QStringLiteral(" It printed: ") + r.output.trimmed().left(1500);
+        if (!r.value.isEmpty())
+            told += QStringLiteral(" It returned: ") + r.value.left(1500);
+        told += QStringLiteral("]");
+    }
+    else
+    {
+        if (!r.output.isEmpty())
+            shown += QStringLiteral("```\n") + r.output.trimmed()
+                     + QStringLiteral("\n```\n");
+        shown += QStringLiteral("**") + tr("Error:") + QStringLiteral("** `")
+                 + r.error + QStringLiteral("`");
+        told = QStringLiteral("[The script you wrote failed: ") + r.error.left(1500)
+               + QStringLiteral("]");
+    }
+
+    addBubble(new ChatBubble(r.ok ? ChatBubble::Role::Result
+                                  : ChatBubble::Role::Error,
+                             shown, m_messages_widget));
+    m_pending_result = told;
 }
 
 void

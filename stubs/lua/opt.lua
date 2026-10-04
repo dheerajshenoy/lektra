@@ -323,6 +323,7 @@ lektra.opt.command_palette = {}
 ---@class OptLLMView
 ---@field api_key string API key for the LLM endpoint (empty for local models).
 ---@field api_url string Chat-completions URL of the LLM endpoint.
+---@field auto_run boolean Run the Lua the assistant writes as soon as its reply is complete, without pressing Run.
 ---@field dock_area "left"|"right"|"top"|"bottom" Where the panel is docked.
 ---@field extra_body table Extra fields merged into every request body.
 ---@field model string Model name sent with each request.

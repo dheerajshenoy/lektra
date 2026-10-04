@@ -343,6 +343,12 @@ private:
     void initDB() noexcept;
 #ifdef WITH_LLM_SUPPORT
     void initLLMView() noexcept;
+#ifdef WITH_LUA
+    // For the LLM panel: the instructions and Lua API reference sent to the
+    // model, and running a script it wrote in the restricted environment.
+    QString llmSystemPrompt() const noexcept;
+    LLMScriptResult runLLMScript(const QString &code) noexcept;
+#endif
 #endif
     void initMenubar() noexcept;
     void initGui() noexcept;

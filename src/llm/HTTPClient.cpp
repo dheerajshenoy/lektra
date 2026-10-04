@@ -18,6 +18,12 @@ HTTPClient::setExtraBodyFields(const QJsonObject &fields)
 }
 
 void
+HTTPClient::setSystemPromptProvider(std::function<QString()> provider)
+{
+    m_systemPrompt = std::move(provider);
+}
+
+void
 HTTPClient::send(const QString &userText)
 {
     m_messages.append(QJsonObject{{"role", "user"}, {"content", userText}});
@@ -27,7 +33,18 @@ HTTPClient::send(const QString &userText)
     request.setRawHeader("Authorization",
                          QString("Bearer %1").arg(m_apiKey).toUtf8());
 
-    QJsonObject body{{"model", m_model}, {"messages", m_messages}};
+    QJsonArray messages;
+    if (m_systemPrompt)
+    {
+        const QString system = m_systemPrompt();
+        if (!system.isEmpty())
+            messages.append(
+                QJsonObject{{"role", "system"}, {"content", system}});
+    }
+    for (const QJsonValue &m : std::as_const(m_messages))
+        messages.append(m);
+
+    QJsonObject body{{"model", m_model}, {"messages", messages}};
     for (auto it = m_extraBodyFields.constBegin();
          it != m_extraBodyFields.constEnd(); ++it)
         body[it.key()] = it.value();
@@ -85,6 +102,11 @@ HTTPClient::send(const QString &userText)
         reply->deleteLater();
         if (reply->error() != QNetworkReply::NoError)
         {
+            // The question got no answer: drop it, so the stored
+            // conversation stays in step with what the model has replied to.
+            if (!m_messages.isEmpty()
+                && m_messages.last().toObject().value("role") == "user")
+                m_messages.removeLast();
             emit errorOccurred(reply->errorString() + "\n" + reply->readAll());
             return;
         }
