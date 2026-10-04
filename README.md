@@ -39,15 +39,6 @@
 - multi-frame animated images (e.g. animated GIFs, animated WebPs etc.) and multi-page TIFFs.
 - Edge cases of SVGs can be handled through `librsvg` if it's found on the system
 
-# AI Usage
-
-**I would like to acknowledge the use of AI tools in the development of this project. I have NOT VIBECODED the whole project.
-I have used it for code generation, debugging, and optimization. The entire project is NOT AI-generated,
-but rather used as a tool in the development process. I am committed to transparency about the use of AI in
-this project and will continue to provide updates on its role as the project evolves. I use it as a tool
-to assist in the development process, but the final decisions and implementations are made by me,
-the developer.**
-
 # Contributing
 
 Check out [CONTRIBUTING.md](CONTRIBUTING.md)
