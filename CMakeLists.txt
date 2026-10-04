@@ -233,6 +233,12 @@ qt_add_executable(${PROJECT_NAME}
     src/GraphicsView.cpp
     src/GraphicsScene.cpp
     src/DocumentView.cpp
+    src/documentview/Rendering.cpp
+    src/documentview/Layout.cpp
+    src/documentview/Selection.cpp
+    src/documentview/Caret.cpp
+    src/documentview/Links.cpp
+    src/documentview/Connections.cpp
     src/StartupWidget.cpp
     src/MessageBar.cpp
     src/Annotation.cpp
