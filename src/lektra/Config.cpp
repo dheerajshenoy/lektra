@@ -895,6 +895,15 @@ Lektra::initConfig() noexcept
     }
 #endif
 
+    if (auto updates = toml["updates"])
+    {
+        set(updates["check"], m_config.updates.check);
+        set(updates["whats_new"], m_config.updates.whats_new);
+    }
+
+    if (auto donate = toml["donate"])
+        set(donate["reminders"], m_config.donate.reminders);
+
     if (auto llm_view = toml["llm_view"])
     {
         set(llm_view["show_at_startup"], m_config.llm_view.show_at_startup);

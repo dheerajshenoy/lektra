@@ -7,6 +7,7 @@
 #include "HighlightSearchPicker.hpp"
 #include "MarkManager.hpp"
 #include "MessageBar.hpp"
+#include "NoticeBar.hpp"
 #include "TabBar.hpp"
 // #include "OutlineWidget.hpp"
 #include "BookmarkManager.hpp"
@@ -52,6 +53,7 @@
     #include "LLMView.hpp"
 #endif
 
+class QNetworkAccessManager;
 class Lektra : public QMainWindow
 {
     Q_OBJECT
@@ -359,6 +361,13 @@ private:
 #endif
     void initMenubar() noexcept;
     void initGui() noexcept;
+    // Banners for a newer release, what changed after an update, and a rare
+    // reminder that Lektra can be supported (Notices.cpp).
+    void initNotices(bool firstRun) noexcept;
+    void loadAppState() noexcept;
+    void saveAppState() noexcept;
+    void checkForUpdates(bool manual) noexcept;
+    void showWhatsNew() noexcept;
     void initConfig() noexcept;
     void initDefaultKeybinds() noexcept;
     void initDefaultMousebinds() noexcept;
@@ -566,6 +575,9 @@ private:
     RecentFilesStore m_recent_files_store;
     QString m_session_name;
     MessageBar *m_message_bar = nullptr;
+    NoticeBar *m_notice_bar   = nullptr;
+    QJsonObject m_app_state; // see Notices.cpp
+    QNetworkAccessManager *m_update_net = nullptr;
     SearchBar *m_search_bar   = nullptr;
     Picker::Keybindings m_picker_keybinds;
 

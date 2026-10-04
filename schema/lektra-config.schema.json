@@ -1378,6 +1378,35 @@
       "additionalProperties": false,
       "description": "Synctex options struct (since 0.6.9)"
     },
+    "updates": {
+      "type": "object",
+      "properties": {
+        "check": {
+          "type": "boolean",
+          "default": true,
+          "description": "Once a day, check in the background whether a newer Lektra release is available and say so in a banner. This is one request to the GitHub releases API: nothing about you or your documents is sent. The check_for_updates command works whatever this is set to (since 0.7.9)"
+        },
+        "whats_new": {
+          "type": "boolean",
+          "default": false,
+          "description": "After Lektra has been updated, show a banner that opens the list of changes. The list is always available from Help > What's New (since 0.7.9)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Update checking and release notes (since 0.7.9)"
+    },
+    "donate": {
+      "type": "object",
+      "properties": {
+        "reminders": {
+          "type": "boolean",
+          "default": true,
+          "description": "Now and then show a small banner saying that Lektra can be supported. It appears only after a few weeks of use, at most twice a year, and \"Don't ask again\" turns it off for good (since 0.7.9)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Support reminders (since 0.7.9)"
+    },
     "llm_view": {
       "type": "object",
       "properties": {

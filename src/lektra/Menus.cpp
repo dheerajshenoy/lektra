@@ -450,6 +450,10 @@ Lektra::initMenubar() noexcept
         tr("About\t%1").arg(m_config.keybinds["show_about"].join(", ")), this,
         &Lektra::ShowAbout);
 
+    helpMenu->addAction(tr("Check for Updates"), this,
+                        [this] { checkForUpdates(true); });
+    helpMenu->addAction(tr("What's New"), this, &Lektra::showWhatsNew);
+
     m_actionShowTutorialFile = helpMenu->addAction(
         tr("Open Tutorial File\t%1")
             .arg(m_config.keybinds["show_tutorial_file"].join(", ")),

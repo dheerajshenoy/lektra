@@ -383,6 +383,15 @@ lektra.opt.behavior = {}
 ---@field opacity number Opacity of the preview popup (0.0–1.0).
 lektra.opt.preview = {}
 
+---@class OptUpdates
+---@field check boolean Check once a day, in the background, whether a newer release is available. The check_for_updates command works whatever this is.
+---@field whats_new boolean After an update, show a banner that opens the list of changes.
+lektra.opt.updates = {}
+
+---@class OptDonate
+---@field reminders boolean Now and then show a small banner saying that Lektra can be supported (rarely, and "Don't ask again" turns it off).
+lektra.opt.donate = {}
+
 ---@class OptMisc
 ---@field color_dialog_colors string[] Preset colours shown in the colour picker (e.g. `"#FF112233"`).
 lektra.opt.misc = {}

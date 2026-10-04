@@ -1011,6 +1011,11 @@ Lektra::initCommands() noexcept
                            [this](const QStringList &) { showTutorialFile(); });
     m_command_manager->reg("show_about", tr("Show about dialog"),
                            [this](const QStringList &) { ShowAbout(); });
+    m_command_manager->reg("check_for_updates",
+                           tr("Check whether a newer release is available"),
+                           [this](const QStringList &) { checkForUpdates(true); });
+    m_command_manager->reg("whats_new", tr("Show what changed in this version"),
+                           [this](const QStringList &) { showWhatsNew(); });
     m_command_manager->reg("donate", tr("Show donate / support dialog"),
                            [this](const QStringList &) { ShowDonate(); });
 }

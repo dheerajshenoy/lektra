@@ -1542,6 +1542,52 @@ struct Config
     } misc;
     // @endsection
 
+    // @section updates
+    // @section_desc Update checking and release notes
+    // @section_type struct
+    // @section_added 0.7.9
+    struct Updates
+    {
+        // @desc {
+        // Once a day, check in the background whether a newer Lektra release
+        // is available and say so in a banner. This is one request to the
+        // GitHub releases API: nothing about you or your documents is sent.
+        // The check_for_updates command works whatever this is set to
+        // }
+        // @type bool
+        // @default true
+        // @added 0.7.9
+        bool check = true;
+
+        // @desc {
+        // After Lektra has been updated, show a banner that opens the list of
+        // changes. The list is always available from Help > What's New
+        // }
+        // @type bool
+        // @default false
+        // @added 0.7.9
+        bool whats_new = false;
+    } updates;
+    // @endsection
+
+    // @section donate
+    // @section_desc Support reminders
+    // @section_type struct
+    // @section_added 0.7.9
+    struct Donate
+    {
+        // @desc {
+        // Now and then show a small banner saying that Lektra can be
+        // supported. It appears only after a few weeks of use, at most twice
+        // a year, and "Don't ask again" turns it off for good
+        // }
+        // @type bool
+        // @default true
+        // @added 0.7.9
+        bool reminders = true;
+    } donate;
+    // @endsection
+
     // @section llm_view
     // @section_desc LLM View options struct
     // @section_type struct

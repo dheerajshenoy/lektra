@@ -322,6 +322,21 @@ editor_command = ""    # e.g. "nvim --server /tmp/nvim.pipe --remote-send"
 
 
 # -----------------------------------------------------------------------------
+# [updates] — A newer release, and what changed after an update.
+# -----------------------------------------------------------------------------
+[updates]
+check     = true   # once a day, ask the GitHub releases API for the latest version
+whats_new = false  # after an update, a banner that opens the list of changes (Help > What's New always works)
+
+
+# -----------------------------------------------------------------------------
+# [donate] — A rare reminder that Lektra can be supported.
+# -----------------------------------------------------------------------------
+[donate]
+reminders = true   # after a few weeks of use, at most twice a year
+
+
+# -----------------------------------------------------------------------------
 # [rendering]
 # -----------------------------------------------------------------------------
 [rendering]

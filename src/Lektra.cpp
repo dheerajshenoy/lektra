@@ -132,15 +132,18 @@ Lektra::construct() noexcept
     resize(m_config.window.initial_size[0], m_config.window.initial_size[1]);
     installEventFilter(this);
 
+    bool firstRun = false;
     {
         const QString sentinel = m_app_data_dir.filePath(".first_run_done");
         if (!QFile::exists(sentinel))
         {
+            firstRun = true;
             QFile f(sentinel);
             (void)f.open(QIODevice::WriteOnly);
             QTimer::singleShot(500, this, [this]() { ShowDonate(); });
         }
     }
+    initNotices(firstRun);
 
 #ifdef WITH_LUA
     dispatchLuaEvent(DispatchType::OnAppReady, this);
@@ -222,6 +225,7 @@ Lektra::initGui() noexcept
     m_search_bar = new SearchBar(this);
     m_search_bar->setVisible(false);
     m_message_bar = new MessageBar(this);
+    m_notice_bar  = new NoticeBar(this);
     m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
     m_layout->addWidget(m_tab_widget, 1);
@@ -233,6 +237,7 @@ Lektra::initGui() noexcept
 
     m_layout->addWidget(m_search_bar);
     m_layout->addWidget(m_message_bar);
+    m_layout->addWidget(m_notice_bar);
     m_layout->addWidget(m_statusbar);
 
     m_tab_widget->setTabBarAutoHide(m_config.tabs.auto_hide);

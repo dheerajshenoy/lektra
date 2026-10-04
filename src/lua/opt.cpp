@@ -2056,6 +2056,35 @@ static const LuaField llmViewFields[] = {
 { static_cast<Config::LLMView *>(p)->tools = lua_toboolean(L, 3); }},
 };
 
+// --- updates ---
+static const LuaField updatesFields[] = {
+    {"check",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Updates *>(p)->check);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Updates *>(p)->check = lua_toboolean(L, 3); }},
+    {"whats_new",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Updates *>(p)->whats_new);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Updates *>(p)->whats_new = lua_toboolean(L, 3); }},
+};
+
+// --- donate ---
+static const LuaField donateFields[] = {
+    {"reminders",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Donate *>(p)->reminders);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Donate *>(p)->reminders = lua_toboolean(L, 3); }},
+};
+
 // --- misc ---
 static const LuaField miscFields[] = {
     {"color_dialog_colors",
@@ -2532,6 +2561,20 @@ buildOptTable(lua_State *L, const OptScope &scope)
         // lektra.opt.preview
         pushSection(L, scope, &config.preview, previewFields, "preview");
         addChild(L, opt_idx, "preview");
+    }
+
+    if (!viewOnly)
+    {
+        // lektra.opt.updates
+        pushSection(L, scope, &config.updates, updatesFields, "updates");
+        addChild(L, opt_idx, "updates");
+    }
+
+    if (!viewOnly)
+    {
+        // lektra.opt.donate
+        pushSection(L, scope, &config.donate, donateFields, "donate");
+        addChild(L, opt_idx, "donate");
     }
 
     if (!viewOnly)

@@ -340,6 +340,7 @@ qt_add_executable(${PROJECT_NAME}
     src/lektra/Config.cpp
     src/lektra/Commands.cpp
     src/lektra/Menus.cpp
+    src/lektra/Notices.cpp
     src/lektra/Tabs.cpp
     src/lektra/Sessions.cpp
     src/lektra/Files.cpp
@@ -366,6 +367,7 @@ qt_add_executable(${PROJECT_NAME}
     src/documentview/Connections.cpp
     src/StartupWidget.cpp
     src/MessageBar.cpp
+    src/NoticeBar.cpp
     src/Annotation.cpp
     src/EditLastPagesWidget.cpp
     src/RecentFilesStore.cpp
