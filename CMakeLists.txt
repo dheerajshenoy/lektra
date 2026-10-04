@@ -227,6 +227,12 @@ qt_add_executable(${PROJECT_NAME}
     src/lektra/Actions.cpp
     src/Statusbar.cpp
     src/Model.cpp
+    src/model/Lifecycle.cpp
+    src/model/PageCache.cpp
+    src/model/Text.cpp
+    src/model/Render.cpp
+    src/model/Annotations.cpp
+    src/model/Reflow.cpp
     src/PropertiesWidget.cpp
     src/AboutDialog.cpp
     src/DonateDialog.cpp
