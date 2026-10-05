@@ -8,7 +8,20 @@
   }
 }
 
-/* The name in the header (and the mobile menu) is set in the font of the
+/* The header always shows the site name: Material swaps it for the title of the
+   page when you scroll down, but the page is already shown in the navigation on
+   the left. */
+.md-header__topic + .md-header__topic {
+  display: none;
+}
+.md-header__title--active .md-header__topic:first-child {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  z-index: 0;
+}
+
+/* The title in the header and in the mobile menu is set in the font of the
    homepage's LEKTRA logo, Major Mono Display (SIL Open Font License). */
 @font-face {
   font-display: swap;
@@ -18,7 +31,7 @@
   src: url("../assets/fonts/major-mono-display.woff2") format("woff2");
 }
 
-.md-header__topic:first-child .md-ellipsis,
+.md-header__topic .md-ellipsis,
 .md-nav--primary > .md-nav__title {
   font-family: "Major Mono Display", var(--md-text-font-family), sans-serif;
   font-weight: 400;
