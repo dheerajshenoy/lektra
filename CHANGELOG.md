@@ -18,7 +18,7 @@
 - New Lua API: `lektra.clipboard.get()`/`set()`, `view:page_text(pageno)` for the text of any page, and `lektra.bookmarks.add()`. New events `OnModeChanged`, `OnSessionLoaded`, `OnBookmarkAdded` and `OnFileSaved`.
 - New `lektra.job.async(command, options, callback)` runs a command in the background and calls you back with its exit code and output when it finishes, so a slow command no longer freezes the window. It supports `cwd`, `env`, `stdin`, `timeout`, live `on_stdout`/`on_stderr`, and `job:cancel()`.
 - New `-n`/`--new-window` command line option opens the files in a separate window even when single-instance mode is on.
-- Fixed double and triple click selection: a double click counted as a single click (so the word was only selected on the third click), and a slight movement of the mouse afterwards replaced the selected word or line with a character range.
+- Fixed double and triple click selection: a double click counted as a single click (so the word was only selected on the third click), and a slight movement of the mouse afterwards replaced the selected word or line with a character range. The text of a double or triple click selection (copy, `view:selection_text()`) could also come from the wrong place and contain far more than the selected word.
 - LLM chat: you can stop a reply while it is coming in. The Send button turns into a Stop button (or press `Esc`), and what had arrived stays in the chat.
 - New `llm_view.font_size` option sets the text size of the messages in the LLM panel.
 - New `llm_view.show_at_startup` option opens the LLM panel when Lektra starts. It replaces `llm_view.enabled`, which was read but had no effect.

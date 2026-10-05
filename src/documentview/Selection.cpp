@@ -320,14 +320,17 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
     m_selection_path_item->setRotation(pageItem->rotation());
     m_selection_path_item->setScale(pageItem->scale());
 
-    // MuPDF quad winding: [top-left, top-right, bottom-right, bottom-left]
-
+    // The quads are [bottom-left, bottom-right, top-right, top-left]. The
+    // selection runs from the middle of the left edge of the first quad to
+    // the middle of the right edge of the last one: a corner lies on the
+    // border between two lines, where the text under it is ambiguous and
+    // the copied text could come from the neighbouring line.
     const QTransform toScene  = pageItem->sceneTransform();
     const QPolygonF firstQuad = toScene.map(quads.front());
     const QPolygonF lastQuad  = toScene.map(quads.back());
 
-    m_selection_start = firstQuad[0]; // top-left of first quad
-    m_selection_end   = lastQuad[2];  // bottom-right of last quad
+    m_selection_start = (firstQuad[0] + firstQuad[3]) / 2;
+    m_selection_end   = (lastQuad[1] + lastQuad[2]) / 2;
 
     // Update metadata for copying/highlighting
     m_selection_start_page = pageIndex;
