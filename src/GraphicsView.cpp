@@ -401,6 +401,17 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
     if ((m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
         && m_selecting)
     {
+        // After a double/triple click the word/line is already selected: a
+        // slight movement of the hand must not replace it with a character
+        // range, only a real drag may.
+        if (m_mode == Mode::TextSelection && m_clickCount >= 2
+            && (event->pos() - m_start).manhattanLength()
+                   <= CLICK_DISTANCE_THRESHOLD)
+        {
+            event->accept();
+            return;
+        }
+
         m_last_mouse_pos     = event->pos();
         bool isAutoScrolling = false;
         if (m_config.behavior.auto_scroll)
@@ -454,6 +465,15 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
     }
 
     QGraphicsView::mouseMoveEvent(event);
+}
+
+// Qt delivers the second press of a double click as a double-click event
+// instead of a press, so without this the click count would lag behind (a
+// double click would count as one click, a triple click as two).
+void
+GraphicsView::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    mousePressEvent(event);
 }
 
 void

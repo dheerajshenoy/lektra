@@ -50,7 +50,7 @@
 
 - [x] OCR with tesseract
 - [x] Text selection word count
-- [ ] Read Aloud (text-to-speech)
+- [x] Read Aloud (text-to-speech)
 - [ ] Equation OCR to LaTeX
 - [ ] Table exporter to tex/CSV/Excel/Numpy
 - [ ] Semantic search
