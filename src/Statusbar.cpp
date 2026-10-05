@@ -126,9 +126,100 @@ Statusbar::rebuildLayout() noexcept
         ++rowNumber;
     }
 
+    // custom modules the layout does not name go to the right end
+    for (auto it = m_custom.constBegin(); it != m_custom.constEnd(); ++it)
+    {
+        if (m_placed.contains(it.key()))
+            continue;
+        StatusbarLayout::Spec spec;
+        spec.marginLeft = 8;
+        m_layout->addWidgetTo(std::max(0, rowNumber - 1),
+                              m_modules.value(it.key()).box, spec);
+        m_placed << it.key();
+    }
+
     refreshModules();
     m_layout->invalidate();
     updateGeometry();
+}
+
+bool
+Statusbar::setCustomModule(const QString &name, const QString &text,
+                           const QString &tooltip, bool clickable) noexcept
+{
+    const QString key = statusbar_layout::canonicalModule(name);
+    if (!statusbar_layout::isModuleName(key)
+        || statusbar_layout::modules().contains(key))
+        return false;
+
+    const bool created = !m_custom.contains(key);
+    if (created)
+    {
+        auto *label = new QLabel(this);
+        label->setTextFormat(Qt::PlainText);
+        label->setProperty("module", key);
+        label->installEventFilter(this);
+
+        auto *box = new QWidget(this);
+        auto *row = new QHBoxLayout(box);
+        row->setContentsMargins(0, 0, 0, 0);
+        row->addWidget(label);
+        box->hide();
+        m_modules.insert(key, {box, {label}});
+        m_custom.insert(key, label);
+    }
+
+    QLabel *label = m_custom.value(key);
+    label->setText(text);
+    label->setToolTip(tooltip);
+    label->setProperty("clickable", clickable);
+    label->setCursor(clickable ? Qt::PointingHandCursor : Qt::ArrowCursor);
+    label->setVisible(!text.isEmpty());
+
+    // setting a segment must not ask the scripts for the segments again
+    m_in_custom = true;
+    if (created)
+        rebuildLayout(); // places it
+    else
+        refreshModules();
+    m_in_custom = false;
+    return true;
+}
+
+void
+Statusbar::removeCustomModule(const QString &name) noexcept
+{
+    const QString key = statusbar_layout::canonicalModule(name);
+    if (!m_custom.contains(key))
+        return;
+
+    m_custom.remove(key);
+    m_placed.removeAll(key);
+    const Module module = m_modules.take(key);
+    m_layout->clear(); // forget the box before it is deleted
+    delete module.box;
+
+    m_in_custom = true;
+    rebuildLayout();
+    m_in_custom = false;
+}
+
+bool
+Statusbar::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::MouseButtonRelease)
+    {
+        auto *label = qobject_cast<QLabel *>(watched);
+        auto *mouse = static_cast<QMouseEvent *>(event);
+        if (label && mouse->button() == Qt::LeftButton
+            && label->property("clickable").toBool()
+            && label->rect().contains(mouse->position().toPoint()))
+        {
+            emit customModuleClicked(label->property("module").toString());
+            return true;
+        }
+    }
+    return QWidget::eventFilter(watched, event);
 }
 
 void
@@ -141,6 +232,8 @@ Statusbar::refreshModules() noexcept
             anyPart = anyPart || !part->isHidden();
         it->box->setVisible(m_placed.contains(it.key()) && anyPart);
     }
+    if (!m_in_custom)
+        emit changed();
 }
 
 void
@@ -174,6 +267,7 @@ Statusbar::setPageNo(int pageno) noexcept
         + 10);
     m_progress_label->setText(QString("%1%").arg(QString::number(
         (pageno * 100) / std::max(1, m_totalpage_label->text().toInt()))));
+    emit changed();
 }
 
 void
@@ -321,4 +415,5 @@ Statusbar::setFilePath(const QString &name) noexcept
         m_filename_label->setFullText(name);
     else
         m_filename_label->setFullText(QFileInfo(name).fileName());
+    emit changed();
 }

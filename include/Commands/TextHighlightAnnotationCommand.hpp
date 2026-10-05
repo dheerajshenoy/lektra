@@ -23,10 +23,17 @@ public:
     TextHighlightAnnotationCommand(Model *model, int pageno,
                                    const std::vector<fz_quad> &quads,
                                    const QString &comment  = {},
-                                   QUndoCommand *parent = nullptr)
+                                   QUndoCommand *parent = nullptr,
+                                   const QColor &color  = {})
         : QUndoCommand(parent), m_model(model), m_pageno(pageno), m_quads(quads),
-          m_comment(comment)
+          m_comment(comment), m_color(color)
     {
+    }
+
+    // The annotation that was made (-1 if it could not be)
+    int objNum() const noexcept
+    {
+        return m_objNum;
     }
 
     void undo() override
@@ -36,7 +43,7 @@ public:
 
     void redo() override
     {
-        m_objNum = m_model->addHighlightAnnotation(m_pageno, m_quads, {}, m_comment);
+        m_objNum = m_model->addHighlightAnnotation(m_pageno, m_quads, m_color, m_comment);
     }
 
 private:
@@ -44,5 +51,6 @@ private:
     int m_pageno;
     std::vector<fz_quad> m_quads;
     QString m_comment;
+    QColor m_color;
     int m_objNum{-1};
 };

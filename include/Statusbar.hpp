@@ -58,15 +58,28 @@ public:
     void setFilePath(const QString &name) noexcept;
     // The zoom factor (1.0 is 100%); 0 or less hides the zoom module.
     void setZoom(double factor) noexcept;
+    // A custom module: a piece of text in a box of its own, put where the
+    // layout names it (at the right end if it does not). Empty text hides it.
+    // False if `name` is one of the built-in modules.
+    bool setCustomModule(const QString &name, const QString &text,
+                         const QString &tooltip = {},
+                         bool clickable         = false) noexcept;
+    void removeCustomModule(const QString &name) noexcept;
     // Places the modules as [statusbar].layout says. Run again after the
     // option has changed.
     void rebuildLayout() noexcept;
 
 signals:
+    // Something a script may want to show changed (the page, the zoom...)
+    void changed();
+    void customModuleClicked(const QString &name);
     void modeChangeRequested();
     void fitModeChangeRequested();
     void modeColorChangeRequested(GraphicsView::Mode);
     void pageChangeRequested(int pageno);
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     const Config::Statusbar &m_config;
@@ -99,6 +112,8 @@ private:
     };
     QHash<QString, Module> m_modules;
     QStringList m_placed;
+    QHash<QString, QLabel *> m_custom; // the custom modules by name
+    bool m_in_custom = false;
     QList<QWidget *> m_texts; // the "text" items of the layout
     GraphicsView::Mode m_current_mode;
     bool m_mode_forced_hidden     = false;

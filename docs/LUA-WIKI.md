@@ -78,6 +78,12 @@ Document view helpers and per-document actions.
 | `view:redo()` | — | Redo the last undone action. |
 | `view:extract_text(formatted)` | `string` | Extract text from the current page. |
 | `view:export_pages(names, pages?, opts?)` | `string[]?, string?` | Save pages to files: pictures (png, jpg, webp, bmp, tif; one per page, `%d` in the name is the page number), or pdf, svg, txt, html, cbz, docx, odt. `pages`: a number, a list, or text like `"1-5,8"`, `"all"`, `"odd"` (default: current page). `opts`: `dpi` (default 150), `overwrite` (default `false`), `split` (make one file per page instead of one file, for pdf, txt, html, ...). Returns the files written, or `nil` and a reason. |
+| `view:annotations([page])` | `Annotation[]?, string?` | The annotations of a page (1-based), or of the whole document without `page` (PDF only). Each is a table `{ id, page, type, x, y, w, h, color, opacity, comment }`; `type` is `"highlight"`, `"rect"`, `"note"` or `"other"`; a highlight also has `text` (the text under it) and `rects` (one `{ x, y, w, h }` per line). Positions are page points, with the origin at the top left. |
+| `view:add_highlight(page, rects, opts?)` | `integer?, string?` | Highlight one `{ x, y, w, h }` or a list of them (one per line) on `page`. `opts`: `color` (`"#rrggbb"`, a colour name), `comment`. Returns the id of the annotation. Can be undone. |
+| `view:add_note(page, x, y, text)` | `integer?, string?` | Add a sticky note at `x, y`. Returns the id. Can be undone. |
+| `view:add_rect(page, rect, opts?)` | `integer?, string?` | Add a rectangle `{ x, y, w, h }`. `opts`: `comment`. Returns the id. Can be undone. |
+| `view:set_annotation(page, id, opts)` | `boolean` | Change `comment` and/or `color` of an annotation. `false` if there is no such annotation. Cannot be undone. |
+| `view:remove_annotation(page, id)` | `boolean` | Remove an annotation. `false` if there is no such annotation. Can be undone. |
 | `view:has_selection()` | `boolean` | Whether text is selected. |
 | `view:selection_text(formatted)` | `string` | Selected text. |
 | `view:clear_selection()` | — | Clear the current selection. |
@@ -626,6 +632,37 @@ assistant's scripts.
 
 ```lua
 local notes = lektra.paths.data() .. "/my-notes.txt"
+```
+
+---
+
+## lektra.statusbar
+
+Pieces of text a script puts in the statusbar. A segment is a module like `page` or `zoom`:
+it goes where `statusbar.layout` names it (`"mysegment"`, or with options such as
+`{ module = "mysegment", stretch = 1 }`), or to the right end if the layout does not.
+Not available to the LLM assistant's scripts.
+
+| Function | Description |
+|---|---|
+| `lektra.statusbar.register(name, provider, opts?)` | Add a segment. `provider` is a `function(view)` called with the current view (or `nil`) when the statusbar changes (page, zoom, file, mode...) and every `opts.interval` seconds if given. It returns the text, a table `{ text =, tooltip = }`, or `nil` to hide the segment. A string instead of a function is a fixed text. `opts`: `interval` (seconds, at least 0.1), `tooltip`, `on_click` (`function()`). Registering a name again replaces it. |
+| `lektra.statusbar.set(name, text, opts?)` | Show `text` in a segment, without a provider (use it from callbacks, e.g. job progress). `nil` or `""` hides it. `opts`: `tooltip`, `on_click`. |
+| `lektra.statusbar.update(name?)` | Ask the provider of a segment, or of all segments, again now. |
+| `lektra.statusbar.unregister(name)` | Remove a segment. Returns `false` if there was none. |
+
+The built-in names (`session`, `filename`, `page`, `zoom`, `progress`, `mode`, `portal`,
+`narrow`) cannot be used. A layout may name a segment before the script has registered it:
+it is shown once it exists. An error in a provider is printed once and hides the segment.
+
+```lua
+lektra.statusbar.register("words", function(view)
+    if not view then return nil end
+    local n = 0
+    for _ in view:page_text():gmatch("%S+") do n = n + 1 end
+    return n .. " words"
+end, { tooltip = "Words on this page" })
+
+lektra.statusbar.register("clock", function() return os.date("%H:%M") end, { interval = 30 })
 ```
 
 ---

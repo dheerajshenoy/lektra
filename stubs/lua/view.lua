@@ -372,6 +372,64 @@ function View:outline() end
 ---@return true | nil result `true` on success, `nil` on failure.
 function View:export_highlights(path) end
 
+---@class Annotation
+---@field id integer Identifies the annotation on its page. It changes when an undo brings the annotation back.
+---@field page integer 1-based page number.
+---@field type "highlight"|"rect"|"note"|"other"
+---@field x number Position on the page, in points, from the top left.
+---@field y number
+---@field w number
+---@field h number
+---@field color string "#rrggbb"
+---@field opacity number 0 to 1.
+---@field comment string
+---@field text? string Highlights: the text under it.
+---@field rects? {x: number, y: number, w: number, h: number}[] Highlights: one per line.
+
+---Returns the annotations of a page (1-based), or of the whole document without `page`. PDF only.
+---@param page? integer
+---@return Annotation[]? annotations
+---@return string? error
+function View:annotations(page) end
+
+---Highlights one or several rectangles (one per line of text) on a page, in points from the top left. Can be undone.
+---@param page integer
+---@param rects {x: number, y: number, w: number, h: number}|{x: number, y: number, w: number, h: number}[]
+---@param opts? { color?: string, comment?: string } `color` is "#rrggbb" or a colour name.
+---@return integer? id
+---@return string? error
+function View:add_highlight(page, rects, opts) end
+
+---Adds a sticky note at a position (points from the top left). Can be undone.
+---@param page integer
+---@param x number
+---@param y number
+---@param text string
+---@return integer? id
+---@return string? error
+function View:add_note(page, x, y, text) end
+
+---Adds a rectangle. Can be undone.
+---@param page integer
+---@param rect {x: number, y: number, w: number, h: number}
+---@param opts? { comment?: string }
+---@return integer? id
+---@return string? error
+function View:add_rect(page, rect, opts) end
+
+---Changes the comment and/or colour of an annotation. Cannot be undone.
+---@param page integer
+---@param id integer
+---@param opts { comment?: string, color?: string }
+---@return boolean found False if there is no such annotation.
+function View:set_annotation(page, id, opts) end
+
+---Removes an annotation. Can be undone.
+---@param page integer
+---@param id integer
+---@return boolean found False if there is no such annotation.
+function View:remove_annotation(page, id) end
+
 -- ##########################################
 
 

@@ -84,6 +84,11 @@ public:
         return m_doc;
     }
 
+    inline Statusbar *statusbar() const noexcept
+    {
+        return m_statusbar;
+    }
+
     inline CommandManager *commandManager() noexcept
     {
         return m_command_manager.get();
@@ -667,6 +672,8 @@ private:
     void initLuaClipboard() noexcept;
     void initLuaPaths() noexcept;
     void initLuaJob() noexcept;
+    void initLuaStatusbar() noexcept;
+    void killLuaStatusbar() noexcept;
     void killLuaJobs() noexcept;
 
     // lektra.bookmark

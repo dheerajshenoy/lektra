@@ -500,7 +500,7 @@ if (WITH_LLM_SUPPORT AND WITH_LUA)
         "${CMAKE_CURRENT_SOURCE_DIR}/stubs/lua/*.lua")
     # lektra.job and lektra.paths: the assistant's scripts do not get them, so they are
     # not described to the assistant either.
-    list(FILTER LEKTRA_LUA_STUBS EXCLUDE REGEX "/(job|paths)\\.lua$")
+    list(FILTER LEKTRA_LUA_STUBS EXCLUDE REGEX "/(job|paths|statusbar)\\.lua$")
     qt_add_resources(${PROJECT_NAME} llm_api
         PREFIX "/llm"
         BASE "${CMAKE_CURRENT_SOURCE_DIR}"

@@ -135,6 +135,18 @@ public:
         fz_rect rect;
     };
 
+    // One annotation of a page, in page coordinates (points, y down).
+    struct AnnotationInfo
+    {
+        int objNum = -1; // identifies it on its page
+        enum pdf_annot_type type = PDF_ANNOT_UNKNOWN;
+        fz_rect rect{};
+        std::vector<fz_quad> quads; // highlights: one per line
+        QColor color;               // with the opacity as its alpha
+        QString contents;           // the comment
+        QString text;               // highlights: the text under it
+    };
+
     struct EncryptInfo
     {
         QString user_password;
@@ -671,6 +683,8 @@ public:
     QString getAnnotComment(const int pageno, const int objNum) noexcept;
     QColor getAnnotColor(const int pageno, const int index) noexcept;
     QString getHighlightText(const int pageno, const int objNum) noexcept;
+    // The annotations of a page (PDF only, empty for other formats).
+    std::vector<AnnotationInfo> annotationInfos(int pageno) noexcept;
     int get_obj_num_at_rect(int pageno, fz_rect targetRect) noexcept;
     QString fileTypeToString() const noexcept;
     [[nodiscard]] static QString fileTypeName(FileType type,

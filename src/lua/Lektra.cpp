@@ -97,6 +97,7 @@ Lektra::initLua() noexcept
     initLuaClipboard();
     initLuaPaths();
     initLuaJob();
+    initLuaStatusbar();
     initLuaBookmarks();
     initLuaTimer();
 

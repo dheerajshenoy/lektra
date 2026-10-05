@@ -197,7 +197,7 @@ pushEnvironment(lua_State *L)
     // lektra, without job: the assistant must not be able to run commands
     // (os.execute is not available to it either)
     // no background commands, and no paths of the user's computer
-    static const char *const kNoJob[] = {"job", "paths", nullptr};
+    static const char *const kNoJob[] = {"job", "paths", "statusbar", nullptr};
     copyGlobalTable(L, "lektra", kNoJob);
 
     lua_pushstring(L, "Lua 5.1");

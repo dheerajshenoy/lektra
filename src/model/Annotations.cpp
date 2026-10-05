@@ -1416,9 +1416,9 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
             switch (pdf_annot_type(m_ctx, annot))
             {
                 case PDF_ANNOT_SQUARE:
-                case PDF_ANNOT_TEXT:
                     pdf_set_annot_interior_color(m_ctx, annot, 3, rgb);
                     break;
+                case PDF_ANNOT_TEXT: // has no interior colour, only a colour
                 case PDF_ANNOT_HIGHLIGHT:
                     pdf_set_annot_color(m_ctx, annot, 3, rgb);
                     break;
@@ -1476,9 +1476,9 @@ Model::getAnnotColor(const int pageno, const int objNum) noexcept
             switch (pdf_annot_type(m_ctx, annot))
             {
                 case PDF_ANNOT_SQUARE:
-                case PDF_ANNOT_TEXT:
                     pdf_annot_interior_color(m_ctx, annot, &n, rgb);
                     break;
+                case PDF_ANNOT_TEXT: // has no interior colour, only a colour
                 case PDF_ANNOT_HIGHLIGHT:
                     pdf_annot_color(m_ctx, annot, &n, rgb);
                     break;
@@ -1543,6 +1543,97 @@ Model::getHighlightText(const int pageno, const int objNum) noexcept
     fz_catch(m_ctx)
     {
         qWarning() << "getHighlightText failed:" << fz_caught_message(m_ctx);
+    }
+
+    return result;
+}
+
+std::vector<Model::AnnotationInfo>
+Model::annotationInfos(int pageno) noexcept
+{
+    std::vector<AnnotationInfo> result;
+    if (!m_ctx || !m_doc || !m_pdf_doc || pageno < 0 || pageno >= m_page_count)
+        return result;
+
+    pdf_page *page = nullptr;
+
+    fz_try(m_ctx)
+    {
+        fz_stext_page *stext_page = get_or_build_stext_page(m_ctx, pageno);
+
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        for (pdf_annot *annot = pdf_first_annot(m_ctx, page); annot;
+             annot            = pdf_next_annot(m_ctx, annot))
+        {
+            AnnotationInfo info;
+            info.type = pdf_annot_type(m_ctx, annot);
+            if (info.type == PDF_ANNOT_LINK || info.type == PDF_ANNOT_WIDGET
+                || info.type == PDF_ANNOT_POPUP)
+                continue;
+
+            // one annotation that cannot be read must not hide the others
+            bool readable = true;
+            fz_try(m_ctx)
+            {
+                if (pdf_obj *obj = pdf_annot_obj(m_ctx, annot))
+                    info.objNum = pdf_to_num(m_ctx, obj);
+
+                // a highlight has quad points instead of a rectangle
+                if (pdf_annot_has_quad_points(m_ctx, annot))
+                {
+                    const int count = pdf_annot_quad_point_count(m_ctx, annot);
+                    info.rect       = fz_empty_rect;
+                    for (int i = 0; i < count; ++i)
+                    {
+                        const fz_quad quad = pdf_annot_quad_point(m_ctx, annot, i);
+                        info.quads.push_back(quad);
+                        info.rect
+                            = fz_union_rect(info.rect, fz_rect_from_quad(quad));
+                    }
+                }
+                else
+                    info.rect = pdf_annot_rect(m_ctx, annot);
+
+                if (const char *contents = pdf_annot_contents(m_ctx, annot))
+                    info.contents = QString::fromUtf8(contents);
+
+                // a rectangle is filled with its interior colour, the other
+                // kinds only have a colour
+                int n        = 3;
+                float rgb[3] = {0, 0, 0};
+                if (info.type == PDF_ANNOT_SQUARE
+                    && pdf_annot_has_interior_color(m_ctx, annot))
+                    pdf_annot_interior_color(m_ctx, annot, &n, rgb);
+                else
+                    pdf_annot_color(m_ctx, annot, &n, rgb);
+                info.color.setRgbF(rgb[0], rgb[1], rgb[2],
+                                   pdf_annot_opacity(m_ctx, annot));
+
+                if (info.type == PDF_ANNOT_HIGHLIGHT && stext_page)
+                    info.text = text_from_quads(stext_page, info.quads);
+            }
+            fz_catch(m_ctx)
+            {
+                qWarning() << "annotationInfos: skipped an annotation:"
+                           << fz_caught_message(m_ctx);
+                readable = false;
+            }
+            if (!readable)
+                continue;
+
+            result.push_back(std::move(info));
+        }
+    }
+    fz_always(m_ctx)
+    {
+        pdf_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "annotationInfos failed:" << fz_caught_message(m_ctx);
     }
 
     return result;

@@ -3,6 +3,10 @@
 #include "ViewPickOverlay.hpp"
 #include "Model.hpp"
 #include "PageRange.hpp"
+#include "Commands/DeleteAnnotationsCommand.hpp"
+#include "Commands/RectAnnotationCommand.hpp"
+#include "Commands/TextAnnotationCommand.hpp"
+#include "Commands/TextHighlightAnnotationCommand.hpp"
 #include "utils.hpp"
 
 #include <QBuffer>
@@ -142,13 +146,180 @@ pushLink(lua_State *L, const Model::PageLink &link, int pageno, int index)
     }
 }
 
-#define VIEW_METHOD(name, body)                                                \
+#define VIEW_METHOD(name, ...)                                                 \
     {name, [](lua_State *L) -> int                                             \
     {                                                                          \
         auto **view = static_cast<DocumentView **>(                            \
             luaL_checkudata(L, 1, "DocumentViewMetaTable"));                   \
-        body                                                                   \
+        __VA_ARGS__                                                            \
     }}
+
+// --- annotations ---------------------------------------------------------
+
+static const char *
+annotTypeName(enum pdf_annot_type type)
+{
+    switch (type)
+    {
+        case PDF_ANNOT_HIGHLIGHT:
+            return "highlight";
+        case PDF_ANNOT_SQUARE:
+            return "rect";
+        case PDF_ANNOT_TEXT:
+            return "note";
+        default:
+            return "other";
+    }
+}
+
+static void
+pushRectTable(lua_State *L, const fz_rect &r)
+{
+    lua_createtable(L, 0, 4);
+    lua_pushnumber(L, r.x0);
+    lua_setfield(L, -2, "x");
+    lua_pushnumber(L, r.y0);
+    lua_setfield(L, -2, "y");
+    lua_pushnumber(L, r.x1 - r.x0);
+    lua_setfield(L, -2, "w");
+    lua_pushnumber(L, r.y1 - r.y0);
+    lua_setfield(L, -2, "h");
+}
+
+static void
+pushAnnotation(lua_State *L, int page0, const Model::AnnotationInfo &a)
+{
+    lua_createtable(L, 0, 10);
+    lua_pushinteger(L, a.objNum);
+    lua_setfield(L, -2, "id");
+    lua_pushinteger(L, page0 + 1);
+    lua_setfield(L, -2, "page");
+    lua_pushstring(L, annotTypeName(a.type));
+    lua_setfield(L, -2, "type");
+
+    lua_pushnumber(L, a.rect.x0);
+    lua_setfield(L, -2, "x");
+    lua_pushnumber(L, a.rect.y0);
+    lua_setfield(L, -2, "y");
+    lua_pushnumber(L, a.rect.x1 - a.rect.x0);
+    lua_setfield(L, -2, "w");
+    lua_pushnumber(L, a.rect.y1 - a.rect.y0);
+    lua_setfield(L, -2, "h");
+
+    if (!a.quads.empty())
+    {
+        lua_createtable(L, static_cast<int>(a.quads.size()), 0);
+        for (size_t i = 0; i < a.quads.size(); ++i)
+        {
+            pushRectTable(L, fz_rect_from_quad(a.quads[i]));
+            lua_rawseti(L, -2, static_cast<int>(i) + 1);
+        }
+        lua_setfield(L, -2, "rects");
+    }
+
+    const QByteArray color = a.color.name(QColor::HexRgb).toUtf8();
+    lua_pushlstring(L, color.constData(), static_cast<size_t>(color.size()));
+    lua_setfield(L, -2, "color");
+    lua_pushnumber(L, a.color.alphaF());
+    lua_setfield(L, -2, "opacity");
+
+    const QByteArray comment = a.contents.toUtf8();
+    lua_pushlstring(L, comment.constData(), static_cast<size_t>(comment.size()));
+    lua_setfield(L, -2, "comment");
+
+    if (a.type == PDF_ANNOT_HIGHLIGHT)
+    {
+        const QByteArray text = a.text.toUtf8();
+        lua_pushlstring(L, text.constData(), static_cast<size_t>(text.size()));
+        lua_setfield(L, -2, "text");
+    }
+}
+
+// A rectangle given as {x=, y=, w=, h=} or {x, y, w, h} (page points).
+static bool
+readRect(lua_State *L, int index, fz_rect &out)
+{
+    if (!lua_istable(L, index))
+        return false;
+    auto number = [&](const char *key, int position, double &value)
+    {
+        lua_getfield(L, index, key);
+        if (lua_isnil(L, -1))
+        {
+            lua_pop(L, 1);
+            lua_rawgeti(L, index, position);
+        }
+        const bool ok = lua_isnumber(L, -1);
+        if (ok)
+            value = lua_tonumber(L, -1);
+        lua_pop(L, 1);
+        return ok;
+    };
+    double x, y, w, h;
+    if (!number("x", 1, x) || !number("y", 2, y) || !number("w", 3, w)
+        || !number("h", 4, h))
+        return false;
+    out = {static_cast<float>(x), static_cast<float>(y),
+           static_cast<float>(x + w), static_cast<float>(y + h)};
+    return true;
+}
+
+// The 1-based page argument as an index, or -1 (after raising no error) when
+// it is out of range.
+static int
+annotPage(lua_State *L, DocumentView *view, int arg)
+{
+    const lua_Integer page = luaL_checkinteger(L, arg);
+    if (page < 1 || page > view->numPages())
+        return -1;
+    return static_cast<int>(page) - 1;
+}
+
+static int
+annotFail(lua_State *L, const char *message)
+{
+    lua_pushnil(L);
+    lua_pushstring(L, message);
+    return 2;
+}
+
+static bool
+annotationExists(Model *model, int page0, int id)
+{
+    for (const auto &a : model->annotationInfos(page0))
+        if (a.objNum == id)
+            return true;
+    return false;
+}
+
+// opts.color, a name Qt knows ("#ffcc00", "yellow"); invalid if none.
+static QColor
+optColor(lua_State *L, int opts)
+{
+    QColor color;
+    if (lua_istable(L, opts))
+    {
+        lua_getfield(L, opts, "color");
+        if (lua_isstring(L, -1))
+            color = QColor(QString::fromUtf8(lua_tostring(L, -1)));
+        lua_pop(L, 1);
+    }
+    return color;
+}
+
+static QString
+optString(lua_State *L, int opts, const char *key)
+{
+    QString text;
+    if (lua_istable(L, opts))
+    {
+        lua_getfield(L, opts, key);
+        if (lua_isstring(L, -1))
+            text = QString::fromUtf8(lua_tostring(L, -1));
+        lua_pop(L, 1);
+    }
+    return text;
+}
 
 static const luaL_Reg DocumentViewMethods[] = {
     VIEW_METHOD("close",
@@ -1514,6 +1685,206 @@ static const luaL_Reg DocumentViewMethods[] = {
                         lua_setfield(L, -2, "known");
                         lua_rawseti(L, -2, ++n);
                     }
+                    return 1;
+                }),
+
+    VIEW_METHOD("annotations",
+                {
+                    // annotations([page]): the annotations of a page, or of
+                    // the whole document without a page.
+                    if (!*view)
+                        return annotFail(L, "no active view");
+                    Model *model = (*view)->model();
+                    if (!model->supports_annotations())
+                        return annotFail(
+                            L, "annotations are not supported for this file");
+
+                    int first = 0, last = (*view)->numPages() - 1;
+                    if (!lua_isnoneornil(L, 2))
+                    {
+                        first = last = annotPage(L, *view, 2);
+                        if (first < 0)
+                            return annotFail(L, "page out of range");
+                    }
+
+                    lua_newtable(L);
+                    int n = 0;
+                    for (int page0 = first; page0 <= last; ++page0)
+                        for (const auto &a : model->annotationInfos(page0))
+                        {
+                            pushAnnotation(L, page0, a);
+                            lua_rawseti(L, -2, ++n);
+                        }
+                    return 1;
+                }),
+
+    VIEW_METHOD("add_highlight",
+                {
+                    // add_highlight(page, rects, [opts]) -> id
+                    // rects: {x, y, w, h} in page points, or a list of them
+                    // (one per line); opts: color, comment.
+                    if (!*view)
+                        return annotFail(L, "no active view");
+                    Model *model = (*view)->model();
+                    if (!model->supports_annotations())
+                        return annotFail(
+                            L, "annotations are not supported for this file");
+                    const int page0 = annotPage(L, *view, 2);
+                    if (page0 < 0)
+                        return annotFail(L, "page out of range");
+                    luaL_checktype(L, 3, LUA_TTABLE);
+
+                    std::vector<fz_rect> rects;
+                    fz_rect single;
+                    // one rectangle, or a list of them
+                    lua_rawgeti(L, 3, 1);
+                    const bool isList = lua_istable(L, -1);
+                    lua_pop(L, 1);
+                    if (isList)
+                    {
+                        const int count = static_cast<int>(lua_objlen(L, 3));
+                        for (int i = 1; i <= count; ++i)
+                        {
+                            lua_rawgeti(L, 3, i);
+                            fz_rect r;
+                            const bool ok = readRect(L, lua_gettop(L), r);
+                            lua_pop(L, 1);
+                            if (!ok)
+                                return annotFail(
+                                    L, "a rect needs numbers x, y, w and h");
+                            rects.push_back(r);
+                        }
+                    }
+                    else if (readRect(L, 3, single))
+                        rects.push_back(single);
+                    if (rects.empty())
+                        return annotFail(L, "no rectangle given");
+
+                    std::vector<fz_quad> quads;
+                    for (const fz_rect &r : rects)
+                        quads.push_back({{r.x0, r.y0}, {r.x1, r.y0},
+                                         {r.x0, r.y1}, {r.x1, r.y1}});
+
+                    auto *command = new TextHighlightAnnotationCommand(
+                        model, page0, quads, optString(L, 4, "comment"),
+                        nullptr, optColor(L, 4));
+                    model->undoStack()->push(command);
+                    if (command->objNum() < 0)
+                        return annotFail(L, "could not add the highlight");
+                    lua_pushinteger(L, command->objNum());
+                    return 1;
+                }),
+
+    VIEW_METHOD("add_note",
+                {
+                    // add_note(page, x, y, text) -> id
+                    if (!*view)
+                        return annotFail(L, "no active view");
+                    Model *model = (*view)->model();
+                    if (!model->supports_annotations())
+                        return annotFail(
+                            L, "annotations are not supported for this file");
+                    const int page0 = annotPage(L, *view, 2);
+                    if (page0 < 0)
+                        return annotFail(L, "page out of range");
+                    const float x = static_cast<float>(luaL_checknumber(L, 3));
+                    const float y = static_cast<float>(luaL_checknumber(L, 4));
+                    const QString text
+                        = QString::fromUtf8(luaL_checkstring(L, 5));
+                    if (text.isEmpty())
+                        return annotFail(L, "a note needs some text");
+
+                    constexpr float size = 24.0f;
+                    auto *command = new TextAnnotationCommand(
+                        model, page0, {x, y, x + size, y + size}, text);
+                    model->undoStack()->push(command);
+                    if (command->objNum() < 0)
+                        return annotFail(L, "could not add the note");
+                    lua_pushinteger(L, command->objNum());
+                    return 1;
+                }),
+
+    VIEW_METHOD("add_rect",
+                {
+                    // add_rect(page, rect, [opts]) -> id; opts: comment.
+                    if (!*view)
+                        return annotFail(L, "no active view");
+                    Model *model = (*view)->model();
+                    if (!model->supports_annotations())
+                        return annotFail(
+                            L, "annotations are not supported for this file");
+                    const int page0 = annotPage(L, *view, 2);
+                    if (page0 < 0)
+                        return annotFail(L, "page out of range");
+                    fz_rect rect;
+                    if (!readRect(L, 3, rect))
+                        return annotFail(L,
+                                         "a rect needs numbers x, y, w and h");
+
+                    auto *command = new RectAnnotationCommand(
+                        model, page0, rect, optString(L, 4, "comment"));
+                    model->undoStack()->push(command);
+                    if (command->objNum() < 0)
+                        return annotFail(L, "could not add the rectangle");
+                    lua_pushinteger(L, command->objNum());
+                    return 1;
+                }),
+
+    VIEW_METHOD("remove_annotation",
+                {
+                    // remove_annotation(page, id) -> true if it existed.
+                    if (!*view)
+                        return annotFail(L, "no active view");
+                    Model *model = (*view)->model();
+                    if (!model->supports_annotations())
+                        return annotFail(
+                            L, "annotations are not supported for this file");
+                    const int page0 = annotPage(L, *view, 2);
+                    if (page0 < 0)
+                        return annotFail(L, "page out of range");
+                    const int id = static_cast<int>(luaL_checkinteger(L, 3));
+                    if (!annotationExists(model, page0, id))
+                    {
+                        lua_pushboolean(L, 0);
+                        return 1;
+                    }
+                    model->undoStack()->push(
+                        new DeleteAnnotationsCommand(model, page0, QSet<int>{id}));
+                    lua_pushboolean(L, 1);
+                    return 1;
+                }),
+
+    VIEW_METHOD("set_annotation",
+                {
+                    // set_annotation(page, id, {comment=, color=}) -> true if
+                    // it existed. Not part of the undo history.
+                    if (!*view)
+                        return annotFail(L, "no active view");
+                    Model *model = (*view)->model();
+                    if (!model->supports_annotations())
+                        return annotFail(
+                            L, "annotations are not supported for this file");
+                    const int page0 = annotPage(L, *view, 2);
+                    if (page0 < 0)
+                        return annotFail(L, "page out of range");
+                    const int id = static_cast<int>(luaL_checkinteger(L, 3));
+                    luaL_checktype(L, 4, LUA_TTABLE);
+                    if (!annotationExists(model, page0, id))
+                    {
+                        lua_pushboolean(L, 0);
+                        return 1;
+                    }
+
+                    lua_getfield(L, 4, "comment");
+                    if (lua_isstring(L, -1))
+                        model->addAnnotComment(
+                            page0, id, QString::fromUtf8(lua_tostring(L, -1)));
+                    lua_pop(L, 1);
+
+                    const QColor color = optColor(L, 4);
+                    if (color.isValid())
+                        model->annotChangeColor(page0, id, color);
+                    lua_pushboolean(L, 1);
                     return 1;
                 }),
 

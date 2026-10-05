@@ -90,6 +90,7 @@ Lektra::~Lektra() noexcept
 #ifdef WITH_LUA
     // Jobs that are still running must not call back into Lua once it is closed.
     killLuaJobs();
+    killLuaStatusbar();
 #endif
 
     // Commands registered from Lua hold LuaRefGuard shared_ptrs that call

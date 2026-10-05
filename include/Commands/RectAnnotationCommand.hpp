@@ -20,6 +20,12 @@ public:
     {
     }
 
+    // The annotation that was made (-1 if it could not be)
+    int objNum() const noexcept
+    {
+        return m_objNum;
+    }
+
     void undo() override
     {
         m_comment = m_model->getAnnotComment(m_pageno, m_objNum);

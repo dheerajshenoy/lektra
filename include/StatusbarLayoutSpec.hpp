@@ -50,6 +50,21 @@ modules()
     return names;
 }
 
+// A module name looks like an identifier. Names other than the built-in
+// modules are the custom segments a script adds (lektra.statusbar.register);
+// they may be named before the script has run, so they are not checked here.
+inline bool
+isModuleName(const QString &name)
+{
+    if (name.isEmpty() || !(name.at(0).isLetter() || name.at(0) == QLatin1Char('_')))
+        return false;
+    for (const QChar c : name)
+        if (!(c.isLetterOrNumber() || c == QLatin1Char('_')
+              || c == QLatin1Char('-') || c == QLatin1Char('.')))
+            return false;
+    return true;
+}
+
 inline QString
 canonicalModule(const QString &name)
 {
@@ -108,9 +123,9 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
             return true;
         }
         const QString name = canonicalModule(text);
-        if (!modules().contains(name))
+        if (!isModuleName(name))
         {
-            warnings << QStringLiteral("unknown statusbar module \"%1\" (use one of: %2)")
+            warnings << QStringLiteral("unknown statusbar module \"%1\" (the built-in ones are: %2)")
                             .arg(text, modules().join(QStringLiteral(", ")));
             return false;
         }
@@ -149,9 +164,9 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
     if (hasModule)
     {
         const QString name = canonicalModule(map.value("module").toString());
-        if (!modules().contains(name))
+        if (!isModuleName(name))
         {
-            warnings << QStringLiteral("unknown statusbar module \"%1\" (use one of: %2)")
+            warnings << QStringLiteral("unknown statusbar module \"%1\" (the built-in ones are: %2)")
                             .arg(map.value("module").toString(),
                                  modules().join(QStringLiteral(", ")));
             return false;
