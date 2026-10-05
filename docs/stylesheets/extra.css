@@ -1,0 +1,27 @@
+/* The left sidebar starts with the site name (and, in the mobile menu, the
+   repository link). On wide screens it is just a heading above the pages, and
+   the site name is already in the header, so hide it there. In the mobile menu
+   (below this width) it stays: it is the title of that menu. */
+@media screen and (min-width: 76.25em) {
+  .md-nav--primary > .md-nav__title {
+    display: none;
+  }
+}
+
+/* The name in the header (and the mobile menu) is set in the font of the
+   homepage's LEKTRA logo, Major Mono Display (SIL Open Font License). */
+@font-face {
+  font-display: swap;
+  font-family: "Major Mono Display";
+  font-style: normal;
+  font-weight: 400;
+  src: url("../assets/fonts/major-mono-display.woff2") format("woff2");
+}
+
+.md-header__topic:first-child .md-ellipsis,
+.md-nav--primary > .md-nav__title {
+  font-family: "Major Mono Display", var(--md-text-font-family), sans-serif;
+  font-weight: 400;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+}

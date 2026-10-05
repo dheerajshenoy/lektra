@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Extract command name + description pairs from Lektra::initCommands().
-Usage: python extract_commands.py <source_file>
+Usage: python doc_commands.py [source file or folder]
 """
 
 import re
@@ -12,23 +12,52 @@ import os
 HOME = os.getenv("HOME")
 
 
+_LITERAL = re.compile(r'"((?:[^"\\]|\\.)*)"')
+
+
 def extract_commands(path: str) -> list[tuple[str, str]]:
     with open(path, "r") as f:
         source = f.read()
 
-    # Match m_command_manager.reg("name", "description", ...)
+    # m_command_manager->reg("name", tr("description"), ...). The description
+    # may be written as several adjacent string literals, which C++ joins.
     pattern = re.compile(
-        r'm_command_manager->reg\(\s*"([^"]+)"\s*,\s*(?:tr\()?\"([^\"]*)\"\)?\s*,',
+        r'm_command_manager->reg\(\s*"([^"]+)"\s*,\s*(?:tr\()?\s*'
+        r'((?:"(?:[^"\\]|\\.)*"\s*)+)',
         re.MULTILINE,
     )
 
-    return pattern.findall(source)
+    commands = []
+    for name, literals in pattern.findall(source):
+        desc = "".join(_LITERAL.findall(literals)).replace('\\"', '"')
+        commands.append((name, desc))
+    return commands
+
+
+def extract_all(path: str) -> list[tuple[str, str]]:
+    """The commands of a source file, or of every .cpp file below a folder
+    (the commands are registered in more than one file)."""
+    if os.path.isfile(path):
+        return extract_commands(path)
+
+    seen = set()
+    commands = []
+    for folder, _, files in sorted(os.walk(path)):
+        for name in sorted(files):
+            if not name.endswith(".cpp"):
+                continue
+            for command, desc in extract_commands(os.path.join(folder, name)):
+                if command not in seen:
+                    seen.add(command)
+                    commands.append((command, desc))
+    return commands
 
 
 def main():
-    path = sys.argv[1] if len(sys.argv) > 1 else "../src/Lektra.cpp"
+    default = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src")
+    path = sys.argv[1] if len(sys.argv) > 1 else default
 
-    commands = extract_commands(path)
+    commands = extract_all(path)
 
     if not commands:
         print("No commands found.")

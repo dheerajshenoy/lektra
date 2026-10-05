@@ -1,2 +1,73 @@
+site_name: lektra Docs
+site_description: High-performance document and image viewer that prioritizes screen space and control
+repo_url: https://github.com/dheerajshenoy/lektra
+repo_name: dheerajshenoy/lektra
+docs_dir: docs
+
+extra_css:
+  - stylesheets/extra.css
+
+# docs/reference/ is generated from the sources by scripts/gen_docs_md.py. The
+# hook runs it before every build, and in `mkdocs serve` again when a source
+# changes.
+hooks:
+  - scripts/mkdocs_hooks.py
+
 nav:
   - Home: index.md
+  - Installation: installation.md
+  - Reference:
+      - Overview: reference/index.md
+      - Commands: reference/commands.md
+      - Configuration: reference/configuration.md
+      - Lua API: reference/lua_api.md
+  - Lua scripting:
+      - Guide: LUA-WIKI.md
+      - Examples: examples.md
+  - About: about.md
+
+theme:
+  name: material
+  logo: assets/logo.svg
+  favicon: assets/favicon.png
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+  features:
+    - navigation.top
+    - navigation.sections
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 2
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.keys
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+
+# Not part of the site: the man page is in roff/pandoc form, and the tutorial
+# sources are only built to a PDF (which is kept).
+exclude_docs: |
+  man/
+  tutorial/tutorial.tex

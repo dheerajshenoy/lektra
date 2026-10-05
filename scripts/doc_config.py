@@ -144,7 +144,7 @@ class Parser:
 
 def main():
     parser = Parser()
-    docobjs = parser.parse("../include/Config.hpp")
+    docobjs = parser.parse(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "include", "Config.hpp"))
     USER = os.getenv("USER")
     with open(f"/home/{USER}/Gits/dheerajshenoy.github.io/lektra/files/config.json", 'w') as f:
         json.dump(docobjs, f, indent=4)

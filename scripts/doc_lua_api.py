@@ -14,14 +14,44 @@ HOME = os.getenv("HOME")
 
 # ── Patterns ──────────────────────────────────────────────────────────────────
 RE_CLASS     = re.compile(r'---@class\s+([\w.]+)')
-RE_FIELD     = re.compile(r'---@field\s+(\S+)\s+(\S+)\s*(.*)')
-RE_PARAM     = re.compile(r'---@param\s+(\w+\??)\s+(\S+)\s*(.*)')
+RE_FIELD     = re.compile(r'---@field\s+(\S+)\s+(.*)')
+RE_PARAM     = re.compile(r'---@param\s+(\w+\??)\s+(.*)')
 RE_RETURN    = re.compile(r'---@return\s+(.+)')
 RE_DESC      = re.compile(r'---\s?(.*)')
 RE_METHOD    = re.compile(r'function\s+(\w+):(\w+)\s*\(([^)]*)\)')
 RE_MOD_FUNC  = re.compile(r'(lektra\.[\w.]+)\s*=\s*function\s*\(([^)]*)\)')
 RE_MOD_INIT  = re.compile(r'lektra\.(\w+)\s*=\s*\{\}')
 RE_LOCAL_CLS = re.compile(r'local\s+(\w+)\s*=\s*\{\}')
+
+
+def split_type(text: str) -> tuple[str, str]:
+    """Splits "type rest of the line" into the type and the rest.
+
+    A type can contain spaces inside brackets, as in `table<string, number>`
+    or `fun(a: string): boolean`, and around "|", as in `string | nil`.
+    """
+    text = text.strip()
+    pairs = {"<": ">", "(": ")", "{": "}", "[": "]"}
+    closers = set(pairs.values())
+    depth = 0
+    i = 0
+    while i < len(text):
+        c = text[i]
+        if c in pairs:
+            depth += 1
+        elif c in closers:
+            depth = max(0, depth - 1)
+        elif c.isspace() and depth == 0:
+            # a space around "|" belongs to the type, and so does the return
+            # type of a function type, fun(a: string): boolean
+            before = text[:i].rstrip()
+            after = text[i:].lstrip()
+            if before.endswith(("|", ":")) or after.startswith("|"):
+                i += 1
+                continue
+            break
+        i += 1
+    return text[:i].strip(), text[i:].strip()
 
 
 def format_ret(ret: dict | None) -> str:
@@ -39,7 +69,7 @@ def parse_stub(path: str) -> dict:
     with open(path) as f:
         lines = f.readlines()
 
-    module_name = None
+    module_names: list[str] = []
     classes: dict = {}   # cls_name -> {desc, fields, methods}
     functions: list = []
 
@@ -95,7 +125,8 @@ def parse_stub(path: str) -> dict:
         m = RE_FIELD.match(s)
         if m:
             if pending_class_name:
-                entry = {"name": m.group(1), "type": m.group(2), "desc": m.group(3).strip()}
+                ftype, fdesc = split_type(m.group(2))
+                entry = {"name": m.group(1), "type": ftype, "desc": fdesc}
                 classes.setdefault(pending_class_name, {"desc": "", "fields": [], "methods": []})
                 classes[pending_class_name]["fields"].append(entry)
             continue
@@ -103,17 +134,19 @@ def parse_stub(path: str) -> dict:
         # @param
         m = RE_PARAM.match(s)
         if m:
-            pending_params.append({"name": m.group(1), "type": m.group(2), "desc": m.group(3).strip()})
+            ptype, pdesc = split_type(m.group(2))
+            pending_params.append({"name": m.group(1), "type": ptype, "desc": pdesc})
             continue
 
         # @return
         m = RE_RETURN.match(s)
         if m:
-            parts = m.group(1).strip().split(None, 2)
+            rtype, rest = split_type(m.group(1))
+            parts = rest.split(None, 1)
             pending_return = {
-                "type": parts[0],
-                "name": parts[1] if len(parts) > 1 else "",
-                "desc": parts[2] if len(parts) > 2 else "",
+                "type": rtype,
+                "name": parts[0] if parts else "",
+                "desc": parts[1] if len(parts) > 1 else "",
             }
             continue
 
@@ -135,7 +168,7 @@ def parse_stub(path: str) -> dict:
         # lektra.X = {} → module init
         m = RE_MOD_INIT.match(s)
         if m:
-            module_name = f"lektra.{m.group(1)}"
+            module_names.append(f"lektra.{m.group(1)}")
             reset(); reset_class()
             continue
 
@@ -185,14 +218,16 @@ def parse_stub(path: str) -> dict:
     ]
 
     return {
-        "module": module_name,
+        # a stub that declares several modules is listed under all of them
+        "module": ", ".join(module_names) if module_names else None,
         "module_desc": "",
         "classes": class_list,
         "functions": functions,
     }
 
 
-# Stub files to include and the display order
+# Stub files to include and the display order. Stubs that are not listed here
+# are added after these, in alphabetical order, so a new stub is never lost.
 STUB_ORDER = [
     "lektra.lua",
     "view.lua",
@@ -205,6 +240,13 @@ STUB_ORDER = [
     "ui.lua",
     "opt.lua",
     "utils.lua",
+    "clipboard.lua",
+    "sessions.lua",
+    "timer.lua",
+    "job.lua",
+    "async.lua",
+    "paths.lua",
+    "statusbar.lua",
     "capabilities.lua",
     "version.lua",
 ]
@@ -213,18 +255,19 @@ STUB_ORDER = [
 MANUAL_MODULE = {
     "lektra.lua": "lektra",
     "capabilities.lua": "lektra.capabilities",
+    "async.lua": "lektra.async",
 }
 
 
-def main():
-    stubs_dir = sys.argv[1] if len(sys.argv) > 1 else "../stubs/lua"
+def collect_modules(stubs_dir: str) -> list[dict]:
+    """Parses the stubs of a directory into a list of modules, in display order."""
+    present = sorted(f for f in os.listdir(stubs_dir) if f.endswith(".lua"))
+    names = [f for f in STUB_ORDER if f in present]
+    names += [f for f in present if f not in STUB_ORDER]
 
     results = []
-    for fname in STUB_ORDER:
-        path = os.path.join(stubs_dir, fname)
-        if not os.path.isfile(path):
-            continue
-        mod = parse_stub(path)
+    for fname in names:
+        mod = parse_stub(os.path.join(stubs_dir, fname))
         if mod["module"] is None:
             mod["module"] = MANUAL_MODULE.get(fname)
         if not mod["module"]:
@@ -233,6 +276,14 @@ def main():
         if not mod["classes"] and not mod["functions"]:
             continue
         results.append(mod)
+    return results
+
+
+def main():
+    default_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "stubs", "lua")
+    stubs_dir = sys.argv[1] if len(sys.argv) > 1 else default_dir
+
+    results = collect_modules(stubs_dir)
 
     out_path = f"{HOME}/Gits/dheerajshenoy.github.io/lektra/files/lua_api.json"
     with open(out_path, "w") as f:

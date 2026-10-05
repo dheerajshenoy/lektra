@@ -20,3 +20,7 @@ cmake/*
 !cmake/Info.plist.in
 compile_commands.json
 .claude/
+
+# generated documentation (scripts/gen_docs_md.py) and its build
+docs/reference/
+site/
