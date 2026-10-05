@@ -37,8 +37,9 @@ pull requests on either platform, and read
 
 ## How do I report bugs or request features?
 
-Through the
-[GitHub issues page](https://github.com/dheerajshenoy/lektra/issues).
+On either [Codeberg](https://codeberg.org/lektra/lektra/issues) or
+[GitHub](https://github.com/dheerajshenoy/lektra/issues): use the issues page of
+whichever you prefer.
 
 ## Thanks
 

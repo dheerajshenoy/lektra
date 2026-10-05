@@ -15,8 +15,9 @@ services:
 
 Money is not the only way. These help just as much:
 
-- **Report bugs and request features** on the
-  [issues page](https://github.com/dheerajshenoy/lektra/issues).
+- **Report bugs and request features** on the issues page of
+  [Codeberg](https://codeberg.org/lektra/lektra/issues) or
+  [GitHub](https://github.com/dheerajshenoy/lektra/issues).
 - **Translate Lektra.** There is an English and a Spanish translation; more are welcome.
 - **Improve the documentation** and the man page.
 - **Contribute code.** Start with

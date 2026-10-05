@@ -6,6 +6,8 @@ compromise. It works natively on Wayland (through Qt 6) and is scriptable with
 Lua.
 
 For screenshots and short demo videos see the [homepage](https://dheerajshenoy.github.io/lektra/).
+The source code and the issue tracker are on [Codeberg](https://codeberg.org/lektra/lektra)
+and [GitHub](https://github.com/dheerajshenoy/lektra), kept in sync.
 
 ## Features
 

@@ -20,16 +20,18 @@
 
 === "Ubuntu / Debian"
 
-    Download the latest DEB package from the
-    [releases page](https://github.com/dheerajshenoy/lektra/releases) and install it.
+    Download the latest DEB package from the releases page on
+    [Codeberg](https://codeberg.org/lektra/lektra/releases) or
+    [GitHub](https://github.com/dheerajshenoy/lektra/releases) and install it.
 
     !!! note
         Tested on Ubuntu 24.04.
 
 === "AppImage"
 
-    Download the latest AppImage from the
-    [releases page](https://github.com/dheerajshenoy/lektra/releases), make it
+    Download the latest AppImage from the releases page on
+    [Codeberg](https://codeberg.org/lektra/lektra/releases) or
+    [GitHub](https://github.com/dheerajshenoy/lektra/releases), make it
     executable and run it.
 
 === "Gentoo"
@@ -70,8 +72,9 @@
 
 === "Windows"
 
-    Download the latest EXE from the
-    [releases page](https://github.com/dheerajshenoy/lektra/releases).
+    Download the latest EXE from the releases page on
+    [Codeberg](https://codeberg.org/lektra/lektra/releases) or
+    [GitHub](https://github.com/dheerajshenoy/lektra/releases).
 
     !!! note
         Tested on Windows 11.
@@ -79,7 +82,10 @@
 ## Build from source
 
 Building from source is the best way to get the latest features and bug fixes,
-and to contribute to the project.
+and to contribute to the project. The repository is on both
+[Codeberg](https://codeberg.org/lektra/lektra) and
+[GitHub](https://github.com/dheerajshenoy/lektra), kept in sync. The clone
+commands below use GitHub; for Codeberg use `https://codeberg.org/lektra/lektra.git`.
 
 Requirements:
 

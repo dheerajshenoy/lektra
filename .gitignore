@@ -24,3 +24,6 @@ compile_commands.json
 # generated documentation (scripts/gen_docs_md.py) and its build
 docs/reference/
 site/
+
+# Python bytecode (the doc generators are imported by the MkDocs hook)
+__pycache__/
