@@ -17,6 +17,7 @@
 ### Bug Fixes
 
 - Fix split focus change not updating tab title.
+- Fix `zoom_in` and `zoom_out` moving to another page when the mouse is not over a page (in a margin, between pages, or outside the window).
 
 ## 0.7.9 (2026-10-5)
 
