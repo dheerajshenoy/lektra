@@ -81,8 +81,7 @@ High-performance Document and Image viewer that prioritizes screen space and con
     parsep=0pt
 ]
     \item[Homepage] \url{https://dheerajshenoy.github.io/lektra}
-    \item[Configuration reference] \url{https://dheerajshenoy.github.io/lektra/configuration.html}
-    \item[Commands reference] \url{https://dheerajshenoy.github.io/lektra/commands.html}
+    \item[Documentation] \url{https://lektra.readthedocs.io}
     \item[Source (Codeberg)] \url{https://codeberg.org/lektra/lektra}
     \item[Source (GitHub mirror)] \url{https://github.com/dheerajshenoy/lektra}
 \end{description}
@@ -480,7 +479,7 @@ layout = [ [ "filename", "|", "session" ],
 
 A module can also be a table with more options: \texttt{stretch} (takes a share of the free space), \texttt{min\_\allowbreak{}width} and \texttt{max\_\allowbreak{}width} (pixels), \texttt{margin} (a number or \texttt{[left, right]}), and \texttt{align} (\texttt{"left"}, \texttt{"center"} or \texttt{"right"} inside its slot). With \texttt{at} (the position along the bar, 0 to 1) and \texttt{anchor} (which edge of the item is put there) it is placed at a fixed spot instead of in the flow. \texttt{\{ text = "..." \}} shows a piece of text. Entries that are not valid are skipped and reported when LEKTRA starts. From Lua: \texttt{lektra.opt.statusbar.layout = \{ ... \}}, which takes effect at once.
 
-For the full list of options see the \href{https://dheerajshenoy.github.io/lektra/configuration.html}{configuration reference} on the homepage.
+For the full list of options see the \href{https://lektra.readthedocs.io/en/latest/reference/toml_configuration/}{configuration reference} on the homepage.
 
 % ---------------------------------------------------------------------------
 \section{Commands}
@@ -488,7 +487,7 @@ For the full list of options see the \href{https://dheerajshenoy.github.io/lektr
 
 Press \keys{:} to open the command palette and run any command by name. Commands cover opening files, navigation, zoom, annotations, sessions, and more.
 
-The full command reference is on the \href{https://dheerajshenoy.github.io/lektra/commands.html}{commands page} of the homepage.
+The full command reference is on the \href{https://lektra.readthedocs.io/en/latest/reference/commands/}{commands page} of the homepage.
 
 % ---------------------------------------------------------------------------
 \section{Lua API}
@@ -616,7 +615,7 @@ LSP-friendly type stubs for the Lua API are installed at
 \end{minted}
 \end{tcolorbox}
 
-% For the complete API reference with all methods, types, and event names, see the \href{https://dheerajshenoy.github.io/lektra/lua-api.html}{Lua API} page on the homepage.
+For the complete API reference with all methods, types, and event names, see the \href{https://lektra.readthedocs.io/en/latest/reference/lua_api/}{Lua API} page on the homepage.
 
 % ---------------------------------------------------------------------------
 \section{AI Assistant}
