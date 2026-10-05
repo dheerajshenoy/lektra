@@ -170,54 +170,76 @@ def render_commands(version: str) -> str:
 # ── Configuration ─────────────────────────────────────────────────────────────
 
 
+def section_title(name: str) -> str:
+    """How a table is written in config.toml: lower case, and a template such
+    as [Type] (any annotation kind) as <type>."""
+    return re.sub(r"\[([^\]]*)\]", r"<\1>", name).lower()
+
+
+def admonition(kind: str, text: str) -> str:
+    """A Material admonition (a highlighted box) around Markdown text."""
+    body = html_to_md(text)
+    indented = "\n".join(("    " + line) if line else "" for line in body.split("\n"))
+    return f"!!! {kind}\n\n{indented}\n"
+
+
 def render_configuration(version: str) -> str:
     parser = doc_config.Parser()
     sections = parser.parse(str(ROOT / "include" / "Config.hpp"))
     anchors = Anchors()
 
+    # the ids are made in order, so the index links to the same ids as the headings
+    ids = [anchors.make("section", sec["name"]) for sec in sections]
+    anchors = Anchors()
+    for sec in sections:
+        anchors.make("section", sec["name"])
+
     out = [header("include/Config.hpp", version)]
     out.append("# Configuration\n")
     out.append(
-        "Options are set in `config.toml` (a table per section, written here "
-        "as `[section]`) or from Lua with `lektra.opt.<section>.<option>`. "
-        "Options marked with a version were added in that release.\n"
+        "Options are set in `config.toml` (one table per section, such as "
+        "`[page]`) or from Lua with `lektra.opt.<section>.<option>`. "
+        "Each option shows its type, its default value and the release it "
+        "appeared in.\n"
     )
 
-    for sec in sections:
+    for sec, sid in zip(sections, ids):
         name = sec["name"]
-        sid = anchors.make("section", name)
-        out.append(f"## {code('[' + name + ']')} {{#{sid}}}\n")
+        out.append(f"## {code(section_title(name))} {{#{sid} .cfg-section}}\n")
 
-        meta = []
         if sec.get("section_added"):
-            meta.append(f"Added in {sec['section_added']}")
-        if meta:
-            out.append(" · ".join(meta) + "\n")
+            out.append(f"*{sec['section_added']}*{{ .opt-added }}\n")
         if sec.get("section_desc"):
             out.append(html_to_md(sec["section_desc"]) + "\n")
         if sec.get("section_note"):
-            out.append("> **Note:** " + html_to_md(sec["section_note"]) + "\n")
+            out.append(admonition("note", sec["section_note"]))
 
         for f in sec["fields"]:
             fid = anchors.make(name, f["name"])
-            out.append(f"### {code(f['name'])} {{#{fid}}}\n")
+            out.append(f"### {code(f['name'])} {{#{fid} .opt}}\n")
 
-            meta = []
+            badges = []
             if f.get("type"):
-                meta.append(f"**Type:** {code(f['type'])}")
+                badges.append(f"{code(f['type'])}{{ .opt-type }}")
             if f.get("default") not in (None, ""):
-                meta.append(f"**Default:** {code(f['default'])}")
+                badges.append(f"{code(f['default'])}{{ .opt-default }}")
             if f.get("added"):
-                meta.append(f"**Added in** {f['added']}")
-            if meta:
-                out.append(" · ".join(meta) + "\n")
+                badges.append(f"*{f['added']}*{{ .opt-added }}")
+            if badges:
+                out.append(" ".join(badges) + "\n")
 
             if f.get("desc"):
                 out.append(html_to_md(f["desc"]) + "\n")
             if f.get("choice"):
-                out.append("**Choices:** " + html_to_md(f["choice"]) + "\n")
+                choices = [c.strip() for c in f["choice"].split(",") if c.strip()]
+                if choices and all(" " not in c and "<" not in c for c in choices):
+                    out.append("**Choices:** "
+                               + " ".join(f"{code(c)}{{ .opt-choice }}" for c in choices)
+                               + "\n")
+                else:
+                    out.append("**Choices:** " + html_to_md(f["choice"]) + "\n")
             if f.get("note"):
-                out.append("> **Note:** " + html_to_md(f["note"]) + "\n")
+                out.append(admonition("note", f["note"]))
 
     return "\n".join(out) + "\n"
 
