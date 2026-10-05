@@ -19,7 +19,7 @@ nav:
   - Reference:
       - Overview: reference/index.md
       - Commands: reference/commands.md
-      - Configuration: reference/configuration.md
+      - TOML Configuration: reference/toml_configuration.md
       - Lua API: reference/lua_api.md
   - Lua scripting:
       - Guide: LUA-WIKI.md

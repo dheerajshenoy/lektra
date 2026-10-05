@@ -4,7 +4,7 @@ Generate the reference pages of the documentation (Markdown, for MkDocs /
 Read the Docs) from the sources of Lektra:
 
     commands.md        the commands, from Lektra's command registration
-    configuration.md   the options, from the doc comments of include/Config.hpp
+    toml_configuration.md   the options, from the doc comments of include/Config.hpp
     lua_api.md         the Lua API, from the LuaLS stubs in stubs/lua/
 
 The parsing is done by doc_commands.py, doc_config.py and doc_lua_api.py, the
@@ -167,7 +167,7 @@ def render_commands(version: str) -> str:
     return "\n".join(out) + "\n"
 
 
-# ── Configuration ─────────────────────────────────────────────────────────────
+# ── TOML Configuration ─────────────────────────────────────────────────────────────
 
 
 def section_title(name: str) -> str:
@@ -183,7 +183,7 @@ def admonition(kind: str, text: str) -> str:
     return f"!!! {kind}\n\n{indented}\n"
 
 
-def render_configuration(version: str) -> str:
+def render_toml_configuration(version: str) -> str:
     parser = doc_config.Parser()
     sections = parser.parse(str(ROOT / "include" / "Config.hpp"))
     anchors = Anchors()
@@ -195,7 +195,7 @@ def render_configuration(version: str) -> str:
         anchors.make("section", sec["name"])
 
     out = [header("include/Config.hpp", version)]
-    out.append("# Configuration\n")
+    out.append("# TOML Configuration\n")
     out.append(
         "Options are set in `config.toml` (one table per section, such as "
         "`[page]`) or from Lua with `lektra.opt.<section>.<option>`. "
@@ -273,10 +273,15 @@ def render_lua_api(version: str) -> str:
     out = [header("stubs/lua/*.lua", version)]
     out.append("# Lua API\n")
     out.append(
-        "The `lektra` table is available in `init.lua` and in scripts. The "
-        "stubs these pages are made from are installed to "
-        "`/usr/share/lektra/lua/` (LuaLS: add the folder as a library for "
-        "completion). Lua here is LuaJIT, that is Lua 5.1 with extensions.\n"
+        "The `lektra` table is available in `init.lua` and in scripts. Lua here "
+        "is LuaJIT, that is Lua 5.1 with extensions.\n\n"
+        "These pages are made from the type stubs that Lektra installs for "
+        "editor completion:\n\n"
+        "- `/usr/share/lektra/lua/` on Linux\n"
+        "- `share\\lektra\\lua` in the install folder on Windows\n"
+        "- `share/lektra/lua` under the install prefix when built from source.\n\n"
+        "See "
+        "[editor completion](../examples.md#editor-completion).\n"
     )
     out.append("## Modules\n")
     for mod in modules:
@@ -319,7 +324,7 @@ def render_index(version: str) -> str:
     out.append("# Reference\n")
     out.append(f"Generated from the sources of Lektra {version}.\n")
     out.append("- [Commands](commands.md): everything the command palette can run")
-    out.append("- [Configuration](configuration.md): every option of `config.toml`")
+    out.append("- [TOML Configuration](toml_configuration.md): every option of `config.toml`")
     out.append("- [Lua API](lua_api.md): the `lektra` scripting API")
     return "\n".join(out) + "\n"
 
@@ -335,7 +340,7 @@ def generate(out_dir: Path) -> list[Path]:
     pages = {
         "index.md": render_index(version),
         "commands.md": render_commands(version),
-        "configuration.md": render_configuration(version),
+        "toml_configuration.md": render_toml_configuration(version),
         "lua_api.md": render_lua_api(version),
     }
     changed = []

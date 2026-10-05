@@ -29,6 +29,8 @@ SetupIconFile=.\resources\lektra.ico
 ; Icon is embedded in the exe via lektra.rc — no separate .ico needed here.
 Source: ".\build\release\*"; DestDir: "{app}";              Flags: recursesubdirs
 Source: ".\docs\tutorial\tutorial.pdf";    DestDir: "{userappdata}\{#MyAppName}"; Flags: ignoreversion
+; Lua type stubs for completion when editing init.lua (the same folder as on Linux, under the install folder)
+Source: ".\stubs\lua\*";                  DestDir: "{app}\share\lektra\lua";  Flags: ignoreversion
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked

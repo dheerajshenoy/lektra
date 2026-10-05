@@ -43,7 +43,7 @@ SVG are handled by `librsvg` if it is installed.
 ## Where to go next
 
 - [Installation](installation.md): packages for your system, or build from source
-- [Configuration](reference/configuration.md): every option, for `config.toml` and `lektra.opt`
+- [TOML Configuration](reference/toml_configuration.md): every option, for `config.toml` and `lektra.opt`
 - [Commands](reference/commands.md): everything the command palette can run
 - [Lua API](reference/lua_api.md) and the [scripting guide](LUA-WIKI.md)
 - [Examples](examples.md): an `init.lua` and some small plugins

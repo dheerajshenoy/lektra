@@ -159,11 +159,5 @@ terminal.
 
 On Linux/macOS you can read the manual page using `man lektra`.
 
-<!-- The default configuration is a good starting point. When you want to customise -->
-<!-- it, create `config.toml` (TOML options) and/or `init.lua` (Lua) in -->
-<!-- `~/.config/lektra/` (`%APPDATA%\lektra\` on Windows), and read the -->
-<!-- [configuration](reference/configuration.md) and [commands](reference/commands.md) -->
-<!-- references. -->
-<!---->
 LEKTRA ships with a tutorial document that can be opened using `lektra --tutorial` from the command line, or use the
 `show_tutorial_file` command from the command palette once inside LEKTRA.
