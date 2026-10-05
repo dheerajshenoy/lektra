@@ -107,6 +107,11 @@ public:
     bool isSynced() const noexcept;
     // Lets the user pick the views to link (numbers drawn on the views).
     void select_views() noexcept;
+    // Draws the numbers on the views and lets the user pick some. The result
+    // comes through the overlay's accepted() / cancelled() signals. Null if a
+    // pick is already going on.
+    ViewPickOverlay *pickViews(
+        const QList<QPointer<DocumentView>> &preselected = {}) noexcept;
 
 signals:
     void viewCreated(DocumentView *view);

@@ -1082,27 +1082,42 @@ DocumentContainer::flushSync() noexcept
     m_sync_clock.restart();
 }
 
+ViewPickOverlay *
+DocumentContainer::pickViews(
+    const QList<QPointer<DocumentView>> &preselected) noexcept
+{
+    if (m_pick_overlay || getViewCount() < 1)
+        return nullptr;
+
+    m_pick_overlay = new ViewPickOverlay(this, preselected);
+
+    // the keys go back to the view that had them
+    auto refocus = [this]
+    {
+        if (m_current_view)
+            m_current_view->setFocus();
+    };
+    connect(m_pick_overlay, &ViewPickOverlay::accepted, this, refocus);
+    connect(m_pick_overlay, &ViewPickOverlay::cancelled, this, refocus);
+    return m_pick_overlay;
+}
+
 void
 DocumentContainer::select_views() noexcept
 {
-    if (m_pick_overlay || getViewCount() < 2)
+    if (getViewCount() < 2)
         return;
 
-    m_pick_overlay = new ViewPickOverlay(this, m_synced_views);
+    ViewPickOverlay *overlay = pickViews(m_synced_views);
+    if (!overlay)
+        return;
 
-    connect(m_pick_overlay, &ViewPickOverlay::accepted, this,
+    connect(overlay, &ViewPickOverlay::accepted, this,
             [this](const QList<DocumentView *> &views)
     {
         if (views.size() < 2)
             stop_sync(); // nothing to link: picking fewer ends the link
         else
             sync_views(views);
-        if (m_current_view)
-            m_current_view->setFocus();
-    });
-    connect(m_pick_overlay, &ViewPickOverlay::cancelled, this, [this]
-    {
-        if (m_current_view)
-            m_current_view->setFocus();
     });
 }

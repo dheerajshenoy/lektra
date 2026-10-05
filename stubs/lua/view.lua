@@ -504,3 +504,8 @@ lektra.view.sync = function(ids) end
 
 --- Stops syncing the views of the current tab.
 lektra.view.unsync = function() end
+
+--- Lets the user pick views of the current tab: a number is drawn on each view, the number keys select or deselect it, Enter confirms and Esc cancels. Waits until then.
+--- The ids can be given to `lektra.view.sync`.
+---@return integer[]? ids The ids of the picked views (in the order they are numbered, empty if none), or nil if cancelled.
+lektra.view.pick_views = function() end

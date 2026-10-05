@@ -1,9 +1,12 @@
 #include "Lektra.hpp"
+#include "DocumentContainer.hpp"
+#include "ViewPickOverlay.hpp"
 #include "Model.hpp"
 #include "PageRange.hpp"
 #include "utils.hpp"
 
 #include <QBuffer>
+#include <QEventLoop>
 #include <QByteArray>
 #include <QMenu>
 #include <cstring>
@@ -1848,6 +1851,61 @@ Lektra::initLuaView() noexcept
         return 0;
     }, 1);
     lua_setfield(m_L, -2, "unsync");
+
+    // lektra.view.pick_views() -> ids of the views the user picked, or nil.
+    // Waits for the choice (numbers are drawn on the views of the current tab)
+    lua_pushlightuserdata(m_L, this);
+    lua_pushcclosure(m_L, [](lua_State *L) -> int
+    {
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        DocumentView *doc = lektra->currentDocument();
+        if (!doc || !doc->container())
+        {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        ViewPickOverlay *overlay = doc->container()->pickViews();
+        if (!overlay)
+        {
+            lua_pushnil(L); // a pick is already going on
+            return 1;
+        }
+
+        QEventLoop loop;
+        bool accepted = false;
+        std::vector<DocumentView::Id> ids;
+        QObject::connect(overlay, &ViewPickOverlay::accepted, &loop,
+                         [&](const QList<DocumentView *> &views)
+        {
+            accepted = true;
+            for (const DocumentView *view : views)
+                ids.push_back(view->id());
+            loop.quit();
+        });
+        QObject::connect(overlay, &ViewPickOverlay::cancelled, &loop,
+                         &QEventLoop::quit);
+        // the tab or the window going away ends it too
+        QObject::connect(overlay, &QObject::destroyed, &loop,
+                         &QEventLoop::quit);
+        loop.exec();
+
+        if (!accepted)
+        {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        lua_createtable(L, static_cast<int>(ids.size()), 0);
+        for (size_t i = 0; i < ids.size(); ++i)
+        {
+            lua_pushinteger(L, ids[i]);
+            lua_rawseti(L, -2, static_cast<int>(i) + 1);
+        }
+        return 1;
+    }, 1);
+    lua_setfield(m_L, -2, "pick_views");
 
     lua_setfield(m_L, -2, "view");
 }
