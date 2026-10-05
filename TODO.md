@@ -4,10 +4,10 @@
 
 ## HIGH PRIORITY
 
-- [ ] Annotation save as temp file and auto-save on exit
 
 ## MEDIUM PRIORITY
 
+- [ ] Annotation save as temp file and auto-save on exit
 - [ ] Macros
 - [ ] Multi-Document / Workspace Search
 - [ ] Telescope / FZF-style Fuzzy Text Search Across Document
