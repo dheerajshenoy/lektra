@@ -24,6 +24,7 @@
 - Lua scripts can now work with annotations: `view:annotations(page)` lists them (type, position, colour, comment and, for highlights, the text), `view:add_highlight`, `view:add_note` and `view:add_rect` create them (with undo), and `view:set_annotation` and `view:remove_annotation` change or remove them.
 - Lua scripts can add their own pieces to the statusbar with `lektra.statusbar.register(name, function)` (refreshed when the page, zoom or file changes, or every few seconds) and `lektra.statusbar.set(name, text)`. Name the segment in `statusbar.layout` to place it, otherwise it goes to the right end.
 - Fixed colour of note annotations: reading or changing it failed ("Text annotations have no IC property").
+- New `lektra.async(function() ... end)` lets a script wait for slow things and still read from top to bottom: inside it, `lektra.job.await(command)`, `lektra.sleep(seconds)` and the general `lektra.await(function(resume) ... end)` pause it while the window stays responsive. Callbacks that a script hands to timers, jobs, dialogs, `view:region_select` and the like now also work when they were set up from inside such a function.
 - LLM chat: you can stop a reply while it is coming in. The Send button turns into a Stop button (or press `Esc`), and what had arrived stays in the chat.
 - New `llm_view.font_size` option sets the text size of the messages in the LLM panel.
 - New `llm_view.show_at_startup` option opens the LLM panel when Lektra starts. It replaces `llm_view.enabled`, which was read but had no effect.

@@ -1,3 +1,4 @@
+#include "lua/MainState.hpp"
 #include "ColorDialog.hpp"
 #include "Lektra.hpp"
 #include "FileDialogRequest.hpp"
@@ -53,7 +54,7 @@ registerMenuMetatable(lua_State *L)
                 lua_pushvalue(L, 3);
                 int callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
                 QObject::connect(action, &QAction::triggered,
-                                 [L, callback_ref]()
+                                 [L = luaMainState(), callback_ref]()
                 {
                     lua_rawgeti(L, LUA_REGISTRYINDEX, callback_ref);
                     if (lua_pcall(L, 0, 0, 0) != LUA_OK)
@@ -65,7 +66,7 @@ registerMenuMetatable(lua_State *L)
                     }
                 });
                 QObject::connect(action, &QObject::destroyed,
-                                 [L, callback_ref]()
+                                 [L = luaMainState(), callback_ref]()
                 { luaL_unref(L, LUA_REGISTRYINDEX, callback_ref); });
             }
 
@@ -212,7 +213,7 @@ lua_ui_picker(lua_State *L, Lektra *lektra)
 
     if (on_accept_ref != LUA_NOREF)
         QObject::connect(picker, &LuaPicker::itemAccepted,
-                         [L, on_accept_ref](const QString &text)
+                         [L = luaMainState(), on_accept_ref](const QString &text)
         {
             lua_rawgeti(L, LUA_REGISTRYINDEX, on_accept_ref);
             lua_pushstring(L, text.toUtf8().constData());
@@ -221,7 +222,7 @@ lua_ui_picker(lua_State *L, Lektra *lektra)
         });
 
     if (on_cancel_ref != LUA_NOREF)
-        QObject::connect(picker, &QObject::destroyed, [L, on_cancel_ref]()
+        QObject::connect(picker, &QObject::destroyed, [L = luaMainState(), on_cancel_ref]()
         {
             lua_rawgeti(L, LUA_REGISTRYINDEX, on_cancel_ref);
             lua_call(L, 0, 0);
@@ -599,13 +600,13 @@ Lektra::initLuaUI() noexcept
                 {
                     int callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
                     QObject::connect(action, &QAction::triggered,
-                                     [L, callback_ref]()
+                                     [L = luaMainState(), callback_ref]()
                     {
                         lua_rawgeti(L, LUA_REGISTRYINDEX, callback_ref);
                         lua_call(L, 0, 0);
                     });
                     QObject::connect(action, &QObject::destroyed,
-                                     [L, callback_ref]()
+                                     [L = luaMainState(), callback_ref]()
                     { luaL_unref(L, LUA_REGISTRYINDEX, callback_ref); });
                 }
                 else

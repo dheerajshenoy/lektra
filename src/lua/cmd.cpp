@@ -1,3 +1,4 @@
+#include "lua/MainState.hpp"
 #include "Lektra.hpp"
 
 void
@@ -70,7 +71,7 @@ Lektra::initLuaCmd() noexcept
             LuaRefGuard(lua_State *l, int r) : L(l), ref(r) {}
             ~LuaRefGuard() { luaL_unref(L, LUA_REGISTRYINDEX, ref); }
         };
-        auto guard = std::make_shared<LuaRefGuard>(L, func_ref);
+        auto guard = std::make_shared<LuaRefGuard>(luaMainState(), func_ref);
 
         lektra->commandManager()->reg(name, desc,
                                       [guard](const QStringList &args)

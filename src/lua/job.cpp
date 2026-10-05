@@ -1,4 +1,5 @@
 #include "Lektra.hpp"
+#include "lua/MainState.hpp"
 
 #include <QPointer>
 #include <QProcess>
@@ -312,7 +313,7 @@ Lektra::initLuaJob() noexcept
             return luaL_error(L, "job.async: the second argument is the options or the callback");
 
         auto job = std::make_shared<JobData>();
-        job->L   = L;
+        job->L   = luaMainState();
 
         QString workDir, stdinText;
         bool hasStdin   = false;

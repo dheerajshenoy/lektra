@@ -1,3 +1,4 @@
+#include "lua/MainState.hpp"
 #include "Lektra.hpp"
 #include "DocumentContainer.hpp"
 #include "ViewPickOverlay.hpp"
@@ -928,7 +929,7 @@ static const luaL_Reg DocumentViewMethods[] = {
 
                 // view->addEventListener(DispatchType, CallbackFn)
                 (*view)->addEventListener(type, callbackRef, false,
-                                          [L, callbackRef](DocumentView *v)
+                                          [L = luaMainState(), callbackRef](DocumentView *v)
                 {
                     // Push the callback function onto the stack
                     lua_rawgeti(L, LUA_REGISTRYINDEX, callbackRef);
@@ -1024,7 +1025,7 @@ static const luaL_Reg DocumentViewMethods[] = {
 
                 (*view)->addContextMenuListener(
                     menuType, callbackRef, false,
-                    [L, callbackRef](DocumentView *v, QMenu *menu)
+                    [L = luaMainState(), callbackRef](DocumentView *v, QMenu *menu)
                 {
                     lua_rawgeti(L, LUA_REGISTRYINDEX, callbackRef);
                     auto **ud = static_cast<DocumentView **>(
@@ -1102,7 +1103,7 @@ static const luaL_Reg DocumentViewMethods[] = {
 
                 (*view)->addEventListener(
                     dtype, callbackRef, true,
-                    [L, callbackRef, dtype](DocumentView *v)
+                    [L = luaMainState(), callbackRef, dtype](DocumentView *v)
                 {
                     // Push the callback function onto the stack
                     lua_rawgeti(L, LUA_REGISTRYINDEX, callbackRef);
@@ -1918,7 +1919,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                     lua_pushvalue(L, 2);
                     int cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
-                    (*view)->startRegionSelect([L, cb_ref](QRectF area)
+                    (*view)->startRegionSelect([L = luaMainState(), cb_ref](QRectF area)
                     {
                         lua_rawgeti(L, LUA_REGISTRYINDEX, cb_ref);
                         luaL_unref(L, LUA_REGISTRYINDEX, cb_ref);
@@ -1972,7 +1973,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                     int cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
                     DocumentView *self = *view;
-                    (*view)->startRegionSelect([L, cb_ref, self](QRectF area)
+                    (*view)->startRegionSelect([L = luaMainState(), cb_ref, self](QRectF area)
                     {
                         lua_rawgeti(L, LUA_REGISTRYINDEX, cb_ref);
                         luaL_unref(L, LUA_REGISTRYINDEX, cb_ref);

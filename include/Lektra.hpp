@@ -672,6 +672,7 @@ private:
     void initLuaClipboard() noexcept;
     void initLuaPaths() noexcept;
     void initLuaJob() noexcept;
+    void initLuaAsync() noexcept;
     void initLuaStatusbar() noexcept;
     void killLuaStatusbar() noexcept;
     void killLuaJobs() noexcept;

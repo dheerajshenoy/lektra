@@ -667,6 +667,39 @@ lektra.statusbar.register("clock", function() return os.date("%H:%M") end, { int
 
 ---
 
+## lektra.async
+
+Write several slow steps in a row without nesting callbacks. A function run with
+`lektra.async` is a coroutine: at an `await` it pauses, and the rest runs later, from the
+event loop, while the window stays responsive. Not available to the LLM assistant's scripts.
+
+| Function | Description |
+|---|---|
+| `lektra.async(fn, ...)` | Run `fn(...)` as a coroutine. It starts at once and goes on until its first wait; returns the coroutine. An error inside is printed and ends only that task. Tasks can run side by side. |
+| `lektra.job.await(command, opts?)` | `lektra.job.async`, waited for: returns the result table (`ok`, `code`, `stdout`, `stderr`, ...). |
+| `lektra.sleep(seconds)` | Wait. |
+| `lektra.await(starter)` | Wait for any callback-based function. `starter(resume)` starts it; the task continues when `resume(...)` is called and `await` returns what it was given. Only the first call of `resume` counts. |
+
+`await` and `sleep` raise an error outside `lektra.async`. Dialogs such as `lektra.ui.file_dialog`
+already wait by themselves and can be used in a task as they are.
+
+```lua
+lektra.async(function()
+    local r = lektra.job.await({"tesseract", png, base, "-l", "eng"}, { timeout = 120 })
+    if not r.ok then
+        lektra.ui.message("OCR failed: " .. (r.error or r.stderr))
+        return
+    end
+    lektra.sleep(1)
+    lektra.ui.message("OCR done")
+end)
+
+-- any callback API:
+local area = lektra.await(function(resume) view:region_select(resume) end)
+```
+
+---
+
 ## lektra.utils
 
 General utilities.

@@ -1,4 +1,5 @@
 #include "Lektra.hpp"
+#include "lua/MainState.hpp"
 
 #include <QMessageBox>
 #include <lua.h>
@@ -81,6 +82,8 @@ Lektra::initLua() noexcept
 
     lua_newtable(m_L); // "lektra" global table for organization
 
+    setLuaMainState(m_L);
+
     // Register functions
     initLuaLektra();
     initLuaOpt();
@@ -98,6 +101,7 @@ Lektra::initLua() noexcept
     initLuaPaths();
     initLuaJob();
     initLuaStatusbar();
+    initLuaAsync();
     initLuaBookmarks();
     initLuaTimer();
 
