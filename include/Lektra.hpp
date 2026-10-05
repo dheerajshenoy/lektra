@@ -665,6 +665,7 @@ private:
     // lektra.utils
     void initLuaUtils() noexcept;
     void initLuaClipboard() noexcept;
+    void initLuaPaths() noexcept;
     void initLuaJob() noexcept;
     void killLuaJobs() noexcept;
 

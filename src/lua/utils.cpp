@@ -1,5 +1,8 @@
 #include "Lektra.hpp"
 
+#include <QDir>
+#include <QStandardPaths>
+
 #include <QClipboard>
 #include <QDesktopServices>
 #include <QGuiApplication>
@@ -158,4 +161,49 @@ Lektra::initLuaClipboard() noexcept
     lua_setfield(m_L, -2, "set");
 
     lua_setfield(m_L, -2, "clipboard");
+}
+
+// lektra.paths: the folders Lektra keeps its files in
+void
+Lektra::initLuaPaths() noexcept
+{
+    lua_newtable(m_L);
+
+    // Pushes the absolute path of the folder, created if it is missing so
+    // that a script can write into it at once.
+    static const auto pushDir = [](lua_State *L, const QString &path) -> int
+    {
+        const QString dir = QDir::cleanPath(QDir(path).absolutePath());
+        QDir().mkpath(dir);
+        const QByteArray utf8 = dir.toUtf8();
+        lua_pushlstring(L, utf8.constData(), static_cast<size_t>(utf8.size()));
+        return 1;
+    };
+
+    lua_pushlightuserdata(m_L, this);
+    lua_pushcclosure(m_L, [](lua_State *L) -> int
+    {
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        return pushDir(L, lektra->m_config_dir.path());
+    }, 1);
+    lua_setfield(m_L, -2, "config");
+
+    lua_pushlightuserdata(m_L, this);
+    lua_pushcclosure(m_L, [](lua_State *L) -> int
+    {
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        return pushDir(L, lektra->m_app_data_dir.path());
+    }, 1);
+    lua_setfield(m_L, -2, "data");
+
+    lua_pushcclosure(m_L, [](lua_State *L) -> int
+    {
+        return pushDir(L, QStandardPaths::writableLocation(
+                              QStandardPaths::CacheLocation));
+    }, 0);
+    lua_setfield(m_L, -2, "cache");
+
+    lua_setfield(m_L, -2, "paths");
 }

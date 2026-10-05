@@ -498,9 +498,9 @@ target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 if (WITH_LLM_SUPPORT AND WITH_LUA)
     file(GLOB LEKTRA_LUA_STUBS CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/stubs/lua/*.lua")
-    # lektra.job runs commands: the assistant's scripts do not get it, so it is
+    # lektra.job and lektra.paths: the assistant's scripts do not get them, so they are
     # not described to the assistant either.
-    list(FILTER LEKTRA_LUA_STUBS EXCLUDE REGEX "/job\\.lua$")
+    list(FILTER LEKTRA_LUA_STUBS EXCLUDE REGEX "/(job|paths)\\.lua$")
     qt_add_resources(${PROJECT_NAME} llm_api
         PREFIX "/llm"
         BASE "${CMAKE_CURRENT_SOURCE_DIR}"

@@ -612,6 +612,24 @@ end)
 
 ---
 
+## lektra.paths
+
+The folders Lektra keeps its files in. Each function returns an absolute path without a
+trailing slash, and creates the folder if it is missing. Not available to the LLM
+assistant's scripts.
+
+| Function | Description |
+|---|---|
+| `lektra.paths.config()` | Configuration files (`init.lua`, `config.toml`). |
+| `lektra.paths.data()` | Data Lektra keeps (history, bookmarks, sessions); a good place for a script's own files. |
+| `lektra.paths.cache()` | Files that can be thrown away and made again. |
+
+```lua
+local notes = lektra.paths.data() .. "/my-notes.txt"
+```
+
+---
+
 ## lektra.utils
 
 General utilities.

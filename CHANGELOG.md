@@ -20,6 +20,7 @@
 - New `-n`/`--new-window` command line option opens the files in a separate window even when single-instance mode is on.
 - Fixed double and triple click selection: a double click counted as a single click (so the word was only selected on the third click), and a slight movement of the mouse afterwards replaced the selected word or line with a character range. The text of a double or triple click selection (copy, `view:selection_text()`) could also come from the wrong place and contain far more than the selected word.
 - New `sync_view` command links views of a tab so that zooming, scrolling, rotating and fitting (width, height, window) one of them does the same in the others: numbers are drawn on the views, press them to choose, `Enter` to link, `Esc` to cancel. `sync_view_all` links all views of the tab and `sync_view_stop` ends it. Lua: `lektra.view.sync(ids)`, `lektra.view.unsync()` and `lektra.view.pick_views()`, which lets the user pick views and returns their ids.
+- New Lua functions `lektra.paths.config()`, `data()` and `cache()` return Lektra's folders (and create them if missing), so scripts do not have to guess `~/.config/lektra`.
 - LLM chat: you can stop a reply while it is coming in. The Send button turns into a Stop button (or press `Esc`), and what had arrived stays in the chat.
 - New `llm_view.font_size` option sets the text size of the messages in the LLM panel.
 - New `llm_view.show_at_startup` option opens the LLM panel when Lektra starts. It replaces `llm_view.enabled`, which was read but had no effect.
