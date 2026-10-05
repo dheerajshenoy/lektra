@@ -97,3 +97,11 @@
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 0.4em;
 }
+
+/* The donation buttons: the icon of each service, in its brand colour */
+.md-typeset .md-button .twemoji {
+  margin-right: 0.35em;
+}
+.md-typeset .md-button.donate-kofi .twemoji { color: #ff5e5b; }
+.md-typeset .md-button.donate-liberapay .twemoji { color: #f6c915; }
+.md-typeset .md-button.donate-github .twemoji { color: #ea4aaa; }

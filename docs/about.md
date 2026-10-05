@@ -51,5 +51,4 @@ To everyone who helped and helps make Lektra better (in no particular order):
 - [Zou Yonghe](https://codeberg.org/budingZou): the macOS app bundle
 - [fraterlinux](https://github.com/fraterlinux): testing and bug reports
 
-If you want to support the project: [GitHub Sponsors](https://github.com/sponsors/dheerajshenoy)
-or [Liberapay](https://liberapay.com/dheerajshenoy).
+If you want to support the project, see [Support Lektra](donate.md).
