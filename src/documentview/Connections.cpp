@@ -563,8 +563,26 @@ DocumentView::handleSynctexJumpRequested(QPointF scenePos) noexcept
         {
             synctex_node_p node;
             while ((node = synctex_scanner_next_result(m_synctex_scanner)))
-                synctexLocateInDocument(synctex_node_get_name(node),
-                                        synctex_node_line(node));
+            {
+                const char *name = synctex_node_get_name(node);
+                const int line   = synctex_node_line(node);
+
+#ifdef WITH_LUA
+                // tell lektra.event.register("OnSynctexJumpRequested", ...)
+                // listeners where the jump goes, then open the editor as usual
+                if (auto *lektra = qobject_cast<Lektra *>(window()))
+                {
+                    SynctexJumpRequest request;
+                    request.view        = this;
+                    request.source_file = QString::fromUtf8(name);
+                    request.line        = line;
+                    request.col         = synctex_node_column(node);
+                    lektra->dispatchLuaEvent(
+                        DispatchType::OnSynctexJumpRequested, &request);
+                }
+#endif
+                synctexLocateInDocument(name, line);
+            }
         }
         else
         {

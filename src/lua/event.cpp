@@ -1,7 +1,6 @@
 #include "DispatchType.hpp"
 #include "DocumentView.hpp"
 #include "Lektra.hpp"
-
 #include "LuaBookmark.hpp"
 
 #include <QScreen>
@@ -73,77 +72,105 @@ push_event_arg(lua_State *L, DispatchType type, void *data)
 {
     switch (type)
     {
-    case DispatchType::OnScreenChanged:
-    {
-        auto *screen = static_cast<QScreen *>(data);
-        lua_newtable(L);
-        lua_pushstring(L, screen->name().toUtf8().constData());
-        lua_setfield(L, -2, "name");
-        lua_pushnumber(L, screen->devicePixelRatio());
-        lua_setfield(L, -2, "dpr");
-        lua_pushnumber(L, screen->logicalDotsPerInch());
-        lua_setfield(L, -2, "logical_dpi");
-        lua_pushnumber(L, screen->physicalDotsPerInch());
-        lua_setfield(L, -2, "physical_dpi");
-        lua_pushnumber(L, screen->refreshRate());
-        lua_setfield(L, -2, "refresh_rate");
-        QRect g = screen->geometry();
-        lua_newtable(L);
-        lua_pushinteger(L, g.x());     lua_setfield(L, -2, "x");
-        lua_pushinteger(L, g.y());     lua_setfield(L, -2, "y");
-        lua_pushinteger(L, g.width()); lua_setfield(L, -2, "w");
-        lua_pushinteger(L, g.height()); lua_setfield(L, -2, "h");
-        lua_setfield(L, -2, "geometry");
-        break;
-    }
-    case DispatchType::OnSessionLoaded:
-        lua_pushstring(L, static_cast<QString *>(data)->toUtf8().constData());
-        break;
-    case DispatchType::OnBookmarkAdded:
-        pushLuaBookmark(L, *static_cast<Bookmark *>(data));
-        break;
-    case DispatchType::OnTabChanged:
-    case DispatchType::OnTabRemoved:
-    case DispatchType::OnTabAdded:
-        lua_pushinteger(L, *static_cast<int *>(data));
-        break;
-    // Every event DocumentView::dispatchLuaEvent() forwards here carries
-    // the originating view (as `this`) as its arg — push a proper View
-    // userdata for all of them, not just OnFileOpen.
-    case DispatchType::OnReady:
-    case DispatchType::OnFileOpen:
-    case DispatchType::OnFileClose:
-    case DispatchType::OnPageChanged:
-    case DispatchType::OnZoomChanged:
-    case DispatchType::OnLinkClicked:
-    case DispatchType::OnTextSelected:
-    case DispatchType::OnSearchStarted:
-    case DispatchType::OnSearchFinished:
-    case DispatchType::OnSearchCancelled:
-    case DispatchType::OnRegionSelectionContextMenuRequested:
-    case DispatchType::OnTextSelectionContextMenuRequested:
-    case DispatchType::OnViewChanged:
-    case DispatchType::OnModeChanged:
-    case DispatchType::OnFileSaved:
-    {
-        if (!data)
+        case DispatchType::OnScreenChanged:
         {
-            lua_pushnil(L);
+            auto *screen = static_cast<QScreen *>(data);
+            lua_newtable(L);
+            lua_pushstring(L, screen->name().toUtf8().constData());
+            lua_setfield(L, -2, "name");
+            lua_pushnumber(L, screen->devicePixelRatio());
+            lua_setfield(L, -2, "dpr");
+            lua_pushnumber(L, screen->logicalDotsPerInch());
+            lua_setfield(L, -2, "logical_dpi");
+            lua_pushnumber(L, screen->physicalDotsPerInch());
+            lua_setfield(L, -2, "physical_dpi");
+            lua_pushnumber(L, screen->refreshRate());
+            lua_setfield(L, -2, "refresh_rate");
+            QRect g = screen->geometry();
+            lua_newtable(L);
+            lua_pushinteger(L, g.x());
+            lua_setfield(L, -2, "x");
+            lua_pushinteger(L, g.y());
+            lua_setfield(L, -2, "y");
+            lua_pushinteger(L, g.width());
+            lua_setfield(L, -2, "w");
+            lua_pushinteger(L, g.height());
+            lua_setfield(L, -2, "h");
+            lua_setfield(L, -2, "geometry");
             break;
         }
-        auto **ud = static_cast<DocumentView **>(
-            lua_newuserdata(L, sizeof(DocumentView *)));
-        *ud = static_cast<DocumentView *>(data);
-        luaL_getmetatable(L, "DocumentViewMetaTable");
-        lua_setmetatable(L, -2);
-        break;
-    }
-    default:
-        if (data)
-            lua_pushlightuserdata(L, data);
-        else
-            lua_pushnil(L);
-        break;
+        case DispatchType::OnSessionLoaded:
+            lua_pushstring(L,
+                           static_cast<QString *>(data)->toUtf8().constData());
+            break;
+        case DispatchType::OnBookmarkAdded:
+            pushLuaBookmark(L, *static_cast<Bookmark *>(data));
+            break;
+        case DispatchType::OnTabChanged:
+        case DispatchType::OnTabRemoved:
+        case DispatchType::OnTabAdded:
+            lua_pushinteger(L, *static_cast<int *>(data));
+            break;
+        // Every event DocumentView::dispatchLuaEvent() forwards here carries
+        // the originating view (as `this`) as its arg — push a proper View
+        // userdata for all of them, not just OnFileOpen.
+        case DispatchType::OnReady:
+        case DispatchType::OnFileOpen:
+        case DispatchType::OnFileClose:
+        case DispatchType::OnPageChanged:
+        case DispatchType::OnZoomChanged:
+        case DispatchType::OnLinkClicked:
+        case DispatchType::OnTextSelected:
+        case DispatchType::OnSearchStarted:
+        case DispatchType::OnSearchFinished:
+        case DispatchType::OnSearchCancelled:
+        case DispatchType::OnRegionSelectionContextMenuRequested:
+        case DispatchType::OnTextSelectionContextMenuRequested:
+        case DispatchType::OnViewChanged:
+        case DispatchType::OnModeChanged:
+        case DispatchType::OnFileSaved:
+        {
+            if (!data)
+            {
+                lua_pushnil(L);
+                break;
+            }
+            auto **ud = static_cast<DocumentView **>(
+                lua_newuserdata(L, sizeof(DocumentView *)));
+            *ud = static_cast<DocumentView *>(data);
+            luaL_getmetatable(L, "DocumentViewMetaTable");
+            lua_setmetatable(L, -2);
+            break;
+        }
+
+            // ---@overload fun(event: "OnSynctexJumpRequested", callback:
+            // fun(view: View, source_file: string, line: number, col: number)):
+            // integer
+        case DispatchType::OnSynctexJumpRequested:
+        {
+            if (!data)
+            {
+                lua_pushnil(L);
+                break;
+            }
+            auto *arg = static_cast<SynctexJumpRequest *>(data);
+            auto **ud = static_cast<DocumentView **>(
+                lua_newuserdata(L, sizeof(DocumentView *)));
+            *ud = arg->view;
+            luaL_getmetatable(L, "DocumentViewMetaTable");
+            lua_setmetatable(L, -2);
+
+            lua_pushstring(L, arg->source_file.toUtf8().constData());
+            lua_pushinteger(L, arg->line);
+            lua_pushinteger(L, arg->col);
+            break;
+        }
+        default:
+            if (data)
+                lua_pushlightuserdata(L, data);
+            else
+                lua_pushnil(L);
+            break;
     }
 }
 

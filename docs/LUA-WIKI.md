@@ -78,6 +78,12 @@ Document view helpers and per-document actions.
 | `view:redo()` | — | Redo the last undone action. |
 | `view:extract_text(formatted)` | `string` | Extract text from the current page. |
 | `view:export_pages(names, pages?, opts?)` | `string[]?, string?` | Save pages to files: pictures (png, jpg, webp, bmp, tif; one per page, `%d` in the name is the page number), or pdf, svg, txt, html, cbz, docx, odt. `pages`: a number, a list, or text like `"1-5,8"`, `"all"`, `"odd"` (default: current page). `opts`: `dpi` (default 150), `overwrite` (default `false`), `split` (make one file per page instead of one file, for pdf, txt, html, ...). Returns the files written, or `nil` and a reason. |
+| `view:history_stack()` | `HistoryLocation[], integer` | The jump locations of the view, oldest first, as `{ pageno, x, y }` (page numbers are 1-based), and the position of the current one in the list (0 if none). What `history_back` and `history_forward` walk through. |
+| `view:set_mark(char)` | `boolean` | Mark the current location. `a`-`z` belong to this view, `A`-`Z` are global. Same as the `mark_set` command. |
+| `view:goto_mark(char)` | `boolean` | Go to a mark; `false` if there is no such mark. A global mark can switch to another view. |
+| `view:image_metadata()` | `table?, string?` | For an image: `{ width, height, format, animated, frames, dpi_x, dpi_y, exif }` (`dpi_*` only if the file stores it, `exif` maps tag names to values). `nil` and a message for other documents. |
+| `view:scene_to_page(x, y)` | `pageno, page_x, page_y` | A point of the canvas as a point of a page, in page points from the top left (like `page_size` and annotations). `nil` if it is not on a page. |
+| `view:page_to_scene(pageno, x, y)` | `scene_x, scene_y` | The opposite. Works for the pages that are loaded (the visible ones and their neighbours); `nil` and a message for another page. |
 | `view:annotations([page])` | `Annotation[]?, string?` | The annotations of a page (1-based), or of the whole document without `page` (PDF only). Each is a table `{ id, page, type, x, y, w, h, color, opacity, comment }`; `type` is `"highlight"`, `"rect"`, `"note"` or `"other"`; a highlight also has `text` (the text under it) and `rects` (one `{ x, y, w, h }` per line). Positions are page points, with the origin at the top left. |
 | `view:add_highlight(page, rects, opts?)` | `integer?, string?` | Highlight one `{ x, y, w, h }` or a list of them (one per line) on `page`. `opts`: `color` (`"#rrggbb"`, a colour name), `comment`. Returns the id of the annotation. Can be undone. |
 | `view:add_note(page, x, y, text)` | `integer?, string?` | Add a sticky note at `x, y`. Returns the id. Can be undone. |
@@ -751,6 +757,31 @@ Use `lektra.event.EventType.<Name>` as the first argument to `register`, `unregi
 | `OnAnnotationRemoved` | An annotation is removed. |
 | `OnRegionSelectionContextMenuRequested` | Region-selection context menu opens. |
 | `OnTextSelectionContextMenuRequested` | Text-selection context menu opens. |
+| `OnSynctexJumpRequested` | A SyncTeX jump from the PDF to the LaTeX source is requested (see below). |
+
+### `OnSynctexJumpRequested`
+
+Fired when the user asks to jump from a SyncTeX PDF to its LaTeX source (by default
+Shift + left click on the page; the `synctex_jump` mouse binding). The callback gets
+`(view, source_file, line, col)`:
+
+| Argument | Description |
+|---|---|
+| `view` | The view that was clicked. |
+| `source_file` | The source file, as SyncTeX recorded it. |
+| `line` | The line in that file. |
+| `col` | The column, or `-1` if SyncTeX does not know it. |
+
+It is fired once for each source location found, just before the editor command
+(`synctex.editor_command`) runs, which still happens. It is a global event: register it
+with `lektra.event.register`, not `view:register`. Only available when Lektra is built with
+SyncTeX support.
+
+```lua
+lektra.event.register("OnSynctexJumpRequested", function(view, source_file, line, col)
+    lektra.ui.message(("Jumping to %s:%d"):format(source_file, line))
+end)
+```
 
 ### Per-view events (`view:register`)
 

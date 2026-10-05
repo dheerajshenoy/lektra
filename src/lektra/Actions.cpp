@@ -1390,12 +1390,22 @@ Lektra::SetMark(const QStringList &args) noexcept
         key = args.at(0);
     }
 
+    setMarkFor(m_doc, key);
+}
+
+bool
+Lektra::setMarkFor(DocumentView *view, const QString &key) noexcept
+{
+    if (!view || key.isEmpty())
+        return false;
+
     if (m_marks_manager->isGlobalKey(key))
-        m_marks_manager->addGlobalMark(key, m_doc->id(),
-                                       m_doc->CurrentLocation());
+        m_marks_manager->addGlobalMark(key, view->id(),
+                                       view->CurrentLocation());
     else
-        m_marks_manager->addLocalMark(key, m_doc->id(),
-                                      m_doc->CurrentLocation());
+        m_marks_manager->addLocalMark(key, view->id(),
+                                      view->CurrentLocation());
+    return true;
 }
 
 void
@@ -1455,26 +1465,34 @@ Lektra::GotoMark(const QStringList &args) noexcept
         key = args.at(0);
     }
 
+    gotoMarkIn(m_doc, key);
+}
+
+bool
+Lektra::gotoMarkIn(DocumentView *view, const QString &key) noexcept
+{
+    if (!view || key.isEmpty())
+        return false;
+
     if (m_marks_manager->isGlobalKey(key))
     {
         const auto *mark = m_marks_manager->getGlobalMark(key);
         if (!mark)
-            return;
+            return false;
         // Switch to the right document first, then jump
-        DocumentView *view = get_view_by_id(mark->docId);
-        if (view)
-        {
-            setCurrentDocumentView(view);
-            view->GotoLocationWithHistory(mark->plocation);
-        }
+        DocumentView *target = get_view_by_id(mark->docId);
+        if (!target)
+            return false;
+        setCurrentDocumentView(target);
+        target->GotoLocationWithHistory(mark->plocation);
+        return true;
     }
-    else
-    {
-        const auto *mark = m_marks_manager->getLocalMark(key, m_doc->id());
-        if (!mark)
-            return;
-        m_doc->GotoLocationWithHistory(mark->plocation);
-    }
+
+    const auto *mark = m_marks_manager->getLocalMark(key, view->id());
+    if (!mark)
+        return false;
+    view->GotoLocationWithHistory(mark->plocation);
+    return true;
 }
 
 void

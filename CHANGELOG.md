@@ -4,6 +4,16 @@
 
 ### New Features
 
+#### Lua scripting
+
+- New Lua `View` functions: `history_stack()` (the jump locations of a view), `set_mark(char)` and `goto_mark(char)` (marks, like the `mark_set` and `mark_goto` commands), `image_metadata()` (size, format, resolution and EXIF of an image), and `scene_to_page(x, y)` / `page_to_scene(pageno, x, y)` (between a point of the canvas and a point of a page).
+- New `OnSynctexJumpRequested` Lua event: called with the view, the source file, the line and the column when a SyncTeX jump from the PDF to its LaTeX source is requested.
+- The Lua type stubs are now installed on Windows too (`share\lektra\lua` in the install folder), for completion when editing `init.lua`.
+
+#### Documentation
+
+- The documentation is now on [Read the Docs](https://lektra.readthedocs.io/en/latest/): installation, an example `config.toml`, and the commands, options and Lua API, generated from the sources so they match each release.
+
 ### Bug Fixes
 
 - Fix split focus change not updating tab title.

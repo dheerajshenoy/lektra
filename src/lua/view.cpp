@@ -1889,6 +1889,166 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 1;
                 }),
 
+    VIEW_METHOD("history_stack",
+                {
+                    // history_stack() -> { {pageno=, x=, y=}, ... }, current
+                    // The jump locations of the view in the order they were
+                    // made, and the position of the current one in the list
+                    // (0 if there is none).
+                    if (!*view)
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    const auto &history = (*view)->locationHistory();
+                    lua_createtable(L, static_cast<int>(history.size()), 0);
+                    for (size_t i = 0; i < history.size(); ++i)
+                    {
+                        lua_createtable(L, 0, 3);
+                        lua_pushinteger(L, history[i].pageno + 1);
+                        lua_setfield(L, -2, "pageno");
+                        lua_pushnumber(L, history[i].x);
+                        lua_setfield(L, -2, "x");
+                        lua_pushnumber(L, history[i].y);
+                        lua_setfield(L, -2, "y");
+                        lua_rawseti(L, -2, static_cast<int>(i) + 1);
+                    }
+                    lua_pushinteger(L, (*view)->locationHistoryIndex() + 1);
+                    return 2;
+                }),
+
+    VIEW_METHOD("set_mark",
+                {
+                    // set_mark(char): marks the current location. a-z belong to
+                    // this view, A-Z are global.
+                    const char *key = luaL_checkstring(L, 2);
+                    if (!*view || !*key)
+                        return luaL_error(
+                            L, "a mark needs a name: a-z, or A-Z for a global one");
+                    auto *lektra = qobject_cast<Lektra *>((*view)->window());
+                    lua_pushboolean(
+                        L, lektra
+                               && lektra->setMarkFor(*view,
+                                                     QString::fromUtf8(key)));
+                    return 1;
+                }),
+
+    VIEW_METHOD("goto_mark",
+                {
+                    // goto_mark(char) -> true if there is such a mark
+                    const char *key = luaL_checkstring(L, 2);
+                    if (!*view || !*key)
+                        return luaL_error(
+                            L, "a mark needs a name: a-z, or A-Z for a global one");
+                    auto *lektra = qobject_cast<Lektra *>((*view)->window());
+                    lua_pushboolean(
+                        L, lektra
+                               && lektra->gotoMarkIn(*view,
+                                                     QString::fromUtf8(key)));
+                    return 1;
+                }),
+
+    VIEW_METHOD("image_metadata",
+                {
+                    // image_metadata() -> { width=, height=, format=,
+                    // animated=, frames=, dpi_x=, dpi_y=, exif={} }
+                    if (!*view)
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    Model::ImageMetadata meta;
+                    if (!(*view)->model()->imageMetadata(meta))
+                    {
+                        lua_pushnil(L);
+                        lua_pushstring(L, "the document is not an image");
+                        return 2;
+                    }
+
+                    lua_createtable(L, 0, 8);
+                    lua_pushinteger(L, meta.width);
+                    lua_setfield(L, -2, "width");
+                    lua_pushinteger(L, meta.height);
+                    lua_setfield(L, -2, "height");
+                    const QByteArray format = meta.format.toUtf8();
+                    lua_pushstring(L, format.constData());
+                    lua_setfield(L, -2, "format");
+                    lua_pushboolean(L, meta.animated);
+                    lua_setfield(L, -2, "animated");
+                    lua_pushinteger(L, meta.frames);
+                    lua_setfield(L, -2, "frames");
+                    if (meta.dpi_x > 0 && meta.dpi_y > 0)
+                    {
+                        lua_pushnumber(L, meta.dpi_x);
+                        lua_setfield(L, -2, "dpi_x");
+                        lua_pushnumber(L, meta.dpi_y);
+                        lua_setfield(L, -2, "dpi_y");
+                    }
+                    lua_createtable(L, 0, static_cast<int>(meta.exif.size()));
+                    for (const auto &[tag, value] : meta.exif)
+                    {
+                        const QByteArray k = tag.toUtf8();
+                        const QByteArray v = value.toUtf8();
+                        lua_pushlstring(L, v.constData(),
+                                        static_cast<size_t>(v.size()));
+                        lua_setfield(L, -2, k.constData());
+                    }
+                    lua_setfield(L, -2, "exif");
+                    return 1;
+                }),
+
+    VIEW_METHOD("scene_to_page",
+                {
+                    // scene_to_page(x, y) -> pageno, page_x, page_y
+                    // (nil if the point is not on a page)
+                    const double x = luaL_checknumber(L, 2);
+                    const double y = luaL_checknumber(L, 3);
+                    int pageno = -1;
+                    QPointF point;
+                    if (!*view
+                        || !(*view)->scenePosToPage(QPointF(x, y), pageno, point))
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    lua_pushinteger(L, pageno + 1);
+                    lua_pushnumber(L, point.x());
+                    lua_pushnumber(L, point.y());
+                    return 3;
+                }),
+
+    VIEW_METHOD("page_to_scene",
+                {
+                    // page_to_scene(pageno, x, y) -> scene_x, scene_y
+                    const lua_Integer page = luaL_checkinteger(L, 2);
+                    const double x         = luaL_checknumber(L, 3);
+                    const double y         = luaL_checknumber(L, 4);
+                    if (!*view)
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    if (page < 1 || page > (*view)->numPages())
+                    {
+                        lua_pushnil(L);
+                        lua_pushstring(L, "page out of range");
+                        return 2;
+                    }
+                    QPointF scene;
+                    if (!(*view)->pagePosToScene(static_cast<int>(page) - 1,
+                                                 QPointF(x, y), scene))
+                    {
+                        lua_pushnil(L);
+                        lua_pushstring(
+                            L, "the page is not loaded (it is not near the "
+                               "visible pages)");
+                        return 2;
+                    }
+                    lua_pushnumber(L, scene.x());
+                    lua_pushnumber(L, scene.y());
+                    return 2;
+                }),
+
     VIEW_METHOD("export_highlights",
                 {
                     if (!*view)

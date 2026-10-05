@@ -1581,6 +1581,34 @@ Model::properties() noexcept
     return props;
 }
 
+bool
+Model::imageMetadata(ImageMetadata &out) noexcept
+{
+    if (!m_is_image)
+        return false;
+
+    QImageReader reader(m_filepath);
+    QSize size = reader.size();
+    if (!size.isValid() && !m_image_cache.isNull())
+        size = m_image_cache.size();
+    out.width    = size.width();
+    out.height   = size.height();
+    out.format   = QString::fromLatin1(reader.format());
+    out.animated = reader.supportsAnimation();
+    out.frames   = std::max(1, reader.imageCount());
+
+    // (not known for animated images: they are not kept decoded)
+    if (!m_image_cache.isNull() && m_image_cache.dotsPerMeterX() > 0
+        && m_image_cache.dotsPerMeterY() > 0)
+    {
+        out.dpi_x = m_image_cache.dotsPerMeterX() * 0.0254;
+        out.dpi_y = m_image_cache.dotsPerMeterY() * 0.0254;
+    }
+
+    populateExifProperties(m_filepath, out.exif);
+    return true;
+}
+
 void
 Model::populatePDFProperties(
     std::vector<std::pair<QString, QString>> &props) noexcept

@@ -443,6 +443,24 @@ public:
     QString selectionText(bool formatted             = false,
                           std::string page_separator = "\n") const noexcept;
 
+    // The jump locations of this view (what GoBackHistory and GoForwardHistory
+    // walk through), and the index of the current one (-1: none).
+    inline const std::vector<PageLocation> &locationHistory() const noexcept
+    {
+        return m_loc_history;
+    }
+    inline int locationHistoryIndex() const noexcept
+    {
+        return m_loc_history_index;
+    }
+    // Between a point of the canvas (scene) and a point of a page, in page
+    // points from the top left of the page. The second one needs the page to
+    // be shown, that is among the pages that are loaded.
+    bool scenePosToPage(QPointF scenePos, int &pageno,
+                        QPointF &pagePoint) const noexcept;
+    bool pagePosToScene(int pageno, QPointF pagePoint,
+                        QPointF &scenePos) const noexcept;
+
     bool pageAtScenePos(QPointF scenePos, int &outPageIndex,
                         GraphicsImageItem *&outPageItem) const noexcept;
     void setPortal(DocumentView *portal) noexcept;

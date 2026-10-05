@@ -147,6 +147,17 @@ public:
         QString text;               // highlights: the text under it
     };
 
+    // What is known about an image file (see imageMetadata()).
+    struct ImageMetadata
+    {
+        int width = 0, height = 0; // pixels
+        QString format;            // "png", "jpeg", ...
+        bool animated = false;
+        int frames    = 1;         // frames of an animation, pages of a TIFF
+        double dpi_x = 0, dpi_y = 0; // 0: not stored in the file
+        Properties exif;           // tag name -> value
+    };
+
     struct EncryptInfo
     {
         QString user_password;
@@ -540,6 +551,8 @@ public:
                                          float targetDPI) noexcept;
 
     Properties properties() noexcept;
+    // False if the document is not an image.
+    bool imageMetadata(ImageMetadata &out) noexcept;
     fz_outline *getOutline() noexcept;
     fz_outline *getGeneratedOutline() noexcept { return m_generated_outline; }
     fz_outline *generateOutline(float min_ratio, int max_levels) noexcept;

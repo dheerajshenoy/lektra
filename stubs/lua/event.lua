@@ -29,6 +29,7 @@ lektra.event.EventType = {
     OnSessionLoaded = 22,
     OnBookmarkAdded = 23,
     OnFileSaved = 24,
+    OnSynctexJumpRequested = 25,
 }
 
 --- Registers a callback to be called when the specified event is triggered.
@@ -58,16 +59,17 @@ lektra.event.EventType = {
 ---@overload fun(event: "OnSessionLoaded", callback: fun(name: string)): integer
 ---@overload fun(event: "OnBookmarkAdded", callback: fun(bookmark: Bookmark)): integer
 ---@overload fun(event: "OnFileSaved", callback: fun(view: View)): integer
+---@overload fun(event: "OnSynctexJumpRequested", callback: fun(view: View, source_file: string, line: number, col: number)): integer
 ---@param event EventType|string
 ---@param callback fun(arg: any)
 ---@return integer handle
-lektra.event.register = function (event, callback) end
+lektra.event.register = function(event, callback) end
 
 --- Unregisters a callback from the specified event.
 ---@overload fun(arg: {event: EventType|string, callback: function})
 ---@param event EventType|string The name of the event to stop listening for.
 ---@param handle integer The unique identifier of the registered callback to unregister, as returned by `lektra.event.register`.
-lektra.event.unregister = function (event, handle) end
+lektra.event.unregister = function(event, handle) end
 
 --- Registers a callback to be called when the specified event is triggered.
 --- The callback is called once and then automatically unregistered.
@@ -94,16 +96,17 @@ lektra.event.unregister = function (event, handle) end
 ---@overload fun(event: "OnSessionLoaded", callback: fun(name: string)): integer
 ---@overload fun(event: "OnBookmarkAdded", callback: fun(bookmark: Bookmark)): integer
 ---@overload fun(event: "OnFileSaved", callback: fun(view: View)): integer
+---@overload fun(event: "OnSynctexJumpRequested", callback: fun(view: View, source_file: string, line: number, col: number)): integer
 ---@param event EventType|string
 ---@param callback fun(arg: any)
 ---@return integer handle
-lektra.event.once = function (event, callback) end
+lektra.event.once = function(event, callback) end
 
 --- Clears all registered callbacks for the specified event.
 ---@param event EventType|string The name of the event to clear callbacks for.
-lektra.event.clear = function (event) end
+lektra.event.clear = function(event) end
 
 --- Returns the number of registered callbacks for the specified event.
 ---@param event EventType|string The name of the event to count callbacks for.
 ---@return integer count The number of registered callbacks for the specified event.
-lektra.event.count = function (event) end
+lektra.event.count = function(event) end

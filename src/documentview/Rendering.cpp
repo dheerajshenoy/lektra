@@ -1000,6 +1000,34 @@ DocumentView::updateSceneRect() noexcept
 }
 
 bool
+DocumentView::scenePosToPage(QPointF scenePos, int &pageno,
+                             QPointF &pagePoint) const noexcept
+{
+    GraphicsImageItem *item = nullptr;
+    if (!pageAtScenePos(scenePos, pageno, item) || !item)
+        return false;
+
+    const fz_point pt
+        = m_model->toPDFSpace(pageno, item->mapFromScene(scenePos));
+    pagePoint = QPointF(pt.x, pt.y);
+    return true;
+}
+
+bool
+DocumentView::pagePosToScene(int pageno, QPointF pagePoint,
+                             QPointF &scenePos) const noexcept
+{
+    const GraphicsImageItem *item = m_page_items_hash.value(pageno, nullptr);
+    if (!item)
+        return false;
+
+    const QPointF local = m_model->toPixelSpace(
+        pageno, fz_point{float(pagePoint.x()), float(pagePoint.y())});
+    scenePos = item->mapToScene(local);
+    return true;
+}
+
+bool
 DocumentView::pageAtScenePos(QPointF scenePos, int &outPageIndex,
                              GraphicsImageItem *&outPageItem) const noexcept
 {

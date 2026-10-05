@@ -4,6 +4,18 @@
 #include <QString>
 #include <stdexcept>
 
+class DocumentView;
+
+// The argument of OnSynctexJumpRequested: where the click on the PDF leads to
+// in the LaTeX source.
+struct SynctexJumpRequest
+{
+    DocumentView *view = nullptr;
+    QString source_file;
+    int line = 0;
+    int col  = -1; // -1 if SyncTeX does not know it
+};
+
 enum class DispatchType
 {
     OnAppReady                            = 0,
@@ -31,6 +43,7 @@ enum class DispatchType
     OnSessionLoaded                       = 22,
     OnBookmarkAdded                       = 23,
     OnFileSaved                           = 24,
+    OnSynctexJumpRequested                = 25,
     COUNT
 };
 
@@ -62,6 +75,7 @@ static const QHash<QString, DispatchType> s_dispatchEventMap = {
     {"OnSessionLoaded", DispatchType::OnSessionLoaded},
     {"OnBookmarkAdded", DispatchType::OnBookmarkAdded},
     {"OnFileSaved", DispatchType::OnFileSaved},
+    {"OnSynctexJumpRequested", DispatchType::OnSynctexJumpRequested},
 };
 
 inline static DispatchType

@@ -84,6 +84,12 @@ public:
         return m_doc;
     }
 
+    // Marks of a view, as the mark_set and mark_goto commands do for the
+    // current one: a-z belong to the view, A-Z are global (a jump to one can
+    // change the current view). False if the key is empty / the mark is unknown.
+    bool setMarkFor(DocumentView *view, const QString &key) noexcept;
+    bool gotoMarkIn(DocumentView *view, const QString &key) noexcept;
+
     inline Statusbar *statusbar() const noexcept
     {
         return m_statusbar;

@@ -386,6 +386,58 @@ function View:export_highlights(path) end
 ---@field text? string Highlights: the text under it.
 ---@field rects? {x: number, y: number, w: number, h: number}[] Highlights: one per line.
 
+---@class HistoryLocation
+---@field pageno integer 1-based page number.
+---@field x number
+---@field y number
+
+---Returns the jump locations of the view, in the order they were made: what `history_back` and `history_forward` walk through. The second value is the position of the current one in the list (0 if there is none).
+---@return HistoryLocation[] locations
+---@return integer current
+function View:history_stack() end
+
+---Marks the current location of the view with a name. A mark named with a lower-case letter (a-z) belongs to this view, an upper-case one (A-Z) is global. The same as the `mark_set` command.
+---@param char string
+---@return boolean ok
+function View:set_mark(char) end
+
+---Goes to a mark (and records the jump in the history). A global mark can switch to another view. The same as the `mark_goto` command.
+---@param char string
+---@return boolean found False if there is no such mark.
+function View:goto_mark(char) end
+
+---@class ImageMetadata
+---@field width integer Pixels.
+---@field height integer Pixels.
+---@field format string "png", "jpeg", ...
+---@field animated boolean
+---@field frames integer Frames of an animation, or pages of a multi-page TIFF.
+---@field dpi_x? number Only if the file stores it.
+---@field dpi_y? number
+---@field exif table<string,string> EXIF tags by name (empty if there are none).
+
+---Returns what is known about the image the view shows: its size, format, resolution and EXIF tags. nil and a message if the document is not an image.
+---@return ImageMetadata? metadata
+---@return string? error
+function View:image_metadata() end
+
+---Converts a point of the canvas (the scene: where pages are laid out, in pixels) to a point of a page, in page points from the top left of the page, like `page_size` and the annotations. nil if the point is not on a page.
+---@param x number
+---@param y number
+---@return integer? pageno 1-based.
+---@return number? page_x
+---@return number? page_y
+function View:scene_to_page(x, y) end
+
+---The opposite of `scene_to_page`: where a point of a page (in page points from the top left) is on the canvas. It works for the pages that are loaded, that is the visible ones and their neighbours; nil and a message for another page.
+---@param pageno integer 1-based.
+---@param x number
+---@param y number
+---@return number? scene_x
+---@return number? scene_y
+---@return string? error
+function View:page_to_scene(pageno, x, y) end
+
 ---Returns the annotations of a page (1-based), or of the whole document without `page`. PDF only.
 ---@param page? integer
 ---@return Annotation[]? annotations
@@ -535,6 +587,13 @@ function View:scroll_position() end
 ---Pages currently on screen, in order.
 ---@return integer[] pages
 function View:visible_pages() end
+
+---For a source file and line, jumps to the corresponding position in the PDF.
+---The source file must be the absolute path of a file in the TeX project, and the line number must be valid. The PDF must have been compiled with SyncTeX support.
+---@param source_file string Absolute path of the source file.
+---@param line integer Line number in the source file.
+---@param col? integer Column number in the source file (optional).
+function View:synctex_forward(source_file, line, col) end
 
 ---Size of a page in points (before rotation and zoom). Loads the page if
 ---needed, so the size is exact.
