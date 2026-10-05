@@ -999,6 +999,27 @@ DocumentView::updateSceneRect() noexcept
     }
 }
 
+int
+DocumentView::nearestPageToScenePos(QPointF scenePos) const noexcept
+{
+    const int N = m_model->numPages();
+    if (N <= 0)
+        return -1;
+    if (m_layout_mode == LayoutMode::SINGLE)
+        return m_pageno;
+    if (m_page_offsets.size() < static_cast<size_t>(N + 1))
+        return -1;
+
+    const double coord = (m_layout_mode == LayoutMode::HORIZONTAL)
+                             ? scenePos.x()
+                             : scenePos.y();
+    const auto it = std::upper_bound(m_page_offsets.cbegin(),
+                                     m_page_offsets.cend(), coord);
+    return std::clamp(
+        static_cast<int>(std::distance(m_page_offsets.cbegin(), it) - 1), 0,
+        N - 1);
+}
+
 bool
 DocumentView::pageAtScenePos(QPointF scenePos, int &outPageIndex,
                              GraphicsImageItem *&outPageItem) const noexcept

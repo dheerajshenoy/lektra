@@ -793,6 +793,12 @@ private:
     // identically across layout modes.
     void restoreZoomAnchor(int anchorPage, double relX, double relY,
                            const QPointF &viewportRatio) noexcept;
+    // The page whose slot along the scrolling direction holds the point, even
+    // when the point is in a margin or a gap (-1 if there are no pages yet).
+    int nearestPageToScenePos(QPointF scenePos) const noexcept;
+    // Where the zoom commands zoom around: the mouse cursor if it is over the
+    // view (and zoom.anchor_to_mouse is on), the centre of the view otherwise.
+    QPointF zoomCommandAnchor() const noexcept;
     void cachePageStride() noexcept;
     void updateSceneRect() noexcept;
     // For reflowable documents (EPUB/FB2/MOBI), re-paginate to the current

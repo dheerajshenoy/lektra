@@ -530,6 +530,24 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         relX                       = localPos.x() / pagePixelSize.width();
         relY                       = localPos.y() / pagePixelSize.height();
     }
+    else if (const int nearest = nearestPageToScenePos(anchorScenePos);
+             nearest >= 0)
+    {
+        // The anchor is in a margin or a gap: without a page to hold on to the
+        // view would end up somewhere else after the relayout. The position
+        // relative to the nearest page is kept instead (it may be outside it).
+        if (GraphicsImageItem *item = m_page_items_hash.value(nearest, nullptr))
+        {
+            const QPointF localPos = item->mapFromScene(anchorScenePos);
+            const QSizeF pageSize  = item->boundingRect().size();
+            if (pageSize.width() > 0 && pageSize.height() > 0)
+            {
+                anchorPage = nearest;
+                relX       = localPos.x() / pageSize.width();
+                relY       = localPos.y() / pageSize.height();
+            }
+        }
+    }
 
     // SINGLE: synchronous relayout + anchor restore
     if (m_layout_mode == LayoutMode::SINGLE)
@@ -851,10 +869,7 @@ DocumentView::ZoomIn() noexcept
 
     const double newZoom = std::clamp(m_current_zoom * m_config.zoom.factor,
                                       MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
-    if (m_config.zoom.anchor_to_mouse)
-        setZoomAnchored(newZoom, m_gview->getCursorPos());
-    else
-        setZoom(newZoom);
+    setZoomAnchored(newZoom, zoomCommandAnchor());
 }
 
 // Zoom out by a fixed factor
@@ -866,10 +881,23 @@ DocumentView::ZoomOut() noexcept
 
     const double newZoom = std::clamp(m_current_zoom / m_config.zoom.factor,
                                       MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
+    setZoomAnchored(newZoom, zoomCommandAnchor());
+}
+
+QPointF
+DocumentView::zoomCommandAnchor() const noexcept
+{
+    // The cursor can be anywhere on the screen when a key is pressed: only
+    // use it if it is over the view, or the zoom pivots around a point that
+    // is not even shown and the view ends up somewhere else.
     if (m_config.zoom.anchor_to_mouse)
-        setZoomAnchored(newZoom, m_gview->getCursorPos());
-    else
-        setZoom(newZoom);
+    {
+        const QPoint cursor
+            = m_gview->viewport()->mapFromGlobal(QCursor::pos());
+        if (m_gview->viewport()->rect().contains(cursor))
+            return m_gview->mapToScene(cursor);
+    }
+    return m_gview->mapToScene(m_gview->viewport()->rect().center());
 }
 
 // Reset zoom to 100%
