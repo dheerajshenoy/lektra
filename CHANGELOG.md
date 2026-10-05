@@ -1,5 +1,13 @@
 # LEKTRA CHANGELOG
 
+## 0.8.0
+
+### New Features
+
+### Bug Fixes
+
+- Fix split focus change not updating tab title.
+
 ## 0.7.9 (2026-10-5)
 
 ### New Features
