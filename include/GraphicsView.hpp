@@ -144,9 +144,14 @@ public:
 
     inline void flashScrollbars()
     {
-        // Both are turned off in the config: there is nothing to flash.
+        // Both are turned off in the config: there is nothing to flash, but
+        // make sure they are hidden (Qt may have shown them, see
+        // bindScrollbarActivity()).
         if (!m_vbarEnabled && !m_hbarEnabled)
+        {
+            updateScrollbars();
             return;
+        }
 
         showScrollbars();
         // Force viewport update to recalculate scrollbar ranges
@@ -269,7 +274,10 @@ private:
         // scrollbars.horizontal): none of the events that ask for them (zoom,
         // scroll, mouse movement...) may bring them back then.
         if (!m_vbarEnabled && !m_hbarEnabled)
+        {
+            updateScrollbars();
             return;
+        }
 
         if (!m_scrollbarsVisible)
         {

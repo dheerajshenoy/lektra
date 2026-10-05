@@ -14,6 +14,10 @@
 
 - The documentation is now on [Read the Docs](https://lektra.readthedocs.io/en/latest/): installation, an example `config.toml`, and the commands, options and Lua API, generated from the sources so they match each release.
 
+### Bug Fixes
+
+- Fix scrollbars that are turned off (`scrollbars.vertical` / `scrollbars.horizontal`) showing up when zooming or resizing.
+
 ## 0.7.9.1 (2026-10-05)
 
 ### Bug Fixes

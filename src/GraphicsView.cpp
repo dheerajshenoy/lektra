@@ -98,15 +98,27 @@ void
 GraphicsView::bindScrollbarActivity(QScrollBar *vertical,
                                     QScrollBar *horizontal) noexcept
 {
+    // When the range of a scrollbar changes (zooming, a new layout...) Qt
+    // shows or hides it by itself, queued, without knowing that these are
+    // overlays that are placed by updateScrollbars(): a bar that is turned off
+    // in the config would show up in the top left corner. This runs right
+    // after that (same receiver, so in order) and puts things right again.
+    constexpr auto queuedUnique
+        = Qt::ConnectionType(Qt::QueuedConnection | Qt::UniqueConnection);
+
     if (vertical)
     {
         connect(vertical, &QScrollBar::valueChanged, this,
                 &GraphicsView::onScrollbarActivity, Qt::UniqueConnection);
+        connect(vertical, &QScrollBar::rangeChanged, this,
+                &GraphicsView::updateScrollbars, queuedUnique);
     }
     if (horizontal)
     {
         connect(horizontal, &QScrollBar::valueChanged, this,
                 &GraphicsView::onScrollbarActivity, Qt::UniqueConnection);
+        connect(horizontal, &QScrollBar::rangeChanged, this,
+                &GraphicsView::updateScrollbars, queuedUnique);
     }
 }
 
@@ -813,6 +825,8 @@ void
 GraphicsView::resizeEvent(QResizeEvent *event)
 {
     QGraphicsView::resizeEvent(event);
+    // (also hides the bars that Qt shows again after a resize)
+    updateScrollbars();
     if (m_scrollbarsVisible)
         layoutScrollbars();
 }
