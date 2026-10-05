@@ -4,6 +4,12 @@
 
 ## HIGH PRIORITY
 
+- [ ] Dynamic Modal Input Engine
+    + View:bind_key handles static keymaps, but full modal keybinding state transitions are missing.
+    + Missing APIs: `lektra.input.create_mode(mode_name, keymap_table)`
+    + `lektra.input.enter_mode(mode_name)`
+    + `lektra.input.exit_mode()`
+    + Use Case: Entering custom sub-modes (e.g., an "Annotation Mode" where h highlights, u underlines, and d deletes the target under cursor, or a Leader-key chord system like <Leader>f).
 
 ## MEDIUM PRIORITY
 
