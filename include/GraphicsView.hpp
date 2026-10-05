@@ -144,6 +144,10 @@ public:
 
     inline void flashScrollbars()
     {
+        // Both are turned off in the config: there is nothing to flash.
+        if (!m_vbarEnabled && !m_hbarEnabled)
+            return;
+
         showScrollbars();
         // Force viewport update to recalculate scrollbar ranges
         if (viewport())
@@ -261,6 +265,12 @@ private:
 
     inline void showScrollbars()
     {
+        // The config can turn the scrollbars off (scrollbars.vertical and
+        // scrollbars.horizontal): none of the events that ask for them (zoom,
+        // scroll, mouse movement...) may bring them back then.
+        if (!m_vbarEnabled && !m_hbarEnabled)
+            return;
+
         if (!m_scrollbarsVisible)
         {
             m_scrollbarsVisible = true;

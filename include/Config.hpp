@@ -440,7 +440,8 @@ struct Config
         using Padding   = std::array<int, 4>;
         // @desc Padding
         // @type table
-        // @note { Order is left, top, right, down. A single number sets all four }
+        // @note { Order is left, top, right, down. A single number sets all
+        // four }
         // @default [2, 2, 2, 2]
         // @added 0.5.5
         Padding padding = {2, 2, 2, 2};
@@ -461,10 +462,17 @@ struct Config
         // separator. A module that is not listed is not shown
         // }
         // @type list
-        // @default ["session", "filename", "portal", "narrow", "|", "progress", "mode", { module = "page", at = 0.5, anchor = "center" }]
+        // @default ["session", "filename", "portal", "narrow", "|", "progress",
+        // "mode", { module = "page", at = 0.5, anchor = "center" }]
         // @added 0.7.9
         QList<QVariant> layout = {
-            "session", "filename", "portal", "narrow", "|", "progress", "mode",
+            "session",
+            "filename",
+            "portal",
+            "narrow",
+            "|",
+            "progress",
+            "mode",
             QVariantMap{{"module", "page"}, {"at", 0.5}, {"anchor", "center"}}};
 
         // @section statusbar.component
@@ -728,6 +736,12 @@ struct Config
         // @default 0xCC2979FF
         // @added 0.6.3
         uint32_t maximize_indicator_color = 0xCC2979FF;
+
+        // @desc Gap between splits in pixels
+        // @type int
+        // @default 4
+        // @added 0.7.9.1
+        int gap = 4; // gap between splits in pixels
     } split;
     // @endsection
 

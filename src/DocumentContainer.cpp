@@ -5,15 +5,12 @@
 #include "utils.hpp"
 
 #include <QEvent>
-#include <QScrollBar>
-#include <QTimer>
 #include <QJsonArray>
+#include <QScrollBar>
 #include <QSplitter>
+#include <QTimer>
 #include <qnamespace.h>
 #include <qtextcursor.h>
-
-static const char *const SPLITTER_STYLESHEET
-    = "QSplitter::handle { background-color: palette(mid); }";
 
 DocumentContainer::DocumentContainer(DocumentView *initialView, QWidget *parent)
     : QWidget(parent)
@@ -85,8 +82,7 @@ DocumentContainer::split(DocumentView *view, Qt::Orientation orientation,
         // Create a new splitter
         QSplitter *splitter = new QSplitter(orientation, this);
         splitter->setChildrenCollapsible(false);
-        splitter->setHandleWidth(1);
-        splitter->setStyleSheet(SPLITTER_STYLESHEET);
+        splitter->setHandleWidth(view->globalConfig().split.gap);
 
         // Reparenting view into splitter removes it from the layout
         splitter->addWidget(view);
@@ -171,8 +167,7 @@ DocumentContainer::splitInSplitter(QSplitter *splitter, DocumentView *view,
         // Create new splitter with the requested orientation
         QSplitter *newSplitter = new QSplitter(orientation, this);
         newSplitter->setChildrenCollapsible(false);
-        newSplitter->setHandleWidth(1);
-        newSplitter->setStyleSheet(SPLITTER_STYLESHEET);
+        splitter->setHandleWidth(view->globalConfig().split.gap);
 
         // Add the old view and new view to the new splitter
         newSplitter->addWidget(oldWidget);
@@ -662,8 +657,7 @@ DocumentContainer::splitEmpty(DocumentView *view,
 
         QSplitter *splitter = new QSplitter(orientation, this);
         splitter->setChildrenCollapsible(false);
-        splitter->setHandleWidth(1);
-        splitter->setStyleSheet(SPLITTER_STYLESHEET);
+        splitter->setHandleWidth(view->globalConfig().split.gap);
 
         splitter->addWidget(view);
         splitter->addWidget(newView);
@@ -755,8 +749,7 @@ DocumentContainer::createThumbnailView(DocumentView *view) noexcept
 
         QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
         splitter->setChildrenCollapsible(false);
-        splitter->setHandleWidth(1);
-        splitter->setStyleSheet(SPLITTER_STYLESHEET);
+        splitter->setHandleWidth(view->globalConfig().split.gap);
 
         splitter->addWidget(thumbView); // index 0 = left
         splitter->addWidget(root);
@@ -780,8 +773,7 @@ DocumentContainer::createThumbnailView(DocumentView *view) noexcept
 
         QSplitter *hSplitter = new QSplitter(Qt::Horizontal, this);
         hSplitter->setChildrenCollapsible(false);
-        hSplitter->setHandleWidth(1);
-        hSplitter->setStyleSheet(SPLITTER_STYLESHEET);
+        hSplitter->setHandleWidth(view->globalConfig().split.gap);
 
         hSplitter->addWidget(thumbView);   // left
         hSplitter->addWidget(topSplitter); // existing vertical stack on right
@@ -935,19 +927,22 @@ DocumentContainer::sync_views(const QList<DocumentView *> &views) noexcept
                                       [this, view](double)
         { scheduleSync(view, SyncZoom); });
 
-        m_sync_connections
-            << connect(view, &DocumentView::fitModeChanged, this,
-                       [this, view](DocumentView::FitMode)
+        m_sync_connections << connect(view, &DocumentView::fitModeChanged, this,
+                                      [this, view](DocumentView::FitMode)
         { scheduleSync(view, SyncFit); })
-            << connect(view, &DocumentView::rotationChanged, this,
-                       [this, view](float) { scheduleSync(view, SyncRotation); });
+                           << connect(view, &DocumentView::rotationChanged,
+                                      this, [this, view](float)
+        { scheduleSync(view, SyncRotation); });
 
-        auto onScroll = [this, view](int) { scheduleSync(view, 0); };
-        m_sync_connections
-            << connect(view->graphicsView()->verticalScrollBar(),
-                       &QScrollBar::valueChanged, this, onScroll)
-            << connect(view->graphicsView()->horizontalScrollBar(),
-                       &QScrollBar::valueChanged, this, onScroll);
+        auto onScroll = [this, view](int)
+        {
+            scheduleSync(view, 0);
+        };
+        m_sync_connections << connect(view->graphicsView()->verticalScrollBar(),
+                                      &QScrollBar::valueChanged, this, onScroll)
+                           << connect(
+                                  view->graphicsView()->horizontalScrollBar(),
+                                  &QScrollBar::valueChanged, this, onScroll);
 
         // a view that goes away leaves the group
         m_sync_connections << connect(view, &DocumentView::closed, this,
@@ -960,12 +955,11 @@ DocumentContainer::sync_views(const QList<DocumentView *> &views) noexcept
     }
 
     // start from what the current view shows
-    DocumentView *origin
-        = m_synced_views.contains(m_current_view)
-              ? m_current_view
-              : m_synced_views.first().data();
-    m_sync_source = origin;
-    m_sync_dirty  = SyncRotation | SyncZoom;
+    DocumentView *origin = m_synced_views.contains(m_current_view)
+                               ? m_current_view
+                               : m_synced_views.first().data();
+    m_sync_source        = origin;
+    m_sync_dirty         = SyncRotation | SyncZoom;
     flushSync();
 }
 
@@ -1034,13 +1028,15 @@ DocumentContainer::flushSync() noexcept
 
         if (dirty & SyncRotation)
             for (int i = 0;
-                 i < 3 && turns(target->rotation()) != turns(source->rotation());
+                 i < 3
+                 && turns(target->rotation()) != turns(source->rotation());
                  ++i)
                 target->RotateClock();
 
         // Fitting makes each view work out its own zoom (they can differ in
         // size), so the zoom is only copied when nothing was fitted.
-        if ((dirty & SyncFit) && source->fitMode() != DocumentView::FitMode::COUNT)
+        if ((dirty & SyncFit)
+            && source->fitMode() != DocumentView::FitMode::COUNT)
             target->setFitMode(source->fitMode());
         else if (dirty & SyncZoom)
             target->setZoom(source->zoom(), false);
@@ -1057,8 +1053,7 @@ DocumentContainer::flushSync() noexcept
         }
         const int range = from->maximum() - from->minimum();
         const double fraction
-            = range > 0 ? double(from->value() - from->minimum()) / range
-                        : 0.0;
+            = range > 0 ? double(from->value() - from->minimum()) / range : 0.0;
         to->setValue(to->minimum()
                      + qRound(fraction * (to->maximum() - to->minimum())));
     };

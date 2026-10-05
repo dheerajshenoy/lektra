@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Config.hpp"
 #include "DocumentView.hpp"
 #include "ThumbnailView.hpp"
 
@@ -110,8 +109,8 @@ public:
     // Draws the numbers on the views and lets the user pick some. The result
     // comes through the overlay's accepted() / cancelled() signals. Null if a
     // pick is already going on.
-    ViewPickOverlay *pickViews(
-        const QList<QPointer<DocumentView>> &preselected = {}) noexcept;
+    ViewPickOverlay *pickViews(const QList<QPointer<DocumentView>> &preselected
+                               = {}) noexcept;
 
 signals:
     void viewCreated(DocumentView *view);
@@ -136,7 +135,7 @@ private:
     DocumentView *m_current_view{nullptr};
     ThumbnailView *m_thumbnail_view{nullptr};
     bool m_maximized{false};
-        enum SyncWhat
+    enum SyncWhat
     {
         SyncZoom     = 1,
         SyncFit      = 2,
@@ -154,6 +153,6 @@ private:
     // are laid out again) are echoes and must not be copied back.
     QPointer<DocumentView> m_sync_source;
     QElapsedTimer m_sync_clock;
-    bool m_sync_pending    = false;
-    int m_sync_dirty       = 0;
+    bool m_sync_pending = false;
+    int m_sync_dirty    = 0;
 };

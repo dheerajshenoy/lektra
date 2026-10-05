@@ -1,18 +1,18 @@
-#include "lua/MainState.hpp"
-#include "Lektra.hpp"
-#include "DocumentContainer.hpp"
-#include "ViewPickOverlay.hpp"
-#include "Model.hpp"
-#include "PageRange.hpp"
 #include "Commands/DeleteAnnotationsCommand.hpp"
 #include "Commands/RectAnnotationCommand.hpp"
 #include "Commands/TextAnnotationCommand.hpp"
 #include "Commands/TextHighlightAnnotationCommand.hpp"
+#include "DocumentContainer.hpp"
+#include "Lektra.hpp"
+#include "Model.hpp"
+#include "PageRange.hpp"
+#include "ViewPickOverlay.hpp"
+#include "lua/MainState.hpp"
 #include "utils.hpp"
 
 #include <QBuffer>
-#include <QEventLoop>
 #include <QByteArray>
+#include <QEventLoop>
 #include <QMenu>
 #include <cstring>
 
@@ -225,7 +225,8 @@ pushAnnotation(lua_State *L, int page0, const Model::AnnotationInfo &a)
     lua_setfield(L, -2, "opacity");
 
     const QByteArray comment = a.contents.toUtf8();
-    lua_pushlstring(L, comment.constData(), static_cast<size_t>(comment.size()));
+    lua_pushlstring(L, comment.constData(),
+                    static_cast<size_t>(comment.size()));
     lua_setfield(L, -2, "comment");
 
     if (a.type == PDF_ANNOT_HIGHLIGHT)
@@ -928,8 +929,9 @@ static const luaL_Reg DocumentViewMethods[] = {
                 int callbackRef = luaL_ref(L, LUA_REGISTRYINDEX);
 
                 // view->addEventListener(DispatchType, CallbackFn)
-                (*view)->addEventListener(type, callbackRef, false,
-                                          [L = luaMainState(), callbackRef](DocumentView *v)
+                (*view)->addEventListener(
+                    type, callbackRef, false,
+                    [L = luaMainState(), callbackRef](DocumentView *v)
                 {
                     // Push the callback function onto the stack
                     lua_rawgeti(L, LUA_REGISTRYINDEX, callbackRef);
@@ -1025,7 +1027,8 @@ static const luaL_Reg DocumentViewMethods[] = {
 
                 (*view)->addContextMenuListener(
                     menuType, callbackRef, false,
-                    [L = luaMainState(), callbackRef](DocumentView *v, QMenu *menu)
+                    [L = luaMainState(), callbackRef](DocumentView *v,
+                                                      QMenu *menu)
                 {
                     lua_rawgeti(L, LUA_REGISTRYINDEX, callbackRef);
                     auto **ud = static_cast<DocumentView **>(
@@ -1719,62 +1722,63 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 1;
                 }),
 
-    VIEW_METHOD("add_highlight",
+    VIEW_METHOD(
+        "add_highlight",
+        {
+            // add_highlight(page, rects, [opts]) -> id
+            // rects: {x, y, w, h} in page points, or a list of them
+            // (one per line); opts: color, comment.
+            if (!*view)
+                return annotFail(L, "no active view");
+            Model *model = (*view)->model();
+            if (!model->supports_annotations())
+                return annotFail(L,
+                                 "annotations are not supported for this file");
+            const int page0 = annotPage(L, *view, 2);
+            if (page0 < 0)
+                return annotFail(L, "page out of range");
+            luaL_checktype(L, 3, LUA_TTABLE);
+
+            std::vector<fz_rect> rects;
+            fz_rect single;
+            // one rectangle, or a list of them
+            lua_rawgeti(L, 3, 1);
+            const bool isList = lua_istable(L, -1);
+            lua_pop(L, 1);
+            if (isList)
+            {
+                const int count = static_cast<int>(lua_objlen(L, 3));
+                for (int i = 1; i <= count; ++i)
                 {
-                    // add_highlight(page, rects, [opts]) -> id
-                    // rects: {x, y, w, h} in page points, or a list of them
-                    // (one per line); opts: color, comment.
-                    if (!*view)
-                        return annotFail(L, "no active view");
-                    Model *model = (*view)->model();
-                    if (!model->supports_annotations())
-                        return annotFail(
-                            L, "annotations are not supported for this file");
-                    const int page0 = annotPage(L, *view, 2);
-                    if (page0 < 0)
-                        return annotFail(L, "page out of range");
-                    luaL_checktype(L, 3, LUA_TTABLE);
-
-                    std::vector<fz_rect> rects;
-                    fz_rect single;
-                    // one rectangle, or a list of them
-                    lua_rawgeti(L, 3, 1);
-                    const bool isList = lua_istable(L, -1);
+                    lua_rawgeti(L, 3, i);
+                    fz_rect r;
+                    const bool ok = readRect(L, lua_gettop(L), r);
                     lua_pop(L, 1);
-                    if (isList)
-                    {
-                        const int count = static_cast<int>(lua_objlen(L, 3));
-                        for (int i = 1; i <= count; ++i)
-                        {
-                            lua_rawgeti(L, 3, i);
-                            fz_rect r;
-                            const bool ok = readRect(L, lua_gettop(L), r);
-                            lua_pop(L, 1);
-                            if (!ok)
-                                return annotFail(
-                                    L, "a rect needs numbers x, y, w and h");
-                            rects.push_back(r);
-                        }
-                    }
-                    else if (readRect(L, 3, single))
-                        rects.push_back(single);
-                    if (rects.empty())
-                        return annotFail(L, "no rectangle given");
+                    if (!ok)
+                        return annotFail(L,
+                                         "a rect needs numbers x, y, w and h");
+                    rects.push_back(r);
+                }
+            }
+            else if (readRect(L, 3, single))
+                rects.push_back(single);
+            if (rects.empty())
+                return annotFail(L, "no rectangle given");
 
-                    std::vector<fz_quad> quads;
-                    for (const fz_rect &r : rects)
-                        quads.push_back({{r.x0, r.y0}, {r.x1, r.y0},
-                                         {r.x0, r.y1}, {r.x1, r.y1}});
+            std::vector<fz_quad> quads;
+            for (const fz_rect &r : rects)
+                quads.push_back(
+                    {{r.x0, r.y0}, {r.x1, r.y0}, {r.x0, r.y1}, {r.x1, r.y1}});
 
-                    auto *command = new TextHighlightAnnotationCommand(
-                        model, page0, quads, optString(L, 4, "comment"),
-                        nullptr, optColor(L, 4));
-                    model->undoStack()->push(command);
-                    if (command->objNum() < 0)
-                        return annotFail(L, "could not add the highlight");
-                    lua_pushinteger(L, command->objNum());
-                    return 1;
-                }),
+            auto *command = new TextHighlightAnnotationCommand(
+                model, page0, quads, optString(L, 4, "comment"), nullptr,
+                optColor(L, 4));
+            model->undoStack()->push(command);
+            if (command->objNum() < 0)
+                return annotFail(L, "could not add the highlight");
+            lua_pushinteger(L, command->objNum());
+            return 1;
+        }),
 
     VIEW_METHOD("add_note",
                 {
@@ -1796,7 +1800,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                         return annotFail(L, "a note needs some text");
 
                     constexpr float size = 24.0f;
-                    auto *command = new TextAnnotationCommand(
+                    auto *command        = new TextAnnotationCommand(
                         model, page0, {x, y, x + size, y + size}, text);
                     model->undoStack()->push(command);
                     if (command->objNum() < 0)
@@ -1849,8 +1853,8 @@ static const luaL_Reg DocumentViewMethods[] = {
                         lua_pushboolean(L, 0);
                         return 1;
                     }
-                    model->undoStack()->push(
-                        new DeleteAnnotationsCommand(model, page0, QSet<int>{id}));
+                    model->undoStack()->push(new DeleteAnnotationsCommand(
+                        model, page0, QSet<int>{id}));
                     lua_pushboolean(L, 1);
                     return 1;
                 }),
@@ -1917,36 +1921,34 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 2;
                 }),
 
-    VIEW_METHOD("set_mark",
-                {
-                    // set_mark(char): marks the current location. a-z belong to
-                    // this view, A-Z are global.
-                    const char *key = luaL_checkstring(L, 2);
-                    if (!*view || !*key)
-                        return luaL_error(
-                            L, "a mark needs a name: a-z, or A-Z for a global one");
-                    auto *lektra = qobject_cast<Lektra *>((*view)->window());
-                    lua_pushboolean(
-                        L, lektra
-                               && lektra->setMarkFor(*view,
-                                                     QString::fromUtf8(key)));
-                    return 1;
-                }),
+    VIEW_METHOD(
+        "set_mark",
+        {
+            // set_mark(char): marks the current location. a-z belong to
+            // this view, A-Z are global.
+            const char *key = luaL_checkstring(L, 2);
+            if (!*view || !*key)
+                return luaL_error(
+                    L, "a mark needs a name: a-z, or A-Z for a global one");
+            auto *lektra = qobject_cast<Lektra *>((*view)->window());
+            lua_pushboolean(
+                L, lektra && lektra->setMarkFor(*view, QString::fromUtf8(key)));
+            return 1;
+        }),
 
-    VIEW_METHOD("goto_mark",
-                {
-                    // goto_mark(char) -> true if there is such a mark
-                    const char *key = luaL_checkstring(L, 2);
-                    if (!*view || !*key)
-                        return luaL_error(
-                            L, "a mark needs a name: a-z, or A-Z for a global one");
-                    auto *lektra = qobject_cast<Lektra *>((*view)->window());
-                    lua_pushboolean(
-                        L, lektra
-                               && lektra->gotoMarkIn(*view,
-                                                     QString::fromUtf8(key)));
-                    return 1;
-                }),
+    VIEW_METHOD(
+        "goto_mark",
+        {
+            // goto_mark(char) -> true if there is such a mark
+            const char *key = luaL_checkstring(L, 2);
+            if (!*view || !*key)
+                return luaL_error(
+                    L, "a mark needs a name: a-z, or A-Z for a global one");
+            auto *lektra = qobject_cast<Lektra *>((*view)->window());
+            lua_pushboolean(
+                L, lektra && lektra->gotoMarkIn(*view, QString::fromUtf8(key)));
+            return 1;
+        }),
 
     VIEW_METHOD("image_metadata",
                 {
@@ -2003,10 +2005,11 @@ static const luaL_Reg DocumentViewMethods[] = {
                     // (nil if the point is not on a page)
                     const double x = luaL_checknumber(L, 2);
                     const double y = luaL_checknumber(L, 3);
-                    int pageno = -1;
+                    int pageno     = -1;
                     QPointF point;
                     if (!*view
-                        || !(*view)->scenePosToPage(QPointF(x, y), pageno, point))
+                        || !(*view)->scenePosToPage(QPointF(x, y), pageno,
+                                                    point))
                     {
                         lua_pushnil(L);
                         return 1;
@@ -2073,37 +2076,37 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 1;
                 }),
 
-    VIEW_METHOD("region_select",
+    VIEW_METHOD(
+        "region_select",
+        {
+            luaL_checktype(L, 2, LUA_TFUNCTION);
+            lua_pushvalue(L, 2);
+            int cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+            (*view)->startRegionSelect([L = luaMainState(), cb_ref](QRectF area)
+            {
+                lua_rawgeti(L, LUA_REGISTRYINDEX, cb_ref);
+                luaL_unref(L, LUA_REGISTRYINDEX, cb_ref);
+
+                lua_newtable(L);
+                lua_pushnumber(L, area.x());
+                lua_setfield(L, -2, "x");
+                lua_pushnumber(L, area.y());
+                lua_setfield(L, -2, "y");
+                lua_pushnumber(L, area.width());
+                lua_setfield(L, -2, "w");
+                lua_pushnumber(L, area.height());
+                lua_setfield(L, -2, "h");
+
+                if (lua_pcall(L, 1, 0, 0) != LUA_OK)
                 {
-                    luaL_checktype(L, 2, LUA_TFUNCTION);
-                    lua_pushvalue(L, 2);
-                    int cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-
-                    (*view)->startRegionSelect([L = luaMainState(), cb_ref](QRectF area)
-                    {
-                        lua_rawgeti(L, LUA_REGISTRYINDEX, cb_ref);
-                        luaL_unref(L, LUA_REGISTRYINDEX, cb_ref);
-
-                        lua_newtable(L);
-                        lua_pushnumber(L, area.x());
-                        lua_setfield(L, -2, "x");
-                        lua_pushnumber(L, area.y());
-                        lua_setfield(L, -2, "y");
-                        lua_pushnumber(L, area.width());
-                        lua_setfield(L, -2, "w");
-                        lua_pushnumber(L, area.height());
-                        lua_setfield(L, -2, "h");
-
-                        if (lua_pcall(L, 1, 0, 0) != LUA_OK)
-                        {
-                            fprintf(stderr,
-                                    "Lua error in region_select callback: %s\n",
-                                    lua_tostring(L, -1));
-                            lua_pop(L, 1);
-                        }
-                    });
-                    return 0;
-                }),
+                    fprintf(stderr, "Lua error in region_select callback: %s\n",
+                            lua_tostring(L, -1));
+                    lua_pop(L, 1);
+                }
+            });
+            return 0;
+        }),
 
     // Same interaction as region_select, but instead of the selected
     // rect, the callback is passed the selected region rendered as a
@@ -2133,7 +2136,8 @@ static const luaL_Reg DocumentViewMethods[] = {
                     int cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
                     DocumentView *self = *view;
-                    (*view)->startRegionSelect([L = luaMainState(), cb_ref, self](QRectF area)
+                    (*view)->startRegionSelect(
+                        [L = luaMainState(), cb_ref, self](QRectF area)
                     {
                         lua_rawgeti(L, LUA_REGISTRYINDEX, cb_ref);
                         luaL_unref(L, LUA_REGISTRYINDEX, cb_ref);

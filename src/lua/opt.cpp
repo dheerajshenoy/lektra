@@ -5,8 +5,8 @@
 
 #include <cmath>
 #include <cstring>
-#include <lua.h>
 #include <lauxlib.h>
+#include <lua.h>
 
 namespace
 {
@@ -97,7 +97,8 @@ static const LuaField pageFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::Page *>(p)->bg);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     auto *page = static_cast<Config::Page *>(p);
     page->bg   = readLuaColor(L, 3, page->bg);
@@ -107,7 +108,8 @@ static const LuaField pageFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::Page *>(p)->fg);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     auto *page = static_cast<Config::Page *>(p);
     page->fg   = readLuaColor(L, 3, page->fg);
@@ -413,17 +415,15 @@ static const LuaField thumbnailPanelFields[] = {
     lua_pushinteger(L, static_cast<Config::ThumbnailPanel *>(p)->font_size);
     return 1;
 }, [](lua_State *L, P p)
-{
-    static_cast<Config::ThumbnailPanel *>(p)->font_size
-        = lua_tointeger(L, 3);
-}},
+{ static_cast<Config::ThumbnailPanel *>(p)->font_size = lua_tointeger(L, 3); }},
     {"highlight_current_page",
      [](lua_State *L, P p)
 {
     lua_pushboolean(
         L, static_cast<Config::ThumbnailPanel *>(p)->highlight_current_page);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::ThumbnailPanel *>(p)->highlight_current_page
         = lua_toboolean(L, 3);
@@ -433,7 +433,8 @@ static const LuaField thumbnailPanelFields[] = {
 {
     lua_pushnumber(L, static_cast<Config::ThumbnailPanel *>(p)->panel_width);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::ThumbnailPanel *>(p)->panel_width
         = static_cast<float>(lua_tonumber(L, 3));
@@ -444,7 +445,8 @@ static const LuaField thumbnailPanelFields[] = {
     lua_pushboolean(
         L, static_cast<Config::ThumbnailPanel *>(p)->show_page_numbers);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::ThumbnailPanel *>(p)->show_page_numbers
         = lua_toboolean(L, 3);
@@ -454,10 +456,10 @@ static const LuaField thumbnailPanelFields[] = {
 {
     lua_pushboolean(L, static_cast<Config::ThumbnailPanel *>(p)->sync_scroll);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
-    static_cast<Config::ThumbnailPanel *>(p)->sync_scroll
-        = lua_toboolean(L, 3);
+    static_cast<Config::ThumbnailPanel *>(p)->sync_scroll = lua_toboolean(L, 3);
 }},
 };
 
@@ -501,7 +503,8 @@ static const LuaField portalFields[] = {
     {"split",
      [](lua_State *L, P p)
 {
-    lua_pushstring(L, static_cast<Config::Portal *>(p)->split.toUtf8().constData());
+    lua_pushstring(
+        L, static_cast<Config::Portal *>(p)->split.toUtf8().constData());
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::Portal *>(p)->split = lua_tostring(L, 3); }},
@@ -525,8 +528,7 @@ static const LuaField windowFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::Window *>(p)->bg = lua_tointeger(L, 3); },
-     [](Lektra *lk)
-{ lk->applyWindowBackground(); }},
+     [](Lektra *lk) { lk->applyWindowBackground(); }},
 
     {"fullscreen",
      [](lua_State *L, P p)
@@ -582,10 +584,10 @@ static const LuaField windowFields[] = {
 {
     lua_pushboolean(L, static_cast<Config::Window *>(p)->show_menu_icons);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
-    static_cast<Config::Window *>(p)->show_menu_icons
-        = lua_toboolean(L, 3);
+    static_cast<Config::Window *>(p)->show_menu_icons = lua_toboolean(L, 3);
     QCoreApplication::setAttribute(
         Qt::AA_DontShowIconsInMenus,
         !static_cast<Config::Window *>(p)->show_menu_icons);
@@ -765,9 +767,7 @@ static const LuaField statusbarFields[] = {
     if (lua_istable(L, 3))
         static_cast<Config::Statusbar *>(p)->layout
             = luaToVariant(L, 3).toList();
-},
-     [](Lektra *lk)
-{ lk->applyStatusbarLayout(); }},
+}, [](Lektra *lk) { lk->applyStatusbarLayout(); }},
 
     {"padding",
      [](lua_State *L, P p)
@@ -795,9 +795,7 @@ static const LuaField statusbarFields[] = {
     else if (lua_isnumber(L, 3))
         // one number: the same padding on every side
         padding.fill(static_cast<int>(lua_tointeger(L, 3)));
-},
-     [](Lektra *lk)
-{ lk->applyStatusbarLayout(); }},
+}, [](Lektra *lk) { lk->applyStatusbarLayout(); }},
 
     {"visible",
      [](lua_State *L, P p)
@@ -816,7 +814,8 @@ static const LuaField statusbarModeFields[] = {
     lua_pushboolean(L,
                     static_cast<Config::Statusbar::component::Mode *>(p)->icon);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Statusbar::component::Mode *>(p)->icon
         = lua_toboolean(L, 3);
@@ -827,7 +826,8 @@ static const LuaField statusbarModeFields[] = {
     lua_pushboolean(L,
                     static_cast<Config::Statusbar::component::Mode *>(p)->show);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Statusbar::component::Mode *>(p)->show
         = lua_toboolean(L, 3);
@@ -838,7 +838,8 @@ static const LuaField statusbarModeFields[] = {
     lua_pushboolean(L,
                     static_cast<Config::Statusbar::component::Mode *>(p)->text);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Statusbar::component::Mode *>(p)->text
         = lua_toboolean(L, 3);
@@ -850,10 +851,11 @@ static const LuaField statusbarPagenumberFields[] = {
     {"show",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L, static_cast<Config::Statusbar::component::PageNumber *>(p)
-                          ->show);
+    lua_pushboolean(
+        L, static_cast<Config::Statusbar::component::PageNumber *>(p)->show);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Statusbar::component::PageNumber *>(p)->show
         = lua_toboolean(L, 3);
@@ -865,10 +867,11 @@ static const LuaField statusbarSessionFields[] = {
     {"show",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L,
-                    static_cast<Config::Statusbar::component::Session *>(p)->show);
+    lua_pushboolean(
+        L, static_cast<Config::Statusbar::component::Session *>(p)->show);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Statusbar::component::Session *>(p)->show
         = lua_toboolean(L, 3);
@@ -883,7 +886,8 @@ static const LuaField statusbarZoomFields[] = {
     lua_pushboolean(L,
                     static_cast<Config::Statusbar::component::Zoom *>(p)->show);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Statusbar::component::Zoom *>(p)->show
         = lua_toboolean(L, 3);
@@ -895,10 +899,11 @@ static const LuaField statusbarFilenameFields[] = {
     {"full_path",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L, static_cast<Config::Statusbar::component::FileName *>(p)
-                          ->full_path);
+    lua_pushboolean(
+        L, static_cast<Config::Statusbar::component::FileName *>(p)->full_path);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Statusbar::component::FileName *>(p)->full_path
         = lua_toboolean(L, 3);
@@ -906,10 +911,11 @@ static const LuaField statusbarFilenameFields[] = {
     {"show",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L,
-                    static_cast<Config::Statusbar::component::FileName *>(p)->show);
+    lua_pushboolean(
+        L, static_cast<Config::Statusbar::component::FileName *>(p)->show);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Statusbar::component::FileName *>(p)->show
         = lua_toboolean(L, 3);
@@ -921,10 +927,11 @@ static const LuaField statusbarProgressFields[] = {
     {"show",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L,
-                    static_cast<Config::Statusbar::component::Progress *>(p)->show);
+    lua_pushboolean(
+        L, static_cast<Config::Statusbar::component::Progress *>(p)->show);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Statusbar::component::Progress *>(p)->show
         = lua_toboolean(L, 3);
@@ -939,7 +946,8 @@ static const LuaField reflowFields[] = {
     lua_pushstring(
         L, static_cast<Config::Reflow *>(p)->font_family.toUtf8().constData());
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Reflow *>(p)->font_family
         = QString::fromUtf8(luaL_checkstring(L, 3));
@@ -950,7 +958,8 @@ static const LuaField reflowFields[] = {
 {
     lua_pushnumber(L, static_cast<Config::Reflow *>(p)->font_size);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Reflow *>(p)->font_size
         = static_cast<float>(lua_tonumber(L, 3));
@@ -961,7 +970,8 @@ static const LuaField reflowFields[] = {
 {
     lua_pushnumber(L, static_cast<Config::Reflow *>(p)->line_spacing);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Reflow *>(p)->line_spacing
         = static_cast<float>(lua_tonumber(L, 3));
@@ -1038,11 +1048,8 @@ static const LuaField splitFields[] = {
 {
     lua_pushnumber(L, static_cast<Config::Split *>(p)->dim_inactive_opacity);
     return 1;
-},
-     [](lua_State *L, P p)
-{
-    static_cast<Config::Split *>(p)->dim_inactive_opacity = lua_tonumber(L, 3);
-}},
+}, [](lua_State *L, P p)
+{ static_cast<Config::Split *>(p)->dim_inactive_opacity = lua_tonumber(L, 3); }},
 
     {"focus_border",
      [](lua_State *L, P p)
@@ -1073,11 +1080,16 @@ static const LuaField splitFields[] = {
 {
     lua_pushboolean(L, static_cast<Config::Split *>(p)->focus_follows_mouse);
     return 1;
-},
+}, [](lua_State *L, P p)
+{ static_cast<Config::Split *>(p)->focus_follows_mouse = lua_toboolean(L, 3); }},
+
+    {"gap",
      [](lua_State *L, P p)
 {
-    static_cast<Config::Split *>(p)->focus_follows_mouse = lua_toboolean(L, 3);
-}},
+    lua_pushinteger(L, static_cast<Config::Split *>(p)->gap);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Split *>(p)->gap = lua_tointeger(L, 3); }},
 
     {"maximize_indicator",
      [](lua_State *L, P p)
@@ -1100,11 +1112,8 @@ static const LuaField splitFields[] = {
 {
     lua_pushboolean(L, static_cast<Config::Split *>(p)->mouse_follows_focus);
     return 1;
-},
-     [](lua_State *L, P p)
-{
-    static_cast<Config::Split *>(p)->mouse_follows_focus = lua_toboolean(L, 3);
-}},
+}, [](lua_State *L, P p)
+{ static_cast<Config::Split *>(p)->mouse_follows_focus = lua_toboolean(L, 3); }},
 };
 
 // --- scrollbars ---
@@ -1224,24 +1233,36 @@ static const LuaField linksFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::Links *>(p)->hover_preview_delay);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Links *>(p)->hover_preview_delay = static_cast<int>(lua_tointeger(L, 3)); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Links *>(p)->hover_preview_delay
+        = static_cast<int>(lua_tointeger(L, 3));
+}},
 
     {"hover_preview_height",
      [](lua_State *L, P p)
 {
     lua_pushinteger(L, static_cast<Config::Links *>(p)->hover_preview_height);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Links *>(p)->hover_preview_height = static_cast<int>(lua_tointeger(L, 3)); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Links *>(p)->hover_preview_height
+        = static_cast<int>(lua_tointeger(L, 3));
+}},
 
     {"hover_preview_width",
      [](lua_State *L, P p)
 {
     lua_pushinteger(L, static_cast<Config::Links *>(p)->hover_preview_width);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Links *>(p)->hover_preview_width = static_cast<int>(lua_tointeger(L, 3)); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Links *>(p)->hover_preview_width
+        = static_cast<int>(lua_tointeger(L, 3));
+}},
 
     {"url_regex",
      [](lua_State *L, P p)
@@ -1300,21 +1321,32 @@ static const LuaField tabsFields[] = {
     using CBM = Config::Tabs::CloseButtonMode;
     switch (static_cast<Config::Tabs *>(p)->close_button_mode)
     {
-        case CBM::Current: lua_pushstring(L, "current"); break;
-        case CBM::Hidden:   lua_pushstring(L, "hidden");  break;
+        case CBM::Current:
+            lua_pushstring(L, "current");
+            break;
+        case CBM::Hidden:
+            lua_pushstring(L, "hidden");
+            break;
         case CBM::All:
-        default:            lua_pushstring(L, "all");     break;
+        default:
+            lua_pushstring(L, "all");
+            break;
     }
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     using CBM     = Config::Tabs::CloseButtonMode;
     const char *v = luaL_checkstring(L, 3);
     auto *tabs    = static_cast<Config::Tabs *>(p);
-    if (!v)                          return;
-    if (!strcmp(v, "current"))       tabs->close_button_mode = CBM::Current;
-    else if (!strcmp(v, "hidden"))   tabs->close_button_mode = CBM::Hidden;
-    else                             tabs->close_button_mode = CBM::All;
+    if (!v)
+        return;
+    if (!strcmp(v, "current"))
+        tabs->close_button_mode = CBM::Current;
+    else if (!strcmp(v, "hidden"))
+        tabs->close_button_mode = CBM::Hidden;
+    else
+        tabs->close_button_mode = CBM::All;
 }},
     // "right" | "left" | "middle" | "none"
     {"elide_mode",
@@ -1322,22 +1354,36 @@ static const LuaField tabsFields[] = {
 {
     switch (static_cast<Config::Tabs *>(p)->elide_mode)
     {
-        case Qt::ElideLeft:   lua_pushstring(L, "left");   break;
-        case Qt::ElideMiddle: lua_pushstring(L, "middle"); break;
-        case Qt::ElideNone:   lua_pushstring(L, "none");   break;
+        case Qt::ElideLeft:
+            lua_pushstring(L, "left");
+            break;
+        case Qt::ElideMiddle:
+            lua_pushstring(L, "middle");
+            break;
+        case Qt::ElideNone:
+            lua_pushstring(L, "none");
+            break;
         case Qt::ElideRight:
-        default:              lua_pushstring(L, "right");  break;
+        default:
+            lua_pushstring(L, "right");
+            break;
     }
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     const char *v = luaL_checkstring(L, 3);
     auto *tabs    = static_cast<Config::Tabs *>(p);
-    if (!v)                              return;
-    if (!strcmp(v, "left"))              tabs->elide_mode = Qt::ElideLeft;
-    else if (!strcmp(v, "middle"))       tabs->elide_mode = Qt::ElideMiddle;
-    else if (!strcmp(v, "none"))         tabs->elide_mode = Qt::ElideNone;
-    else                                 tabs->elide_mode = Qt::ElideRight;
+    if (!v)
+        return;
+    if (!strcmp(v, "left"))
+        tabs->elide_mode = Qt::ElideLeft;
+    else if (!strcmp(v, "middle"))
+        tabs->elide_mode = Qt::ElideMiddle;
+    else if (!strcmp(v, "none"))
+        tabs->elide_mode = Qt::ElideNone;
+    else
+        tabs->elide_mode = Qt::ElideRight;
 }},
     {"full_path",
      [](lua_State *L, P p)
@@ -1359,22 +1405,36 @@ static const LuaField tabsFields[] = {
 {
     switch (static_cast<Config::Tabs *>(p)->location)
     {
-        case QTabWidget::West:  lua_pushstring(L, "left");   break;
-        case QTabWidget::East:  lua_pushstring(L, "right");  break;
-        case QTabWidget::South: lua_pushstring(L, "bottom"); break;
+        case QTabWidget::West:
+            lua_pushstring(L, "left");
+            break;
+        case QTabWidget::East:
+            lua_pushstring(L, "right");
+            break;
+        case QTabWidget::South:
+            lua_pushstring(L, "bottom");
+            break;
         case QTabWidget::North:
-        default:                lua_pushstring(L, "top");    break;
+        default:
+            lua_pushstring(L, "top");
+            break;
     }
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     const char *v = luaL_checkstring(L, 3);
     auto *tabs    = static_cast<Config::Tabs *>(p);
-    if (!v)                         return;
-    if (!strcmp(v, "left"))         tabs->location = QTabWidget::West;
-    else if (!strcmp(v, "right"))   tabs->location = QTabWidget::East;
-    else if (!strcmp(v, "bottom"))  tabs->location = QTabWidget::South;
-    else                            tabs->location = QTabWidget::North;
+    if (!v)
+        return;
+    if (!strcmp(v, "left"))
+        tabs->location = QTabWidget::West;
+    else if (!strcmp(v, "right"))
+        tabs->location = QTabWidget::East;
+    else if (!strcmp(v, "bottom"))
+        tabs->location = QTabWidget::South;
+    else
+        tabs->location = QTabWidget::North;
 }},
     {"movable",
      [](lua_State *L, P p)
@@ -1390,21 +1450,32 @@ static const LuaField tabsFields[] = {
     using OP = Config::Tabs::OpenPosition;
     switch (static_cast<Config::Tabs *>(p)->open_position)
     {
-        case OP::Start:        lua_pushstring(L, "start");         break;
-        case OP::AfterCurrent: lua_pushstring(L, "after_current"); break;
+        case OP::Start:
+            lua_pushstring(L, "start");
+            break;
+        case OP::AfterCurrent:
+            lua_pushstring(L, "after_current");
+            break;
         case OP::End:
-        default:               lua_pushstring(L, "end");           break;
+        default:
+            lua_pushstring(L, "end");
+            break;
     }
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     using OP      = Config::Tabs::OpenPosition;
     const char *v = luaL_checkstring(L, 3);
     auto *tabs    = static_cast<Config::Tabs *>(p);
-    if (!v)                                return;
-    if (!strcmp(v, "start"))               tabs->open_position = OP::Start;
-    else if (!strcmp(v, "after_current"))  tabs->open_position = OP::AfterCurrent;
-    else                                   tabs->open_position = OP::End;
+    if (!v)
+        return;
+    if (!strcmp(v, "start"))
+        tabs->open_position = OP::Start;
+    else if (!strcmp(v, "after_current"))
+        tabs->open_position = OP::AfterCurrent;
+    else
+        tabs->open_position = OP::End;
 }},
     {"visible",
      [](lua_State *L, P p)
@@ -1448,10 +1519,11 @@ static const LuaField pickerFields[] = {
     {"prompt",
      [](lua_State *L, P p)
 {
-    lua_pushstring(L, static_cast<Config::Picker *>(p)
-                          ->prompt.toUtf8().constData());
+    lua_pushstring(
+        L, static_cast<Config::Picker *>(p)->prompt.toUtf8().constData());
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Picker *>(p)->prompt
         = QString::fromUtf8(luaL_checkstring(L, 3));
@@ -1469,17 +1541,17 @@ static const LuaField pickerFields[] = {
 
 // --- picker.shadow ---
 // The mount site (`pushSection(L, &config.picker.shadow, ...)`) passes the
-// shadow sub-object directly, so `p` is a `struct Config::Picker::shadow *`, NOT
-// a `Config::Picker *`. Previously every entry cast to `Picker *` and
-// wrote through `->shadow.<field>`, which read at offset(shadow) into
-// memory PAST the actual shadow object — same UB pattern as the earlier
-// annotPopupFields bug. The cast is now correct.
+// shadow sub-object directly, so `p` is a `struct Config::Picker::shadow *`,
+// NOT a `Config::Picker *`. Previously every entry cast to `Picker *` and wrote
+// through `->shadow.<field>`, which read at offset(shadow) into memory PAST the
+// actual shadow object — same UB pattern as the earlier annotPopupFields bug.
+// The cast is now correct.
 static const LuaField pickerShadowFields[] = {
     {"blur_radius",
      [](lua_State *L, P p)
 {
-    lua_pushinteger(L,
-                    static_cast<struct Config::Picker::shadow *>(p)->blur_radius);
+    lua_pushinteger(
+        L, static_cast<struct Config::Picker::shadow *>(p)->blur_radius);
     return 1;
 },
      [](lua_State *L, P p)
@@ -1491,41 +1563,53 @@ static const LuaField pickerShadowFields[] = {
     {"enabled",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L, static_cast<struct Config::Picker::shadow *>(p)->enabled);
+    lua_pushboolean(L,
+                    static_cast<struct Config::Picker::shadow *>(p)->enabled);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
-    static_cast<struct Config::Picker::shadow *>(p)->enabled = lua_toboolean(L, 3);
+    static_cast<struct Config::Picker::shadow *>(p)->enabled
+        = lua_toboolean(L, 3);
 }},
 
     {"offset_x",
      [](lua_State *L, P p)
 {
-    lua_pushinteger(L, static_cast<struct Config::Picker::shadow *>(p)->offset_x);
+    lua_pushinteger(L,
+                    static_cast<struct Config::Picker::shadow *>(p)->offset_x);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
-    static_cast<struct Config::Picker::shadow *>(p)->offset_x = lua_tointeger(L, 3);
+    static_cast<struct Config::Picker::shadow *>(p)->offset_x
+        = lua_tointeger(L, 3);
 }},
 
     {"offset_y",
      [](lua_State *L, P p)
 {
-    lua_pushinteger(L, static_cast<struct Config::Picker::shadow *>(p)->offset_y);
+    lua_pushinteger(L,
+                    static_cast<struct Config::Picker::shadow *>(p)->offset_y);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
-    static_cast<struct Config::Picker::shadow *>(p)->offset_y = lua_tointeger(L, 3);
+    static_cast<struct Config::Picker::shadow *>(p)->offset_y
+        = lua_tointeger(L, 3);
 }},
 
     {"opacity",
      [](lua_State *L, P p)
 {
-    lua_pushinteger(L, static_cast<struct Config::Picker::shadow *>(p)->opacity);
+    lua_pushinteger(L,
+                    static_cast<struct Config::Picker::shadow *>(p)->opacity);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
-    static_cast<struct Config::Picker::shadow *>(p)->opacity = lua_tointeger(L, 3);
+    static_cast<struct Config::Picker::shadow *>(p)->opacity
+        = lua_tointeger(L, 3);
 }},
 };
 
@@ -1543,9 +1627,11 @@ static const LuaField outlineFields[] = {
     {"generate_heading_ratio",
      [](lua_State *L, P p)
 {
-    lua_pushnumber(L, static_cast<Config::Outline *>(p)->generate_heading_ratio);
+    lua_pushnumber(L,
+                   static_cast<Config::Outline *>(p)->generate_heading_ratio);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Outline *>(p)->generate_heading_ratio
         = (float)lua_tonumber(L, 3);
@@ -1556,8 +1642,12 @@ static const LuaField outlineFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::Outline *>(p)->generate_max_levels);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Outline *>(p)->generate_max_levels = lua_tointeger(L, 3); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Outline *>(p)->generate_max_levels
+        = lua_tointeger(L, 3);
+}},
 
     {"indent_width",
      [](lua_State *L, P p)
@@ -1570,10 +1660,11 @@ static const LuaField outlineFields[] = {
     {"prompt",
      [](lua_State *L, P p)
 {
-    lua_pushstring(L, static_cast<Config::Outline *>(p)
-                          ->prompt.toUtf8().constData());
+    lua_pushstring(
+        L, static_cast<Config::Outline *>(p)->prompt.toUtf8().constData());
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Outline *>(p)->prompt
         = QString::fromUtf8(luaL_checkstring(L, 3));
@@ -1606,10 +1697,12 @@ static const LuaField highlightSearchFields[] = {
     {"prompt",
      [](lua_State *L, P p)
 {
-    lua_pushstring(L, static_cast<Config::HighlightSearch *>(p)
-                          ->prompt.toUtf8().constData());
+    lua_pushstring(
+        L,
+        static_cast<Config::HighlightSearch *>(p)->prompt.toUtf8().constData());
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::HighlightSearch *>(p)->prompt
         = QString::fromUtf8(luaL_checkstring(L, 3));
@@ -1719,8 +1812,7 @@ static const LuaField renderingFields[] = {
     {"backend",
      [](lua_State *L, P p)
 {
-    lua_pushinteger(
-        L, (int)static_cast<Config::Rendering *>(p)->backend);
+    lua_pushinteger(L, (int)static_cast<Config::Rendering *>(p)->backend);
     return 1;
 },
      [](lua_State *L, P p)
@@ -1834,24 +1926,19 @@ static const LuaField behaviorFields[] = {
     {"cache_password",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L,
-                    static_cast<Config::Behavior *>(p)->cache_password);
+    lua_pushboolean(L, static_cast<Config::Behavior *>(p)->cache_password);
     return 1;
 }, [](lua_State *L, P p)
-{
-    static_cast<Config::Behavior *>(p)->cache_password
-        = lua_toboolean(L, 3);
-}},
+{ static_cast<Config::Behavior *>(p)->cache_password = lua_toboolean(L, 3); }},
     {"close_on_last_tab",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L,
-                    static_cast<Config::Behavior *>(p)->close_on_last_tab);
+    lua_pushboolean(L, static_cast<Config::Behavior *>(p)->close_on_last_tab);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
-    static_cast<Config::Behavior *>(p)->close_on_last_tab
-        = lua_toboolean(L, 3);
+    static_cast<Config::Behavior *>(p)->close_on_last_tab = lua_toboolean(L, 3);
 }},
     {"confirm_on_quit",
      [](lua_State *L, P p)
@@ -1877,16 +1964,15 @@ static const LuaField behaviorFields[] = {
     lua_pushboolean(L, static_cast<Config::Behavior *>(p)->high_contrast);
     return 1;
 }, [](lua_State *L, P p)
-{
-    static_cast<Config::Behavior *>(p)->high_contrast = lua_toboolean(L, 3);
-}},
+{ static_cast<Config::Behavior *>(p)->high_contrast = lua_toboolean(L, 3); }},
     {"high_contrast_black_point",
      [](lua_State *L, P p)
 {
-    lua_pushinteger(L,
-                    static_cast<Config::Behavior *>(p)->high_contrast_black_point);
+    lua_pushinteger(
+        L, static_cast<Config::Behavior *>(p)->high_contrast_black_point);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Behavior *>(p)->high_contrast_black_point
         = lua_tointeger(L, 3);
@@ -1894,10 +1980,11 @@ static const LuaField behaviorFields[] = {
     {"high_contrast_white_point",
      [](lua_State *L, P p)
 {
-    lua_pushinteger(L,
-                    static_cast<Config::Behavior *>(p)->high_contrast_white_point);
+    lua_pushinteger(
+        L, static_cast<Config::Behavior *>(p)->high_contrast_white_point);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Behavior *>(p)->high_contrast_white_point
         = lua_tointeger(L, 3);
@@ -1914,8 +2001,11 @@ static const LuaField behaviorFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::Behavior *>(p)->mupdf_store_size);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Behavior *>(p)->mupdf_store_size = lua_tointeger(L, 3); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Behavior *>(p)->mupdf_store_size = lua_tointeger(L, 3);
+}},
     {"num_recent_files",
      [](lua_State *L, P p)
 {
@@ -2046,18 +2136,16 @@ static const LuaField llmViewFields[] = {
     {"api_key",
      [](lua_State *L, P p)
 {
-    lua_pushstring(L,
-                   static_cast<Config::LLMView *>(p)->api_key.toUtf8()
-                       .constData());
+    lua_pushstring(
+        L, static_cast<Config::LLMView *>(p)->api_key.toUtf8().constData());
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::LLMView *>(p)->api_key = lua_tostring(L, 3); }},
     {"api_url",
      [](lua_State *L, P p)
 {
-    lua_pushstring(L,
-                   static_cast<Config::LLMView *>(p)->api_url.toUtf8()
-                       .constData());
+    lua_pushstring(
+        L, static_cast<Config::LLMView *>(p)->api_url.toUtf8().constData());
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::LLMView *>(p)->api_url = lua_tostring(L, 3); }},
@@ -2071,9 +2159,8 @@ static const LuaField llmViewFields[] = {
     {"dock_area",
      [](lua_State *L, P p)
 {
-    lua_pushstring(L,
-                   static_cast<Config::LLMView *>(p)->dock_area.toUtf8()
-                       .constData());
+    lua_pushstring(
+        L, static_cast<Config::LLMView *>(p)->dock_area.toUtf8().constData());
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::LLMView *>(p)->dock_area = lua_tostring(L, 3); }},
@@ -2131,7 +2218,8 @@ static const LuaField llmViewFields[] = {
 {
     lua_pushnumber(L, static_cast<Config::LLMView *>(p)->font_size);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::LLMView *>(p)->font_size
         = static_cast<float>(lua_tonumber(L, 3));
@@ -2139,9 +2227,8 @@ static const LuaField llmViewFields[] = {
     {"model",
      [](lua_State *L, P p)
 {
-    lua_pushstring(L,
-                   static_cast<Config::LLMView *>(p)->model.toUtf8()
-                       .constData());
+    lua_pushstring(
+        L, static_cast<Config::LLMView *>(p)->model.toUtf8().constData());
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::LLMView *>(p)->model = lua_tostring(L, 3); }},
@@ -2157,11 +2244,8 @@ static const LuaField llmViewFields[] = {
 {
     lua_pushboolean(L, static_cast<Config::LLMView *>(p)->separate_window);
     return 1;
-},
-     [](lua_State *L, P p)
-{
-    static_cast<Config::LLMView *>(p)->separate_window = lua_toboolean(L, 3);
-}},
+}, [](lua_State *L, P p)
+{ static_cast<Config::LLMView *>(p)->separate_window = lua_toboolean(L, 3); }},
     {"show_at_startup",
      [](lua_State *L, P p)
 {
@@ -2275,9 +2359,9 @@ static void
 rawSetField(lua_State *L, int idx, const char *key)
 {
     const int abs = lua_absindex(L, idx);
-    lua_pushstring(L, key);   // ..., value, key
-    lua_insert(L, -2);        // ..., key, value
-    lua_rawset(L, abs);       // pops key, value
+    lua_pushstring(L, key); // ..., value, key
+    lua_insert(L, -2);      // ..., key, value
+    lua_rawset(L, abs);     // pops key, value
 }
 
 // Looks up `key` as a scalar Config-struct field of the section object at
@@ -2289,10 +2373,10 @@ sectionScalarField(lua_State *L, int obj_idx, const char *key, void **out_ptr)
     const int abs = lua_absindex(L, obj_idx);
 
     rawGetField(L, abs, "__fields");
-    const LuaField *fields = lua_isuserdata(L, -1)
-                                  ? static_cast<const LuaField *>(
-                                        lua_touserdata(L, -1))
-                                  : nullptr;
+    const LuaField *fields
+        = lua_isuserdata(L, -1)
+              ? static_cast<const LuaField *>(lua_touserdata(L, -1))
+              : nullptr;
     lua_pop(L, 1);
     if (!fields)
     {
@@ -2332,8 +2416,8 @@ sectionScalarField(lua_State *L, int obj_idx, const char *key, void **out_ptr)
 static int
 sectionIndex(lua_State *L)
 {
-    const char *key = lua_tostring(L, 2);
-    void *ptr        = nullptr;
+    const char *key   = lua_tostring(L, 2);
+    void *ptr         = nullptr;
     const LuaField *f = sectionScalarField(L, 1, key, &ptr);
     if (f)
         return f->get(L, ptr);
@@ -2361,8 +2445,8 @@ sectionIndex(lua_State *L)
 static int
 sectionNewIndex(lua_State *L)
 {
-    const char *key = lua_tostring(L, 2);
-    void *ptr        = nullptr;
+    const char *key   = lua_tostring(L, 2);
+    void *ptr         = nullptr;
     const LuaField *f = sectionScalarField(L, 1, key, &ptr);
     if (f)
     {
@@ -2388,7 +2472,8 @@ sectionNewIndex(lua_State *L)
                 rawGetField(L, 1, "__offset");
                 const lua_Integer offset = lua_tointeger(L, -1);
                 lua_pop(L, 1);
-                f->set(L, reinterpret_cast<char *>(&doc->localConfig()) + offset);
+                f->set(L,
+                       reinterpret_cast<char *>(&doc->localConfig()) + offset);
                 doc->localConfigChanged(section);
             }
             if (f->callback)
@@ -2412,8 +2497,8 @@ sectionNewIndex(lua_State *L)
             lua_pushnil(L);
             while (lua_next(L, 3) != 0)
             {
-                lua_pushvalue(L, -2); // dup key
-                lua_pushvalue(L, -2); // dup value
+                lua_pushvalue(L, -2);       // dup key
+                lua_pushvalue(L, -2);       // dup value
                 lua_settable(L, child_idx); // pops dup key + dup value
                 lua_pop(L, 1); // pop value, keep original key for lua_next
             }
@@ -2436,13 +2521,13 @@ addChild(lua_State *L, int obj_idx, const char *name)
     rawGetField(L, abs, "__children"); // ..., child, children_or_nil
     if (!lua_istable(L, -1))
     {
-        lua_pop(L, 1);                         // ..., child
-        lua_newtable(L);                       // ..., child, children
-        lua_pushvalue(L, -1);                  // ..., child, children, children
-        rawSetField(L, abs, "__children");      // ..., child, children
+        lua_pop(L, 1);                     // ..., child
+        lua_newtable(L);                   // ..., child, children
+        lua_pushvalue(L, -1);              // ..., child, children, children
+        rawSetField(L, abs, "__children"); // ..., child, children
     }
     // stack: ..., child, children
-    lua_insert(L, -2); // ..., children, child
+    lua_insert(L, -2);                         // ..., children, child
     rawSetField(L, lua_absindex(L, -2), name); // ..., children (consumes child)
     lua_pop(L, 1); // pop children table; net effect: only child consumed
 }
@@ -2468,9 +2553,9 @@ setSectionMetatable(lua_State *L)
 // view errors out instead of touching freed memory.
 struct OptScope
 {
-    Config &root;   // config the offsets are measured from
+    Config &root; // config the offsets are measured from
     Lektra *lektra;
-    int view_id;    // -1 for lektra.opt
+    int view_id; // -1 for lektra.opt
 };
 
 template <int N>
@@ -2479,9 +2564,9 @@ pushSection(lua_State *L, const OptScope &scope, void *ptr,
             const LuaField (&fields)[N], const char *section)
 {
     lua_newtable(L);
-    lua_pushinteger(L, static_cast<lua_Integer>(
-                           static_cast<char *>(ptr)
-                           - reinterpret_cast<char *>(&scope.root)));
+    lua_pushinteger(
+        L, static_cast<lua_Integer>(static_cast<char *>(ptr)
+                                    - reinterpret_cast<char *>(&scope.root)));
     lua_setfield(L, -2, "__offset");
     lua_pushstring(L, section);
     lua_setfield(L, -2, "__section");
@@ -2534,15 +2619,18 @@ buildOptTable(lua_State *L, const OptScope &scope)
     const int annotations_idx = lua_absindex(L, -1);
 
     // lektra.opt.annotations.highlight
-    pushSection(L, scope, &config.annotations.highlight, annotHighlightFields, "annotations");
+    pushSection(L, scope, &config.annotations.highlight, annotHighlightFields,
+                "annotations");
     addChild(L, annotations_idx, "highlight");
 
     // lektra.opt.annotations.rect
-    pushSection(L, scope, &config.annotations.rect, annotRectFields, "annotations");
+    pushSection(L, scope, &config.annotations.rect, annotRectFields,
+                "annotations");
     addChild(L, annotations_idx, "rect");
 
     // lektra.opt.annotations.popup
-    pushSection(L, scope, &config.annotations.popup, annotPopupFields, "annotations");
+    pushSection(L, scope, &config.annotations.popup, annotPopupFields,
+                "annotations");
     addChild(L, annotations_idx, "popup");
 
     addChild(L, opt_idx, "annotations");
@@ -2550,7 +2638,8 @@ buildOptTable(lua_State *L, const OptScope &scope)
     if (!viewOnly)
     {
         // lektra.opt.thumbnail_panel
-        pushSection(L, scope, &config.thumbnail, thumbnailPanelFields, "thumbnail");
+        pushSection(L, scope, &config.thumbnail, thumbnailPanelFields,
+                    "thumbnail");
         addChild(L, opt_idx, "thumbnail_panel");
     }
 
@@ -2583,17 +2672,23 @@ buildOptTable(lua_State *L, const OptScope &scope)
         setSectionMetatable(L);
         const int components_idx = lua_absindex(L, -1);
 
-        pushSection(L, scope, &config.statusbar.component.mode, statusbarModeFields, "statusbar");
+        pushSection(L, scope, &config.statusbar.component.mode,
+                    statusbarModeFields, "statusbar");
         addChild(L, components_idx, "mode");
-        pushSection(L, scope, &config.statusbar.component.pagenumber, statusbarPagenumberFields, "statusbar");
+        pushSection(L, scope, &config.statusbar.component.pagenumber,
+                    statusbarPagenumberFields, "statusbar");
         addChild(L, components_idx, "pagenumber");
-        pushSection(L, scope, &config.statusbar.component.session, statusbarSessionFields, "statusbar");
+        pushSection(L, scope, &config.statusbar.component.session,
+                    statusbarSessionFields, "statusbar");
         addChild(L, components_idx, "session");
-        pushSection(L, scope, &config.statusbar.component.zoom, statusbarZoomFields, "statusbar");
+        pushSection(L, scope, &config.statusbar.component.zoom,
+                    statusbarZoomFields, "statusbar");
         addChild(L, components_idx, "zoom");
-        pushSection(L, scope, &config.statusbar.component.filename, statusbarFilenameFields, "statusbar");
+        pushSection(L, scope, &config.statusbar.component.filename,
+                    statusbarFilenameFields, "statusbar");
         addChild(L, components_idx, "filename");
-        pushSection(L, scope, &config.statusbar.component.progress, statusbarProgressFields, "statusbar");
+        pushSection(L, scope, &config.statusbar.component.progress,
+                    statusbarProgressFields, "statusbar");
         addChild(L, components_idx, "progress");
 
         addChild(L, statusbar_idx, "components");
@@ -2644,7 +2739,8 @@ buildOptTable(lua_State *L, const OptScope &scope)
         // lektra.opt.picker (with .shadow attached as a nested child)
         pushSection(L, scope, &config.picker, pickerFields, "picker");
         const int picker_idx = lua_absindex(L, -1);
-        pushSection(L, scope, &config.picker.shadow, pickerShadowFields, "picker");
+        pushSection(L, scope, &config.picker.shadow, pickerShadowFields,
+                    "picker");
         addChild(L, picker_idx, "shadow");
         addChild(L, opt_idx, "picker");
     }
@@ -2659,14 +2755,16 @@ buildOptTable(lua_State *L, const OptScope &scope)
     if (!viewOnly)
     {
         // lektra.opt.highlight_search
-        pushSection(L, scope, &config.highlight_search, highlightSearchFields, "highlight_search");
+        pushSection(L, scope, &config.highlight_search, highlightSearchFields,
+                    "highlight_search");
         addChild(L, opt_idx, "highlight_search");
     }
 
     if (!viewOnly)
     {
         // lektra.opt.command_palette
-        pushSection(L, scope, &config.command_palette, commandPaletteFields, "command_palette");
+        pushSection(L, scope, &config.command_palette, commandPaletteFields,
+                    "command_palette");
         addChild(L, opt_idx, "command_palette");
     }
 

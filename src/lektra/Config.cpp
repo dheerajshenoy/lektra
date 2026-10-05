@@ -1,18 +1,17 @@
-#include "Lektra.hpp"
-
 #include "AboutDialog.hpp"
 #include "AppPaths.hpp"
 #include "DispatchType.hpp"
 #include "DocumentContainer.hpp"
 #include "DocumentView.hpp"
-#include "StatusbarLayoutSpec.hpp"
 #include "DonateDialog.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
+#include "Lektra.hpp"
 #include "PageLocation.hpp"
 #include "SaveSessionDialog.hpp"
 #include "SearchBar.hpp"
 #include "StartupWidget.hpp"
+#include "StatusbarLayoutSpec.hpp"
 #include "TabBar.hpp"
 #include "toml.hpp"
 #include "utils.hpp"
@@ -39,7 +38,6 @@
 #include <variant>
 namespace
 {
-
 
 static inline void
 set_title_format_if_present(toml::node_view<toml::node> n,
@@ -89,7 +87,8 @@ tomlToVariant(const toml::node &node)
     {
         QVariantMap map;
         for (auto &&[key, value] : *table)
-            map.insert(QString::fromUtf8(key.data(), static_cast<qsizetype>(key.length())),
+            map.insert(QString::fromUtf8(key.data(),
+                                         static_cast<qsizetype>(key.length())),
                        tomlToVariant(value));
         return map;
     }
@@ -175,7 +174,6 @@ inherit_picker_defaults(const Config::Picker &base, T &target)
 }
 } // namespace
 
-
 // Initialize the config related stuff
 // The settings a view keeps its own copy of. Used for the global [section]
 // tables and again for [filetype.<type>.section] overrides, so both accept
@@ -195,13 +193,11 @@ applyViewToml(toml::table &toml, Config &cfg)
         if (auto highlight = annots["highlight"])
         {
             set_color(highlight["color"], cfg.annotations.highlight.color);
-            set(highlight["hover_glow"],
-                cfg.annotations.highlight.hover_glow);
+            set(highlight["hover_glow"], cfg.annotations.highlight.hover_glow);
             set(highlight["comment"], cfg.annotations.highlight.comment);
             set(highlight["comment_marker"],
                 cfg.annotations.highlight.comment_marker);
-            set(highlight["glow_width"],
-                cfg.annotations.highlight.glow_width);
+            set(highlight["glow_width"], cfg.annotations.highlight.glow_width);
             set_color(highlight["glow_color"],
                       cfg.annotations.highlight.glow_color);
             set(highlight["comment_font_size"],
@@ -213,8 +209,7 @@ applyViewToml(toml::table &toml, Config &cfg)
             set_color(rect["color"], cfg.annotations.rect.color);
             set(rect["hover_glow"], cfg.annotations.rect.hover_glow);
             set(rect["comment"], cfg.annotations.rect.comment);
-            set(rect["comment_marker"],
-                cfg.annotations.rect.comment_marker);
+            set(rect["comment_marker"], cfg.annotations.rect.comment_marker);
             set(rect["glow_width"], cfg.annotations.rect.glow_width);
             set_color(rect["glow_color"], cfg.annotations.rect.glow_color);
             set(rect["comment_font_size"],
@@ -226,8 +221,7 @@ applyViewToml(toml::table &toml, Config &cfg)
             set(popup["hover_glow"], cfg.annotations.popup.hover_glow);
             set(popup["comment"], cfg.annotations.popup.comment);
             set(popup["glow_width"], cfg.annotations.popup.glow_width);
-            set_color(popup["glow_color"],
-                      cfg.annotations.popup.glow_color);
+            set_color(popup["glow_color"], cfg.annotations.popup.glow_color);
             set(popup["comment_font_size"],
                 cfg.annotations.popup.comment_font_size);
         }
@@ -354,8 +348,7 @@ applyViewToml(toml::table &toml, Config &cfg)
         set(behavior["single_instance"], cfg.behavior.single_instance);
         set(behavior["page_history"], cfg.behavior.page_history_limit);
         set(behavior["invert_mode"], cfg.behavior.invert_mode);
-        set(behavior["dont_invert_images"],
-            cfg.behavior.dont_invert_images);
+        set(behavior["dont_invert_images"], cfg.behavior.dont_invert_images);
         set(behavior["auto_reload"], cfg.behavior.auto_reload);
         set(behavior["cache_password"], cfg.behavior.cache_password);
         set(behavior["recent_files"], cfg.behavior.recent_files);
@@ -470,7 +463,7 @@ Lektra::initConfig() noexcept
     catch (const toml::parse_error &e)
     {
         const auto &begin = e.source().begin;
-        QString text      = tr("%1\n\nLine %2, column %3")
+        QString text = tr("%1\n\nLine %2, column %3")
                            .arg(QString::fromUtf8(e.description().data(),
                                                   e.description().length()))
                            .arg(begin.line)
@@ -489,10 +482,9 @@ Lektra::initConfig() noexcept
             }
         }
 
-        QMessageBox::critical(
-            this, tr("Error in configuration file"),
-            tr("%1\n\n%2\n\nLoading default config.")
-                .arg(m_config_file_path, text));
+        QMessageBox::critical(this, tr("Error in configuration file"),
+                              tr("%1\n\n%2\n\nLoading default config.")
+                                  .arg(m_config_file_path, text));
         initDefaultKeybinds();
         return;
     }
@@ -541,29 +533,29 @@ Lektra::initConfig() noexcept
             auto *section = node.as_table();
             if (!section)
                 continue;
-            const std::string name
-                = QString::fromUtf8(key.data(), key.length())
-                      .toLower()
-                      .toStdString();
+            const std::string name = QString::fromUtf8(key.data(), key.length())
+                                         .toLower()
+                                         .toStdString();
             static const QSet<QString> kSections
-                = {"page",       "layout",      "zoom",
-                   "selection",  "scrollbars",  "search",
-                   "jump_marker", "annotations", "links",
-                   "behavior",   "reflow"};
+                = {"page",       "layout",   "zoom",        "selection",
+                   "scrollbars", "search",   "jump_marker", "annotations",
+                   "links",      "behavior", "reflow"};
             for (const auto &[sec, value] : *section)
             {
                 const QString secName
                     = QString::fromUtf8(sec.data(), sec.length());
                 if (!kSections.contains(secName))
-                    configIssue(&value,
-                                QString("[filetype.%1]: unknown section '%2'")
-                                    .arg(QString::fromStdString(name), secName));
+                    configIssue(
+                        &value,
+                        QString("[filetype.%1]: unknown section '%2'")
+                            .arg(QString::fromStdString(name), secName));
                 else if (!value.is_table())
-                    configIssue(&value,
-                                QString("[filetype.%1]: '%2' is a section; set "
-                                        "an option inside it, e.g. "
-                                        "%2.<option> = ...")
-                                    .arg(QString::fromStdString(name), secName));
+                    configIssue(
+                        &value,
+                        QString("[filetype.%1]: '%2' is a section; set "
+                                "an option inside it, e.g. "
+                                "%2.<option> = ...")
+                            .arg(QString::fromStdString(name), secName));
             }
             auto table = std::make_shared<toml::table>(*section);
             // Read it once now so wrong values are reported at startup, not
@@ -580,7 +572,6 @@ Lektra::initConfig() noexcept
         }
         m_config.filetype_overrides = std::move(overrides);
     }
-
 
     // Portals
     if (auto portal = toml["portal"])
@@ -754,8 +745,7 @@ Lektra::initConfig() noexcept
             QStringList problems;
             statusbar_layout::parse(m_config.statusbar.layout, &problems);
             for (const QString &problem : std::as_const(problems))
-                configIssue(order,
-                            QObject::tr("layout: %1").arg(problem));
+                configIssue(order, QObject::tr("layout: %1").arg(problem));
         }
         else if (statusbar["layout"])
             configIssue(statusbar["layout"].node(),
@@ -1077,10 +1067,10 @@ Lektra::initConfig() noexcept
         set(split["maximize_indicator"], m_config.split.maximize_indicator);
         set_color(split["maximize_indicator_color"],
                   m_config.split.maximize_indicator_color);
+        set(split["gap"], m_config.split.gap);
     }
 
     // Behavior
-
 
     // Defaults are loaded here (exactly once) rather than in construct(),
     // so `load_defaults = false` in the user's [keybindings] block can
@@ -1144,10 +1134,9 @@ Lektra::initConfig() noexcept
                          .arg(g_config_issues.size() - kMaxShown);
         for (const QString &issue : std::as_const(g_config_issues))
             qWarning().noquote() << "config:" << issue;
-        QMessageBox::warning(
-            this, tr("Problems in configuration file"),
-            tr("%1\n\nThese settings were ignored:\n\n%2")
-                .arg(m_config_file_path, shown.join('\n')));
+        QMessageBox::warning(this, tr("Problems in configuration file"),
+                             tr("%1\n\nThese settings were ignored:\n\n%2")
+                                 .arg(m_config_file_path, shown.join('\n')));
         g_config_issues.clear();
     }
 
