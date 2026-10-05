@@ -839,11 +839,10 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/docs/tutorial/tutorial.pdf
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/schema/lektra-config.schema.json
     DESTINATION share/lektra)
 
-# Lua stubs (Linux and macOS only)
-if(NOT WIN32)
-    install(DIRECTORY stubs/lua/
-        DESTINATION share/lektra/lua)
-endif()
+# Lua stubs, for completion when editing init.lua (all platforms; the Windows
+# installer, packaging/lektra.iss, copies them to the same place under {app})
+install(DIRECTORY stubs/lua/
+    DESTINATION share/lektra/lua)
 
 # Man pages (Unix only — not applicable on Windows)
 if(NOT WIN32)
