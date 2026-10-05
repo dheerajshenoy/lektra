@@ -48,8 +48,8 @@
 
 ## LUA PLUGIN IDEAS
 
-- [ ] Text selection word count
-- [ ] Search region with Google Lens
+- [x] OCR with tesseract
+- [x] Text selection word count
 - [ ] Read Aloud (text-to-speech)
 - [ ] Equation OCR to LaTeX
 - [ ] Table exporter to tex/CSV/Excel/Numpy
