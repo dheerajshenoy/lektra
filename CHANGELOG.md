@@ -14,6 +14,8 @@
 
 - The documentation is now on [Read the Docs](https://lektra.readthedocs.io/en/latest/): installation, an example `config.toml`, and the commands, options and Lua API, generated from the sources so they match each release.
 
+## 0.7.9.1 (2026-10-05)
+
 ### Bug Fixes
 
 - Fix split focus change not updating tab title.
