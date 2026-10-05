@@ -13,8 +13,7 @@
 
 <p align="center">
     <a href="https://dheerajshenoy.github.io/lektra" target="_blank">Homepage</a> |
-    <a href="https://dheerajshenoy.github.io/lektra/installation.html" target="_blank">Installation</a> |
-    <a href="https://dheerajshenoy.github.io/lektra/configuration.html" target="_blank">Configuration</a> |
+    <a href="https://lektra.readthedocs.io/en/latest/" target="_blank">Documentation</a> |
     <a href="CHANGELOG.md" target="_blank">CHANGELOG</a> |
     <a href="https://codeberg.org/lektra/lektra" target="_blank">Codeberg Mirror</a>
 </p>
@@ -28,6 +27,10 @@
 # Screenshots @ Homepage
 
 <a href="https://dheerajshenoy.github.io/lektra/" target="_blank">Check out the homepage</a>
+
+# Documentation
+
+Read the [documentation](https://lektra.readthedocs.io/en/latest/) for more information on how to use Lektra.
 
 # Supported file types
 
