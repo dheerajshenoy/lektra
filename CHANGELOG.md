@@ -1,60 +1,81 @@
 # LEKTRA CHANGELOG
 
-## 0.7.9
+## 0.7.9 (2026-10-5)
 
 ### New Features
 
-- Add `--new-window` CLI flag to open file(s) in a new window even when `single_instance` is on.
+#### LLM assistant (experimental)
+
 - The LLM panel now knows Lektra's Lua API and can drive the app: ask it to do something and it replies with a Lua script you run with the Run button, or automatically with `llm_view.auto_run = true`. Scripts run in a restricted environment (no `io`, `os.execute`, `require`, `load` or `ffi`) with a time limit, and the result is passed back to the model with your next message. Lua code in replies is syntax highlighted, and every code block can be collapsed by clicking its header.
 - LLM chat: images can be attached to a message (paste, drop, an image file, the current page, or a region of the page) and are sent to vision models such as Gemini. Chats are now saved and can be reopened from the new History menu; "New chat" starts a fresh one. Turn saving off with `llm_view.save_history = false`.
-- Lektra now checks once a day whether a newer release is available and says so in a small banner (one request to the GitHub releases API, nothing about you is sent). Turn it off with `[updates] check = false`. The `check_for_updates` command (and Help ▸ Check for Updates) checks on demand.
-- New "What's new" list of changes for the running version (`whats_new` command, Help ▸ What's New). With `[updates] whats_new = true`, a banner also offers it after an update (off by default).
-- A rare, dismissible banner reminds that Lektra can be supported: only after a few weeks of use, at most twice a year, and "Don't ask again" ends it. `[donate] reminders = false` turns it off.
 - LLM chat: the assistant now acts through tools (run a command, run a Lua script, look up the Lua API on demand) instead of receiving the whole API with every request, which makes requests much smaller. Each action asks for confirmation unless `llm_view.auto_run` is on. For models without tool support, set `llm_view.tools = false` to get the old behaviour.
 - LLM chat: LaTeX math in replies is rendered (`$...$` inline, `$$...$$` on its own line), using the bundled MicroTeX library.
 - LLM chat: hovering a message shows a Copy button that copies it as written, with LaTeX and code blocks as source.
-- New `export_pages` command and Lua `view:export_pages(names, pages, opts)`: export a range of pages (`1-5,8,10-`, `all`, `odd`, `even`, `current`...) as images (PNG by default, or JPEG, WebP, BMP, TIFF), as one PDF, or as SVG, text, HTML, CBZ, DOCX or ODT, chosen by the file extension. Exporting a PDF as PDF keeps the original pages, so the text stays searchable. The command asks for the pages and format (with a checkbox for one file or one file per page, for the formats where that is a choice) and then the location, or takes them as arguments (`:export_pages /tmp/p.png 3-5 200`, add `split` for one file per page); the Lua function does not overwrite existing files unless `overwrite = true`.
-- `lektra.ui.file_dialog` can now choose several files (`"open_multiple"`) or a folder (`"directory"`) as well as open and save, and takes `title`, `directory`, `filename`, `filters` (a list or text), `selected_filter`, `default_suffix` and `confirm_overwrite`; it returns `nil` when cancelled and the chosen filter as a second value. The documented `title`, `directory` and `filter` options used to be ignored. Existing calls keep working.
-- New Lua API: `lektra.clipboard.get()`/`set()`, `view:page_text(pageno)` for the text of any page, and `lektra.bookmarks.add()`. New events `OnModeChanged`, `OnSessionLoaded`, `OnBookmarkAdded` and `OnFileSaved`.
-- New `lektra.job.async(command, options, callback)` runs a command in the background and calls you back with its exit code and output when it finishes, so a slow command no longer freezes the window. It supports `cwd`, `env`, `stdin`, `timeout`, live `on_stdout`/`on_stderr`, and `job:cancel()`.
-- New `-n`/`--new-window` command line option opens the files in a separate window even when single-instance mode is on.
-- Fixed double and triple click selection: a double click counted as a single click (so the word was only selected on the third click), and a slight movement of the mouse afterwards replaced the selected word or line with a character range. The text of a double or triple click selection (copy, `view:selection_text()`) could also come from the wrong place and contain far more than the selected word.
-- New `sync_view` command links views of a tab so that zooming, scrolling, rotating and fitting (width, height, window) one of them does the same in the others: numbers are drawn on the views, press them to choose, `Enter` to link, `Esc` to cancel. `sync_view_all` links all views of the tab and `sync_view_stop` ends it. Lua: `lektra.view.sync(ids)`, `lektra.view.unsync()` and `lektra.view.pick_views()`, which lets the user pick views and returns their ids.
-- New Lua functions `lektra.paths.config()`, `data()` and `cache()` return Lektra's folders (and create them if missing), so scripts do not have to guess `~/.config/lektra`.
-- Lua scripts can now work with annotations: `view:annotations(page)` lists them (type, position, colour, comment and, for highlights, the text), `view:add_highlight`, `view:add_note` and `view:add_rect` create them (with undo), and `view:set_annotation` and `view:remove_annotation` change or remove them.
-- Lua scripts can add their own pieces to the statusbar with `lektra.statusbar.register(name, function)` (refreshed when the page, zoom or file changes, or every few seconds) and `lektra.statusbar.set(name, text)`. Name the segment in `statusbar.layout` to place it, otherwise it goes to the right end.
-- Fixed colour of note annotations: reading or changing it failed ("Text annotations have no IC property").
-- New `lektra.async(function() ... end)` lets a script wait for slow things and still read from top to bottom: inside it, `lektra.job.await(command)`, `lektra.sleep(seconds)` and the general `lektra.await(function(resume) ... end)` pause it while the window stays responsive. Callbacks that a script hands to timers, jobs, dialogs, `view:region_select` and the like now also work when they were set up from inside such a function.
 - LLM chat: you can stop a reply while it is coming in. The Send button turns into a Stop button (or press `Esc`), and what had arrived stays in the chat.
 - New `llm_view.font_size` option sets the text size of the messages in the LLM panel.
 - New `llm_view.show_at_startup` option opens the LLM panel when Lektra starts. It replaces `llm_view.enabled`, which was read but had no effect.
-- A JSON Schema for `config.toml` (`schema/lektra-config.schema.json`, installed to `share/lektra/`): with a TOML language server such as Taplo it gives completion, option descriptions on hover, and warnings for typos and wrong values. `default_config.toml` now points at it.
+
+#### Lua scripting
+
 - Lua scripting now uses a bundled LuaJIT, linked statically and enabled by default on Linux, macOS and Windows, so no Lua installation is needed to build or run Lektra. Scripts run as Lua 5.1 with LuaJIT's extensions: `goto` and the `bit` library are available, but Lua 5.3+ features such as integer division `//`, `utf8` and `string.pack` are not.
-- Hover preview for internal links: with `links.hover_preview = true`, resting the cursor on a link shows a picture of what it points at (page, figure or reference) instead of the tooltip. Size and delay are `hover_preview_width`, `hover_preview_height` and `hover_preview_delay`.
-- Click-and-drag an image out of a document (PDF) onto another app or a file manager to save or paste it as a PNG. The drag saves what the page shows in that area, including text on scanned/stencil pages, at the image's native resolution, with the current invert, tint and high-contrast settings applied. Anything else the page draws inside that rectangle is included too.
-- New **caret mode** (`caret_mode` command, default `F7`) — a keyboard-driven text cursor for character-by-character navigation, cf. Firefox/Okular "caret browsing". Left/Right/Up/Down (also `hjkl`), Home/End, and Shift+movement (also vim-style `H`/`J`/`K`/`L`) to extend a selection; the existing yank command now has a default binding (`y`) to copy it.
-- New statusbar layout: `[statusbar].layout` (also `lektra.opt.statusbar.layout`) places the modules freely instead of in three fixed groups. Items go left to right and `"|"`, `{ stretch = 2 }` and `{ spacer = 12 }` are gaps; `{ module = "page", at = 0.25, anchor = "center" }` pins a module at a position along the bar; modules take `min_width`, `max_width`, `margin` and `align`; `{ text = "•" }` adds a separator; a list of lists makes several rows. `[statusbar].padding` also takes a single number for all four sides.
-- New `zoom` statusbar module showing the current zoom level (e.g. `150%`); previously `[statusbar.components.zoom]` existed but nothing was shown.
+- New `lektra.async(function() ... end)` lets a script wait for slow things and still read from top to bottom: inside it, `lektra.job.await(command)`, `lektra.sleep(seconds)` and the general `lektra.await(function(resume) ... end)` pause it while the window stays responsive. Callbacks that a script hands to timers, jobs, dialogs, `view:region_select` and the like now also work when they were set up from inside such a function.
+- New `lektra.job.async(command, options, callback)` runs a command in the background and calls you back with its exit code and output when it finishes, so a slow command no longer freezes the window. It supports `cwd`, `env`, `stdin`, `timeout`, live `on_stdout`/`on_stderr`, and `job:cancel()`.
+- New Lua functions `lektra.paths.config()`, `data()` and `cache()` return Lektra's folders (and create them if missing), so scripts do not have to guess `~/.config/lektra`.
+- New Lua API: `lektra.clipboard.get()`/`set()`, `view:page_text(pageno)` for the text of any page, and `lektra.bookmarks.add()`. New events `OnModeChanged`, `OnSessionLoaded`, `OnBookmarkAdded` and `OnFileSaved`.
+- `lektra.ui.file_dialog` can now choose several files (`"open_multiple"`) or a folder (`"directory"`) as well as open and save, and takes `title`, `directory`, `filename`, `filters` (a list or text), `selected_filter`, `default_suffix` and `confirm_overwrite`; it returns `nil` when cancelled and the chosen filter as a second value. The documented `title`, `directory` and `filter` options used to be ignored. Existing calls keep working.
+- Lua scripts can now work with annotations: `view:annotations(page)` lists them (type, position, colour, comment and, for highlights, the text), `view:add_highlight`, `view:add_note` and `view:add_rect` create them (with undo), and `view:set_annotation` and `view:remove_annotation` change or remove them.
+- Lua scripts can add their own pieces to the statusbar with `lektra.statusbar.register(name, function)` (refreshed when the page, zoom or file changes, or every few seconds) and `lektra.statusbar.set(name, text)`. Name the segment in `statusbar.layout` to place it, otherwise it goes to the right end.
+- New Lua `View` functions: `links`, `follow_link`, `link_hints`, `select_range`, `select_region`, `scroll`, `scroll_to`, `scroll_position`, `visible_pages`, `page_size` and `page_sizes`.
+- New Lua APIs: `lektra.tabs.rename` and `Tab:rename`; `View:container()` now works, with `vsplit`, `hsplit`, `views`, `focus`, `close_view`, `close_others` and more; `lektra.sessions` (`list`, `exists`, `load`, `delete`), `lektra.recent_files.list` and `lektra.window.open`.
+
+#### Tabs and views
+
 - Multi-select tabs with Ctrl+click (toggle) and Shift+click (range); selected tabs are highlighted.
 - Right-clicking a selected tab opens a menu for the group: close, merge into a vertical or horizontal split, move to a new window, or save as a session.
 - Tabs with splits get a "Move Splits to Separate Tabs" menu item, which keeps the first split in place and opens the others as tabs at their current page.
 - New tab commands: `tabs_select_toggle`, `tabs_select_all`, `tabs_select_clear`, `tabs_close_selected`, `tabs_merge_vertical`, `tabs_merge_horizontal`, `tabs_split_out`, `tabs_move_to_window`, `tabs_save_session [name]`. Operations act on the selected tabs, or the current tab when nothing is selected.
 - New `lektra.tabs` Lua functions mirroring these: `selected`, `select`, `select_all`, `clear_selection`, `close_selected`, `merge`, `split_out`, `move_to_window`, `save_session`.
+- New `tab_rename` command to give a tab a custom title.
+- New `sync_view` command links views of a tab so that zooming, scrolling, rotating and fitting (width, height, window) one of them does the same in the others: numbers are drawn on the views, press them to choose, `Enter` to link, `Esc` to cancel. `sync_view_all` links all views of the tab and `sync_view_stop` ends it. Lua: `lektra.view.sync(ids)`, `lektra.view.unsync()` and `lektra.view.pick_views()`, which lets the user pick views and returns their ids.
+
+#### Reading and selection
+
+- New **caret mode** (`caret_mode` command, default `F7`) — a keyboard-driven text cursor for character-by-character navigation, cf. Firefox/Okular "caret browsing". Left/Right/Up/Down (also `hjkl`), Home/End, and Shift+movement (also vim-style `H`/`J`/`K`/`L`) to extend a selection; the existing yank command now has a default binding (`y`) to copy it.
+- Hover preview for internal links: with `links.hover_preview = true`, resting the cursor on a link shows a picture of what it points at (page, figure or reference) instead of the tooltip. Size and delay are `hover_preview_width`, `hover_preview_height` and `hover_preview_delay`.
+- Click-and-drag an image out of a document (PDF) onto another app or a file manager to save or paste it as a PNG. The drag saves what the page shows in that area, including text on scanned/stencil pages, at the image's native resolution, with the current invert, tint and high-contrast settings applied. Anything else the page draws inside that rectangle is included too.
+
+#### Statusbar
+
+- New statusbar layout: `[statusbar].layout` (also `lektra.opt.statusbar.layout`) places the modules freely instead of in three fixed groups. Items go left to right and `"|"`, `{ stretch = 2 }` and `{ spacer = 12 }` are gaps; `{ module = "page", at = 0.25, anchor = "center" }` pins a module at a position along the bar; modules take `min_width`, `max_width`, `margin` and `align`; `{ text = "•" }` adds a separator; a list of lists makes several rows. `[statusbar].padding` also takes a single number for all four sides.
+- New `zoom` statusbar module showing the current zoom level (e.g. `150%`); previously `[statusbar.components.zoom]` existed but nothing was shown.
+
+#### Documents and export
+
+- New `export_pages` command and Lua `view:export_pages(names, pages, opts)`: export a range of pages (`1-5,8,10-`, `all`, `odd`, `even`, `current`...) as images (PNG by default, or JPEG, WebP, BMP, TIFF), as one PDF, or as SVG, text, HTML, CBZ, DOCX or ODT, chosen by the file extension. Exporting a PDF as PDF keeps the original pages, so the text stays searchable. The command asks for the pages and format (with a checkbox for one file or one file per page, for the formats where that is a choice) and then the location, or takes them as arguments (`:export_pages /tmp/p.png 3-5 200`, add `split` for one file per page); the Lua function does not overwrite existing files unless `overwrite = true`.
+- Open `.cbr` (RAR) and `.cb7` (7z) comic books, in addition to `.cbz` and `.cbt`.
+- New `[reflow]` options `font_family`, `font_size` and `line_spacing` for EPUB and other reflowable documents. Any installed font can be used.
+
+#### Commands and command line
+
+- Add `--new-window` CLI flag to open file(s) in a new window even when `single_instance` is on.
+- New `run_last_command` command (default key `.`) repeats the last command that was run, with the same arguments.
+
+#### Configuration and updates
+
 - Per-view options, like Vim's window-local options: each view and split keeps its own copy of the view settings (page colours, zoom, layout, rendering, scrollbars, selection, search, annotations, links, behaviour). `view:opt()` changes one view; `lektra.opt` now sets the global default and the current view, instead of every view. Splits inherit the options of the view they were split from.
 - Per-file-type options in `config.toml`: `[filetype.pdf.behavior]`, `[filetype.epub.layout]` and so on override the view settings for documents of that type.
-- New `[reflow]` options `font_family`, `font_size` and `line_spacing` for EPUB and other reflowable documents. Any installed font can be used.
-- New `run_last_command` command (default key `.`) repeats the last command that was run, with the same arguments.
-- New Lua `View` functions: `links`, `follow_link`, `link_hints`, `select_range`, `select_region`, `scroll`, `scroll_to`, `scroll_position`, `visible_pages`, `page_size` and `page_sizes`.
-- New Lua APIs: `lektra.tabs.rename` and `Tab:rename`; `View:container()` now works, with `vsplit`, `hsplit`, `views`, `focus`, `close_view`, `close_others` and more; `lektra.sessions` (`list`, `exists`, `load`, `delete`), `lektra.recent_files.list` and `lektra.window.open`.
-- New `tab_rename` command to give a tab a custom title.
 - The config file now reports settings with the wrong type (or an invalid colour) in a dialog with the line number, instead of ignoring them silently.
-- Open `.cbr` (RAR) and `.cb7` (7z) comic books, in addition to `.cbz` and `.cbt`.
+- A JSON Schema for `config.toml` (`schema/lektra-config.schema.json`, installed to `share/lektra/`): with a TOML language server such as Taplo it gives completion, option descriptions on hover, and warnings for typos and wrong values. `default_config.toml` now points at it.
+- Lektra now checks once a day whether a newer release is available and says so in a small banner (one request to the GitHub releases API, nothing about you is sent). Turn it off with `[updates] check = false`. The `check_for_updates` command (and Help ▸ Check for Updates) checks on demand.
+- New "What's new" list of changes for the running version (`whats_new` command, Help ▸ What's New). With `[updates] whats_new = true`, a banner also offers it after an update (off by default).
+- A rare, dismissible banner reminds that Lektra can be supported: only after a few weeks of use, at most twice a year, and "Don't ask again" ends it. `[donate] reminders = false` turns it off.
 
 ### Bug Fixes
 
+- Fixed double and triple click selection: a double click counted as a single click (so the word was only selected on the third click), and a slight movement of the mouse afterwards replaced the selected word or line with a character range. The text of a double or triple click selection (copy, `view:selection_text()`) could also come from the wrong place and contain far more than the selected word.
+- Fixed colour of note annotations: reading or changing it failed ("Text annotations have no IC property").
 - Animated PNG (APNG) files now play. Qt only reads the first frame of an APNG, so Lektra decodes the animation itself, one frame at a time, following the file's frame delays, blend and dispose settings and loop count.
 - Fix crash (SIGSEGV) on quit when the command palette had been opened and Lua commands were registered via `lektra.cmd.register`: `CommandPicker` stores a by-value copy of the commands vector, whose `Command` lambdas hold `shared_ptr<LuaRefGuard>` refs. Because `CommandPicker` is a child widget of `Lektra`, Qt destroyed it inside `~QWidget()` — after `lua_close()` had already freed the Lua state. The `LuaRefGuard` destructor then called `luaL_unref` on the dead state and segfaulted. Fixed by explicitly deleting `m_command_picker` at the start of `Lektra::~Lektra()`, before `lua_close()`.
-
 - Fix deep zoom being very slow: in single-page layout the page is now rescaled while zooming and re-rendered sharp once you stop, and very large pages are only rendered where they are visible.
 - Fix the `url_regex` string in the default_config.toml file
 - Fix scrolling through image-heavy/scanned documents re-rendering every visible page on each scroll tick, even when nothing changed; pages already rendered with identical settings are now left alone.
