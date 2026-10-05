@@ -46,6 +46,7 @@ SVG are handled by `librsvg` if it is installed.
 
 - [Installation](installation.md): packages for your system, or build from source
 - [TOML Configuration](reference/toml_configuration.md): every option, for `config.toml` and `lektra.opt`
+- [Example config.toml](example_config.md): a ready-made starting point
 - [Commands](reference/commands.md): everything the command palette can run
 - [Lua API](reference/lua_api.md) and the [scripting guide](LUA-WIKI.md)
 - [Examples](examples.md): an `init.lua` and some small plugins

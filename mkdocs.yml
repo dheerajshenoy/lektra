@@ -1,4 +1,4 @@
-site_name: lektra Docs
+site_name: lektra docs
 site_description: High-performance document and image viewer that prioritizes screen space and control
 repo_url: https://github.com/dheerajshenoy/lektra
 repo_name: dheerajshenoy/lektra
@@ -20,6 +20,7 @@ nav:
       - Overview: reference/index.md
       - Commands: reference/commands.md
       - TOML Configuration: reference/toml_configuration.md
+      - Example config.toml: example_config.md
       - Lua API: reference/lua_api.md
   - Lua scripting:
       - Guide: LUA-WIKI.md
@@ -29,6 +30,7 @@ nav:
 
 theme:
   name: material
+  custom_dir: overrides
   logo: assets/logo.svg
   favicon: assets/favicon.png
   palette:

@@ -1,0 +1,14 @@
+{#- The title of the browser tab: "LEKTRA Docs | <page>", for example
+    "LEKTRA Docs | Installation"; the home page is just "LEKTRA Docs". The name is
+    written out here, so that it is upper case in the tab whatever site_name says
+    (that one is shown in the header). -#}
+{% extends "base.html" %}
+
+{% block htmltitle %}
+  {%- set page_title = (page.meta.title if page and page.meta and page.meta.title else page.title) if page else none -%}
+  {%- if page_title and not page.is_homepage -%}
+    <title>LEKTRA Docs | {{ page_title }}</title>
+  {%- else -%}
+    <title>LEKTRA Docs</title>
+  {%- endif -%}
+{% endblock %}

@@ -1,0 +1,68 @@
+#:schema https://codeberg.org/lektra/lektra/raw/branch/main/schema/lektra-config.schema.json
+#
+# An example ~/.config/lektra/config.toml (%APPDATA%\lektra\config.toml on Windows).
+# Everything is optional: a section or a key that is left out keeps its default.
+
+[window]
+title_format = "%1 - lektra"
+initial_size = { width = 1100, height = 800 }
+
+[page]
+bg = "#FFFFFFFF"            # page colour (the colour of the text is used in invert mode)
+fg = "#000000FF"
+
+[layout]
+mode        = "vertical"    # vertical | horizontal | single | book
+initial_fit = "width"       # width | height | window
+auto_resize = true          # fit again when the window is resized
+spacing     = 10            # gap between pages, in pixels
+
+[zoom]
+level           = 1.0       # the zoom a document opens with
+factor          = 1.25      # what zoom_in and zoom_out multiply by
+anchor_to_mouse = true      # zoom around the cursor instead of the centre
+
+[tabs]
+auto_hide     = true        # no tab bar while there is only one tab
+location      = "top"       # top | bottom | left | right
+open_position = "after_current"   # end | start | after_current
+
+[split]
+focus_follows_mouse = true
+dim_inactive        = true  # dim the splits that do not have the focus
+focus_border        = true
+
+[statusbar]
+# the file name on the left, page and zoom in the middle, the mode on the right
+layout = [ "filename", "|", "page", "zoom", "|", "mode" ]
+
+[links]
+hover_preview = true        # hover an internal link to see what it points at
+detect_urls   = true        # make bare URLs in the text clickable
+
+[annotations.highlight]
+color = "#FFD54F88"         # RRGGBBAA
+
+[behavior]
+confirm_on_quit       = true
+remember_last_visited = true    # reopen a document on the page you left it
+auto_reload           = true    # refresh when the file changes on disk
+dont_invert_images    = true    # keep photos in their colours in invert mode
+undo_limit            = 50
+
+[command_palette]
+sort_by_frequency = true        # the commands you use most come first
+
+[keybindings]
+load_defaults = true        # keep the default keys, then change or add some
+search        = [ "/", "Ctrl+f" ]
+zoom_reset    = [ "0", "Ctrl+0" ]
+
+# Settings for one type of document only: any view section can be set this way.
+[filetype.epub]
+layout.mode        = "single"
+reflow.font_size   = 12.0
+reflow.line_spacing = 1.4
+
+[filetype.djvu]
+behavior.high_contrast = true
