@@ -1,6 +1,6 @@
 #include "Lektra.hpp"
-#include "PageRange.hpp"
 #include "Model.hpp"
+#include "PageRange.hpp"
 #include "utils.hpp"
 
 #include <QBuffer>
@@ -28,9 +28,9 @@ push_outline_nodes(lua_State *L, fz_outline *node, Model *model)
         // the local page within n->page.chapter, and EPUB additionally
         // leaves n->page/x/y unresolved (sentinel {-1,-1}), requiring
         // resolution from n->uri.
-        float     x = n->x, y = n->y;
-        const int pageno = model ? model->resolveOutlineNode(n, &x, &y)
-                                 : n->page.page;
+        float x = n->x, y = n->y;
+        const int pageno
+            = model ? model->resolveOutlineNode(n, &x, &y) : n->page.page;
         if (pageno >= 0)
             lua_pushinteger(L, pageno + 1);
         else
@@ -1120,7 +1120,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                         return 1;
                     }
                     const bool formatted = lua_toboolean(L, 3);
-                    const QString text = (*view)->pageText(pageno, formatted);
+                    const QString text   = (*view)->pageText(pageno, formatted);
                     lua_pushstring(L, text.toUtf8().constData());
                     return 1;
                 }),
@@ -1171,10 +1171,10 @@ static const luaL_Reg DocumentViewMethods[] = {
                         lua_pushnil(L);
                         return 1;
                     }
-                    const int pageno = lua_isnoneornil(L, 2)
-                                           ? (*view)->pageNo()
-                                           : static_cast<int>(
-                                                 luaL_checkinteger(L, 2) - 1);
+                    const int pageno
+                        = lua_isnoneornil(L, 2)
+                              ? (*view)->pageNo()
+                              : static_cast<int>(luaL_checkinteger(L, 2) - 1);
                     const auto links = (*view)->model()->pageLinks(pageno);
                     lua_createtable(L, static_cast<int>(links.size()), 0);
                     for (size_t i = 0; i < links.size(); ++i)
@@ -1226,10 +1226,10 @@ static const luaL_Reg DocumentViewMethods[] = {
                         lua_pushboolean(L, 0);
                         return 1;
                     }
-                    const QString mode = lua_isnoneornil(L, 2)
-                                             ? QStringLiteral("visit")
-                                             : QString::fromUtf8(
-                                                   luaL_checkstring(L, 2));
+                    const QString mode
+                        = lua_isnoneornil(L, 2)
+                              ? QStringLiteral("visit")
+                              : QString::fromUtf8(luaL_checkstring(L, 2));
                     if (mode == "copy")
                         lektra->CopyLinkKB();
                     else if (mode == "visit")
@@ -1301,111 +1301,115 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 0;
                 }),
 
-    VIEW_METHOD("export_pages",
+    VIEW_METHOD(
+        "export_pages",
+        {
+            // export_pages(names, [pages], [{dpi=, overwrite=}])
+            //   -> {paths...} | nil, error
+            auto failure = [L](const char *message)
+            {
+                lua_pushnil(L);
+                lua_pushstring(L, message);
+                return 2;
+            };
+            if (!*view)
+                return failure("the view is closed");
+            DocumentView *doc = *view;
+
+            // the file name(s): one string, or a list of strings
+            QStringList names;
+            if (lua_istable(L, 2))
+            {
+                const int n = static_cast<int>(lua_rawlen(L, 2));
+                for (int i = 1; i <= n; ++i)
                 {
-                    // export_pages(names, [pages], [{dpi=, overwrite=}])
-                    //   -> {paths...} | nil, error
-                    auto failure = [L](const char *message)
-                    {
-                        lua_pushnil(L);
-                        lua_pushstring(L, message);
-                        return 2;
-                    };
-                    if (!*view)
-                        return failure("the view is closed");
-                    DocumentView *doc = *view;
+                    lua_rawgeti(L, 2, i);
+                    if (lua_isstring(L, -1))
+                        names << QString::fromUtf8(lua_tostring(L, -1));
+                    lua_pop(L, 1);
+                }
+            }
+            else
+                names << QString::fromUtf8(luaL_checkstring(L, 2));
 
-                    // the file name(s): one string, or a list of strings
-                    QStringList names;
-                    if (lua_istable(L, 2))
-                    {
-                        const int n = static_cast<int>(lua_rawlen(L, 2));
-                        for (int i = 1; i <= n; ++i)
-                        {
-                            lua_rawgeti(L, 2, i);
-                            if (lua_isstring(L, -1))
-                                names << QString::fromUtf8(lua_tostring(L, -1));
-                            lua_pop(L, 1);
-                        }
-                    }
-                    else
-                        names << QString::fromUtf8(luaL_checkstring(L, 2));
+            // the pages: nothing (the current one), a number, a text
+            // like "1-5,8" (or "all"), or a list of numbers; 1-based
+            const int count = doc->model() ? doc->model()->numPages() : 0;
+            QString problem;
+            std::vector<int> pages;
+            if (lua_isnoneornil(L, 3))
+                pages = {doc->pageNo()};
+            else if (lua_type(L, 3) == LUA_TNUMBER)
+            {
+                const int p = static_cast<int>(lua_tointeger(L, 3));
+                if (p < 1 || p > count)
+                    return failure(qUtf8Printable(
+                        QStringLiteral(
+                            "page %1 does not exist (the pages are 1 to %2)")
+                            .arg(p)
+                            .arg(count)));
+                pages = {p - 1};
+            }
+            else if (lua_type(L, 3) == LUA_TSTRING)
+            {
+                pages = page_range::parse(QString::fromUtf8(lua_tostring(L, 3)),
+                                          count, doc->pageNo(), &problem);
+                if (pages.empty())
+                    return failure(qUtf8Printable(problem));
+            }
+            else if (lua_istable(L, 3))
+            {
+                const int n = static_cast<int>(lua_rawlen(L, 3));
+                for (int i = 1; i <= n; ++i)
+                {
+                    lua_rawgeti(L, 3, i);
+                    const int p = static_cast<int>(lua_tointeger(L, -1));
+                    lua_pop(L, 1);
+                    if (p < 1 || p > count)
+                        return failure(qUtf8Printable(
+                            QStringLiteral("page %1 does not exist (the pages "
+                                           "are 1 to %2)")
+                                .arg(p)
+                                .arg(count)));
+                    pages.push_back(p - 1);
+                }
+                if (pages.empty())
+                    return failure("no pages were given");
+            }
+            else
+                return failure("pages is a number, a text like \"1-5,8\", or a "
+                               "list of numbers");
 
-                    // the pages: nothing (the current one), a number, a text
-                    // like "1-5,8" (or "all"), or a list of numbers; 1-based
-                    const int count = doc->model() ? doc->model()->numPages() : 0;
-                    QString problem;
-                    std::vector<int> pages;
-                    if (lua_isnoneornil(L, 3))
-                        pages = {doc->pageNo()};
-                    else if (lua_type(L, 3) == LUA_TNUMBER)
-                    {
-                        const int p = static_cast<int>(lua_tointeger(L, 3));
-                        if (p < 1 || p > count)
-                            return failure(
-                                qUtf8Printable(QStringLiteral("page %1 does not exist (the pages are 1 to %2)")
-                                                   .arg(p)
-                                                   .arg(count)));
-                        pages = {p - 1};
-                    }
-                    else if (lua_type(L, 3) == LUA_TSTRING)
-                    {
-                        pages = page_range::parse(QString::fromUtf8(lua_tostring(L, 3)),
-                                                  count, doc->pageNo(), &problem);
-                        if (pages.empty())
-                            return failure(qUtf8Printable(problem));
-                    }
-                    else if (lua_istable(L, 3))
-                    {
-                        const int n = static_cast<int>(lua_rawlen(L, 3));
-                        for (int i = 1; i <= n; ++i)
-                        {
-                            lua_rawgeti(L, 3, i);
-                            const int p = static_cast<int>(lua_tointeger(L, -1));
-                            lua_pop(L, 1);
-                            if (p < 1 || p > count)
-                                return failure(
-                                    qUtf8Printable(QStringLiteral("page %1 does not exist (the pages are 1 to %2)")
-                                                       .arg(p)
-                                                       .arg(count)));
-                            pages.push_back(p - 1);
-                        }
-                        if (pages.empty())
-                            return failure("no pages were given");
-                    }
-                    else
-                        return failure("pages is a number, a text like \"1-5,8\", or a list of numbers");
+            int dpi        = 150;
+            bool overwrite = false;
+            bool split     = false;
+            if (lua_istable(L, 4))
+            {
+                lua_getfield(L, 4, "dpi");
+                if (lua_isnumber(L, -1))
+                    dpi = static_cast<int>(lua_tointeger(L, -1));
+                lua_pop(L, 1);
+                lua_getfield(L, 4, "overwrite");
+                overwrite = lua_toboolean(L, -1);
+                lua_pop(L, 1);
+                lua_getfield(L, 4, "split");
+                split = lua_toboolean(L, -1);
+                lua_pop(L, 1);
+            }
 
-                    int dpi        = 150;
-                    bool overwrite = false;
-                    bool split     = false;
-                    if (lua_istable(L, 4))
-                    {
-                        lua_getfield(L, 4, "dpi");
-                        if (lua_isnumber(L, -1))
-                            dpi = static_cast<int>(lua_tointeger(L, -1));
-                        lua_pop(L, 1);
-                        lua_getfield(L, 4, "overwrite");
-                        overwrite = lua_toboolean(L, -1);
-                        lua_pop(L, 1);
-                        lua_getfield(L, 4, "split");
-                        split = lua_toboolean(L, -1);
-                        lua_pop(L, 1);
-                    }
-
-                    QStringList written;
-                    QString error;
-                    if (!doc->exportPages(names, pages, dpi, overwrite, &written, &error,
-                                          nullptr, split))
-                        return failure(qUtf8Printable(error));
-                    lua_newtable(L);
-                    for (int i = 0; i < written.size(); ++i)
-                    {
-                        lua_pushstring(L, written.at(i).toUtf8().constData());
-                        lua_rawseti(L, -2, i + 1);
-                    }
-                    return 1;
-                }),
+            QStringList written;
+            QString error;
+            if (!doc->exportPages(names, pages, dpi, overwrite, &written,
+                                  &error, nullptr, split))
+                return failure(qUtf8Printable(error));
+            lua_newtable(L);
+            for (int i = 0; i < written.size(); ++i)
+            {
+                lua_pushstring(L, written.at(i).toUtf8().constData());
+                lua_rawseti(L, -2, i + 1);
+            }
+            return 1;
+        }),
 
     VIEW_METHOD("scroll_to",
                 {
@@ -1495,8 +1499,9 @@ static const luaL_Reg DocumentViewMethods[] = {
                     int n = 0;
                     for (int p = first; p <= last; ++p)
                     {
-                        bool known      = false;
-                        const QSizeF dim = model->pageSizePts(p - 1, false, &known);
+                        bool known = false;
+                        const QSizeF dim
+                            = model->pageSizePts(p - 1, false, &known);
                         lua_createtable(L, 0, 3);
                         lua_pushnumber(L, dim.width());
                         lua_setfield(L, -2, "width");
@@ -1539,8 +1544,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                     lua_pushvalue(L, 2);
                     int cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
-                    (*view)->startRegionSelect(
-                        [L, cb_ref](QRectF area)
+                    (*view)->startRegionSelect([L, cb_ref](QRectF area)
                     {
                         lua_rawgeti(L, LUA_REGISTRYINDEX, cb_ref);
                         luaL_unref(L, LUA_REGISTRYINDEX, cb_ref);
@@ -1557,7 +1561,8 @@ static const luaL_Reg DocumentViewMethods[] = {
 
                         if (lua_pcall(L, 1, 0, 0) != LUA_OK)
                         {
-                            fprintf(stderr, "Lua error in region_select callback: %s\n",
+                            fprintf(stderr,
+                                    "Lua error in region_select callback: %s\n",
                                     lua_tostring(L, -1));
                             lua_pop(L, 1);
                         }
@@ -1574,8 +1579,9 @@ static const luaL_Reg DocumentViewMethods[] = {
     // lektra.opt sets the global default and the current view.
     VIEW_METHOD("opt",
                 {
-                    auto *lektra = *view ? qobject_cast<Lektra *>((*view)->window())
-                                         : nullptr;
+                    auto *lektra
+                        = *view ? qobject_cast<Lektra *>((*view)->window())
+                                : nullptr;
                     if (!lektra)
                     {
                         lua_pushnil(L);
@@ -1592,8 +1598,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                     int cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
                     DocumentView *self = *view;
-                    (*view)->startRegionSelect(
-                        [L, cb_ref, self](QRectF area)
+                    (*view)->startRegionSelect([L, cb_ref, self](QRectF area)
                     {
                         lua_rawgeti(L, LUA_REGISTRYINDEX, cb_ref);
                         luaL_unref(L, LUA_REGISTRYINDEX, cb_ref);
@@ -1805,6 +1810,44 @@ Lektra::initLuaView() noexcept
         return 1;
     }, 1);
     lua_setfield(m_L, -2, "list");
+
+    // lektra.view.sync(ids) -> syncs the given views (by id)
+    lua_pushlightuserdata(m_L, this);
+    lua_pushcclosure(m_L, [](lua_State *L) -> int
+    {
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        if (!lua_istable(L, 1))
+        {
+            return luaL_error(L, "Expected a table of view IDs");
+        }
+
+        std::vector<DocumentView::Id> ids;
+        lua_pushnil(L); // first key
+        while (lua_next(L, 1) != 0)
+        {
+            if (lua_isnumber(L, -1))
+            {
+                ids.push_back(
+                    static_cast<DocumentView::Id>(lua_tointeger(L, -1)));
+            }
+            lua_pop(L, 1); // remove value, keep key for next iteration
+        }
+
+        lua_pushboolean(L, lektra->sync_views(ids));
+        return 1;
+    }, 1);
+    lua_setfield(m_L, -2, "sync");
+
+    // lektra.view.unsync() -> stops syncing the views of the current tab
+    lua_pushlightuserdata(m_L, this);
+    lua_pushcclosure(m_L, [](lua_State *L) -> int
+    {
+        static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)))
+            ->StopSyncViews();
+        return 0;
+    }, 1);
+    lua_setfield(m_L, -2, "unsync");
 
     lua_setfield(m_L, -2, "view");
 }

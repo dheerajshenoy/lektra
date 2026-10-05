@@ -4,14 +4,18 @@
 #include "DocumentView.hpp"
 #include "ThumbnailView.hpp"
 
+#include <QElapsedTimer>
 #include <QEvent>
 #include <QHash>
 #include <QJsonObject>
 #include <QList>
+#include <QPointer>
 #include <QSet>
 #include <QSplitter>
 #include <QVBoxLayout>
 #include <QWidget>
+
+class ViewPickOverlay;
 
 /**
  * DocumentContainer manages a tree of split DocumentView instances within a
@@ -65,6 +69,11 @@ public:
             m_thumbnail_view->setFocus();
     }
 
+    inline bool isMaximized() const noexcept
+    {
+        return m_maximized;
+    }
+
     void closeThumbnailView() noexcept;
 
     DocumentView *split(DocumentView *view,
@@ -85,11 +94,19 @@ public:
     void close_other_views(DocumentView *view) noexcept;
 
     void toggleMaximizeSplit() noexcept;
-    inline bool isMaximized() const noexcept { return m_maximized; }
 
     // Thumbnail view management
     void createThumbnailView(DocumentView *view) noexcept;
     void resizeThumbnailView(float relWidth) noexcept;
+
+    // Linking views: while linked, zooming or scrolling one of them does the
+    // same in the others. Fewer than two views means no link.
+    void sync_views() noexcept; // all views of this container
+    void sync_views(const QList<DocumentView *> &views) noexcept;
+    void stop_sync() noexcept;
+    bool isSynced() const noexcept;
+    // Lets the user pick the views to link (numbers drawn on the views).
+    void select_views() noexcept;
 
 signals:
     void viewCreated(DocumentView *view);
@@ -108,8 +125,30 @@ private:
 
     void equalizeStretch(QSplitter *splitter) noexcept;
     DocumentView *createViewFromTemplate(DocumentView *templateView) noexcept;
+
+private:
     QVBoxLayout *m_layout{nullptr};
     DocumentView *m_current_view{nullptr};
     ThumbnailView *m_thumbnail_view{nullptr};
     bool m_maximized{false};
+        enum SyncWhat
+    {
+        SyncZoom     = 1,
+        SyncFit      = 2,
+        SyncRotation = 4,
+    };
+    void scheduleSync(DocumentView *source, int what) noexcept;
+    void flushSync() noexcept;
+
+    QList<QPointer<DocumentView>> m_synced_views;
+    QList<QMetaObject::Connection> m_sync_connections;
+    QPointer<ViewPickOverlay> m_pick_overlay;
+    bool m_syncing = false;
+    // The view whose change is being copied to the others, and when that was
+    // last done. The changes the others go through meanwhile (their pages
+    // are laid out again) are echoes and must not be copied back.
+    QPointer<DocumentView> m_sync_source;
+    QElapsedTimer m_sync_clock;
+    bool m_sync_pending    = false;
+    int m_sync_dirty       = 0;
 };

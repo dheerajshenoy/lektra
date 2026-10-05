@@ -496,3 +496,11 @@ function View:page_size(pageno) end
 ---@param last? integer Last page (default: last page).
 ---@return PageSize[] sizes
 function View:page_sizes(first, last) end
+
+--- Syncs the given views, so that they scroll and zoom together. The views must be in the current tab; at least two are needed. Replaces an earlier sync of that tab.
+---@param ids integer[] List of view IDs to sync.
+---@return boolean ok True if the views are synced now.
+lektra.view.sync = function(ids) end
+
+--- Stops syncing the views of the current tab.
+lektra.view.unsync = function() end

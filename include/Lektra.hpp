@@ -45,7 +45,6 @@
 #ifdef WITH_LUA
     #include "DispatchType.hpp"
     #include "LuaCallback.hpp"
-
     #include "LuaCompat.hpp"
 #endif
 
@@ -201,7 +200,7 @@ public:
                            = {}) noexcept;
     DocumentView *OpenFileInNewTab(const QString &filename    = {},
                                    const CallbackFn &callback = {},
-                                   bool noHistory              = false) noexcept;
+                                   bool noHistory             = false) noexcept;
     bool OpenFileInNewWindow(const QString &filename    = {},
                              const CallbackFn &callback = {}) noexcept;
     void OpenFilesInNewWindow(const QStringList &filenames) noexcept;
@@ -352,7 +351,7 @@ private:
     void initDB() noexcept;
 #ifdef WITH_LLM_SUPPORT
     void initLLMView() noexcept;
-#ifdef WITH_LUA
+    #ifdef WITH_LUA
     // For the LLM panel: the instructions and Lua API reference sent to the
     // model, and running a script it wrote in the restricted environment.
     QString llmSystemPrompt() const noexcept;
@@ -362,7 +361,7 @@ private:
     // The documentation of the Lua API that matches a query (the lookup_api
     // tool).
     QString llmLookupApi(const QString &query) const noexcept;
-#endif
+    #endif
 #endif
     void initMenubar() noexcept;
     void initGui() noexcept;
@@ -452,7 +451,8 @@ private:
     void deleteMark(const QString &key) noexcept;
     bool handleLinkHintEvent(QEvent *event) noexcept;
     void handleTabContextMenu(int index, const QPoint &globalPos) noexcept;
-    void showMultiTabMenu(const QList<int> &indices, const QPoint &globalPos) noexcept;
+    void showMultiTabMenu(const QList<int> &indices,
+                          const QPoint &globalPos) noexcept;
     QStringList tabFilePaths(const QList<int> &indices) noexcept;
     void closeTabs(QList<int> indices) noexcept;
     void mergeTabsAsSplits(const QList<int> &indices, bool vertical) noexcept;
@@ -460,13 +460,18 @@ private:
     // Deletes a saved session by name. False if it doesn't exist.
     bool deleteSession(const QString &name) noexcept;
     bool sessionExists(const QString &name) const noexcept;
-    void saveTabsAsSession(const QList<int> &indices, const QString &name = {}) noexcept;
+    void saveTabsAsSession(const QList<int> &indices,
+                           const QString &name = {}) noexcept;
     QList<int> targetTabs() const noexcept;
     void splitTabsIntoTabs(const QList<int> &indices) noexcept;
     void applyCommandLineOverrides(
         const argparse::ArgumentParser &argparser) noexcept;
     DocumentView *create_portal(DocumentView *sourceView,
                                 const QString &filePath) noexcept;
+    void SelectViews() noexcept;
+    void SyncViews() noexcept;
+    void StopSyncViews() noexcept;
+    bool sync_views(const std::vector<DocumentView::Id> &ids) noexcept;
     QDir m_config_dir, m_session_dir, m_app_data_dir;
     Statusbar *m_statusbar                      = nullptr;
     QMenuBar *m_menuBar                         = nullptr;
@@ -581,12 +586,12 @@ private:
     QString m_session_name;
     MessageBar *m_message_bar = nullptr;
     // What the export dialog was last set to.
-    QString m_export_format = QStringLiteral("png");
-    bool m_export_split     = false;
+    QString m_export_format   = QStringLiteral("png");
+    bool m_export_split       = false;
     NoticeBar *m_notice_bar   = nullptr;
     QJsonObject m_app_state; // see Notices.cpp
     QNetworkAccessManager *m_update_net = nullptr;
-    SearchBar *m_search_bar   = nullptr;
+    SearchBar *m_search_bar             = nullptr;
     Picker::Keybindings m_picker_keybinds;
 
     OutlinePicker *m_outline_picker                  = nullptr;

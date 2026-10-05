@@ -635,6 +635,17 @@ Lektra::initCommands() noexcept
         "split_maximize", tr("Toggle maximize focused split"),
         [this](const QStringList &) { ToggleSplitMaximize(); });
 
+    m_command_manager->reg(
+        "sync_view",
+        tr("Pick views of this tab to sync (zoom and scroll)"),
+        [this](const QStringList &) { SelectViews(); });
+    m_command_manager->reg(
+        "sync_view_all", tr("Sync zoom and scroll of all views of this tab"),
+        [this](const QStringList &) { SyncViews(); });
+    m_command_manager->reg(
+        "sync_view_stop", tr("Stop syncing views"),
+        [this](const QStringList &) { StopSyncViews(); });
+
     // Portal
     m_command_manager->reg("portal", tr("Create or focus portal"),
                            [this](const QStringList &)

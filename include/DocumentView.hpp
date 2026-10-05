@@ -36,8 +36,8 @@ extern "C"
 #include <QString>
 #include <QTimer>
 #include <QWidget>
-#include <qevent.h>
 #include <memory>
+#include <qevent.h>
 #include <set>
 #include <unordered_map>
 
@@ -82,9 +82,8 @@ public:
     // options start as a copy of `inheritFrom` if given (e.g. the view a
     // split was made from, like vim's :split), else of `config`.
     DocumentView(const Config &config, const float dpr = 1.0f,
-                 QWidget *parent              = nullptr,
-                 bool thumbnailMode           = false,
-                 const Config *inheritFrom    = nullptr) noexcept;
+                 QWidget *parent = nullptr, bool thumbnailMode = false,
+                 const Config *inheritFrom = nullptr) noexcept;
 
     DocumentView(const DocumentView &)            = delete;
     DocumentView &operator=(const DocumentView &) = delete;
@@ -170,6 +169,10 @@ public:
         return m_gscene;
     }
 
+    inline float rotation() const noexcept
+    {
+        return m_model->rotation();
+    }
     inline FitMode fitMode() const noexcept
     {
         return m_fit_mode;
@@ -467,7 +470,10 @@ public:
     // Page to jump to once the file's first layout and render are done (see
     // handleOpenFileFinished()). GotoPage() can't be used earlier: on large
     // documents the page offsets it depends on are not cached yet.
-    inline void setPendingPage(int pageno) noexcept { m_pending_page = pageno; }
+    inline void setPendingPage(int pageno) noexcept
+    {
+        m_pending_page = pageno;
+    }
     bool EncryptDocument() noexcept;
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
@@ -650,6 +656,7 @@ signals:
     void pageChanged(int pageno);
     void zoomChanged(double factor);
     void fitModeChanged(FitMode mode);
+    void rotationChanged(float angle);
     void selectionModeChanged(GraphicsView::Mode mode);
     void statusbarNameChanged(const QString &name);
     void fileNameChanged(const QString &name);
@@ -887,15 +894,15 @@ private:
     Model *m_model        = nullptr;
     GraphicsView *m_gview = nullptr;
     std::function<void(QRectF)> m_region_select_cb;
-    GraphicsScene *m_gscene                   = nullptr;
-    FitMode m_fit_mode                        = FitMode::COUNT;
-    int m_pageno                              = -1;
-    int m_spacing                             = 10;
-    double m_current_zoom                     = MIN_ZOOM_FACTOR;
-    bool m_auto_resize                        = false;
-    bool m_trim_margins                       = false;
-    int m_pending_page                        = -1;
-    bool m_awaiting_first_render              = false;
+    GraphicsScene *m_gscene      = nullptr;
+    FitMode m_fit_mode           = FitMode::COUNT;
+    int m_pageno                 = -1;
+    int m_spacing                = 10;
+    double m_current_zoom        = MIN_ZOOM_FACTOR;
+    bool m_auto_resize           = false;
+    bool m_trim_margins          = false;
+    int m_pending_page           = -1;
+    bool m_awaiting_first_render = false;
 
     // Hover preview of internal links (see Config::Links::hover_preview).
     struct HoverRequest
@@ -911,7 +918,7 @@ private:
     QFutureWatcher<QImage> m_hover_watcher;
     HoverRequest m_hover_pending;  // waiting for the delay / a free worker
     HoverRequest m_hover_inflight; // being rendered
-    bool m_has_hover_pending = false;
+    bool m_has_hover_pending   = false;
     quint64 m_hover_generation = 0;
     void showLinkHoverPreview(const BrowseLinkItem *link,
                               const QPoint &globalPos) noexcept;
@@ -982,21 +989,21 @@ private:
     int m_visual_line_index               = -1;
     bool m_visual_line_mode               = false;
     // Caret Mode
-    bool m_caret_mode                          = false;
-    int m_caret_pageno                         = -1;
-    int m_caret_index                          = -1;
+    bool m_caret_mode                     = false;
+    int m_caret_pageno                    = -1;
+    int m_caret_index                     = -1;
     // Sticky horizontal column (page-point space) used by Up/Down, like a
     // text editor: unset (-1) until the first vertical move, then held
     // across moves until a horizontal move/click resets it.
-    double m_caret_pref_x                      = -1.0;
+    double m_caret_pref_x                 = -1.0;
     // Set only while extending a selection (Shift+caret move); -1 otherwise.
-    int m_caret_anchor_index                   = -1;
-    int m_caret_anchor_pageno                  = -1;
+    int m_caret_anchor_index              = -1;
+    int m_caret_anchor_pageno             = -1;
     std::vector<Model::CachedTextChar> m_caret_chars;
-    QGraphicsPathItem *m_caret_item            = nullptr;
-    QTimer *m_caret_blink_timer                = nullptr;
-    bool m_thumbnail_mode                 = false;
-    int m_thumbnail_highlighted_page      = -1;
+    QGraphicsPathItem *m_caret_item  = nullptr;
+    QTimer *m_caret_blink_timer      = nullptr;
+    bool m_thumbnail_mode            = false;
+    int m_thumbnail_highlighted_page = -1;
 #ifdef WITH_SYNCTEX
     synctex_scanner_p m_synctex_scanner = nullptr;
 #endif

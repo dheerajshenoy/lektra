@@ -1,9 +1,12 @@
 #include "DocumentContainer.hpp"
-#include "ThumbnailView.hpp"
 
+#include "ThumbnailView.hpp"
+#include "ViewPickOverlay.hpp"
 #include "utils.hpp"
 
 #include <QEvent>
+#include <QScrollBar>
+#include <QTimer>
 #include <QJsonArray>
 #include <QSplitter>
 #include <qnamespace.h>
@@ -715,7 +718,8 @@ DocumentContainer::createThumbnailView(DocumentView *view) noexcept
     if (!view)
         return;
 
-    auto *thumbView = new ThumbnailView(view->globalConfig(), view->dpr(), this);
+    auto *thumbView
+        = new ThumbnailView(view->globalConfig(), view->dpr(), this);
 
     // Forward page clicks to the main view
     connect(thumbView, &ThumbnailView::pageClicked, view,
@@ -894,4 +898,211 @@ DocumentContainer::toggleMaximizeSplit() noexcept
                 v->hide();
         }
     }
+}
+
+bool
+DocumentContainer::isSynced() const noexcept
+{
+    return !m_synced_views.isEmpty();
+}
+
+void
+DocumentContainer::sync_views() noexcept
+{
+    sync_views(getAllViews());
+}
+
+void
+DocumentContainer::sync_views(const QList<DocumentView *> &views) noexcept
+{
+    stop_sync();
+
+    for (DocumentView *view : views)
+        if (view && !m_synced_views.contains(view))
+            m_synced_views.append(view);
+
+    if (m_synced_views.size() < 2)
+    {
+        m_synced_views.clear();
+        return;
+    }
+
+    for (const QPointer<DocumentView> &pointer : std::as_const(m_synced_views))
+    {
+        DocumentView *view = pointer;
+
+        m_sync_connections << connect(view, &DocumentView::zoomChanged, this,
+                                      [this, view](double)
+        { scheduleSync(view, SyncZoom); });
+
+        m_sync_connections
+            << connect(view, &DocumentView::fitModeChanged, this,
+                       [this, view](DocumentView::FitMode)
+        { scheduleSync(view, SyncFit); })
+            << connect(view, &DocumentView::rotationChanged, this,
+                       [this, view](float) { scheduleSync(view, SyncRotation); });
+
+        auto onScroll = [this, view](int) { scheduleSync(view, 0); };
+        m_sync_connections
+            << connect(view->graphicsView()->verticalScrollBar(),
+                       &QScrollBar::valueChanged, this, onScroll)
+            << connect(view->graphicsView()->horizontalScrollBar(),
+                       &QScrollBar::valueChanged, this, onScroll);
+
+        // a view that goes away leaves the group
+        m_sync_connections << connect(view, &DocumentView::closed, this,
+                                      [this, view]
+        {
+            m_synced_views.removeAll(view);
+            if (m_synced_views.size() < 2)
+                stop_sync();
+        });
+    }
+
+    // start from what the current view shows
+    DocumentView *origin
+        = m_synced_views.contains(m_current_view)
+              ? m_current_view
+              : m_synced_views.first().data();
+    m_sync_source = origin;
+    m_sync_dirty  = SyncRotation | SyncZoom;
+    flushSync();
+}
+
+void
+DocumentContainer::stop_sync() noexcept
+{
+    for (const QMetaObject::Connection &connection : m_sync_connections)
+        disconnect(connection);
+    m_sync_connections.clear();
+    m_synced_views.clear();
+    m_sync_source = nullptr;
+}
+
+// A zoom or scroll of a linked view. Many of these arrive for one gesture (the
+// scroll bars move several times while zooming), so they are collected and
+// copied once, when the view has settled.
+void
+DocumentContainer::scheduleSync(DocumentView *source, int what) noexcept
+{
+    if (m_syncing)
+        return;
+
+    // an echo: another view moving because of the last copy
+    constexpr qint64 EchoWindowMs = 150;
+    if (m_sync_source && source != m_sync_source && m_sync_clock.isValid()
+        && m_sync_clock.elapsed() < EchoWindowMs)
+        return;
+
+    m_sync_source = source;
+    m_sync_dirty |= what;
+
+    if (m_sync_pending)
+        return;
+    m_sync_pending = true;
+    QTimer::singleShot(0, this, &DocumentContainer::flushSync);
+}
+
+// Copies the zoom (first: it changes the size of the pages and with it the
+// scroll range) and then the scroll position of the source to the others.
+void
+DocumentContainer::flushSync() noexcept
+{
+    m_sync_pending = false;
+
+    DocumentView *source = m_sync_source;
+    if (!source || m_synced_views.size() < 2)
+        return;
+
+    m_syncing = true;
+
+    const int dirty = m_sync_dirty;
+    m_sync_dirty    = 0;
+
+    // Rotation first, then the fit mode or the zoom (both change the size of
+    // the pages and with it the scroll range), the scroll position last.
+    auto turns = [](float angle)
+    {
+        const int a = static_cast<int>(std::lround(angle)) % 360;
+        return a < 0 ? a + 360 : a;
+    };
+
+    for (const QPointer<DocumentView> &target : std::as_const(m_synced_views))
+    {
+        if (!target || target == source)
+            continue;
+
+        if (dirty & SyncRotation)
+            for (int i = 0;
+                 i < 3 && turns(target->rotation()) != turns(source->rotation());
+                 ++i)
+                target->RotateClock();
+
+        // Fitting makes each view work out its own zoom (they can differ in
+        // size), so the zoom is only copied when nothing was fitted.
+        if ((dirty & SyncFit) && source->fitMode() != DocumentView::FitMode::COUNT)
+            target->setFitMode(source->fitMode());
+        else if (dirty & SyncZoom)
+            target->setZoom(source->zoom(), false);
+    }
+
+    // The same file at the same zoom has the same scroll positions. Otherwise
+    // keep the relative position: 40% down one document is 40% down the other.
+    auto copy = [](QScrollBar *from, QScrollBar *to, bool sameFile)
+    {
+        if (sameFile)
+        {
+            to->setValue(from->value());
+            return;
+        }
+        const int range = from->maximum() - from->minimum();
+        const double fraction
+            = range > 0 ? double(from->value() - from->minimum()) / range
+                        : 0.0;
+        to->setValue(to->minimum()
+                     + qRound(fraction * (to->maximum() - to->minimum())));
+    };
+
+    for (const QPointer<DocumentView> &target : std::as_const(m_synced_views))
+    {
+        if (!target || target == source)
+            continue;
+        // raw positions only line up for the same file looked at the same way
+        const bool sameFile
+            = source->filePath() == target->filePath()
+              && qFuzzyCompare(source->zoom(), target->zoom())
+              && turns(source->rotation()) == turns(target->rotation());
+        copy(source->graphicsView()->verticalScrollBar(),
+             target->graphicsView()->verticalScrollBar(), sameFile);
+        copy(source->graphicsView()->horizontalScrollBar(),
+             target->graphicsView()->horizontalScrollBar(), sameFile);
+    }
+
+    m_syncing = false;
+    m_sync_clock.restart();
+}
+
+void
+DocumentContainer::select_views() noexcept
+{
+    if (m_pick_overlay || getViewCount() < 2)
+        return;
+
+    m_pick_overlay = new ViewPickOverlay(this, m_synced_views);
+
+    connect(m_pick_overlay, &ViewPickOverlay::accepted, this,
+            [this](const QList<DocumentView *> &views)
+    {
+        if (views.size() < 2)
+            stop_sync(); // nothing to link: picking fewer ends the link
+        else
+            sync_views(views);
+        if (m_current_view)
+            m_current_view->setFocus();
+    });
+    connect(m_pick_overlay, &ViewPickOverlay::cancelled, this, [this]
+    {
+        if (m_current_view)
+            m_current_view->setFocus();
+    });
 }

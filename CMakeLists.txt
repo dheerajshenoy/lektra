@@ -386,6 +386,7 @@ qt_add_executable(${PROJECT_NAME}
     src/CommandPicker.cpp
     src/TabWidget.cpp
     src/DocumentContainer.cpp
+    src/ViewPickOverlay.cpp
     src/ThumbnailView.cpp
     src/TabBar.cpp
     src/Picker.cpp

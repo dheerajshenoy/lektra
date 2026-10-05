@@ -1,5 +1,7 @@
 #include "DocumentView.hpp"
 
+#include <QScopeGuard>
+
 #include <QMovie>
 
 // Annotations
@@ -116,6 +118,10 @@ DocumentView::RotateAnticlock() noexcept
 void
 DocumentView::rotateHelper() noexcept
 {
+    // told on every way out, including the early returns
+    const auto notify = qScopeGuard([this]
+    { emit rotationChanged(m_model->rotation()); });
+
     if (m_model->isImage())
     {
         // stopGifPlayback();
@@ -228,6 +234,8 @@ DocumentView::setFitMode(FitMode mode) noexcept
 #ifndef NDEBUG
     qDebug() << "setFitMode(): Setting fit mode to:" << static_cast<int>(mode);
 #endif
+
+    const auto notify = qScopeGuard([this] { emit fitModeChanged(m_fit_mode); });
 
     m_fit_mode = mode;
 
