@@ -1,5 +1,3 @@
-#include "Lektra.hpp"
-
 #include "AboutDialog.hpp"
 #include "AppPaths.hpp"
 #include "DispatchType.hpp"
@@ -8,6 +6,7 @@
 #include "DonateDialog.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
+#include "Lektra.hpp"
 #include "PageLocation.hpp"
 #include "SaveSessionDialog.hpp"
 #include "SearchBar.hpp"
@@ -364,6 +363,12 @@ Lektra::OpenFileInNewTab(const QString &filename, const CallbackFn &callback,
             [this](DocumentView *newView)
     {
         setCurrentDocumentView(newView);
+
+        const int index = m_tab_widget->currentIndex();
+        m_tab_widget->setTabTitle(index, m_config.tabs.full_path
+                                             ? newView->filePath()
+                                             : newView->fileName());
+
 #ifdef WITH_LUA
         dispatchLuaEvent(DispatchType::OnViewChanged, newView);
 #endif
@@ -471,10 +476,10 @@ Lektra::openFileSplitHelper(const QString &filename, const CallbackFn &callback,
 
     if (callback)
     {
-        connect(newView, &DocumentView::openFileFinished, this,
-                [this, callback](DocumentView *, Model::FileType)
-        { QTimer::singleShot(0, this, [this, callback]() { callback(this); }); },
-                Qt::SingleShotConnection);
+        connect(newView, &DocumentView::openFileFinished,
+                this, [this, callback](DocumentView *, Model::FileType) {
+            QTimer::singleShot(0, this, [this, callback]() { callback(this); });
+        }, Qt::SingleShotConnection);
     }
 
     return newView;

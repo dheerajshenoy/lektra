@@ -22,6 +22,7 @@ public:
     int addTab(QWidget *page, const QString &title) noexcept;
     int insertTab(const int index, QWidget *page,
                   const QString &title) noexcept;
+
     inline int id(int index) const noexcept
     {
         return m_tab_bar->tabData(index).toUInt();
@@ -100,6 +101,16 @@ public:
     {
         return qobject_cast<DocumentContainer *>(
             m_stacked_widget->currentWidget());
+    }
+
+    inline QString tabTitle(const int index) const noexcept
+    {
+        return m_tab_bar->tabText(index);
+    }
+
+    inline void setTabTitle(const int index, const QString &title) noexcept
+    {
+        m_tab_bar->setTabText(index, title);
     }
 
     void removeTab(const int index) noexcept;
