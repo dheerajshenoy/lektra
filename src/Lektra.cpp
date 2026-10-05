@@ -228,6 +228,9 @@ Lektra::initGui() noexcept
     m_statusbar->setPageInfoVisible(true);
     m_statusbar->setMode(GraphicsView::Mode::TextSelection);
     m_statusbar->setSessionName("");
+#ifdef WITH_LUA
+    applyLuaStatusbar(); // the segments init.lua registered before the bar existed
+#endif
     m_search_bar = new SearchBar(this);
     m_search_bar->setVisible(false);
     m_message_bar = new MessageBar(this);

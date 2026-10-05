@@ -281,8 +281,6 @@ Lektra::initLuaStatusbar() noexcept
     {
         Bridge *b          = bridgeOf(L);
         const QString name = nameArg(L, 1);
-        if (!b->lektra->statusbar())
-            return luaL_error(L, "the statusbar is not ready yet");
         checkName(L, name);
 
         if (!lua_isfunction(L, 2) && !lua_isstring(L, 2))
@@ -300,7 +298,7 @@ Lektra::initLuaStatusbar() noexcept
         }
         readOptions(b, name, segment, 3, true);
 
-        ensureConnected(b);
+        ensureConnected(b); // does nothing before the statusbar exists
         evaluate(b, name);
         return 0;
     }, 1);
@@ -311,8 +309,6 @@ Lektra::initLuaStatusbar() noexcept
     {
         Bridge *b          = bridgeOf(L);
         const QString name = nameArg(L, 1);
-        if (!b->lektra->statusbar())
-            return luaL_error(L, "the statusbar is not ready yet");
         checkName(L, name);
 
         const QString text = lua_isstring(L, 2)
@@ -323,9 +319,14 @@ Lektra::initLuaStatusbar() noexcept
         segment.text     = text;
         readOptions(b, name, segment, 3, false);
 
-        ensureConnected(b);
-        b->lektra->statusbar()->setCustomModule(name, segment.text, segment.tooltip,
-                                                segment.onClick != LUA_NOREF);
+        // before the statusbar exists (init.lua runs first) it is shown later,
+        // by Lektra::applyLuaStatusbar()
+        if (b->lektra->statusbar())
+        {
+            ensureConnected(b);
+            b->lektra->statusbar()->setCustomModule(
+                name, segment.text, segment.tooltip, segment.onClick != LUA_NOREF);
+        }
         return 0;
     }, 1);
     lua_setfield(m_L, -2, "set");
@@ -378,4 +379,17 @@ Lektra::killLuaStatusbar() noexcept
     for (Segment &segment : b->segments)
         if (segment.timer)
             segment.timer->stop();
+}
+
+// The statusbar has just been made: shows the segments the scripts registered
+// before that (init.lua runs first).
+void
+Lektra::applyLuaStatusbar() noexcept
+{
+    auto *bridge = findChild<QObject *>(QStringLiteral("lektraStatusbar"));
+    if (!bridge)
+        return;
+    auto *b = static_cast<Bridge *>(bridge);
+    ensureConnected(b);
+    refreshAll(b);
 }

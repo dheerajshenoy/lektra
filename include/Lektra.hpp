@@ -675,6 +675,7 @@ private:
     void initLuaAsync() noexcept;
     void initLuaStatusbar() noexcept;
     void killLuaStatusbar() noexcept;
+    void applyLuaStatusbar() noexcept;
     void killLuaJobs() noexcept;
 
     // lektra.bookmark

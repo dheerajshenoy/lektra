@@ -394,7 +394,7 @@ function View:annotations(page) end
 
 ---Highlights one or several rectangles (one per line of text) on a page, in points from the top left. Can be undone.
 ---@param page integer
----@param rects {x: number, y: number, w: number, h: number}|{x: number, y: number, w: number, h: number}[]
+---@param rects {x: number, y: number, w: number, h: number}|number[]|({x: number, y: number, w: number, h: number}|number[])[] A rectangle, or a list of them. A rectangle is `{ x =, y =, w =, h = }` or `{ x, y, w, h }`.
 ---@param opts? { color?: string, comment?: string } `color` is "#rrggbb" or a colour name.
 ---@return integer? id
 ---@return string? error
@@ -411,7 +411,7 @@ function View:add_note(page, x, y, text) end
 
 ---Adds a rectangle. Can be undone.
 ---@param page integer
----@param rect {x: number, y: number, w: number, h: number}
+---@param rect {x: number, y: number, w: number, h: number}|number[]
 ---@param opts? { comment?: string }
 ---@return integer? id
 ---@return string? error
