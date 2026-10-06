@@ -53,7 +53,7 @@
 #include <qpoint.h>
 #include <qpolygon.h>
 #include <qstyle.h>
-static DocumentView::Id nextId    = 0;
+static DocumentView::Id nextId = 0;
 
 static DocumentView::Id
 g_newId() noexcept

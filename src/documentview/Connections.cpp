@@ -1309,6 +1309,41 @@ DocumentView::setDPR(float dpr) noexcept
     m_model->setDPR(dpr);
     renderPages();
 }
+
+bool
+DocumentView::detachToWindow() noexcept
+{
+    auto *lektra = qobject_cast<Lektra *>(window());
+    if (!lektra || !m_container || m_container->getViewCount() < 2
+        || filePath().isEmpty())
+        return false;
+
+    if (!lektra->startNewWindow(filePath(), pageNo() + 1))
+        return false;
+
+    // closeView() deletes the view later, so it is fine to call it on `this`
+    m_container->closeView(this);
+    return true;
+}
+
+bool
+DocumentView::detachToTab() noexcept
+{
+    auto *lektra = qobject_cast<Lektra *>(window());
+    if (!lektra || !m_container || m_container->getViewCount() < 2
+        || filePath().isEmpty())
+        return false;
+
+    const int page = pageNo();
+    lektra->OpenFileInNewTab(filePath(), [page](void *ptr)
+    {
+        if (auto *doc = static_cast<Lektra *>(ptr)->currentDocument())
+            doc->GotoPage(page);
+    });
+    m_container->closeView(this);
+    return true;
+}
+
 #ifdef WITH_LUA
 
 void

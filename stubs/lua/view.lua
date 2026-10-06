@@ -438,6 +438,14 @@ function View:scene_to_page(x, y) end
 ---@return string? error
 function View:page_to_scene(pageno, x, y) end
 
+---Moves this split into a window of its own, at the page it shows (the zoom and position are not kept). The view is closed in this window. False if it is the only split of its tab, has no file, or the window could not be started.
+---@return boolean moved
+function View:detach_to_window() end
+
+---Moves this split into a tab of its own, at the page it shows. False if it is the only split of its tab or has no file.
+---@return boolean moved
+function View:detach_to_tab() end
+
 ---Returns the annotations of a page (1-based), or of the whole document without `page`. PDF only.
 ---@param page? integer
 ---@return Annotation[]? annotations

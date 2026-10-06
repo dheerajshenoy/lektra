@@ -1,5 +1,3 @@
-#include "Lektra.hpp"
-
 #include "AboutDialog.hpp"
 #include "AppPaths.hpp"
 #include "DispatchType.hpp"
@@ -8,6 +6,7 @@
 #include "DonateDialog.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
+#include "Lektra.hpp"
 #include "PageLocation.hpp"
 #include "SaveSessionDialog.hpp"
 #include "SearchBar.hpp"
@@ -37,7 +36,6 @@
 #include <variant>
 
 extern const char *HOME_DIR;
-
 
 // Reads the arguments passed with `Lektra` from the
 // commandline
@@ -109,12 +107,12 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 #else
     const bool hasSynctexForward = false;
 #endif
-    const bool newWindow = argparser.is_used("new-window");
+    const bool newWindow      = argparser.is_used("new-window");
     const bool singleInstance = argparser.is_used("single-instance")
                                 || readSingleInstanceFromConfig();
     // A new window must not hand its files to the running instance, nor take
     // over the socket it is listening on.
-    bool socketInUse = false;
+    bool socketInUse          = false;
     if (newWindow)
     {
         QLocalSocket probe;
@@ -122,7 +120,8 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
         socketInUse = probe.waitForConnected(300);
     }
     if (!newWindow
-        && (hasSynctexForward || (singleInstance && argparser.is_used("files"))))
+        && (hasSynctexForward
+            || (singleInstance && argparser.is_used("files"))))
     {
         QLocalSocket probe;
         probe.connectToServer(ipcName);
@@ -388,9 +387,9 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("tabs_select_clear", tr("Clear tab selection"),
                            [this](const QStringList &)
     { m_tab_widget->tabBar()->clearTabSelection(); });
-    m_command_manager->reg(
-        "tab_rename", tr("Rename the current tab (empty name resets it)"),
-        [this](const QStringList &args)
+    m_command_manager->reg("tab_rename",
+                           tr("Rename the current tab (empty name resets it)"),
+                           [this](const QStringList &args)
     {
         if (!m_tab_widget || !validTabIndex(m_tab_widget->currentIndex()))
             return;
@@ -409,37 +408,37 @@ Lektra::initCommands() noexcept
         }
         renameTab(index, title);
     });
-    m_command_manager->reg("tabs_close_selected",
-                           tr("Close the selected tabs"),
+    m_command_manager->reg("tabs_close_selected", tr("Close the selected tabs"),
                            [this](const QStringList &)
     { closeTabs(targetTabs()); });
     m_command_manager->reg("tabs_merge_vertical",
                            tr("Merge the selected tabs into a vertical split"),
                            [this](const QStringList &)
     { mergeTabsAsSplits(targetTabs(), true); });
-    m_command_manager->reg("tabs_merge_horizontal",
-                           tr("Merge the selected tabs into a horizontal split"),
-                           [this](const QStringList &)
+    m_command_manager->reg(
+        "tabs_merge_horizontal",
+        tr("Merge the selected tabs into a horizontal split"),
+        [this](const QStringList &)
     { mergeTabsAsSplits(targetTabs(), false); });
-    m_command_manager->reg("tabs_split_out",
-                           tr("Move the splits of the selected tabs into separate tabs"),
-                           [this](const QStringList &)
-    { splitTabsIntoTabs(targetTabs()); });
-    m_command_manager->reg("tabs_move_to_window",
-                           tr("Move the selected tabs to a new window"),
-                           [this](const QStringList &)
-    { moveTabsToNewWindow(targetTabs()); });
-    m_command_manager->reg("tabs_save_session",
-                           tr("Save the selected tabs as a session (optional name)"),
-                           [this](const QStringList &args)
+    m_command_manager->reg(
+        "tabs_split_out",
+        tr("Move the splits of the selected tabs into separate tabs"),
+        [this](const QStringList &) { splitTabsIntoTabs(targetTabs()); });
+    m_command_manager->reg(
+        "tabs_move_to_window", tr("Move the selected tabs to a new window"),
+        [this](const QStringList &) { moveTabsToNewWindow(targetTabs()); });
+    m_command_manager->reg(
+        "tabs_save_session",
+        tr("Save the selected tabs as a session (optional name)"),
+        [this](const QStringList &args)
     { saveTabsAsSession(targetTabs(), args.join(QLatin1Char(' '))); });
 
     // Caret mode (accessibility: keyboard-driven character-level text
     // cursor, cf. Firefox/Okular "caret browsing"). Left/Right/Up/Down also
     // work via h/j/k/l when caret mode is active, same as visual line mode.
-    m_command_manager->reg(
-        "caret_mode", tr("Toggle caret mode (keyboard text cursor)"),
-        [this](const QStringList &) { ToggleCaretMode(); });
+    m_command_manager->reg("caret_mode",
+                           tr("Toggle caret mode (keyboard text cursor)"),
+                           [this](const QStringList &) { ToggleCaretMode(); });
     m_command_manager->reg("caret_left", tr("Caret mode: move left"),
                            [this](const QStringList &) { CaretLeft(); });
     m_command_manager->reg("caret_right", tr("Caret mode: move right"),
@@ -448,24 +447,24 @@ Lektra::initCommands() noexcept
                            [this](const QStringList &) { CaretUp(); });
     m_command_manager->reg("caret_down", tr("Caret mode: move down"),
                            [this](const QStringList &) { CaretDown(); });
-    m_command_manager->reg(
-        "caret_line_start", tr("Caret mode: move to start of line"),
-        [this](const QStringList &) { CaretLineStart(); });
-    m_command_manager->reg(
-        "caret_line_end", tr("Caret mode: move to end of line"),
-        [this](const QStringList &) { CaretLineEnd(); });
-    m_command_manager->reg(
-        "caret_select_left", tr("Caret mode: extend selection left"),
-        [this](const QStringList &) { CaretSelectLeft(); });
-    m_command_manager->reg(
-        "caret_select_right", tr("Caret mode: extend selection right"),
-        [this](const QStringList &) { CaretSelectRight(); });
-    m_command_manager->reg(
-        "caret_select_up", tr("Caret mode: extend selection up"),
-        [this](const QStringList &) { CaretSelectUp(); });
-    m_command_manager->reg(
-        "caret_select_down", tr("Caret mode: extend selection down"),
-        [this](const QStringList &) { CaretSelectDown(); });
+    m_command_manager->reg("caret_line_start",
+                           tr("Caret mode: move to start of line"),
+                           [this](const QStringList &) { CaretLineStart(); });
+    m_command_manager->reg("caret_line_end",
+                           tr("Caret mode: move to end of line"),
+                           [this](const QStringList &) { CaretLineEnd(); });
+    m_command_manager->reg("caret_select_left",
+                           tr("Caret mode: extend selection left"),
+                           [this](const QStringList &) { CaretSelectLeft(); });
+    m_command_manager->reg("caret_select_right",
+                           tr("Caret mode: extend selection right"),
+                           [this](const QStringList &) { CaretSelectRight(); });
+    m_command_manager->reg("caret_select_up",
+                           tr("Caret mode: extend selection up"),
+                           [this](const QStringList &) { CaretSelectUp(); });
+    m_command_manager->reg("caret_select_down",
+                           tr("Caret mode: extend selection down"),
+                           [this](const QStringList &) { CaretSelectDown(); });
 
 #ifdef WITH_LLM_SUPPORT
     m_command_manager->reg("llm_view", tr("Toggle LLM chat panel"),
@@ -477,8 +476,7 @@ Lektra::initCommands() noexcept
     { TogglePresentationMode(); });
     m_command_manager->reg("fullscreen", tr("Toggle fullscreen"),
                            [this](const QStringList &) { ToggleFullscreen(); });
-    m_command_manager->reg("run_last_command",
-                           tr("Run the last command again"),
+    m_command_manager->reg("run_last_command", tr("Run the last command again"),
                            [this](const QStringList &)
     {
         if (!m_command_manager->runLast())
@@ -636,15 +634,23 @@ Lektra::initCommands() noexcept
         [this](const QStringList &) { ToggleSplitMaximize(); });
 
     m_command_manager->reg(
-        "sync_view",
-        tr("Pick views of this tab to sync (zoom and scroll)"),
+        "sync_view", tr("Pick views of this tab to sync (zoom and scroll)"),
         [this](const QStringList &) { SelectViews(); });
+    m_command_manager->reg("sync_view_all",
+                           tr("Sync zoom and scroll of all views of this tab"),
+                           [this](const QStringList &) { SyncViews(); });
+    m_command_manager->reg("sync_view_stop", tr("Stop syncing views"),
+                           [this](const QStringList &) { StopSyncViews(); });
+
     m_command_manager->reg(
-        "sync_view_all", tr("Sync zoom and scroll of all views of this tab"),
-        [this](const QStringList &) { SyncViews(); });
+        "split_to_windows",
+        tr("Move the splits of the current tab into separate windows (first stays)"),
+        [this](const QStringList &) { SplitsToWindows(); });
+
     m_command_manager->reg(
-        "sync_view_stop", tr("Stop syncing views"),
-        [this](const QStringList &) { StopSyncViews(); });
+        "split_to_tabs",
+        tr("Move the splits of the current tab into separate tabs (first stays)"),
+        [this](const QStringList &) { SplitsToTabs(); });
 
     // Portal
     m_command_manager->reg("portal", tr("Create or focus portal"),
@@ -664,9 +670,7 @@ Lektra::initCommands() noexcept
         "file_open_no_history",
         tr("Open file in new tab without adding it to recent files"),
         [this](const QStringList &args)
-    {
-        OpenFileInNewTab(args.isEmpty() ? QString() : args.at(0), {}, true);
-    });
+    { OpenFileInNewTab(args.isEmpty() ? QString() : args.at(0), {}, true); });
     m_command_manager->reg("file_open_vsplit",
                            tr("Open file in vertical split"),
                            [this](const QStringList &args)
@@ -1039,9 +1043,9 @@ Lektra::initCommands() noexcept
                            [this](const QStringList &) { showTutorialFile(); });
     m_command_manager->reg("show_about", tr("Show about dialog"),
                            [this](const QStringList &) { ShowAbout(); });
-    m_command_manager->reg("check_for_updates",
-                           tr("Check whether a newer release is available"),
-                           [this](const QStringList &) { checkForUpdates(true); });
+    m_command_manager->reg(
+        "check_for_updates", tr("Check whether a newer release is available"),
+        [this](const QStringList &) { checkForUpdates(true); });
     m_command_manager->reg("whats_new", tr("Show what changed in this version"),
                            [this](const QStringList &) { showWhatsNew(); });
     m_command_manager->reg("donate", tr("Show donate / support dialog"),

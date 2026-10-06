@@ -44,7 +44,7 @@ Lektra::OpenFileDWIM(const QString &filename,
         return OpenFileInNewTab(filename, callback);
 
     DocumentContainer *container
-        = m_tab_widget->rootContainer(m_tab_widget->currentIndex());
+        = m_tab_widget->container(m_tab_widget->currentIndex());
     if (!container)
         return OpenFileInNewTab(filename, callback);
 
@@ -333,22 +333,25 @@ Lektra::OpenFileInNewTab(const QString &filename, const CallbackFn &callback,
 
     // Connect container signals
     connect(container, &DocumentContainer::viewCreated, this,
-            [this](DocumentView *newView)
+            [this, container](DocumentView *newView)
     {
         // Initialize the new view with connections
         initTabConnections(newView);
 
+        // the tab shows how many splits it has
+        syncTabSplits(container);
+
         // Update m_doc if this is in the current tab
         int currentTabIndex = m_tab_widget->currentIndex();
         DocumentContainer *currentContainer
-            = m_tab_widget->rootContainer(currentTabIndex);
+            = m_tab_widget->container(currentTabIndex);
         if (currentContainer && currentContainer->view() == newView)
             setCurrentDocumentView(newView);
     });
 
     // Save page number when a split view is closed
     connect(container, &DocumentContainer::viewClosed, this,
-            [this](DocumentView *closedView)
+            [this, container](DocumentView *closedView)
     {
         if (m_config.behavior.remember_last_visited && closedView
             && !closedView->filePath().isEmpty() && !closedView->is_portal()
@@ -357,6 +360,10 @@ Lektra::OpenFileInNewTab(const QString &filename, const CallbackFn &callback,
             const int page = closedView->pageNo() + 1;
             insertFileToDB(closedView->filePath(), page > 0 ? page : 1);
         }
+
+        // the tab shows how many splits it has (the view is already out of the
+        // container when this is emitted)
+        syncTabSplits(container);
     });
 
     connect(container, &DocumentContainer::currentViewChanged, container,
@@ -445,7 +452,7 @@ Lektra::openFileSplitHelper(const QString &filename, const CallbackFn &callback,
         return OpenFileInNewTab(filename, callback);
     }
 
-    DocumentContainer *container = m_tab_widget->rootContainer(tabIndex);
+    DocumentContainer *container = m_tab_widget->container(tabIndex);
 
     if (!container)
         throw std::runtime_error("No container found for current tab");
@@ -556,6 +563,26 @@ Lektra::OpenFileInNewWindow(const QString &filePath,
         QCoreApplication::applicationFilePath(), args);
     if (!started)
         m_message_bar->showMessage(tr("Failed to open file in new window"));
+    return started;
+}
+
+bool
+Lektra::startNewWindow(const QString &file, int page) noexcept
+{
+    if (file.isEmpty())
+        return false;
+
+    // --new-window: without it, a window started while single-instance mode
+    // is on would hand the file to this one instead.
+    QStringList args{QStringLiteral("--new-window")};
+    if (page > 0)
+        args << QStringLiteral("--page") << QString::number(page);
+    args << QFileInfo(file).absoluteFilePath();
+
+    const bool started
+        = QProcess::startDetached(QCoreApplication::applicationFilePath(), args);
+    if (!started)
+        m_message_bar->showMessage(tr("Failed to open a new window"));
     return started;
 }
 

@@ -88,16 +88,7 @@ public:
         return m_tab_bar->tabText(index);
     }
 
-    inline DocumentContainer *rootContainer(int index) const noexcept
-    {
-        if (index < 0 || index >= count())
-            return nullptr;
-        // Safely cast the page widget back to your container
-        return qobject_cast<DocumentContainer *>(
-            m_stacked_widget->widget(index));
-    }
-
-    inline DocumentContainer *currentRootContainer() const noexcept
+    inline DocumentContainer *currentContainer() const noexcept
     {
         return qobject_cast<DocumentContainer *>(
             m_stacked_widget->currentWidget());
@@ -113,6 +104,7 @@ public:
         m_tab_bar->setTabText(index, title);
     }
 
+    DocumentContainer *container(int index) const noexcept;
     void removeTab(const int index) noexcept;
     void removeTab(QWidget *page) noexcept;
     void setTabPosition(QTabWidget::TabPosition position) noexcept;

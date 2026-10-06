@@ -2052,6 +2052,20 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 2;
                 }),
 
+    VIEW_METHOD("detach_to_window",
+                {
+                    // detach_to_window() -> true if the split was moved
+                    lua_pushboolean(L, *view && (*view)->detachToWindow());
+                    return 1;
+                }),
+
+    VIEW_METHOD("detach_to_tab",
+                {
+                    // detach_to_tab() -> true if the split was moved
+                    lua_pushboolean(L, *view && (*view)->detachToTab());
+                    return 1;
+                }),
+
     VIEW_METHOD("export_highlights",
                 {
                     if (!*view)

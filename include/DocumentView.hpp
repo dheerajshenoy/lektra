@@ -286,6 +286,12 @@ public:
         return m_container;
     }
 
+    // Moves this split out of its tab, at the page it shows: into a window of
+    // its own or into a tab of its own. False if there was nothing to move
+    // (it is the only split of the tab, or it has no file) or it failed.
+    bool detachToWindow() noexcept;
+    bool detachToTab() noexcept;
+
     inline void set_source(DocumentView *source) noexcept
     {
         m_source_view = source;

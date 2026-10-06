@@ -78,6 +78,8 @@ Document view helpers and per-document actions.
 | `view:redo()` | — | Redo the last undone action. |
 | `view:extract_text(formatted)` | `string` | Extract text from the current page. |
 | `view:export_pages(names, pages?, opts?)` | `string[]?, string?` | Save pages to files: pictures (png, jpg, webp, bmp, tif; one per page, `%d` in the name is the page number), or pdf, svg, txt, html, cbz, docx, odt. `pages`: a number, a list, or text like `"1-5,8"`, `"all"`, `"odd"` (default: current page). `opts`: `dpi` (default 150), `overwrite` (default `false`), `split` (make one file per page instead of one file, for pdf, txt, html, ...). Returns the files written, or `nil` and a reason. |
+| `view:detach_to_window()` | `boolean` | Move this split into a window of its own, at the page it shows (zoom and position are not kept) and close it here. `false` if it is the only split of its tab. |
+| `view:detach_to_tab()` | `boolean` | Move this split into a tab of its own, at the page it shows. `false` if it is the only split of its tab. |
 | `view:history_stack()` | `HistoryLocation[], integer` | The jump locations of the view, oldest first, as `{ pageno, x, y }` (page numbers are 1-based), and the position of the current one in the list (0 if none). What `history_back` and `history_forward` walk through. |
 | `view:set_mark(char)` | `boolean` | Mark the current location. `a`-`z` belong to this view, `A`-`Z` are global. Same as the `mark_set` command. |
 | `view:goto_mark(char)` | `boolean` | Go to a mark; `false` if there is no such mark. A global mark can switch to another view. |
@@ -420,6 +422,8 @@ Tab management.
 | `lektra.tabs.last()` | — | Switch to last tab. |
 | `lektra.tabs.move_left()` | — | Move current tab left. |
 | `lektra.tabs.move_right()` | — | Move current tab right. |
+| `lektra.tabs.split_to_tabs(indices?)` | `integer` | Move the splits of tabs into tabs of their own, keeping the first split of each in place. Defaults to the selected tabs, else the current tab. Returns how many splits were moved. Also named `split_out`. |
+| `lektra.tabs.split_to_windows(indices?)` | `integer` | The same, but each split gets a window of its own, opened at the page it showed (the zoom and position are not kept). |
 
 ### Example
 

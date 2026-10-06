@@ -86,7 +86,8 @@ public:
 
     // Marks of a view, as the mark_set and mark_goto commands do for the
     // current one: a-z belong to the view, A-Z are global (a jump to one can
-    // change the current view). False if the key is empty / the mark is unknown.
+    // change the current view). False if the key is empty / the mark is
+    // unknown.
     bool setMarkFor(DocumentView *view, const QString &key) noexcept;
     bool gotoMarkIn(DocumentView *view, const QString &key) noexcept;
 
@@ -212,6 +213,9 @@ public:
     DocumentView *OpenFileInNewTab(const QString &filename    = {},
                                    const CallbackFn &callback = {},
                                    bool noHistory             = false) noexcept;
+    // Starts a new window (a process of its own, even in single-instance mode)
+    // with a file, at the 1-based page `page` (-1: where it was left).
+    bool startNewWindow(const QString &file, int page = -1) noexcept;
     bool OpenFileInNewWindow(const QString &filename    = {},
                              const CallbackFn &callback = {}) noexcept;
     void OpenFilesInNewWindow(const QStringList &filenames) noexcept;
@@ -302,6 +306,9 @@ public:
     void unsetMousebinding(const QString &action) noexcept;
     QStringList getKeybindings(const QString &cmdname) const noexcept;
     // QStringList getMousebindings(const QString &action) const noexcept;
+
+    void SplitsToWindows() noexcept;
+    void SplitsToTabs() noexcept;
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -474,7 +481,9 @@ private:
     void saveTabsAsSession(const QList<int> &indices,
                            const QString &name = {}) noexcept;
     QList<int> targetTabs() const noexcept;
-    void splitTabsIntoTabs(const QList<int> &indices) noexcept;
+    // Both return how many splits were moved.
+    int splitTabsIntoTabs(const QList<int> &indices) noexcept;
+    int splitTabsToWindows(const QList<int> &indices) noexcept;
     void applyCommandLineOverrides(
         const argparse::ArgumentParser &argparser) noexcept;
     DocumentView *create_portal(DocumentView *sourceView,

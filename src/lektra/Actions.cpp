@@ -1403,8 +1403,7 @@ Lektra::setMarkFor(DocumentView *view, const QString &key) noexcept
         m_marks_manager->addGlobalMark(key, view->id(),
                                        view->CurrentLocation());
     else
-        m_marks_manager->addLocalMark(key, view->id(),
-                                      view->CurrentLocation());
+        m_marks_manager->addLocalMark(key, view->id(), view->CurrentLocation());
     return true;
 }
 
@@ -1690,5 +1689,31 @@ Lektra::SelectViews() noexcept
         m_message_bar->showMessage(tr("Nothing to sync: only one view"));
         return;
     }
+
     m_doc->container()->select_views();
+}
+
+// For the selected tabs (the current one if none is selected): keeps the first
+// split of each tab in place and moves the other splits into windows of their
+// own, or into tabs of their own.
+void
+Lektra::SplitsToWindows() noexcept
+{
+    if (!m_tab_widget)
+        return;
+
+    if (splitTabsToWindows(targetTabs()) == 0)
+        m_message_bar->showMessage(
+            tr("Nothing to separate: the tab has only one split"));
+}
+
+void
+Lektra::SplitsToTabs() noexcept
+{
+    if (!m_tab_widget)
+        return;
+
+    if (splitTabsIntoTabs(targetTabs()) == 0)
+        m_message_bar->showMessage(
+            tr("Nothing to separate: the tab has only one split"));
 }

@@ -216,3 +216,12 @@ TabWidget::paintEvent(QPaintEvent *event)
         painter.drawText(logoRect, Qt::AlignHCenter | Qt::AlignTop, logoText);
     }
 }
+
+DocumentContainer *
+TabWidget::container(int index) const noexcept
+{
+    if (index < 0 || index >= count())
+        return nullptr;
+    // Safely cast the page widget back to your container
+    return qobject_cast<DocumentContainer *>(m_stacked_widget->widget(index));
+}

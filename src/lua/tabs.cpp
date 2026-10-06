@@ -1,3 +1,4 @@
+#include "DocumentContainer.hpp"
 #include "Lektra.hpp"
 #include "utils.hpp"
 
@@ -104,6 +105,36 @@ static const luaL_Reg TabMethods[]
     }
 }},
 
+       {"container",
+        [](lua_State *L) -> int
+{
+    auto *tab = static_cast<TabHandle *>(luaL_checkudata(L, 1, "TabMetaTable"));
+    if (tab && tab->widget && tab->index >= 0
+        && tab->index < tab->widget->count())
+    {
+        auto *container = tab->widget->container(tab->index);
+        if (container)
+        {
+            auto **ud = static_cast<DocumentContainer **>(
+                lua_newuserdata(L, sizeof(DocumentContainer *)));
+            *ud = container;
+            luaL_getmetatable(L, "ContainerMetaTable");
+            lua_setmetatable(L, -2);
+            return 1;
+        }
+        else
+        {
+            lua_pushnil(L);
+            return 1;
+        }
+    }
+    else
+    {
+        lua_pushnil(L);
+        return 1;
+    }
+}},
+
        {"view",
         [](lua_State *L) -> int
 {
@@ -111,7 +142,7 @@ static const luaL_Reg TabMethods[]
     if (tab && tab->widget && tab->index >= 0
         && tab->index < tab->widget->count())
     {
-        auto *container = tab->widget->rootContainer(tab->index);
+        auto *container = tab->widget->container(tab->index);
         if (container)
         {
             auto *view = container->view();
@@ -395,7 +426,7 @@ Lektra::initLuaTabs() noexcept
             return out;
         if (lua_istable(L, idx))
         {
-            const int count = lektra->m_tab_widget->count();
+            const int count     = lektra->m_tab_widget->count();
             const lua_Integer n = luaL_len(L, idx);
             for (lua_Integer i = 1; i <= n; ++i)
             {
@@ -416,7 +447,8 @@ Lektra::initLuaTabs() noexcept
     // lektra.tabs.selected() -> integer[]
     setFn("selected", [](lua_State *L) -> int
     {
-        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
         lua_newtable(L);
         if (!lektra->m_tab_widget)
             return 1;
@@ -432,18 +464,21 @@ Lektra::initLuaTabs() noexcept
     // lektra.tabs.select(index, selected = true)
     setFn("select", [](lua_State *L) -> int
     {
-        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
         if (!lektra->m_tab_widget)
             return 0;
         const int index = static_cast<int>(luaL_checkinteger(L, 1));
-        const bool selected = lua_isnoneornil(L, 2) ? true : lua_toboolean(L, 2);
+        const bool selected
+            = lua_isnoneornil(L, 2) ? true : lua_toboolean(L, 2);
         lektra->m_tab_widget->tabBar()->setTabSelected(index, selected);
         return 0;
     });
 
     setFn("select_all", [](lua_State *L) -> int
     {
-        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
         if (!lektra->m_tab_widget)
             return 0;
         lektra->m_tab_widget->tabBar()->selectAllTabs();
@@ -452,7 +487,8 @@ Lektra::initLuaTabs() noexcept
 
     setFn("clear_selection", [](lua_State *L) -> int
     {
-        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
         if (!lektra->m_tab_widget)
             return 0;
         lektra->m_tab_widget->tabBar()->clearTabSelection();
@@ -462,7 +498,8 @@ Lektra::initLuaTabs() noexcept
     // lektra.tabs.close_selected([indices])
     setFn("close_selected", [](lua_State *L) -> int
     {
-        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
         if (!lektra->m_tab_widget)
             return 0;
         lektra->closeTabs(readIndices(L, 1, lektra));
@@ -472,30 +509,52 @@ Lektra::initLuaTabs() noexcept
     // lektra.tabs.merge(mode, [indices]) — mode is "vertical" or "horizontal"
     setFn("merge", [](lua_State *L) -> int
     {
-        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
         if (!lektra->m_tab_widget)
             return 0;
         const QString mode = QString::fromUtf8(luaL_checkstring(L, 1));
-        if (mode != QLatin1String("vertical") && mode != QLatin1String("horizontal"))
-            return luaL_error(L, "tabs.merge: mode must be \"vertical\" or \"horizontal\"");
-        lektra->mergeTabsAsSplits(readIndices(L, 2, lektra), mode == QLatin1String("vertical"));
+        if (mode != QLatin1String("vertical")
+            && mode != QLatin1String("horizontal"))
+            return luaL_error(
+                L, "tabs.merge: mode must be \"vertical\" or \"horizontal\"");
+        lektra->mergeTabsAsSplits(readIndices(L, 2, lektra),
+                                  mode == QLatin1String("vertical"));
         return 0;
     });
 
-    // lektra.tabs.split_out([indices])
-    setFn("split_out", [](lua_State *L) -> int
+    // lektra.tabs.split_out([indices]) and its other name split_to_tabs:
+    // returns how many splits were moved into tabs of their own
+    auto splitToTabs = [](lua_State *L) -> int
     {
-        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
         if (!lektra->m_tab_widget)
             return 0;
-        lektra->splitTabsIntoTabs(readIndices(L, 1, lektra));
-        return 0;
+        lua_pushinteger(L,
+                        lektra->splitTabsIntoTabs(readIndices(L, 1, lektra)));
+        return 1;
+    };
+    setFn("split_out", splitToTabs);
+    setFn("split_to_tabs", splitToTabs);
+
+    // lektra.tabs.split_to_windows([indices]) -> how many splits were moved
+    setFn("split_to_windows", [](lua_State *L) -> int
+    {
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        if (!lektra->m_tab_widget)
+            return 0;
+        lua_pushinteger(
+            L, lektra->splitTabsToWindows(readIndices(L, 1, lektra)));
+        return 1;
     });
 
     // lektra.tabs.move_to_window([indices])
     setFn("move_to_window", [](lua_State *L) -> int
     {
-        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
         if (!lektra->m_tab_widget)
             return 0;
         lektra->moveTabsToNewWindow(readIndices(L, 1, lektra));
@@ -505,7 +564,8 @@ Lektra::initLuaTabs() noexcept
     // lektra.tabs.save_session(name, [indices]) — name may be nil to be asked
     setFn("save_session", [](lua_State *L) -> int
     {
-        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
         if (!lektra->m_tab_widget)
             return 0;
         const QString name = lua_isnoneornil(L, 1)
@@ -518,8 +578,9 @@ Lektra::initLuaTabs() noexcept
     // lektra.tabs.rename(index, title) — nil or "" restores the default title
     setFn("rename", [](lua_State *L) -> int
     {
-        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
-        const int index = static_cast<int>(luaL_checkinteger(L, 1));
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        const int index     = static_cast<int>(luaL_checkinteger(L, 1));
         const QString title = lua_isnoneornil(L, 2)
                                   ? QString()
                                   : QString::fromUtf8(luaL_checkstring(L, 2));

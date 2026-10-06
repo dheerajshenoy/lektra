@@ -29,6 +29,10 @@ function Tab:view() end
 ---@return integer index The index of the tab.
 function Tab:index() end
 
+--- Returns the container object associated with the tab.
+---@return Container container The container object for the tab.
+function Tab:container() end
+
 -- ###########################################################
 
 --- Closes the tab with the specified unique identifier.
@@ -110,9 +114,20 @@ lektra.tabs.close_selected = function(indices) end
 ---@param indices? integer[] Tabs to merge (default: the selected tabs, else the current tab).
 lektra.tabs.merge = function(mode, indices) end
 
---- Moves the splits of tabs into separate tabs, the opposite of `merge`.
+--- Moves the splits of tabs into separate tabs, the opposite of `merge`. The first split of each tab stays where it is; the others get a tab of their own, at the page they showed.
 ---@param indices? integer[] Tabs to split up (default: the selected tabs, else the current tab).
+---@return integer moved How many splits were moved.
 lektra.tabs.split_out = function(indices) end
+
+--- The same as `split_out`.
+---@param indices? integer[]
+---@return integer moved
+lektra.tabs.split_to_tabs = function(indices) end
+
+--- Moves the splits of tabs into windows of their own. The first split of each tab stays where it is; the others open in a new window each, at the page they showed (only the page is kept, not the zoom or the position).
+---@param indices? integer[] Tabs to split up (default: the selected tabs, else the current tab).
+---@return integer moved How many splits were moved.
+lektra.tabs.split_to_windows = function(indices) end
 
 --- Moves tabs into a new window.
 ---@param indices? integer[] Tabs to move (default: the selected tabs, else the current tab).

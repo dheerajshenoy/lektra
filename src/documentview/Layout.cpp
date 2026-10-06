@@ -1,8 +1,7 @@
 #include "DocumentView.hpp"
 
-#include <QScopeGuard>
-
 #include <QMovie>
+#include <QScopeGuard>
 
 // Annotations
 #include "Annotations/HighlightAnnotation.hpp"
@@ -68,7 +67,6 @@ locationsEqual(const PageLocation &a, const PageLocation &b) noexcept
 }
 } // namespace
 
-
 void
 DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
 {
@@ -119,8 +117,8 @@ void
 DocumentView::rotateHelper() noexcept
 {
     // told on every way out, including the early returns
-    const auto notify = qScopeGuard([this]
-    { emit rotationChanged(m_model->rotation()); });
+    const auto notify
+        = qScopeGuard([this] { emit rotationChanged(m_model->rotation()); });
 
     if (m_model->isImage())
     {
@@ -235,7 +233,8 @@ DocumentView::setFitMode(FitMode mode) noexcept
     qDebug() << "setFitMode(): Setting fit mode to:" << static_cast<int>(mode);
 #endif
 
-    const auto notify = qScopeGuard([this] { emit fitModeChanged(m_fit_mode); });
+    const auto notify
+        = qScopeGuard([this] { emit fitModeChanged(m_fit_mode); });
 
     m_fit_mode = mode;
 

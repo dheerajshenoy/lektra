@@ -1,5 +1,3 @@
-#include "Lektra.hpp"
-
 #include "AboutDialog.hpp"
 #include "AppPaths.hpp"
 #include "DispatchType.hpp"
@@ -8,6 +6,7 @@
 #include "DonateDialog.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
+#include "Lektra.hpp"
 #include "PageLocation.hpp"
 #include "SaveSessionDialog.hpp"
 #include "SearchBar.hpp"
@@ -93,15 +92,17 @@ Lektra::deleteSession(const QString &name) noexcept
 }
 
 void
-Lektra::saveTabsAsSession(const QList<int> &indices, const QString &name) noexcept
+Lektra::saveTabsAsSession(const QList<int> &indices,
+                          const QString &name) noexcept
 {
     QString sessionName = name.trimmed();
     if (sessionName.isEmpty())
     {
-        bool ok = false;
-        sessionName = QInputDialog::getText(
-            this, tr("Save Session"), tr("Session name:"), QLineEdit::Normal,
-            QString(), &ok).trimmed();
+        bool ok     = false;
+        sessionName = QInputDialog::getText(this, tr("Save Session"),
+                                            tr("Session name:"),
+                                            QLineEdit::Normal, QString(), &ok)
+                          .trimmed();
         if (!ok || sessionName.isEmpty())
             return;
     }
@@ -109,9 +110,10 @@ Lektra::saveTabsAsSession(const QList<int> &indices, const QString &name) noexce
     const QString fileName = m_session_dir.filePath(sessionName + ".json");
     if (QFile::exists(fileName))
     {
-        if (QMessageBox::question(this, tr("Overwrite Session"),
-                                  tr("Session \"%1\" already exists. Overwrite it?")
-                                      .arg(sessionName))
+        if (QMessageBox::question(
+                this, tr("Overwrite Session"),
+                tr("Session \"%1\" already exists. Overwrite it?")
+                    .arg(sessionName))
             != QMessageBox::Yes)
             return;
     }
@@ -119,7 +121,7 @@ Lektra::saveTabsAsSession(const QList<int> &indices, const QString &name) noexce
     QJsonArray sessionArray;
     for (int index : indices)
     {
-        DocumentContainer *container = m_tab_widget->rootContainer(index);
+        DocumentContainer *container = m_tab_widget->container(index);
         if (!container)
             continue;
         QJsonObject tabEntry;
@@ -130,8 +132,9 @@ Lektra::saveTabsAsSession(const QList<int> &indices, const QString &name) noexce
     QFile file(fileName);
     if (!file.open(QIODevice::WriteOnly))
     {
-        QMessageBox::critical(this, tr("Save Session"),
-                              tr("Could not save session: %1").arg(sessionName));
+        QMessageBox::critical(
+            this, tr("Save Session"),
+            tr("Could not save session: %1").arg(sessionName));
         return;
     }
     file.write(QJsonDocument(sessionArray).toJson());
@@ -318,7 +321,7 @@ Lektra::writeSessionToFile() noexcept
 
     for (int i = 0; i < m_tab_widget->count(); ++i)
     {
-        DocumentContainer *container = m_tab_widget->rootContainer(i);
+        DocumentContainer *container = m_tab_widget->container(i);
         if (!container)
             continue;
 
@@ -493,7 +496,7 @@ Lektra::openSessionFromArray(const QJsonArray &sessionArray) noexcept
             int idx = m_tab_widget->indexOf(view->container());
             if (idx < 0)
                 return;
-            DocumentContainer *container = m_tab_widget->rootContainer(idx);
+            DocumentContainer *container = m_tab_widget->container(idx);
             if (!container)
                 return;
             restoreSplitNode(container, view, splitsNode, nullptr);

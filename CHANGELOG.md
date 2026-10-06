@@ -10,6 +10,10 @@
 - New `OnSynctexJumpRequested` Lua event: called with the view, the source file, the line and the column when a SyncTeX jump from the PDF to its LaTeX source is requested.
 - The Lua type stubs are now installed on Windows too (`share\lektra\lua` in the install folder), for completion when editing `init.lua`.
 
+#### Tabs and views
+
+- New `split_to_windows` and `split_to_tabs` commands move the splits of a tab (or of the selected tabs) into windows or tabs of their own, keeping the first split in place; "Move Splits to Separate Windows" is also in the tab menu. Lua: `lektra.tabs.split_to_windows()`, `lektra.tabs.split_to_tabs()` and, for one split, `view:detach_to_window()` / `view:detach_to_tab()`.
+
 #### Documentation
 
 - The documentation is now on [Read the Docs](https://lektra.readthedocs.io/en/latest/): installation, an example `config.toml`, and the commands, options and Lua API, generated from the sources so they match each release.

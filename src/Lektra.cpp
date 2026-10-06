@@ -88,7 +88,8 @@ Lektra::~Lektra() noexcept
     m_command_picker = nullptr;
 
 #ifdef WITH_LUA
-    // Jobs that are still running must not call back into Lua once it is closed.
+    // Jobs that are still running must not call back into Lua once it is
+    // closed.
     killLuaJobs();
     killLuaStatusbar();
 #endif
@@ -176,23 +177,24 @@ Lektra::initLLMView() noexcept
 {
     m_llm_view = new LLMView(m_config, this);
     m_llm_view->setHistoryFolder(m_app_data_dir.filePath("llm_chats"));
-#ifdef WITH_LUA
+    #ifdef WITH_LUA
     // The model is told about the Lua API, and its scripts can be run.
     m_llm_view->setSystemPromptProvider([this] { return llmSystemPrompt(); });
-    m_llm_view->setScriptRunner(
-        [this](const QString &code) { return runLLMScript(code); });
+    m_llm_view->setScriptRunner([this](const QString &code)
+    { return runLLMScript(code); });
     m_llm_view->setCommandRunner(
         [this](const QString &name, const QStringList &args)
     { return runLLMCommand(name, args); });
-    m_llm_view->setApiLookup(
-        [this](const QString &query) { return llmLookupApi(query); });
-#endif
+    m_llm_view->setApiLookup([this](const QString &query)
+    { return llmLookupApi(query); });
+    #endif
     // "Attach page" / "Attach region" in the chat use the open document.
     LLMView::ImageSources sources;
     sources.currentPage = [this]() -> QImage
-    { return m_doc ? m_doc->currentPageImage() : QImage(); };
-    sources.pickRegion
-        = [this](std::function<void(const QImage &)> done)
+    {
+        return m_doc ? m_doc->currentPageImage() : QImage();
+    };
+    sources.pickRegion = [this](std::function<void(const QImage &)> done)
     {
         if (!m_doc)
             return;
@@ -229,7 +231,8 @@ Lektra::initGui() noexcept
     m_statusbar->setMode(GraphicsView::Mode::TextSelection);
     m_statusbar->setSessionName("");
 #ifdef WITH_LUA
-    applyLuaStatusbar(); // the segments init.lua registered before the bar existed
+    applyLuaStatusbar(); // the segments init.lua registered before the bar
+                         // existed
 #endif
     m_search_bar = new SearchBar(this);
     m_search_bar->setVisible(false);
@@ -331,7 +334,7 @@ Lektra::closeEvent(QCloseEvent *e)
     // handled
     for (int i = 0; i < m_tab_widget->count(); i++)
     {
-        DocumentContainer *container = m_tab_widget->rootContainer(i);
+        DocumentContainer *container = m_tab_widget->container(i);
         if (!container)
             continue;
 
@@ -710,7 +713,7 @@ Lektra::setCurrentDocumentView(DocumentView *view) noexcept
 
     const int tabIndex = m_tab_widget->currentIndex();
 
-    DocumentContainer *container = m_tab_widget->rootContainer(tabIndex);
+    DocumentContainer *container = m_tab_widget->container(tabIndex);
     if (!container)
         return;
 
@@ -837,7 +840,7 @@ Lektra::onIPCDataReady()
             const QFileInfo pdfInfo(pdfPath);
             for (int i = 0; i < m_tab_widget->count(); ++i)
             {
-                DocumentContainer *c = m_tab_widget->rootContainer(i);
+                DocumentContainer *c = m_tab_widget->container(i);
                 if (!c)
                     continue;
                 for (DocumentView *v : c->getAllViews())
@@ -1009,7 +1012,7 @@ Lektra::applyWindowBackground() noexcept
         return;
     for (int i = 0; i < m_tab_widget->count(); ++i)
     {
-        DocumentContainer *container = m_tab_widget->rootContainer(i);
+        DocumentContainer *container = m_tab_widget->container(i);
         if (!container)
             continue;
         for (DocumentView *view : container->getAllViews())
