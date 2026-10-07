@@ -1666,8 +1666,17 @@ DocumentView::handleHScrollValueChanged(int value) noexcept
     // Immediately request renders for currently visible pages so they don't
     // appear blank during fast scrolling (requestPageRender is a no-op if the
     // page is already pending).
+    // Pages that already have a sharp render are left alone: the debounced
+    // refresh below decides whether they need a new one.
     for (int pageno : getVisiblePages())
+    {
+        if (!m_pending_renders.contains(pageno)
+            && !m_placeholder_pages.contains(pageno)
+            && m_page_items_hash.value(pageno, nullptr)
+            && m_page_render_keys.value(pageno) == currentPageRenderKey())
+            continue;
         requestPageRender(pageno);
+    }
 
     // Always restart the timer (debouncing)
     m_scroll_page_update_timer->start();
@@ -1691,8 +1700,17 @@ DocumentView::handleVScrollValueChanged(int /*value */) noexcept
     // Immediately request renders for currently visible pages so they don't
     // appear blank during fast scrolling (requestPageRender is a no-op if the
     // page is already pending).
+    // Pages that already have a sharp render are left alone: the debounced
+    // refresh below decides whether they need a new one.
     for (int pageno : getVisiblePages())
+    {
+        if (!m_pending_renders.contains(pageno)
+            && !m_placeholder_pages.contains(pageno)
+            && m_page_items_hash.value(pageno, nullptr)
+            && m_page_render_keys.value(pageno) == currentPageRenderKey())
+            continue;
         requestPageRender(pageno);
+    }
 
     // Always restart the timer (debouncing)
     m_scroll_page_update_timer->start();
