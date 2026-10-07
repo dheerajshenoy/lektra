@@ -99,10 +99,10 @@ Lektra::~Lektra() noexcept
     // is still alive when those destructors run.
     m_command_manager.reset();
 
-#ifdef WITH_LUA
-    if (m_L)
-        lua_close(m_L);
-#endif
+    // #ifdef WITH_LUA
+    //     if (m_L)
+    //         lua_close(m_L);
+    // #endif
 }
 
 // On-demand construction of `Lektra` (for use with argparse)
