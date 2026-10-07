@@ -335,7 +335,7 @@ qt_add_executable(${PROJECT_NAME}
     ${app_icon_resource_windows}
     src/main.cpp
     src/CrashHandler.cpp
-    src/CrashReporterDialog.cpp
+    src/dialog/CrashReporterDialog.cpp
     src/Lektra.cpp
     src/lektra/Config.cpp
     src/lektra/Commands.cpp
@@ -358,9 +358,9 @@ qt_add_executable(${PROJECT_NAME}
     src/model/Annotations.cpp
     src/model/Reflow.cpp
     src/PropertiesWidget.cpp
-    src/AboutDialog.cpp
-    src/DonateDialog.cpp
-    src/ExportPagesDialog.cpp
+    src/dialog/AboutDialog.cpp
+    src/dialog/DonateDialog.cpp
+    src/dialog/ExportPagesDialog.cpp
     src/GraphicsView.cpp
     src/GraphicsScene.cpp
     src/DocumentView.cpp
@@ -378,27 +378,27 @@ qt_add_executable(${PROJECT_NAME}
     src/RecentFilesStore.cpp
     src/RecentFilesModel.cpp
     src/SearchBar.cpp
-    src/SaveSessionDialog.cpp
+    src/dialog/SaveSessionDialog.cpp
     src/FloatingOverlayWidget.cpp
-    src/HighlightSearchPicker.cpp
+    src/picker/HighlightSearchPicker.cpp
     src/utils.cpp
     src/WaitingSpinnerWidget.cpp
-    src/CommandPicker.cpp
+    src/picker/CommandPicker.cpp
     src/TabWidget.cpp
     src/DocumentContainer.cpp
     src/ViewPickOverlay.cpp
     src/ThumbnailView.cpp
     src/TabBar.cpp
     src/Picker.cpp
-    src/RecentFilesPicker.cpp
-    src/FilePicker.cpp
-    src/OutlinePicker.cpp
-    src/CommentSearchPicker.cpp
+    src/picker/RecentFilesPicker.cpp
+    src/picker/FilePicker.cpp
+    src/picker/OutlinePicker.cpp
+    src/picker/CommentSearchPicker.cpp
     src/ScrollBar.cpp
-    src/ColorDialog.cpp
+    src/dialog/ColorDialog.cpp
     src/Bookmark.cpp
     src/BookmarkManager.cpp
-    src/BookmarkPicker.cpp
+    src/picker/BookmarkPicker.cpp
 
     ${LEKTRA_CORE_HEADERS}
     ${LEKTRA_ANNOTATION_HEADERS}
