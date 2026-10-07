@@ -80,6 +80,8 @@ Document view helpers and per-document actions.
 | `view:export_pages(names, pages?, opts?)` | `string[]?, string?` | Save pages to files: pictures (png, jpg, webp, bmp, tif; one per page, `%d` in the name is the page number), or pdf, svg, txt, html, cbz, docx, odt. `pages`: a number, a list, or text like `"1-5,8"`, `"all"`, `"odd"` (default: current page). `opts`: `dpi` (default 150), `overwrite` (default `false`), `split` (make one file per page instead of one file, for pdf, txt, html, ...). Returns the files written, or `nil` and a reason. |
 | `view:detach_to_window()` | `boolean` | Move this split into a window of its own, at the page it shows (zoom and position are not kept) and close it here. `false` if it is the only split of its tab. |
 | `view:detach_to_tab()` | `boolean` | Move this split into a tab of its own, at the page it shows. `false` if it is the only split of its tab. |
+| `view:opt()` | `ViewOptions` | The options of this view only (see `lektra.opt`). |
+| `view:opt_reset(section?)` | `boolean` | Put the local options of this view (or one section of them) back to what a new view would have. |
 | `view:history_stack()` | `HistoryLocation[], integer` | The jump locations of the view, oldest first, as `{ pageno, x, y }` (page numbers are 1-based), and the position of the current one in the list (0 if none). What `history_back` and `history_forward` walk through. |
 | `view:set_mark(char)` | `boolean` | Mark the current location. `a`-`z` belong to this view, `A`-`Z` are global. Same as the `mark_set` command. |
 | `view:goto_mark(char)` | `boolean` | Go to a mark; `false` if there is no such mark. A global mark can switch to another view. |
@@ -506,6 +508,23 @@ lektra.mousemap.set("pan", "Alt+LeftButton")
 
 Read and write configuration options at runtime. All options are under
 `lektra.opt.<section>.<key>`.
+
+**Global and local options** work as in Vim. Each view has its own copy of the view
+options, and a new split starts with a copy of the one it was made from.
+
+| Lua | Vim | Changes |
+|---|---|---|
+| `lektra.opt.<section>.<key> = v` | `:set` | the global default and the current view |
+| `lektra.opt_global.<section>.<key> = v` | `:setglobal` | only the global default |
+| `view:opt().<section>.<key> = v` | `:setlocal` | only that view |
+| `view:opt_reset([section])` | `:setlocal opt<` | puts that view back to the defaults |
+
+`view:opt_reset()` gives the view what a new view of its file type would start with:
+the global options, with the `[filetype.<type>]` overrides on top.
+
+A **color** option takes a string, `"#RRGGBBAA"` or `"#RRGGBB"` (opaque), as in
+`config.toml`, or an integer `0xRRGGBBAA`. Reading one returns the integer.
+For example `lektra.opt.page.bg = "#1e1e2e"` or `lektra.opt.window.accent = 0x3DAEE9FF`.
 
 ### Example
 

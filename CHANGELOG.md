@@ -10,6 +10,10 @@
 - New `OnSynctexJumpRequested` Lua event: called with the view, the source file, the line and the column when a SyncTeX jump from the PDF to its LaTeX source is requested.
 - The Lua type stubs are now installed on Windows too (`share\lektra\lua` in the install folder), for completion when editing `init.lua`.
 
+#### Options
+
+- Options of a view now work as in Vim: `lektra.opt.<section>.<key>` is `:set` (the default and the current view), the new `lektra.opt_global` is `:setglobal` (only the default), `view:opt()` is `:setlocal` (only that view), and the new `view:opt_reset([section])` is `:setlocal opt<` (back to what a new view would have). A new split still starts with a copy of the options of the view it was made from.
+
 #### Tabs and views
 
 - New `split_to_windows` and `split_to_tabs` commands move the splits of a tab (or of the selected tabs) into windows or tabs of their own, keeping the first split in place; "Move Splits to Separate Windows" is also in the tab menu. Lua: `lektra.tabs.split_to_windows()`, `lektra.tabs.split_to_tabs()` and, for one split, `view:detach_to_window()` / `view:detach_to_tab()`.
@@ -19,6 +23,8 @@
 - The documentation is now on [Read the Docs](https://lektra.readthedocs.io/en/latest/): installation, an example `config.toml`, and the commands, options and Lua API, generated from the sources so they match each release.
 
 ### Bug Fixes
+
+- Color options set from Lua (`lektra.opt` and `view:opt()`) now accept a hex string such as `"#1e1e2e"`, like `config.toml` does; before, only `page.bg` and `page.fg` did and the others needed an integer.
 
 - Fix scrollbars that are turned off (`scrollbars.vertical` / `scrollbars.horizontal`) showing up when zooming or resizing.
 

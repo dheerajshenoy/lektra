@@ -1109,6 +1109,20 @@ DocumentView::localConfigChanged(const QString &section) noexcept
         QTimer::singleShot(0, this, &DocumentView::applyLocalConfigChanges);
 }
 
+Config
+DocumentView::freshLocalConfig() const noexcept
+{
+    Config fresh = m_global;
+    if (!m_thumbnail_mode && m_global.filetype_overrides
+        && !m_override_type.empty())
+    {
+        const auto it = m_global.filetype_overrides->find(m_override_type);
+        if (it != m_global.filetype_overrides->end())
+            it->second(fresh);
+    }
+    return fresh;
+}
+
 void
 DocumentView::applyFiletypeOverrides(const QString &filePath) noexcept
 {

@@ -2143,6 +2143,29 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 1;
                 }),
 
+    VIEW_METHOD("opt_reset",
+                {
+                    // opt_reset([section]): the local options (all, or the
+                    // section) go back to what a new view would start with
+                    auto *lektra
+                        = *view ? qobject_cast<Lektra *>((*view)->window())
+                                : nullptr;
+                    if (!lektra)
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    const QString section
+                        = lua_isnoneornil(L, 2)
+                              ? QString()
+                              : QString::fromUtf8(luaL_checkstring(L, 2));
+                    if (!lektra->resetViewOptions(*view, section))
+                        return luaL_error(L, "unknown option section \"%s\"",
+                                          qPrintable(section));
+                    lua_pushboolean(L, 1);
+                    return 1;
+                }),
+
     VIEW_METHOD("region_select_image",
                 {
                     luaL_checktype(L, 2, LUA_TFUNCTION);

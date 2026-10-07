@@ -1,8 +1,11 @@
 ---@meta
 
 lektra = lektra or {}
----Global options. Setting one changes the default for views created later and the current view; other open views keep their own values (see `View:opt()`).
+---Global options. Setting one changes the default for views created later and the current view; other open views keep their own values (see `View:opt()`). Like Vim's `:set`. `lektra.opt_global` only changes the default (`:setglobal`), `View:opt()` only one view (`:setlocal`).
 lektra.opt = {}
+
+--- A color: a string `"#RRGGBBAA"` or `"#RRGGBB"` (opaque), or an integer `0xRRGGBBAA` (red in the top byte, alpha in the lowest).
+---@alias Color integer|string
 
 ---@class Screen
 ---@field description string Description of the screen/monitor (e.g. "desc:AU Optronics 0xE3AC").
@@ -46,11 +49,11 @@ lektra.Backend = {
 
 -- ── Section class definitions ─────────────────────────────────────────────────
 -- Each section is a proxy table; fields are read/written directly as properties.
--- Color fields are packed 32-bit ARGB integers (Qt format).
+-- Color fields are packed 32-bit `Color`s (Qt format).
 
 ---@class OptPage
----@field bg? integer Background color (ARGB integer).
----@field fg? integer Foreground color (ARGB integer).
+---@field bg? Color Background color
+---@field fg? Color Foreground color
 lektra.opt.page = {}
 
 ---@class OptSynctex
@@ -61,26 +64,26 @@ lektra.opt.synctex = {}
 ---@class OptSearch
 ---@field absolute_jump? boolean Jump to the match page even if already on it.
 ---@field highlight_matches? boolean Highlight all search matches.
----@field index_color? integer Color of the current match highlight (ARGB integer).
----@field match_color? integer Color of non-current match highlights (ARGB integer).
+---@field index_color? Color Color of the current match highlight (`Color`).
+---@field match_color? Color Color of non-current match highlights (`Color`).
 ---@field progressive? boolean Enable progressive (incremental) search.
 lektra.opt.search = {}
 
 ---@class OptAnnotationsHighlight
----@field color? integer Highlight annotation color (ARGB integer).
+---@field color? Color Highlight annotation color (`Color`).
 ---@field comment? boolean Show comment text for highlights.
 ---@field comment_font_size? integer Font size of the comment text.
 ---@field comment_marker? boolean Show the comment marker icon.
----@field glow_color? integer Glow color around the highlight (ARGB integer).
+---@field glow_color? Color Glow color around the highlight (`Color`).
 ---@field glow_width? integer Width of the glow effect in pixels.
 ---@field hover_glow? boolean Show glow only on hover.
 
 ---@class OptAnnotationsRect
----@field color? integer Rectangle annotation color (ARGB integer).
+---@field color? Color Rectangle annotation color (`Color`).
 ---@field comment? boolean Show comment text for rectangles.
 ---@field comment_font_size? integer Font size of the comment text.
 ---@field comment_marker? boolean Show the comment marker icon.
----@field glow_color? integer Glow color around the rectangle (ARGB integer).
+---@field glow_color? Color Glow color around the rectangle (`Color`).
 ---@field glow_width? integer Width of the glow effect in pixels.
 ---@field hover_glow? boolean Show glow only on hover.
 
@@ -89,7 +92,7 @@ lektra.opt.search = {}
 -- field (unlike Highlight and Rect).
 ---@field comment? boolean Show comment text for popups.
 ---@field comment_font_size? integer Font size of the comment text.
----@field glow_color? integer Glow color around the popup (ARGB integer).
+---@field glow_color? Color Glow color around the popup (`Color`).
 ---@field glow_width? integer Width of the glow effect in pixels.
 ---@field hover_glow? boolean Show glow only on hover.
 
@@ -112,7 +115,7 @@ lektra.opt.annotations = {
 lektra.opt.thumbnail_panel = {}
 
 ---@class OptPortal
----@field border_color? integer Portal border color (ARGB integer).
+---@field border_color? Color Portal border color (`Color`).
 ---@field border_width? integer Portal border width in pixels.
 ---@field dim_inactive? boolean Dim inactive portals.
 ---@field respect_parent? boolean Portal respects the parent view's zoom/fit.
@@ -120,8 +123,8 @@ lektra.opt.thumbnail_panel = {}
 lektra.opt.portal = {}
 
 ---@class OptWindow
----@field bg? integer Window background color (ARGB integer).
----@field accent? integer Accent color (ARGB integer).
+---@field bg? Color Window background color (`Color`).
+---@field accent? Color Accent color (`Color`).
 ---@field fullscreen? boolean Start in fullscreen mode.
 ---@field menubar? boolean Show the menu bar.
 ---@field show_menu_icons? boolean Show standard icons next to menubar items (toggles Qt::AA_DontShowIconsInMenus).
@@ -211,7 +214,7 @@ lektra.opt.statusbar = {
 lektra.opt.zoom = {}
 
 ---@class OptSelection
----@field color? integer Text selection highlight color (ARGB integer).
+---@field color? Color Text selection highlight color (`Color`).
 ---@field copy_on_select? boolean Automatically copy selected text to clipboard.
 ---@field drag_threshold? integer Pixel distance before a drag is recognized.
 lektra.opt.selection = {}
@@ -220,11 +223,11 @@ lektra.opt.selection = {}
 ---@field dim_inactive? boolean Dim the inactive split pane.
 ---@field dim_inactive_opacity? number Opacity of the inactive pane when dimmed (0.0–1.0).
 ---@field focus_border? boolean Draw a border around the currently focused split.
----@field focus_border_color? integer Border color as an ARGB hex integer (e.g. 0xFF4FC3F7).
+---@field focus_border_color? Color Border color as an RRGGBBAA hex integer (e.g. 0xFF4FC3F7).
 ---@field focus_border_width? integer Border thickness in pixels.
 ---@field focus_follows_mouse? boolean Focus a split pane when the mouse enters it.
 ---@field maximize_indicator? boolean Show a badge in the corner of the maximized split.
----@field maximize_indicator_color? integer Badge color as an ARGB hex integer (e.g. 0xCC2979FF).
+---@field maximize_indicator_color? Color Badge color as an RRGGBBAA hex integer (e.g. 0xCC2979FF).
 ---@field mouse_follows_focus? boolean Warp the mouse to the focused pane.
 lektra.opt.split = {}
 
@@ -238,7 +241,7 @@ lektra.opt.split = {}
 lektra.opt.scrollbars = {}
 
 ---@class OptJumpMarker
----@field color? integer Jump marker color (ARGB integer).
+---@field color? Color Jump marker color (`Color`).
 ---@field enabled? boolean Whether jump markers are shown.
 ---@field fade_duration? number Duration in seconds for the fade-out animation.
 lektra.opt.jump_marker = {}
@@ -255,8 +258,8 @@ lektra.opt.jump_marker = {}
 lektra.opt.links = {}
 
 ---@class OptLinkHints
----@field bg? integer Link hint background color (ARGB integer).
----@field fg? integer Link hint foreground/text color (ARGB integer).
+---@field bg? Color Link hint background color (`Color`).
+---@field fg? Color Link hint foreground/text color (`Color`).
 ---@field size? number Font size for link hint labels.
 lektra.opt.link_hints = {}
 
@@ -411,3 +414,65 @@ lektra.opt.donate = {}
 ---@class OptMisc
 ---@field color_dialog_colors? string[] Preset colours shown in the colour picker (e.g. `"#FF112233"`).
 lektra.opt.misc = {}
+
+-- ###########################################################
+-- The options of one view (`View:opt()`)
+
+--- The sections of the options that a view has of its own: the ones that make
+--- sense for a single view. The others (tabs, statusbar, window, pickers, ...)
+--- belong to the application and only exist in `lektra.opt`.
+---@class ViewOptions
+---@field page OptPage
+---@field search OptSearch
+---@field annotations OptAnnotations
+---@field layout OptLayout
+---@field reflow OptReflow
+---@field zoom OptZoom
+---@field selection OptSelection
+---@field split OptSplit
+---@field scrollbars OptScrollbars
+---@field jump_marker OptJumpMarker
+---@field links OptLinks
+---@field link_hints OptLinkHints
+---@field rendering OptRendering
+---@field behavior OptBehavior
+
+-- ###########################################################
+-- The global defaults only (`lektra.opt_global`)
+
+--- Every section of the options, as in `lektra.opt`. Writing one here changes the
+--- default for views created later, and not the current view (Vim's `:setglobal`;
+--- `lektra.opt` is `:set`, and `View:opt()` is `:setlocal`).
+---@class GlobalOptions
+---@field page OptPage
+---@field synctex OptSynctex
+---@field search OptSearch
+---@field annotations OptAnnotations
+---@field thumbnail_panel OptThumbnailPanel
+---@field portal OptPortal
+---@field window OptWindow
+---@field layout OptLayout
+---@field statusbar OptStatusbar
+---@field reflow OptReflow
+---@field zoom OptZoom
+---@field selection OptSelection
+---@field split OptSplit
+---@field scrollbars OptScrollbars
+---@field jump_marker OptJumpMarker
+---@field links OptLinks
+---@field link_hints OptLinkHints
+---@field tabs OptTabs
+---@field picker OptPicker
+---@field outline OptOutline
+---@field highlight_search OptHighlightSearch
+---@field command_palette OptCommandPalette
+---@field rendering OptRendering
+---@field behavior OptBehavior
+---@field preview OptPreview
+---@field updates OptUpdates
+---@field donate OptDonate
+---@field misc OptMisc
+---@field llm_view OptLLMView
+
+---@type GlobalOptions
+lektra.opt_global = {}

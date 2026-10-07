@@ -288,9 +288,14 @@ function View:set_dpr(dpr) end
 ---@param callback fun(area: { x: number, y: number, w: number, h: number }) Callback invoked with the selected region in scene coordinates.
 function View:region_select(callback) end
 
----This view's local options, a copy of the global options taken when the view was created (a split copies the view it was split from). Writing to it changes only this view and applies immediately; `lektra.opt` sets the global default and the current view. Has the same per-view sections as `lektra.opt` (page, search, annotations, layout, zoom, selection, split, scrollbars, jump_marker, links, link_hints, rendering, behavior), not app-wide ones like tabs or statusbar. Using a table after its view is closed raises an error.
----@return table
+---This view's local options, a copy of the global options taken when the view was created (a split copies the view it was split from). Writing to it changes only this view and applies immediately; `lektra.opt` sets the global default and the current view. Has the same per-view sections as `lektra.opt` (page, search, annotations, layout, reflow, zoom, selection, split, scrollbars, jump_marker, links, link_hints, rendering, behavior), not app-wide ones like tabs or statusbar. Using a table after its view is closed raises an error.
+---@return ViewOptions
 function View:opt() end
+
+---Sets the local options of this view back to what a new view of its file type would start with: the global options, and the `[filetype.<type>]` overrides on top. Like Vim's `:setlocal opt<`.
+---@param section? string One section (`"page"`, `"layout"`, `"zoom"`, ... as in `View:opt()`); without one, all of them.
+---@return boolean ok
+function View:opt_reset(section) end
 
 ---Same interaction as `region_select`, but `callback` is passed the selected region rendered as a base64-encoded PNG string instead of the rect — handy for feeding a screenshot region to an OCR/vision-model API or saving it out via `io.open` plus a base64 decoder. The string is empty if the dragged region didn't land on a rendered page.
 ---@param callback fun(image_base64: string) Callback invoked with the selected region as a base64-encoded PNG string.

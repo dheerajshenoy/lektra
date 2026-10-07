@@ -158,14 +158,14 @@ static const LuaField searchFields[] = {
     lua_pushinteger(L, static_cast<Config::Search *>(p)->index_color);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Search *>(p)->index_color = lua_tointeger(L, 3); }},
+{ static_cast<Config::Search *>(p)->index_color = readLuaColor(L, 3, static_cast<Config::Search *>(p)->index_color); }},
     {"match_color",
      [](lua_State *L, P p)
 {
     lua_pushinteger(L, static_cast<Config::Search *>(p)->match_color);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Search *>(p)->match_color = lua_tointeger(L, 3); }},
+{ static_cast<Config::Search *>(p)->match_color = readLuaColor(L, 3, static_cast<Config::Search *>(p)->match_color); }},
     {"progressive",
      [](lua_State *L, P p)
 {
@@ -185,8 +185,7 @@ static const LuaField annotHighlightFields[] = {
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::Annotations::Highlight *>(p)->color
-        = lua_tointeger(L, 3);
+    static_cast<Config::Annotations::Highlight *>(p)->color = readLuaColor(L, 3, static_cast<Config::Annotations::Highlight *>(p)->color);
 }},
     {"comment",
      [](lua_State *L, P p)
@@ -233,8 +232,7 @@ static const LuaField annotHighlightFields[] = {
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::Annotations::Highlight *>(p)->glow_color
-        = lua_tointeger(L, 3);
+    static_cast<Config::Annotations::Highlight *>(p)->glow_color = readLuaColor(L, 3, static_cast<Config::Annotations::Highlight *>(p)->glow_color);
 }},
     {"glow_width",
      [](lua_State *L, P p)
@@ -270,7 +268,7 @@ static const LuaField annotRectFields[] = {
     lua_pushinteger(L, static_cast<Config::Annotations::Rect *>(p)->color);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Annotations::Rect *>(p)->color = lua_tointeger(L, 3); }},
+{ static_cast<Config::Annotations::Rect *>(p)->color = readLuaColor(L, 3, static_cast<Config::Annotations::Rect *>(p)->color); }},
     {"comment",
      [](lua_State *L, P p)
 {
@@ -313,8 +311,7 @@ static const LuaField annotRectFields[] = {
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::Annotations::Rect *>(p)->glow_color
-        = lua_tointeger(L, 3);
+    static_cast<Config::Annotations::Rect *>(p)->glow_color = readLuaColor(L, 3, static_cast<Config::Annotations::Rect *>(p)->glow_color);
 }},
     {"glow_width",
      [](lua_State *L, P p)
@@ -378,8 +375,7 @@ static const LuaField annotPopupFields[] = {
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::Annotations::Popup *>(p)->glow_color
-        = lua_tointeger(L, 3);
+    static_cast<Config::Annotations::Popup *>(p)->glow_color = readLuaColor(L, 3, static_cast<Config::Annotations::Popup *>(p)->glow_color);
 }},
     {"glow_width",
      [](lua_State *L, P p)
@@ -471,7 +467,7 @@ static const LuaField portalFields[] = {
     lua_pushinteger(L, static_cast<Config::Portal *>(p)->border_color);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Portal *>(p)->border_color = lua_tointeger(L, 3); }},
+{ static_cast<Config::Portal *>(p)->border_color = readLuaColor(L, 3, static_cast<Config::Portal *>(p)->border_color); }},
     {"border_width",
      [](lua_State *L, P p)
 {
@@ -519,7 +515,7 @@ static const LuaField windowFields[] = {
     lua_pushinteger(L, static_cast<Config::Window *>(p)->accent);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Window *>(p)->accent = lua_tointeger(L, 3); }},
+{ static_cast<Config::Window *>(p)->accent = readLuaColor(L, 3, static_cast<Config::Window *>(p)->accent); }},
 
     {"bg",
      [](lua_State *L, P p)
@@ -527,7 +523,7 @@ static const LuaField windowFields[] = {
     lua_pushinteger(L, static_cast<Config::Window *>(p)->bg);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Window *>(p)->bg = lua_tointeger(L, 3); },
+{ static_cast<Config::Window *>(p)->bg = readLuaColor(L, 3, static_cast<Config::Window *>(p)->bg); },
      [](Lektra *lk) { lk->applyWindowBackground(); }},
 
     {"fullscreen",
@@ -1013,7 +1009,7 @@ static const LuaField selectionFields[] = {
     lua_pushinteger(L, static_cast<Config::Selection *>(p)->color);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Selection *>(p)->color = lua_tointeger(L, 3); }},
+{ static_cast<Config::Selection *>(p)->color = readLuaColor(L, 3, static_cast<Config::Selection *>(p)->color); }},
 
     {"copy_on_select",
      [](lua_State *L, P p)
@@ -1068,7 +1064,7 @@ static const LuaField splitFields[] = {
     lua_pushinteger(L, static_cast<Config::Split *>(p)->focus_border_color);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Split *>(p)->focus_border_color = lua_tointeger(L, 3); }},
+{ static_cast<Config::Split *>(p)->focus_border_color = readLuaColor(L, 3, static_cast<Config::Split *>(p)->focus_border_color); }},
 
     {"focus_border_width",
      [](lua_State *L, P p)
@@ -1114,8 +1110,7 @@ static const LuaField splitFields[] = {
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::Split *>(p)->maximize_indicator_color
-        = lua_tointeger(L, 3);
+    static_cast<Config::Split *>(p)->maximize_indicator_color = readLuaColor(L, 3, static_cast<Config::Split *>(p)->maximize_indicator_color);
 }},
 
     {"mouse_follows_focus",
@@ -1189,7 +1184,7 @@ static const LuaField jumpMarkerFields[] = {
     lua_pushinteger(L, static_cast<Config::JumpMarker *>(p)->color);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::JumpMarker *>(p)->color = lua_tointeger(L, 3); }},
+{ static_cast<Config::JumpMarker *>(p)->color = readLuaColor(L, 3, static_cast<Config::JumpMarker *>(p)->color); }},
 
     {"enabled",
      [](lua_State *L, P p)
@@ -1300,7 +1295,7 @@ static const LuaField linkHintsFields[] = {
     lua_pushinteger(L, static_cast<Config::Link_hints *>(p)->bg);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Link_hints *>(p)->bg = lua_tointeger(L, 3); }},
+{ static_cast<Config::Link_hints *>(p)->bg = readLuaColor(L, 3, static_cast<Config::Link_hints *>(p)->bg); }},
 
     {"fg",
      [](lua_State *L, P p)
@@ -1308,7 +1303,7 @@ static const LuaField linkHintsFields[] = {
     lua_pushinteger(L, static_cast<Config::Link_hints *>(p)->fg);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Link_hints *>(p)->fg = lua_tointeger(L, 3); }},
+{ static_cast<Config::Link_hints *>(p)->fg = readLuaColor(L, 3, static_cast<Config::Link_hints *>(p)->fg); }},
 
     {"size",
      [](lua_State *L, P p)
@@ -2480,15 +2475,20 @@ sectionNewIndex(lua_State *L)
 
         if (viewId < 0)
         {
-            // lektra.opt: the global default (above) and the current view.
-            if (DocumentView *doc = lektra->currentDocument())
+            // lektra.opt: the global default (above) and the current view,
+            // like Vim's ":set". lektra.opt_global (-2) is only the default,
+            // like ":setglobal".
+            if (viewId == -1)
             {
-                rawGetField(L, 1, "__offset");
-                const lua_Integer offset = lua_tointeger(L, -1);
-                lua_pop(L, 1);
-                f->set(L,
-                       reinterpret_cast<char *>(&doc->localConfig()) + offset);
-                doc->localConfigChanged(section);
+                if (DocumentView *doc = lektra->currentDocument())
+                {
+                    rawGetField(L, 1, "__offset");
+                    const lua_Integer offset = lua_tointeger(L, -1);
+                    lua_pop(L, 1);
+                    f->set(L, reinterpret_cast<char *>(&doc->localConfig())
+                                  + offset);
+                    doc->localConfigChanged(section);
+                }
             }
             if (f->callback)
                 f->callback(lektra);
@@ -2569,7 +2569,7 @@ struct OptScope
 {
     Config &root; // config the offsets are measured from
     Lektra *lektra;
-    int view_id; // -1 for lektra.opt
+    int view_id; // -1 for lektra.opt, -2 for lektra.opt_global
 };
 
 template <int N>
@@ -2838,6 +2838,9 @@ Lektra::initLuaOpt() noexcept
     initLuaEnums(m_L);
     buildOptTable(m_L, OptScope{m_config, this, -1});
     lua_setfield(m_L, -2, "opt");
+    // The same tables, but a write only changes the global default.
+    buildOptTable(m_L, OptScope{m_config, this, -2});
+    lua_setfield(m_L, -2, "opt_global");
 }
 
 // view:opt() — the same option tables, bound to one view's local copy.
@@ -2845,6 +2848,75 @@ void
 Lektra::pushViewOptTable(lua_State *L, DocumentView *view) noexcept
 {
     buildOptTable(L, OptScope{m_config, this, view->id()});
+}
+
+bool
+Lektra::resetViewOptions(DocumentView *view, const QString &section) noexcept
+{
+    if (!view)
+        return false;
+
+    // the sections a view has of its own (the ones view:opt() lists)
+    struct ViewSection
+    {
+        const char *name;
+        void (*copy)(Config &to, const Config &from);
+    };
+    static const ViewSection sections[] = {
+        {"page", [](Config &to, const Config &from) { to.page = from.page; }},
+        {"search",
+         [](Config &to, const Config &from) { to.search = from.search; }},
+        {"annotations",
+         [](Config &to, const Config &from)
+         { to.annotations = from.annotations; }},
+        {"layout",
+         [](Config &to, const Config &from) { to.layout = from.layout; }},
+        {"reflow",
+         [](Config &to, const Config &from) { to.reflow = from.reflow; }},
+        {"zoom", [](Config &to, const Config &from) { to.zoom = from.zoom; }},
+        {"selection",
+         [](Config &to, const Config &from) { to.selection = from.selection; }},
+        {"split",
+         [](Config &to, const Config &from) { to.split = from.split; }},
+        {"scrollbars",
+         [](Config &to, const Config &from) { to.scrollbars = from.scrollbars; }},
+        {"jump_marker",
+         [](Config &to, const Config &from)
+         { to.jump_marker = from.jump_marker; }},
+        {"links",
+         [](Config &to, const Config &from) { to.links = from.links; }},
+        {"link_hints",
+         [](Config &to, const Config &from)
+         { to.link_hints = from.link_hints; }},
+        {"rendering",
+         [](Config &to, const Config &from) { to.rendering = from.rendering; }},
+        {"behavior",
+         [](Config &to, const Config &from) { to.behavior = from.behavior; }},
+    };
+
+    const Config fresh = view->freshLocalConfig();
+    Config &local      = view->localConfig();
+
+    if (section.isEmpty())
+    {
+        for (const ViewSection &s : sections)
+        {
+            s.copy(local, fresh);
+            view->localConfigChanged(QString::fromLatin1(s.name));
+        }
+        return true;
+    }
+
+    for (const ViewSection &s : sections)
+    {
+        if (section == QLatin1String(s.name))
+        {
+            s.copy(local, fresh);
+            view->localConfigChanged(section);
+            return true;
+        }
+    }
+    return false;
 }
 
 Config *

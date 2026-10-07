@@ -72,6 +72,10 @@ public:
     DocumentView *get_view_by_id(const DocumentView::Id) const noexcept;
 #ifdef WITH_LUA
     void pushViewOptTable(lua_State *L, DocumentView *view) noexcept;
+    // Sets the options of a view (all of them, or the sections `section`) back
+    // to what a new view would start with, like Vim's ":setlocal opt<". False
+    // if `section` is not a section a view has.
+    bool resetViewOptions(DocumentView *view, const QString &section) noexcept;
 #endif
 
     // Gives a tab a title of its own, kept until it is cleared (empty title).

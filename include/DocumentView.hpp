@@ -144,6 +144,10 @@ public:
     // several changes in one event-loop tick are applied together.
     void localConfigChanged(const QString &section) noexcept;
 
+    // The options a new view of this file type would start with: the global
+    // ones, with the overrides of [filetype.<type>] on top.
+    Config freshLocalConfig() const noexcept;
+
     inline void setSpacing(int spacing) noexcept
     {
         m_spacing = spacing;
