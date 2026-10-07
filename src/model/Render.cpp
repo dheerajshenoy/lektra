@@ -717,9 +717,24 @@ Model::requestPageRender(const RenderJob &job,
 }
 
 Model::PageRenderResult
-Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
+Model::renderPageWithExtrasAsync(
+    const RenderJob &job,
+    const std::shared_ptr<std::atomic<bool>> &cancel) noexcept
 {
     PageRenderResult result;
+
+    // A render the view gave up on (the user scrolled past
+    // this page) is abandoned before any real work happens.
+    const auto aborted = [&]
+    {
+        return m_render_cancelled.load(std::memory_order_acquire)
+               || (cancel && cancel->load(std::memory_order_acquire));
+    };
+    if (aborted())
+    {
+        result.cancelled = true;
+        return result;
+    }
 
     if (m_filetype == FileType::DJVU)
     {

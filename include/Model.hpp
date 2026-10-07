@@ -567,7 +567,18 @@ public:
                       std::shared_ptr<std::atomic<bool>> cancel
                       = nullptr) noexcept;
     QImage requestImageRender(bool highQuality = false) noexcept;
-    PageRenderResult renderPageWithExtrasAsync(const RenderJob &job) noexcept;
+    // Rasterizes a page (plus its links/annotations) off the GUI
+    // thread. `cancel` (optional) is polled between the render
+    // phases; once set the remaining phases are skipped and the
+    // result comes back with `cancelled == true` and a null
+    // image. The display list replay itself cannot be
+    // interrupted, so a render already inside it runs to
+    // completion — the post-processing passes are what get
+    // skipped.
+    PageRenderResult renderPageWithExtrasAsync(
+        const RenderJob &job,
+        const std::shared_ptr<std::atomic<bool>> &cancel
+        = nullptr) noexcept;
     [[nodiscard]] QImage renderRegionAtDPI(int pageno, QRectF logicalRect,
                                            float targetDPI) noexcept;
     // Renders a rectangle of a page, given in page-space points, at the given
