@@ -16,21 +16,21 @@
 #include <vector>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-#ifdef __APPLE__
-#include <mach-o/dyld.h>
-#endif
-#include <sys/resource.h>
-#include <unistd.h>
+    #ifdef __APPLE__
+        #include <mach-o/dyld.h>
+    #endif
+    #include <sys/resource.h>
+    #include <unistd.h>
 #elif _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+    #define WIN32_LEAN_AND_MEAN
+    #include <Windows.h>
 #endif
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
 static std::string
 get_self_executable_path()
 {
-#ifdef __APPLE__
+    #ifdef __APPLE__
     uint32_t size = 0;
     _NSGetExecutablePath(nullptr, &size);
     if (size == 0)
@@ -41,14 +41,14 @@ get_self_executable_path()
         return std::string{};
 
     return std::string(buf.data());
-#else
+    #else
     char buf[PATH_MAX + 1];
     const ssize_t n = ::readlink("/proc/self/exe", buf, PATH_MAX);
     if (n <= 0)
         return std::string{};
     buf[n] = '\0';
     return std::string(buf);
-#endif
+    #endif
 }
 
 static void
@@ -245,7 +245,8 @@ init_args(argparse::ArgumentParser &program)
         .flag();
 
     program.add_argument("--socket")
-        .help("Listen on the given socket path (overrides the default IPC socket)")
+        .help("Listen on the given socket path (overrides the default IPC "
+              "socket)")
         .default_value(std::string{})
         .metavar("SOCKET_PATH");
 
@@ -282,11 +283,13 @@ main(int argc, char *argv[])
         return 1;
     }
 
-    // Crash reporter mode: launched by the crash handler — show the dialog and exit.
-    // Must be checked before the detach logic so the reporter process isn't re-forked.
-    if (program.is_used("--crash-reporter")) {
-        const QString logPath
-            = QString::fromStdString(program.get<std::string>("--crash-reporter"));
+    // Crash reporter mode: launched by the crash handler — show the dialog and
+    // exit. Must be checked before the detach logic so the reporter process
+    // isn't re-forked.
+    if (program.is_used("--crash-reporter"))
+    {
+        const QString logPath = QString::fromStdString(
+            program.get<std::string>("--crash-reporter"));
         QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
             Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
         QApplication app(argc, argv);

@@ -45,11 +45,10 @@ CommandPicker::collectItems()
 
     if (m_config.sort_by_frequency && m_command_manager)
     {
-        std::stable_sort(order.begin(), order.end(),
-                         [this](size_t a, size_t b)
+        std::stable_sort(order.begin(), order.end(), [this](size_t a, size_t b)
         {
             return m_command_manager->usageCount(m_commands[a].name)
-                 > m_command_manager->usageCount(m_commands[b].name);
+                   > m_command_manager->usageCount(m_commands[b].name);
         });
     }
 

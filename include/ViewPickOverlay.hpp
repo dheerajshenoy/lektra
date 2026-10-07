@@ -17,9 +17,9 @@ class ViewPickOverlay : public QWidget
 
 public:
     // `preselected` views start out selected.
-    explicit ViewPickOverlay(
-        DocumentContainer *container,
-        const QList<QPointer<DocumentView>> &preselected = {});
+    explicit ViewPickOverlay(DocumentContainer *container,
+                             const QList<QPointer<DocumentView>> &preselected
+                             = {});
 
     // Toggles the view drawn with `number` (1-based).
     void toggle(int number) noexcept;

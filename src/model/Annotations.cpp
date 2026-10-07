@@ -1,8 +1,7 @@
-#include "Model.hpp"
-
 #include "BrowseLinkItem.hpp"
 #include "Commands/TextHighlightAnnotationCommand.hpp"
 #include "Config.hpp"
+#include "Model.hpp"
 #include "utils.hpp"
 
 #include <QFile>
@@ -28,27 +27,27 @@
 #include <unordered_set>
 #ifdef HAVE_FONTCONFIG
 
-#include <fontconfig/fontconfig.h>
+    #include <fontconfig/fontconfig.h>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
 
-#include <QDirIterator>
+    #include <QDirIterator>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
-#include <QFile>
+    #include <QFile>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
-#include <QStandardPaths>
+    #include <QStandardPaths>
 #endif
 #ifdef HAVE_LIBARCHIVE
 
-#include <archive.h>
+    #include <archive.h>
 #endif
 #ifdef HAVE_LIBARCHIVE
-#include <archive_entry.h>
+    #include <archive_entry.h>
 #endif
 
 // Build scale→rotate→[flip]→translate-to-origin matrix (manual pattern sites).
@@ -442,16 +441,16 @@ outline_to_json(fz_context *ctx, fz_document *doc, fz_outline *node) noexcept
         // node->uri via fz_resolve_link() — mirrors
         // Model::resolveOutlineNode().
         fz_location loc = node->page;
-        float       x = node->x, y = node->y;
+        float x = node->x, y = node->y;
         if (loc.chapter < 0 && doc && node->uri)
             loc = fz_resolve_link(ctx, doc, node->uri, &x, &y);
-        const int pageno = doc ? fz_page_number_from_location(ctx, doc, loc)
-                               : loc.page;
+        const int pageno
+            = doc ? fz_page_number_from_location(ctx, doc, loc) : loc.page;
         QJsonObject obj;
-        obj["title"]    = node->title ? QString::fromUtf8(node->title) : QString();
-        obj["page"]     = pageno + 1; // store as 1-based
-        obj["x"]        = (double)x;
-        obj["y"]        = (double)y;
+        obj["title"] = node->title ? QString::fromUtf8(node->title) : QString();
+        obj["page"]  = pageno + 1; // store as 1-based
+        obj["x"]     = (double)x;
+        obj["y"]     = (double)y;
         obj["children"] = outline_to_json(ctx, doc, node->down);
         arr.append(obj);
     }
@@ -477,12 +476,11 @@ json_to_outline(fz_context *ctx, fz_document *doc,
         const QString title   = obj["title"].toString();
         node->title           = fz_strdup(ctx, title.toUtf8().constData());
         const int storedPage  = obj["page"].toInt(1) - 1;
-        node->page            = doc ? fz_location_from_page_number(ctx, doc,
-                                                                  storedPage)
-                                     : fz_make_location(0, storedPage);
-        node->x               = (float)obj["x"].toDouble();
-        node->y               = (float)obj["y"].toDouble();
-        node->is_open         = 1;
+        node->page    = doc ? fz_location_from_page_number(ctx, doc, storedPage)
+                            : fz_make_location(0, storedPage);
+        node->x       = (float)obj["x"].toDouble();
+        node->y       = (float)obj["y"].toDouble();
+        node->is_open = 1;
         if (obj.contains("children") && obj["children"].isArray())
             node->down = json_to_outline(ctx, doc, obj["children"].toArray());
         *tail = node;
@@ -509,8 +507,8 @@ Model::pageLinks(int pageno) noexcept
     for (const CachedLink &l : entry->links)
     {
         PageLink p;
-        p.rect = QRectF(l.rect.x0, l.rect.y0, l.rect.x1 - l.rect.x0,
-                        l.rect.y1 - l.rect.y0);
+        p.rect             = QRectF(l.rect.x0, l.rect.y0, l.rect.x1 - l.rect.x0,
+                                    l.rect.y1 - l.rect.y0);
         p.info.uri         = l.uri;
         p.info.dest        = fz_make_link_dest_none();
         p.info.type        = l.type;
@@ -580,18 +578,21 @@ Model::generateOutline(float min_ratio, int max_levels) noexcept
     if (!m_doc || !m_ctx || m_page_count == 0)
         return nullptr;
 
-    // Phase 1: collect font size frequencies across all pages (bucketed to 0.1pt)
+    // Phase 1: collect font size frequencies across all pages (bucketed to
+    // 0.1pt)
     std::map<int, int> size_freq; // key = round(size * 10)
     for (int pageno = 0; pageno < m_page_count; ++pageno)
     {
         fz_stext_page *stext = get_or_build_stext_page(m_ctx, pageno);
         if (!stext)
             continue;
-        for (fz_stext_block *block = stext->first_block; block; block = block->next)
+        for (fz_stext_block *block = stext->first_block; block;
+             block                 = block->next)
         {
             if (block->type != FZ_STEXT_BLOCK_TEXT)
                 continue;
-            for (fz_stext_line *line = block->u.t.first_line; line; line = line->next)
+            for (fz_stext_line *line = block->u.t.first_line; line;
+                 line                = line->next)
             {
                 for (fz_stext_char *ch = line->first_char; ch; ch = ch->next)
                 {
@@ -619,7 +620,8 @@ Model::generateOutline(float min_ratio, int max_levels) noexcept
     const float body_size = body_key / 10.0f;
     const float threshold = body_size * min_ratio;
 
-    // Collect distinct heading sizes >= threshold, sorted descending, capped at max_levels
+    // Collect distinct heading sizes >= threshold, sorted descending, capped at
+    // max_levels
     std::vector<int> heading_keys;
     for (const auto &[key, freq] : size_freq)
     {
@@ -638,24 +640,27 @@ Model::generateOutline(float min_ratio, int max_levels) noexcept
         key_to_level[heading_keys[i]] = i;
 
     // Phase 2: build flat outline list from matching lines
-    fz_outline *root    = nullptr;
-    fz_outline **tail   = &root;
+    fz_outline *root  = nullptr;
+    fz_outline **tail = &root;
 
     for (int pageno = 0; pageno < m_page_count; ++pageno)
     {
         fz_stext_page *stext = get_or_build_stext_page(m_ctx, pageno);
         if (!stext)
             continue;
-        for (fz_stext_block *block = stext->first_block; block; block = block->next)
+        for (fz_stext_block *block = stext->first_block; block;
+             block                 = block->next)
         {
             if (block->type != FZ_STEXT_BLOCK_TEXT)
                 continue;
-            for (fz_stext_line *line = block->u.t.first_line; line; line = line->next)
+            for (fz_stext_line *line = block->u.t.first_line; line;
+                 line                = line->next)
             {
                 if (!line->first_char)
                     continue;
 
-                // Use the maximum char size in the line as its representative size
+                // Use the maximum char size in the line as its representative
+                // size
                 float line_size = 0;
                 for (fz_stext_char *ch = line->first_char; ch; ch = ch->next)
                     line_size = std::max(line_size, ch->size);
@@ -674,11 +679,16 @@ Model::generateOutline(float min_ratio, int max_levels) noexcept
                 }
 
                 // Trim leading/trailing whitespace
-                const auto not_space = [](unsigned char c) { return !std::isspace(c); };
-                title.erase(title.begin(),
-                            std::find_if(title.begin(), title.end(), not_space));
+                const auto not_space = [](unsigned char c)
+                {
+                    return !std::isspace(c);
+                };
                 title.erase(
-                    std::find_if(title.rbegin(), title.rend(), not_space).base(),
+                    title.begin(),
+                    std::find_if(title.begin(), title.end(), not_space));
+                title.erase(
+                    std::find_if(title.rbegin(), title.rend(), not_space)
+                        .base(),
                     title.end());
 
                 if (title.empty())
@@ -695,9 +705,9 @@ Model::generateOutline(float min_ratio, int max_levels) noexcept
                 // every consumer can uniformly call
                 // fz_page_number_from_location() to get the global index back.
                 node->page = fz_location_from_page_number(m_ctx, m_doc, pageno);
-                node->x          = line->first_char->origin.x;
-                node->y          = line->first_char->origin.y;
-                node->is_open    = 1;
+                node->x    = line->first_char->origin.x;
+                node->y    = line->first_char->origin.y;
+                node->is_open = 1;
 
                 *tail = node;
                 tail  = &node->next;
@@ -1588,7 +1598,8 @@ Model::annotationInfos(int pageno) noexcept
                     info.rect       = fz_empty_rect;
                     for (int i = 0; i < count; ++i)
                     {
-                        const fz_quad quad = pdf_annot_quad_point(m_ctx, annot, i);
+                        const fz_quad quad
+                            = pdf_annot_quad_point(m_ctx, annot, i);
                         info.quads.push_back(quad);
                         info.rect
                             = fz_union_rect(info.rect, fz_rect_from_quad(quad));

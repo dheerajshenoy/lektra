@@ -4,9 +4,8 @@
 // Lua 5.1 (plus a few 5.2 additions), so provide the handful of calls it
 // lacks. Everything here is guarded so a newer Lua would use its own.
 
-#include <lua.hpp>
-
 #include <cmath>
+#include <lua.hpp>
 
 #if LUA_VERSION_NUM < 502
 
@@ -14,7 +13,8 @@
 inline int
 lua_absindex(lua_State *L, int idx)
 {
-    return (idx > 0 || idx <= LUA_REGISTRYINDEX) ? idx : lua_gettop(L) + idx + 1;
+    return (idx > 0 || idx <= LUA_REGISTRYINDEX) ? idx
+                                                 : lua_gettop(L) + idx + 1;
 }
 
 inline size_t

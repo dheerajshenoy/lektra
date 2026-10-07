@@ -147,7 +147,8 @@ RecentFilesModel::removeRows(int row, int count, const QModelIndex &parent)
 }
 
 void
-RecentFilesModel::setEntries(std::vector<RecentFileEntry> entries, bool markClean)
+RecentFilesModel::setEntries(std::vector<RecentFileEntry> entries,
+                             bool markClean)
 {
     beginResetModel();
     m_entries = std::move(entries);

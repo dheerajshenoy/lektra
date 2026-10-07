@@ -67,7 +67,7 @@ ViewPickOverlay::paintEvent(QPaintEvent *)
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
 
-    const QColor accent = palette().color(QPalette::Highlight);
+    const QColor accent   = palette().color(QPalette::Highlight);
     const QColor onAccent = palette().color(QPalette::HighlightedText);
 
     const auto views = m_container->getAllViews();
@@ -116,8 +116,8 @@ ViewPickOverlay::paintEvent(QPaintEvent *)
     p.setFont(font);
     const QString hint
         = tr("Press a number to select a view, Enter to sync, Esc to cancel");
-    const QRect textRect = QFontMetrics(font).boundingRect(hint).adjusted(
-        -12, -6, 12, 6);
+    const QRect textRect
+        = QFontMetrics(font).boundingRect(hint).adjusted(-12, -6, 12, 6);
     const QRect box(QPoint((width() - textRect.width()) / 2,
                            height() - textRect.height() - 12),
                     textRect.size());

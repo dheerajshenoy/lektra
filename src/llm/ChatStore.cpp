@@ -7,7 +7,6 @@
 #include <QRandomGenerator>
 #include <QRegularExpression>
 #include <QSaveFile>
-
 #include <algorithm>
 
 QString
@@ -15,7 +14,8 @@ ChatStore::newId()
 {
     // sortable by time, with a random tail so two chats in the same
     // millisecond cannot collide
-    return QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd-HHmmss-zzz"))
+    return QDateTime::currentDateTimeUtc().toString(
+               QStringLiteral("yyyyMMdd-HHmmss-zzz"))
            + QLatin1Char('-')
            + QString::number(QRandomGenerator::global()->bounded(0x10000), 16)
                  .rightJustified(4, QLatin1Char('0'));
@@ -24,7 +24,7 @@ ChatStore::newId()
 QString
 ChatStore::titleFrom(const QString &firstUserText)
 {
-    QString title = firstUserText.simplified();
+    QString title      = firstUserText.simplified();
     constexpr int kMax = 60;
     if (title.size() > kMax)
         title = title.left(kMax - 1).trimmed() + QStringLiteral("…");
@@ -67,7 +67,8 @@ ChatStore::list(int limit) const
         if (o.isEmpty())
             continue;
         out.append({id, o.value("title").toString(),
-                    QDateTime::fromString(o.value("updated").toString(), Qt::ISODate)});
+                    QDateTime::fromString(o.value("updated").toString(),
+                                          Qt::ISODate)});
     }
     std::sort(out.begin(), out.end(), [](const Summary &a, const Summary &b)
     { return a.updated != b.updated ? a.updated > b.updated : a.id > b.id; });
@@ -112,10 +113,12 @@ ChatStore::load(const QString &id) const
         return std::nullopt;
 
     Chat chat;
-    chat.id         = id;
-    chat.title      = o.value("title").toString();
-    chat.created    = QDateTime::fromString(o.value("created").toString(), Qt::ISODate);
-    chat.updated    = QDateTime::fromString(o.value("updated").toString(), Qt::ISODate);
+    chat.id    = id;
+    chat.title = o.value("title").toString();
+    chat.created
+        = QDateTime::fromString(o.value("created").toString(), Qt::ISODate);
+    chat.updated
+        = QDateTime::fromString(o.value("updated").toString(), Qt::ISODate);
     chat.messages   = o.value("messages").toArray();
     chat.transcript = o.value("transcript").toArray();
     return chat;

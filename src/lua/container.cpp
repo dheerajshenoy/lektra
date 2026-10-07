@@ -47,8 +47,9 @@ splitView(lua_State *L, Qt::Orientation orientation)
     DocumentView *created
         = lua_isnoneornil(L, 2)
               ? (*container)->split(current, orientation)
-              : (*container)->split(current, orientation,
-                                    QString::fromUtf8(luaL_checkstring(L, 2)));
+              : (*container)
+                    ->split(current, orientation,
+                            QString::fromUtf8(luaL_checkstring(L, 2)));
     if (auto *lektra = qobject_cast<Lektra *>((*container)->window()))
         lektra->syncTabSplits(*container);
     pushView(L, created);
@@ -59,8 +60,8 @@ const luaL_Reg ContainerMethods[] = {
     // container:vsplit([file]) — new view beside the current one (a vertical
     // divider), like the split_vertical command. Shows the same document
     // unless a file is given. Returns the new view.
-    {"vsplit", [](lua_State *L) -> int
-    { return splitView(L, Qt::Horizontal); }},
+    {"vsplit",
+     [](lua_State *L) -> int { return splitView(L, Qt::Horizontal); }},
 
     // container:hsplit([file]) — new view below the current one.
     {"hsplit", [](lua_State *L) -> int { return splitView(L, Qt::Vertical); }},
@@ -149,25 +150,25 @@ const luaL_Reg ContainerMethods[] = {
 
     // container:close_others([view]) — closes every split except `view`
     // (default: the focused one).
-    CONTAINER_METHOD(
-        "close_others",
-        {
-            DocumentView *keep = (*container)->view();
-            if (!lua_isnoneornil(L, 2))
-            {
-                auto **view = static_cast<DocumentView **>(
-                    luaL_checkudata(L, 2, "DocumentViewMetaTable"));
-                keep = *view;
-            }
-            if (keep && (*container)->getAllViews().contains(keep))
-            {
-                (*container)->close_other_views(keep);
-                if (auto *lektra
-                    = qobject_cast<Lektra *>((*container)->window()))
-                    lektra->syncTabSplits(*container);
-            }
-            return 0;
-        }),
+    CONTAINER_METHOD("close_others",
+                     {
+                         DocumentView *keep = (*container)->view();
+                         if (!lua_isnoneornil(L, 2))
+                         {
+                             auto **view
+                                 = static_cast<DocumentView **>(luaL_checkudata(
+                                     L, 2, "DocumentViewMetaTable"));
+                             keep = *view;
+                         }
+                         if (keep && (*container)->getAllViews().contains(keep))
+                         {
+                             (*container)->close_other_views(keep);
+                             if (auto *lektra = qobject_cast<Lektra *>(
+                                     (*container)->window()))
+                                 lektra->syncTabSplits(*container);
+                         }
+                         return 0;
+                     }),
 
     CONTAINER_METHOD("toggle_maximize",
                      {

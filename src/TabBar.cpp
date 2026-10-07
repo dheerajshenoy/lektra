@@ -177,7 +177,7 @@ TabBar::tabRemoved(int index)
                 shifted.insert(i);
             else if (i > index)
                 shifted.insert(i - 1);
-        m_selected_tabs = shifted;
+        m_selected_tabs    = shifted;
         m_selection_anchor = -1;
     }
 
@@ -221,7 +221,7 @@ TabBar::tabMoved(int from, int to)
             else
                 moved.insert(i);
         }
-        m_selected_tabs = moved;
+        m_selected_tabs    = moved;
         m_selection_anchor = -1;
     }
 
@@ -237,8 +237,8 @@ TabBar::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
-        const int index = tabAt(event->pos());
-        const bool ctrl = event->modifiers() & Qt::ControlModifier;
+        const int index  = tabAt(event->pos());
+        const bool ctrl  = event->modifiers() & Qt::ControlModifier;
         const bool shift = event->modifiers() & Qt::ShiftModifier;
 
         if (index >= 0 && (ctrl || shift))

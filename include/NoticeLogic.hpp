@@ -61,7 +61,8 @@ changelogSection(const QString &changelog, const QString &version)
     if (!match.hasMatch())
         return {};
     const qsizetype start = match.capturedStart();
-    const qsizetype next  = changelog.indexOf(QStringLiteral("\n## "), match.capturedEnd());
+    const qsizetype next
+        = changelog.indexOf(QStringLiteral("\n## "), match.capturedEnd());
     return changelog.mid(start, next < 0 ? -1 : next - start).trimmed();
 }
 
@@ -70,11 +71,11 @@ struct DonateState
 {
     QDateTime firstRun;
     QDateTime lastShown; // invalid if never shown
-    int launches    = 0;
-    bool dismissed  = false; // "Don't ask again"
+    int launches   = 0;
+    bool dismissed = false; // "Don't ask again"
 };
 
-constexpr int kDonateMinDays     = 14;  // since the first run
+constexpr int kDonateMinDays     = 14; // since the first run
 constexpr int kDonateMinLaunches = 20;
 constexpr int kDonateRepeatDays  = 182; // between two reminders
 

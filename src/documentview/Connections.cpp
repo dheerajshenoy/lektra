@@ -1,5 +1,4 @@
 #include "DocumentView.hpp"
-
 #include "ImageAnimation.hpp"
 
 #include <QMovie>
@@ -120,7 +119,8 @@ DocumentView::openAsync(const QString &filePath) noexcept
     applyFiletypeOverrides(filePath);
     m_model->setReflowStyle(m_config.reflow.font_family,
                             m_config.reflow.line_spacing);
-    m_reflow_style_key = QString("%1|%2").arg(m_config.reflow.font_family)
+    m_reflow_style_key = QString("%1|%2")
+                             .arg(m_config.reflow.font_family)
                              .arg(m_config.reflow.line_spacing);
 
     // Order matters: disconnect any previous watcher connection FIRST, then
@@ -355,7 +355,8 @@ DocumentView::initConnections() noexcept
 
 #ifdef WITH_LUA
     connect(m_gview, &GraphicsView::modeChanged, this,
-            [this](GraphicsView::Mode) { dispatchLuaEvent(DispatchType::OnModeChanged); });
+            [this](GraphicsView::Mode)
+    { dispatchLuaEvent(DispatchType::OnModeChanged); });
 #endif
 
     if (m_model->isImage())
@@ -567,7 +568,7 @@ DocumentView::handleSynctexJumpRequested(QPointF scenePos) noexcept
                 const char *name = synctex_node_get_name(node);
                 const int line   = synctex_node_line(node);
 
-#ifdef WITH_LUA
+    #ifdef WITH_LUA
                 // tell lektra.event.register("OnSynctexJumpRequested", ...)
                 // listeners where the jump goes, then open the editor as usual
                 if (auto *lektra = qobject_cast<Lektra *>(window()))
@@ -580,7 +581,7 @@ DocumentView::handleSynctexJumpRequested(QPointF scenePos) noexcept
                     lektra->dispatchLuaEvent(
                         DispatchType::OnSynctexJumpRequested, &request);
                 }
-#endif
+    #endif
                 synctexLocateInDocument(name, line);
             }
         }
@@ -796,13 +797,12 @@ DocumentView::applyReflowStyle(bool atOpen) noexcept
     if (atOpen && qFuzzyCompare(e.font_size, kReflowFontSizeDefault))
         return;
 
-    m_reflow_em = std::clamp(e.font_size, kReflowFontSizeMin,
-                             kReflowFontSizeMax);
+    m_reflow_em
+        = std::clamp(e.font_size, kReflowFontSizeMin, kReflowFontSizeMax);
 
     // Font and line spacing are applied while MuPDF loads the text, so
     // changing them on an open document means loading it again.
-    const QString key
-        = QString("%1|%2").arg(e.font_family).arg(e.line_spacing);
+    const QString key = QString("%1|%2").arg(e.font_family).arg(e.line_spacing);
     if (!atOpen && key != m_reflow_style_key)
     {
         m_model->setReflowStyle(e.font_family, e.line_spacing);

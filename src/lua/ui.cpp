@@ -1,12 +1,12 @@
-#include "lua/MainState.hpp"
 #include "ColorDialog.hpp"
-#include "Lektra.hpp"
 #include "FileDialogRequest.hpp"
+#include "Lektra.hpp"
 #include "lua/LuaPicker.hpp"
+#include "lua/MainState.hpp"
 
 #include <QFileDialog>
-#include <QMessageBox>
 #include <QMenu>
+#include <QMessageBox>
 
 namespace
 {
@@ -46,7 +46,7 @@ registerMenuMetatable(lua_State *L)
             if (!ud || !*ud)
                 return 0;
 
-            QMenu *menu = *ud;
+            QMenu *menu     = *ud;
             QAction *action = menu->addAction(QString::fromUtf8(label));
 
             if (lua_isfunction(L, 3))
@@ -212,8 +212,9 @@ lua_ui_picker(lua_State *L, Lektra *lektra)
     picker->setItems(items);
 
     if (on_accept_ref != LUA_NOREF)
-        QObject::connect(picker, &LuaPicker::itemAccepted,
-                         [L = luaMainState(), on_accept_ref](const QString &text)
+        QObject::connect(
+            picker, &LuaPicker::itemAccepted,
+            [L = luaMainState(), on_accept_ref](const QString &text)
         {
             lua_rawgeti(L, LUA_REGISTRYINDEX, on_accept_ref);
             lua_pushstring(L, text.toUtf8().constData());
@@ -222,7 +223,8 @@ lua_ui_picker(lua_State *L, Lektra *lektra)
         });
 
     if (on_cancel_ref != LUA_NOREF)
-        QObject::connect(picker, &QObject::destroyed, [L = luaMainState(), on_cancel_ref]()
+        QObject::connect(picker, &QObject::destroyed,
+                         [L = luaMainState(), on_cancel_ref]()
         {
             lua_rawgeti(L, LUA_REGISTRYINDEX, on_cancel_ref);
             lua_call(L, 0, 0);
@@ -379,7 +381,8 @@ Lektra::initLuaUI() noexcept
     }, 1);
     lua_setfield(m_L, -2, "picker");
 
-    // lektra.ui.file_dialog(mode, options) or lektra.ui.file_dialog{mode=..., ...}
+    // lektra.ui.file_dialog(mode, options) or lektra.ui.file_dialog{mode=...,
+    // ...}
     //   mode: "open" (default), "open_multiple", "save", "directory"
     //   options: title, directory, filename, filters (text with ";;" or a
     //   list), selected_filter, default_suffix, confirm_overwrite
@@ -392,7 +395,7 @@ Lektra::initLuaUI() noexcept
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
 
         // Called as (mode, options), (options) or (mode).
-        int opts = 0; // stack index of the options table, 0 if none
+        int opts         = 0; // stack index of the options table, 0 if none
         QString modeName = QStringLiteral("open");
         if (lua_istable(L, 1))
             opts = 1;
@@ -453,13 +456,14 @@ Lektra::initLuaUI() noexcept
                     {
                         lua_rawgeti(L, -1, i);
                         if (lua_isstring(L, -1))
-                            request.filters << QString::fromUtf8(lua_tostring(L, -1));
+                            request.filters
+                                << QString::fromUtf8(lua_tostring(L, -1));
                         lua_pop(L, 1);
                     }
                 }
                 else if (lua_isstring(L, -1))
-                    request.filters
-                        = FileDialogRequest::splitFilters(QString::fromUtf8(lua_tostring(L, -1)));
+                    request.filters = FileDialogRequest::splitFilters(
+                        QString::fromUtf8(lua_tostring(L, -1)));
                 lua_pop(L, 1);
                 if (!request.filters.isEmpty())
                     break;
@@ -467,7 +471,8 @@ Lektra::initLuaUI() noexcept
         }
 
         const auto dialog = request.makeDialog(lektra);
-        if (dialog->exec() != QDialog::Accepted || dialog->selectedFiles().isEmpty())
+        if (dialog->exec() != QDialog::Accepted
+            || dialog->selectedFiles().isEmpty())
         {
             lua_pushnil(L);
             return 1;

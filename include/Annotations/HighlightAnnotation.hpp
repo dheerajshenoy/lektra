@@ -4,8 +4,6 @@
 #include "CommentPopupButton.hpp"
 #include "Config.hpp"
 
-#include <vector>
-
 #include <QAction>
 #include <QGraphicsItem>
 #include <QGraphicsSceneContextMenuEvent>
@@ -14,6 +12,7 @@
 #include <QMenu>
 #include <QObject>
 #include <QPainter>
+#include <vector>
 
 class HighlightAnnotation : public Annotation
 {
@@ -22,9 +21,9 @@ class HighlightAnnotation : public Annotation
 public:
     HighlightAnnotation(const Config::Annotations::Highlight &config,
                         const QRectF &rect, int index,
-                        const QString &comment = {},
+                        const QString &comment           = {},
                         const std::vector<QRectF> &rects = {},
-                        QGraphicsItem *parent  = nullptr)
+                        QGraphicsItem *parent            = nullptr)
         : Annotation(index, QColor(Qt::transparent), parent), m_rect(rect),
           m_rects(rects), m_config(config)
     {
@@ -65,7 +64,8 @@ public:
     {
         Q_UNUSED(widget);
 
-        auto paintRects = [&](auto fn) {
+        auto paintRects = [&](auto fn)
+        {
             if (m_rects.empty())
                 fn(m_rect);
             else
@@ -76,7 +76,8 @@ public:
         if (m_hovered && isGlowEnabled())
         {
             painter->save();
-            paintRects([&](const QRectF &r) { drawGlow(painter, r, m_glow_width); });
+            paintRects([&](const QRectF &r)
+            { drawGlow(painter, r, m_glow_width); });
             painter->restore();
         }
 

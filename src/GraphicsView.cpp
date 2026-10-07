@@ -543,8 +543,8 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     const QPointF scenePos = mapToScene(event->pos());
     // Use viewport (screen) coordinates for text-selection drag detection so
     // that the threshold stays consistent regardless of zoom level.
-    const int dist    = (event->pos() - m_start).manhattanLength();
-    const bool isDrag = dist > m_drag_threshold;
+    const int dist         = (event->pos() - m_start).manhattanLength();
+    const bool isDrag      = dist > m_drag_threshold;
 
     // Handle Text Selection / Highlighting Modes
     if (m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
@@ -560,8 +560,9 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
         {
             // Don't gate on isDrag: the handler checks hasTextSelection()
             // internally, so a click with no movement produces no annotation.
-            // Gating on isDrag causes highlights to fail for short adjacent-line
-            // selections whose screen distance falls below the threshold.
+            // Gating on isDrag causes highlights to fail for short
+            // adjacent-line selections whose screen distance falls below the
+            // threshold.
             emit textSelectionRequested(m_selection_start, scenePos);
             emit textHighlightRequested(m_selection_start, scenePos);
         }
@@ -718,21 +719,23 @@ GraphicsView::leaveEvent(QEvent *event)
 void
 GraphicsView::updateScrollbars()
 {
-    QScrollBar *vbar   = verticalScrollBar();
-    QScrollBar *hbar   = horizontalScrollBar();
+    QScrollBar *vbar = verticalScrollBar();
+    QScrollBar *hbar = horizontalScrollBar();
 
     // layoutScrollbars() below bails out (leaving whatever geometry the
     // scrollbar widgets last had — the Qt default top-left corner if they've
     // never been positioned yet) when the viewport has no real size. Don't
     // let a scrollbar become visible in that state, or it flashes at (0,0)
     // until the next resize repositions it.
-    QWidget *vp             = viewport();
+    QWidget *vp              = viewport();
     const bool validViewport = vp && vp->width() > 0 && vp->height() > 0;
 
     const bool vNeeded = vbar && vbar->maximum() > vbar->minimum();
     const bool hNeeded = hbar && hbar->maximum() > hbar->minimum();
-    const bool showV = validViewport && m_scrollbarsVisible && m_vbarEnabled && vNeeded;
-    const bool showH = validViewport && m_scrollbarsVisible && m_hbarEnabled && hNeeded;
+    const bool showV
+        = validViewport && m_scrollbarsVisible && m_vbarEnabled && vNeeded;
+    const bool showH
+        = validViewport && m_scrollbarsVisible && m_hbarEnabled && hNeeded;
 
     if (vbar)
         vbar->setVisible(showV);
@@ -799,8 +802,7 @@ GraphicsView::startImageDrag() noexcept
     // temp dir rather than deleted immediately after exec() returns, since
     // the drop target may read it asynchronously.
     auto *tmp = new QTemporaryFile(
-        QDir::temp().filePath(QStringLiteral("lektra-image-XXXXXX.png")),
-        this);
+        QDir::temp().filePath(QStringLiteral("lektra-image-XXXXXX.png")), this);
     tmp->setAutoRemove(false);
     if (tmp->open())
     {
@@ -961,7 +963,8 @@ GraphicsView::drawBackground(QPainter *painter, const QRectF & /*rect*/)
     // would show the system palette colour instead.
     const QColor bg = rgbaToQColor(m_config.window.bg);
     painter->fillRect(mapToScene(viewport()->rect()).boundingRect(),
-                      bg.alpha() > 0 ? bg : viewport()->palette().window().color());
+                      bg.alpha() > 0 ? bg
+                                     : viewport()->palette().window().color());
 }
 
 void
@@ -975,13 +978,14 @@ GraphicsView::paintEvent(QPaintEvent *event)
     // the scene background so the region truly appears as the full content.
     if (m_is_narrow_clip && m_narrow_scene_rect.isValid())
     {
-        const QRect narrowVp
-            = mapFromScene(m_narrow_scene_rect).boundingRect()
-                  .intersected(viewport()->rect());
-        const QRect vp = viewport()->rect();
+        const QRect narrowVp = mapFromScene(m_narrow_scene_rect)
+                                   .boundingRect()
+                                   .intersected(viewport()->rect());
+        const QRect vp       = viewport()->rect();
         const QColor bgColor = rgbaToQColor(m_config.window.bg);
-        const QColor bg = bgColor.alpha() > 0 ? bgColor
-                                              : viewport()->palette().window().color();
+        const QColor bg      = bgColor.alpha() > 0
+                                   ? bgColor
+                                   : viewport()->palette().window().color();
 
         // Top strip
         if (narrowVp.top() > vp.top())
@@ -1061,10 +1065,10 @@ GraphicsView::paintEvent(QPaintEvent *event)
         painter.setFont(f);
         QFontMetrics fm(f);
         constexpr int pad = 4;
-        const QRect   tr  = fm.boundingRect(label);
-        const int     bw  = tr.width() + pad * 2;
-        const int     bh  = tr.height() + pad * 2;
-        const QRect   badge(viewport()->rect().right() - bw - 6,
+        const QRect tr    = fm.boundingRect(label);
+        const int bw      = tr.width() + pad * 2;
+        const int bh      = tr.height() + pad * 2;
+        const QRect badge(viewport()->rect().right() - bw - 6,
                           viewport()->rect().top() + 6, bw, bh);
 
         QColor bg(m_config.split.maximize_indicator_color);
@@ -1148,19 +1152,21 @@ GraphicsView::applyBackend() noexcept
     bool useGL = false;
     switch (m_config.rendering.backend)
     {
-    case Config::Rendering::Backend::OpenGL:
-        useGL = true;
-        break;
-    case Config::Rendering::Backend::Raster:
-        useGL = false;
-        break;
-    default: // Auto: probe whether an OpenGL context can actually be created.
-        // supportsThreadedOpenGL() is intentionally not used here — it tests
-        // multi-thread GL support, not basic GL availability, and returns false
-        // on many Linux drivers even when the GPU works fine on the main thread.
-        QOpenGLContext probe;
-        useGL = probe.create();
-        break;
+        case Config::Rendering::Backend::OpenGL:
+            useGL = true;
+            break;
+        case Config::Rendering::Backend::Raster:
+            useGL = false;
+            break;
+        default: // Auto: probe whether an OpenGL context can actually be
+                 // created.
+            // supportsThreadedOpenGL() is intentionally not used here — it
+            // tests multi-thread GL support, not basic GL availability, and
+            // returns false on many Linux drivers even when the GPU works fine
+            // on the main thread.
+            QOpenGLContext probe;
+            useGL = probe.create();
+            break;
     }
 
     if (useGL)

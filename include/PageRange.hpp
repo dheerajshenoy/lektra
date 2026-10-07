@@ -10,9 +10,9 @@
 // Page ranges for exporting, and the names of the files made from them.
 namespace page_range
 {
-// "1-5,8,10-", "all", "odd", "even", "current", "first", "last", "-3" ... as 0-based
-// page numbers, in the order they are written, without repeats. Items are
-// separated by commas, semicolons or spaces. `current` is 0-based. On a
+// "1-5,8,10-", "all", "odd", "even", "current", "first", "last", "-3" ... as
+// 0-based page numbers, in the order they are written, without repeats. Items
+// are separated by commas, semicolons or spaces. `current` is 0-based. On a
 // mistake returns nothing and says what is wrong in `error`.
 inline std::vector<int>
 parse(const QString &spec, int pageCount, int current, QString *error = nullptr)
@@ -41,13 +41,15 @@ parse(const QString &spec, int pageCount, int current, QString *error = nullptr)
             out     = word.toInt(&ok);
             if (!ok)
             {
-                problem = QStringLiteral("\"%1\" is not a page number").arg(word);
+                problem
+                    = QStringLiteral("\"%1\" is not a page number").arg(word);
                 return false;
             }
         }
         if (out < 1 || out > pageCount)
         {
-            problem = QStringLiteral("page %1 does not exist (the pages are 1 to %2)")
+            problem = QStringLiteral(
+                          "page %1 does not exist (the pages are 1 to %2)")
                           .arg(out)
                           .arg(pageCount);
             return false;
@@ -62,9 +64,8 @@ parse(const QString &spec, int pageCount, int current, QString *error = nullptr)
             pages.push_back(p);
     };
 
-    const QStringList items
-        = spec.toLower().split(QRegularExpression(QStringLiteral("[,;\\s]+")),
-                               Qt::SkipEmptyParts);
+    const QStringList items = spec.toLower().split(
+        QRegularExpression(QStringLiteral("[,;\\s]+")), Qt::SkipEmptyParts);
     if (items.isEmpty())
         return fail(QStringLiteral("no pages were given"));
 
@@ -77,10 +78,12 @@ parse(const QString &spec, int pageCount, int current, QString *error = nullptr)
         }
         else if (item == QLatin1String("odd") || item == QLatin1String("even"))
         {
-            for (int p = item == QLatin1String("odd") ? 0 : 1; p < pageCount; p += 2)
+            for (int p = item == QLatin1String("odd") ? 0 : 1; p < pageCount;
+                 p += 2)
                 add(p);
         }
-        else if (const qsizetype dash = item.indexOf(QLatin1Char('-')); dash >= 0)
+        else if (const qsizetype dash = item.indexOf(QLatin1Char('-'));
+                 dash >= 0)
         {
             // "A-B", "A-" (to the end), "-B" (from the start)
             const QString left  = item.left(dash);
@@ -142,7 +145,10 @@ nameForPage(const QString &pattern, int page, int width)
     QString number       = QString::number(page);
     if (number.size() < width)
         number.prepend(QString(width - number.size(), QLatin1Char('0')));
-    const QString base = suffix.isEmpty() ? pattern : pattern.left(pattern.size() - suffix.size() - 1);
-    return base + QLatin1Char('-') + number + (suffix.isEmpty() ? QString() : QLatin1Char('.') + suffix);
+    const QString base = suffix.isEmpty()
+                             ? pattern
+                             : pattern.left(pattern.size() - suffix.size() - 1);
+    return base + QLatin1Char('-') + number
+           + (suffix.isEmpty() ? QString() : QLatin1Char('.') + suffix);
 }
 } // namespace page_range

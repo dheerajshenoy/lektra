@@ -3,15 +3,15 @@
 #include "LuaHighlight.hpp"
 #include "MathRender.hpp"
 
-#include <QBuffer>
 #include <QApplication>
+#include <QBuffer>
 #include <QClipboard>
 #include <QEnterEvent>
 #include <QFontInfo>
 #include <QFrame>
 #include <QHBoxLayout>
-#include <QLabel>
 #include <QIcon>
+#include <QLabel>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPalette>
@@ -55,7 +55,7 @@ copyIcon(const QColor &color, bool done)
         {
             p.drawRoundedRect(QRectF(3.2, 3.6, 9.6, 11), 1.6, 1.6); // the board
             p.setBrush(color);
-            p.drawRoundedRect(QRectF(5.8, 1.6, 4.4, 3.2), 1, 1);   // the clip
+            p.drawRoundedRect(QRectF(5.8, 1.6, 4.4, 3.2), 1, 1); // the clip
         }
         p.end();
         icon.addPixmap(pm);
@@ -107,7 +107,8 @@ splitDisplayMath(const QString &prose)
     auto addProse = [&](const QString &text)
     {
         if (!text.trimmed().isEmpty())
-            out.append(ChatBubble::Segment{false, false, QString(), text.trimmed()});
+            out.append(
+                ChatBubble::Segment{false, false, QString(), text.trimmed()});
     };
 
     qsizetype start = 0;
@@ -116,7 +117,7 @@ splitDisplayMath(const QString &prose)
         if (prose[i] == QLatin1Char('`'))
         {
             const qsizetype end = skipCodeSpan(prose, i);
-            i                   = end > i ? end - 1 : i + backtickRun(prose, i) - 1;
+            i = end > i ? end - 1 : i + backtickRun(prose, i) - 1;
             continue;
         }
         if (escaped(prose, i))
@@ -176,8 +177,7 @@ bubbleStyleSheet(ChatBubble::Role role, const QPalette &palette)
 }
 } // namespace
 
-ChatBubble::ChatBubble(Role role, const QString &markdownText,
-                       QWidget *parent)
+ChatBubble::ChatBubble(Role role, const QString &markdownText, QWidget *parent)
     : QWidget(parent), m_user(role == Role::User)
 {
     auto *frame = new QFrame(this);
@@ -294,8 +294,11 @@ ChatBubble::split(const QString &markdownText)
         {
             flush();
             current.code     = true;
-            current.language = trimmed.mid(3).trimmed().section(QLatin1Char(' '), 0, 0).toLower();
-            inFence = true;
+            current.language = trimmed.mid(3)
+                                   .trimmed()
+                                   .section(QLatin1Char(' '), 0, 0)
+                                   .toLower();
+            inFence          = true;
             continue;
         }
         if (inFence && trimmed == QLatin1String("```"))
@@ -336,7 +339,8 @@ ChatBubble::makePiece(const Segment &segment)
     // Code box: darker than the bubble on a dark theme, lighter-gray on a
     // light one, so the code stands out either way.
     const QColor base = palette().color(QPalette::Base);
-    const QColor box  = base.lightness() < 128 ? base.darker(135) : base.darker(104);
+    const QColor box
+        = base.lightness() < 128 ? base.darker(135) : base.darker(104);
     auto *frame = new QFrame(this);
     frame->setObjectName("chatCodeBlock");
     frame->setStyleSheet(QString("QFrame#chatCodeBlock { background-color: %1; "
@@ -368,7 +372,7 @@ ChatBubble::makePiece(const Segment &segment)
 
     // The collapsed state lives on the header so the button can toggle it
     // without knowing which piece it belongs to.
-    QLabel *body = piece.label;
+    QLabel *body        = piece.label;
     QPushButton *header = piece.header;
     connect(header, &QPushButton::clicked, header, [header, body]
     {
@@ -376,8 +380,9 @@ ChatBubble::makePiece(const Segment &segment)
         body->setVisible(!collapse);
         header->setProperty("collapsed", collapse);
         const QString title = header->property("title").toString();
-        header->setText((collapse ? QStringLiteral("\u25B8 ") : QStringLiteral("\u25BE "))
-                        + title);
+        header->setText(
+            (collapse ? QStringLiteral("\u25B8 ") : QStringLiteral("\u25BE "))
+            + title);
     });
     return piece;
 }
@@ -385,15 +390,16 @@ ChatBubble::makePiece(const Segment &segment)
 void
 ChatBubble::refreshHeader(const Piece &piece, const Segment &segment)
 {
-    const int lines = segment.text.count(QLatin1Char('\n')) + 1;
+    const int lines        = segment.text.count(QLatin1Char('\n')) + 1;
     const QString language = segment.language.isEmpty() ? QStringLiteral("code")
                                                         : segment.language;
-    const QString size = lines == 1 ? tr("1 line") : tr("%1 lines").arg(lines);
+    const QString size  = lines == 1 ? tr("1 line") : tr("%1 lines").arg(lines);
     const QString title = QStringLiteral("%1 \u00B7 %2").arg(language, size);
     piece.header->setProperty("title", title);
     const bool collapsed = piece.header->property("collapsed").toBool();
-    piece.header->setText((collapsed ? QStringLiteral("\u25B8 ") : QStringLiteral("\u25BE "))
-                          + title);
+    piece.header->setText(
+        (collapsed ? QStringLiteral("\u25B8 ") : QStringLiteral("\u25BE "))
+        + title);
 }
 
 // An image of a formula as an inline <img>, centred on the text line.
@@ -454,8 +460,9 @@ ChatBubble::proseWithMath(const QString &markdown) const
                     break;
                 if (t[j] != QLatin1Char('$') || escaped(t, j))
                     continue;
-                const bool valid = !t[j - 1].isSpace()
-                                   && (j + 1 >= t.size() || !t[j + 1].isDigit());
+                const bool valid
+                    = !t[j - 1].isSpace()
+                      && (j + 1 >= t.size() || !t[j + 1].isDigit());
                 if (valid)
                 {
                     found.append({i, j + 1, t.mid(i + 1, j - i - 1)});
@@ -489,7 +496,8 @@ ChatBubble::proseWithMath(const QString &markdown) const
     {
         const QImage image = renderMath(found[n].latex, pixelSize, color,
                                         mathWidth(), devicePixelRatioF());
-        const QString source = t.mid(found[n].start, found[n].end - found[n].start);
+        const QString source
+            = t.mid(found[n].start, found[n].end - found[n].start);
         html.replace(QChar(0xE000) + QString::number(n) + QChar(0xE001),
                      image.isNull() ? source.toHtmlEscaped()
                                     : inlineMathImage(image));
@@ -502,16 +510,17 @@ ChatBubble::updatePiece(Piece &piece, const Segment &segment)
 {
     if (segment.math)
     {
-        const QImage image
-            = renderMath(segment.text, QFontInfo(contentFont()).pixelSize() * 115 / 100,
-                         palette().color(QPalette::WindowText),
-                         mathWidth() - 20, devicePixelRatioF());
+        const QImage image = renderMath(
+            segment.text, QFontInfo(contentFont()).pixelSize() * 115 / 100,
+            palette().color(QPalette::WindowText), mathWidth() - 20,
+            devicePixelRatioF());
         if (image.isNull())
         {
             // not valid LaTeX: show what the model wrote
             piece.label->setTextFormat(Qt::PlainText);
             piece.label->setAlignment(Qt::AlignLeft);
-            piece.label->setText(QStringLiteral("$$ ") + segment.text + QStringLiteral(" $$"));
+            piece.label->setText(QStringLiteral("$$ ") + segment.text
+                                 + QStringLiteral(" $$"));
         }
         else
         {
@@ -523,7 +532,8 @@ ChatBubble::updatePiece(Piece &piece, const Segment &segment)
     if (!segment.code)
     {
         const QString html = proseWithMath(segment.text);
-        piece.label->setTextFormat(html.isEmpty() ? Qt::MarkdownText : Qt::RichText);
+        piece.label->setTextFormat(html.isEmpty() ? Qt::MarkdownText
+                                                  : Qt::RichText);
         piece.label->setText(html.isEmpty() ? segment.text : html);
         return;
     }
@@ -537,10 +547,11 @@ ChatBubble::updatePiece(Piece &piece, const Segment &segment)
 void
 ChatBubble::setText(const QString &markdownText) noexcept
 {
-    m_source = markdownText;
+    m_source                = markdownText;
     QList<Segment> segments = split(markdownText);
     if (segments.isEmpty())
-        segments.append(Segment{}); // keep a (empty) label so the bubble has a body
+        segments.append(
+            Segment{}); // keep a (empty) label so the bubble has a body
 
     // Reuse the pieces that still match (most of them, while streaming),
     // replace the ones whose kind changed, drop the extra ones.
@@ -592,7 +603,6 @@ ChatBubble::setThumbnails(const QList<QImage> &thumbnails)
 
     // An image-only message has no text: do not leave an empty gap under it.
     if (m_segments.size() == 1 && !m_segments[0].code && !m_segments[0].math
-        && m_segments[0].text.isEmpty()
-        && !m_pieces.isEmpty())
+        && m_segments[0].text.isEmpty() && !m_pieces.isEmpty())
         m_pieces[0].widget->hide();
 }

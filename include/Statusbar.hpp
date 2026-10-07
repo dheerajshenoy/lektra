@@ -38,12 +38,11 @@ public:
         if (from1 < 0)
             m_totalpage_label->setText(QString::number(total));
         else
-            m_totalpage_label->setText(
-                QString("%1–%2 (%3 %4)")
-                    .arg(from1)
-                    .arg(to1)
-                    .arg(total)
-                    .arg(tr("total")));
+            m_totalpage_label->setText(QString("%1–%2 (%3 %4)")
+                                           .arg(from1)
+                                           .arg(to1)
+                                           .arg(total)
+                                           .arg(tr("total")));
     }
 
     void setPageInfoVisible(bool state) noexcept;

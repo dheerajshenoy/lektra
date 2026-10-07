@@ -1,5 +1,3 @@
-#include "Lektra.hpp"
-
 #include "AboutDialog.hpp"
 #include "AppPaths.hpp"
 #include "DispatchType.hpp"
@@ -8,6 +6,7 @@
 #include "DonateDialog.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
+#include "Lektra.hpp"
 #include "PageLocation.hpp"
 #include "SaveSessionDialog.hpp"
 #include "SearchBar.hpp"

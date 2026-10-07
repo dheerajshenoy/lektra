@@ -6,19 +6,17 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 
-FilePicker::FilePicker(const Config::Picker &config,
-                       QWidget *parent) noexcept
+FilePicker::FilePicker(const Config::Picker &config, QWidget *parent) noexcept
     : Picker(config, parent), m_currentDir(QDir::homePath())
 {
-    setColumns({{.header  = "Name",
-                 .stretch = 2},
-                {.header  = "Path",
-                 .stretch = 3}});
+    setColumns(
+        {{.header = "Name", .stretch = 2}, {.header = "Path", .stretch = 3}});
     setStructureMode(StructureMode::Flat);
     setSearchModes(PickerFilterProxy::SearchMode::Fixed);
 }
 
-static QString shortenPath(const QString &path)
+static QString
+shortenPath(const QString &path)
 {
     const QString home = QDir::homePath();
     if (path == home)
@@ -44,10 +42,10 @@ FilePicker::collectItems()
     QDir parent(m_currentDir);
     if (parent.cdUp())
     {
-        items.push_back({.columns  = {QStringLiteral(".."),
-                                      parent.absolutePath()},
-                         .data     = parent.absolutePath(),
-                         .children = {}});
+        items.push_back(
+            {.columns  = {QStringLiteral(".."), parent.absolutePath()},
+             .data     = parent.absolutePath(),
+             .children = {}});
     }
 
     const auto entries = dir.entryInfoList(

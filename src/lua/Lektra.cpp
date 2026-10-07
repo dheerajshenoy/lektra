@@ -1,4 +1,5 @@
 #include "Lektra.hpp"
+
 #include "lua/MainState.hpp"
 
 #include <QMessageBox>

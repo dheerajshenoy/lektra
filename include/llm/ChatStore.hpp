@@ -4,15 +4,15 @@
 #include <QJsonArray>
 #include <QList>
 #include <QString>
-
 #include <optional>
 
 // Saves LLM chats as one JSON file each in a folder, so earlier conversations
 // can be listed and reopened.
 //
 // A chat keeps two things apart on purpose:
-//   transcript  what the panel shows: [{kind: user|assistant|result|error, text}]
-//   messages    what is sent to the model: [{role, content}] -- these include
+//   transcript  what the panel shows: [{kind: user|assistant|result|error,
+//   text}] messages    what is sent to the model: [{role, content}] -- these
+//   include
 //               things the transcript does not show (script results folded
 //               into the next question) and leave out failed requests
 class ChatStore
@@ -38,7 +38,10 @@ public:
     // An empty folder disables the store (nothing is read or written).
     explicit ChatStore(const QString &folder = {}) : m_folder(folder) {}
 
-    bool isEnabled() const noexcept { return !m_folder.isEmpty(); }
+    bool isEnabled() const noexcept
+    {
+        return !m_folder.isEmpty();
+    }
 
     // Most recently updated first.
     QList<Summary> list(int limit = 50) const;

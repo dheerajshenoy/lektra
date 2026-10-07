@@ -9,8 +9,8 @@
 #include <new>
 
 #ifdef Q_OS_UNIX
-#include <csignal>
-#include <unistd.h>
+    #include <csignal>
+    #include <unistd.h>
 #endif
 
 // lektra.job.async(command, [options], [callback]) -> Job
@@ -43,9 +43,9 @@ struct JobData
     int onStderr      = LUA_NOREF;
     QByteArray out, err;
     QString error;
-    bool done       = false;
-    bool cancelled  = false;
-    bool timedOut   = false;
+    bool done      = false;
+    bool cancelled = false;
+    bool timedOut  = false;
 };
 
 // What a script holds: it does not keep the job alive.
@@ -95,12 +95,14 @@ drain(const std::shared_ptr<JobData> &job)
     job->err += err;
     if (job->onStdout != LUA_NOREF && !out.isEmpty())
     {
-        lua_pushlstring(job->L, out.constData(), static_cast<size_t>(out.size()));
+        lua_pushlstring(job->L, out.constData(),
+                        static_cast<size_t>(out.size()));
         callCallback(job->L, job->onStdout, 1);
     }
     if (job->onStderr != LUA_NOREF && !err.isEmpty())
     {
-        lua_pushlstring(job->L, err.constData(), static_cast<size_t>(err.size()));
+        lua_pushlstring(job->L, err.constData(),
+                        static_cast<size_t>(err.size()));
         callCallback(job->L, job->onStderr, 1);
     }
 }
@@ -127,12 +129,13 @@ stopProcess(const std::shared_ptr<JobData> &job, bool hard)
 
 // The job is over: call the callback with what happened, then clean up.
 void
-finish(const std::shared_ptr<JobData> &job, int code, QProcess::ExitStatus status)
+finish(const std::shared_ptr<JobData> &job, int code,
+       QProcess::ExitStatus status)
 {
     if (job->done)
         return;
-    job->done      = true;
-    lua_State *L   = job->L;
+    job->done          = true;
+    lua_State *L       = job->L;
     const bool crashed = status == QProcess::CrashExit;
 
     if (job->timeout)
@@ -150,9 +153,11 @@ finish(const std::shared_ptr<JobData> &job, int code, QProcess::ExitStatus statu
         lua_setfield(L, -2, "ok");
         lua_pushinteger(L, crashed || !job->error.isEmpty() ? -1 : code);
         lua_setfield(L, -2, "code");
-        lua_pushlstring(L, job->out.constData(), static_cast<size_t>(job->out.size()));
+        lua_pushlstring(L, job->out.constData(),
+                        static_cast<size_t>(job->out.size()));
         lua_setfield(L, -2, "stdout");
-        lua_pushlstring(L, job->err.constData(), static_cast<size_t>(job->err.size()));
+        lua_pushlstring(L, job->err.constData(),
+                        static_cast<size_t>(job->err.size()));
         lua_setfield(L, -2, "stderr");
         lua_pushboolean(L, job->timedOut);
         lua_setfield(L, -2, "timed_out");
@@ -221,7 +226,8 @@ Lektra::initLuaJob() noexcept
         {
             job->cancelled = true;
             stopProcess(job, false);
-            // a command that ignores the polite request is stopped after a while
+            // a command that ignores the polite request is stopped after a
+            // while
             std::weak_ptr<JobData> weak = job;
             QTimer::singleShot(2000, [weak]
             {
@@ -236,8 +242,9 @@ Lektra::initLuaJob() noexcept
     lua_pushcfunction(m_L, [](lua_State *L) -> int
     {
         const auto job = checkJob(L)->data.lock();
-        lua_pushboolean(L, job && !job->done && job->process
-                               && job->process->state() != QProcess::NotRunning);
+        lua_pushboolean(L,
+                        job && !job->done && job->process
+                            && job->process->state() != QProcess::NotRunning);
         return 1;
     });
     lua_setfield(m_L, -2, "running");
@@ -246,7 +253,8 @@ Lektra::initLuaJob() noexcept
     {
         const auto job = checkJob(L)->data.lock();
         if (job && !job->done && job->process && job->process->processId() > 0)
-            lua_pushinteger(L, static_cast<lua_Integer>(job->process->processId()));
+            lua_pushinteger(
+                L, static_cast<lua_Integer>(job->process->processId()));
         else
             lua_pushnil(L);
         return 1;
@@ -260,7 +268,8 @@ Lektra::initLuaJob() noexcept
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
-        auto *lektra = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
+        auto *lektra
+            = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
 
         // the command: a string (for the shell) or a list (program, arguments)
         QString program;
@@ -285,7 +294,8 @@ Lektra::initLuaJob() noexcept
             {
                 lua_rawgeti(L, 1, i);
                 if (!lua_isstring(L, -1))
-                    return luaL_error(L, "job.async: the command list must hold strings");
+                    return luaL_error(
+                        L, "job.async: the command list must hold strings");
                 const QString item = QString::fromUtf8(lua_tostring(L, -1));
                 lua_pop(L, 1);
                 if (i == 1)
@@ -297,7 +307,8 @@ Lektra::initLuaJob() noexcept
                 return luaL_error(L, "job.async: the command is empty");
         }
         else
-            return luaL_error(L, "job.async: the command is a string or a list of strings");
+            return luaL_error(
+                L, "job.async: the command is a string or a list of strings");
 
         // (command, callback) or (command, options, callback)
         int options = 0, callback = 0;
@@ -310,7 +321,8 @@ Lektra::initLuaJob() noexcept
                 callback = 3;
         }
         else if (!lua_isnoneornil(L, 2))
-            return luaL_error(L, "job.async: the second argument is the options or the callback");
+            return luaL_error(L, "job.async: the second argument is the "
+                                 "options or the callback");
 
         auto job = std::make_shared<JobData>();
         job->L   = luaMainState();
@@ -347,8 +359,9 @@ Lektra::initLuaJob() noexcept
                 environment = QProcessEnvironment::systemEnvironment();
                 for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1))
                     if (lua_type(L, -2) == LUA_TSTRING && lua_isstring(L, -1))
-                        environment.insert(QString::fromUtf8(lua_tostring(L, -2)),
-                                           QString::fromUtf8(lua_tostring(L, -1)));
+                        environment.insert(
+                            QString::fromUtf8(lua_tostring(L, -2)),
+                            QString::fromUtf8(lua_tostring(L, -1)));
             }
             lua_pop(L, 1);
 
@@ -396,7 +409,8 @@ Lektra::initLuaJob() noexcept
         {
             if (error == QProcess::FailedToStart && job->process)
             {
-                job->error = QStringLiteral("could not start: ") + job->process->errorString();
+                job->error = QStringLiteral("could not start: ")
+                             + job->process->errorString();
                 finish(job, -1, QProcess::NormalExit);
             }
         });
@@ -446,7 +460,8 @@ Lektra::initLuaJob() noexcept
 void
 Lektra::killLuaJobs() noexcept
 {
-    const auto processes = findChildren<QProcess *>(QStringLiteral("lektraJob"));
+    const auto processes
+        = findChildren<QProcess *>(QStringLiteral("lektraJob"));
     for (QProcess *process : processes)
     {
         process->disconnect();

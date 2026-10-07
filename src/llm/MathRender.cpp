@@ -1,7 +1,7 @@
 #include "MathRender.hpp"
 
-#include "latex.h"
 #include "MicroTeXQt.hpp"
+#include "latex.h"
 
 #include <QCache>
 #include <QDir>
@@ -37,7 +37,8 @@ unpackResources(const QString &root)
     while (it.hasNext())
     {
         const QString source = it.next();
-        const QString target = root + QLatin1Char('/') + source.mid(from.size());
+        const QString target
+            = root + QLatin1Char('/') + source.mid(from.size());
         QDir().mkpath(QFileInfo(target).absolutePath());
         if (!QFile::copy(source, target))
             return false;
@@ -100,7 +101,8 @@ renderMath(const QString &latex, int pixelSize, const QColor &color,
         constexpr int pad = 2;
         const int width   = render->getWidth() + 2 * pad;
         const int height  = render->getHeight() + render->getDepth() + 2 * pad;
-        if (width > 2 * pad && height > 2 * pad && width < 4000 && height < 4000)
+        if (width > 2 * pad && height > 2 * pad && width < 4000
+            && height < 4000)
         {
             image = QImage(QSize(width, height) * dpr,
                            QImage::Format_ARGB32_Premultiplied);

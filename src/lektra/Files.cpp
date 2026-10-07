@@ -579,8 +579,8 @@ Lektra::startNewWindow(const QString &file, int page) noexcept
         args << QStringLiteral("--page") << QString::number(page);
     args << QFileInfo(file).absoluteFilePath();
 
-    const bool started
-        = QProcess::startDetached(QCoreApplication::applicationFilePath(), args);
+    const bool started = QProcess::startDetached(
+        QCoreApplication::applicationFilePath(), args);
     if (!started)
         m_message_bar->showMessage(tr("Failed to open a new window"));
     return started;

@@ -21,21 +21,21 @@ class StatusbarLayout : public QLayout
 public:
     struct Spec
     {
-        double stretch = 0;   // share of the free space, 0: natural width
-        int minWidth   = 0;   // px, 0: the widget's own minimum
-        int maxWidth   = 0;   // px, 0: no limit
-        int marginLeft  = 0;  // px around the item
-        int marginRight = 0;
+        double stretch       = 0; // share of the free space, 0: natural width
+        int minWidth         = 0; // px, 0: the widget's own minimum
+        int maxWidth         = 0; // px, 0: no limit
+        int marginLeft       = 0; // px around the item
+        int marginRight      = 0;
         // Where the widget sits inside its slot when the slot is wider.
-        Qt::Alignment align = Qt::AlignLeft;
+        Qt::Alignment align  = Qt::AlignLeft;
         // A gap has no widget; its width is `gapWidth` (plus its stretch).
-        bool gap     = false;
-        int gapWidth = 0;
+        bool gap             = false;
+        int gapWidth         = 0;
         // Placed at `at` (0 to 1) of the row's width, with its `anchor` edge
         // there, outside the flow.
-        bool absolute         = false;
-        double at             = 0;
-        Qt::Alignment anchor  = Qt::AlignLeft;
+        bool absolute        = false;
+        double at            = 0;
+        Qt::Alignment anchor = Qt::AlignLeft;
     };
 
     explicit StatusbarLayout(QWidget *parent = nullptr);

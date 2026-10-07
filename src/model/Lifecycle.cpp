@@ -1,8 +1,8 @@
-#include "Model.hpp"
-
 #include "BrowseLinkItem.hpp"
 #include "Commands/TextHighlightAnnotationCommand.hpp"
 #include "Config.hpp"
+#include "ImageAnimation.hpp"
+#include "Model.hpp"
 #include "utils.hpp"
 
 #include <QFile>
@@ -11,8 +11,6 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLibrary>
-#include "ImageAnimation.hpp"
-
 #include <QMovie>
 #include <QPainter>
 #include <QSvgRenderer>
@@ -30,31 +28,30 @@
 #include <unordered_set>
 #ifdef HAVE_FONTCONFIG
 
-#include <fontconfig/fontconfig.h>
+    #include <fontconfig/fontconfig.h>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
 
-#include <QDirIterator>
+    #include <QDirIterator>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
-#include <QFile>
+    #include <QFile>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
-#include <QStandardPaths>
+    #include <QStandardPaths>
 #endif
 #ifdef HAVE_LIBARCHIVE
 
-#include <archive.h>
+    #include <archive.h>
 #endif
 #ifdef HAVE_LIBARCHIVE
-#include <archive_entry.h>
+    #include <archive_entry.h>
 #endif
 namespace
 {
-
 
 struct RsvgRect
 {
@@ -157,10 +154,10 @@ using djvu_miniexp_t = void *;
 static const djvu_miniexp_t DJVU_MINIEXP_NIL = nullptr;
 static const djvu_miniexp_t DJVU_MINIEXP_DUMMY
     = reinterpret_cast<void *>(static_cast<uintptr_t>(2));
-static constexpr int DJVU_MSG_ERROR     = 0; // DDJVU_ERROR
+static constexpr int DJVU_MSG_ERROR = 0; // DDJVU_ERROR
 // ddjvu_status_t: NOTSTARTED=0, STARTED=1, OK=2, FAILED=3, STOPPED=4.
 // Anything >= OK means the job has terminated; only OK is success.
-static constexpr int DJVU_JOB_OK        = 2;
+static constexpr int DJVU_JOB_OK    = 2;
 
 struct DjVuPageInfo
 {
@@ -369,14 +366,14 @@ using PFN_exif_entval  = const char *(*)(void *, char *, unsigned int);
 
 struct ExifLib
 {
-    PFN_exif_new new_from_file   = nullptr;
-    PFN_exif_unref data_unref    = nullptr;
+    PFN_exif_new new_from_file    = nullptr;
+    PFN_exif_unref data_unref     = nullptr;
     PFN_exif_data_fe data_foreach = nullptr;
     PFN_exif_cont_fe cont_foreach = nullptr;
-    PFN_exif_get_ifd get_ifd     = nullptr;
-    PFN_exif_tagname tag_name    = nullptr;
-    PFN_exif_entval entry_value  = nullptr;
-    bool ok                      = false;
+    PFN_exif_get_ifd get_ifd      = nullptr;
+    PFN_exif_tagname tag_name     = nullptr;
+    PFN_exif_entval entry_value   = nullptr;
+    bool ok                       = false;
 
     static ExifLib &get() noexcept
     {
@@ -429,7 +426,7 @@ exif_entry_cb(void *entry_v, void *user)
     if (!name || !*name)
         return;
 
-    char buf[512] = {0};
+    char buf[512]   = {0};
     const char *val = el.entry_value(ent, buf, sizeof(buf));
     if (!val || !*val)
         return;
@@ -456,8 +453,7 @@ exif_content_cb(void *content_v, void *user)
 }
 
 static void
-populateExifProperties(const QString &path,
-                       Model::Properties &props) noexcept
+populateExifProperties(const QString &path, Model::Properties &props) noexcept
 {
     auto &el = ExifLib::get();
     if (!el.ok)
@@ -469,7 +465,6 @@ populateExifProperties(const QString &path,
     el.data_unref(data);
 }
 } // namespace
-
 
 static bool
 isImageFormat(Model::FileType ft) noexcept
@@ -560,10 +555,8 @@ archive_to_zip(fz_context *ctx, const char *path)
                 // Pages are already compressed images: store, don't deflate.
                 fz_write_zip_entry(ctx, zip, name, data, 0);
             }
-            fz_always(ctx)
-                fz_drop_buffer(ctx, data);
-            fz_catch(ctx)
-                fz_rethrow(ctx);
+            fz_always(ctx) fz_drop_buffer(ctx, data);
+            fz_catch(ctx) fz_rethrow(ctx);
         }
         if (r != ARCHIVE_EOF)
             fz_throw(ctx, FZ_ERROR_FORMAT, "cannot read archive: %s",
@@ -591,7 +584,8 @@ archive_to_zip(fz_context *ctx, const char *path)
 static fz_document *
 open_document_any(fz_context *ctx, const char *path)
 {
-    const QString suffix = QFileInfo(QString::fromUtf8(path)).suffix().toLower();
+    const QString suffix
+        = QFileInfo(QString::fromUtf8(path)).suffix().toLower();
     if (suffix != "cbr" && suffix != "cb7")
         return fz_open_document(ctx, path);
 
@@ -609,8 +603,7 @@ open_document_any(fz_context *ctx, const char *path)
         fz_drop_stream(ctx, stm);
         fz_drop_buffer(ctx, zipbuf);
     }
-    fz_catch(ctx)
-        fz_rethrow(ctx);
+    fz_catch(ctx) fz_rethrow(ctx);
     return doc;
 #else
     fz_throw(ctx, FZ_ERROR_UNSUPPORTED,
@@ -630,7 +623,7 @@ pdfStringValue(fz_context *ctx, pdf_obj *dict, pdf_obj *key) noexcept
     if (!val || !pdf_is_string(ctx, val))
         return {};
 
-    const char *s = pdf_to_str_buf(ctx, val);
+    const char *s  = pdf_to_str_buf(ctx, val);
     const int slen = pdf_to_str_len(ctx, val);
 
     if (slen >= 2 && (quint8)s[0] == 0xFE && (quint8)s[1] == 0xFF)
@@ -641,7 +634,6 @@ pdfStringValue(fz_context *ctx, pdf_obj *dict, pdf_obj *key) noexcept
     return QString::fromUtf8(s, slen);
 }
 } // namespace
-
 
 void
 Model::cleanup_mupdf() noexcept
@@ -761,7 +753,7 @@ Model::openAsync(const QString &filePath) noexcept
     // fall back to the originally-requested path so the failure path below
     // still has something meaningful to show (e.g. a tab title) for what
     // couldn't be opened, instead of an empty filename.
-    const QString canon = QFileInfo(filePath).canonicalFilePath();
+    const QString canon     = QFileInfo(filePath).canonicalFilePath();
     m_filepath              = canon.isEmpty() ? filePath : canon;
     const QString canonPath = m_filepath;
     m_success               = false;
@@ -931,7 +923,8 @@ Model::openAsync_image(const QString &canonPath) noexcept
         // Animated: hand off to an ImageAnimation (QMovie for GIF and WebP,
         // our own decoder for APNG) — it decodes one frame at a time, keeping
         // memory at O(1 frame) instead of O(all frames).
-        QMetaObject::invokeMethod(this, [this, canonPath, first = std::move(first), w, h]() mutable
+        QMetaObject::invokeMethod(
+            this, [this, canonPath, first = std::move(first), w, h]() mutable
         {
             waitForPendingRenders();
             cleanup_image();
@@ -964,8 +957,8 @@ Model::openAsync_djvu(const QString &canonPath) noexcept
 
     return QtConcurrent::run([this, canonPath]
     {
-        auto &djvu = DjVuLib::get();
-        void *ctx  = djvu.ctx_create("LEKTRA");
+        auto &djvu                 = DjVuLib::get();
+        void *ctx                  = djvu.ctx_create("LEKTRA");
         // Match the encoding to the loaded doc_create variant: the _utf8
         // entry point takes UTF-8, the plain one takes the OS locale
         // encoding (ANSI on Windows, UTF-8 on modern Linux). Getting this
@@ -1011,8 +1004,8 @@ Model::openAsync_djvu(const QString &canonPath) noexcept
         const int page_count = djvu.doc_pagenum(doc);
 
         DjVuPageInfo info{};
-        if (djvu.doc_pageinfo(doc, 0, &info) != DJVU_JOB_OK
-            || info.dpi <= 0 || info.width <= 0 || info.height <= 0)
+        if (djvu.doc_pageinfo(doc, 0, &info) != DJVU_JOB_OK || info.dpi <= 0
+            || info.width <= 0 || info.height <= 0)
         {
             djvu.job_release(doc);
             djvu.ctx_release(ctx);
@@ -1687,18 +1680,16 @@ Model::populateSignatureProperties(Properties &props) noexcept
             page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
 
             for (pdf_annot *widget = pdf_first_widget(m_ctx, page); widget;
-                 widget             = pdf_next_widget(m_ctx, widget))
+                 widget            = pdf_next_widget(m_ctx, widget))
             {
-                if (pdf_widget_type(m_ctx, widget)
-                    != PDF_WIDGET_TYPE_SIGNATURE)
+                if (pdf_widget_type(m_ctx, widget) != PDF_WIDGET_TYPE_SIGNATURE)
                     continue;
 
                 pdf_obj *field = pdf_annot_obj(m_ctx, widget);
                 const bool isSigned
                     = pdf_signature_is_signed(m_ctx, m_pdf_doc, field);
 
-                const QString prefix
-                    = QString("Signature %1").arg(index++);
+                const QString prefix = QString("Signature %1").arg(index++);
                 props.emplace_back(prefix + " Status",
                                    isSigned ? "Signed" : "Unsigned");
 

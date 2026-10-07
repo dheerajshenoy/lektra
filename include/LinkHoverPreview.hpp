@@ -69,8 +69,10 @@ public:
                 pos.setX(globalPos.x() - width() - 16);
             if (pos.y() + height() > area.bottom())
                 pos.setY(globalPos.y() - height() - 16);
-            pos.setX(qBound(area.left(), pos.x(), qMax(area.left(), area.right() - width())));
-            pos.setY(qBound(area.top(), pos.y(), qMax(area.top(), area.bottom() - height())));
+            pos.setX(qBound(area.left(), pos.x(),
+                            qMax(area.left(), area.right() - width())));
+            pos.setY(qBound(area.top(), pos.y(),
+                            qMax(area.top(), area.bottom() - height())));
         }
         move(pos);
         show();

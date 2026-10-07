@@ -14,7 +14,8 @@ themeFor(const QPalette &palette)
 {
     const bool dark = palette.color(QPalette::Base).lightness() < 128;
     if (dark)
-        return {"#c586c0", "#ce9178", "#6a9955", "#b5cea8", "#4ec9b0", "#dcdcaa"};
+        return {"#c586c0", "#ce9178", "#6a9955",
+                "#b5cea8", "#4ec9b0", "#dcdcaa"};
     return {"#af00db", "#a31515", "#008000", "#098658", "#267f99", "#795e26"};
 }
 
@@ -22,21 +23,20 @@ const QSet<QString> &
 keywords()
 {
     static const QSet<QString> k = {
-        "and", "break", "do",   "else", "elseif", "end",    "false",
-        "for", "function", "goto", "if",   "in",     "local",  "nil",
-        "not", "or",    "repeat", "return", "then",  "true",   "until",
-        "while"};
+        "and",      "break",  "do",   "else", "elseif", "end",  "false", "for",
+        "function", "goto",   "if",   "in",   "local",  "nil",  "not",   "or",
+        "repeat",   "return", "then", "true", "until",  "while"};
     return k;
 }
 
 const QSet<QString> &
 builtins()
 {
-    static const QSet<QString> b = {
-        "lektra", "print",    "pairs",  "ipairs", "next",   "select",
-        "type",   "tostring", "tonumber", "pcall", "xpcall", "error",
-        "assert", "unpack",   "string", "table",  "math",   "bit",
-        "os",     "setmetatable", "rawget", "rawset", "rawequal"};
+    static const QSet<QString> b
+        = {"lektra", "print",        "pairs",    "ipairs", "next",    "select",
+           "type",   "tostring",     "tonumber", "pcall",  "xpcall",  "error",
+           "assert", "unpack",       "string",   "table",  "math",    "bit",
+           "os",     "setmetatable", "rawget",   "rawset", "rawequal"};
     return b;
 }
 
@@ -66,9 +66,10 @@ longBracketEnd(const QString &s, int i)
         ++j;
     if (j >= s.size() || s[j] != QLatin1Char('['))
         return -1;
-    const QString close
-        = QLatin1Char(']') + QString(j - i - 1, QLatin1Char('=')) + QLatin1Char(']');
-    const int end = s.indexOf(close, j + 1);
+    const QString close = QLatin1Char(']')
+                          + QString(j - i - 1, QLatin1Char('='))
+                          + QLatin1Char(']');
+    const int end       = s.indexOf(close, j + 1);
     return end < 0 ? s.size() : end + close.size();
 }
 
@@ -89,14 +90,15 @@ luaToHtml(const QString &code, const QPalette &palette)
     const Theme theme = themeFor(palette);
     QString out;
     const int n = code.size();
-    int i = 0;
+    int i       = 0;
 
     while (i < n)
     {
         const QChar c = code[i];
 
         // comments
-        if (c == QLatin1Char('-') && i + 1 < n && code[i + 1] == QLatin1Char('-'))
+        if (c == QLatin1Char('-') && i + 1 < n
+            && code[i + 1] == QLatin1Char('-'))
         {
             int end = longBracketEnd(code, i + 2);
             if (end < 0)
@@ -137,15 +139,18 @@ luaToHtml(const QString &code, const QPalette &palette)
         if (c.isDigit()
             || (c == QLatin1Char('.') && i + 1 < n && code[i + 1].isDigit()))
         {
-            int j = i + 1;
+            int j          = i + 1;
             const bool hex = c == QLatin1Char('0') && j < n
-                             && (code[j] == QLatin1Char('x') || code[j] == QLatin1Char('X'));
+                             && (code[j] == QLatin1Char('x')
+                                 || code[j] == QLatin1Char('X'));
             while (j < n)
             {
                 const QChar d = code[j];
-                const bool exp = !hex && (code[j - 1] == QLatin1Char('e')
-                                          || code[j - 1] == QLatin1Char('E'))
-                                 && (d == QLatin1Char('+') || d == QLatin1Char('-'));
+                const bool exp
+                    = !hex
+                      && (code[j - 1] == QLatin1Char('e')
+                          || code[j - 1] == QLatin1Char('E'))
+                      && (d == QLatin1Char('+') || d == QLatin1Char('-'));
                 if (d.isLetterOrNumber() || d == QLatin1Char('.') || exp)
                     ++j;
                 else
@@ -160,7 +165,9 @@ luaToHtml(const QString &code, const QPalette &palette)
         if (c.isLetter() || c == QLatin1Char('_'))
         {
             int j = i + 1;
-            while (j < n && (code[j].isLetterOrNumber() || code[j] == QLatin1Char('_')))
+            while (
+                j < n
+                && (code[j].isLetterOrNumber() || code[j] == QLatin1Char('_')))
                 ++j;
             const QString word = code.mid(i, j - i);
             if (keywords().contains(word))
@@ -170,10 +177,14 @@ luaToHtml(const QString &code, const QPalette &palette)
             else
             {
                 int k = j;
-                while (k < n && (code[k] == QLatin1Char(' ') || code[k] == QLatin1Char('\t')))
+                while (k < n
+                       && (code[k] == QLatin1Char(' ')
+                           || code[k] == QLatin1Char('\t')))
                     ++k;
-                if (k < n && (code[k] == QLatin1Char('(') || code[k] == QLatin1Char('"')
-                              || code[k] == QLatin1Char('{')))
+                if (k < n
+                    && (code[k] == QLatin1Char('(')
+                        || code[k] == QLatin1Char('"')
+                        || code[k] == QLatin1Char('{')))
                     out += span(theme.function, word);
                 else
                     out += escape(word);

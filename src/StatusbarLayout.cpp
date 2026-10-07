@@ -229,8 +229,9 @@ StatusbarLayout::layoutRow(int row, const QRect &rect)
             {
                 Slot &s          = flow[i];
                 const Spec &spec = s.entry->spec;
-                const int give   = static_cast<int>(extra * spec.stretch / weight);
-                int cap          = INT_MAX;
+                const int give
+                    = static_cast<int>(extra * spec.stretch / weight);
+                int cap = INT_MAX;
                 if (!spec.gap && spec.maxWidth > 0)
                     cap = spec.maxWidth + spec.marginLeft + spec.marginRight
                           - s.width;
@@ -260,8 +261,8 @@ StatusbarLayout::layoutRow(int row, const QRect &rect)
             {
                 Slot &s        = flow[i];
                 const int room = std::max(0, s.width - s.minimum);
-                int cut        = static_cast<int>(
-                    static_cast<double>(deficit) * room / shrinkable);
+                int cut = static_cast<int>(static_cast<double>(deficit) * room
+                                           / shrinkable);
                 s.width -= cut;
                 taken += cut;
             }
@@ -319,7 +320,8 @@ StatusbarLayout::layoutRow(int row, const QRect &rect)
             left -= w / 2;
         else if (e->spec.anchor & Qt::AlignRight)
             left -= w;
-        left = std::clamp(left, rect.x(), rect.x() + std::max(0, rect.width() - w));
+        left = std::clamp(left, rect.x(),
+                          rect.x() + std::max(0, rect.width() - w));
         place(*e, left, w);
     }
 }

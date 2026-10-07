@@ -1,11 +1,10 @@
 #include "Lektra.hpp"
 
-#include <QDir>
-#include <QStandardPaths>
-
 #include <QClipboard>
 #include <QDesktopServices>
+#include <QDir>
 #include <QGuiApplication>
+#include <QStandardPaths>
 
 // Pretty print anything, table or value, to a string
 static std::string
@@ -200,8 +199,8 @@ Lektra::initLuaPaths() noexcept
 
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
-        return pushDir(L, QStandardPaths::writableLocation(
-                              QStandardPaths::CacheLocation));
+        return pushDir(
+            L, QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
     }, 0);
     lua_setfield(m_L, -2, "cache");
 

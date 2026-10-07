@@ -24,10 +24,19 @@ public:
     // anything (reads only the chunk headers).
     static bool isAnimated(const QString &path);
 
-    int frameCount() const { return static_cast<int>(m_frames.size()); }
+    int frameCount() const
+    {
+        return static_cast<int>(m_frames.size());
+    }
     // How many times the animation plays; 0 means for ever.
-    int playCount() const { return m_plays; }
-    QSize size() const { return m_size; }
+    int playCount() const
+    {
+        return m_plays;
+    }
+    QSize size() const
+    {
+        return m_size;
+    }
 
     // Starts again from the first frame.
     void reset();
@@ -52,8 +61,9 @@ private:
 
     QSize m_size;
     int m_plays = 0;
-    QByteArray m_ihdr;    // the 13 bytes of the header
-    QByteArray m_prelude; // chunks between IHDR and the image data (palette, ...)
+    QByteArray m_ihdr; // the 13 bytes of the header
+    QByteArray
+        m_prelude; // chunks between IHDR and the image data (palette, ...)
     QList<Frame> m_frames;
 
     QImage m_canvas;

@@ -12,13 +12,14 @@ NoticeBar::NoticeBar(QWidget *parent) : QFrame(parent)
     QColor accent = palette().color(QPalette::Highlight);
     accent.setAlpha(40);
     QColor line = palette().color(QPalette::Mid);
-    setStyleSheet(QString("QFrame#noticeBar { background: rgba(%1, %2, %3, %4); "
-                          "border-top: 1px solid %5; }")
-                      .arg(accent.red())
-                      .arg(accent.green())
-                      .arg(accent.blue())
-                      .arg(accent.alpha())
-                      .arg(line.name()));
+    setStyleSheet(
+        QString("QFrame#noticeBar { background: rgba(%1, %2, %3, %4); "
+                "border-top: 1px solid %5; }")
+            .arg(accent.red())
+            .arg(accent.green())
+            .arg(accent.blue())
+            .arg(accent.alpha())
+            .arg(line.name()));
 
     auto *row = new QHBoxLayout(this);
     row->setContentsMargins(10, 4, 6, 4);
@@ -79,7 +80,8 @@ NoticeBar::showNext()
         auto *button = new QPushButton(action.text, m_buttons);
         button->setFocusPolicy(Qt::NoFocus);
         button->setCursor(Qt::PointingHandCursor);
-        connect(button, &QPushButton::clicked, this, [this, callback = action.callback]
+        connect(button, &QPushButton::clicked, this,
+                [this, callback = action.callback]
         {
             // The notice is gone before the action runs, so an action can post
             // another one.

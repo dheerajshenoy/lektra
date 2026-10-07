@@ -1463,7 +1463,8 @@ DocumentView::CopyRegionAsImageAtDPI(QRectF area) noexcept
 
     if (img.isNull())
     {
-        // Raster / DjVu fallback: crop the existing render (physical pixels) and upscale.
+        // Raster / DjVu fallback: crop the existing render (physical pixels)
+        // and upscale.
         img = pageItem->imageRegion(pixelRect);
         if (!img.isNull())
         {
@@ -1641,7 +1642,8 @@ DocumentView::Copy_page_image() noexcept
     if (!pageAtScenePos(sceneCenter, pageno, pageItem))
         return;
 
-    const QImage img = pageItem->imageRegion(QRect(0, 0, pageItem->width(), pageItem->height()));
+    const QImage img = pageItem->imageRegion(
+        QRect(0, 0, pageItem->width(), pageItem->height()));
 
     if (!img.isNull())
     {
@@ -1649,7 +1651,6 @@ DocumentView::Copy_page_image() noexcept
         clip->setImage(img);
     }
 }
-
 
 QString
 DocumentView::selectionText(bool formatted,

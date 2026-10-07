@@ -71,17 +71,17 @@ symbolizeFrameOffsets(const QString &content)
             offsetsByModule[f.module].append(f.offset);
 
     QMap<QString, QStringList> resolvedByModule;
-    for (auto it = offsetsByModule.constBegin(); it != offsetsByModule.constEnd();
-        ++it)
+    for (auto it = offsetsByModule.constBegin();
+         it != offsetsByModule.constEnd(); ++it)
     {
         QProcess proc;
         proc.start(addr2line,
                    QStringList{"-e", it.key(), "-f", "-C", "-p"} + it.value());
         if (!proc.waitForFinished(3000))
             continue;
-        resolvedByModule[it.key()] = QString::fromLocal8Bit(
-                                         proc.readAllStandardOutput())
-                                         .split('\n', Qt::SkipEmptyParts);
+        resolvedByModule[it.key()]
+            = QString::fromLocal8Bit(proc.readAllStandardOutput())
+                  .split('\n', Qt::SkipEmptyParts);
     }
     if (resolvedByModule.isEmpty())
         return {};
@@ -90,13 +90,12 @@ symbolizeFrameOffsets(const QString &content)
     QMap<QString, int> cursor;
     for (const Frame &f : frames)
     {
-        const QStringList *lines2
-            = f.module == QLatin1String("?")
-                  ? nullptr
-                  : (resolvedByModule.contains(f.module)
-                         ? &resolvedByModule[f.module]
-                         : nullptr);
-        int &i = cursor[f.module];
+        const QStringList *lines2 = f.module == QLatin1String("?")
+                                        ? nullptr
+                                        : (resolvedByModule.contains(f.module)
+                                               ? &resolvedByModule[f.module]
+                                               : nullptr);
+        int &i                    = cursor[f.module];
         if (lines2 && i < lines2->size())
             out += QStringLiteral("  ") + lines2->at(i) + '\n';
         else
@@ -108,7 +107,8 @@ symbolizeFrameOffsets(const QString &content)
 
 } // namespace
 
-CrashReporterDialog::CrashReporterDialog(const QString &logPath, QWidget *parent)
+CrashReporterDialog::CrashReporterDialog(const QString &logPath,
+                                         QWidget *parent)
     : QDialog(parent)
 {
     setWindowTitle(tr("Lektra crashed"));
@@ -121,7 +121,8 @@ CrashReporterDialog::CrashReporterDialog(const QString &logPath, QWidget *parent
 
     auto *msgLabel = new QLabel(
         tr("<b>Lektra has crashed.</b><br>"
-           "The crash report below may help the developers diagnose the issue.<br>"
+           "The crash report below may help the developers diagnose the "
+           "issue.<br>"
            "Please consider reporting it on GitHub so it can be fixed."),
         this);
     msgLabel->setWordWrap(true);
@@ -151,14 +152,16 @@ CrashReporterDialog::CrashReporterDialog(const QString &logPath, QWidget *parent
     m_logView->setPlainText(content);
 
     // ── buttons ─────────────────────────────────────────────────────────────
-    m_copyBtn = new QPushButton(tr("Copy to Clipboard"), this);
+    m_copyBtn       = new QPushButton(tr("Copy to Clipboard"), this);
     auto *reportBtn = new QPushButton(tr("Report on GitHub"), this);
     auto *closeBtn  = new QPushButton(tr("Close"), this);
     closeBtn->setDefault(true);
 
-    connect(m_copyBtn,  &QPushButton::clicked, this, &CrashReporterDialog::copyToClipboard);
-    connect(reportBtn,  &QPushButton::clicked, this, &CrashReporterDialog::openGitHubIssues);
-    connect(closeBtn,   &QPushButton::clicked, this, &QDialog::accept);
+    connect(m_copyBtn, &QPushButton::clicked, this,
+            &CrashReporterDialog::copyToClipboard);
+    connect(reportBtn, &QPushButton::clicked, this,
+            &CrashReporterDialog::openGitHubIssues);
+    connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
 
     auto *btnLayout = new QHBoxLayout;
     btnLayout->addWidget(m_copyBtn);
@@ -175,13 +178,15 @@ CrashReporterDialog::CrashReporterDialog(const QString &logPath, QWidget *parent
     mainLayout->addLayout(btnLayout);
 }
 
-void CrashReporterDialog::copyToClipboard()
+void
+CrashReporterDialog::copyToClipboard()
 {
     QApplication::clipboard()->setText(m_logView->toPlainText());
     m_copyBtn->setText(tr("Copied!"));
 }
 
-void CrashReporterDialog::openGitHubIssues()
+void
+CrashReporterDialog::openGitHubIssues()
 {
     QDesktopServices::openUrl(QUrl(QLatin1String(GITHUB_ISSUES_URL)));
 }

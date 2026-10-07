@@ -95,8 +95,8 @@ ImageAnimation::advance()
     if (!m_running || !m_apng)
         return;
 
-    bool wrapped = false;
-    int delay    = m_delayMs;
+    bool wrapped       = false;
+    int delay          = m_delayMs;
     const QImage frame = m_apng->nextFrame(&delay, &wrapped);
     if (frame.isNull())
     {

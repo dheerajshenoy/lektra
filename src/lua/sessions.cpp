@@ -13,7 +13,8 @@ Lektra::initLuaSessions() noexcept
         lua_setfield(m_L, -2, name);
     };
 
-    // ----------------------------------------------------------------- sessions
+    // -----------------------------------------------------------------
+    // sessions
     lua_newtable(m_L);
 
     // lektra.sessions.list() -> string[]
@@ -75,7 +76,8 @@ Lektra::initLuaSessions() noexcept
     // ------------------------------------------------------------ recent files
     lua_newtable(m_L);
 
-    // lektra.recent_files.list() -> {file_path, page, last_accessed}[], newest first
+    // lektra.recent_files.list() -> {file_path, page, last_accessed}[], newest
+    // first
     setFn("list", [](lua_State *L) -> int
     {
         auto *lektra
@@ -112,8 +114,9 @@ Lektra::initLuaSessions() noexcept
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
         if (lua_isnoneornil(L, 1))
         {
-            lua_pushboolean(L, QProcess::startDetached(
-                                   QCoreApplication::applicationFilePath(), {}));
+            lua_pushboolean(L,
+                            QProcess::startDetached(
+                                QCoreApplication::applicationFilePath(), {}));
             return 1;
         }
         lua_pushboolean(L, lektra->OpenFileInNewWindow(

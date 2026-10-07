@@ -40,7 +40,8 @@ public:
     inline void setFadeDuration(float duration_s) noexcept
     {
         duration_s = std::max(0.0f, duration_s);
-        m_fade_animation->setDuration(duration_s * 1000); // convert to milliseconds
+        m_fade_animation->setDuration(duration_s
+                                      * 1000); // convert to milliseconds
     }
 
     inline QRectF boundingRect() const noexcept override

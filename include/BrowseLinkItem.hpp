@@ -198,10 +198,10 @@ protected:
                            [this]() { emit linkOpenPortalRequested(this); });
 
             QMenu *splitMenu = menu.addMenu("Open in Split");
-            splitMenu->addAction("Vertical", this,
-                                 [this]() { emit linkOpenVSplitRequested(this); });
-            splitMenu->addAction("Horizontal", this,
-                                 [this]() { emit linkOpenHSplitRequested(this); });
+            splitMenu->addAction("Vertical", this, [this]()
+            { emit linkOpenVSplitRequested(this); });
+            splitMenu->addAction("Horizontal", this, [this]()
+            { emit linkOpenHSplitRequested(this); });
 
             menu.addSeparator();
         }

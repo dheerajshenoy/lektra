@@ -34,8 +34,8 @@ public:
     void setImage(const QImage &image) noexcept
     {
         prepareGeometryChange();
-        m_image = image;
-        m_full_px = {};
+        m_image     = image;
+        m_full_px   = {};
         m_region_px = {};
         updateBoundingRect();
         update();
@@ -45,8 +45,8 @@ public:
     void setImage(QImage &&image) noexcept
     {
         prepareGeometryChange();
-        m_image = std::move(image);
-        m_full_px = {};
+        m_image     = std::move(image);
+        m_full_px   = {};
         m_region_px = {};
         updateBoundingRect();
         update();
@@ -123,17 +123,17 @@ public:
     // part of it is resident.
     [[nodiscard]] inline int width() const noexcept
     {
-        return m_image.isNull() ? 0
-                                : (isPartial() ? m_full_px.width()
-                                               : m_image.width());
+        return m_image.isNull()
+                   ? 0
+                   : (isPartial() ? m_full_px.width() : m_image.width());
     }
 
     // Returns pixel height (not logical height) of the whole page.
     [[nodiscard]] inline int height() const noexcept
     {
-        return m_image.isNull() ? 0
-                                : (isPartial() ? m_full_px.height()
-                                               : m_image.height());
+        return m_image.isNull()
+                   ? 0
+                   : (isPartial() ? m_full_px.height() : m_image.height());
     }
 
     [[nodiscard]] QRectF boundingRect() const override
@@ -149,7 +149,10 @@ public:
         update();
     }
 
-    [[nodiscard]] bool isHighlighted() const noexcept { return m_highlighted; }
+    [[nodiscard]] bool isHighlighted() const noexcept
+    {
+        return m_highlighted;
+    }
 
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
                QWidget *widget) override

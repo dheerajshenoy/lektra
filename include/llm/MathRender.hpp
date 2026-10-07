@@ -11,5 +11,6 @@
 // formulas and `dpr` is the device pixel ratio the image is drawn at (the
 // image has it set). Returns a null image if the formula cannot be parsed, so
 // the caller can show the source text instead. Results are cached.
-QImage renderMath(const QString &latex, int pixelSize, const QColor &color,
-                  int maxWidth, qreal dpr);
+QImage
+renderMath(const QString &latex, int pixelSize, const QColor &color,
+           int maxWidth, qreal dpr);

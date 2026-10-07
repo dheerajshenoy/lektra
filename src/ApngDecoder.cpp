@@ -86,7 +86,8 @@ chunksOf(const QByteArray &png)
     while (pos + 12 <= png.size())
     {
         const quint32 length = be32(png.constData() + pos);
-        if (length > 0x7FFFFFFFu || pos + 12 + static_cast<qsizetype>(length) > png.size())
+        if (length > 0x7FFFFFFFu
+            || pos + 12 + static_cast<qsizetype>(length) > png.size())
             break;
         Chunk c;
         c.start     = pos;
@@ -107,7 +108,8 @@ bool
 ApngDecoder::isAnimated(const QString &path)
 {
     QFile file(path);
-    if (!file.open(QIODevice::ReadOnly) || file.read(kSignature.size()) != kSignature)
+    if (!file.open(QIODevice::ReadOnly)
+        || file.read(kSignature.size()) != kSignature)
         return false;
     // The animation control chunk comes before the image data, so only the
     // chunk headers up to there are read.
@@ -116,7 +118,7 @@ ApngDecoder::isAnimated(const QString &path)
         const QByteArray head = file.read(8); // length and type
         if (head.size() != 8)
             return false;
-        const quint32 length = be32(head.constData());
+        const quint32 length  = be32(head.constData());
         const QByteArray type = head.mid(4, 4);
         if (type == "acTL")
         {
@@ -151,9 +153,11 @@ ApngDecoder::fromData(const QByteArray &png)
     std::unique_ptr<ApngDecoder> d(new ApngDecoder);
     const char *base = png.constData();
     d->m_ihdr        = png.mid(chunks.first().dataStart, 13);
-    d->m_size        = QSize(static_cast<int>(be32(base + chunks.first().dataStart)),
-                             static_cast<int>(be32(base + chunks.first().dataStart + 4)));
-    if (d->m_size.isEmpty() || d->m_size.width() > 65535 || d->m_size.height() > 65535)
+    d->m_size
+        = QSize(static_cast<int>(be32(base + chunks.first().dataStart)),
+                static_cast<int>(be32(base + chunks.first().dataStart + 4)));
+    if (d->m_size.isEmpty() || d->m_size.width() > 65535
+        || d->m_size.height() > 65535)
         return nullptr;
 
     bool sawAnimation = false;
@@ -174,13 +178,15 @@ ApngDecoder::fromData(const QByteArray &png)
             if (c.dataSize < 26)
                 return nullptr;
             Frame f;
-            f.rect = QRect(static_cast<int>(be32(p + 12)), static_cast<int>(be32(p + 16)),
-                           static_cast<int>(be32(p + 4)), static_cast<int>(be32(p + 8)));
+            f.rect = QRect(
+                static_cast<int>(be32(p + 12)), static_cast<int>(be32(p + 16)),
+                static_cast<int>(be32(p + 4)), static_cast<int>(be32(p + 8)));
             const int num = be16(p + 20);
             const int den = be16(p + 22) == 0 ? 100 : be16(p + 22);
             f.delayMs     = 1000 * num / den;
             if (f.delayMs <= 10)
-                f.delayMs = 100; // like browsers: a delay of 0 is too fast to mean it
+                f.delayMs
+                    = 100; // like browsers: a delay of 0 is too fast to mean it
             f.dispose = static_cast<uchar>(p[24]);
             f.blend   = static_cast<uchar>(p[25]);
             d->m_frames.append(f);
@@ -191,13 +197,15 @@ ApngDecoder::fromData(const QByteArray &png)
             // Part of the animation only if a frame control chunk came first;
             // otherwise it is a picture for readers that cannot animate.
             if (!d->m_frames.isEmpty())
-                d->m_frames.last().data.append(p, static_cast<qsizetype>(c.dataSize));
+                d->m_frames.last().data.append(
+                    p, static_cast<qsizetype>(c.dataSize));
         }
         else if (c.type == "fdAT")
         {
             if (c.dataSize < 4 || d->m_frames.isEmpty())
                 return nullptr;
-            d->m_frames.last().data.append(p + 4, static_cast<qsizetype>(c.dataSize - 4));
+            d->m_frames.last().data.append(
+                p + 4, static_cast<qsizetype>(c.dataSize - 4));
         }
         else if (!sawData && c.type != "IEND")
         {
@@ -229,7 +237,7 @@ ApngDecoder::reset()
 QImage
 ApngDecoder::decode(const Frame &frame) const
 {
-    QByteArray png = kSignature;
+    QByteArray png  = kSignature;
     QByteArray ihdr = m_ihdr;
     // the header says how big the frame is, not the whole picture
     QByteArray size;
@@ -295,15 +303,17 @@ ApngDecoder::nextFrame(int *delayMs, bool *wrapped)
 
     {
         QPainter p(&m_canvas);
-        p.setCompositionMode(frame.blend == 1 ? QPainter::CompositionMode_SourceOver
-                                              : QPainter::CompositionMode_Source);
+        p.setCompositionMode(frame.blend == 1
+                                 ? QPainter::CompositionMode_SourceOver
+                                 : QPainter::CompositionMode_Source);
         p.drawImage(frame.rect.topLeft(), image);
     }
 
     if (frame.dispose == 2 && m_index == 0)
     {
         // "previous" with nothing before: treated as "background"
-        m_saved = QImage(frame.rect.size(), QImage::Format_ARGB32_Premultiplied);
+        m_saved
+            = QImage(frame.rect.size(), QImage::Format_ARGB32_Premultiplied);
         m_saved.fill(Qt::transparent);
     }
 

@@ -36,8 +36,9 @@ public:
                  std::function<void(const QString &)> callback) noexcept;
     QCheckBox *add_checkbox(const QString &label, bool checked,
                             std::function<void(bool)> callback) noexcept;
-    QComboBox *add_combobox(const QStringList &items,
-                            std::function<void(const QString &)> callback) noexcept;
+    QComboBox *
+    add_combobox(const QStringList &items,
+                 std::function<void(const QString &)> callback) noexcept;
     QSpinBox *add_spinbox(int min, int max, int value,
                           std::function<void(int)> callback) noexcept;
     QSlider *add_slider(Qt::Orientation orientation, int min, int max,

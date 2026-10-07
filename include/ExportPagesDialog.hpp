@@ -41,7 +41,7 @@ private:
     // What the user chose for the box. The box is also shown ticked, and
     // cannot be changed, for the formats that always make one file per page;
     // that must not become the user's choice.
-    bool m_split_choice = false;
+    bool m_split_choice         = false;
     QLineEdit *m_pages          = nullptr;
     QLabel *m_problem           = nullptr;
     QComboBox *m_format         = nullptr;

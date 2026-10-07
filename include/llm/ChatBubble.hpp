@@ -48,7 +48,7 @@ public:
     {
         bool code = false;
         bool math = false; // display math; text is its LaTeX source
-        QString language; // lower-case fence language, code blocks only
+        QString language;  // lower-case fence language, code blocks only
         QString text;
         bool operator==(const Segment &) const = default;
     };
@@ -59,11 +59,17 @@ public:
 
     // Font size in points of the text inside bubbles created from now on (0:
     // the application's). Math follows it.
-    static void setFontSize(float points) { s_font_size = points; }
+    static void setFontSize(float points)
+    {
+        s_font_size = points;
+    }
 
     // The message as written (Markdown, with its LaTeX and code blocks as
     // source): what the Copy button puts on the clipboard.
-    QString sourceText() const { return m_source; }
+    QString sourceText() const
+    {
+        return m_source;
+    }
 
 protected:
     // The copy button beside the bubble is only shown while the pointer is
@@ -75,8 +81,9 @@ private:
     struct Piece
     {
         QWidget *widget = nullptr;
-        QLabel *label   = nullptr;       // the text (prose, or the code itself)
-        QPushButton *header = nullptr;   // code blocks: "▾ lua · 12 lines", click to collapse
+        QLabel *label   = nullptr; // the text (prose, or the code itself)
+        QPushButton *header
+            = nullptr; // code blocks: "▾ lua · 12 lines", click to collapse
         bool collapsed = false;
     };
     Piece makePiece(const Segment &segment);

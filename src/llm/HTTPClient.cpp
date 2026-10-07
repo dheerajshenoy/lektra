@@ -37,7 +37,7 @@ normalizedToolCall(QJsonObject call, int fallbackNumber)
     call.remove("index");
     if (call.value("id").toString().isEmpty())
         call["id"] = QStringLiteral("call_%1").arg(fallbackNumber);
-    call["type"] = QStringLiteral("function");
+    call["type"]         = QStringLiteral("function");
     QJsonObject function = call.value("function").toObject();
     if (function.value("arguments").isObject())
         function["arguments"] = QString::fromUtf8(
@@ -86,9 +86,8 @@ HTTPClient::setMessages(const QJsonArray &messages)
 void
 HTTPClient::addToolResult(const QString &callId, const QString &content)
 {
-    m_messages.append(QJsonObject{{"role", "tool"},
-                                  {"tool_call_id", callId},
-                                  {"content", content}});
+    m_messages.append(QJsonObject{
+        {"role", "tool"}, {"tool_call_id", callId}, {"content", content}});
 }
 
 void
@@ -107,7 +106,8 @@ HTTPClient::mergeToolCallDelta(const QJsonObject &delta)
         index = delta.value("index").toInt();
     else if (m_streamToolCalls.isEmpty()
              || !delta.value("id").toString().isEmpty())
-        index = m_streamToolCalls.isEmpty() ? 0 : m_streamToolCalls.lastKey() + 1;
+        index
+            = m_streamToolCalls.isEmpty() ? 0 : m_streamToolCalls.lastKey() + 1;
     else
         index = m_streamToolCalls.lastKey();
 
@@ -118,7 +118,7 @@ HTTPClient::mergeToolCallDelta(const QJsonObject &delta)
             continue;
         if (it.key() == QLatin1String("function"))
         {
-            QJsonObject function = call.value("function").toObject();
+            QJsonObject function   = call.value("function").toObject();
             const QJsonObject part = it.value().toObject();
             for (auto jt = part.constBegin(); jt != part.constEnd(); ++jt)
             {
@@ -126,7 +126,8 @@ HTTPClient::mergeToolCallDelta(const QJsonObject &delta)
                     function["arguments"]
                         = function.value("arguments").toString()
                           + jt.value().toString();
-                else if (!jt.value().toString().isEmpty() || !jt.value().isString())
+                else if (!jt.value().toString().isEmpty()
+                         || !jt.value().isString())
                     function[jt.key()] = jt.value();
             }
             call["function"] = function;
@@ -245,7 +246,7 @@ HTTPClient::dispatch()
 
         if (m_cancelled)
         {
-            m_cancelled         = false;
+            m_cancelled           = false;
             const QString partial = streaming ? m_streamedText : QString();
             if (!partial.isEmpty())
                 m_messages.append(
@@ -279,7 +280,7 @@ HTTPClient::dispatch()
         else
         {
             const auto doc = QJsonDocument::fromJson(reply->readAll());
-            text            = doc["choices"][0]["message"]["content"].toString();
+            text           = doc["choices"][0]["message"]["content"].toString();
             rawCalls = doc["choices"][0]["message"]["tool_calls"].toArray();
         }
 
@@ -288,7 +289,8 @@ HTTPClient::dispatch()
         for (int i = 0; i < rawCalls.size(); ++i)
         {
             const QJsonObject call = normalizedToolCall(
-                rawCalls.at(i).toObject(), static_cast<int>(m_messages.size()) * 100 + i);
+                rawCalls.at(i).toObject(),
+                static_cast<int>(m_messages.size()) * 100 + i);
             const QJsonObject function = call.value("function").toObject();
             if (function.value("name").toString().isEmpty())
                 continue;
@@ -325,7 +327,7 @@ HTTPClient::closeConnection() noexcept
 {
     if (m_activeReply)
         m_activeReply->abort(); // triggers the finished lambda above, which
-                                 // clears m_activeReply and deletes the reply
+                                // clears m_activeReply and deletes the reply
     if (m_probeReply)
         m_probeReply->abort();
 }
@@ -344,7 +346,7 @@ HTTPClient::checkConnection() noexcept
 
     QNetworkRequest request(m_url);
     request.setTransferTimeout(2000); // ms — don't let a dead host hang the
-                                       // indicator
+                                      // indicator
 
     QNetworkReply *reply = m_networkManager.head(request);
     m_probeReply         = reply;
@@ -362,11 +364,11 @@ HTTPClient::checkConnection() noexcept
                      .isValid();
         const QVariant status
             = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
-        emit connectionChecked(
-            connected, status.isValid() ? status.toInt() : 0,
-            QDateTime::currentMSecsSinceEpoch() - started,
-            reply->error() == QNetworkReply::NoError ? QString()
-                                                     : reply->errorString());
+        emit connectionChecked(connected, status.isValid() ? status.toInt() : 0,
+                               QDateTime::currentMSecsSinceEpoch() - started,
+                               reply->error() == QNetworkReply::NoError
+                                   ? QString()
+                                   : reply->errorString());
         emit connectionStatusChanged(connected);
     });
 }

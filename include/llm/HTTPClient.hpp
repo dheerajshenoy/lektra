@@ -1,13 +1,13 @@
 #pragma once
 
 #include <QJsonArray>
+#include <QJsonObject>
 #include <QList>
 #include <QMap>
-#include <functional>
-#include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <functional>
 #include <string>
 
 // One tool call the model asked for (OpenAI "tool_calls" entry).
@@ -35,18 +35,27 @@ public:
     // The stored conversation (without the system prompt): what the model has
     // been sent and has answered. Replace or clear it to resume or restart a
     // chat; do not do that while a request is in flight.
-    QJsonArray messages() const { return m_messages; }
+    QJsonArray messages() const
+    {
+        return m_messages;
+    }
     // Tool calls that were never answered (e.g. the chat was saved while
     // waiting for the user) are answered with "skipped" so the conversation
     // is valid to send again.
     void setMessages(const QJsonArray &messages);
-    void clearMessages() { m_messages = QJsonArray(); }
+    void clearMessages()
+    {
+        m_messages = QJsonArray();
+    }
     // Sends a user message. `imageUrls` are `data:` URLs of attached images
     // (see encodeImageForModel); with images the message content is a list of
     // text and image parts, as vision models expect.
     void send(const QString &text, const QStringList &imageUrls = {});
     // Tools (OpenAI "tools" format) the model may call; empty means none.
-    void setTools(const QJsonArray &tools) { m_tools = tools; }
+    void setTools(const QJsonArray &tools)
+    {
+        m_tools = tools;
+    }
     // After the model asked for tool calls (toolCallsRequested): records what
     // one of them returned. Every call needs a result before resume().
     void addToolResult(const QString &callId, const QString &content);

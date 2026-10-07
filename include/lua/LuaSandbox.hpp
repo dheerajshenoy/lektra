@@ -25,5 +25,5 @@ struct LuaScriptResult
 // The script is stopped with an error after `timeLimitMs` so a runaway loop
 // cannot freeze the application. Callbacks the script registers with
 // lektra.event or lektra.timer outlive the run and are not time-limited.
-LuaScriptResult runSandboxedLua(lua_State *L, const QString &code,
-                                int timeLimitMs = 3000);
+LuaScriptResult
+runSandboxedLua(lua_State *L, const QString &code, int timeLimitMs = 3000);

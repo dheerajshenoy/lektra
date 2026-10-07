@@ -1,5 +1,4 @@
 #include "Lektra.hpp"
-
 #include "NoticeLogic.hpp"
 
 #include <QDesktopServices>
@@ -86,8 +85,9 @@ Lektra::initNotices(bool firstRun) noexcept
     }
     m_app_state["launches"] = m_app_state.value("launches").toInt() + 1;
 
-    const QString current  = QStringLiteral(APP_VERSION);
-    const bool updated     = !firstRun && m_app_state.value("last_version").toString() != current;
+    const QString current = QStringLiteral(APP_VERSION);
+    const bool updated
+        = !firstRun && m_app_state.value("last_version").toString() != current;
     m_app_state["last_version"] = current;
     saveAppState();
 
@@ -126,7 +126,8 @@ Lektra::initNotices(bool firstRun) noexcept
                                        m_config.donate.reminders))
             return;
 
-        writeTime(m_app_state, "donate_last_shown", QDateTime::currentDateTimeUtc());
+        writeTime(m_app_state, "donate_last_shown",
+                  QDateTime::currentDateTimeUtc());
         saveAppState();
         m_notice_bar->post(
             {tr("Lektra is free and made in spare time. If it is useful to "
@@ -163,23 +164,26 @@ Lektra::checkForUpdates(bool manual) noexcept
         if (reply->error() != QNetworkReply::NoError)
         {
             if (manual)
-                m_message_bar->showMessage(
-                    tr("Could not check for updates: %1").arg(reply->errorString()),
-                    4.0f);
+                m_message_bar->showMessage(tr("Could not check for updates: %1")
+                                               .arg(reply->errorString()),
+                                           4.0f);
             return;
         }
 
-        const QJsonObject release = QJsonDocument::fromJson(reply->readAll()).object();
-        const QString tag         = release.value("tag_name").toString();
-        const QString url         = release.value("html_url").toString();
+        const QJsonObject release
+            = QJsonDocument::fromJson(reply->readAll()).object();
+        const QString tag = release.value("tag_name").toString();
+        const QString url = release.value("html_url").toString();
         if (tag.isEmpty())
         {
             if (manual)
-                m_message_bar->showMessage(tr("Could not read the latest release"), 4.0f);
+                m_message_bar->showMessage(
+                    tr("Could not read the latest release"), 4.0f);
             return;
         }
 
-        writeTime(m_app_state, "update_last_check", QDateTime::currentDateTimeUtc());
+        writeTime(m_app_state, "update_last_check",
+                  QDateTime::currentDateTimeUtc());
         saveAppState();
 
         const QString current = QStringLiteral(APP_VERSION);
@@ -199,7 +203,11 @@ Lektra::checkForUpdates(bool manual) noexcept
         m_notice_bar->post(
             {tr("Lektra %1 is available (you have %2).").arg(shownTag, current),
              {{tr("Release notes"),
-               [url] { QDesktopServices::openUrl(QUrl(url.isEmpty() ? QLatin1String(kReleasesPage) : url)); }},
+               [url]
+        {
+            QDesktopServices::openUrl(
+                QUrl(url.isEmpty() ? QLatin1String(kReleasesPage) : url));
+        }},
               {tr("Skip this version"),
                [this, tag]
         {
@@ -218,7 +226,8 @@ Lektra::showWhatsNew() noexcept
     QFile file(QStringLiteral(":/CHANGELOG.md"));
     const QString changes
         = file.open(QIODevice::ReadOnly)
-              ? notice::changelogSection(QString::fromUtf8(file.readAll()), current)
+              ? notice::changelogSection(QString::fromUtf8(file.readAll()),
+                                         current)
               : QString();
 
     auto *dialog = new QDialog(this);
@@ -232,13 +241,15 @@ Lektra::showWhatsNew() noexcept
     if (changes.isEmpty())
         browser->setMarkdown(
             tr("The list of changes is not available here. See the [release "
-               "notes](%1).").arg(QLatin1String(kReleasesPage)));
+               "notes](%1).")
+                .arg(QLatin1String(kReleasesPage)));
     else
         browser->setMarkdown(changes);
     layout->addWidget(browser, 1);
 
     auto *buttons = new QDialogButtonBox(dialog);
-    auto *support = buttons->addButton(tr("Support Lektra"), QDialogButtonBox::ActionRole);
+    auto *support = buttons->addButton(tr("Support Lektra"),
+                                       QDialogButtonBox::ActionRole);
     buttons->addButton(QDialogButtonBox::Close);
     connect(support, &QPushButton::clicked, this, [this] { ShowDonate(); });
     connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::close);

@@ -315,7 +315,6 @@ public:
     }
 
 private:
-
     inline void restartHideTimer()
     {
         if (m_autoHide && !m_activeScrollbar)
@@ -353,14 +352,14 @@ private:
 
     QPoint m_lastPanPos;
 
-    bool m_panning                                   = false;
-    bool m_selecting                                 = false;
-    bool m_dragging                                  = false;
-    bool m_ignore_next_release                       = false;
-    Mode m_mode                                      = Mode::TextSelection;
-    Mode m_default_mode                              = Mode::None;
-    QRubberBand *m_rubberBand                        = nullptr;
-    int m_drag_threshold                             = 50;
+    bool m_panning             = false;
+    bool m_selecting           = false;
+    bool m_dragging            = false;
+    bool m_ignore_next_release = false;
+    Mode m_mode                = Mode::TextSelection;
+    Mode m_default_mode        = Mode::None;
+    QRubberBand *m_rubberBand  = nullptr;
+    int m_drag_threshold       = 50;
 
     // Drag-image-out state: set in mousePressEvent() when the press landed
     // on an embedded image; consumed in mouseMoveEvent() once the drag
@@ -397,7 +396,7 @@ private:
     bool m_is_portal                                 = false;
     bool m_is_split_maximized                        = false;
     QString m_open_failed_message;
-    bool m_is_narrow_clip                            = false;
+    bool m_is_narrow_clip = false;
     QRectF m_narrow_scene_rect;
     const Config &m_config;
     QRectF m_visual_line_rect;

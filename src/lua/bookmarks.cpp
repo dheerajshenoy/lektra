@@ -6,7 +6,8 @@ Lektra::initLuaBookmarks() noexcept
 {
     lua_newtable(m_L);
 
-    // lektra.bookmarks.list() -> { {id, file_path, pageno, x, y, created}, ... }
+    // lektra.bookmarks.list() -> { {id, file_path, pageno, x, y, created}, ...
+    // }
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
@@ -68,7 +69,8 @@ Lektra::initLuaBookmarks() noexcept
             return luaL_error(L, "bookmarks.add: no file (open a document or "
                                  "pass file_path)");
 
-        const Bookmark bookmark(filePath, location, QDateTime::currentDateTime());
+        const Bookmark bookmark(filePath, location,
+                                QDateTime::currentDateTime());
         lektra->addBookmark(bookmark);
         lua_pushstring(L, bookmark.id().toUtf8().constData());
         return 1;

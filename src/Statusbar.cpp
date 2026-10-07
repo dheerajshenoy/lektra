@@ -348,9 +348,10 @@ Statusbar::setNarrowMode(bool state) noexcept
 {
     if (state)
     {
-        m_narrow_label->setStyleSheet(
-            "QLabel { background-color: #e67e00; color: white; padding: 2px; }");
-        m_narrow_label->setToolTip(tr("Narrow region active — use Wide Region to exit"));
+        m_narrow_label->setStyleSheet("QLabel { background-color: #e67e00; "
+                                      "color: white; padding: 2px; }");
+        m_narrow_label->setToolTip(
+            tr("Narrow region active — use Wide Region to exit"));
         m_narrow_label->show();
     }
     else

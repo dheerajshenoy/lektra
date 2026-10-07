@@ -1,14 +1,13 @@
+#include "DocumentView.hpp"
 #include "PageRange.hpp"
 
 #include <QFileInfo>
 #include <QImageReader>
-#include <QPageSize>
-#include <QPdfWriter>
-#include <QPainter>
 #include <QImageWriter>
-#include "DocumentView.hpp"
-
 #include <QMovie>
+#include <QPageSize>
+#include <QPainter>
+#include <QPdfWriter>
 
 // Annotations
 #include "Annotations/HighlightAnnotation.hpp"
@@ -344,7 +343,8 @@ DocumentView::setRenderClip(Model::RenderJob &job) const noexcept
     if (m_model->isImage())
         return;
 
-    const GraphicsImageItem *item = m_page_items_hash.value(job.pageno, nullptr);
+    const GraphicsImageItem *item
+        = m_page_items_hash.value(job.pageno, nullptr);
     if (!item)
         return;
 
@@ -354,7 +354,8 @@ DocumentView::setRenderClip(Model::RenderJob &job) const noexcept
 
     // What is on screen, plus half a window on each side so small scrolls and
     // zoom steps keep landing on sharp pixels.
-    QRectF vis = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
+    QRectF vis
+        = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
     vis.adjust(-vis.width() * 0.5, -vis.height() * 0.5, vis.width() * 0.5,
                vis.height() * 0.5);
 
@@ -368,10 +369,10 @@ DocumentView::setRenderClip(Model::RenderJob &job) const noexcept
         local = QRectF(br.topLeft(), view.boundedTo(br.size()));
     }
 
-    job.clip_frac = QRectF(local.x() / br.width(), local.y() / br.height(),
-                           local.width() / br.width(),
-                           local.height() / br.height());
-    job.has_clip  = true;
+    job.clip_frac
+        = QRectF(local.x() / br.width(), local.y() / br.height(),
+                 local.width() / br.width(), local.height() / br.height());
+    job.has_clip = true;
 }
 
 bool
@@ -381,10 +382,10 @@ DocumentView::regionNeedsRefresh(int pageno) const noexcept
     if (!item || !item->isPartial() || !item->isVisible())
         return false;
 
-    const QRectF vis
-        = item->mapRectFromScene(
-              m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect())
-              .intersected(item->boundingRect());
+    const QRectF vis = item->mapRectFromScene(
+                               m_gview->mapToScene(m_gview->viewport()->rect())
+                                   .boundingRect())
+                           .intersected(item->boundingRect());
     if (vis.isEmpty())
         return false;
 
@@ -652,8 +653,9 @@ DocumentView::startNextRenderJob() noexcept
                     view->m_gscene->blockSignals(true);
                     view->setUpdatesEnabled(false);
                     {
-                        view->renderPageFromImage(pageno, std::move(image), result.full_size,
-                                              result.region);
+                        view->renderPageFromImage(pageno, std::move(image),
+                                                  result.full_size,
+                                                  result.region);
                         // Mark as preload and hide it for instant display later
                         if (view->m_page_items_hash.contains(pageno))
                         {
@@ -672,8 +674,8 @@ DocumentView::startNextRenderJob() noexcept
                 view->m_gscene->blockSignals(true);
                 view->setUpdatesEnabled(false);
                 {
-                    view->renderPageFromImage(pageno, std::move(image), result.full_size,
-                                              result.region);
+                    view->renderPageFromImage(pageno, std::move(image),
+                                              result.full_size, result.region);
                     if (!view->m_thumbnail_mode)
                     {
                         view->renderLinks(pageno, result.links);
@@ -1041,8 +1043,8 @@ DocumentView::nearestPageToScenePos(QPointF scenePos) const noexcept
     const double coord = (m_layout_mode == LayoutMode::HORIZONTAL)
                              ? scenePos.x()
                              : scenePos.y();
-    const auto it = std::upper_bound(m_page_offsets.cbegin(),
-                                     m_page_offsets.cend(), coord);
+    const auto it      = std::upper_bound(m_page_offsets.cbegin(),
+                                          m_page_offsets.cend(), coord);
     return std::clamp(
         static_cast<int>(std::distance(m_page_offsets.cbegin(), it) - 1), 0,
         N - 1);
@@ -1342,7 +1344,7 @@ DocumentView::requestPageRender(int pageno, bool force, bool visible) noexcept
 
 void
 DocumentView::renderPageFromImage(int pageno, QImage image, QSize fullSize,
-                                   QRect region) noexcept
+                                  QRect region) noexcept
 {
     // Remove old item (placeholder OR real page) BEFORE adding the new
     // item, since createAndAddPageItem overwrites the hash entry.  Without
@@ -1774,26 +1776,32 @@ DocumentView::exportPages(const QStringList &namesIn,
     const QString suffix = QFileInfo(names.first()).suffix().toLower();
     for (const QString &n : std::as_const(names))
         if (QFileInfo(n).suffix().toLower() != suffix)
-            return fail(tr("All the files must be of the same kind (%1)").arg(suffix));
+            return fail(
+                tr("All the files must be of the same kind (%1)").arg(suffix));
 
     static const QStringList writerFormats
         = {"pdf", "svg", "txt", "text", "html", "xhtml", "cbz", "docx", "odt"};
-    const bool picture = suffix != QLatin1String("pdf") && suffix != QLatin1String("svg")
-                         && QImageWriter::supportedImageFormats().contains(suffix.toLatin1());
+    const bool picture
+        = suffix != QLatin1String("pdf") && suffix != QLatin1String("svg")
+          && QImageWriter::supportedImageFormats().contains(suffix.toLatin1());
     const bool writer = writerFormats.contains(suffix);
     if (!picture && !writer)
-        return fail(tr("Cannot write \"%1\" files (try png, jpg, webp, bmp, tif, pdf, "
-                       "svg, txt, html, cbz, docx or odt)")
-                        .arg(suffix));
-    if (!picture && suffix != QLatin1String("pdf") && !m_model->supportsWriterExport())
-        return fail(tr("%1 cannot be written from an image or DjVu document (try "
-                       "png, jpg or pdf)")
-                        .arg(suffix));
+        return fail(
+            tr("Cannot write \"%1\" files (try png, jpg, webp, bmp, tif, pdf, "
+               "svg, txt, html, cbz, docx or odt)")
+                .arg(suffix));
+    if (!picture && suffix != QLatin1String("pdf")
+        && !m_model->supportsWriterExport())
+        return fail(
+            tr("%1 cannot be written from an image or DjVu document (try "
+               "png, jpg or pdf)")
+                .arg(suffix));
 
     // The files that will be made. Pictures and SVG are always one file per
     // page; the other formats make one file for all the pages, unless asked to
     // `split` them.
-    const bool oneFilePerPage = picture || suffix == QLatin1String("svg") || split;
+    const bool oneFilePerPage
+        = picture || suffix == QLatin1String("svg") || split;
     QStringList targets;
     if (!oneFilePerPage)
     {
@@ -1806,9 +1814,11 @@ DocumentView::exportPages(const QStringList &namesIn,
         const int highest = *std::max_element(pages.begin(), pages.end()) + 1;
         const int width   = QString::number(highest).size();
         for (const int p : pages)
-            targets << ((pages.size() == 1 && !page_range::hasPlaceholder(names.first()))
+            targets << ((pages.size() == 1
+                         && !page_range::hasPlaceholder(names.first()))
                             ? names.first()
-                            : page_range::nameForPage(names.first(), p + 1, width));
+                            : page_range::nameForPage(names.first(), p + 1,
+                                                      width));
     }
     else if (names.size() == static_cast<qsizetype>(pages.size()))
         targets = names;
@@ -1824,7 +1834,8 @@ DocumentView::exportPages(const QStringList &namesIn,
     {
         const QFileInfo info(t);
         if (!info.dir().exists())
-            return fail(tr("The folder %1 does not exist").arg(info.absolutePath()));
+            return fail(
+                tr("The folder %1 does not exist").arg(info.absolutePath()));
         if (!overwrite && info.exists())
         {
             if (existing)
@@ -1835,7 +1846,8 @@ DocumentView::exportPages(const QStringList &namesIn,
 
     // Writing: each file gets its pages (one page for pictures, SVG and split
     // files; all of them otherwise).
-    auto writeFile = [&](const std::vector<int> &filePages, const QString &target) -> bool
+    auto writeFile
+        = [&](const std::vector<int> &filePages, const QString &target) -> bool
     {
         if (picture)
         {
@@ -1851,7 +1863,8 @@ DocumentView::exportPages(const QStringList &namesIn,
         if (m_model->supportsWriterExport())
         {
             QString problem;
-            if (!m_model->exportWithWriter(filePages, {target}, suffix, &problem))
+            if (!m_model->exportWithWriter(filePages, {target}, suffix,
+                                           &problem))
                 return fail(problem);
             return true;
         }
@@ -1866,9 +1879,9 @@ DocumentView::exportPages(const QStringList &namesIn,
             const QImage image = renderPageForExport(p, dpi);
             if (image.isNull())
                 return fail(tr("Page %1 could not be rendered").arg(p + 1));
-            pdf.setPageSize(QPageSize(QSizeF(image.width() * 72.0 / dpi,
-                                             image.height() * 72.0 / dpi),
-                                      QPageSize::Point));
+            pdf.setPageSize(QPageSize(
+                QSizeF(image.width() * 72.0 / dpi, image.height() * 72.0 / dpi),
+                QPageSize::Point));
             if (first)
             {
                 if (!painter.begin(&pdf))

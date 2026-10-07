@@ -1,8 +1,8 @@
 #pragma once
 
 #include <QApplication>
-#include <QHash>
 #include <QDrag>
+#include <QHash>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMimeData>

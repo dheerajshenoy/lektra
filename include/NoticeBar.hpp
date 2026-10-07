@@ -34,14 +34,17 @@ public:
     // Shows the notice now, or after the ones before it.
     void post(const Notice &notice);
     // Whether a notice is on screen or waiting.
-    bool busy() const noexcept { return m_showing || !m_queue.isEmpty(); }
+    bool busy() const noexcept
+    {
+        return m_showing || !m_queue.isEmpty();
+    }
 
 private:
     void showNext();
     void finish(bool closed);
 
-    QLabel *m_label       = nullptr;
-    QWidget *m_buttons    = nullptr;
+    QLabel *m_label              = nullptr;
+    QWidget *m_buttons           = nullptr;
     QHBoxLayout *m_button_layout = nullptr;
     QQueue<Notice> m_queue;
     Notice m_current;

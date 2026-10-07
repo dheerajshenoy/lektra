@@ -1,8 +1,7 @@
-#include "Model.hpp"
-
 #include "BrowseLinkItem.hpp"
 #include "Commands/TextHighlightAnnotationCommand.hpp"
 #include "Config.hpp"
+#include "Model.hpp"
 #include "utils.hpp"
 
 #include <QFile>
@@ -28,27 +27,27 @@
 #include <unordered_set>
 #ifdef HAVE_FONTCONFIG
 
-#include <fontconfig/fontconfig.h>
+    #include <fontconfig/fontconfig.h>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
 
-#include <QDirIterator>
+    #include <QDirIterator>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
-#include <QFile>
+    #include <QFile>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
-#include <QStandardPaths>
+    #include <QStandardPaths>
 #endif
 #ifdef HAVE_LIBARCHIVE
 
-#include <archive.h>
+    #include <archive.h>
 #endif
 #ifdef HAVE_LIBARCHIVE
-#include <archive_entry.h>
+    #include <archive_entry.h>
 #endif
 
 // Build scale→rotate→[flip]→translate-to-origin matrix (manual pattern sites).
@@ -94,8 +93,10 @@ buildRenderTransform(fz_rect bounds, float zoom, float rotation, bool flip_h,
 static void
 buildHighContrastLUT(unsigned char lut[256], int black, int white) noexcept
 {
-    if (black < 0)    black = 0;
-    if (white > 255)  white = 255;
+    if (black < 0)
+        black = 0;
+    if (white > 255)
+        white = 255;
     if (white <= black)
     {
         // Degenerate config — fall back to a hard threshold at the midpoint
@@ -109,9 +110,12 @@ buildHighContrastLUT(unsigned char lut[256], int black, int white) noexcept
     for (int i = 0; i < 256; ++i)
     {
         int v;
-        if (i <= black)      v = 0;
-        else if (i >= white) v = 255;
-        else                 v = ((i - black) * 255 + span / 2) / span;
+        if (i <= black)
+            v = 0;
+        else if (i >= white)
+            v = 255;
+        else
+            v = ((i - black) * 255 + span / 2) / span;
         lut[i] = static_cast<unsigned char>(v);
     }
 }
@@ -132,7 +136,7 @@ applyHighContrastQImage(QImage &img, int black, int white) noexcept
         for (int x = 0; x < w; ++x)
         {
             const QRgb px = row[x];
-            row[x]        = qRgb(lut[qRed(px)], lut[qGreen(px)], lut[qBlue(px)]);
+            row[x] = qRgb(lut[qRed(px)], lut[qGreen(px)], lut[qBlue(px)]);
         }
     }
 }
@@ -149,11 +153,11 @@ tintQImageRGB(QImage &img, uint32_t fg_rgb, uint32_t bg_rgb) noexcept
         return; // identity — no change
 
     const int fg_r = (fg_rgb >> 16) & 0xFF;
-    const int fg_g = (fg_rgb >>  8) & 0xFF;
-    const int fg_b =  fg_rgb        & 0xFF;
+    const int fg_g = (fg_rgb >> 8) & 0xFF;
+    const int fg_b = fg_rgb & 0xFF;
     const int dr   = static_cast<int>((bg_rgb >> 16) & 0xFF) - fg_r;
-    const int dg   = static_cast<int>((bg_rgb >>  8) & 0xFF) - fg_g;
-    const int db   = static_cast<int>( bg_rgb        & 0xFF) - fg_b;
+    const int dg   = static_cast<int>((bg_rgb >> 8) & 0xFF) - fg_g;
+    const int db   = static_cast<int>(bg_rgb & 0xFF) - fg_b;
 
     const int h = img.height();
     const int w = img.width();
@@ -163,9 +167,9 @@ tintQImageRGB(QImage &img, uint32_t fg_rgb, uint32_t bg_rgb) noexcept
         for (int x = 0; x < w; ++x)
         {
             const QRgb px = row[x];
-            const int r   = (qRed(px)   * dr) / 255 + fg_r;
+            const int r   = (qRed(px) * dr) / 255 + fg_r;
             const int g   = (qGreen(px) * dg) / 255 + fg_g;
-            const int b   = (qBlue(px)  * db) / 255 + fg_b;
+            const int b   = (qBlue(px) * db) / 255 + fg_b;
             row[x]        = qRgb(r, g, b);
         }
     }
@@ -373,7 +377,6 @@ private:
 }; // namespace
 } // namespace
 
-
 void
 Model::clearPageCache() noexcept
 {
@@ -491,8 +494,8 @@ Model::buildPageCache_djvu(int pageno) noexcept
     // could otherwise overflow int and produce an undersized or negative
     // buffer that page_render happily writes past.
     static constexpr int MAX_RENDER_PX = 32768;
-    const int rw_raw = static_cast<int>(pw_px * scale);
-    const int rh_raw = static_cast<int>(ph_px * scale);
+    const int rw_raw                   = static_cast<int>(pw_px * scale);
+    const int rh_raw                   = static_cast<int>(ph_px * scale);
     if (rw_raw <= 0 || rh_raw <= 0 || rw_raw > MAX_RENDER_PX
         || rh_raw > MAX_RENDER_PX)
     {
@@ -508,8 +511,8 @@ Model::buildPageCache_djvu(int pageno) noexcept
     // BGRA format maps cleanly to QImage::Format_RGB32.
     // Use 64-bit arithmetic for the buffer size so a large page cannot
     // overflow int (e.g. 25000 * 4 * 25000 = 2.5e9 wraps int).
-    const int stride            = rw * 4;
-    const qint64 buf_bytes64    = static_cast<qint64>(stride) * rh;
+    const int stride         = rw * 4;
+    const qint64 buf_bytes64 = static_cast<qint64>(stride) * rh;
     if (buf_bytes64 <= 0
         || buf_bytes64 > static_cast<qint64>(std::numeric_limits<int>::max()))
     {
@@ -856,7 +859,7 @@ Model::invalidatePageCaches() noexcept
     std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
     m_page_lru_cache.clear();
     m_text_cache.clear();
-        m_has_text_layer = -1;
+    m_has_text_layer = -1;
     m_stext_page_cache.clear();
 
     std::lock_guard<std::mutex> lk(m_page_dim_mutex);
@@ -902,8 +905,8 @@ Model::contentBBox(int pageno) noexcept
     // Fallback for the non-PDF paths: image files and DjVu have no vector
     // "content region" concept — return the full page rect so smart-fit
     // degrades gracefully to plain fit.
-    const auto dim               = page_dimension_pts(pageno);
-    const ContentBBox page_rect  = {0.0f, 0.0f, dim.width_pts, dim.height_pts};
+    const auto dim              = page_dimension_pts(pageno);
+    const ContentBBox page_rect = {0.0f, 0.0f, dim.width_pts, dim.height_pts};
 
     if (m_is_image || m_filetype == FileType::DJVU || !m_ctx || !m_doc
         || pageno < 0 || pageno >= m_page_count)
@@ -923,9 +926,9 @@ Model::contentBBox(int pageno) noexcept
     // same document since the fz_context is not shareable across threads.
     std::lock_guard<std::mutex> doc_lock(m_doc_mutex);
 
-    fz_page *page   = nullptr;
-    fz_device *dev  = nullptr;
-    fz_rect bbox    = fz_empty_rect;
+    fz_page *page  = nullptr;
+    fz_device *dev = nullptr;
+    fz_rect bbox   = fz_empty_rect;
 
     fz_try(m_ctx)
     {

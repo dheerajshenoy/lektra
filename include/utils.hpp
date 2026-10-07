@@ -6,8 +6,8 @@
 #include <QDebug>
 #include <QDir>
 #include <QFileInfo>
-#include <QRegularExpression>
 #include <QPointF>
+#include <QRegularExpression>
 #include <algorithm>
 #include <cstdint>
 #include <locale>

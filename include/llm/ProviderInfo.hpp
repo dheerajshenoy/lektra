@@ -31,11 +31,14 @@ providerName(const QUrl &url)
         {"api.perplexity.ai", "Perplexity"},
     };
     for (const Known &k : known)
-        if (host == QLatin1String(k.needle) || host.endsWith(QLatin1Char('.') + QLatin1String(k.needle)))
+        if (host == QLatin1String(k.needle)
+            || host.endsWith(QLatin1Char('.') + QLatin1String(k.needle)))
             return QString::fromLatin1(k.name);
 
-    const bool local = host == QLatin1String("localhost") || host == QLatin1String("127.0.0.1")
-                       || host == QLatin1String("::1") || host == QLatin1String("0.0.0.0");
+    const bool local = host == QLatin1String("localhost")
+                       || host == QLatin1String("127.0.0.1")
+                       || host == QLatin1String("::1")
+                       || host == QLatin1String("0.0.0.0");
     if (local)
     {
         switch (url.port())

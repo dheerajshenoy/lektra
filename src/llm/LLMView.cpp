@@ -4,30 +4,29 @@
 #include "ProviderInfo.hpp"
 
 #include <QAbstractTextDocumentLayout>
+#include <QAction>
+#include <QApplication>
+#include <QClipboard>
+#include <QDateTime>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QImageReader>
-#include <QMimeData>
-#include <QAction>
-#include <QHelpEvent>
-#include <QToolTip>
-#include <QDateTime>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QLocale>
-#include <QMenu>
-#include <QMessageBox>
-#include <QApplication>
-#include <QClipboard>
 #include <QFontMetrics>
 #include <QFrame>
 #include <QHBoxLayout>
+#include <QHelpEvent>
 #include <QIcon>
+#include <QImageReader>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QLocale>
+#include <QMenu>
+#include <QMessageBox>
+#include <QMimeData>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPixmap>
@@ -37,6 +36,7 @@
 #include <QStyle>
 #include <QTextDocument>
 #include <QTimer>
+#include <QToolTip>
 #include <algorithm>
 #include <cmath>
 
@@ -174,9 +174,9 @@ LLMView::updateTools()
     QJsonArray tools;
     if (m_config.llm_view.tools)
     {
-        auto tool = [](const QString &name, const QString &description,
-                       const QJsonObject &properties,
-                       const QJsonArray &required)
+        auto tool
+            = [](const QString &name, const QString &description,
+                 const QJsonObject &properties, const QJsonArray &required)
         {
             return QJsonObject{
                 {"type", "function"},
@@ -184,10 +184,9 @@ LLMView::updateTools()
                  QJsonObject{
                      {"name", name},
                      {"description", description},
-                     {"parameters",
-                      QJsonObject{{"type", "object"},
-                                  {"properties", properties},
-                                  {"required", required}}},
+                     {"parameters", QJsonObject{{"type", "object"},
+                                                {"properties", properties},
+                                                {"required", required}}},
                  }},
             };
         };
@@ -347,8 +346,8 @@ LLMView::initUI()
     m_input_edit->setPlaceholderText(
         tr("Ask something...  (Shift+Enter to send)"));
     m_input_edit->installEventFilter(this);
-    m_input_edit->setHandlers([this](const QImage &image) { attachImage(image); },
-                              [this](const QString &path) { attachFile(path); });
+    m_input_edit->setHandlers([this](const QImage &image)
+    { attachImage(image); }, [this](const QString &path) { attachFile(path); });
 
     m_send_button = new QToolButton(m_input_frame);
     m_send_button->setObjectName("llmSendButton");
@@ -363,7 +362,8 @@ LLMView::initUI()
     m_attach_button = new QToolButton(m_input_frame);
     m_attach_button->setObjectName("llmAttachButton");
     m_attach_button->setText(QStringLiteral("+"));
-    m_attach_button->setToolTip(tr("Attach an image (you can also paste or drop one)"));
+    m_attach_button->setToolTip(
+        tr("Attach an image (you can also paste or drop one)"));
     m_attach_button->setCursor(Qt::PointingHandCursor);
     m_attach_button->setFixedSize(kSendButtonSize, kSendButtonSize);
     m_attach_button->setPopupMode(QToolButton::InstantPopup);
@@ -377,18 +377,21 @@ LLMView::initUI()
         {
             const QStringList files = QFileDialog::getOpenFileNames(
                 this, tr("Attach image"), QString(),
-                tr("Images (*.png *.jpg *.jpeg *.webp *.bmp *.gif *.tif *.tiff);;All files (*)"));
+                tr("Images (*.png *.jpg *.jpeg *.webp *.bmp *.gif *.tif "
+                   "*.tiff);;All files (*)"));
             for (const QString &f : files)
                 attachFile(f);
         });
-        QAction *page = m_attach_menu->addAction(tr("Current page"), this, [this]
+        QAction *page
+            = m_attach_menu->addAction(tr("Current page"), this, [this]
         {
             const QImage image = m_image_sources.currentPage();
             if (!attachImage(image) && image.isNull())
                 flashNote(tr("Could not get an image of the page"));
         });
         page->setEnabled(static_cast<bool>(m_image_sources.currentPage));
-        QAction *region = m_attach_menu->addAction(tr("Region of the page..."), this, [this]
+        QAction *region
+            = m_attach_menu->addAction(tr("Region of the page..."), this, [this]
         {
             flashNote(tr("Drag a box over the part of the page to attach"));
             m_image_sources.pickRegion([this](const QImage &image)
@@ -478,8 +481,7 @@ LLMView::updateSendEnabled() noexcept
     m_send_button->setToolTip(m_awaiting_response ? tr("Stop (Esc)")
                                                   : tr("Send (Shift+Enter)"));
     m_send_button->setEnabled(
-        m_awaiting_response
-        || !m_input_edit->toPlainText().trimmed().isEmpty()
+        m_awaiting_response || !m_input_edit->toPlainText().trimmed().isEmpty()
         || !m_attachments.isEmpty());
 }
 
@@ -564,7 +566,7 @@ LLMView::updateInputStyle() noexcept
             .arg(pal.color(QPalette::Text).name(), rgba(off)));
 
     const qreal dpr = devicePixelRatioF();
-    m_send_icon = QIcon();
+    m_send_icon     = QIcon();
     m_send_icon.addPixmap(sendGlyph(pal.color(QPalette::HighlightedText), dpr),
                           QIcon::Normal);
     m_send_icon.addPixmap(sendGlyph(pal.color(QPalette::Base), dpr),
@@ -613,30 +615,42 @@ LLMView::connectionTooltip() const
     const auto &c = m_config.llm_view;
     const QUrl url(c.api_url);
     // never show credentials or query strings that may be part of a URL
-    const QString endpoint = url.adjusted(QUrl::RemoveUserInfo | QUrl::RemoveQuery
-                                          | QUrl::RemoveFragment)
-                                 .toString();
+    const QString endpoint
+        = url.adjusted(QUrl::RemoveUserInfo | QUrl::RemoveQuery
+                       | QUrl::RemoveFragment)
+              .toString();
 
     QString status;
     if (!m_conn_known)
         status = tr("checking...");
     else if (m_conn_ok)
-        status = tr("connected") + (m_conn_status > 0 ? QStringLiteral(" (HTTP %1, %2 ms)")
-                                                            .arg(m_conn_status)
-                                                            .arg(m_conn_latency)
-                                                      : QStringLiteral(" (%1 ms)").arg(m_conn_latency));
+        status = tr("connected")
+                 + (m_conn_status > 0
+                        ? QStringLiteral(" (HTTP %1, %2 ms)")
+                              .arg(m_conn_status)
+                              .arg(m_conn_latency)
+                        : QStringLiteral(" (%1 ms)").arg(m_conn_latency));
     else
-        status = tr("not reachable") + (m_conn_error.isEmpty() ? QString()
-                                                               : QStringLiteral(": ") + m_conn_error.toHtmlEscaped());
+        status = tr("not reachable")
+                 + (m_conn_error.isEmpty()
+                        ? QString()
+                        : QStringLiteral(": ") + m_conn_error.toHtmlEscaped());
     if (m_conn_known)
         status += QStringLiteral("<br><span style='color:gray'>%1 %2</span>")
-                      .arg(tr("checked"), QLocale().toString(m_conn_time.time(), QLocale::ShortFormat));
+                      .arg(tr("checked"),
+                           QLocale().toString(m_conn_time.time(),
+                                              QLocale::ShortFormat));
 
-    const bool streaming = c.extra_body.value(QStringLiteral("stream")).toBool();
-    const int messages   = static_cast<int>(m_http_client->messages().size());
+    const bool streaming
+        = c.extra_body.value(QStringLiteral("stream")).toBool();
+    const int messages = static_cast<int>(m_http_client->messages().size());
 
     auto row = [](const QString &label, const QString &value)
-    { return QStringLiteral("<tr><td style='color:gray; padding-right:10px'>%1</td><td>%2</td></tr>").arg(label, value); };
+    {
+        return QStringLiteral("<tr><td style='color:gray; "
+                              "padding-right:10px'>%1</td><td>%2</td></tr>")
+            .arg(label, value);
+    };
 
     QString html = QStringLiteral("<table>");
     html += row(tr("Model"), c.model.toHtmlEscaped());
@@ -646,9 +660,11 @@ LLMView::connectionTooltip() const
     html += row(tr("Streaming"), streaming ? tr("on") : tr("off"));
     html += row(tr("Status"), status);
     html += row(tr("This chat"),
-                messages == 0 ? tr("empty")
-                              : tr("%1 messages sent to the model").arg(messages));
-    html += row(tr("Run scripts"), c.auto_run ? tr("automatically") : tr("on request (Run button)"));
+                messages == 0
+                    ? tr("empty")
+                    : tr("%1 messages sent to the model").arg(messages));
+    html += row(tr("Run scripts"), c.auto_run ? tr("automatically")
+                                              : tr("on request (Run button)"));
     html += row(tr("Save chats"), m_store.isEnabled() ? tr("on") : tr("off"));
     html += QStringLiteral("</table>");
     return html;
@@ -692,8 +708,8 @@ LLMView::sendMessage()
         previews << thumbnailFor(image, 120);
     }
 
-    auto *bubble = new ChatBubble(ChatBubble::Role::User, user_input,
-                                  m_messages_widget);
+    auto *bubble
+        = new ChatBubble(ChatBubble::Role::User, user_input, m_messages_widget);
     bubble->setThumbnails(previews);
     addBubble(bubble);
     // Saved together with the reply (or its error), so a stored chat never
@@ -736,8 +752,8 @@ LLMView::displayResponse(const QString &response)
     {
         // Already shown progressively via appendStreamChunk() — nothing
         // left to do but reset for the next exchange.
-        m_streaming_active         = false;
-        m_active_assistant_bubble  = nullptr;
+        m_streaming_active        = false;
+        m_active_assistant_bubble = nullptr;
         m_streaming_markdown.clear();
     }
     else if (!response.trimmed().isEmpty())
@@ -778,15 +794,16 @@ LLMView::addScriptActions(const QString &reply, bool allowAutoRun)
         row->setContentsMargins(4, 0, 4, 0);
 
         const int lines = code.count(QLatin1Char('\n')) + 1;
-        auto *label = new QLabel(
-            lines == 1 ? tr("Lua script, 1 line")
-                       : tr("Lua script, %1 lines").arg(lines),
-            bar);
+        auto *label
+            = new QLabel(lines == 1 ? tr("Lua script, 1 line")
+                                    : tr("Lua script, %1 lines").arg(lines),
+                         bar);
         label->setStyleSheet("color: gray;");
         auto *copy = new QPushButton(tr("Copy"), bar);
         copy->setFlat(true);
         copy->setCursor(Qt::PointingHandCursor);
-        auto *run = makeRunButton(bar, tr("Run"), tr("Run this script in Lektra"));
+        auto *run
+            = makeRunButton(bar, tr("Run"), tr("Run this script in Lektra"));
 
         row->addWidget(label);
         row->addStretch();
@@ -798,8 +815,8 @@ LLMView::addScriptActions(const QString &reply, bool allowAutoRun)
             QApplication::clipboard()->setText(code);
             // Show that the click did something, then go back to "Copy".
             copy->setText(tr("\u2713 Copied"));
-            QTimer::singleShot(1500, copy, [this, copy]
-            { copy->setText(tr("Copy")); });
+            QTimer::singleShot(1500, copy,
+                               [this, copy] { copy->setText(tr("Copy")); });
         });
         connect(run, &QPushButton::clicked, this,
                 [this, code, run] { runScript(code, run); });
@@ -851,7 +868,7 @@ LLMView::makeRunButton(QWidget *parent, const QString &text,
     run->setCursor(Qt::PointingHandCursor);
     run->setToolTip(tooltip);
 
-    const QPalette pal = palette();
+    const QPalette pal  = palette();
     const QColor accent = pal.color(QPalette::Highlight);
     run->setStyleSheet(
         QString("QPushButton#llmRunButton { background: %1; color: %2; "
@@ -884,10 +901,12 @@ LLMView::handleToolCalls(const QList<LLMToolCall> &calls)
     {
         for (const LLMToolCall &call : calls)
             m_http_client->addToolResult(
-                call.id, QStringLiteral("Not run: too many tool calls in a row."));
+                call.id,
+                QStringLiteral("Not run: too many tool calls in a row."));
         const QString message
             = tr("Stopped after %1 rounds of tool calls. Send a message to "
-                 "continue.").arg(kMaxToolRounds);
+                 "continue.")
+                  .arg(kMaxToolRounds);
         addBubble(new ChatBubble(ChatBubble::Role::Error, message,
                                  m_messages_widget));
         record(QStringLiteral("error"), message);
@@ -923,13 +942,13 @@ LLMView::handleToolCalls(const QList<LLMToolCall> &calls)
             {
                 QApplication::clipboard()->setText(code);
                 copy->setText(tr("✓ Copied"));
-                QTimer::singleShot(1500, copy, [this, copy]
-                { copy->setText(tr("Copy")); });
+                QTimer::singleShot(1500, copy,
+                                   [this, copy] { copy->setText(tr("Copy")); });
             });
             row->addWidget(copy);
         }
 
-        auto *buttons = new QWidget(bar);
+        auto *buttons   = new QWidget(bar);
         auto *buttonRow = new QHBoxLayout(buttons);
         buttonRow->setContentsMargins(0, 0, 0, 0);
         auto *skip = new QPushButton(tr("Skip"), buttons);
@@ -940,10 +959,14 @@ LLMView::handleToolCalls(const QList<LLMToolCall> &calls)
         buttonRow->addWidget(run);
         row->addWidget(buttons);
 
-        connect(run, &QPushButton::clicked, this, [this, index] { runTool(index); });
+        connect(run, &QPushButton::clicked, this,
+                [this, index] { runTool(index); });
         connect(skip, &QPushButton::clicked, this, [this, index]
-        { completeTool(index, QStringLiteral("The user chose not to run this."),
-                       tr("skipped")); });
+        {
+            completeTool(index,
+                         QStringLiteral("The user chose not to run this."),
+                         tr("skipped"));
+        });
 
         m_pending_tools[index].bar     = bar;
         m_pending_tools[index].status  = text;
@@ -974,9 +997,10 @@ LLMView::handleToolCalls(const QList<LLMToolCall> &calls)
             for (const QJsonValue &v : args.value("args").toArray())
                 list << v.toVariant().toString();
             const QString label
-                = tr("Command: %1").arg((args.value("name").toString()
-                                         + QLatin1Char(' ') + list.join(QLatin1Char(' ')))
-                                            .trimmed());
+                = tr("Command: %1")
+                      .arg((args.value("name").toString() + QLatin1Char(' ')
+                            + list.join(QLatin1Char(' ')))
+                               .trimmed());
             record(QStringLiteral("note"), label, /*save=*/false);
             makeBar(i, label, QString());
             needsRun = true;
@@ -985,7 +1009,8 @@ LLMView::handleToolCalls(const QList<LLMToolCall> &calls)
                  && !args.value("code").toString().trimmed().isEmpty())
         {
             const QString code = args.value("code").toString().trimmed();
-            const QString block = QStringLiteral("```lua\n") + code + QStringLiteral("\n```");
+            const QString block
+                = QStringLiteral("```lua\n") + code + QStringLiteral("\n```");
             addBubble(new ChatBubble(ChatBubble::Role::Assistant, block,
                                      m_messages_widget));
             record(QStringLiteral("tool"), block, /*save=*/false);
@@ -998,10 +1023,11 @@ LLMView::handleToolCalls(const QList<LLMToolCall> &calls)
         }
         else
         {
-            completeTool(i,
-                         QStringLiteral("Error: unknown tool or missing arguments (")
-                             + call.name + QStringLiteral(")."),
-                         QString());
+            completeTool(
+                i,
+                QStringLiteral("Error: unknown tool or missing arguments (")
+                    + call.name + QStringLiteral(")."),
+                QString());
         }
 
         if (needsRun && m_config.llm_view.auto_run)
@@ -1031,12 +1057,15 @@ LLMView::runTool(int index)
             = m_command_runner(args.value("name").toString(), list);
         if (r.ok)
         {
-            completeTool(index, QStringLiteral("The command ran."), tr("✓ done"));
+            completeTool(index, QStringLiteral("The command ran."),
+                         tr("✓ done"));
             return;
         }
-        const QString shown = QStringLiteral("**") + tr("Error:") + QStringLiteral("** `")
-                              + r.error + QStringLiteral("`");
-        addBubble(new ChatBubble(ChatBubble::Role::Error, shown, m_messages_widget));
+        const QString shown = QStringLiteral("**") + tr("Error:")
+                              + QStringLiteral("** `") + r.error
+                              + QStringLiteral("`");
+        addBubble(
+            new ChatBubble(ChatBubble::Role::Error, shown, m_messages_widget));
         record(QStringLiteral("error"), shown, /*save=*/false);
         completeTool(index, QStringLiteral("The command failed: ") + r.error,
                      tr("✗ failed"));
@@ -1069,7 +1098,8 @@ LLMView::completeTool(int index, const QString &result, const QString &status)
     tool.done         = true;
     m_http_client->addToolResult(tool.call.id, result);
     if (tool.status && !status.isEmpty())
-        tool.status->setText(tool.status->text() + QStringLiteral("  ·  ") + status);
+        tool.status->setText(tool.status->text() + QStringLiteral("  ·  ")
+                             + status);
     if (tool.buttons)
         tool.buttons->hide();
 
@@ -1121,7 +1151,8 @@ LLMView::describeResult(const LLMScriptResult &r, QString &shown,
             shown = tr("Done.");
         told = QStringLiteral("[The script you wrote ran without errors.");
         if (!r.output.isEmpty())
-            told += QStringLiteral(" It printed: ") + r.output.trimmed().left(1500);
+            told += QStringLiteral(" It printed: ")
+                    + r.output.trimmed().left(1500);
         if (!r.value.isEmpty())
             told += QStringLiteral(" It returned: ") + r.value.left(1500);
         told += QStringLiteral("]");
@@ -1133,8 +1164,8 @@ LLMView::describeResult(const LLMScriptResult &r, QString &shown,
                      + QStringLiteral("\n```\n");
         shown += QStringLiteral("**") + tr("Error:") + QStringLiteral("** `")
                  + r.error + QStringLiteral("`");
-        told = QStringLiteral("[The script you wrote failed: ") + r.error.left(1500)
-               + QStringLiteral("]");
+        told = QStringLiteral("[The script you wrote failed: ")
+               + r.error.left(1500) + QStringLiteral("]");
     }
 }
 
@@ -1200,7 +1231,8 @@ LLMView::saveChat()
         for (const QJsonValue &v : std::as_const(m_transcript))
             if (v.toObject().value("kind").toString() == QLatin1String("user"))
             {
-                m_chat_title = ChatStore::titleFrom(v.toObject().value("text").toString());
+                m_chat_title = ChatStore::titleFrom(
+                    v.toObject().value("text").toString());
                 break;
             }
     }
@@ -1273,29 +1305,37 @@ LLMView::loadChat(const QString &id)
         {
             // the images themselves are not saved, only that there were some
             const int images = v.toObject().value("images").toInt();
-            QString shown = text;
+            QString shown    = text;
             if (images > 0)
             {
-                const QString note = images == 1 ? tr("1 image attached")
-                                                 : tr("%1 images attached").arg(images);
+                const QString note = images == 1
+                                         ? tr("1 image attached")
+                                         : tr("%1 images attached").arg(images);
                 shown = QStringLiteral("*") + note + QStringLiteral("*")
-                        + (text.isEmpty() ? QString() : QStringLiteral("\n\n") + text);
+                        + (text.isEmpty() ? QString()
+                                          : QStringLiteral("\n\n") + text);
             }
-            addBubble(new ChatBubble(ChatBubble::Role::User, shown, m_messages_widget));
+            addBubble(new ChatBubble(ChatBubble::Role::User, shown,
+                                     m_messages_widget));
         }
         else if (kind == QLatin1String("assistant"))
         {
-            addBubble(new ChatBubble(ChatBubble::Role::Assistant, text, m_messages_widget));
-            addScriptActions(text, /*allowAutoRun=*/false); // never re-run old scripts
+            addBubble(new ChatBubble(ChatBubble::Role::Assistant, text,
+                                     m_messages_widget));
+            addScriptActions(
+                text, /*allowAutoRun=*/false); // never re-run old scripts
         }
         else if (kind == QLatin1String("tool"))
-            addBubble(new ChatBubble(ChatBubble::Role::Assistant, text, m_messages_widget));
+            addBubble(new ChatBubble(ChatBubble::Role::Assistant, text,
+                                     m_messages_widget));
         else if (kind == QLatin1String("note"))
             addNote(text);
         else if (kind == QLatin1String("result"))
-            addBubble(new ChatBubble(ChatBubble::Role::Result, text, m_messages_widget));
+            addBubble(new ChatBubble(ChatBubble::Role::Result, text,
+                                     m_messages_widget));
         else
-            addBubble(new ChatBubble(ChatBubble::Role::Error, text, m_messages_widget));
+            addBubble(new ChatBubble(ChatBubble::Role::Error, text,
+                                     m_messages_widget));
     }
     scrollToBottom();
 }
@@ -1319,13 +1359,15 @@ LLMView::refreshHistoryMenu()
         m_history_menu->addAction(tr("No saved chats"))->setEnabled(false);
     for (const ChatStore::Summary &c : chats)
     {
-        const QString when = QLocale().toString(c.updated, QLocale::ShortFormat);
+        const QString when
+            = QLocale().toString(c.updated, QLocale::ShortFormat);
         auto *action = m_history_menu->addAction(
             QStringLiteral("%1   \u00B7   %2").arg(c.title, when));
         action->setCheckable(true);
         action->setChecked(c.id == m_chat_id);
         const QString id = c.id;
-        connect(action, &QAction::triggered, this, [this, id] { loadChat(id); });
+        connect(action, &QAction::triggered, this,
+                [this, id] { loadChat(id); });
     }
 
     m_history_menu->addSeparator();
@@ -1336,8 +1378,9 @@ LLMView::refreshHistoryMenu()
     all->setEnabled(!chats.isEmpty());
     connect(all, &QAction::triggered, this, [this]
     {
-        if (QMessageBox::question(this, tr("Delete all chats"),
-                                  tr("Delete every saved chat? This cannot be undone."))
+        if (QMessageBox::question(
+                this, tr("Delete all chats"),
+                tr("Delete every saved chat? This cannot be undone."))
             != QMessageBox::Yes)
             return;
         m_store.removeAll();
@@ -1415,15 +1458,16 @@ LLMView::rebuildAttachmentBar()
     {
         auto *chip = new QFrame(m_attachment_bar);
         chip->setObjectName("llmAttachment");
-        chip->setStyleSheet(
-            QString("QFrame#llmAttachment { border: 1px solid %1; border-radius: 8px; }")
-                .arg(palette().color(QPalette::Mid).name()));
+        chip->setStyleSheet(QString("QFrame#llmAttachment { border: 1px solid "
+                                    "%1; border-radius: 8px; }")
+                                .arg(palette().color(QPalette::Mid).name()));
         auto *row = new QHBoxLayout(chip);
         row->setContentsMargins(3, 3, 3, 3);
         row->setSpacing(2);
 
         auto *thumb = new QLabel(chip);
-        thumb->setPixmap(QPixmap::fromImage(thumbnailFor(m_attachments[i], 48)));
+        thumb->setPixmap(
+            QPixmap::fromImage(thumbnailFor(m_attachments[i], 48)));
         auto *remove = new QToolButton(chip);
         remove->setObjectName("llmAttachmentRemove");
         remove->setText(QStringLiteral("\u00D7"));
@@ -1468,7 +1512,8 @@ LLMView::withoutImages(const QJsonArray &messages)
             QJsonArray parts;
             for (const QJsonValue &part : message.value("content").toArray())
             {
-                if (part.toObject().value("type").toString() == QLatin1String("image_url"))
+                if (part.toObject().value("type").toString()
+                    == QLatin1String("image_url"))
                     parts.append(QJsonObject{{"type", "text"},
                                              {"text", "[image omitted]"}});
                 else

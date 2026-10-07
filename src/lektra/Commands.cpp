@@ -642,15 +642,15 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("sync_view_stop", tr("Stop syncing views"),
                            [this](const QStringList &) { StopSyncViews(); });
 
-    m_command_manager->reg(
-        "split_to_windows",
-        tr("Move the splits of the current tab into separate windows (first stays)"),
-        [this](const QStringList &) { SplitsToWindows(); });
+    m_command_manager->reg("split_to_windows",
+                           tr("Move the splits of the current tab into "
+                              "separate windows (first stays)"),
+                           [this](const QStringList &) { SplitsToWindows(); });
 
-    m_command_manager->reg(
-        "split_to_tabs",
-        tr("Move the splits of the current tab into separate tabs (first stays)"),
-        [this](const QStringList &) { SplitsToTabs(); });
+    m_command_manager->reg("split_to_tabs",
+                           tr("Move the splits of the current tab into "
+                              "separate tabs (first stays)"),
+                           [this](const QStringList &) { SplitsToTabs(); });
 
     // Portal
     m_command_manager->reg("portal", tr("Create or focus portal"),

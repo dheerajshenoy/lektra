@@ -376,7 +376,7 @@ DocumentView::ensureHoverSetup() noexcept
         connect(&m_hover_watcher, &QFutureWatcher<QImage>::finished, this,
                 [this]
         {
-            QImage image = m_hover_watcher.result();
+            QImage image            = m_hover_watcher.result();
             const HoverRequest done = m_hover_inflight;
             if (done.generation == m_hover_generation && !image.isNull())
             {
@@ -458,15 +458,18 @@ DocumentView::startHoverRender() noexcept
         const double regionW = std::min<double>(page.width(), 420.0);
         const double regionH = std::min<double>(
             page.height(), regionW * size.height() / size.width());
-        const double x0 = std::isnan(req.x) ? 0.0
-                                            : std::clamp<double>(req.x - 12.0, 0.0,
-                                                  page.width() - regionW);
-        const double y0 = std::isnan(req.y) ? 0.0
-                                            : std::clamp<double>(req.y - 24.0, 0.0,
-                                                  page.height() - regionH);
+        const double x0 = std::isnan(req.x)
+                              ? 0.0
+                              : std::clamp<double>(req.x - 12.0, 0.0,
+                                                   page.width() - regionW);
+        const double y0 = std::isnan(req.y)
+                              ? 0.0
+                              : std::clamp<double>(req.y - 24.0, 0.0,
+                                                   page.height() - regionH);
 
         // Pixels needed: the region's width at the preview's device size.
-        const float dpi = static_cast<float>(size.width() * dpr / regionW * 72.0);
+        const float dpi
+            = static_cast<float>(size.width() * dpr / regionW * 72.0);
         QImage image = model->renderPtsRegion(
             req.page, QRectF(x0, y0, regionW, regionH), dpi);
         if (!image.isNull())

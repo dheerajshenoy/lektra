@@ -87,7 +87,7 @@ public:
         const qreal textWidth = metrics.horizontalAdvance(m_hint_text);
         const qreal x         = m_rect.center().x() - textWidth / 2.0;
         const qreal y         = m_rect.center().y()
-                        + (metrics.ascent() - metrics.descent()) / 2.0;
+                                + (metrics.ascent() - metrics.descent()) / 2.0;
 
         QColor dim = m_fg;
         dim.setAlphaF(std::max(0.2, m_fg.alphaF() * 0.35));

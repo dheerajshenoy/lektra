@@ -28,27 +28,27 @@
 #include <unordered_set>
 #ifdef HAVE_FONTCONFIG
 
-#include <fontconfig/fontconfig.h>
+    #include <fontconfig/fontconfig.h>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
 
-#include <QDirIterator>
+    #include <QDirIterator>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
-#include <QFile>
+    #include <QFile>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
-#include <QStandardPaths>
+    #include <QStandardPaths>
 #endif
 #ifdef HAVE_LIBARCHIVE
 
-#include <archive.h>
+    #include <archive.h>
 #endif
 #ifdef HAVE_LIBARCHIVE
-#include <archive_entry.h>
+    #include <archive_entry.h>
 #endif
 namespace
 {
@@ -242,7 +242,6 @@ private:
     }
 }; // namespace
 } // namespace
-
 
 Model::Model(const Config &config, QObject *parent) noexcept
     : QObject(parent), m_config(config)

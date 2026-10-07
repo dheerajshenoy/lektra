@@ -1,8 +1,7 @@
-#include "Model.hpp"
-
 #include "BrowseLinkItem.hpp"
 #include "Commands/TextHighlightAnnotationCommand.hpp"
 #include "Config.hpp"
+#include "Model.hpp"
 #include "utils.hpp"
 
 #include <QFile>
@@ -28,27 +27,27 @@
 #include <unordered_set>
 #ifdef HAVE_FONTCONFIG
 
-#include <fontconfig/fontconfig.h>
+    #include <fontconfig/fontconfig.h>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
 
-#include <QDirIterator>
+    #include <QDirIterator>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
-#include <QFile>
+    #include <QFile>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
-#include <QStandardPaths>
+    #include <QStandardPaths>
 #endif
 #ifdef HAVE_LIBARCHIVE
 
-#include <archive.h>
+    #include <archive.h>
 #endif
 #ifdef HAVE_LIBARCHIVE
-#include <archive_entry.h>
+    #include <archive_entry.h>
 #endif
 
 static std::array<std::mutex, FZ_LOCK_MAX> mupdf_mutexes;
@@ -90,7 +89,8 @@ load_system_font(fz_context *ctx, const char *name, int bold, int italic,
     FcPatternAddString(pat, FC_FAMILY, reinterpret_cast<const FcChar8 *>(name));
     FcPatternAddInteger(pat, FC_WEIGHT,
                         bold ? FC_WEIGHT_BOLD : FC_WEIGHT_REGULAR);
-    FcPatternAddInteger(pat, FC_SLANT, italic ? FC_SLANT_ITALIC : FC_SLANT_ROMAN);
+    FcPatternAddInteger(pat, FC_SLANT,
+                        italic ? FC_SLANT_ITALIC : FC_SLANT_ROMAN);
     FcConfigSubstitute(nullptr, pat, FcMatchPattern);
     FcDefaultSubstitute(pat);
 
@@ -109,12 +109,9 @@ load_system_font(fz_context *ctx, const char *name, int bold, int italic,
             && strlen(reinterpret_cast<const char *>(family)) == strlen(name))
         {
             FcPatternGetInteger(best, FC_INDEX, 0, &index);
-            fz_try(ctx)
-                font = fz_new_font_from_file(
-                    ctx, nullptr, reinterpret_cast<const char *>(file), index,
-                    0);
-            fz_catch(ctx)
-                font = nullptr;
+            fz_try(ctx) font = fz_new_font_from_file(
+                ctx, nullptr, reinterpret_cast<const char *>(file), index, 0);
+            fz_catch(ctx) font = nullptr;
         }
         FcPatternDestroy(best);
     }
@@ -165,7 +162,7 @@ indexFace(QFile &f, const QString &path, quint32 base, int faceIndex,
     const QByteArray hdr = f.read(12);
     if (hdr.size() < 12)
         return;
-    const int numTables = be16(hdr, 4);
+    const int numTables  = be16(hdr, 4);
     const QByteArray dir = f.read(qint64(numTables) * 16);
 
     quint32 nameOff = 0, nameLen = 0, headOff = 0;
@@ -243,8 +240,8 @@ buildFontIndex()
             if (tag == "ttcf")
             {
                 f.seek(8);
-                const QByteArray n = f.read(4);
-                const quint32 faces = be32(n, 0);
+                const QByteArray n    = f.read(4);
+                const quint32 faces   = be32(n, 0);
                 const QByteArray offs = f.read(qint64(faces) * 4);
                 for (quint32 i = 0; i < faces && i < 64; ++i)
                     indexFace(f, path, be32(offs, i * 4), int(i), index);
@@ -259,8 +256,8 @@ buildFontIndex()
 void
 startFontIndex()
 {
-    std::call_once(g_font_index_once,
-                   [] { g_font_index_future = QtConcurrent::run(buildFontIndex); });
+    std::call_once(g_font_index_once, []
+    { g_font_index_future = QtConcurrent::run(buildFontIndex); });
 }
 
 fz_font *
@@ -290,11 +287,9 @@ load_system_font(fz_context *ctx, const char *name, int bold, int italic,
 
     fz_font *font         = nullptr;
     const QByteArray path = best->path.toUtf8();
-    fz_try(ctx)
-        font = fz_new_font_from_file(ctx, nullptr, path.constData(),
-                                     best->index, 0);
-    fz_catch(ctx)
-        font = nullptr;
+    fz_try(ctx) font
+        = fz_new_font_from_file(ctx, nullptr, path.constData(), best->index, 0);
+    fz_catch(ctx) font = nullptr;
     return font;
 }
 } // namespace
@@ -325,8 +320,9 @@ Model::setReflowStyle(const QString &fontFamily, float lineSpacing) noexcept
     {
         QString family = fontFamily;
         family.remove('"').remove('\\').remove('{').remove('}').remove(';');
-        css += QString("body, p, div, span, li, td, th, blockquote, h1, h2, h3, "
-                       "h4, h5, h6 { font-family: \"%1\" !important; }\n")
+        css += QString(
+                   "body, p, div, span, li, td, th, blockquote, h1, h2, h3, "
+                   "h4, h5, h6 { font-family: \"%1\" !important; }\n")
                    .arg(family);
     }
     if (lineSpacing > 0.0f)
@@ -355,7 +351,8 @@ Model::initMuPDF() noexcept
         = static_cast<size_t>(m_config.behavior.mupdf_store_size) << 20;
     m_ctx = fz_new_context(nullptr, &m_fz_locks, storeBytes);
     fz_register_document_handlers(m_ctx);
-    fz_install_load_system_font_funcs(m_ctx, load_system_font, nullptr, nullptr);
+    fz_install_load_system_font_funcs(m_ctx, load_system_font, nullptr,
+                                      nullptr);
     m_colorspace = fz_device_rgb(m_ctx);
 }
 
@@ -412,22 +409,21 @@ Model::relayoutForViewport(float widthPts, float heightPts,
             return;
 
         QMetaObject::invokeMethod(
-            this,
-            [this, widthPts, heightPts, emPts, page_count, w, h]
+            this, [this, widthPts, heightPts, emPts, page_count, w, h]
         {
             waitForPendingRenders();
             m_render_cancelled.store(false, std::memory_order_release);
 
-            m_layout_w  = widthPts;
-            m_layout_h  = heightPts;
-            m_layout_em = emPts;
+            m_layout_w   = widthPts;
+            m_layout_h   = heightPts;
+            m_layout_em  = emPts;
             m_page_count = page_count;
 
             {
                 std::lock_guard<std::recursive_mutex> lk(m_page_cache_mutex);
                 m_page_lru_cache.clear();
                 m_text_cache.clear();
-        m_has_text_layer = -1;
+                m_has_text_layer = -1;
                 m_stext_page_cache.clear();
             }
             {
@@ -454,7 +450,6 @@ Model::relayoutForViewport(float widthPts, float heightPts,
             m_generated_outline = nullptr;
 
             emit documentRelayouted();
-        },
-            Qt::QueuedConnection);
+        }, Qt::QueuedConnection);
     });
 }

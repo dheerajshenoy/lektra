@@ -1,5 +1,6 @@
-#include "Lektra.hpp"
 #include "Statusbar.hpp"
+
+#include "Lektra.hpp"
 #include "StatusbarLayoutSpec.hpp"
 
 #include <QHash>
@@ -26,8 +27,8 @@ namespace
 {
 struct Segment
 {
-    int provider = LUA_NOREF;
-    int onClick  = LUA_NOREF;
+    int provider  = LUA_NOREF;
+    int onClick   = LUA_NOREF;
     QTimer *timer = nullptr;
     QString text, tooltip; // what `set` showed
     QString lastError;     // so that one error is not printed again and again
@@ -54,11 +55,12 @@ void
 checkName(lua_State *L, const QString &name)
 {
     if (!statusbar_layout::isModuleName(name))
-        luaL_error(L,
-                   "\"%s\" is not a segment name: use letters, digits, _ - and .",
-                   qPrintable(name));
+        luaL_error(
+            L, "\"%s\" is not a segment name: use letters, digits, _ - and .",
+            qPrintable(name));
     if (statusbar_layout::modules().contains(name))
-        luaL_error(L, "\"%s\" is one of the built-in modules", qPrintable(name));
+        luaL_error(L, "\"%s\" is one of the built-in modules",
+                   qPrintable(name));
 }
 
 Bridge *
@@ -125,7 +127,7 @@ evaluate(Bridge *b, const QString &name)
 
     if (provider != LUA_NOREF)
     {
-        lua_State *L = b->L;
+        lua_State *L  = b->L;
         const int top = lua_gettop(L);
         lua_rawgeti(L, LUA_REGISTRYINDEX, provider);
         pushCurrentView(b);
@@ -142,8 +144,9 @@ evaluate(Bridge *b, const QString &name)
                                        : QString();
             lua_pop(L, 1);
             lua_getfield(L, -1, "tooltip");
-            tooltip = lua_isstring(L, -1) ? QString::fromUtf8(lua_tostring(L, -1))
-                                          : QString();
+            tooltip = lua_isstring(L, -1)
+                          ? QString::fromUtf8(lua_tostring(L, -1))
+                          : QString();
             lua_pop(L, 1);
         }
         else if (lua_isstring(L, -1))
@@ -207,8 +210,7 @@ ensureConnected(Bridge *b)
                      [b](const QString &name)
     {
         const auto it = b->segments.constFind(name);
-        if (b->dead || it == b->segments.constEnd()
-            || it->onClick == LUA_NOREF)
+        if (b->dead || it == b->segments.constEnd() || it->onClick == LUA_NOREF)
             return;
         lua_State *L = b->L;
         lua_rawgeti(L, LUA_REGISTRYINDEX, it->onClick);
@@ -247,7 +249,8 @@ readOptions(Bridge *b, const QString &name, Segment &segment, int index,
         lua_getfield(L, index, "interval");
         if (lua_isnumber(L, -1) && lua_tonumber(L, -1) > 0)
         {
-            const int ms = std::max(100, static_cast<int>(lua_tonumber(L, -1) * 1000));
+            const int ms
+                = std::max(100, static_cast<int>(lua_tonumber(L, -1) * 1000));
             segment.timer = new QTimer(b);
             segment.timer->setInterval(ms);
             QObject::connect(segment.timer, &QTimer::timeout, b,
@@ -284,7 +287,8 @@ Lektra::initLuaStatusbar() noexcept
         checkName(L, name);
 
         if (!lua_isfunction(L, 2) && !lua_isstring(L, 2))
-            return luaL_error(L, "the second argument is a function or a string");
+            return luaL_error(L,
+                              "the second argument is a function or a string");
 
         Segment &segment = freshSegment(b, name);
         if (lua_isfunction(L, 2))
@@ -325,7 +329,8 @@ Lektra::initLuaStatusbar() noexcept
         {
             ensureConnected(b);
             b->lektra->statusbar()->setCustomModule(
-                name, segment.text, segment.tooltip, segment.onClick != LUA_NOREF);
+                name, segment.text, segment.tooltip,
+                segment.onClick != LUA_NOREF);
         }
         return 0;
     }, 1);

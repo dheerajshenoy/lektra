@@ -57,7 +57,7 @@ OutlinePicker::harvest(fz_outline *node, int depth, Model *model) noexcept
         // the document-wide page index. EPUB nodes additionally leave
         // n->page/x/y unresolved (sentinel {-1,-1}) and only carry a
         // uri, which resolveOutlineNode() also handles.
-        float     x = n->x, y = n->y;
+        float x = n->x, y = n->y;
         const int pageno
             = model ? model->resolveOutlineNode(n, &x, &y) : n->page.page;
 

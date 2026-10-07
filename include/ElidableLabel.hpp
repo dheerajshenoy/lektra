@@ -20,7 +20,8 @@ public:
     void updateElidedText() noexcept
     {
         QFontMetrics metrics(font());
-        QString elided = metrics.elidedText(m_fullText, Qt::ElideRight, width());
+        QString elided
+            = metrics.elidedText(m_fullText, Qt::ElideRight, width());
         setText(elided);
     }
 

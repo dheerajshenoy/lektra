@@ -6,16 +6,16 @@
     #include <luajit.h>
 #endif
 
+#include <QDebug>
 #include <QElapsedTimer>
 #include <QStringList>
-#include <QDebug>
 #include <cstring>
 
 namespace
 {
-constexpr int kMaxOutputChars = 20000;
+constexpr int kMaxOutputChars  = 20000;
 constexpr int kMaxTableEntries = 25;
-constexpr int kMaxDepth = 3;
+constexpr int kMaxDepth        = 3;
 
 struct RunState
 {
@@ -62,8 +62,9 @@ formatValue(lua_State *L, int idx, int depth = 0, bool quoteStrings = false)
         case LUA_TSTRING:
         {
             const QString s = QString::fromUtf8(lua_tostring(L, idx));
-            return quoteStrings ? QStringLiteral("\"") + s + QStringLiteral("\"")
-                                : s;
+            return quoteStrings
+                       ? QStringLiteral("\"") + s + QStringLiteral("\"")
+                       : s;
         }
         case LUA_TTABLE:
         {
@@ -85,7 +86,8 @@ formatValue(lua_State *L, int idx, int depth = 0, bool quoteStrings = false)
                 if (lua_type(L, -2) == LUA_TSTRING)
                     key = QString::fromUtf8(lua_tostring(L, -2));
                 else
-                    key = QStringLiteral("[") + formatValue(L, -2, depth + 1, true)
+                    key = QStringLiteral("[")
+                          + formatValue(L, -2, depth + 1, true)
                           + QStringLiteral("]");
                 parts << key + QStringLiteral(" = ")
                              + formatValue(L, -1, depth + 1, true);
@@ -95,8 +97,8 @@ formatValue(lua_State *L, int idx, int depth = 0, bool quoteStrings = false)
                    + QStringLiteral(" }");
         }
         default:
-            return QStringLiteral("<%1>")
-                .arg(QString::fromUtf8(luaL_typename(L, idx)));
+            return QStringLiteral("<%1>").arg(
+                QString::fromUtf8(luaL_typename(L, idx)));
     }
 }
 
@@ -127,7 +129,8 @@ timeoutHook(lua_State *L, lua_Debug *)
 
 // Shallow copy of global table `name` into field `name` of the table at -1.
 void
-copyGlobalTable(lua_State *L, const char *name, const char *const *skip = nullptr)
+copyGlobalTable(lua_State *L, const char *name,
+                const char *const *skip = nullptr)
 {
     lua_getglobal(L, name);
     if (!lua_istable(L, -1))
@@ -153,18 +156,18 @@ copyGlobalTable(lua_State *L, const char *name, const char *const *skip = nullpt
             lua_settable(L, -4);  // new_table[key] = value
         }
     }
-    lua_remove(L, -2);            // drop the original table
-    lua_setfield(L, -2, name);    // env[name] = copy
+    lua_remove(L, -2);         // drop the original table
+    lua_setfield(L, -2, name); // env[name] = copy
 }
 
 // Pushes the restricted environment table.
 void
 pushEnvironment(lua_State *L)
 {
-    static const char *const kBasic[]
-        = {"assert", "error",   "ipairs", "next",   "pairs",    "pcall",
-           "select", "tonumber", "tostring", "type", "unpack",  "xpcall",
-           "rawequal", "rawget", "rawset",  "setmetatable", nullptr};
+    static const char *const kBasic[] = {
+        "assert",   "error",    "ipairs",   "next",         "pairs",  "pcall",
+        "select",   "tonumber", "tostring", "type",         "unpack", "xpcall",
+        "rawequal", "rawget",   "rawset",   "setmetatable", nullptr};
 
     lua_newtable(L); // env
 
@@ -197,7 +200,8 @@ pushEnvironment(lua_State *L)
     // lektra, without job: the assistant must not be able to run commands
     // (os.execute is not available to it either)
     // no background commands, and no paths of the user's computer
-    static const char *const kNoJob[] = {"job", "paths", "statusbar", "async", "await", "sleep", nullptr};
+    static const char *const kNoJob[]
+        = {"job", "paths", "statusbar", "async", "await", "sleep", nullptr};
     copyGlobalTable(L, "lektra", kNoJob);
 
     lua_pushstring(L, "Lua 5.1");

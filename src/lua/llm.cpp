@@ -2,12 +2,12 @@
 
 #ifdef WITH_LLM_SUPPORT
 
-#include "LuaSandbox.hpp"
+    #include "LuaSandbox.hpp"
 
-#include <QDir>
-#include <QFile>
-#include <QRegularExpression>
-#include <algorithm>
+    #include <QDir>
+    #include <QFile>
+    #include <QRegularExpression>
+    #include <algorithm>
 
 namespace
 {
@@ -59,9 +59,9 @@ apiEntries()
     static const QList<ApiEntry> entries = []
     {
         QList<ApiEntry> list;
-        const QStringList files
-            = QDir(QStringLiteral(":/llm/stubs/lua"))
-                  .entryList({QStringLiteral("*.lua")}, QDir::Files, QDir::Name);
+        const QStringList files = QDir(QStringLiteral(":/llm/stubs/lua"))
+                                      .entryList({QStringLiteral("*.lua")},
+                                                 QDir::Files, QDir::Name);
         for (const QString &file : files)
         {
             const QString module = file.left(file.size() - 4);
@@ -136,12 +136,15 @@ Lektra::llmSystemPrompt() const noexcept
 
     auto commands = m_command_manager->commands();
     std::sort(commands.begin(), commands.end(),
-              [](const Command &a, const Command &b) { return a.name < b.name; });
-    prompt += QStringLiteral("\n# Commands (for %1)\n\n")
-                  .arg(tools ? QStringLiteral("run_command and lektra.cmd.execute")
-                             : QStringLiteral("lektra.cmd.execute"));
+              [](const Command &a, const Command &b)
+    { return a.name < b.name; });
+    prompt
+        += QStringLiteral("\n# Commands (for %1)\n\n")
+               .arg(tools ? QStringLiteral("run_command and lektra.cmd.execute")
+                          : QStringLiteral("lektra.cmd.execute"));
     for (const Command &command : commands)
-        prompt += QStringLiteral("- `%1`: %2\n").arg(command.name, command.description);
+        prompt += QStringLiteral("- `%1`: %2\n")
+                      .arg(command.name, command.description);
 
     return prompt;
 }
@@ -166,10 +169,12 @@ Lektra::llmLookupApi(const QString &query) const noexcept
     if (q.endsWith(QLatin1String(".lua")))
         q.chop(4);
 
-    if (q.isEmpty() || q == QLatin1String("index") || q == QLatin1String("modules"))
-        return modulesLine + QStringLiteral(
-            "\nGive a module name to list its functions, or search words to "
-            "get the matching documentation.");
+    if (q.isEmpty() || q == QLatin1String("index")
+        || q == QLatin1String("modules"))
+        return modulesLine
+               + QStringLiteral("\nGive a module name to list its functions, "
+                                "or search words to "
+                                "get the matching documentation.");
 
     // A module name: the list of what it contains, one line each.
     if (modules.contains(q))
@@ -179,17 +184,19 @@ Lektra::llmLookupApi(const QString &query) const noexcept
             if (entry.module == q && !entry.declaration.isEmpty())
                 out += entry.declaration + QLatin1Char('\n');
         return out
-               + QStringLiteral("\nLook up a name from this list to read its documentation.");
+               + QStringLiteral("\nLook up a name from this list to read its "
+                                "documentation.");
     }
 
     // Otherwise: the entries that mention the most of the words.
-    static const QStringList ignored
-        = {QStringLiteral("the"), QStringLiteral("a"), QStringLiteral("an"),
-           QStringLiteral("to"),  QStringLiteral("of"), QStringLiteral("in"),
-           QStringLiteral("how"), QStringLiteral("for"), QStringLiteral("lektra")};
+    static const QStringList ignored = {
+        QStringLiteral("the"), QStringLiteral("a"),   QStringLiteral("an"),
+        QStringLiteral("to"),  QStringLiteral("of"),  QStringLiteral("in"),
+        QStringLiteral("how"), QStringLiteral("for"), QStringLiteral("lektra")};
     QStringList words;
     for (const QString &w :
-         q.split(QRegularExpression(QStringLiteral("[^a-z0-9_]+")), Qt::SkipEmptyParts))
+         q.split(QRegularExpression(QStringLiteral("[^a-z0-9_]+")),
+                 Qt::SkipEmptyParts))
         if (!ignored.contains(w))
             words << w;
     if (words.isEmpty())
@@ -206,9 +213,9 @@ Lektra::llmLookupApi(const QString &query) const noexcept
         const ApiEntry &entry = entries.at(i);
         const QString text    = entry.text.toLower();
         // "goto page" should find goto_page
-        const QString plain = QString(text).remove(QLatin1Char('_'));
-        const QString decl  = entry.declaration.toLower();
-        int score           = 0;
+        const QString plain   = QString(text).remove(QLatin1Char('_'));
+        const QString decl    = entry.declaration.toLower();
+        int score             = 0;
         for (int w = 0; w < words.size(); ++w)
         {
             const QString &word = words.at(w);
@@ -216,8 +223,7 @@ Lektra::llmLookupApi(const QString &query) const noexcept
                 score += 1;
             if (decl.contains(word))
                 score += 2;
-            if (w + 1 < words.size()
-                && plain.contains(word + words.at(w + 1)))
+            if (w + 1 < words.size() && plain.contains(word + words.at(w + 1)))
                 score += 2;
         }
         if (score > 0)
@@ -227,8 +233,8 @@ Lektra::llmLookupApi(const QString &query) const noexcept
         return QStringLiteral("Nothing in the API matches \"%1\". %2")
             .arg(query, modulesLine);
 
-    std::stable_sort(hits.begin(), hits.end(),
-                     [](const Hit &a, const Hit &b) { return a.score > b.score; });
+    std::stable_sort(hits.begin(), hits.end(), [](const Hit &a, const Hit &b)
+    { return a.score > b.score; });
 
     QString out;
     int shown = 0;
@@ -236,14 +242,16 @@ Lektra::llmLookupApi(const QString &query) const noexcept
     {
         const ApiEntry &entry = entries.at(hit.order);
         const QString block   = QStringLiteral("-- module: %1\n%2\n\n")
-                                  .arg(entry.module, entry.text);
-        if (shown >= kMaxEntries || (shown > 0 && out.size() + block.size() > kMaxChars))
+                                    .arg(entry.module, entry.text);
+        if (shown >= kMaxEntries
+            || (shown > 0 && out.size() + block.size() > kMaxChars))
             break;
         out += block;
         ++shown;
     }
     if (shown < hits.size())
-        out += QStringLiteral("(%1 more matches; use more specific words to narrow it down.)")
+        out += QStringLiteral("(%1 more matches; use more specific words to "
+                              "narrow it down.)")
                    .arg(hits.size() - shown);
     return out;
 }
@@ -268,10 +276,10 @@ Lektra::runLLMScript(const QString &code) noexcept
         return out;
     }
     const LuaScriptResult r = runSandboxedLua(m_L, code);
-    out.ok     = r.ok;
-    out.output = r.output;
-    out.value  = r.value;
-    out.error  = r.error;
+    out.ok                  = r.ok;
+    out.output              = r.output;
+    out.value               = r.value;
+    out.error               = r.error;
     return out;
 }
 

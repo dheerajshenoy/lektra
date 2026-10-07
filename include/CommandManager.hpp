@@ -54,8 +54,8 @@ public:
         if (m_last_name.isEmpty())
             return false;
         // Copy: the command may record itself again while running.
-        const QString name       = m_last_name;
-        const QStringList args   = m_last_args;
+        const QString name     = m_last_name;
+        const QStringList args = m_last_args;
         return execute(name, args);
     }
 

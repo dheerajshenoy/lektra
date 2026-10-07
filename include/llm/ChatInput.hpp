@@ -5,7 +5,6 @@
 #include <QMimeData>
 #include <QTextEdit>
 #include <QUrl>
-
 #include <functional>
 
 // The chat's text field. Pasting or dropping an image (or an image file)

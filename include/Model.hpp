@@ -138,7 +138,7 @@ public:
     // One annotation of a page, in page coordinates (points, y down).
     struct AnnotationInfo
     {
-        int objNum = -1; // identifies it on its page
+        int objNum               = -1; // identifies it on its page
         enum pdf_annot_type type = PDF_ANNOT_UNKNOWN;
         fz_rect rect{};
         std::vector<fz_quad> quads; // highlights: one per line
@@ -153,9 +153,9 @@ public:
         int width = 0, height = 0; // pixels
         QString format;            // "png", "jpeg", ...
         bool animated = false;
-        int frames    = 1;         // frames of an animation, pages of a TIFF
+        int frames    = 1;           // frames of an animation, pages of a TIFF
         double dpi_x = 0, dpi_y = 0; // 0: not stored in the file
-        Properties exif;           // tag name -> value
+        Properties exif;             // tag name -> value
     };
 
     struct EncryptInfo
@@ -174,8 +174,8 @@ public:
         double dpi;
         double dpr;
         bool invert_color;
-        bool flip_h = false;
-        bool flip_v = false;
+        bool flip_h               = false;
+        bool flip_v               = false;
         fz_colorspace *colorspace = nullptr;
         QString filepath; // path to PDF
         // Part of the page (fractions of its width/height) that should be
@@ -332,8 +332,9 @@ public:
     // or svg. All but svg make one file (`paths` has one name); svg makes one
     // file per page (`paths` has a name for each). On failure returns false
     // with the reason in `error`.
-    bool exportWithWriter(const std::vector<int> &pages, const QStringList &paths,
-                          const QString &format, QString *error = nullptr) noexcept;
+    bool exportWithWriter(const std::vector<int> &pages,
+                          const QStringList &paths, const QString &format,
+                          QString *error = nullptr) noexcept;
 
     [[nodiscard]] inline bool supports_save() const noexcept
     {
@@ -360,13 +361,31 @@ public:
         m_rotation = angle;
     }
 
-    [[nodiscard]] inline bool isFlippedH() const noexcept { return m_flip_h; }
-    [[nodiscard]] inline bool isFlippedV() const noexcept { return m_flip_v; }
+    [[nodiscard]] inline bool isFlippedH() const noexcept
+    {
+        return m_flip_h;
+    }
+    [[nodiscard]] inline bool isFlippedV() const noexcept
+    {
+        return m_flip_v;
+    }
 
-    inline void setFlipH(bool v) noexcept { m_flip_h = v; }
-    inline void setFlipV(bool v) noexcept { m_flip_v = v; }
-    inline void toggleFlipH() noexcept { m_flip_h = !m_flip_h; }
-    inline void toggleFlipV() noexcept { m_flip_v = !m_flip_v; }
+    inline void setFlipH(bool v) noexcept
+    {
+        m_flip_h = v;
+    }
+    inline void setFlipV(bool v) noexcept
+    {
+        m_flip_v = v;
+    }
+    inline void toggleFlipH() noexcept
+    {
+        m_flip_h = !m_flip_h;
+    }
+    inline void toggleFlipV() noexcept
+    {
+        m_flip_v = !m_flip_v;
+    }
 
     [[nodiscard]] inline bool isAnimated() const noexcept
     {
@@ -554,7 +573,10 @@ public:
     // False if the document is not an image.
     bool imageMetadata(ImageMetadata &out) noexcept;
     fz_outline *getOutline() noexcept;
-    fz_outline *getGeneratedOutline() noexcept { return m_generated_outline; }
+    fz_outline *getGeneratedOutline() noexcept
+    {
+        return m_generated_outline;
+    }
     fz_outline *generateOutline(float min_ratio, int max_levels) noexcept;
     bool exportOutlineToFile(const QString &path, fz_outline *outline) noexcept;
     fz_outline *loadOutlineFromFile(const QString &path) noexcept;
@@ -567,8 +589,8 @@ public:
     // unresolved when m_doc is null (DjVu, which has no fz_document /
     // chapter concept), matching how generated/loaded synthetic outline
     // entries already encode a plain global index in that case.
-    [[nodiscard]] inline int pageNumberFromLocation(fz_location loc)
-        const noexcept
+    [[nodiscard]] inline int
+    pageNumberFromLocation(fz_location loc) const noexcept
     {
         if (!m_ctx || !m_doc)
             return loc.page;
@@ -585,13 +607,14 @@ public:
     // viewers, e.g. platform/gl, do it). This method handles both cases
     // uniformly so every consumer gets a correct global page index
     // regardless of format.
-    [[nodiscard]] inline int resolveOutlineNode(fz_outline *node, float *x = nullptr,
-                                                float *y = nullptr) const noexcept
+    [[nodiscard]] inline int
+    resolveOutlineNode(fz_outline *node, float *x = nullptr,
+                       float *y = nullptr) const noexcept
     {
         if (!m_ctx || !node)
             return -1;
         fz_location loc = node->page;
-        float       lx = node->x, ly = node->y;
+        float lx = node->x, ly = node->y;
         if (loc.chapter < 0 && m_doc && node->uri)
             loc = fz_resolve_link(m_ctx, m_doc, node->uri, &lx, &ly);
         if (x)
@@ -705,7 +728,8 @@ public:
     // Pure path->FileType lookup (extension/mime), usable without an open
     // Model instance — e.g. by link-following to decide whether a file://
     // URI points at something Lektra can open locally.
-    [[nodiscard]] static FileType getFileTypeForPath(const QString &path) noexcept
+    [[nodiscard]] static FileType
+    getFileTypeForPath(const QString &path) noexcept
     {
         return getFileType(path);
     }
@@ -828,8 +852,14 @@ private:
         {
             return x1 <= x0 || y1 <= y0;
         }
-        [[nodiscard]] inline float width() const noexcept  { return x1 - x0; }
-        [[nodiscard]] inline float height() const noexcept { return y1 - y0; }
+        [[nodiscard]] inline float width() const noexcept
+        {
+            return x1 - x0;
+        }
+        [[nodiscard]] inline float height() const noexcept
+        {
+            return y1 - y0;
+        }
     };
     [[nodiscard]] ContentBBox contentBBox(int pageno) noexcept;
 
@@ -901,7 +931,7 @@ private:
 
     QString m_filepath;
     QString m_cached_password;
-    int m_page_count = 0;
+    int m_page_count     = 0;
     int m_has_text_layer = -1; // -1 unknown, 0 no, 1 yes
     float m_dpr = 1.0f, m_dpi = 96.0f, m_zoom = 1.0f, m_rotation = 0.0f,
           m_inv_dpr     = 1.0f;
@@ -979,10 +1009,10 @@ private:
 
     // MuPDF core objects
     fz_locks_context m_fz_locks;
-    fz_context *m_ctx           = nullptr;
-    fz_document *m_doc          = nullptr;
-    pdf_document *m_pdf_doc     = nullptr;
-    fz_colorspace *m_colorspace = nullptr;
+    fz_context *m_ctx               = nullptr;
+    fz_document *m_doc              = nullptr;
+    pdf_document *m_pdf_doc         = nullptr;
+    fz_colorspace *m_colorspace     = nullptr;
     fz_outline *m_outline           = nullptr;
     fz_outline *m_generated_outline = nullptr;
 
@@ -1033,8 +1063,8 @@ private:
     std::atomic<bool> m_search_cancelled  = false;
 
     QImage m_image_cache;
-    bool m_is_image    = false;
-    bool m_is_animated = false;
+    bool m_is_image         = false;
+    bool m_is_animated      = false;
     ImageAnimation *m_movie = nullptr;
 
     [[nodiscard]] inline ImageAnimation *movie() const noexcept

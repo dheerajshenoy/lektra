@@ -1,10 +1,10 @@
 #include "DonateDialog.hpp"
 
 #include <QDesktopServices>
-#include <QStyle>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
+#include <QStyle>
 #include <QUrl>
 #include <QVBoxLayout>
 
@@ -15,10 +15,9 @@ DonateDialog::DonateDialog(QWidget *parent) : QDialog(parent)
                    & ~Qt::WindowMaximizeButtonHint);
     setMinimumWidth(420);
 
-    auto *icon  = new QLabel;
+    auto *icon = new QLabel;
     icon->setPixmap(
-        style()->standardIcon(QStyle::SP_MessageBoxInformation)
-            .pixmap(48, 48));
+        style()->standardIcon(QStyle::SP_MessageBoxInformation).pixmap(48, 48));
     icon->setAlignment(Qt::AlignTop);
 
     auto *heading = new QLabel(tr("<b>Support Lektra Development</b>"));
@@ -38,15 +37,13 @@ DonateDialog::DonateDialog(QWidget *parent) : QDialog(parent)
     auto *ghBtn    = new QPushButton(tr("GitHub Sponsors"));
     auto *closeBtn = new QPushButton(tr("Close"));
 
-    connect(kofiBtn, &QPushButton::clicked, this, []() {
-        QDesktopServices::openUrl(
-            QUrl("https://ko-fi.com/dheerajshenoy"));
-    });
+    connect(kofiBtn, &QPushButton::clicked, this, []()
+    { QDesktopServices::openUrl(QUrl("https://ko-fi.com/dheerajshenoy")); });
     connect(lpBtn, &QPushButton::clicked, this, []() {
-        QDesktopServices::openUrl(
-            QUrl("https://liberapay.com/dheerajshenoy"));
+        QDesktopServices::openUrl(QUrl("https://liberapay.com/dheerajshenoy"));
     });
-    connect(ghBtn, &QPushButton::clicked, this, []() {
+    connect(ghBtn, &QPushButton::clicked, this, []()
+    {
         QDesktopServices::openUrl(
             QUrl("https://github.com/sponsors/dheerajshenoy"));
     });

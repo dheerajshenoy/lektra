@@ -29,23 +29,26 @@ ExportPagesDialog::ExportPagesDialog(int pageCount, int currentPage,
 
     m_pages = new QLineEdit(QString::number(currentPage + 1), this);
     m_pages->setPlaceholderText(tr("e.g. 1-5,8,10-"));
-    m_pages->setToolTip(tr("Page numbers and ranges separated by commas: 1-5,8,10-\n"
-                           "Also: all, odd, even, current, first, last"));
+    m_pages->setToolTip(
+        tr("Page numbers and ranges separated by commas: 1-5,8,10-\n"
+           "Also: all, odd, even, current, first, last"));
     m_problem = new QLabel(this);
     m_problem->setWordWrap(true);
     m_problem->setStyleSheet(QStringLiteral("color: #d33;"));
 
-    m_format = new QComboBox(this);
+    m_format                                     = new QComboBox(this);
     const QList<QPair<QString, QString>> formats = {
         {"png", tr("PNG image")},   {"jpg", tr("JPEG image")},
         {"webp", tr("WebP image")}, {"bmp", tr("BMP image")},
         {"tif", tr("TIFF image")},  {"pdf", tr("PDF document")},
     };
     for (const auto &[extension, label] : formats)
-        m_format->addItem(QStringLiteral("%1  (.%2)").arg(label, extension), extension);
+        m_format->addItem(QStringLiteral("%1  (.%2)").arg(label, extension),
+                          extension);
     if (moreFormats)
     {
-        m_format->addItem(tr("SVG vector picture  (.svg)"), QStringLiteral("svg"));
+        m_format->addItem(tr("SVG vector picture  (.svg)"),
+                          QStringLiteral("svg"));
         m_format->addItem(tr("Plain text  (.txt)"), QStringLiteral("txt"));
         m_format->addItem(tr("HTML  (.html)"), QStringLiteral("html"));
     }
@@ -54,11 +57,12 @@ ExportPagesDialog::ExportPagesDialog(int pageCount, int currentPage,
 
     m_split        = new QCheckBox(this);
     m_split_choice = split;
-    m_hint = new QLabel(this);
+    m_hint         = new QLabel(this);
     m_hint->setWordWrap(true);
     m_hint->setStyleSheet(QStringLiteral("color: gray;"));
 
-    m_buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
+    m_buttons = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     m_buttons->button(QDialogButtonBox::Ok)->setText(tr("Choose Location…"));
 
     auto *form = new QFormLayout;
@@ -77,7 +81,8 @@ ExportPagesDialog::ExportPagesDialog(int pageCount, int currentPage,
         refresh();
     });
     connect(m_pages, &QLineEdit::textChanged, this, [this] { refresh(); });
-    connect(m_format, &QComboBox::currentIndexChanged, this, [this] { refresh(); });
+    connect(m_format, &QComboBox::currentIndexChanged, this,
+            [this] { refresh(); });
     connect(m_buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(m_buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
@@ -122,11 +127,15 @@ ExportPagesDialog::refresh()
         m_split->setEnabled(count > 1);
         m_split->setChecked(m_split_choice);
         m_split->setText(tr("Split into one file per page"));
-        m_hint->setText(count > 1 && !m_split_choice
-                            ? tr("Off: one .%1 file with all %2 pages.").arg(format).arg(count)
-                        : count > 1
-                            ? tr("On: %1 files, with the page number added to each name.").arg(count)
-                            : QString());
+        m_hint->setText(
+            count > 1 && !m_split_choice
+                ? tr("Off: one .%1 file with all %2 pages.")
+                      .arg(format)
+                      .arg(count)
+            : count > 1
+                ? tr("On: %1 files, with the page number added to each name.")
+                      .arg(count)
+                : QString());
     }
     else
     {
@@ -134,11 +143,11 @@ ExportPagesDialog::refresh()
         m_split->setEnabled(false);
         m_split->setChecked(true);
         m_split->setText(tr("Split into one file per page"));
-        m_hint->setText(count > 1
-                            ? tr("This format always makes one file per page: %1 files, with the "
-                                 "page number added to each name.")
-                                  .arg(count)
-                            : QString());
+        m_hint->setText(count > 1 ? tr("This format always makes one file per "
+                                       "page: %1 files, with the "
+                                       "page number added to each name.")
+                                        .arg(count)
+                                  : QString());
     }
     m_hint->setVisible(!m_hint->text().isEmpty());
 }

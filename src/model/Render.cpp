@@ -1,8 +1,8 @@
-#include "Model.hpp"
-
 #include "BrowseLinkItem.hpp"
 #include "Commands/TextHighlightAnnotationCommand.hpp"
 #include "Config.hpp"
+#include "ImageAnimation.hpp"
+#include "Model.hpp"
 #include "utils.hpp"
 
 #include <QFile>
@@ -11,8 +11,6 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLibrary>
-#include "ImageAnimation.hpp"
-
 #include <QMovie>
 #include <QPainter>
 #include <QSvgRenderer>
@@ -30,27 +28,27 @@
 #include <unordered_set>
 #ifdef HAVE_FONTCONFIG
 
-#include <fontconfig/fontconfig.h>
+    #include <fontconfig/fontconfig.h>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
 
-#include <QDirIterator>
+    #include <QDirIterator>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
-#include <QFile>
+    #include <QFile>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
-#include <QStandardPaths>
+    #include <QStandardPaths>
 #endif
 #ifdef HAVE_LIBARCHIVE
 
-#include <archive.h>
+    #include <archive.h>
 #endif
 #ifdef HAVE_LIBARCHIVE
-#include <archive_entry.h>
+    #include <archive_entry.h>
 #endif
 
 // Same but starting from fz_transform_page (render path sites).
@@ -81,8 +79,10 @@ buildRenderTransform(fz_rect bounds, float zoom, float rotation, bool flip_h,
 static void
 buildHighContrastLUT(unsigned char lut[256], int black, int white) noexcept
 {
-    if (black < 0)    black = 0;
-    if (white > 255)  white = 255;
+    if (black < 0)
+        black = 0;
+    if (white > 255)
+        white = 255;
     if (white <= black)
     {
         // Degenerate config — fall back to a hard threshold at the midpoint
@@ -96,9 +96,12 @@ buildHighContrastLUT(unsigned char lut[256], int black, int white) noexcept
     for (int i = 0; i < 256; ++i)
     {
         int v;
-        if (i <= black)      v = 0;
-        else if (i >= white) v = 255;
-        else                 v = ((i - black) * 255 + span / 2) / span;
+        if (i <= black)
+            v = 0;
+        else if (i >= white)
+            v = 255;
+        else
+            v = ((i - black) * 255 + span / 2) / span;
         lut[i] = static_cast<unsigned char>(v);
     }
 }
@@ -436,9 +439,8 @@ new_image_tracker_device(fz_context *ctx, fz_device *target,
 // that rect, so every pixel comes out exactly as the plain render produced it.
 static void
 restore_image_regions(fz_context *ctx, fz_pixmap *pix,
-                      fz_image_tracker_device *tracker,
-                      fz_display_list *dlist, fz_matrix transform,
-                      fz_colorspace *colorspace)
+                      fz_image_tracker_device *tracker, fz_display_list *dlist,
+                      fz_matrix transform, fz_colorspace *colorspace)
 {
     if (tracker->rect_count == 0)
         return;
@@ -467,16 +469,17 @@ restore_image_regions(fz_context *ctx, fz_pixmap *pix,
                                 fz_rect_from_irect(clipped), nullptr);
             fz_close_device(ctx, draw_dev);
 
-            const int sub_stride = fz_pixmap_stride(ctx, sub);
-            const int pix_stride = fz_pixmap_stride(ctx, pix);
+            const int sub_stride       = fz_pixmap_stride(ctx, sub);
+            const int pix_stride       = fz_pixmap_stride(ctx, pix);
             unsigned char *sub_samples = fz_pixmap_samples(ctx, sub);
             unsigned char *pix_samples = fz_pixmap_samples(ctx, pix);
-            const int pix_x0 = fz_pixmap_x(ctx, pix);
-            const int pix_y0 = fz_pixmap_y(ctx, pix);
+            const int pix_x0           = fz_pixmap_x(ctx, pix);
+            const int pix_y0           = fz_pixmap_y(ctx, pix);
 
             for (int y = clipped.y0; y < clipped.y1; ++y)
             {
-                unsigned char *src = sub_samples + (y - clipped.y0) * sub_stride;
+                unsigned char *src
+                    = sub_samples + (y - clipped.y0) * sub_stride;
                 unsigned char *dst = pix_samples + (y - pix_y0) * pix_stride
                                      + (clipped.x0 - pix_x0) * n;
                 std::memcpy(dst, src, (clipped.x1 - clipped.x0) * n);
@@ -789,7 +792,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     {
         fz_matrix transform = buildRenderTransform(
             bounds, job.zoom, job.rotation, job.flip_h, job.flip_v);
-        fz_rect transformed = fz_transform_rect(bounds, transform);
+        fz_rect transformed    = fz_transform_rect(bounds, transform);
         const fz_irect fullBox = fz_round_rect(transformed);
         fz_irect bbox          = fullBox;
 
@@ -798,25 +801,34 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         // the window size rather than on the zoom level.
         constexpr double MAX_FULL_PAGE_PIXELS = 16.0 * 1024.0 * 1024.0;
         constexpr int REGION_ALIGN            = 64;
-        const int fullW = fullBox.x1 - fullBox.x0;
-        const int fullH = fullBox.y1 - fullBox.y0;
-        bool partial    = false;
+        const int fullW                       = fullBox.x1 - fullBox.x0;
+        const int fullH                       = fullBox.y1 - fullBox.y0;
+        bool partial                          = false;
         if (job.has_clip && fullW > 0 && fullH > 0
             && static_cast<double>(fullW) * fullH > MAX_FULL_PAGE_PIXELS)
         {
-            auto alignDown = [](int v) { return (v / REGION_ALIGN) * REGION_ALIGN; };
-            auto alignUp   = [](int v)
-            { return ((v + REGION_ALIGN - 1) / REGION_ALIGN) * REGION_ALIGN; };
+            auto alignDown = [](int v)
+            {
+                return (v / REGION_ALIGN) * REGION_ALIGN;
+            };
+            auto alignUp = [](int v)
+            {
+                return ((v + REGION_ALIGN - 1) / REGION_ALIGN) * REGION_ALIGN;
+            };
             fz_irect r;
-            r.x0 = fullBox.x0 + alignDown(static_cast<int>(
+            r.x0 = fullBox.x0
+                   + alignDown(static_cast<int>(
                        std::floor(job.clip_frac.left() * fullW)));
-            r.y0 = fullBox.y0 + alignDown(static_cast<int>(
+            r.y0 = fullBox.y0
+                   + alignDown(static_cast<int>(
                        std::floor(job.clip_frac.top() * fullH)));
-            r.x1 = fullBox.x0 + alignUp(static_cast<int>(
+            r.x1 = fullBox.x0
+                   + alignUp(static_cast<int>(
                        std::ceil(job.clip_frac.right() * fullW)));
-            r.y1 = fullBox.y0 + alignUp(static_cast<int>(
+            r.y1 = fullBox.y0
+                   + alignUp(static_cast<int>(
                        std::ceil(job.clip_frac.bottom() * fullH)));
-            r = fz_intersect_irect(r, fullBox);
+            r    = fz_intersect_irect(r, fullBox);
             if (!fz_is_empty_irect(r))
             {
                 bbox    = r;
@@ -878,8 +890,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             && tracker)
         {
             restore_image_regions(
-                ctx, pix,
-                reinterpret_cast<fz_image_tracker_device *>(tracker),
+                ctx, pix, reinterpret_cast<fz_image_tracker_device *>(tracker),
                 dlist, transform, m_colorspace);
         }
 
@@ -919,7 +930,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         // Construct with the MuPDF stride so Qt copies each scanline
         // correctly regardless of its own alignment padding.
         QImage image(samples, width, height, stride, fmt);
-        image = image.copy(); // detach from MuPDF's buffer before fz_drop_pixmap
+        image
+            = image.copy(); // detach from MuPDF's buffer before fz_drop_pixmap
 
         image.setDotsPerMeterX(static_cast<int>((job.dpi * 1000) / 25.4));
         image.setDotsPerMeterY(static_cast<int>((job.dpi * 1000) / 25.4));
@@ -1130,12 +1142,11 @@ Model::renderRegionAtDPI(int pageno, QRectF logicalRect,
     const fz_rect page_rect_pts = {std::min(tl.x, br.x), std::min(tl.y, br.y),
                                    std::max(tl.x, br.x), std::max(tl.y, br.y)};
 
-    return renderPtsRegion(
-        pageno,
-        QRectF(page_rect_pts.x0, page_rect_pts.y0,
-               page_rect_pts.x1 - page_rect_pts.x0,
-               page_rect_pts.y1 - page_rect_pts.y0),
-        targetDPI);
+    return renderPtsRegion(pageno,
+                           QRectF(page_rect_pts.x0, page_rect_pts.y0,
+                                  page_rect_pts.x1 - page_rect_pts.x0,
+                                  page_rect_pts.y1 - page_rect_pts.y0),
+                           targetDPI);
 }
 
 QImage
@@ -1268,7 +1279,7 @@ Model::imageAt(int pageno, QPointF logicalPt) noexcept
         return result;
 
     const fz_matrix dev_to_page = buildPageTransforms(pageno).second;
-    const fz_point pagePt = fz_transform_point(
+    const fz_point pagePt       = fz_transform_point(
         {float(logicalPt.x()), float(logicalPt.y())}, dev_to_page);
 
     fz_context *ctx = cloneContext();
@@ -1295,8 +1306,8 @@ Model::imageAt(int pageno, QPointF logicalPt) noexcept
         // Identity ctm: the tracked bboxes come out directly in page-point
         // space, matching pagePt.
         tracker = new_image_tracker_device(ctx, nullptr, fz_identity);
-        fz_run_display_list(ctx, dlist, tracker, fz_identity,
-                            fz_infinite_rect, nullptr);
+        fz_run_display_list(ctx, dlist, tracker, fz_identity, fz_infinite_rect,
+                            nullptr);
         fz_close_device(ctx, tracker);
 
         auto *td = reinterpret_cast<fz_image_tracker_device *>(tracker);
@@ -1313,8 +1324,10 @@ Model::imageAt(int pageno, QPointF logicalPt) noexcept
             if (pagePt.x < r.x0 || pagePt.x > r.x1 || pagePt.y < r.y0
                 || pagePt.y > r.y1)
                 continue;
-            if (!best || (r.x1 - r.x0) * (r.y1 - r.y0)
-                             >= (bestRect.x1 - bestRect.x0) * (bestRect.y1 - bestRect.y0))
+            if (!best
+                || (r.x1 - r.x0) * (r.y1 - r.y0)
+                       >= (bestRect.x1 - bestRect.x0)
+                              * (bestRect.y1 - bestRect.y0))
             {
                 best     = &ir;
                 bestRect = r;
@@ -1329,15 +1342,14 @@ Model::imageAt(int pageno, QPointF logicalPt) noexcept
             // image's native pixel size. Decoding the image alone is wrong for
             // stencil/mask images (e.g. text on a scanned page): it yields only
             // the mask shape, not the colours the page paints with it.
-            const int pw = ir.image->w;
-            const int ph = ir.image->h;
-            const float wpt = r.x1 - r.x0;
-            const float hpt = r.y1 - r.y0;
-            const fz_matrix m = fz_concat(
-                fz_translate(-r.x0, -r.y0),
-                fz_scale(pw / wpt, ph / hpt));
-            pix = fz_new_pixmap_with_bbox(ctx, m_colorspace,
-                                          fz_make_irect(0, 0, pw, ph), nullptr, 0);
+            const int pw      = ir.image->w;
+            const int ph      = ir.image->h;
+            const float wpt   = r.x1 - r.x0;
+            const float hpt   = r.y1 - r.y0;
+            const fz_matrix m = fz_concat(fz_translate(-r.x0, -r.y0),
+                                          fz_scale(pw / wpt, ph / hpt));
+            pix               = fz_new_pixmap_with_bbox(
+                ctx, m_colorspace, fz_make_irect(0, 0, pw, ph), nullptr, 0);
             fz_clear_pixmap_with_value(ctx, pix, 255);
             fz_device *rdev = fz_new_draw_device(ctx, fz_identity, pix);
             fz_run_display_list(ctx, dlist, rdev, m, r, nullptr);
@@ -1347,7 +1359,8 @@ Model::imageAt(int pageno, QPointF logicalPt) noexcept
             // Match what the page render does to its pixels, so the dragged
             // image looks like it does on screen. With dont_invert_images the
             // page leaves images untouched, so do the same here.
-            if (!(m_config.behavior.dont_invert_images && supports_image_blocks()))
+            if (!(m_config.behavior.dont_invert_images
+                  && supports_image_blocks()))
             {
                 const int fg = (m_fg_color >> 8) & 0xFFFFFF;
                 const int bg = (m_bg_color >> 8) & 0xFFFFFF;
@@ -1358,13 +1371,14 @@ Model::imageAt(int pageno, QPointF logicalPt) noexcept
                 if (m_config.behavior.high_contrast)
                 {
                     unsigned char lut[256];
-                    buildHighContrastLUT(lut,
-                                         m_config.behavior.high_contrast_black_point,
-                                         m_config.behavior.high_contrast_white_point);
+                    buildHighContrastLUT(
+                        lut, m_config.behavior.high_contrast_black_point,
+                        m_config.behavior.high_contrast_white_point);
                     const size_t nbytes
                         = static_cast<size_t>(fz_pixmap_stride(ctx, pix))
                           * static_cast<size_t>(fz_pixmap_height(ctx, pix));
-                    applyHighContrastSamples(fz_pixmap_samples(ctx, pix), nbytes, lut);
+                    applyHighContrastSamples(fz_pixmap_samples(ctx, pix),
+                                             nbytes, lut);
                 }
             }
 
@@ -1390,13 +1404,11 @@ Model::imageAt(int pageno, QPointF logicalPt) noexcept
                              "Unsupported component count");
             }
 
-            result.image
-                = QImage(fz_pixmap_samples(ctx, pix), width, height, stride,
-                         fmt)
-                      .copy();
-            result.page_rect_pts
-                = QRectF(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
-            result.valid = !result.image.isNull();
+            result.image = QImage(fz_pixmap_samples(ctx, pix), width, height,
+                                  stride, fmt)
+                               .copy();
+            result.page_rect_pts = QRectF(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
+            result.valid         = !result.image.isNull();
         }
     }
     fz_always(ctx)

@@ -1048,8 +1048,11 @@ static const LuaField splitFields[] = {
 {
     lua_pushnumber(L, static_cast<Config::Split *>(p)->dim_inactive_opacity);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Split *>(p)->dim_inactive_opacity = lua_tonumber(L, 3); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Split *>(p)->dim_inactive_opacity = lua_tonumber(L, 3);
+}},
 
     {"focus_border",
      [](lua_State *L, P p)
@@ -1080,8 +1083,11 @@ static const LuaField splitFields[] = {
 {
     lua_pushboolean(L, static_cast<Config::Split *>(p)->focus_follows_mouse);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Split *>(p)->focus_follows_mouse = lua_toboolean(L, 3); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Split *>(p)->focus_follows_mouse = lua_toboolean(L, 3);
+}},
 
     {"gap",
      [](lua_State *L, P p)
@@ -1102,18 +1108,26 @@ static const LuaField splitFields[] = {
     {"maximize_indicator_color",
      [](lua_State *L, P p)
 {
-    lua_pushinteger(L, static_cast<Config::Split *>(p)->maximize_indicator_color);
+    lua_pushinteger(L,
+                    static_cast<Config::Split *>(p)->maximize_indicator_color);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Split *>(p)->maximize_indicator_color = lua_tointeger(L, 3); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Split *>(p)->maximize_indicator_color
+        = lua_tointeger(L, 3);
+}},
 
     {"mouse_follows_focus",
      [](lua_State *L, P p)
 {
     lua_pushboolean(L, static_cast<Config::Split *>(p)->mouse_follows_focus);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Split *>(p)->mouse_follows_focus = lua_toboolean(L, 3); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Split *>(p)->mouse_follows_focus = lua_toboolean(L, 3);
+}},
 };
 
 // --- scrollbars ---

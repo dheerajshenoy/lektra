@@ -8,11 +8,11 @@
 
 #include <QDockWidget>
 #include <QPointer>
-#include <functional>
 #include <QPushButton>
-#include <QToolButton>
 #include <QTextEdit>
+#include <QToolButton>
 #include <QVBoxLayout>
+#include <functional>
 
 class QFrame;
 class QMenu;
@@ -29,12 +29,12 @@ struct LLMScriptResult
     QString value;  // what it returned
     QString error;  // message when !ok
 };
-using LLMScriptRunner = std::function<LLMScriptResult(const QString &code)>;
+using LLMScriptRunner  = std::function<LLMScriptResult(const QString &code)>;
 // Runs one Lektra command by name; !ok (with an error) if there is none.
 using LLMCommandRunner = std::function<LLMScriptResult(
     const QString &name, const QStringList &args)>;
 // Returns the documentation of the Lua API that matches a query.
-using LLMApiLookup = std::function<QString(const QString &query)>;
+using LLMApiLookup     = std::function<QString(const QString &query)>;
 
 class LLMView : public QDockWidget
 {
@@ -67,7 +67,8 @@ public:
     {
         std::function<QImage()> currentPage;
         // Lets the user pick a part of the page, then calls back with it.
-        std::function<void(std::function<void(const QImage &)> done)> pickRegion;
+        std::function<void(std::function<void(const QImage &)> done)>
+            pickRegion;
     };
     void setImageSources(ImageSources sources);
 
@@ -148,28 +149,28 @@ private:
     // Grows the input with its text, from one line up to a few, then scrolls.
     void adjustInputHeight() noexcept;
 
-    HTTPClient *m_http_client       = nullptr;
-    QScrollArea *m_scroll_area      = nullptr;
-    QWidget *m_messages_widget      = nullptr;
-    QVBoxLayout *m_messages_layout  = nullptr;
-    QFrame *m_input_frame           = nullptr;
-    ChatInput *m_input_edit         = nullptr;
-    QToolButton *m_send_button      = nullptr;
+    HTTPClient *m_http_client      = nullptr;
+    QScrollArea *m_scroll_area     = nullptr;
+    QWidget *m_messages_widget     = nullptr;
+    QVBoxLayout *m_messages_layout = nullptr;
+    QFrame *m_input_frame          = nullptr;
+    ChatInput *m_input_edit        = nullptr;
+    QToolButton *m_send_button     = nullptr;
     QIcon m_send_icon, m_stop_icon;
-    QToolButton *m_attach_button    = nullptr;
-    QMenu *m_attach_menu            = nullptr;
-    QWidget *m_attachment_bar       = nullptr;
+    QToolButton *m_attach_button     = nullptr;
+    QMenu *m_attach_menu             = nullptr;
+    QWidget *m_attachment_bar        = nullptr;
     QHBoxLayout *m_attachment_layout = nullptr;
     QList<QImage> m_attachments;
     ImageSources m_image_sources;
-    bool m_updating_style           = false;
-    QLabel *m_status_label          = nullptr;
+    bool m_updating_style                 = false;
+    QLabel *m_status_label                = nullptr;
     // Shows "Connected"/"Disconnected" for the configured LLM endpoint,
     // refreshed by m_connection_check_timer.
-    QLabel *m_connection_indicator      = nullptr;
-    QTimer *m_connection_check_timer    = nullptr;
-    QVBoxLayout *m_layout           = nullptr;
-    QWidget *m_container            = nullptr;
+    QLabel *m_connection_indicator        = nullptr;
+    QTimer *m_connection_check_timer      = nullptr;
+    QVBoxLayout *m_layout                 = nullptr;
+    QWidget *m_container                  = nullptr;
     // The in-progress assistant bubble while a streamed reply is arriving —
     // nullptr when no stream is active. Only this one bubble is touched per
     // chunk, unlike the old whole-transcript re-render.
@@ -203,18 +204,18 @@ private:
     void updateChatButtons();
 
     // The last connection check (see HTTPClient::connectionChecked).
-    bool m_conn_known       = false;
-    bool m_conn_ok          = false;
-    int m_conn_status       = 0;
-    qint64 m_conn_latency   = 0;
+    bool m_conn_known     = false;
+    bool m_conn_ok        = false;
+    int m_conn_status     = 0;
+    qint64 m_conn_latency = 0;
     QString m_conn_error;
     QDateTime m_conn_time;
 
     ChatStore m_store;
-    QMenu *m_history_menu             = nullptr;
-    QToolButton *m_history_button     = nullptr;
-    QToolButton *m_new_chat_button    = nullptr;
-    QString m_chat_id;                // empty until the first message
+    QMenu *m_history_menu          = nullptr;
+    QToolButton *m_history_button  = nullptr;
+    QToolButton *m_new_chat_button = nullptr;
+    QString m_chat_id; // empty until the first message
     QString m_chat_title;
     QDateTime m_chat_created;
     QJsonArray m_transcript;

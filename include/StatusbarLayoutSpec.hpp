@@ -45,8 +45,8 @@ inline const QStringList &
 modules()
 {
     static const QStringList names
-        = {"session", "filename", "page",   "zoom",
-           "progress", "mode",    "portal", "narrow"};
+        = {"session",  "filename", "page",   "zoom",
+           "progress", "mode",     "portal", "narrow"};
     return names;
 }
 
@@ -56,7 +56,8 @@ modules()
 inline bool
 isModuleName(const QString &name)
 {
-    if (name.isEmpty() || !(name.at(0).isLetter() || name.at(0) == QLatin1Char('_')))
+    if (name.isEmpty()
+        || !(name.at(0).isLetter() || name.at(0) == QLatin1Char('_')))
         return false;
     for (const QChar c : name)
         if (!(c.isLetterOrNumber() || c == QLatin1Char('_')
@@ -117,15 +118,16 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
         const QString text = value.toString().trimmed();
         if (text == QLatin1String("|"))
         {
-            out.kind          = Item::Kind::Gap;
-            out.spec.gap      = true;
-            out.spec.stretch  = 1;
+            out.kind         = Item::Kind::Gap;
+            out.spec.gap     = true;
+            out.spec.stretch = 1;
             return true;
         }
         const QString name = canonicalModule(text);
         if (!isModuleName(name))
         {
-            warnings << QStringLiteral("unknown statusbar module \"%1\" (the built-in ones are: %2)")
+            warnings << QStringLiteral("unknown statusbar module \"%1\" (the "
+                                       "built-in ones are: %2)")
                             .arg(text, modules().join(QStringLiteral(", ")));
             return false;
         }
@@ -136,17 +138,19 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
 
     if (value.typeId() != QMetaType::QVariantMap)
     {
-        warnings << QStringLiteral("a statusbar layout item must be a string or a table");
+        warnings << QStringLiteral(
+            "a statusbar layout item must be a string or a table");
         return false;
     }
 
     const QVariantMap map = value.toMap();
     static const QStringList known
-        = {"module", "text",  "spacer", "stretch", "min_width", "max_width",
-           "margin", "align", "at",     "anchor"};
+        = {"module",    "text",   "spacer", "stretch", "min_width",
+           "max_width", "margin", "align",  "at",      "anchor"};
     for (auto it = map.constBegin(); it != map.constEnd(); ++it)
         if (!known.contains(it.key()))
-            warnings << QStringLiteral("unknown key \"%1\" in a statusbar layout item")
+            warnings << QStringLiteral(
+                            "unknown key \"%1\" in a statusbar layout item")
                             .arg(it.key());
 
     const bool hasModule = map.contains("module");
@@ -154,11 +158,12 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
     const bool hasSpacer = map.contains("spacer");
     if (hasModule + hasText + hasSpacer > 1)
     {
-        warnings << QStringLiteral("a statusbar layout item has only one of module, text and spacer");
+        warnings << QStringLiteral(
+            "a statusbar layout item has only one of module, text and spacer");
         return false;
     }
 
-    double number = 0;
+    double number               = 0;
     StatusbarLayout::Spec &spec = out.spec;
 
     if (hasModule)
@@ -166,7 +171,8 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
         const QString name = canonicalModule(map.value("module").toString());
         if (!isModuleName(name))
         {
-            warnings << QStringLiteral("unknown statusbar module \"%1\" (the built-in ones are: %2)")
+            warnings << QStringLiteral("unknown statusbar module \"%1\" (the "
+                                       "built-in ones are: %2)")
                             .arg(map.value("module").toString(),
                                  modules().join(QStringLiteral(", ")));
             return false;
@@ -182,20 +188,22 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
     else
     {
         // A gap: { spacer = px } and/or { stretch = weight }.
-        out.kind     = Item::Kind::Gap;
-        spec.gap     = true;
+        out.kind = Item::Kind::Gap;
+        spec.gap = true;
         if (hasSpacer)
         {
             if (!asNumber(map.value("spacer"), number) || number < 0)
             {
-                warnings << QStringLiteral("\"spacer\" is a width in pixels (a number)");
+                warnings << QStringLiteral(
+                    "\"spacer\" is a width in pixels (a number)");
                 return false;
             }
             spec.gapWidth = static_cast<int>(number);
         }
         else if (!map.contains("stretch"))
         {
-            warnings << QStringLiteral("a statusbar layout item needs module, text, spacer or stretch");
+            warnings << QStringLiteral("a statusbar layout item needs module, "
+                                       "text, spacer or stretch");
             return false;
         }
     }
@@ -210,9 +218,9 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
 
     if (out.kind == Item::Kind::Gap)
     {
-        if (map.contains("at") || map.contains("anchor") || map.contains("align")
-            || map.contains("margin") || map.contains("min_width")
-            || map.contains("max_width"))
+        if (map.contains("at") || map.contains("anchor")
+            || map.contains("align") || map.contains("margin")
+            || map.contains("min_width") || map.contains("max_width"))
             warnings << QStringLiteral("a gap only takes spacer and stretch");
         return true;
     }
@@ -243,17 +251,19 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
                 spec.marginRight = static_cast<int>(r);
             }
             else
-                warnings << QStringLiteral("\"margin\" is a number or {left, right}");
+                warnings << QStringLiteral(
+                    "\"margin\" is a number or {left, right}");
         }
         else if (asNumber(m, number))
             spec.marginLeft = spec.marginRight = static_cast<int>(number);
         else
-            warnings << QStringLiteral("\"margin\" is a number or {left, right}");
+            warnings << QStringLiteral(
+                "\"margin\" is a number or {left, right}");
     }
     if (map.contains("align"))
     {
-        bool ok       = false;
-        spec.align    = alignmentOf(map.value("align").toString(), ok);
+        bool ok    = false;
+        spec.align = alignmentOf(map.value("align").toString(), ok);
         if (!ok)
             warnings << QStringLiteral("\"align\" is left, center or right");
     }
@@ -274,7 +284,8 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
         if (!ok)
             warnings << QStringLiteral("\"anchor\" is left, center or right");
         if (!spec.absolute)
-            warnings << QStringLiteral("\"anchor\" only matters together with \"at\"");
+            warnings << QStringLiteral(
+                "\"anchor\" only matters together with \"at\"");
     }
     return true;
 }
@@ -296,7 +307,8 @@ parse(const QVariantList &layout, QStringList *warnings = nullptr)
             if (isList(row))
                 sources.append(row.toList());
             else
-                messages << QStringLiteral("when the layout has rows, every row must be a list");
+                messages << QStringLiteral(
+                    "when the layout has rows, every row must be a list");
         }
     }
     else
@@ -315,8 +327,10 @@ parse(const QVariantList &layout, QStringList *warnings = nullptr)
             {
                 if (seen.contains(item.name))
                 {
-                    messages << QStringLiteral("statusbar module \"%1\" is listed twice; only the first is used")
-                                    .arg(item.name);
+                    messages
+                        << QStringLiteral("statusbar module \"%1\" is listed "
+                                          "twice; only the first is used")
+                               .arg(item.name);
                     continue;
                 }
                 seen << item.name;
@@ -336,9 +350,12 @@ parse(const QVariantList &layout, QStringList *warnings = nullptr)
 inline QVariantList
 defaultLayout()
 {
-    return {QStringLiteral("session"),  QStringLiteral("filename"),
-            QStringLiteral("portal"),   QStringLiteral("narrow"),
-            QStringLiteral("|"),        QStringLiteral("progress"),
+    return {QStringLiteral("session"),
+            QStringLiteral("filename"),
+            QStringLiteral("portal"),
+            QStringLiteral("narrow"),
+            QStringLiteral("|"),
+            QStringLiteral("progress"),
             QStringLiteral("mode"),
             QVariantMap{{"module", "page"}, {"at", 0.5}, {"anchor", "center"}}};
 }

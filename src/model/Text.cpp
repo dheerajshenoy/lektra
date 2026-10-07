@@ -1,8 +1,7 @@
-#include "Model.hpp"
-
 #include "BrowseLinkItem.hpp"
 #include "Commands/TextHighlightAnnotationCommand.hpp"
 #include "Config.hpp"
+#include "Model.hpp"
 #include "utils.hpp"
 
 #include <QFile>
@@ -28,27 +27,27 @@
 #include <unordered_set>
 #ifdef HAVE_FONTCONFIG
 
-#include <fontconfig/fontconfig.h>
+    #include <fontconfig/fontconfig.h>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
 
-#include <QDirIterator>
+    #include <QDirIterator>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
-#include <QFile>
+    #include <QFile>
 #endif
 #ifdef HAVE_FONTCONFIG
 #else // !HAVE_FONTCONFIG
-#include <QStandardPaths>
+    #include <QStandardPaths>
 #endif
 #ifdef HAVE_LIBARCHIVE
 
-#include <archive.h>
+    #include <archive.h>
 #endif
 #ifdef HAVE_LIBARCHIVE
-#include <archive_entry.h>
+    #include <archive_entry.h>
 #endif
 
 // Build scale→rotate→[flip]→translate-to-origin matrix (manual pattern sites).
@@ -1391,12 +1390,12 @@ Model::hasTextLayer() noexcept
         {
             const fz_stext_page *stext = get_or_build_stext_page(ctx, p);
             for (const fz_stext_block *b = stext->first_block; b && !found;
-                 b = b->next)
+                 b                       = b->next)
             {
                 if (b->type != FZ_STEXT_BLOCK_TEXT)
                     continue;
                 for (const fz_stext_line *l = b->u.t.first_line; l && !found;
-                     l = l->next)
+                     l                      = l->next)
                     for (const fz_stext_char *c = l->first_char; c; c = c->next)
                         if (c->c > ' ')
                         {

@@ -1,5 +1,5 @@
-#include "lua/MainState.hpp"
 #include "Lektra.hpp"
+#include "lua/MainState.hpp"
 
 void
 Lektra::initLuaCmd() noexcept
@@ -69,7 +69,10 @@ Lektra::initLuaCmd() noexcept
             lua_State *L;
             int ref;
             LuaRefGuard(lua_State *l, int r) : L(l), ref(r) {}
-            ~LuaRefGuard() { luaL_unref(L, LUA_REGISTRYINDEX, ref); }
+            ~LuaRefGuard()
+            {
+                luaL_unref(L, LUA_REGISTRYINDEX, ref);
+            }
         };
         auto guard = std::make_shared<LuaRefGuard>(luaMainState(), func_ref);
 

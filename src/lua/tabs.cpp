@@ -545,8 +545,8 @@ Lektra::initLuaTabs() noexcept
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
         if (!lektra->m_tab_widget)
             return 0;
-        lua_pushinteger(
-            L, lektra->splitTabsToWindows(readIndices(L, 1, lektra)));
+        lua_pushinteger(L,
+                        lektra->splitTabsToWindows(readIndices(L, 1, lektra)));
         return 1;
     });
 

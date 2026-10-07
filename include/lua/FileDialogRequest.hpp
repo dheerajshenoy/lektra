@@ -18,23 +18,23 @@ struct FileDialogRequest
     };
 
     Mode mode = Mode::Open;
-    QString title;                // default: depends on the mode
-    QString directory;            // folder to start in
-    QString filename;             // suggested (save) or preselected (open) name
-    QStringList filters;          // "Images (*.png *.jpg)", "All files (*)", ...
-    QString selectedFilter;       // the one to start with (default: the first)
-    QString defaultSuffix;        // save: added to a name typed without one
+    QString title;          // default: depends on the mode
+    QString directory;      // folder to start in
+    QString filename;       // suggested (save) or preselected (open) name
+    QStringList filters;    // "Images (*.png *.jpg)", "All files (*)", ...
+    QString selectedFilter; // the one to start with (default: the first)
+    QString defaultSuffix;  // save: added to a name typed without one
     bool confirmOverwrite = true; // save: ask before replacing a file
 
     // The mode named by a script ("open", "open_multiple", "save",
     // "directory"; a few synonyms), or false.
-    static bool
-    modeFromName(const QString &name, Mode &out)
+    static bool modeFromName(const QString &name, Mode &out)
     {
         const QString n = name.trimmed().toLower();
         if (n == QLatin1String("open") || n == QLatin1String("open_file"))
             out = Mode::Open;
-        else if (n == QLatin1String("open_multiple") || n == QLatin1String("open_files")
+        else if (n == QLatin1String("open_multiple")
+                 || n == QLatin1String("open_files")
                  || n == QLatin1String("multiple"))
             out = Mode::OpenMultiple;
         else if (n == QLatin1String("save") || n == QLatin1String("save_file"))
@@ -49,32 +49,39 @@ struct FileDialogRequest
 
     // Filters written as one text, "Images (*.png);;All files (*)", or as a
     // list.
-    static QStringList
-    splitFilters(const QString &text)
+    static QStringList splitFilters(const QString &text)
     {
         return text.split(QStringLiteral(";;"), Qt::SkipEmptyParts);
     }
 
     // The dialog, set up but not shown.
-    std::unique_ptr<QFileDialog>
-    makeDialog(QWidget *parent) const
+    std::unique_ptr<QFileDialog> makeDialog(QWidget *parent) const
     {
         QString caption = title;
         if (caption.isEmpty())
         {
             switch (mode)
             {
-                case Mode::Open:         caption = QObject::tr("Open File"); break;
-                case Mode::OpenMultiple: caption = QObject::tr("Open Files"); break;
-                case Mode::Save:         caption = QObject::tr("Save File"); break;
-                case Mode::Directory:    caption = QObject::tr("Choose Folder"); break;
+                case Mode::Open:
+                    caption = QObject::tr("Open File");
+                    break;
+                case Mode::OpenMultiple:
+                    caption = QObject::tr("Open Files");
+                    break;
+                case Mode::Save:
+                    caption = QObject::tr("Save File");
+                    break;
+                case Mode::Directory:
+                    caption = QObject::tr("Choose Folder");
+                    break;
             }
         }
 
         // The start: a folder, with the name in it when there is one.
         QString start = directory;
         if (!filename.isEmpty() && mode != Mode::Directory)
-            start = directory.isEmpty() ? filename : QDir(directory).filePath(filename);
+            start = directory.isEmpty() ? filename
+                                        : QDir(directory).filePath(filename);
 
         auto dialog = std::make_unique<QFileDialog>(parent, caption, start);
         switch (mode)
@@ -90,11 +97,13 @@ struct FileDialogRequest
             case Mode::Save:
                 dialog->setAcceptMode(QFileDialog::AcceptSave);
                 dialog->setFileMode(QFileDialog::AnyFile);
-                dialog->setOption(QFileDialog::DontConfirmOverwrite, !confirmOverwrite);
+                dialog->setOption(QFileDialog::DontConfirmOverwrite,
+                                  !confirmOverwrite);
                 if (!defaultSuffix.isEmpty())
-                    dialog->setDefaultSuffix(defaultSuffix.startsWith(QLatin1Char('.'))
-                                                 ? defaultSuffix.mid(1)
-                                                 : defaultSuffix);
+                    dialog->setDefaultSuffix(
+                        defaultSuffix.startsWith(QLatin1Char('.'))
+                            ? defaultSuffix.mid(1)
+                            : defaultSuffix);
                 break;
             case Mode::Directory:
                 dialog->setAcceptMode(QFileDialog::AcceptOpen);

@@ -24,11 +24,13 @@ public:
 
         auto *buttons = new QDialogButtonBox(
             QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
-        const QString btnStyle =
-            "QPushButton { border: 1px solid palette(mid); border-radius: 4px;"
-            " padding: 4px 16px; background: palette(button); color: palette(button-text); }"
-            "QPushButton:hover { background: palette(light); }"
-            "QPushButton:pressed { background: palette(dark); }";
+        const QString btnStyle
+            = "QPushButton { border: 1px solid palette(mid); border-radius: "
+              "4px;"
+              " padding: 4px 16px; background: palette(button); color: "
+              "palette(button-text); }"
+              "QPushButton:hover { background: palette(light); }"
+              "QPushButton:pressed { background: palette(dark); }";
         for (QAbstractButton *btn : buttons->buttons())
             btn->setStyleSheet(btnStyle);
 

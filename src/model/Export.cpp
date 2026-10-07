@@ -4,8 +4,8 @@
 #include <QFile>
 #include <QTemporaryDir>
 
-// Writes pages with MuPDF's document writers: pdf, text, html, xhtml, cbz, docx,
-// odt, and svg (which MuPDF writes as one file per page).
+// Writes pages with MuPDF's document writers: pdf, text, html, xhtml, cbz,
+// docx, odt, and svg (which MuPDF writes as one file per page).
 bool
 Model::exportWithWriter(const std::vector<int> &pages, const QStringList &paths,
                         const QString &format, QString *error) noexcept
@@ -18,13 +18,14 @@ Model::exportWithWriter(const std::vector<int> &pages, const QStringList &paths,
     };
 
     if (!supportsWriterExport())
-        return fail(tr("This kind of document cannot be written in that format"));
+        return fail(
+            tr("This kind of document cannot be written in that format"));
 
     QString fmt = format.toLower();
     if (fmt == QLatin1String("txt"))
         fmt = QStringLiteral("text");
-    static const QStringList known = {"pdf",  "text", "html", "xhtml",
-                                      "cbz",  "docx", "odt",  "svg"};
+    static const QStringList known
+        = {"pdf", "text", "html", "xhtml", "cbz", "docx", "odt", "svg"};
     if (!known.contains(fmt))
         return fail(tr("Cannot write \"%1\" files").arg(format));
 
@@ -73,18 +74,20 @@ Model::exportWithWriter(const std::vector<int> &pages, const QStringList &paths,
     const bool perPage = fmt == QLatin1String("svg");
     if (perPage ? paths.size() != static_cast<qsizetype>(pages.size())
                 : paths.size() != 1)
-        return fail(perPage ? tr("One file name is needed for each page")
-                            : tr("This format is one file: give one file name"));
+        return fail(perPage
+                        ? tr("One file name is needed for each page")
+                        : tr("This format is one file: give one file name"));
     if (pages.empty())
         return fail(tr("No pages were given"));
 
-    // SVG files are written by MuPDF as <pattern with %d>, numbered from 1, in a
-    // folder of their own, and then moved to the names that were asked for.
+    // SVG files are written by MuPDF as <pattern with %d>, numbered from 1, in
+    // a folder of their own, and then moved to the names that were asked for.
     QTemporaryDir scratch;
     if (perPage && !scratch.isValid())
         return fail(tr("Could not make a temporary folder"));
     const QString writerPath
-        = perPage ? scratch.filePath(QStringLiteral("page-%d.svg")) : paths.first();
+        = perPage ? scratch.filePath(QStringLiteral("page-%d.svg"))
+                  : paths.first();
 
     const QByteArray pathBytes = writerPath.toUtf8();
     const QByteArray fmtBytes  = fmt.toLatin1();
@@ -105,9 +108,9 @@ Model::exportWithWriter(const std::vector<int> &pages, const QStringList &paths,
                                         fmtBytes.constData(), "");
         for (const int pageno : pages)
         {
-            page                 = fz_load_page(m_ctx, m_doc, pageno);
-            const fz_rect box    = fz_bound_page(m_ctx, page);
-            fz_device *device    = fz_begin_page(m_ctx, writer, box);
+            page              = fz_load_page(m_ctx, m_doc, pageno);
+            const fz_rect box = fz_bound_page(m_ctx, page);
+            fz_device *device = fz_begin_page(m_ctx, writer, box);
             fz_try(m_ctx)
             {
                 fz_run_page(m_ctx, page, device, fz_identity, nullptr);
@@ -147,8 +150,10 @@ Model::exportWithWriter(const std::vector<int> &pages, const QStringList &paths,
     {
         for (qsizetype i = 0; i < paths.size(); ++i)
         {
-            const QString made = scratch.filePath(QStringLiteral("page-%1.svg").arg(i + 1));
-            QFile::remove(paths.at(i)); // the caller has already allowed replacing it
+            const QString made
+                = scratch.filePath(QStringLiteral("page-%1.svg").arg(i + 1));
+            QFile::remove(
+                paths.at(i)); // the caller has already allowed replacing it
             if (!QFile::copy(made, paths.at(i)))
                 return fail(tr("Could not write %1").arg(paths.at(i)));
         }
