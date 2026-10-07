@@ -28,6 +28,8 @@
 
 - Fix scrollbars that are turned off (`scrollbars.vertical` / `scrollbars.horizontal`) showing up when zooming or resizing.
 
+- Scrolling no longer asks for a new render of pages that are already rendered on every small scrollbar movement.
+
 ## 0.7.9.1 (2026-10-05)
 
 ### Bug Fixes
