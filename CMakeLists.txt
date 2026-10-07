@@ -27,6 +27,20 @@ if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 endif()
 
 message(STATUS "Build type:          ${CMAKE_BUILD_TYPE}")
+
+# AddressSanitizer is for Lektra's own code only. The bundled third-party code
+# (MuPDF, LuaJIT, MicroTeX, SyncTeX, tinyxml2) is never instrumented: it is
+# built as separate targets/projects that do not get these flags, and they leak
+# or index memory in ways that are not ours to fix. On by default for Debug.
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(_lektra_asan_default ON)
+else()
+    set(_lektra_asan_default OFF)
+endif()
+option(WITH_ASAN
+       "Build Lektra's own code with AddressSanitizer (never the third-party code)"
+       ${_lektra_asan_default})
+message(STATUS "AddressSanitizer:    ${WITH_ASAN} (Lektra's own code only)")
 message(STATUS "Installation prefix: ${CMAKE_INSTALL_PREFIX}")
 
 # ---------------------------------------------------------------------------
@@ -43,11 +57,11 @@ set(CMAKE_AUTOUIC ON)
 
 if(MSVC)
     add_compile_options(/Zc:__cplusplus /Zc:preprocessor)
-    set(DEBUG_FLAGS          /Od;/Zi;/RTC1;/W4;/fsanitize=address)
+    set(DEBUG_FLAGS          /Od;/Zi;/RTC1;/W4)
     set(RELEASE_FLAGS        /O2;/DNDEBUG;/GR-;/W4)
     set(REL_WITH_DEB_INFO_FLAGS /O2;/Zi;/DNDEBUG;/W4)
 else()
-    set(DEBUG_FLAGS          -fno-omit-frame-pointer;-ggdb3;-O0;-fsanitize=address;-Wall;-Wextra)
+    set(DEBUG_FLAGS          -fno-omit-frame-pointer;-ggdb3;-O0;-Wall;-Wextra)
     # -g/-fno-omit-frame-pointer are kept in Release too (not just
     # RelWithDebInfo): without them, CrashHandler's backtrace() has nothing
     # reliable to unwind and no line info to resolve against, so a crash from
@@ -584,6 +598,7 @@ if (WITH_SYNCTEX)
         ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/synctex/synctex_parser_utils.c
     )
     add_library(synctex STATIC ${SYNCTEX_SOURCES})
+    target_compile_options(synctex PRIVATE -fno-sanitize=address)
 
     target_include_directories(synctex
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/synctex)
@@ -649,7 +664,7 @@ if (WITH_LLM_SUPPORT)
     if (MSVC)
         target_compile_options(microtex PRIVATE /w /utf-8)
     else()
-        target_compile_options(microtex PRIVATE -w)
+        target_compile_options(microtex PRIVATE -w -fno-sanitize=address)
     endif()
     target_link_libraries(microtex PRIVATE Qt6::Gui)
     target_link_libraries(${PROJECT_NAME} PRIVATE microtex)
@@ -666,14 +681,28 @@ endif()
 
 # ---------------------------------------------------------------------------
 # Per-config compile/link options
-# NOTE: both use the same variable names so Debug -fsanitize=address is
-# applied consistently to both compile and link steps.
+# (AddressSanitizer is added separately below, controlled by WITH_ASAN.)
 # ---------------------------------------------------------------------------
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
     $<$<CONFIG:Release>:${RELEASE_FLAGS}>
     $<$<CONFIG:RelWithDebInfo>:${REL_WITH_DEB_INFO_FLAGS}>
 )
+
+# AddressSanitizer, on this target only (see WITH_ASAN above). Linking needs the
+# flag too, for the runtime; that does not instrument the static libraries.
+if(WITH_ASAN)
+    if(MSVC)
+        target_compile_options(${PROJECT_NAME} PRIVATE /fsanitize=address)
+    else()
+        target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address
+                                                       -fno-omit-frame-pointer)
+        target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
+        # The leak checker also reports what the third-party code never frees
+        # (MicroTeX's tables, for one): leave those out of the report.
+        target_sources(${PROJECT_NAME} PRIVATE src/lsan_suppressions.cpp)
+    endif()
+endif()
 
 # Portable -rdynamic: keeps Lektra's own function symbols in the dynamic
 # symbol table so CrashHandler's backtrace_symbols_fd() can name our frames
@@ -691,12 +720,7 @@ endif()
 
 if (MSVC)
     target_link_options(${PROJECT_NAME} PRIVATE
-        $<$<CONFIG:Debug>:$<IF:$<CXX_COMPILER_ID:MSVC>,/DEBUG,--fsanitize=address>>
-        # nothing needed for Release/RelWithDebInfo
-    )
-else()
-    target_link_options(${PROJECT_NAME} PRIVATE
-        $<$<CONFIG:Debug>:$<IF:$<CXX_COMPILER_ID:MSVC>,/DEBUG,-fsanitize=address>>
+        $<$<CONFIG:Debug>:/DEBUG>
         # nothing needed for Release/RelWithDebInfo
     )
 endif()

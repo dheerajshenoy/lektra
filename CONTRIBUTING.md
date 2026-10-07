@@ -67,10 +67,16 @@ cd lektra
 # already cloned without it?  git submodule update --init --recursive
 
 mkdir -p build
-cmake -S . -B build -DCMAKE_INSTALL_TYPE=Debug
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build --parallel
 cmake --install build --prefix build/debug
 ```
+
+A Debug build is made with AddressSanitizer, for Lektra's own code only. The
+bundled third-party code (MuPDF, LuaJIT, MicroTeX, SyncTeX, tinyxml2) is never
+instrumented, and what it leaves allocated is kept out of the leak report
+(`src/lsan_suppressions.cpp`), so a report is about Lektra. Turn it off with
+`-DWITH_ASAN=OFF`, or on in another build type with `-DWITH_ASAN=ON`.
 
 ### Windows
 
