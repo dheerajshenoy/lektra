@@ -710,7 +710,7 @@ Model::requestPageRender(const RenderJob &job,
         ensurePageCached(job.pageno);
         if (aborted())
             return {};
-        return renderPageWithExtrasAsync(job);
+        return renderPageWithExtrasAsync(job, cancel);
     });
 
     watcher->setFuture(future); // no synchronizer, just the watcher

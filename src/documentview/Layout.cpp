@@ -1620,6 +1620,11 @@ DocumentView::zoomHelper(const PageLocation &loc) noexcept
     }
     else
     {
+        // Resizing the scene moves the scrollbars, whose handlers update
+        // m_pageno to whatever page now sits at the old scroll offset (the
+        // last page, when zooming in a lot). Remember the page we started on.
+        const int anchorPage = m_pageno;
+
         m_gview->setUpdatesEnabled(false);
         m_gscene->blockSignals(true);
         ClearTextSelection();
@@ -1637,7 +1642,7 @@ DocumentView::zoomHelper(const PageLocation &loc) noexcept
             CenterOnLocation(loc);
         else
             // Fallback if we were out of bounds
-            GotoPage(m_pageno);
+            GotoPage(anchorPage);
     }
 
     emit zoomChanged(m_current_zoom);
