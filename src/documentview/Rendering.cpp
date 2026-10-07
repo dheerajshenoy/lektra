@@ -583,7 +583,12 @@ DocumentView::startNextRenderJob() noexcept
              << (m_visible_render_queue.size() + m_render_queue.size());
 #endif
 
-    while (!m_visible_render_queue.isEmpty() || !m_render_queue.isEmpty())
+    // Only keep a few renders running at once; the rest wait in the queues
+    // where prunePendingRenders() can still drop them if the view moves on.
+    const int maxInFlight = qBound(2, QThread::idealThreadCount(), 4);
+
+    while (m_render_slots_used < maxInFlight
+           && (!m_visible_render_queue.isEmpty() || !m_render_queue.isEmpty()))
     {
         // Visible-page queue is always drained first; fall back to preload
         // queue
@@ -591,8 +596,13 @@ DocumentView::startNextRenderJob() noexcept
                          ? m_visible_render_queue.dequeue()
                          : m_render_queue.dequeue();
 
-        if (!m_pending_renders.contains(pageno))
+        if (!m_pending_renders.contains(pageno)
+            || m_inflight_renders.contains(pageno))
             continue;
+
+        auto cancelToken = std::make_shared<std::atomic<bool>>(false);
+        m_inflight_renders.insert(pageno, cancelToken);
+        ++m_render_slots_used;
 
         auto job = m_model->createRenderJob(pageno);
         if (!m_trim_margins)
@@ -604,14 +614,35 @@ DocumentView::startNextRenderJob() noexcept
         const PageRenderKey dispatchKey = currentPageRenderKey();
 
         QPointer<DocumentView> self(this);
-        m_model->requestPageRender(job,
-                                   [self, pageno, dispatchZoom, dispatchKey](
-                                       const Model::PageRenderResult &result)
+        m_model->requestPageRender(
+            job,
+            [self, pageno, dispatchZoom, dispatchKey,
+             cancelToken](const Model::PageRenderResult &result)
         {
             if (!self)
                 return;
 
             DocumentView *view = self.data();
+
+            --view->m_render_slots_used;
+
+            // Cancelled, pruned or superseded renders are no longer wanted:
+            // free the slot and drop the result without touching the scene.
+            auto inflightIt    = view->m_inflight_renders.find(pageno);
+            const bool current = inflightIt != view->m_inflight_renders.end()
+                                 && inflightIt.value() == cancelToken;
+            if (current)
+                view->m_inflight_renders.erase(inflightIt);
+
+            if (!current || result.cancelled)
+            {
+                // Model-side cancel (close/reload) of a still-wanted page:
+                // forget it so it can be requested again.
+                if (current)
+                    view->m_pending_renders.remove(pageno);
+                view->startNextRenderJob();
+                return;
+            }
 
             view->m_pending_renders.remove(pageno);
 
@@ -715,17 +746,29 @@ DocumentView::startNextRenderJob() noexcept
             }
 
             view->startNextRenderJob();
-        });
+        },
+            cancelToken);
     }
 }
 
-// Remove pending renders for pages that are no longer visible and not
-// in-flight
+// Drop queued renders and cancel running ones for pages that are no longer
+// wanted.
 void
 DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
 {
     for (auto it = m_pending_renders.begin(); it != m_pending_renders.end();)
         it = visiblePages.count(*it) ? ++it : m_pending_renders.erase(it);
+
+    for (auto it = m_inflight_renders.begin(); it != m_inflight_renders.end();)
+    {
+        if (visiblePages.count(it.key()))
+        {
+            ++it;
+            continue;
+        }
+        it.value()->store(true, std::memory_order_release);
+        it = m_inflight_renders.erase(it);
+    }
 
     auto filterQueue = [&](QQueue<int> &q)
     {
@@ -1297,9 +1340,7 @@ DocumentView::clearDocumentItems() noexcept
     m_page_links_hash.clear();
     m_page_items_hash.clear();
     m_search_items.clear();
-    m_pending_renders.clear();
-    m_visible_render_queue.clear();
-    m_render_queue.clear();
+    cancelAllRenders();
     m_placeholder_pages.clear();
     m_preload_pages.clear();
 
@@ -1320,6 +1361,17 @@ DocumentView::clearDocumentItems() noexcept
     m_gscene->setSceneRect(QRectF()); // Reset scene bounds
 }
 
+void
+DocumentView::cancelAllRenders() noexcept
+{
+    m_pending_renders.clear();
+    m_visible_render_queue.clear();
+    m_render_queue.clear();
+    for (auto &token : m_inflight_renders)
+        token->store(true, std::memory_order_release);
+    m_inflight_renders.clear();
+}
+
 // Request rendering of a specific page (ASYNC)
 void
 DocumentView::requestPageRender(int pageno, bool force, bool visible) noexcept
@@ -1332,6 +1384,14 @@ DocumentView::requestPageRender(int pageno, bool force, bool visible) noexcept
                 "pageno = "
              << pageno;
 #endif
+
+    // A forced re-request supersedes any render of this page already running.
+    if (auto it = m_inflight_renders.find(pageno);
+        it != m_inflight_renders.end())
+    {
+        it.value()->store(true, std::memory_order_release);
+        m_inflight_renders.erase(it);
+    }
 
     m_pending_renders.insert(pageno);
     if (visible)
@@ -1627,9 +1687,7 @@ DocumentView::repositionPages()
 void
 DocumentView::stopPendingRenders() noexcept
 {
-    m_pending_renders.clear();
-    m_visible_render_queue.clear();
-    m_render_queue.clear();
+    cancelAllRenders();
 
     if (m_model)
         m_model->waitForPendingRenders();

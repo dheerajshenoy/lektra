@@ -620,9 +620,9 @@ Model::requestImageRender(bool highQuality) noexcept
 }
 
 void
-Model::requestPageRender(
-    const RenderJob &job,
-    const std::function<void(PageRenderResult)> &callback) noexcept
+Model::requestPageRender(const RenderJob &job,
+                         const std::function<void(PageRenderResult)> &callback,
+                         std::shared_ptr<std::atomic<bool>> cancel) noexcept
 {
 #ifndef NDEBUG
     qDebug() << "Model::requestPageRender(): Requesting render for page"
@@ -631,29 +631,50 @@ Model::requestPageRender(
 
     auto watcher = new QFutureWatcher<PageRenderResult>(this);
     connect(watcher, &QFutureWatcher<PageRenderResult>::finished, this,
-            [this, watcher, callback, job]()
+            [this, watcher, callback, job, cancel]()
     {
         // TODO: This is a hack, this shouldn't actually happen, check why
         // it happens, but for now, just guard against invalid futures.
         if (!watcher->future().isValid())
         {
             watcher->deleteLater();
+            if (callback)
+            {
+                PageRenderResult dropped;
+                dropped.cancelled = true;
+                callback(std::move(dropped));
+            }
             return;
         }
 
         PageRenderResult result = watcher->result();
         watcher->deleteLater();
 
-        if (m_render_cancelled.load())
-            return;
+        const bool cancelled
+            = m_render_cancelled.load()
+              || (cancel && cancel->load(std::memory_order_acquire));
+
+        // Always report back (even when cancelled) so the caller can release
+        // the slot this render occupied.
 
         if (callback)
-            callback(result);
+        {
+            if (cancelled)
+            {
+                result           = {};
+                result.cancelled = true;
+            }
+            callback(std::move(result));
+        }
+
+        if (cancelled)
+            return;
 
         if (supports_links() && m_detect_url_links)
         {
             const int pageno = job.pageno;
-            QFuture<void> _  = QtConcurrent::run([this, job, pageno]()
+            QFuture<void> _
+                = QtConcurrent::run(&m_aux_pool, [this, job, pageno]()
             {
                 auto urlLinks = detectUrlLinksForPage(job);
                 if (!urlLinks.empty())
@@ -662,8 +683,8 @@ Model::requestPageRender(
         }
     });
 
-    // In requestPageRender - worker lambda:
-    auto future = QtConcurrent::run([this, job]() -> PageRenderResult
+    auto future = QtConcurrent::run(&m_render_pool,
+                                    [this, job, cancel]() -> PageRenderResult
     {
         m_active_renders.fetch_add(1, std::memory_order_relaxed);
 
@@ -678,10 +699,16 @@ Model::requestPageRender(
             }
         } guard{this};
 
-        if (m_render_cancelled.load(std::memory_order_acquire))
+        const auto aborted = [&]
+        {
+            return m_render_cancelled.load(std::memory_order_acquire)
+                   || (cancel && cancel->load(std::memory_order_acquire));
+        };
+        if (aborted())
             return {};
+
         ensurePageCached(job.pageno);
-        if (m_render_cancelled.load(std::memory_order_acquire))
+        if (aborted())
             return {};
         return renderPageWithExtrasAsync(job);
     });

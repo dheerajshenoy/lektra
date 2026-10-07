@@ -213,7 +213,10 @@ public:
         // `region` (device pixels) of a `full_size` page.
         QSize full_size;
         QRect region;
-        bool partial = false;
+        bool partial   = false;
+        // Set when the render was skipped (document closing/reloading or
+        // the caller cancelled it); `image` is null in that case.
+        bool cancelled = false;
         std::vector<RenderLink> links;
         std::vector<RenderAnnotation> annotations;
     };
@@ -555,9 +558,14 @@ public:
     void clearPageCache() noexcept;
     void ensurePageCached(int pageno) noexcept;
     RenderJob createRenderJob(int pageno) const noexcept;
-    void requestPageRender(
-        const RenderJob &job,
-        const std::function<void(PageRenderResult)> &callback) noexcept;
+    // `cancel` (optional) is polled by the worker; once set, the render is
+    // abandoned and `callback` receives a result with `cancelled ==
+    // true`.
+    void
+    requestPageRender(const RenderJob &job,
+                      const std::function<void(PageRenderResult)> &callback,
+                      std::shared_ptr<std::atomic<bool>> cancel
+                      = nullptr) noexcept;
     QImage requestImageRender(bool highQuality = false) noexcept;
     PageRenderResult renderPageWithExtrasAsync(const RenderJob &job) noexcept;
     [[nodiscard]] QImage renderRegionAtDPI(int pageno, QRectF logicalRect,
@@ -1054,6 +1062,10 @@ private:
     friend class DeleteAnnotationsCommand;
     friend class DocumentView;
 
+    // Dedicated pools so page renders never compete with other work in the
+    // global pool, and so URL-link detection can't delay a visible page.
+    QThreadPool m_render_pool;
+    QThreadPool m_aux_pool;
     std::atomic<int> m_active_renders = 0;
     std::mutex m_renders_mutex;
     std::condition_variable m_renders_cv;

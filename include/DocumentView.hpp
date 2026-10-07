@@ -144,6 +144,8 @@ public:
     // several changes in one event-loop tick are applied together.
     void localConfigChanged(const QString &section) noexcept;
 
+    void cancelAllRenders() noexcept;
+
     // The options a new view of this file type would start with: the global
     // ones, with the overrides of [filetype.<type>] on top.
     Config freshLocalConfig() const noexcept;
@@ -1058,6 +1060,11 @@ private:
     QSet<int> m_pending_renders;
     QQueue<int> m_visible_render_queue;
     QQueue<int> m_render_queue;
+    // Renders currently running on the model's pool, with their cancel token.
+    QHash<int, std::shared_ptr<std::atomic<bool>>> m_inflight_renders;
+    // Pool slots held by running tasks (cancelled ones included, until they
+    // actually return).
+    int m_render_slots_used = 0;
     QSet<int> m_placeholder_pages;
 
     // Render settings a page's current GraphicsImageItem was rendered with;

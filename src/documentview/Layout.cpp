@@ -1668,6 +1668,17 @@ DocumentView::handleHScrollValueChanged(int value) noexcept
     // page is already pending).
     // Pages that already have a sharp render are left alone: the debounced
     // refresh below decides whether they need a new one.
+
+    // Anything queued or running for pages we've scrolled past is dead weight
+    // and would delay the pages that are on screen now.
+    {
+        const std::set<int> &visible = getVisiblePages();
+        std::set<int> wanted         = visible;
+        const std::set<int> preload  = getPreloadPages(visible);
+        wanted.insert(preload.begin(), preload.end());
+        prunePendingRenders(wanted);
+    }
+
     for (int pageno : getVisiblePages())
     {
         if (!m_pending_renders.contains(pageno)
@@ -1696,6 +1707,16 @@ DocumentView::handleVScrollValueChanged(int /*value */) noexcept
     invalidateVisiblePagesCache();
 
     updateCurrentPage();
+
+    // Anything queued or running for pages we've scrolled past is dead weight
+    // and would delay the pages that are on screen now.
+    {
+        const std::set<int> &visible = getVisiblePages();
+        std::set<int> wanted         = visible;
+        const std::set<int> preload  = getPreloadPages(visible);
+        wanted.insert(preload.begin(), preload.end());
+        prunePendingRenders(wanted);
+    }
 
     // Immediately request renders for currently visible pages so they don't
     // appear blank during fast scrolling (requestPageRender is a no-op if the

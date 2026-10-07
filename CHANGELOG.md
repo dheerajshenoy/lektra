@@ -30,6 +30,8 @@
 
 - Scrolling no longer asks for a new render of pages that are already rendered on every small scrollbar movement.
 
+- Improved rendering performance when scrolling
+
 ## 0.7.9.1 (2026-10-05)
 
 ### Bug Fixes

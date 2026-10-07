@@ -247,6 +247,8 @@ Model::Model(const Config &config, QObject *parent) noexcept
     : QObject(parent), m_config(config)
 {
     initMuPDF();
+    m_render_pool.setMaxThreadCount(qBound(2, QThread::idealThreadCount(), 4));
+    m_aux_pool.setMaxThreadCount(1);
     m_undo_stack = new QUndoStack(this);
     setUrlLinkRegex(m_config.links.url_regex);
 
