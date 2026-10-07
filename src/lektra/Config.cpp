@@ -947,6 +947,7 @@ Lektra::initConfig() noexcept
     if (auto donate = toml["donate"])
         set(donate["reminders"], m_config.donate.reminders);
 
+#ifdef WITH_LLM_SUPPORT
     if (auto llm_view = toml["llm_view"])
     {
         set(llm_view["show_at_startup"], m_config.llm_view.show_at_startup);
@@ -980,6 +981,7 @@ Lektra::initConfig() noexcept
             }
         }
     }
+#endif
 
     // Rendering
     if (auto rendering = toml["rendering"])
