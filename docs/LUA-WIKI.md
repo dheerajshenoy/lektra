@@ -529,10 +529,23 @@ For example `lektra.opt.page.bg = "#1e1e2e"` or `lektra.opt.window.accent = 0x3D
 ### Example
 
 ```lua
-lektra.opt.search.case_sensitive = true
-lektra.opt.rendering.invert_color = false
-print(lektra.opt.zoom.default)
+lektra.opt.zoom.level = 1.5               -- the default zoom, and this view's
+print(lektra.opt.zoom.level)
+
+-- Dark mode in only the view you are in (the others and the default stay as they are)
+lektra.cmd.register("dark_here", function()
+    local behavior = lektra.view.current():opt().behavior
+    behavior.invert_mode = not behavior.invert_mode
+end, "Toggle dark mode in this view only")
+
+-- Back to the default
+lektra.cmd.register("dark_reset", function()
+    lektra.view.current():opt_reset("behavior")
+end, "This view follows the default again")
 ```
+
+`dark_here` and `dark_reset` are in the [example plugins](examples.md), with `dark_default`
+to try the three levels side by side.
 
 Enum tables available under `lektra.opt`:
 

@@ -6,6 +6,7 @@
 --   annotation_notes  copy the highlights and comments of the document to the clipboard
 --   highlight_page    highlight a band at the top of the current page
 --   sync_picked       pick views of this tab and link their zoom and scroll
+--   dark_here, dark_default, dark_reset   dark mode for one view, for new views, back to default
 
 -- Runs tesseract (OCR) on the current page and opens the text in a new tab.
 --
@@ -159,3 +160,30 @@ lektra.cmd.register("sync_picked", function()
     lektra.view.sync(ids)
     lektra.ui.message("Synced " .. #ids .. " views")
 end, "Pick views to sync")
+
+-- Dark mode, to show the three levels of options. They work as in Vim:
+--
+--   lektra.opt.x          the default for new views and the view you are in   (:set)
+--   lektra.opt_global.x   only the default for new views                      (:setglobal)
+--   view:opt().x          only that view                                      (:setlocal)
+--
+-- Try it: open a file and split it (command `split_vertical`). Run `dark_here`:
+-- only the split you are in turns dark. Run `dark_reset` and it follows the
+-- default again. Run `dark_default` and open a file in a new tab: it starts dark.
+
+-- only the view you are in
+lektra.cmd.register("dark_here", function()
+    local behavior = lektra.view.current():opt().behavior
+    behavior.invert_mode = not behavior.invert_mode
+end, "Toggle dark mode in this view only")
+
+-- only the default: views that are open now stay as they are
+lektra.cmd.register("dark_default", function()
+    local behavior = lektra.opt_global.behavior
+    behavior.invert_mode = not behavior.invert_mode
+end, "Toggle dark mode for new views")
+
+-- this view goes back to the default
+lektra.cmd.register("dark_reset", function()
+    lektra.view.current():opt_reset("behavior")
+end, "This view follows the default again")
