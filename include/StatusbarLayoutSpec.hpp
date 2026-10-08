@@ -3,6 +3,8 @@
 #include "StatusbarLayout.hpp"
 
 #include <QList>
+#include <algorithm>
+#include <cmath>
 #include <QString>
 #include <QStringList>
 #include <QVariant>
@@ -75,6 +77,50 @@ canonicalModule(const QString &name)
     return n;
 }
 
+// Edit distance, for suggesting the word a typo was meant to be.
+inline int
+editDistance(const QString &a, const QString &b)
+{
+    QList<int> prev(b.size() + 1), cur(b.size() + 1);
+    for (int j = 0; j <= b.size(); ++j)
+        prev[j] = j;
+    for (int i = 1; i <= a.size(); ++i)
+    {
+        cur[0] = i;
+        for (int j = 1; j <= b.size(); ++j)
+            cur[j] = std::min({prev[j] + 1, cur[j - 1] + 1,
+                               prev[j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1)});
+        std::swap(prev, cur);
+    }
+    return prev[b.size()];
+}
+
+// The word in `choices` closest to `word`, or "" if nothing is close.
+inline QString
+closest(const QString &word, const QStringList &choices)
+{
+    QString best;
+    int bestDistance = std::max(1, static_cast<int>(word.size()) / 3) + 1;
+    for (const QString &c : choices)
+    {
+        const int d = editDistance(word.toLower(), c);
+        if (d < bestDistance)
+        {
+            bestDistance = d;
+            best         = c;
+        }
+    }
+    return best;
+}
+
+inline QString
+didYouMean(const QString &word, const QStringList &choices)
+{
+    const QString c = closest(word, choices);
+    return c.isEmpty() ? QString()
+                       : QStringLiteral(" (did you mean \"%1\"?)").arg(c);
+}
+
 inline bool
 isList(const QVariant &v)
 {
@@ -89,7 +135,7 @@ asNumber(const QVariant &v, double &out)
         || !v.canConvert<double>())
         return false;
     out = v.toDouble();
-    return true;
+    return std::isfinite(out);
 }
 
 inline Qt::Alignment
@@ -105,6 +151,21 @@ alignmentOf(const QString &text, bool &ok)
         return Qt::AlignRight;
     ok = false;
     return Qt::AlignLeft;
+}
+
+// A name that is not a built-in module may be a custom one from a script, so
+// it is let through, but one that is a typo of a built-in one is reported.
+inline void
+suggestModule(const QString &name, QStringList &warnings)
+{
+    if (modules().contains(name))
+        return;
+    const QString near = closest(name, modules());
+    if (!near.isEmpty())
+        warnings << QStringLiteral("\"%1\" is not a built-in statusbar "
+                                   "module; did you mean \"%2\"? (it is "
+                                   "kept in case a script registers it)")
+                        .arg(name, near);
 }
 
 // One item. Returns false (with a message in `warnings`) if it is not valid.
@@ -126,11 +187,12 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
         const QString name = canonicalModule(text);
         if (!isModuleName(name))
         {
-            warnings << QStringLiteral("unknown statusbar module \"%1\" (the "
-                                       "built-in ones are: %2)")
+            warnings << QStringLiteral("\"%1\" is not a valid statusbar module "
+                                       "name (the built-in ones are: %2)")
                             .arg(text, modules().join(QStringLiteral(", ")));
             return false;
         }
+        suggestModule(name, warnings);
         out.kind = Item::Kind::Module;
         out.name = name;
         return true;
@@ -150,8 +212,10 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
     for (auto it = map.constBegin(); it != map.constEnd(); ++it)
         if (!known.contains(it.key()))
             warnings << QStringLiteral(
-                            "unknown key \"%1\" in a statusbar layout item")
-                            .arg(it.key());
+                            "unknown key \"%1\" in a statusbar layout "
+                            "item%2")
+                            .arg(it.key(),
+                                 didYouMean(it.key(), known));
 
     const bool hasModule = map.contains("module");
     const bool hasText   = map.contains("text");
@@ -166,6 +230,13 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
     double number               = 0;
     StatusbarLayout::Spec &spec = out.spec;
 
+    if ((hasModule && map.value("module").typeId() != QMetaType::QString)
+        || (hasText && map.value("text").typeId() != QMetaType::QString))
+    {
+        warnings << QStringLiteral("\"module\" and \"text\" are strings");
+        return false;
+    }
+
     if (hasModule)
     {
         const QString name = canonicalModule(map.value("module").toString());
@@ -177,6 +248,7 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
                                  modules().join(QStringLiteral(", ")));
             return false;
         }
+        suggestModule(name, warnings);
         out.kind = Item::Kind::Module;
         out.name = name;
     }
@@ -184,6 +256,11 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
     {
         out.kind = Item::Kind::Text;
         out.name = map.value("text").toString();
+        if (out.name.isEmpty())
+        {
+            warnings << QStringLiteral("a statusbar \"text\" item is empty");
+            return false;
+        }
     }
     else
     {
@@ -239,6 +316,12 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
         else
             warnings << QStringLiteral("\"max_width\" is a width in pixels");
     }
+    if (spec.maxWidth > 0 && spec.minWidth > spec.maxWidth)
+    {
+        warnings << QStringLiteral("\"min_width\" is larger than "
+                                   "\"max_width\"; \"max_width\" is ignored");
+        spec.maxWidth = 0;
+    }
     if (map.contains("margin"))
     {
         const QVariant m = map.value("margin");
@@ -271,6 +354,10 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
     {
         if (asNumber(map.value("at"), number))
         {
+            if (number < 0 || number > 1)
+                warnings << QStringLiteral("\"at\" is a position from 0 to 1; "
+                                           "%1 is brought into range")
+                                .arg(number);
             spec.absolute = true;
             spec.at       = std::clamp(number, 0.0, 1.0);
         }
@@ -289,6 +376,9 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
     }
     return true;
 }
+
+inline QVariantList
+defaultLayout();
 
 // The whole option. Items that are not valid are left out (and reported in
 // `warnings`), a module that is listed twice is only placed the first time.
@@ -337,8 +427,39 @@ parse(const QVariantList &layout, QStringList *warnings = nullptr)
             }
             row.append(item);
         }
+        if (row.isEmpty() && !source.isEmpty())
+            messages << QStringLiteral("a row of the statusbar layout has no "
+                                       "valid items");
         rows.append(row);
     }
+
+    // Everything the user listed was invalid: show the default bar rather
+    // than an empty one. (An empty list on purpose stays empty.)
+    const bool anyValue = std::any_of(sources.cbegin(), sources.cend(),
+                                      [](const QVariantList &r)
+    { return !r.isEmpty(); });
+    const bool anyItem  = std::any_of(rows.cbegin(), rows.cend(),
+                                      [](const QList<Item> &r)
+    { return !r.isEmpty(); });
+    if (anyValue && !anyItem)
+    {
+        messages << QStringLiteral(
+            "no valid item in the statusbar layout; using the default layout");
+        QStringList ignored;
+        rows = parse(defaultLayout(), &ignored);
+    }
+    else if (anyItem)
+    {
+        const bool anyModule = std::any_of(
+            rows.cbegin(), rows.cend(), [](const QList<Item> &r)
+        {
+            return std::any_of(r.cbegin(), r.cend(), [](const Item &i)
+            { return i.kind == Item::Kind::Module; });
+        });
+        if (!anyModule)
+            messages << QStringLiteral("the statusbar layout shows no module");
+    }
+
     if (warnings)
         *warnings += messages;
     return rows;

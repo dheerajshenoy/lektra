@@ -245,7 +245,22 @@ StatusbarLayout::layoutRow(int row, const QRect &rect)
             extra -= used;
             growing = still;
             if (!capped)
+            {
+                // Rounding left a few pixels: they go to the last item that
+                // is still growing, so the row is always filled exactly.
+                if (extra > 0 && !growing.isEmpty())
+                {
+                    Slot &last = flow[growing.last()];
+                    const Spec &spec = last.entry->spec;
+                    int room         = extra;
+                    if (!spec.gap && spec.maxWidth > 0)
+                        room = std::min(
+                            room, spec.maxWidth + spec.marginLeft
+                                      + spec.marginRight - last.width);
+                    last.width += std::max(0, room);
+                }
                 break;
+            }
         }
     }
     else if (extra < 0)
@@ -312,7 +327,23 @@ StatusbarLayout::layoutRow(int row, const QRect &rect)
         x += s.width;
     }
 
-    for (const Entry *e : std::as_const(absolute))
+    // The areas the flow items really occupy (gaps do not count).
+    QList<QRect> occupied;
+    for (const Entry &e : std::as_const(m_entries))
+        if (e.row == row && !e.spec.absolute && !e.spec.gap && !isEmpty(e)
+            && e.item->geometry().width() > 0)
+            occupied.append(e.item->geometry());
+
+    // Absolute items left to right. One that would sit on top of another is
+    // moved to the right of it; one that has no room without covering a flow
+    // item is moved out of the bar, rather than drawing two texts over each other.
+    QList<const Entry *> sorted = absolute;
+    std::stable_sort(sorted.begin(), sorted.end(),
+                     [](const Entry *a, const Entry *b)
+    { return a->spec.at < b->spec.at; });
+
+    int nextFree = rect.x();
+    for (const Entry *e : std::as_const(sorted))
     {
         const int w = std::min(rect.width(), naturalWidth(*e));
         int left    = rect.x() + static_cast<int>(e->spec.at * rect.width());
@@ -320,8 +351,24 @@ StatusbarLayout::layoutRow(int row, const QRect &rect)
             left -= w / 2;
         else if (e->spec.anchor & Qt::AlignRight)
             left -= w;
-        left = std::clamp(left, rect.x(),
-                          rect.x() + std::max(0, rect.width() - w));
+        const int maxLeft = rect.x() + std::max(0, rect.width() - w);
+        left              = std::clamp(left, rect.x(), maxLeft);
+        left              = std::max(left, nextFree);
+
+        const QRect wanted(left, rect.y(), w, rect.height());
+        const bool fits = left <= maxLeft
+                          && std::none_of(occupied.cbegin(), occupied.cend(),
+                                          [&](const QRect &r)
+        { return r.intersects(wanted); });
+        if (!fits)
+        {
+            // Moved out of the bar (a widget cannot be made smaller than its
+            // minimum size, and hiding it here would never be undone).
+            e->item->setGeometry(
+                QRect(rect.right() + 1000, rect.y(), w, rect.height()));
+            continue;
+        }
         place(*e, left, w);
+        nextFree = left + w;
     }
 }

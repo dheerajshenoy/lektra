@@ -140,8 +140,8 @@ Document view helpers and per-document actions.
 - `lektra.view.get(id: integer) -> View | nil`
   Look up a view by its stable ID.
 
-- `lektra.view.list(tab_index: integer) -> View[]`
-  All views in a given tab (by 0-based tab index).
+- `lektra.view.list(tab?: integer) -> View[]`
+  All views in a given tab (by 1-based tab index; the current tab if omitted).
 
 ### Example
 
@@ -400,7 +400,7 @@ Tab management.
 | Method | Returns | Description |
 |---|---|---|
 | `tab:id()` | `integer \| nil` | Stable tab ID, or `nil` if invalid. |
-| `tab:index()` | `integer \| nil` | Current positional index (0-based), or `nil`. |
+| `tab:index()` | `integer \| nil` | Current positional index (1-based), or `nil`. |
 | `tab:title()` | `string \| nil` | Tab title text, or `nil`. |
 | `tab:view()` | `View \| nil` | The primary view in this tab, or `nil`. |
 | `tab:close()` | — | Close this tab. |
@@ -415,8 +415,8 @@ Tab management.
 | `lektra.tabs.current()` | `Tab \| nil` | Currently active tab. |
 | `lektra.tabs.list()` | `Tab[]` | All open tabs as Tab objects. |
 | `lektra.tabs.count()` | `integer` | Number of open tabs. |
-| `lektra.tabs.get_id(index)` | `integer \| nil` | Tab ID for a given positional index. |
-| `lektra.tabs.goto(index)` | — | Switch to tab at positional index. |
+| `lektra.tabs.get_id(index)` | `integer \| nil` | Tab ID for a given index (1-based). |
+| `lektra.tabs.switch(index)` | — | Switch to tab at index (1-based). |
 | `lektra.tabs.close(index?)` | — | Close tab at index (current tab if omitted). |
 | `lektra.tabs.next()` | — | Switch to next tab. |
 | `lektra.tabs.prev()` | — | Switch to previous tab. |

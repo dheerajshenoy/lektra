@@ -459,7 +459,9 @@ struct Config
         // "center" or "right", the edge of the item put there) it is placed
         // at a fixed position instead: { module = "page", at = 0.5, anchor =
         // "center" }. { text = "|" } shows a piece of text, for example a
-        // separator. A module that is not listed is not shown
+        // separator. A module that is not listed is not shown. An item placed with at
+        // that would overlap another item is moved right or left out of the way,
+        // or left out if there is no room
         // }
         // @type list
         // @default ["session", "filename", "portal", "narrow", "|", "progress",

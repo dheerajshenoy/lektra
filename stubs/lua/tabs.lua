@@ -25,7 +25,7 @@ function Tab:rename(title) end
 ---@return View view The View object for the tab.
 function Tab:view() end
 
---- Returns the index of the tab (0-based).
+--- Returns the index of the tab (1-based, like pages).
 ---@return integer index The index of the tab.
 function Tab:index() end
 
@@ -40,8 +40,8 @@ function Tab:container() end
 lektra.tabs.close = function(id) end
 
 --- Switches to the tab with the specified unique identifier.
----@param id integer The index of the tab to switch to.
-lektra.tabs.goto = function(id) end
+---@param id integer The index of the tab to switch to (1-based).
+lektra.tabs.switch = function(id) end
 
 --- Switches to the last active tab.
 lektra.tabs.last = function() end
@@ -74,11 +74,11 @@ lektra.tabs.current = function() end
 lektra.tabs.list = function() end
 
 --- Gives a tab a title of its own, kept until it is reset.
----@param index integer Tab index (0-based).
+---@param index integer Tab index (1-based).
 ---@param title? string New title; nil or an empty string restores the default (the file name).
 lektra.tabs.rename = function(index, title) end
 
---- Returns the stable unique identifier for a tab index (0-based).
+--- Returns the stable unique identifier for a tab index (1-based).
 ---@param index integer
 ---@return string id
 lektra.tabs.get_id = function(index) end
@@ -87,15 +87,15 @@ lektra.tabs.get_id = function(index) end
 -- Multi-tab selection and operations.
 --
 -- Tabs can be selected with Ctrl/Shift+click or from Lua. The operations below
--- take an optional list of tab indices (0-based); without one they act on the
+-- take an optional list of tab indices (1-based); without one they act on the
 -- selected tabs, or on the current tab when nothing is selected.
 
---- Returns the indices of the selected tabs (0-based).
+--- Returns the indices of the selected tabs (1-based).
 ---@return integer[] indices
 lektra.tabs.selected = function() end
 
 --- Selects or deselects a tab.
----@param index integer Tab index (0-based).
+---@param index integer Tab index (1-based).
 ---@param selected? boolean Default: true.
 lektra.tabs.select = function(index, selected) end
 

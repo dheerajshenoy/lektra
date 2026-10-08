@@ -509,7 +509,7 @@ lektra.view.get = function(id) end
 lektra.view.current = function() end
 
 ---Returns a table of View objects for the current tab.
----@param tabindex? integer The tab index to get the document for.
+---@param tabindex? integer The tab index (1-based) to get the views of.
 ---
 ---`Note` If not provided, it will return all documents in the current tab.
 ---@return View[] documents

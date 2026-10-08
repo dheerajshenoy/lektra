@@ -2357,15 +2357,19 @@ Lektra::initLuaView() noexcept
     }, 1);
     lua_setfield(m_L, -2, "get");
 
-    // lektra.view.list(tab_index) -> table of View
+    // lektra.view.list([tab]) -> table of View (tab is 1-based)
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
         auto *lektra
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
-        auto tab_id    = luaL_checkinteger(L, 1);
+        // 1-based tab number; the current tab without an argument
+        const int tab_index
+            = lua_isnoneornil(L, 1)
+                  ? lektra->m_tab_widget->currentIndex()
+                  : static_cast<int>(luaL_checkinteger(L, 1)) - 1;
         auto container = qobject_cast<DocumentContainer *>(
-            lektra->m_tab_widget->widget(tab_id));
+            lektra->m_tab_widget->widget(tab_index));
         if (!container)
         {
             lua_pushnil(L);

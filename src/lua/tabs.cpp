@@ -95,7 +95,7 @@ static const luaL_Reg TabMethods[]
     if (tab && tab->widget && tab->index >= 0
         && tab->index < tab->widget->count())
     {
-        lua_pushinteger(L, tab->index);
+        lua_pushinteger(L, tab->index + 1); // Lua: 1-based
         return 1;
     }
     else
@@ -208,30 +208,32 @@ Lektra::initLuaTabs() noexcept
     {
         auto *lektra
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
-        int index = luaL_optinteger(L, 1, -1);
-        if (index < -1)
-            return luaL_error(L, "Invalid tab index: %d", index);
+        // 1-based; without an argument the current tab
+        int index = lua_isnoneornil(L, 1) ? -1 : luaL_checkinteger(L, 1) - 1;
+        if (index < -1 || (index == -1 && !lua_isnoneornil(L, 1)))
+            return luaL_error(L, "Invalid tab index: %d", index + 1);
 
         lektra->Tab_close(index);
         return 0;
     }, 1);
     lua_setfield(m_L, -2, "close");
 
-    // lektra.tabs.goto(index)
+    // lektra.tabs.switch(index)
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
         auto *lektra
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
-        int index = luaL_optinteger(L, 1, -1);
-        if (index < -1)
+        // 1-based (what Tab_goto takes); without an argument it asks
+        int index = lua_isnoneornil(L, 1) ? -1 : luaL_checkinteger(L, 1);
+        if (index < 1 && !lua_isnoneornil(L, 1))
             return luaL_error(L, "Invalid tab index: %d", index);
 
         lektra->Tab_goto(index);
 
         return 0;
     }, 1);
-    lua_setfield(m_L, -2, "goto");
+    lua_setfield(m_L, -2, "switch");
 
     // lektra.tabs.last()
     lua_pushlightuserdata(m_L, this);
@@ -390,9 +392,9 @@ Lektra::initLuaTabs() noexcept
     {
         auto *lektra
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
-        int index = luaL_optinteger(L, 1, -1);
-        if (index < -1)
-            return luaL_error(L, "Invalid tab index: %d", index);
+        const int index = static_cast<int>(luaL_checkinteger(L, 1)) - 1;
+        if (index < 0)
+            return luaL_error(L, "Invalid tab index: %d", index + 1);
 
         int tab_id = lektra->m_tab_widget->id(index);
         if (tab_id == -1)
@@ -407,7 +409,7 @@ Lektra::initLuaTabs() noexcept
     }, 1);
     lua_setfield(m_L, -2, "get_id");
 
-    // Multi-tab selection and operations. Indices are 0-based. Operations
+    // Multi-tab selection and operations. Indices are 1-based, like pages. Operations
     // take an optional list of indices; by default they act on the selected
     // tabs, or on the current tab when nothing is selected.
     auto setFn = [this](const char *name, lua_CFunction fn)
@@ -433,8 +435,8 @@ Lektra::initLuaTabs() noexcept
                 lua_rawgeti(L, idx, i);
                 const int v = static_cast<int>(luaL_checkinteger(L, -1));
                 lua_pop(L, 1);
-                if (v >= 0 && v < count)
-                    out << v;
+                if (v >= 1 && v <= count)
+                    out << v - 1;
             }
         }
         else
@@ -455,7 +457,7 @@ Lektra::initLuaTabs() noexcept
         int i = 1;
         for (int index : lektra->m_tab_widget->tabBar()->selectedTabs())
         {
-            lua_pushinteger(L, index);
+            lua_pushinteger(L, index + 1);
             lua_rawseti(L, -2, i++);
         }
         return 1;
@@ -468,7 +470,7 @@ Lektra::initLuaTabs() noexcept
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
         if (!lektra->m_tab_widget)
             return 0;
-        const int index = static_cast<int>(luaL_checkinteger(L, 1));
+        const int index = static_cast<int>(luaL_checkinteger(L, 1)) - 1;
         const bool selected
             = lua_isnoneornil(L, 2) ? true : lua_toboolean(L, 2);
         lektra->m_tab_widget->tabBar()->setTabSelected(index, selected);
@@ -580,7 +582,7 @@ Lektra::initLuaTabs() noexcept
     {
         auto *lektra
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
-        const int index     = static_cast<int>(luaL_checkinteger(L, 1));
+        const int index     = static_cast<int>(luaL_checkinteger(L, 1)) - 1;
         const QString title = lua_isnoneornil(L, 2)
                                   ? QString()
                                   : QString::fromUtf8(luaL_checkstring(L, 2));
