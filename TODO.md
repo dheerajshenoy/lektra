@@ -36,7 +36,6 @@
 
 - [ ] Make tab sizes fixed while closing tabs rapidly (like Chrome) instead of shrinking them to fit
 - [ ] Pin Tabs
-- [ ] Configurable line scroll distance
 - [ ] Duplicating a tab keeps the page, zoom and scroll position of the original tab.
 
 ## LOW PRIORITY
