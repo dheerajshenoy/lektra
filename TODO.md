@@ -6,7 +6,6 @@
 
 - [ ] Fix scroll wheel zoom being very slow
 - [ ] Increase performance
-- [ ] Laser pointer for presentation view
 - [ ] Picker style choose, `minibuffer` or `floating`
 
 ## MEDIUM PRIORITY

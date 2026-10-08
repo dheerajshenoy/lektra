@@ -1721,14 +1721,19 @@ Lektra::SplitsToTabs() noexcept
 void
 Lektra::ToggleLaserPointerCursor() noexcept
 {
-    this->setCursor(createLaserPointerCursor());
+    setLaserPointerCursor(!m_presentation.laser_pointer_enabled);
 }
 
 void
 Lektra::setLaserPointerCursor(bool state) noexcept
 {
+    m_presentation.laser_pointer_enabled = state;
     if (state)
-        this->setCursor(createLaserPointerCursor());
+    {
+        const auto &lp = m_config.presentation.laser_pointer;
+        this->setCursor(
+            createLaserPointerCursor(lp.size, rgbaToQColor(lp.color)));
+    }
     else
         this->unsetCursor();
 }

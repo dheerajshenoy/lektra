@@ -146,7 +146,7 @@ void
 clean_pdf_text(std::string &s);
 
 QCursor
-createLaserPointerCursor(int size = 24);
+createLaserPointerCursor(int size = 24, const QColor &color = Qt::red);
 
 /* NOTE: Do not call this function, call PPRINT macro instead */
 template <typename... Ts>

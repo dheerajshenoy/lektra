@@ -362,11 +362,12 @@ lektra.opt.command_palette = {}
 lektra.opt.llm_view = {}
 
 ---@class OptLaserPointer
----@field enabled? boolean Whether the virtual laser pointer is active.
----@field color? Color Laser pointer color (`Color`).
+---@field enabled? boolean Use the laser pointer cursor when entering presentation mode.
+---@field color? string|integer Laser pointer color (0xRRGGBBAA or "#RRGGBBAA").
+---@field size? integer Laser pointer size in pixels.
 
 ---@class OptPresentation
----@field laser_pointer? OptLaserPointer of the virtual laser pointer (`Color`).
+---@field laser_pointer? OptLaserPointer Laser pointer shown as the cursor in presentation mode.
 
 ---@class OptReflow
 ---@field font_family? string Font family for reflowable documents (installed font, serif, sans-serif or monospace); empty keeps the document's own.

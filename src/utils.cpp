@@ -430,8 +430,9 @@ clean_join_pdf_text(const std::string &input)
 }
 
 QCursor
-createLaserPointerCursor(int size)
+createLaserPointerCursor(int size, const QColor &color)
 {
+    size = std::max(size, 4);
     QPixmap pixmap(size, size);
     pixmap.fill(Qt::transparent);
 
@@ -445,9 +446,15 @@ createLaserPointerCursor(int size)
 
     // Color gradient setup: intense core to soft glowing outer edge
     gradient.setColorAt(0.0, QColor(255, 255, 255, 255)); // Bright white core
-    gradient.setColorAt(0.2, QColor(255, 0, 0, 255)); // Intense red mid-ring
-    gradient.setColorAt(0.6, QColor(255, 0, 0, 180)); // Soft red glow
-    gradient.setColorAt(1.0, QColor(255, 0, 0, 0));   // Fully transparent edge
+    QColor ring = color;
+    ring.setAlpha(255);
+    gradient.setColorAt(0.2, ring); // Intense mid-ring
+    QColor glow = color;
+    glow.setAlpha(color.alpha() * 180 / 255);
+    gradient.setColorAt(0.6, glow); // Soft glow
+    QColor edge = color;
+    edge.setAlpha(0);
+    gradient.setColorAt(1.0, edge); // Fully transparent edge
 
     painter.setBrush(gradient);
     painter.setPen(Qt::NoPen);
