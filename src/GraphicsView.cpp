@@ -610,9 +610,13 @@ GraphicsView::wheelEvent(QWheelEvent *event)
     {
         const QPointF anchorScenePos = mapToScene(event->position().toPoint());
 
-        // Touchpad sends pixelDelta, mouse wheel sends angleDelta
-        float factor = 1.0f;
-        if (!event->pixelDelta().isNull())
+        // Touchpad sends small pixelDelta/angleDelta values, a mouse wheel
+        // sends whole notches (multiples of 120). Some mice also report a
+        // pixelDelta, so check for notches first.
+        const int angle  = event->angleDelta().y();
+        const bool notch = angle != 0 && angle % 120 == 0;
+        float factor     = 1.0f;
+        if (!notch && !event->pixelDelta().isNull())
         {
             // Touchpad: smooth zoom based on pixel delta
             factor = 1.0f + event->pixelDelta().y() * 0.001f;
