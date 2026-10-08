@@ -138,6 +138,7 @@ AboutDialog::authorsSection() noexcept
     QWidget *widget     = new QWidget();
     QFormLayout *layout = new QFormLayout(widget);
 
+    layout->addRow(tr("Build"), new QLabel(APP_BUILD_TYPE));
     layout->addRow(tr("Version"), new QLabel(APP_VERSION));
     layout->addRow(tr("Created by"), new QLabel("Dheeraj Vittal Shenoy"));
     layout->addRow(
