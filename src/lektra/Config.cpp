@@ -36,6 +36,7 @@
 #include <QWheelEvent>
 #include <QWindow>
 #include <variant>
+
 namespace
 {
 
@@ -153,6 +154,9 @@ set_picker_shared(toml::node_view<toml::node> picker, Config::Picker &target)
     set(picker["height"], target.height);
     set(picker["border"], target.border);
     set(picker["alternating_row_color"], target.alternating_row_color);
+    set(picker["highlight_matches"], target.highlight_matches);
+    set_color(picker["highlight_matches_color"],
+              target.highlight_matches_color);
 
     if (auto picker_shadow = picker["shadow"])
     {

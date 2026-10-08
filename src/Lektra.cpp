@@ -16,6 +16,7 @@
 #include "toml.hpp"
 #include "utils.hpp"
 
+#include <array>
 #include <QColorDialog>
 #include <QDebug>
 #include <QDesktopServices>
@@ -964,6 +965,17 @@ Lektra::loadLuaConfig() noexcept
                                          + "/?/init.lua;\" .. package.path";
         luaL_dostring(m_L, path_snippet.c_str());
 
+        const bool hl_before       = m_config.picker.highlight_matches;
+        const uint32_t hl_color_before = m_config.picker.highlight_matches_color;
+        const auto derived_before = std::array{
+            std::pair{m_config.outline.highlight_matches,
+                      m_config.outline.highlight_matches_color},
+            std::pair{m_config.highlight_search.highlight_matches,
+                      m_config.highlight_search.highlight_matches_color},
+            std::pair{m_config.command_palette.highlight_matches,
+                      m_config.command_palette.highlight_matches_color},
+        };
+
         if (luaL_dofile(m_L, init_file.toStdString().c_str()) != LUA_OK)
         {
             qWarning() << "Failed to execute init.lua:"
@@ -972,6 +984,25 @@ Lektra::loadLuaConfig() noexcept
                                   "Failed to execute init.lua:\n"
                                       + QString(lua_tostring(m_L, -1)));
             lua_pop(m_L, 1);
+        }
+
+        // outline / highlight_search / command_palette are copies of [picker]
+        // made at load; carry lektra.opt.picker.highlight_* over to the ones
+        // the script did not set itself.
+        Config::Picker *derived[] = {&m_config.outline,
+                                     &m_config.highlight_search,
+                                     &m_config.command_palette};
+        for (size_t i = 0; i < std::size(derived); ++i)
+        {
+            if (m_config.picker.highlight_matches != hl_before
+                && derived[i]->highlight_matches == derived_before[i].first)
+                derived[i]->highlight_matches
+                    = m_config.picker.highlight_matches;
+            if (m_config.picker.highlight_matches_color != hl_color_before
+                && derived[i]->highlight_matches_color
+                       == derived_before[i].second)
+                derived[i]->highlight_matches_color
+                    = m_config.picker.highlight_matches_color;
         }
     }
 }

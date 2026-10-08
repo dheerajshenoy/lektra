@@ -1024,6 +1024,18 @@ struct Config
         // search box will take the full width of the picker
         QString prompt = QString();
 
+        // @desc Highlight matches in the picker list
+        // @type bool
+        // @default true
+        // @added 0.8.0
+        bool highlight_matches = true; // highlight matches in the list
+
+        // @desc Color for highlighted matches in the picker list
+        // @type str
+        // @default "#4FC3F7FF"
+        // @added 0.8.0
+        uint32_t highlight_matches_color = 0x4FC3F7FF; // 0xRRGGBBAA
+
         // clang-format off
         // @section Picker.Keys
         // @section_type struct

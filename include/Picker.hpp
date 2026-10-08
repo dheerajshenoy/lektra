@@ -1,5 +1,6 @@
 #pragma once
 #include "Config.hpp"
+#include "HighlightDelegate.hpp"
 
 #include <QLineEdit>
 #include <QShortcut>
@@ -10,7 +11,7 @@
 
 class QGraphicsDropShadowEffect;
 
-class PickerFilterProxy : public QSortFilterProxyModel
+class PickerFilterProxy : public QSortFilterProxyModel, public MatchHighlighter
 {
     Q_OBJECT
 public:
@@ -75,6 +76,69 @@ public:
 #endif
     }
 
+    // MatchHighlighter
+    bool isActive() const override
+    {
+        return !m_raw.isEmpty();
+    }
+    QVector<QPair<int, int>> ranges(const QString &text) const override
+    {
+        QVector<QPair<int, int>> out;
+        if (text.isEmpty() || m_raw.isEmpty())
+            return out;
+
+        if (m_modes & Regex)
+        {
+            if (!m_regex.isValid())
+                return out;
+            auto it = m_regex.globalMatch(text);
+            while (it.hasNext())
+            {
+                auto m = it.next();
+                // Skip zero-length matches to avoid infinite loops / no-op
+                // boxes
+                if (m.capturedLength() > 0)
+                    out.append({m.capturedStart(), m.capturedLength()});
+            }
+            return out;
+        }
+
+        if (m_modes & Orderless)
+        {
+            for (const QString &tok : m_tokens)
+            {
+                if (tok.isEmpty())
+                    continue;
+                int from = 0;
+                while (true)
+                {
+                    int i = text.indexOf(tok, from, m_cs);
+                    if (i < 0)
+                        break;
+                    out.append({i, tok.size()});
+                    from = i + tok.size();
+                }
+            }
+            // Ranges were appended per-token, so they're not globally sorted
+            // and may overlap (e.g. tokens "ab" and "bc" in "abc"). Merge them.
+            return mergeRanges(out);
+        }
+
+        // Fixed
+        {
+            int from = 0;
+            while (true)
+            {
+                int i = text.indexOf(m_raw, from, m_cs);
+                if (i < 0)
+                    break;
+                out.append({i, m_raw.size()});
+                from = i + m_raw.size();
+            }
+        }
+        return out;
+    }
+
 protected:
     bool filterAcceptsRow(int sourceRow,
                           const QModelIndex &sourceParent) const override
@@ -98,6 +162,31 @@ protected:
     }
 
 private:
+    static QVector<QPair<int, int>> mergeRanges(QVector<QPair<int, int>> in)
+    {
+        if (in.size() < 2)
+            return in;
+        std::sort(in.begin(), in.end(),
+                  [](auto &a, auto &b) { return a.first < b.first; });
+        QVector<QPair<int, int>> out;
+        out.append(in[0]);
+        for (int i = 1; i < in.size(); ++i)
+        {
+            auto &last        = out.last();
+            const int lastEnd = last.first + last.second;
+            if (in[i].first <= lastEnd)
+            {
+                last.second = std::max(lastEnd, in[i].first + in[i].second)
+                              - last.first;
+            }
+            else
+            {
+                out.append(in[i]);
+            }
+        }
+        return out;
+    }
+
     bool matches(const QString &haystack) const
     {
         if (m_modes & Regex)
@@ -276,4 +365,5 @@ private:
     QGraphicsDropShadowEffect *m_shadow_effect = nullptr;
     Keybindings m_keys;
     QVector<Column> m_columns;
+    HighlightDelegate *m_highlight_delegate = nullptr;
 };

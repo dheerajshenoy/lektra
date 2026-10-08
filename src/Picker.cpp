@@ -1,5 +1,7 @@
 #include "Picker.hpp"
 
+#include "utils.hpp"
+
 #include <QApplication>
 #include <QGraphicsDropShadowEffect>
 #include <QHeaderView>
@@ -78,6 +80,16 @@ Picker::Picker(const Config::Picker &config, QWidget *parent) noexcept
     m_proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
     m_proxy->setFilterRole(Qt::UserRole + 1);
     m_listView->setModel(m_proxy);
+
+    if (m_config.highlight_matches)
+    {
+        m_highlight_delegate = new HighlightDelegate(this);
+        m_highlight_delegate->setHighlighter(m_proxy);
+        m_listView->setItemDelegate(m_highlight_delegate);
+
+        m_highlight_delegate->setHighlightColor(
+            rgbaToQColor(m_config.highlight_matches_color));
+    }
 
     connect(m_searchBox, &QLineEdit::textChanged, this,
             &Picker::onSearchChanged);
@@ -317,6 +329,9 @@ Picker::onSearchChanged(const QString &text)
     m_proxy->setFilterText(text, caseSensitivity(text));
     m_listView->setCurrentIndex(m_proxy->index(0, 0));
     onFilterChanged(m_proxy->rowCount());
+
+    // Force re-highlight of every visible cell, not just re-filtered ones.
+    m_listView->viewport()->update();
 }
 
 void

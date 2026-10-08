@@ -311,12 +311,16 @@ lektra.opt.tabs = {}
 ---@field alternating_row_color? boolean Alternate row background colors in the picker list.
 ---@field prompt? string Placeholder text shown in the picker's search box.
 ---@field shadow? OptPickerShadow Drop-shadow sub-table.
+---@field highlight_matches? boolean Highlight the typed text in matching picker rows.
+---@field highlight_matches_color? string|integer Color of the match highlight (0xRRGGBBAA or "#RRGGBBAA").
 lektra.opt.picker = {
     ---@type OptPickerShadow
     shadow = {},
 }
 
 ---@class OptOutline
+---@field highlight_matches? boolean Highlight the typed text in matching rows.
+---@field highlight_matches_color? string|integer Color of the match highlight (0xRRGGBBAA or "#RRGGBBAA").
 ---@field flat_menu? boolean Display the outline as a flat list instead of a tree.
 ---@field generate_heading_ratio? number Minimum font-size ratio (vs body text) for a line to be treated as a heading by `generate_outline`.
 ---@field generate_max_levels? integer Maximum number of heading tiers `generate_outline` will produce.
@@ -326,11 +330,15 @@ lektra.opt.picker = {
 lektra.opt.outline = {}
 
 ---@class OptHighlightSearch
+---@field highlight_matches? boolean Highlight the typed text in matching rows.
+---@field highlight_matches_color? string|integer Color of the match highlight (0xRRGGBBAA or "#RRGGBBAA").
 ---@field flat_menu? boolean Display search results as a flat list.
 ---@field prompt? string Placeholder text shown in the highlight-search picker's search box.
 lektra.opt.highlight_search = {}
 
 ---@class OptCommandPalette
+---@field highlight_matches? boolean Highlight the typed text in matching rows.
+---@field highlight_matches_color? string|integer Color of the match highlight (0xRRGGBBAA or "#RRGGBBAA").
 ---@field prompt? string Placeholder text shown in the command palette input.
 ---@field vscrollbar? boolean Show a vertical scrollbar in the command palette.
 ---@field show_shortcuts? boolean Show keyboard shortcuts next to commands.

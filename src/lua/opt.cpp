@@ -1544,6 +1544,29 @@ static const LuaField tabsFields[] = {
 };
 
 // --- picker ---
+// Picker fields shared by every picker-derived section (those are copied from
+// [picker] at load, so lektra.opt.picker.* alone would not reach them).
+#define PICKER_HIGHLIGHT_FIELDS \
+    {"highlight_matches", \
+     [](lua_State *L, P p) \
+{ \
+    lua_pushboolean(L, static_cast<Config::Picker *>(p)->highlight_matches); \
+    return 1; \
+}, [](lua_State *L, P p) \
+{ static_cast<Config::Picker *>(p)->highlight_matches = lua_toboolean(L, 3); }}, \
+    {"highlight_matches_color", \
+     [](lua_State *L, P p) \
+{ \
+    lua_pushinteger(L, \
+                    static_cast<Config::Picker *>(p)->highlight_matches_color); \
+    return 1; \
+}, \
+     [](lua_State *L, P p) \
+{ \
+    static_cast<Config::Picker *>(p)->highlight_matches_color = readLuaColor( \
+        L, 3, static_cast<Config::Picker *>(p)->highlight_matches_color); \
+}},
+
 static const LuaField pickerFields[] = {
     {"alternating_row_color",
      [](lua_State *L, P p)
@@ -1573,6 +1596,7 @@ static const LuaField pickerFields[] = {
 }, [](lua_State *L, P p)
 { static_cast<Config::Picker *>(p)->height = lua_tonumber(L, 3); }},
 
+    PICKER_HIGHLIGHT_FIELDS
     {"prompt",
      [](lua_State *L, P p)
 {
@@ -1706,6 +1730,7 @@ static const LuaField outlineFields[] = {
         = lua_tointeger(L, 3);
 }},
 
+    PICKER_HIGHLIGHT_FIELDS
     {"indent_width",
      [](lua_State *L, P p)
 {
@@ -1751,6 +1776,7 @@ static const LuaField highlightSearchFields[] = {
 {
     static_cast<Config::HighlightSearch *>(p)->flat_menu = lua_toboolean(L, 3);
 }},
+    PICKER_HIGHLIGHT_FIELDS
     {"prompt",
      [](lua_State *L, P p)
 {
@@ -1779,6 +1805,7 @@ static const LuaField commandPaletteFields[] = {
     static_cast<Config::CommandPalette *>(p)->description = lua_toboolean(L, 3);
 }},
 
+    PICKER_HIGHLIGHT_FIELDS
     {"persist_frequency",
      [](lua_State *L, P p)
 {

@@ -350,6 +350,7 @@ qt_add_executable(${PROJECT_NAME}
     src/main.cpp
     src/CrashHandler.cpp
     src/dialog/CrashReporterDialog.cpp
+    src/HighlightDelegate.cpp
     src/Lektra.cpp
     src/lektra/Config.cpp
     src/lektra/Commands.cpp
