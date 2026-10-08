@@ -983,6 +983,22 @@ Lektra::initConfig() noexcept
     }
 #endif
 
+    // Presentation
+    if (auto presentation = toml["presentation"])
+    {
+
+        // Laser Pointer
+        if (auto laser_pointer = presentation["laser_pointer"])
+        {
+            set(laser_pointer["enabled"],
+                m_config.presentation.laser_pointer.enabled);
+            set(laser_pointer["color"],
+                m_config.presentation.laser_pointer.color);
+            set(laser_pointer["size"],
+                m_config.presentation.laser_pointer.size);
+        }
+    }
+
     // Rendering
     if (auto rendering = toml["rendering"])
     {

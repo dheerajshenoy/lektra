@@ -1055,6 +1055,7 @@ Lektra::TogglePresentationMode() noexcept
         m_tab_widget->tabBar()->hide();
         SetLayoutMode(DocumentView::LayoutMode::SINGLE);
         m_doc->setFitMode(DocumentView::FitMode::Window);
+        setLaserPointerCursor(true);
 
         m_presentation.active = true;
     }
@@ -1071,5 +1072,6 @@ Lektra::TogglePresentationMode() noexcept
             m_doc->setFitMode(m_presentation.fit_mode);
 
         m_presentation.active = false;
+        setLaserPointerCursor(false);
     }
 }

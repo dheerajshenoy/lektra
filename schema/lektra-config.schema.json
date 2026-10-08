@@ -1581,6 +1581,11 @@
           "type": "string",
           "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
           "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
+        },
+        "gap": {
+          "type": "integer",
+          "default": 4,
+          "description": "Gap between splits in pixels (since 0.7.9.1)"
         }
       },
       "additionalProperties": false,

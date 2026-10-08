@@ -353,6 +353,13 @@ lektra.opt.command_palette = {}
 ---@field tools? boolean Let the assistant use tools (run_command, run_lua, lookup_api) and look up the Lua API on demand instead of receiving all of it with every request. Turn off for models without tool calling.
 lektra.opt.llm_view = {}
 
+---@class OptLaserPointer
+---@field enabled? boolean Whether the virtual laser pointer is active.
+---@field color? Color Laser pointer color (`Color`).
+
+---@class OptPresentation
+---@field laser_pointer? OptLaserPointer of the virtual laser pointer (`Color`).
+
 ---@class OptReflow
 ---@field font_family? string Font family for reflowable documents (installed font, serif, sans-serif or monospace); empty keeps the document's own.
 ---@field font_size? number Font size in points.
@@ -444,35 +451,36 @@ lektra.opt.misc = {}
 --- default for views created later, and not the current view (Vim's `:setglobal`;
 --- `lektra.opt` is `:set`, and `View:opt()` is `:setlocal`).
 ---@class GlobalOptions
----@field page OptPage
----@field synctex OptSynctex
----@field search OptSearch
----@field annotations OptAnnotations
----@field thumbnail_panel OptThumbnailPanel
----@field portal OptPortal
----@field window OptWindow
----@field layout OptLayout
----@field statusbar OptStatusbar
----@field reflow OptReflow
----@field zoom OptZoom
----@field selection OptSelection
----@field split OptSplit
----@field scrollbars OptScrollbars
----@field jump_marker OptJumpMarker
----@field links OptLinks
----@field link_hints OptLinkHints
----@field tabs OptTabs
----@field picker OptPicker
----@field outline OptOutline
----@field highlight_search OptHighlightSearch
----@field command_palette OptCommandPalette
----@field rendering OptRendering
----@field behavior OptBehavior
----@field preview OptPreview
----@field updates OptUpdates
----@field donate OptDonate
----@field misc OptMisc
----@field llm_view OptLLMView
+---@field page? OptPage
+---@field synctex? OptSynctex
+---@field search? OptSearch
+---@field annotations? OptAnnotations
+---@field thumbnail_panel? OptThumbnailPanel
+---@field portal? OptPortal
+---@field window? OptWindow
+---@field layout? OptLayout
+---@field statusbar? OptStatusbar
+---@field reflow? OptReflow
+---@field zoom? OptZoom
+---@field selection? OptSelection
+---@field split? OptSplit
+---@field scrollbars? OptScrollbars
+---@field jump_marker? OptJumpMarker
+---@field links? OptLinks
+---@field link_hints? OptLinkHints
+---@field tabs? OptTabs
+---@field picker? OptPicker
+---@field outline? OptOutline
+---@field highlight_search? OptHighlightSearch
+---@field command_palette? OptCommandPalette
+---@field rendering? OptRendering
+---@field behavior? OptBehavior
+---@field preview? OptPreview
+---@field updates? OptUpdates
+---@field donate? OptDonate
+---@field misc? OptMisc
+---@field llm_view? OptLLMView
+---@field presentation? OptPresentation
 
 ---@type GlobalOptions
 lektra.opt_global = {}

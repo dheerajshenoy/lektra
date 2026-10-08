@@ -157,15 +157,23 @@ static const LuaField searchFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::Search *>(p)->index_color);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Search *>(p)->index_color = readLuaColor(L, 3, static_cast<Config::Search *>(p)->index_color); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Search *>(p)->index_color
+        = readLuaColor(L, 3, static_cast<Config::Search *>(p)->index_color);
+}},
     {"match_color",
      [](lua_State *L, P p)
 {
     lua_pushinteger(L, static_cast<Config::Search *>(p)->match_color);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Search *>(p)->match_color = readLuaColor(L, 3, static_cast<Config::Search *>(p)->match_color); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Search *>(p)->match_color
+        = readLuaColor(L, 3, static_cast<Config::Search *>(p)->match_color);
+}},
     {"progressive",
      [](lua_State *L, P p)
 {
@@ -185,7 +193,8 @@ static const LuaField annotHighlightFields[] = {
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::Annotations::Highlight *>(p)->color = readLuaColor(L, 3, static_cast<Config::Annotations::Highlight *>(p)->color);
+    static_cast<Config::Annotations::Highlight *>(p)->color = readLuaColor(
+        L, 3, static_cast<Config::Annotations::Highlight *>(p)->color);
 }},
     {"comment",
      [](lua_State *L, P p)
@@ -232,7 +241,8 @@ static const LuaField annotHighlightFields[] = {
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::Annotations::Highlight *>(p)->glow_color = readLuaColor(L, 3, static_cast<Config::Annotations::Highlight *>(p)->glow_color);
+    static_cast<Config::Annotations::Highlight *>(p)->glow_color = readLuaColor(
+        L, 3, static_cast<Config::Annotations::Highlight *>(p)->glow_color);
 }},
     {"glow_width",
      [](lua_State *L, P p)
@@ -267,8 +277,12 @@ static const LuaField annotRectFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::Annotations::Rect *>(p)->color);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Annotations::Rect *>(p)->color = readLuaColor(L, 3, static_cast<Config::Annotations::Rect *>(p)->color); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Annotations::Rect *>(p)->color = readLuaColor(
+        L, 3, static_cast<Config::Annotations::Rect *>(p)->color);
+}},
     {"comment",
      [](lua_State *L, P p)
 {
@@ -311,7 +325,8 @@ static const LuaField annotRectFields[] = {
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::Annotations::Rect *>(p)->glow_color = readLuaColor(L, 3, static_cast<Config::Annotations::Rect *>(p)->glow_color);
+    static_cast<Config::Annotations::Rect *>(p)->glow_color = readLuaColor(
+        L, 3, static_cast<Config::Annotations::Rect *>(p)->glow_color);
 }},
     {"glow_width",
      [](lua_State *L, P p)
@@ -375,7 +390,8 @@ static const LuaField annotPopupFields[] = {
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::Annotations::Popup *>(p)->glow_color = readLuaColor(L, 3, static_cast<Config::Annotations::Popup *>(p)->glow_color);
+    static_cast<Config::Annotations::Popup *>(p)->glow_color = readLuaColor(
+        L, 3, static_cast<Config::Annotations::Popup *>(p)->glow_color);
 }},
     {"glow_width",
      [](lua_State *L, P p)
@@ -466,8 +482,12 @@ static const LuaField portalFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::Portal *>(p)->border_color);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Portal *>(p)->border_color = readLuaColor(L, 3, static_cast<Config::Portal *>(p)->border_color); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Portal *>(p)->border_color
+        = readLuaColor(L, 3, static_cast<Config::Portal *>(p)->border_color);
+}},
     {"border_width",
      [](lua_State *L, P p)
 {
@@ -514,17 +534,24 @@ static const LuaField windowFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::Window *>(p)->accent);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Window *>(p)->accent = readLuaColor(L, 3, static_cast<Config::Window *>(p)->accent); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Window *>(p)->accent
+        = readLuaColor(L, 3, static_cast<Config::Window *>(p)->accent);
+}},
 
     {"bg",
      [](lua_State *L, P p)
 {
     lua_pushinteger(L, static_cast<Config::Window *>(p)->bg);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Window *>(p)->bg = readLuaColor(L, 3, static_cast<Config::Window *>(p)->bg); },
-     [](Lektra *lk) { lk->applyWindowBackground(); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Window *>(p)->bg
+        = readLuaColor(L, 3, static_cast<Config::Window *>(p)->bg);
+}, [](Lektra *lk) { lk->applyWindowBackground(); }},
 
     {"fullscreen",
      [](lua_State *L, P p)
@@ -1008,8 +1035,12 @@ static const LuaField selectionFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::Selection *>(p)->color);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Selection *>(p)->color = readLuaColor(L, 3, static_cast<Config::Selection *>(p)->color); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Selection *>(p)->color
+        = readLuaColor(L, 3, static_cast<Config::Selection *>(p)->color);
+}},
 
     {"copy_on_select",
      [](lua_State *L, P p)
@@ -1063,8 +1094,12 @@ static const LuaField splitFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::Split *>(p)->focus_border_color);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Split *>(p)->focus_border_color = readLuaColor(L, 3, static_cast<Config::Split *>(p)->focus_border_color); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Split *>(p)->focus_border_color = readLuaColor(
+        L, 3, static_cast<Config::Split *>(p)->focus_border_color);
+}},
 
     {"focus_border_width",
      [](lua_State *L, P p)
@@ -1110,7 +1145,8 @@ static const LuaField splitFields[] = {
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::Split *>(p)->maximize_indicator_color = readLuaColor(L, 3, static_cast<Config::Split *>(p)->maximize_indicator_color);
+    static_cast<Config::Split *>(p)->maximize_indicator_color = readLuaColor(
+        L, 3, static_cast<Config::Split *>(p)->maximize_indicator_color);
 }},
 
     {"mouse_follows_focus",
@@ -1183,8 +1219,12 @@ static const LuaField jumpMarkerFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::JumpMarker *>(p)->color);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::JumpMarker *>(p)->color = readLuaColor(L, 3, static_cast<Config::JumpMarker *>(p)->color); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::JumpMarker *>(p)->color
+        = readLuaColor(L, 3, static_cast<Config::JumpMarker *>(p)->color);
+}},
 
     {"enabled",
      [](lua_State *L, P p)
@@ -1294,16 +1334,24 @@ static const LuaField linkHintsFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::Link_hints *>(p)->bg);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Link_hints *>(p)->bg = readLuaColor(L, 3, static_cast<Config::Link_hints *>(p)->bg); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Link_hints *>(p)->bg
+        = readLuaColor(L, 3, static_cast<Config::Link_hints *>(p)->bg);
+}},
 
     {"fg",
      [](lua_State *L, P p)
 {
     lua_pushinteger(L, static_cast<Config::Link_hints *>(p)->fg);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Link_hints *>(p)->fg = readLuaColor(L, 3, static_cast<Config::Link_hints *>(p)->fg); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Link_hints *>(p)->fg
+        = readLuaColor(L, 3, static_cast<Config::Link_hints *>(p)->fg);
+}},
 
     {"size",
      [](lua_State *L, P p)
@@ -2271,6 +2319,50 @@ static const LuaField llmViewFields[] = {
 { static_cast<Config::LLMView *>(p)->tools = lua_toboolean(L, 3); }},
 };
 
+static const LuaField laserPointerFields[] = {
+    // enabled, color
+    {"enabled",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(
+        L, static_cast<Config::Presentation::LaserPointer *>(p)->enabled);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Presentation::LaserPointer *>(p)->enabled
+        = lua_toboolean(L, 3);
+}},
+    {"color",
+     [](lua_State *L, P p)
+{
+    // color is uint32_t
+    lua_pushinteger(
+        L, static_cast<Config::Presentation::LaserPointer *>(p)->color);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Presentation::LaserPointer *>(p)->color
+        = readLuaColor(L, 3, 0xFF0000); // default red
+}},
+    {"size",
+     [](lua_State *L, P p)
+{
+    lua_pushnumber(L,
+                   static_cast<Config::Presentation::LaserPointer *>(p)->size);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Presentation::LaserPointer *>(p)->size
+        = lua_tonumber(L, 3);
+}},
+};
+
+// --- presentation ---
+static const LuaField presentationFields[] = {{}};
+
 // --- updates ---
 static const LuaField updatesFields[] = {
     {"check",
@@ -2476,8 +2568,8 @@ sectionNewIndex(lua_State *L)
         if (viewId < 0)
         {
             // lektra.opt: the global default (above) and the current view,
-            // like Vim's ":set". lektra.opt_global (-2) is only the default,
-            // like ":setglobal".
+            // like Vim's ":set". lektra.opt_global (-2) is only the
+            // default, like ":setglobal".
             if (viewId == -1)
             {
                 if (DocumentView *doc = lektra->currentDocument())
@@ -2541,9 +2633,10 @@ addChild(lua_State *L, int obj_idx, const char *name)
         rawSetField(L, abs, "__children"); // ..., child, children
     }
     // stack: ..., child, children
-    lua_insert(L, -2);                         // ..., children, child
-    rawSetField(L, lua_absindex(L, -2), name); // ..., children (consumes child)
-    lua_pop(L, 1); // pop children table; net effect: only child consumed
+    lua_insert(L, -2); // ..., children, child
+    rawSetField(L, lua_absindex(L, -2),
+                name); // ..., children (consumes child)
+    lua_pop(L, 1);     // pop children table; net effect: only child consumed
 }
 
 // Attaches sectionIndex/sectionNewIndex as the metatable of the table on
@@ -2825,6 +2918,19 @@ buildOptTable(lua_State *L, const OptScope &scope)
         addChild(L, opt_idx, "llm_view");
     }
 
+    if (!viewOnly)
+    {
+        // lektra.opt.presentation (with .laser_pointer attached as a nested
+        // child)
+        pushSection(L, scope, &config.presentation, presentationFields,
+                    "presentation");
+        const int presentation_idx = lua_absindex(L, -1);
+        pushSection(L, scope, &config.presentation.laser_pointer,
+                    laserPointerFields, "presentation");
+        addChild(L, presentation_idx, "laser_pointer");
+        addChild(L, opt_idx, "presentation");
+    }
+
     // lektra.opt — plain assignment into the "lektra" global table (not a
     // section object), so this one line is unrelated to the __newindex
     // machinery above.
@@ -2866,9 +2972,8 @@ Lektra::resetViewOptions(DocumentView *view, const QString &section) noexcept
         {"page", [](Config &to, const Config &from) { to.page = from.page; }},
         {"search",
          [](Config &to, const Config &from) { to.search = from.search; }},
-        {"annotations",
-         [](Config &to, const Config &from)
-         { to.annotations = from.annotations; }},
+        {"annotations", [](Config &to, const Config &from)
+    { to.annotations = from.annotations; }},
         {"layout",
          [](Config &to, const Config &from) { to.layout = from.layout; }},
         {"reflow",
@@ -2878,16 +2983,14 @@ Lektra::resetViewOptions(DocumentView *view, const QString &section) noexcept
          [](Config &to, const Config &from) { to.selection = from.selection; }},
         {"split",
          [](Config &to, const Config &from) { to.split = from.split; }},
-        {"scrollbars",
-         [](Config &to, const Config &from) { to.scrollbars = from.scrollbars; }},
-        {"jump_marker",
-         [](Config &to, const Config &from)
-         { to.jump_marker = from.jump_marker; }},
+        {"scrollbars", [](Config &to, const Config &from)
+    { to.scrollbars = from.scrollbars; }},
+        {"jump_marker", [](Config &to, const Config &from)
+    { to.jump_marker = from.jump_marker; }},
         {"links",
          [](Config &to, const Config &from) { to.links = from.links; }},
-        {"link_hints",
-         [](Config &to, const Config &from)
-         { to.link_hints = from.link_hints; }},
+        {"link_hints", [](Config &to, const Config &from)
+    { to.link_hints = from.link_hints; }},
         {"rendering",
          [](Config &to, const Config &from) { to.rendering = from.rendering; }},
         {"behavior",

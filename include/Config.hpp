@@ -1606,6 +1606,43 @@ struct Config
     } updates;
     // @endsection
 
+    // @section presentation
+    // @section_desc Presentation mode options struct
+    // @section_type struct
+    // @section_added 0.8.0
+    struct Presentation
+    {
+
+        // @section presentation.laser_pointer
+        // @section_desc Laser pointer options struct
+        // @section_type struct
+        // @section_added 0.8.0
+        struct LaserPointer
+        {
+
+            // @desc Enable laser pointer
+            // @type bool
+            // @default false
+            // @added 0.8.0
+            bool enabled = false;
+
+            // @desc Laser pointer color
+            // @type str
+            // @default "#FF0000FF"
+            // @added 0.8.0
+            uint32_t color = 0xFF0000FF;
+
+            // @desc Laser pointer size in pixels
+            // @type int
+            // @default 20
+            // @added 0.8.0
+            int size = 20; // @desc Laser pointer size in pixels
+        } laser_pointer;
+        // @endsection
+
+    } presentation;
+    // @endsection
+
     // @section donate
     // @section_desc Support reminders
     // @section_type struct
@@ -1717,6 +1754,7 @@ struct Config
         QVariantMap extra_body = {};
 
     } llm_view;
+    // @endsection
 
     // Per-file-type option overrides from [filetype.<type>.*] in the config
     // file, keyed by lower-case type ("pdf", "epub", ...). Each one applies

@@ -428,3 +428,32 @@ clean_join_pdf_text(const std::string &input)
 
     return out;
 }
+
+QCursor
+createLaserPointerCursor(int size)
+{
+    QPixmap pixmap(size, size);
+    pixmap.fill(Qt::transparent);
+
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    // Radial gradient to simulate a glowing laser dot
+    QPointF center(size / 2.0, size / 2.0);
+    qreal radius = size / 2.0;
+    QRadialGradient gradient(center, radius);
+
+    // Color gradient setup: intense core to soft glowing outer edge
+    gradient.setColorAt(0.0, QColor(255, 255, 255, 255)); // Bright white core
+    gradient.setColorAt(0.2, QColor(255, 0, 0, 255)); // Intense red mid-ring
+    gradient.setColorAt(0.6, QColor(255, 0, 0, 180)); // Soft red glow
+    gradient.setColorAt(1.0, QColor(255, 0, 0, 0));   // Fully transparent edge
+
+    painter.setBrush(gradient);
+    painter.setPen(Qt::NoPen);
+    painter.drawEllipse(center, radius, radius);
+    painter.end();
+
+    // Hotspot is placed precisely at the center of the dot (size / 2, size / 2)
+    return QCursor(pixmap, size / 2, size / 2);
+}

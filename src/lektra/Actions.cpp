@@ -1717,3 +1717,18 @@ Lektra::SplitsToTabs() noexcept
         m_message_bar->showMessage(
             tr("Nothing to separate: the tab has only one split"));
 }
+
+void
+Lektra::ToggleLaserPointerCursor() noexcept
+{
+    this->setCursor(createLaserPointerCursor());
+}
+
+void
+Lektra::setLaserPointerCursor(bool state) noexcept
+{
+    if (state)
+        this->setCursor(createLaserPointerCursor());
+    else
+        this->unsetCursor();
+}

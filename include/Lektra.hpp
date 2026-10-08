@@ -313,6 +313,7 @@ public:
 
     void SplitsToWindows() noexcept;
     void SplitsToTabs() noexcept;
+    void ToggleLaserPointerCursor() noexcept;
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -326,6 +327,7 @@ private slots:
     void onIPCDataReady();
 
 private:
+    void setLaserPointerCursor(bool state) noexcept;
     enum class LinkHintMode
     {
         None = 0,
@@ -598,6 +600,7 @@ private:
         DocumentView::LayoutMode layout_mode
             = DocumentView::LayoutMode::VERTICAL;
         DocumentView::FitMode fit_mode = DocumentView::FitMode::Width;
+        bool laser_pointer_enabled     = false;
     } m_presentation;
     StartupWidget *m_startup_widget       = nullptr;
     LinkHintMode m_link_hint_current_mode = LinkHintMode::None;

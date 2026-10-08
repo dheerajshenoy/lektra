@@ -572,6 +572,10 @@ toggle_structure_mode = "Ctrl+Space"
 history_prev          = "Ctrl+Up"
 history_next          = "Ctrl+Down"
 
+[presentation.laser_pointer]
+enabled = false
+color = "#FF0000FF"
+
 # Per-file-type overrides. Any of the view settings ([page], [layout], [zoom],
 # [selection], [reflow], [scrollbars], [search], [jump_marker], [annotations], [links],
 # [behavior]) can be set for one document type; the type is lower-case

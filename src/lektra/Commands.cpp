@@ -474,6 +474,9 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("presentation_mode", tr("Toggle presentation mode"),
                            [this](const QStringList &)
     { TogglePresentationMode(); });
+    m_command_manager->reg(
+        "laser_pointer_cursor", tr("Toggle laser pointer cursor"),
+        [this](const QStringList &) { ToggleLaserPointerCursor(); });
     m_command_manager->reg("fullscreen", tr("Toggle fullscreen"),
                            [this](const QStringList &) { ToggleFullscreen(); });
     m_command_manager->reg("run_last_command", tr("Run the last command again"),

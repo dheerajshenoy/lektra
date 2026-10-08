@@ -145,6 +145,9 @@ clean_join_pdf_text(const std::string &input);
 void
 clean_pdf_text(std::string &s);
 
+QCursor
+createLaserPointerCursor(int size = 24);
+
 /* NOTE: Do not call this function, call PPRINT macro instead */
 template <typename... Ts>
 inline void
