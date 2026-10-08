@@ -896,6 +896,17 @@
           "default": true,
           "description": "Enable alternating row colors in the picker list (since 0.6.8)"
         },
+        "highlight_matches": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight matches in the picker list (since 0.8.0)"
+        },
+        "highlight_matches_color": {
+          "type": "string",
+          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+          "default": "#4FC3F7FF"
+        },
         "keys": {
           "type": "object",
           "properties": {
@@ -1174,6 +1185,15 @@
           "default": true,
           "description": "Enable alternating row colors in the picker list (since 0.6.8)"
         },
+        "highlight_matches": {
+          "type": "boolean",
+          "default": true
+        },
+        "highlight_matches_color": {
+          "type": "string",
+          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
+        },
         "shadow": {
           "type": "object",
           "properties": {
@@ -1272,6 +1292,15 @@
           "default": true,
           "description": "Enable alternating row colors in the picker list (since 0.6.8)"
         },
+        "highlight_matches": {
+          "type": "boolean",
+          "default": true
+        },
+        "highlight_matches_color": {
+          "type": "string",
+          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
+        },
         "shadow": {
           "type": "object",
           "properties": {
@@ -1335,6 +1364,15 @@
           "type": "boolean",
           "default": true,
           "description": "Enable alternating row colors in the picker list (since 0.6.8)"
+        },
+        "highlight_matches": {
+          "type": "boolean",
+          "default": true
+        },
+        "highlight_matches_color": {
+          "type": "string",
+          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
         },
         "shadow": {
           "type": "object",
@@ -1485,6 +1523,34 @@
       },
       "additionalProperties": false,
       "description": "LLM View options struct (since 0.7.8)"
+    },
+    "presentation": {
+      "type": "object",
+      "properties": {
+        "laser_pointer": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable laser pointer (since 0.8.0)"
+            },
+            "color": {
+              "type": "integer",
+              "description": "Laser pointer color (since 0.8.0)",
+              "default": "#FF0000FF"
+            },
+            "size": {
+              "type": "integer",
+              "default": 20,
+              "description": "Laser pointer size in pixels (since 0.8.0)"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Laser pointer options struct (since 0.8.0)"
+        }
+      },
+      "additionalProperties": false
     },
     "rendering": {
       "type": "object",
