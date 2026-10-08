@@ -4,8 +4,8 @@
 
 ## HIGH PRIORITY
 
-- [ ] Split "splits" into multiple tabs (command + lua API),
-- [ ] Split "splits" into multiple windows (command + lua API),
+- [ ] Increase performance
+- [ ] Laser pointer for presentation view
 
 ## MEDIUM PRIORITY
 
@@ -35,7 +35,6 @@
 - [ ] Make tab sizes fixed while closing tabs rapidly (like Chrome) instead of shrinking them to fit
 - [ ] Pin Tabs
 - [ ] Configurable line scroll distance
-- [ ] Laser pointer for presentation view
 - [ ] Duplicating a tab keeps the page, zoom and scroll position of the original tab.
 
 ## LOW PRIORITY
