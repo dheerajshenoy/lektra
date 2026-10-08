@@ -4,11 +4,14 @@
 
 ## HIGH PRIORITY
 
+- [ ] Fix scroll wheel zoom being very slow
 - [ ] Increase performance
 - [ ] Laser pointer for presentation view
+- [ ] Picker style choose, `minibuffer` or `floating`
 
 ## MEDIUM PRIORITY
 
+- [ ] Scroll tab text when hovering on the tab
 - [ ] Dynamic Modal Input Engine
     + View:bind_key handles static keymaps, but full modal keybinding state transitions are missing.
     + Missing APIs: `lektra.input.create_mode(mode_name, keymap_table)`
