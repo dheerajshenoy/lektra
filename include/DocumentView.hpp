@@ -741,6 +741,9 @@ private slots:
     void handleAnnotSelectClearRequested() noexcept;
     // Moving and resizing of the selected annotation (annot select mode).
     bool grabAnnotation(QPointF scenePos) noexcept;
+public:
+    void debugSelfTest() noexcept;
+private:
     Qt::CursorShape annotationCursor(QPointF scenePos) noexcept;
     void dragAnnotation(QPointF scenePos, bool keepAspect) noexcept;
     void dropAnnotation(QPointF scenePos) noexcept;

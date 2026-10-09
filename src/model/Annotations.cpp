@@ -1321,9 +1321,12 @@ Model::addShapeAnnotation(const int pageno, const enum pdf_annot_type type,
     pdf_annot *annot = nullptr;
     pdf_page *page   = nullptr;
 
+    // Held across the try, so that an error thrown inside cannot skip the
+    // release.
+    std::unique_lock<std::mutex> lock(m_doc_mutex);
+
     fz_try(m_ctx)
     {
-        std::lock_guard<std::mutex> lock(m_doc_mutex);
         page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
 
         if (!page)
@@ -1359,8 +1362,7 @@ Model::addShapeAnnotation(const int pageno, const enum pdf_annot_type type,
                 pdf_set_annot_rect(m_ctx, annot, rect);
                 pdf_set_annot_default_appearance(m_ctx, annot, "Helv", 12.0f,
                                                  3, text_color);
-                pdf_set_annot_interior_color(m_ctx, annot, 3,
-                                             background_color);
+                pdf_set_annot_color(m_ctx, annot, 3, background_color);
                 pdf_set_annot_border_width(m_ctx, annot, 0.0f);
                 break;
             }
@@ -1393,6 +1395,7 @@ Model::addShapeAnnotation(const int pageno, const enum pdf_annot_type type,
                    << fz_caught_message(m_ctx);
         return objNum;
     }
+    lock.unlock();
 
     if (objNum >= 0)
     {
@@ -1696,7 +1699,7 @@ Model::collect_annot_comments() noexcept
                     content && content[0] != '\0')
                 {
                     results.push_back({pageno, QString(content),
-                                       pdf_annot_rect(m_ctx, annot)});
+                                       pdf_bound_annot(m_ctx, annot)});
                 }
             }
         }
@@ -1843,9 +1846,12 @@ Model::annotGeometry(int pageno, int objNum, AnnotGeometry &out) noexcept
     bool found     = false;
     pdf_page *page = nullptr;
 
+    // Held across the try, so that an error thrown inside cannot skip the
+    // release.
+    std::unique_lock<std::mutex> lock(m_doc_mutex);
+
     fz_try(m_ctx)
     {
-        std::lock_guard<std::mutex> lock(m_doc_mutex);
         page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
@@ -1857,9 +1863,12 @@ Model::annotGeometry(int pageno, int objNum, AnnotGeometry &out) noexcept
                 continue;
 
             out.vertices.clear();
-            out.rect = pdf_annot_rect(m_ctx, annot);
-            if (pdf_annot_type(m_ctx, annot) == PDF_ANNOT_POLYGON)
+            // a polygon has no rectangle of its own
+            if (pdf_annot_type(m_ctx, annot) != PDF_ANNOT_POLYGON)
+                out.rect = pdf_annot_rect(m_ctx, annot);
+            else
             {
+                out.rect = pdf_bound_annot(m_ctx, annot);
                 for (int i = 0, c = pdf_annot_vertex_count(m_ctx, annot);
                      i < c; ++i)
                     out.vertices.push_back(pdf_annot_vertex(m_ctx, annot, i));
@@ -1877,6 +1886,7 @@ Model::annotGeometry(int pageno, int objNum, AnnotGeometry &out) noexcept
         qWarning() << "annotGeometry failed:" << fz_caught_message(m_ctx);
         return false;
     }
+    lock.unlock();
     return found;
 }
 
@@ -1890,9 +1900,12 @@ Model::setAnnotGeometry(int pageno, int objNum,
     bool changed   = false;
     pdf_page *page = nullptr;
 
+    // Held across the try, so that an error thrown inside cannot skip the
+    // release.
+    std::unique_lock<std::mutex> lock(m_doc_mutex);
+
     fz_try(m_ctx)
     {
-        std::lock_guard<std::mutex> lock(m_doc_mutex);
         page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
@@ -1928,6 +1941,7 @@ Model::setAnnotGeometry(int pageno, int objNum,
         qWarning() << "setAnnotGeometry failed:" << fz_caught_message(m_ctx);
         return;
     }
+    lock.unlock();
 
     if (changed)
     {
@@ -1970,8 +1984,6 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
                     pdf_set_annot_color(m_ctx, annot, 3, rgb);
                     break;
                 case PDF_ANNOT_FREE_TEXT: // the colour is the background
-                    pdf_set_annot_interior_color(m_ctx, annot, 3, rgb);
-                    break;
                 case PDF_ANNOT_TEXT:
                 case PDF_ANNOT_HIGHLIGHT:
                 case PDF_ANNOT_UNDERLINE:
@@ -2033,14 +2045,10 @@ Model::getAnnotColor(const int pageno, const int objNum) noexcept
             float rgb[3]{0, 0, 0};
             switch (pdf_annot_type(m_ctx, annot))
             {
-                case PDF_ANNOT_FREE_TEXT: // the colour is the background
-                    if (pdf_dict_get(m_ctx, pdf_annot_obj(m_ctx, annot),
-                                     PDF_NAME(IC)))
-                        pdf_annot_interior_color(m_ctx, annot, &n, rgb);
-                    break;
                 case PDF_ANNOT_SQUARE:
                 case PDF_ANNOT_CIRCLE:
                 case PDF_ANNOT_POLYGON:
+                case PDF_ANNOT_FREE_TEXT: // the colour is the background
                 case PDF_ANNOT_TEXT:
                 case PDF_ANNOT_HIGHLIGHT:
                 case PDF_ANNOT_UNDERLINE:
@@ -2160,7 +2168,7 @@ Model::annotationInfos(int pageno) noexcept
                     }
                 }
                 else
-                    info.rect = pdf_annot_rect(m_ctx, annot);
+                    info.rect = pdf_bound_annot(m_ctx, annot);
 
                 if (const char *contents = pdf_annot_contents(m_ctx, annot))
                     info.contents = QString::fromUtf8(contents);

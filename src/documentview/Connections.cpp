@@ -268,6 +268,7 @@ DocumentView::handleOpenFileFinished() noexcept
         m_model->prefetchOutlineAsync();
 
     emit openFileFinished(this, m_model->fileType());
+    if (qEnvironmentVariableIsSet("LEKTRA_T")) QTimer::singleShot(2000, this, [this] { debugSelfTest(); });
 
 #ifdef WITH_LUA
     dispatchLuaEvent(DispatchType::OnFileOpen);

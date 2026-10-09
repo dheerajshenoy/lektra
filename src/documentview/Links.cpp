@@ -1049,18 +1049,30 @@ DocumentView::dropAnnotation(QPointF) noexcept
     const fz_rect from = toPdf(drag.startRect);
     const fz_rect to   = toPdf(drag.rect);
 
-    after.rect = to;
+    // What is on the page differs a little from what is shown (the border), so
+    // the old geometry is carried over to the new one instead of replaced.
+    const float sx = (from.x1 - from.x0) > 0
+                         ? (to.x1 - to.x0) / (from.x1 - from.x0)
+                         : 1.0f;
+    const float sy = (from.y1 - from.y0) > 0
+                         ? (to.y1 - to.y0) / (from.y1 - from.y0)
+                         : 1.0f;
+    auto carry = [&](fz_point p)
+    {
+        return fz_point{to.x0 + (p.x - from.x0) * sx,
+                        to.y0 + (p.y - from.y0) * sy};
+    };
+
     if (annot->atype() == Annotation::Type::Polygon)
     {
-        const float sx = (from.x1 - from.x0) > 0
-                             ? (to.x1 - to.x0) / (from.x1 - from.x0)
-                             : 1.0f;
-        const float sy = (from.y1 - from.y0) > 0
-                             ? (to.y1 - to.y0) / (from.y1 - from.y0)
-                             : 1.0f;
         for (const fz_point &p : before.vertices)
-            after.vertices.push_back(fz_point{to.x0 + (p.x - from.x0) * sx,
-                                              to.y0 + (p.y - from.y0) * sy});
+            after.vertices.push_back(carry(p));
+    }
+    else
+    {
+        const fz_point a = carry({before.rect.x0, before.rect.y0});
+        const fz_point b = carry({before.rect.x1, before.rect.y1});
+        after.rect       = fz_rect{a.x, a.y, b.x, b.y};
     }
 
     m_reselect_pageno = pageno;
@@ -1407,4 +1419,64 @@ DocumentView::ToggleCommentMarkers() noexcept
             annot->updateCommentMarker();
         }
     }
+}
+
+struct DBG { QString s; QDebug d{&s}; ~DBG(){ d.nospace(); fprintf(stderr, "%s\n", qPrintable(s)); } template<class T> DBG &operator<<(const T &v){ d << v << ' '; return *this; } };
+void
+DocumentView::debugSelfTest() noexcept
+{
+    struct T { int obj; QString name; };
+    auto *st = new QList<T>;
+    auto add = [&](const QString &n, QUndoCommand *c, int obj) { m_model->undoStack()->push(c); st->push_back({obj, n}); };
+    DBG() << "SELFTEST start";
+    auto *c1 = new ShapeAnnotationCommand(m_model, 0, PDF_ANNOT_CIRCLE, fz_rect{100, 100, 200, 200});
+    DBG() << "SELFTEST adding ellipse"; add("ellipse", c1, 0);
+    st->back().obj = c1->objNum();
+    auto *c2 = new ShapeAnnotationCommand(m_model, 0, PDF_ANNOT_POLYGON, fz_empty_rect, std::vector<fz_point>{{300, 100}, {400, 100}, {350, 200}});
+    DBG() << "SELFTEST adding polygon"; add("polygon", c2, 0); st->back().obj = c2->objNum();
+    auto *c3 = new ShapeAnnotationCommand(m_model, 0, PDF_ANNOT_FREE_TEXT, fz_rect{100, 300, 250, 350}, {}, "hello");
+    DBG() << "SELFTEST adding note"; add("note", c3, 0); st->back().obj = c3->objNum();
+    auto *c4 = new RectAnnotationCommand(m_model, 0, fz_rect{300, 300, 400, 400});
+    DBG() << "SELFTEST adding rect"; add("rect", c4, 0); st->back().obj = c4->objNum();
+    auto dump = [=](const char *tag, const T &t)
+    {
+        Model::AnnotGeometry g;
+        DBG() << "SELFTEST dumping" << t.name << t.obj;
+        const bool ok = m_model->annotGeometry(0, t.obj, g);
+        DBG() << "SELFTEST" << tag << t.name << t.obj << ok << g.rect.x0 << g.rect.y0 << g.rect.x1 << g.rect.y1 << "verts" << (int)g.vertices.size() << (g.vertices.empty() ? 0.f : g.vertices[0].x) << (g.vertices.empty() ? 0.f : g.vertices[0].y);
+    };
+    for (auto &t : *st) dump("added", t);
+    QTimer::singleShot(1500, this, [=]
+    {
+        m_gview->setMode(GraphicsView::Mode::AnnotSelect);
+        for (auto &t : *st)
+        {
+            Annotation *a = nullptr;
+            for (auto *x : m_page_annotations_hash.value(0)) if (x->index() == t.obj) a = x;
+            if (!a) { DBG() << "SELFTEST no item" << t.name; continue; }
+            a->setSelected(true);
+            const QPointF c = a->mapToScene(a->geometryRect().center());
+            const QPoint p0 = m_gview->mapFromScene(c);
+            auto send = [&](QEvent::Type ty, QPoint pos, Qt::MouseButton b, Qt::MouseButtons bs)
+            {
+                QMouseEvent ev(ty, QPointF(pos), QPointF(m_gview->viewport()->mapToGlobal(pos)), b, bs, Qt::NoModifier);
+                QApplication::sendEvent(m_gview->viewport(), &ev);
+            };
+            send(QEvent::MouseButtonPress, p0, Qt::LeftButton, Qt::LeftButton);
+            send(QEvent::MouseMove, p0 + QPoint(20, 10), Qt::NoButton, Qt::LeftButton);
+            send(QEvent::MouseMove, p0 + QPoint(40, 30), Qt::NoButton, Qt::LeftButton);
+            send(QEvent::MouseButtonRelease, p0 + QPoint(40, 30), Qt::LeftButton, Qt::NoButton);
+            a->setSelected(false);
+            dump("moved", t);
+        }
+        DBG() << "SELFTEST stack index" << m_model->undoStack()->index() << m_model->undoStack()->count();
+        QTimer::singleShot(1500, this, [=]
+        {
+            for (int k = 0; k < st->size(); ++k)
+            {
+                m_model->undoStack()->undo();
+                for (auto &t : *st) dump("after-undo", t);
+            }
+        });
+    });
 }
