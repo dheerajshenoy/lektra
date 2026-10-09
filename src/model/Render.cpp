@@ -623,7 +623,7 @@ Model::requestImageRender(bool highQuality) noexcept
 void
 Model::requestPageRender(const RenderJob &job,
                          const std::function<void(PageRenderResult)> &callback,
-                         std::shared_ptr<std::atomic<bool>> cancel) noexcept
+                         std::shared_ptr<RenderCancel> cancel) noexcept
 {
 #ifndef NDEBUG
     qDebug() << "Model::requestPageRender(): Requesting render for page"
@@ -653,7 +653,7 @@ Model::requestPageRender(const RenderJob &job,
 
         const bool cancelled
             = m_render_cancelled.load()
-              || (cancel && cancel->load(std::memory_order_acquire));
+              || (cancel && cancel->cancelled());
 
         // Always report back (even when cancelled) so the caller can release
         // the slot this render occupied.
@@ -713,7 +713,7 @@ Model::requestPageRender(const RenderJob &job,
         const auto aborted = [&]
         {
             return m_render_cancelled.load(std::memory_order_acquire)
-                   || (cancel && cancel->load(std::memory_order_acquire));
+                   || (cancel && cancel->cancelled());
         };
         if (aborted())
             return {};
@@ -746,7 +746,7 @@ Model::requestPageRender(const RenderJob &job,
 Model::PageRenderResult
 Model::renderPageWithExtrasAsync(
     const RenderJob &job,
-    const std::shared_ptr<std::atomic<bool>> &cancel) noexcept
+    const std::shared_ptr<RenderCancel> &cancel) noexcept
 {
     PageRenderResult result;
 
@@ -755,7 +755,7 @@ Model::renderPageWithExtrasAsync(
     const auto aborted = [&]
     {
         return m_render_cancelled.load(std::memory_order_acquire)
-               || (cancel && cancel->load(std::memory_order_acquire));
+               || (cancel && cancel->cancelled());
     };
     if (aborted())
     {
@@ -812,6 +812,14 @@ Model::renderPageWithExtrasAsync(
     std::vector<CachedLink> links;
     std::vector<CachedAnnotation> annotations;
 
+    // Never `return` (or throw) from inside fz_try: a return skips the cleanup
+    // below and leaves MuPDF's exception stack unbalanced, and a throw would
+    // longjmp over the lock_guard. Note what is missing and leave the block
+    // normally instead.
+    // MuPDF polls this while drawing; RenderCancel::cancel() sets its abort flag
+    fz_cookie *cookie = cancel ? &cancel->cookie : nullptr;
+
+    bool pageMissing = false;
     fz_try(ctx)
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
@@ -821,33 +829,34 @@ Model::renderPageWithExtrasAsync(
         {
             qWarning() << "Model::PageRenderResult() Page not cached:"
                        << job.pageno;
-            return result;
+            pageMissing = true;
         }
-
-        if (!entry->display_list)
+        else if (!entry->display_list)
         {
             qWarning() << "Model::PageRenderResult() Missing display list for:"
                        << job.pageno;
-            return result;
+            pageMissing = true;
         }
+        else
+        {
+            // Increment reference count so the display list stays valid
+            dlist  = fz_keep_display_list(ctx, entry->display_list);
+            bounds = entry->bounds;
 
-        // Increment reference count so the display list stays valid
-        dlist  = fz_keep_display_list(ctx, entry->display_list);
-        bounds = entry->bounds;
-
-        links       = entry->links;
-        annotations = entry->annotations;
-    }
-    fz_always(ctx)
-    {
-        // We will drop the context at the end of this function, which will
-        // also drop the display list reference we just kept. If we failed
-        // to keep the display list, dropping a null pointer is safe.
+            links       = entry->links;
+            annotations = entry->annotations;
+        }
     }
     fz_catch(ctx)
     {
         qWarning() << "Failed to retrieve page cache for rendering:"
                    << job.pageno << ":" << fz_caught_message(ctx);
+        pageMissing = true;
+    }
+
+    if (pageMissing)
+    {
+        fz_drop_display_list(ctx, dlist);
         fz_drop_context(ctx);
         return result;
     }
@@ -916,13 +925,19 @@ Model::renderPageWithExtrasAsync(
             tracker = new_image_tracker_device(ctx, dev, transform);
 
             fz_run_display_list(ctx, dlist, tracker, transform,
-                                fz_rect_from_irect(bbox), nullptr);
+                                fz_rect_from_irect(bbox), cookie);
         }
         else
         {
             fz_run_display_list(ctx, dlist, dev, transform,
-                                fz_rect_from_irect(bbox), nullptr);
+                                fz_rect_from_irect(bbox), cookie);
         }
+
+        // An aborted replay returns normally with a half-drawn pixmap; do not
+        // post-process or hand that on. (Nothing with a destructor is alive
+        // here, so unwinding with MuPDF's longjmp is safe.)
+        if (cancel && cancel->cancelled())
+            fz_throw(ctx, FZ_ERROR_ABORT, "render cancelled");
 
         const int fg = (m_fg_color >> 8) & 0xFFFFFF;
         const int bg = (m_bg_color >> 8) & 0xFFFFFF;
@@ -1188,7 +1203,16 @@ Model::renderPageWithExtrasAsync(
     }
     fz_catch(ctx)
     {
-        qWarning() << "MuPDF error in thread:" << fz_caught_message(ctx);
+        if (fz_caught(ctx) == FZ_ERROR_ABORT)
+        {
+            // Stopped on request, not a failure.
+            result           = {};
+            result.cancelled = true;
+        }
+        else
+        {
+            qWarning() << "MuPDF error in thread:" << fz_caught_message(ctx);
+        }
     }
 
     return result;

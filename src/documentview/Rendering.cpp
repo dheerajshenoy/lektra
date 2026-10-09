@@ -601,7 +601,7 @@ DocumentView::startNextRenderJob() noexcept
             || m_inflight_renders.contains(pageno))
             continue;
 
-        auto cancelToken = std::make_shared<std::atomic<bool>>(false);
+        auto cancelToken = std::make_shared<RenderCancel>();
         m_inflight_renders.insert(pageno, cancelToken);
         ++m_render_slots_used;
 
@@ -805,7 +805,7 @@ DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
             ++it;
             continue;
         }
-        it.value()->store(true, std::memory_order_release);
+        it.value()->cancel();
         it = m_inflight_renders.erase(it);
     }
 
@@ -1407,7 +1407,7 @@ DocumentView::cancelAllRenders() noexcept
     m_visible_render_queue.clear();
     m_render_queue.clear();
     for (auto &token : m_inflight_renders)
-        token->store(true, std::memory_order_release);
+        token->cancel();
     m_inflight_renders.clear();
 }
 
@@ -1428,7 +1428,7 @@ DocumentView::requestPageRender(int pageno, bool force, bool visible) noexcept
     if (auto it = m_inflight_renders.find(pageno);
         it != m_inflight_renders.end())
     {
-        it.value()->store(true, std::memory_order_release);
+        it.value()->cancel();
         m_inflight_renders.erase(it);
     }
 

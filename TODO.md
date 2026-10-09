@@ -4,6 +4,46 @@
 
 ## HIGH PRIORITY
 
+1. return result; inside fz_try (Render.cpp ~796 and ~803). The "Page not cached" and "Missing display list" branches return from inside the try block. MuPDF's fz_try can't be exited with return: the exception stack is left unbalanced, and fz_drop_context(ctx) in fz_always is skipped. Each hit therefore leaks a cloned context. It's most likely to happen under fast scrolling, when the LRU cache evicts a page between ensurePageCached and the render. Set a flag and fz_throw, or leave the block normally, so fz_always runs.
+
+Biggest efficiency wins
+
+2. Cancel renders that are already running (no fz_cookie anywhere).
+- fz_run_display_list(..., nullptr) can't be interrupted. The cancel token is only checked before the work starts.
+- A page scrolled away mid-render, or a render made stale by a zoom step, still runs to completion on the pool. At deep zoom, that's up to 16M pixels.
+- Fix: make the token a small struct holding an fz_cookie next to the atomic flag. Set cookie.abort = 1 when cancelling, and pass &cookie to fz_run_display_list. MuPDF polls it while drawing.
+- This directly helps fast scroll and wheel zoom, because stale work stops sooner and frees the in-flight slots (maxInFlight is 2–4).
+
+3. Remove the full-page copy (Render.cpp ~974). QImage(samples,…).copy() copies the whole bitmap, which is about 48 MB at the 16M-pixel cap.
+- Allocate the buffer yourself (new unsigned char[stride*h]).
+- Wrap it with fz_new_pixmap_with_bbox_and_data.
+- Hand it to QImage with a delete[] cleanup function.
+- That's zero-copy and needs no MuPDF context afterwards.
+
+4. Reuse the page item instead of recreating it (renderPageFromImage, Rendering.cpp ~1406). Every render result removes and deletes the old GraphicsImageItem, then creates and adds a new one. That causes scene index churn, a flicker risk, and an allocation per render. GraphicsImageItem already has setImage and setPartialImage, so update the existing item in place and only create one when none exists.
+
+5. Don't rebuild links, annotations and search hits when nothing changed. After every result, renderPageFromImage clears them and the callback recreates them item by item. A partial-region refresh at deep zoom, or a same-key re-render, doesn't move any of them. Skip the rebuild when the zoom, rotation and layout match what the existing items were built for.
+
+Medium
+
+6. Pixel format.
+- The render path produces Format_RGB888. When Qt paints it with a scale transform, the raster engine converts RGB888 on the fly.
+- Format_ARGB32_Premultiplied (or RGB32) is Qt's fast path. Rendering into a BGRA MuPDF pixmap with alpha=255 makes it exact and skips the conversion.
+- It costs 33% more memory per page.
+- fz_tint_pixmap assumes RGB channel order, so the fg/bg bytes would need swapping.
+- Do this one only if a profile shows paint cost during scroll.
+
+7. Fuse the post-processing passes. Tint, invert and high-contrast each do a full pass over the pixmap. Invert and high-contrast are both per-byte lookup tables (the high-contrast one is already a LUT), so they can be combined into one LUT and one pass.
+
+8. Copies under the cache lock. Each render copies the page's links and annotations vectors while holding m_page_cache_mutex, even when the document has none. Keep them in a shared_ptr<const …> in the cache entry and copy only the pointer.
+
+Minor
+
+- renderPagesImpl copies std::set<int> several times on every scroll tick (66 ms). A small sorted vector would avoid the node allocations.
+- PageRenderResult and the render callback move large vectors around by value. They're small now, so only worth it after items 2–5.
+- The new QFutureWatcher per render is fine. It would only matter if you move to a custom queue.
+
+
 - [ ] Fix scroll wheel zoom being very slow
 - [ ] Increase performance
 - [ ] Picker style choose, `minibuffer` or `floating`

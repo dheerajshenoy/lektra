@@ -1061,7 +1061,7 @@ private:
     QQueue<int> m_visible_render_queue;
     QQueue<int> m_render_queue;
     // Renders currently running on the model's pool, with their cancel token.
-    QHash<int, std::shared_ptr<std::atomic<bool>>> m_inflight_renders;
+    QHash<int, std::shared_ptr<RenderCancel>> m_inflight_renders;
     // Pool slots held by running tasks (cancelled ones included, until they
     // actually return).
     int m_render_slots_used = 0;

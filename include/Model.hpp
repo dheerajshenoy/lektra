@@ -27,6 +27,25 @@ extern "C"
 #include <mupdf/pdf.h>
 }
 
+// Cancels a render, including one that is already drawing: besides the flag
+// the worker polls between phases, the MuPDF cookie is handed to the display
+// list replay, which polls it while drawing and stops early.
+struct RenderCancel
+{
+    std::atomic<bool> flag{false};
+    fz_cookie cookie{};
+
+    void cancel() noexcept
+    {
+        flag.store(true, std::memory_order_release);
+        std::atomic_ref<int>(cookie.abort).store(1, std::memory_order_relaxed);
+    }
+    [[nodiscard]] bool cancelled() const noexcept
+    {
+        return flag.load(std::memory_order_acquire);
+    }
+};
+
 // Forward declaration
 class ImageAnimation;
 class TextHighlightAnnotationCommand;
@@ -569,21 +588,18 @@ public:
     void
     requestPageRender(const RenderJob &job,
                       const std::function<void(PageRenderResult)> &callback,
-                      std::shared_ptr<std::atomic<bool>> cancel
+                      std::shared_ptr<RenderCancel> cancel
                       = nullptr) noexcept;
     QImage requestImageRender(bool highQuality = false) noexcept;
     // Rasterizes a page (plus its links/annotations) off the GUI
     // thread. `cancel` (optional) is polled between the render
     // phases; once set the remaining phases are skipped and the
     // result comes back with `cancelled == true` and a null
-    // image. The display list replay itself cannot be
-    // interrupted, so a render already inside it runs to
-    // completion — the post-processing passes are what get
-    // skipped.
+    // image. The display list replay polls the token's MuPDF cookie, so a
+    // render already drawing stops early too.
     PageRenderResult renderPageWithExtrasAsync(
         const RenderJob &job,
-        const std::shared_ptr<std::atomic<bool>> &cancel
-        = nullptr) noexcept;
+        const std::shared_ptr<RenderCancel> &cancel = nullptr) noexcept;
     [[nodiscard]] QImage renderRegionAtDPI(int pageno, QRectF logicalRect,
                                            float targetDPI) noexcept;
     // Renders a rectangle of a page, given in page-space points, at the given
