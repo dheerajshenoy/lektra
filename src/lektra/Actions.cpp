@@ -405,7 +405,9 @@ Lektra::ShowOutline() noexcept
         });
     }
 
-    m_outline_picker->setOutline(outline, m_doc->model());
+    // Prepared when the document was opened; built here only if that has not
+    // happened yet.
+    m_outline_picker->setEntries(m_doc->model()->outlineEntries());
 
     if (m_outline_picker->hasOutline())
     {

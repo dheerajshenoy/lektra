@@ -287,6 +287,7 @@ Model::~Model() noexcept
 #ifndef NDEBUG
     PPRINT("Model destructor called");
 #endif
+    m_outline_future.waitForFinished();
     m_search_cancelled.store(true);
     m_search_future.cancel();
     m_search_future.waitForFinished();

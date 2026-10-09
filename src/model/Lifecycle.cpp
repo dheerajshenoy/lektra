@@ -638,10 +638,12 @@ pdfStringValue(fz_context *ctx, pdf_obj *dict, pdf_obj *key) noexcept
 void
 Model::cleanup_mupdf() noexcept
 {
+    m_outline_future.waitForFinished();
     fz_drop_outline(m_ctx, m_outline);
     m_outline = nullptr;
     fz_drop_outline(m_ctx, m_generated_outline);
     m_generated_outline = nullptr;
+    invalidateOutlineEntries();
     fz_drop_document(m_ctx, m_doc);
     m_doc     = nullptr;
     m_pdf_doc = nullptr;

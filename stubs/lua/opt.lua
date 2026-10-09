@@ -328,7 +328,7 @@ lektra.opt.tabs = {}
 ---@field alternating_row_color? boolean Alternate row background colors in the picker list.
 ---@field prompt? string Placeholder text shown in the picker's search box.
 ---@field shadow? OptPickerShadow Drop-shadow sub-table.
----@field keys? OptPickerKeys Keys used in every picker (same actions as `[picker.keys]` in config.toml). The arrow keys always work.
+---@field keys? OptPickerKeys Keys used in every picker (same actions as `[picker.keys]` in config.toml).
 ---@field highlight_matches? boolean Highlight the typed text in matching picker rows.
 ---@field highlight_matches_color? string|integer Color of the match highlight (0xRRGGBBAA or "#RRGGBBAA").
 lektra.opt.picker = {
@@ -345,6 +345,7 @@ lektra.opt.picker = {
 ---@field generate_heading_ratio? number Minimum font-size ratio (vs body text) for a line to be treated as a heading by `generate_outline`.
 ---@field generate_max_levels? integer Maximum number of heading tiers `generate_outline` will produce.
 ---@field indent_width? integer Pixels to indent each outline level.
+---@field preload? boolean Load the outline in the background after a document opens (true), or the first time the outline picker is opened (false).
 ---@field prompt? string Placeholder text shown in the outline picker's search box.
 ---@field show_page_number? boolean Show the page number next to each outline entry.
 lektra.opt.outline = {}

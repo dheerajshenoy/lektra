@@ -1156,6 +1156,18 @@ struct Config
         // @added 0.7.7
         int generate_max_levels = 3;
 
+        // @desc {
+        // When to load the outline. If true it is loaded in the background
+        // right after a document opens, so the outline picker opens
+        // instantly. If false it is loaded the first time the outline picker
+        // is opened, which saves work for documents whose outline you never
+        // use
+        // }
+        // @type bool
+        // @default false
+        // @added 0.8.0
+        bool preload = false;
+
     } outline;
     // @endsection
 

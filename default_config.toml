@@ -202,6 +202,7 @@ hide_timeout = 1.5     # seconds of inactivity before hiding
 indent_width      = 10
 show_page_numbers = true
 flat_menu         = true
+preload           = false  # true: load the outline after the document opens; false: on first use
 # Picker.shared knobs also apply here — width, height, border,
 # alternating_row_color, prompt, shadow.*  (see [picker] below).
 

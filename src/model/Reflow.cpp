@@ -448,6 +448,7 @@ Model::relayoutForViewport(float widthPts, float heightPts,
             // is now stale — drop it so it lazily regenerates next use.
             fz_drop_outline(m_ctx, m_generated_outline);
             m_generated_outline = nullptr;
+            invalidateOutlineEntries();
 
             emit documentRelayouted();
         }, Qt::QueuedConnection);

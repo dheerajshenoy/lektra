@@ -717,7 +717,151 @@ Model::generateOutline(float min_ratio, int max_levels) noexcept
 
     fz_drop_outline(m_ctx, m_generated_outline);
     m_generated_outline = root;
+    invalidateOutlineEntries();
     return m_generated_outline;
+}
+
+void
+Model::harvestOutline(fz_outline *node, int depth,
+                      std::vector<OutlineEntry> &out) noexcept
+{
+    for (fz_outline *n = node; n; n = n->next)
+    {
+        const QString title
+            = QString::fromUtf8(n->title ? n->title : "<no title>")
+                  .remove(QChar::Null)
+                  .remove(QChar::ParagraphSeparator)
+                  .remove(QChar::LineSeparator)
+                  .remove(QChar(0xFFFD))
+                  .trimmed();
+
+        // n->page.page alone is only the LOCAL page-within-chapter number
+        // for chaptered formats (EPUB) — resolve it to the document-wide
+        // page. EPUB nodes also leave n->page/x/y unresolved and only carry
+        // a uri, which resolveOutlineNode() handles.
+        float x = n->x, y = n->y;
+        const int pageno = resolveOutlineNode(n, &x, &y);
+
+        out.push_back({.title     = title,
+                       .depth     = depth,
+                       .page      = pageno,
+                       .location  = QPointF(x, y),
+                       .isHeading = (n->down != nullptr)});
+        if (n->down)
+            harvestOutline(n->down, depth + 1, out);
+    }
+}
+
+std::vector<Model::OutlineEntry>
+Model::buildOutlineEntries(fz_outline *outline) noexcept
+{
+    std::vector<OutlineEntry> out;
+    if (outline)
+        harvestOutline(outline, 0, out);
+    return out;
+}
+
+void
+Model::prefetchOutlineAsync() noexcept
+{
+    if (!m_doc || m_outline_entries_valid || m_outline_future.isRunning())
+        return;
+
+    const int generation = m_outline_generation;
+    m_outline_future     = QtConcurrent::run([this, generation]()
+    {
+        fz_context *ctx = cloneContext();
+        if (!ctx)
+            return;
+
+        fz_outline *loaded = nullptr;
+        std::vector<OutlineEntry> entries;
+
+        {
+            // The document is shared with the renderer; take the same lock.
+            std::lock_guard<std::mutex> lock(m_doc_mutex);
+            fz_try(ctx)
+            {
+                loaded = fz_load_outline(ctx, m_doc);
+
+                std::function<void(fz_outline *, int)> walk
+                    = [&](fz_outline *node, int depth)
+                {
+                    for (fz_outline *n = node; n; n = n->next)
+                    {
+                        const QString title
+                            = QString::fromUtf8(n->title ? n->title
+                                                         : "<no title>")
+                                  .remove(QChar::Null)
+                                  .remove(QChar::ParagraphSeparator)
+                                  .remove(QChar::LineSeparator)
+                                  .remove(QChar(0xFFFD))
+                                  .trimmed();
+                        // Same as resolveOutlineNode(), on this thread's
+                        // context.
+                        fz_location loc = n->page;
+                        float x = n->x, y = n->y;
+                        if (loc.chapter < 0 && n->uri)
+                            loc = fz_resolve_link(ctx, m_doc, n->uri, &x, &y);
+                        entries.push_back(
+                            {.title     = title,
+                             .depth     = depth,
+                             .page      = fz_page_number_from_location(ctx,
+                                                                  m_doc, loc),
+                             .location  = QPointF(x, y),
+                             .isHeading = (n->down != nullptr)});
+                        if (n->down)
+                            walk(n->down, depth + 1);
+                    }
+                };
+                walk(loaded, 0);
+            }
+            fz_catch(ctx)
+            {
+                entries.clear();
+            }
+        }
+
+        // Hand the result to the GUI thread (the outline itself is dropped
+        // with the main context, which shares its allocator with this one).
+        QMetaObject::invokeMethod(
+            this,
+            [this, loaded, generation, entries = std::move(entries)]() mutable
+        {
+            if (!m_ctx)
+                return;
+            if (loaded && !m_outline)
+                m_outline = loaded;
+            else if (loaded)
+                fz_drop_outline(m_ctx, loaded);
+
+            if (generation == m_outline_generation && m_outline
+                && !m_outline_entries_valid)
+            {
+                m_outline_entries       = std::move(entries);
+                m_outline_entries_src   = m_outline;
+                m_outline_entries_valid = true;
+            }
+        },
+            Qt::QueuedConnection);
+
+        fz_drop_context(ctx);
+    });
+}
+
+const std::vector<Model::OutlineEntry> &
+Model::outlineEntries() noexcept
+{
+    fz_outline *src = getOutline();
+    if (!src)
+        src = m_generated_outline;
+    if (!m_outline_entries_valid || src != m_outline_entries_src)
+    {
+        m_outline_entries       = buildOutlineEntries(src);
+        m_outline_entries_src   = src;
+        m_outline_entries_valid = true;
+    }
+    return m_outline_entries;
 }
 
 bool

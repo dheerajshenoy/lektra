@@ -1817,6 +1817,14 @@ static const LuaField outlineFields[] = {
 }, [](lua_State *L, P p)
 { static_cast<Config::Outline *>(p)->indent_width = lua_tointeger(L, 3); }},
 
+    {"preload",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Outline *>(p)->preload);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Outline *>(p)->preload = lua_toboolean(L, 3); }},
+
     {"prompt",
      [](lua_State *L, P p)
 {

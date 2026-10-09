@@ -29,48 +29,20 @@ void
 OutlinePicker::setOutline(fz_outline *outline, Model *model) noexcept
 {
     m_entries.clear();
-    if (outline)
-        harvest(outline, 0, model);
+    if (outline && model)
+        m_entries = model->buildOutlineEntries(outline);
+}
+
+void
+OutlinePicker::setEntries(const std::vector<Model::OutlineEntry> &entries) noexcept
+{
+    m_entries = entries;
 }
 
 void
 OutlinePicker::clearOutline() noexcept
 {
     m_entries.clear();
-}
-
-void
-OutlinePicker::harvest(fz_outline *node, int depth, Model *model) noexcept
-{
-    for (fz_outline *n = node; n; n = n->next)
-    {
-        const QString title
-            = QString::fromUtf8(n->title ? n->title : "<no title>")
-                  .remove(QChar::Null)
-                  .remove(QChar::ParagraphSeparator)
-                  .remove(QChar::LineSeparator)
-                  .remove(QChar(0xFFFD))
-                  .trimmed();
-
-        // n->page.page alone is only the LOCAL page-within-chapter number
-        // for chaptered formats (EPUB) — must resolve via the Model to get
-        // the document-wide page index. EPUB nodes additionally leave
-        // n->page/x/y unresolved (sentinel {-1,-1}) and only carry a
-        // uri, which resolveOutlineNode() also handles.
-        float x = n->x, y = n->y;
-        const int pageno
-            = model ? model->resolveOutlineNode(n, &x, &y) : n->page.page;
-
-        m_entries.push_back({
-            .title     = title,
-            .depth     = depth,
-            .page      = pageno,
-            .location  = QPointF(x, y),
-            .isHeading = (n->down != nullptr),
-        });
-        if (n->down)
-            harvest(n->down, depth + 1, model);
-    }
 }
 
 QList<Picker::Item>

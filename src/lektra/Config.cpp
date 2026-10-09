@@ -922,6 +922,7 @@ Lektra::initConfig() noexcept
         set(outline["indent_width"], m_config.outline.indent_width);
         set(outline["show_page_numbers"], m_config.outline.show_page_number);
         set(outline["flat_menu"], m_config.outline.flat_menu);
+        set(outline["preload"], m_config.outline.preload);
     }
 
     // Highlight Search

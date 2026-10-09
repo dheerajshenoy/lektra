@@ -17,6 +17,7 @@
 #include <mutex>
 #include <set>
 #include <unordered_map>
+#include <vector>
 
 extern "C"
 {
@@ -597,6 +598,26 @@ public:
         return m_generated_outline;
     }
     fz_outline *generateOutline(float min_ratio, int max_levels) noexcept;
+
+    // The outline as a flat list (one entry per node, in document order, with
+    // the document-wide page of each). Built once and kept, so opening the
+    // outline picker does not have to walk and resolve the outline again.
+    // Uses the embedded outline, or the generated one if there is none.
+    struct OutlineEntry
+    {
+        QString title;
+        int depth;
+        int page; // 0-based
+        QPointF location;
+        bool isHeading; // has children
+    };
+    const std::vector<OutlineEntry> &outlineEntries() noexcept;
+    // Loads the embedded outline and builds the entries on a worker thread, so
+    // opening the outline picker later is instant and the GUI is never held up.
+    // Does nothing if they are already built or being built.
+    void prefetchOutlineAsync() noexcept;
+    // The entries of any outline of this document (not kept).
+    std::vector<OutlineEntry> buildOutlineEntries(fz_outline *outline) noexcept;
     bool exportOutlineToFile(const QString &path, fz_outline *outline) noexcept;
     fz_outline *loadOutlineFromFile(const QString &path) noexcept;
 
@@ -1034,6 +1055,20 @@ private:
     fz_colorspace *m_colorspace     = nullptr;
     fz_outline *m_outline           = nullptr;
     fz_outline *m_generated_outline = nullptr;
+    std::vector<OutlineEntry> m_outline_entries;
+    fz_outline *m_outline_entries_src = nullptr; // what they were built from
+    bool m_outline_entries_valid      = false;
+    int m_outline_generation          = 0; // bumped when the entries go stale
+    QFuture<void> m_outline_future;
+    void invalidateOutlineEntries() noexcept
+    {
+        m_outline_entries.clear();
+        m_outline_entries_src   = nullptr;
+        m_outline_entries_valid = false;
+        ++m_outline_generation;
+    }
+    void harvestOutline(fz_outline *node, int depth,
+                        std::vector<OutlineEntry> &out) noexcept;
 
     // Last (widthPts, heightPts, emPts) applied via relayoutForViewport(),
     // so an unchanged viewport size doesn't trigger a redundant

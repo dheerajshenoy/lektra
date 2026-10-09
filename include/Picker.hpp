@@ -363,6 +363,7 @@ private:
     QStandardItemModel *m_model                = nullptr;
     StructureMode m_structureMode              = StructureMode::Hierarchical;
     QGraphicsDropShadowEffect *m_shadow_effect = nullptr;
+    bool isPickerKey(const QKeyCombination &key) const noexcept;
     Keybindings m_keys;
     QVector<Column> m_columns;
     HighlightDelegate *m_highlight_delegate = nullptr;

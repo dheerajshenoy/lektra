@@ -261,6 +261,12 @@ DocumentView::handleOpenFileFinished() noexcept
     }
 
     setAutoReload(m_config.behavior.auto_reload);
+
+    // Prepare the outline in the background, so that opening the outline
+    // picker later is instant and this does not hold up the document.
+    if (m_config.outline.preload && m_model->supports_outline())
+        m_model->prefetchOutlineAsync();
+
     emit openFileFinished(this, m_model->fileType());
 
 #ifdef WITH_LUA

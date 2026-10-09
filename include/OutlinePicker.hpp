@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Config.hpp"
+#include "Model.hpp"
 #include "Picker.hpp"
 
 class Model;
@@ -25,6 +26,8 @@ public:
     // number is not the document-wide index. Pass the current document's
     // Model whenever one is available.
     void setOutline(fz_outline *outline, Model *model = nullptr) noexcept;
+    // Uses the entries the model already built (see Model::outlineEntries()).
+    void setEntries(const std::vector<Model::OutlineEntry> &entries) noexcept;
     void clearOutline() noexcept;
 
     bool hasOutline() const noexcept
@@ -47,18 +50,7 @@ protected:
     void onItemAccepted(const Item &item) override;
 
 private:
-    struct OutlineEntry
-    {
-        QString title;
-        int depth;
-        int page;
-        QPointF location;
-        bool isHeading; // has children
-    };
-
-    void harvest(fz_outline *node, int depth, Model *model) noexcept;
-
-    std::vector<OutlineEntry> m_entries;
+    std::vector<Model::OutlineEntry> m_entries;
     const Config::Outline &m_config;
     int m_current_page{-1};
 };

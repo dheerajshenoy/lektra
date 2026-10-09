@@ -773,7 +773,7 @@
         },
         "layout": {
           "type": "array",
-          "description": "Which modules the statusbar shows and where. A list of items is one row, a list of lists is several rows. The modules are session, filename, page, zoom, progress, mode, portal and narrow. Items are placed from left to right, and the free space goes to the gaps: \"|\" is a gap that takes all of it, { stretch = 2 } a gap that takes twice the share of another, { spacer = 12 } a gap of 12 px. A module can also be a table, { module = \"filename\", stretch = 1, min_width = 80, max_width = 400, margin = 4, align = \"right\" }, and with at (0 to 1, the position along the bar) and anchor (\"left\", \"center\" or \"right\", the edge of the item put there) it is placed at a fixed position instead: { module = \"page\", at = 0.5, anchor = \"center\" }. { text = \"|\" } shows a piece of text, for example a separator. A module that is not listed is not shown (since 0.7.9)"
+          "description": "Which modules the statusbar shows and where. A list of items is one row, a list of lists is several rows. The modules are session, filename, page, zoom, progress, mode, portal and narrow. Items are placed from left to right, and the free space goes to the gaps: \"|\" is a gap that takes all of it, { stretch = 2 } a gap that takes twice the share of another, { spacer = 12 } a gap of 12 px. A module can also be a table, { module = \"filename\", stretch = 1, min_width = 80, max_width = 400, margin = 4, align = \"right\" }, and with at (0 to 1, the position along the bar) and anchor (\"left\", \"center\" or \"right\", the edge of the item put there) it is placed at a fixed position instead: { module = \"page\", at = 0.5, anchor = \"center\" }. { text = \"|\" } shows a piece of text, for example a separator. A module that is not listed is not shown. An item placed with at that would overlap another item is moved right or left out of the way, or left out if there is no room (since 0.7.9)"
         },
         "components": {
           "type": "object",
@@ -1271,6 +1271,11 @@
           "type": "boolean",
           "default": true,
           "description": "if true, show the outline in a flat menu instead of a hierarchical one (since 0.6.9)"
+        },
+        "preload": {
+          "type": "boolean",
+          "default": false,
+          "description": "When to load the outline. If true it is loaded in the background right after a document opens, so the outline picker opens instantly. If false it is loaded the first time the outline picker is opened, which saves work for documents whose outline you never use (since 0.8.0)"
         },
         "width": {
           "type": "number",

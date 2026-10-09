@@ -10,6 +10,20 @@
 #include <QStandardItem>
 #include <QVBoxLayout>
 
+namespace
+{
+// The key of an event without the modifiers that only say how it was typed
+// (a keypad key, or an arrow key some platforms flag as one), so that "Up"
+// matches whichever way it arrives.
+QKeyCombination
+normalizedKey(const QKeyEvent *e) noexcept
+{
+    return QKeyCombination(e->modifiers() & ~Qt::KeypadModifier
+                               & ~Qt::GroupSwitchModifier,
+                           static_cast<Qt::Key>(e->key()));
+}
+} // namespace
+
 Picker::Picker(const Config::Picker &config, QWidget *parent) noexcept
     : QWidget(parent), m_config(config)
 {
@@ -138,6 +152,19 @@ Picker::reposition()
 }
 
 bool
+Picker::isPickerKey(const QKeyCombination &key) const noexcept
+{
+    return m_keys.moveDown.contains(key) || m_keys.moveUp.contains(key)
+           || m_keys.pageDown.contains(key) || m_keys.pageUp.contains(key)
+           || m_keys.sectionNext.contains(key)
+           || m_keys.sectionPrev.contains(key) || m_keys.accept.contains(key)
+           || m_keys.expand.contains(key) || m_keys.collapse.contains(key)
+           || m_keys.toggleStructureMode.contains(key)
+           || m_keys.historyNext.contains(key)
+           || m_keys.historyPrev.contains(key);
+}
+
+bool
 Picker::eventFilter(QObject *watched, QEvent *event)
 {
     // Only reposition on parent resize — no move tracking needed
@@ -151,12 +178,25 @@ Picker::eventFilter(QObject *watched, QEvent *event)
     if (isVisible() && event->type() == QEvent::Shortcut)
         return true;
 
+    // A key the picker uses (the arrows, say) may also be a shortcut of the
+    // application. Claiming the ShortcutOverride makes Qt deliver it as a
+    // plain key press to the picker instead of running the shortcut.
+    if (isVisible() && event->type() == QEvent::ShortcutOverride)
+    {
+        auto *keyEvent = static_cast<QKeyEvent *>(event);
+        if (isPickerKey(normalizedKey(keyEvent)))
+        {
+            keyEvent->accept();
+            return true;
+        }
+    }
+
     if (watched == m_searchBox)
     {
         if (event->type() == QEvent::KeyRelease)
         {
             auto *keyEvent = static_cast<QKeyEvent *>(event);
-            if (m_keys.dismiss.contains(keyEvent->keyCombination()))
+            if (m_keys.dismiss.contains(normalizedKey(keyEvent)))
             {
                 releaseInputGrab();
                 hide();
@@ -168,16 +208,7 @@ Picker::eventFilter(QObject *watched, QEvent *event)
         else if (event->type() == QEvent::KeyPress)
         {
             auto *keyEvent = static_cast<QKeyEvent *>(event);
-            const auto key = keyEvent->keyCombination();
-            if (m_keys.moveDown.contains(key) || m_keys.moveUp.contains(key)
-                || m_keys.pageDown.contains(key) || m_keys.pageUp.contains(key)
-                || m_keys.sectionNext.contains(key)
-                || m_keys.sectionPrev.contains(key)
-                || m_keys.accept.contains(key) || m_keys.expand.contains(key)
-                || m_keys.collapse.contains(key)
-                || m_keys.toggleStructureMode.contains(key)
-                || m_keys.historyNext.contains(key)
-                || m_keys.historyPrev.contains(key))
+            if (isPickerKey(normalizedKey(keyEvent)))
             {
                 keyPressEvent(keyEvent);
                 return true;
@@ -191,7 +222,7 @@ Picker::eventFilter(QObject *watched, QEvent *event)
 void
 Picker::keyPressEvent(QKeyEvent *event)
 {
-    const QKeyCombination key = event->keyCombination();
+    const QKeyCombination key = normalizedKey(event);
     const QModelIndex current = m_listView->currentIndex();
 
     if (!current.isValid())
