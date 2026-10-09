@@ -945,8 +945,11 @@ private:
 
         QImage cached_image; // for DJVU
         PageDimension dimension;
-        std::vector<CachedLink> links;
-        std::vector<CachedAnnotation> annotations;
+        // Shared and immutable once built, so a render takes them under the
+        // cache lock by copying a pointer, not the vectors. Null when the page
+        // has none.
+        std::shared_ptr<const std::vector<CachedLink>> links;
+        std::shared_ptr<const std::vector<CachedAnnotation>> annotations;
     };
 
     struct CachedTextChar

@@ -503,8 +503,11 @@ Model::pageLinks(int pageno) noexcept
     if (!entry)
         return out;
 
-    out.reserve(entry->links.size());
-    for (const CachedLink &l : entry->links)
+    if (!entry->links)
+        return out;
+    const auto &entryLinks = *entry->links;
+    out.reserve(entryLinks.size());
+    for (const CachedLink &l : entryLinks)
     {
         PageLink p;
         p.rect             = QRectF(l.rect.x0, l.rect.y0, l.rect.x1 - l.rect.x0,
@@ -1806,13 +1809,17 @@ Model::detectUrlLinksForPage(const RenderJob &job) noexcept
     std::vector<RenderLink> result;
 
     // Grab cached links under lock to check for intersections
-    std::vector<CachedLink> cachedLinks;
+    std::shared_ptr<const std::vector<CachedLink>> cachedLinks;
     {
         std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
         const PageCacheEntry *entry = m_page_lru_cache.get(job.pageno);
         if (entry)
             cachedLinks = entry->links;
     }
+
+    static const std::vector<CachedLink> noCachedLinks;
+    const std::vector<CachedLink> &cachedLinkList
+        = cachedLinks ? *cachedLinks : noCachedLinks;
 
     fz_matrix transform = fz_identity;
 
@@ -1885,7 +1892,7 @@ Model::detectUrlLinksForPage(const RenderJob &job) noexcept
 
                     // Skip if already covered by a PDF link
                     bool intersects = false;
-                    for (const auto &cl : cachedLinks)
+                    for (const auto &cl : cachedLinkList)
                     {
                         const fz_rect lr = cl.rect;
                         if (r.x1 >= lr.x0 && r.x0 <= lr.x1 && r.y1 >= lr.y0

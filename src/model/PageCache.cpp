@@ -592,6 +592,8 @@ Model::buildPageCache(int pageno) noexcept
     }
 
     PageCacheEntry entry;
+    std::vector<CachedLink> links;
+    std::vector<CachedAnnotation> annotations;
 
     fz_context *ctx = cloneContext();
     if (!ctx)
@@ -674,7 +676,7 @@ Model::buildPageCache(int pageno) noexcept
                     cl.zoom         = dest.zoom;
                 }
 
-                entry.links.push_back(std::move(cl));
+                links.push_back(std::move(cl));
             }
         }
 
@@ -736,9 +738,17 @@ Model::buildPageCache(int pageno) noexcept
                         continue;
                 }
 
-                entry.annotations.push_back(std::move(ca));
+                annotations.push_back(std::move(ca));
             }
         }
+
+        if (!links.empty())
+            entry.links = std::make_shared<const std::vector<CachedLink>>(
+                std::move(links));
+        if (!annotations.empty())
+            entry.annotations
+                = std::make_shared<const std::vector<CachedAnnotation>>(
+                    std::move(annotations));
 
         entry.display_list = dlist;
         entry.bounds       = bounds;

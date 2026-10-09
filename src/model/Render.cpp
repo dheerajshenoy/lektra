@@ -822,8 +822,9 @@ Model::renderPageWithExtrasAsync(
 
     fz_display_list *dlist = nullptr;
     fz_rect bounds;
-    std::vector<CachedLink> links;
-    std::vector<CachedAnnotation> annotations;
+    // Shared with the cache entry: only the pointers are copied under the lock.
+    std::shared_ptr<const std::vector<CachedLink>> links;
+    std::shared_ptr<const std::vector<CachedAnnotation>> annotations;
 
     // Never `return` (or throw) from inside fz_try: a return skips the cleanup
     // below and leaves MuPDF's exception stack unbalanced, and a throw would
@@ -1080,8 +1081,11 @@ Model::renderPageWithExtrasAsync(
 
         // --- Extract links ---
         const float scale = m_inv_dpr;
-        result.links.reserve(links.size());
-        for (const auto &link : links)
+        // (Both branches are lvalues of one type, so nothing is copied.)
+        static const std::vector<CachedLink> noLinks;
+        const std::vector<CachedLink> &linkList = links ? *links : noLinks;
+        result.links.reserve(linkList.size());
+        for (const auto &link : linkList)
         {
             if (link.uri.isEmpty())
                 continue;
@@ -1212,8 +1216,11 @@ Model::renderPageWithExtrasAsync(
         //     }
         // }
 
-        result.annotations.reserve(annotations.size());
-        for (const auto &annot : annotations)
+        static const std::vector<CachedAnnotation> noAnnotations;
+        const std::vector<CachedAnnotation> &annotationList
+            = annotations ? *annotations : noAnnotations;
+        result.annotations.reserve(annotationList.size());
+        for (const auto &annot : annotationList)
         {
             RenderAnnotation renderAnnot;
 
