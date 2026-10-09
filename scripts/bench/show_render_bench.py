@@ -28,6 +28,7 @@ METRICS = [
     ("gui_ms", "GUI ms (total)", "{:.0f}"),
     ("gui_max_ms", "GUI ms (slowest)", "{:.1f}"),
     ("settle_ms", "settle ms", "{:.0f}"),
+    ("after_stop_ms", "stop-to-drawn ms", "{:.0f}"),
     ("rss_mb", "peak RSS MB", "{:.0f}"),
 ]
 

@@ -10,12 +10,14 @@ a before/after on paper.
 
     --binary build/lektra       the Lektra to run (Release build)
     --runs 5                    repetitions per document (median is reported)
-    --scenarios A,B,C           which scenarios (see render_bench.lua)
+    --scenarios A,B,C,D         which scenarios (see render_bench.lua)
     --offscreen                 QT_QPA_PLATFORM=offscreen (no window; leaves
                                 out the paint cost)
     --save before.json          write the numbers
     --compare before.json       also show the change against a saved run
     --timeout 180               seconds before a run is abandoned
+    --env KEY=VALUE             extra environment variable for Lektra (repeatable),
+                                e.g. --env SOME_SWITCH=1 for an A/B run
 
 Metrics (per scenario, median over the runs):
     requests     renders asked for
@@ -27,6 +29,8 @@ Metrics (per scenario, median over the runs):
     gui_ms       total GUI-thread time spent handling results
     gui_max_ms   the slowest single result on the GUI thread
     settle_ms    from the first request of a burst to the last result
+    stop_ms      from the last input to the last page drawn: how long the page
+                 you stopped on takes to appear
     rss_mb       peak resident memory of the whole run (VmHWM)
 """
 
@@ -73,8 +77,11 @@ def peak_rss_mb(pid):
     return 0.0
 
 
-def run_once(binary, document, scenarios, offscreen, timeout):
+def run_once(binary, document, scenarios, offscreen, timeout, extra_env=()):
     env = dict(os.environ)
+    for item in extra_env:
+        key, _, value = item.partition("=")
+        env[key] = value
     env["LEKTRA_RENDER_TRACE"] = "1"
     env["LEKTRA_BENCH_SCENARIOS"] = scenarios
     if offscreen:
@@ -86,6 +93,7 @@ def run_once(binary, document, scenarios, offscreen, timeout):
 
     sections = defaultdict(list)  # scenario -> parsed trace lines
     state = {"current": None, "done": False, "rss": 0.0}
+    input_end = {}  # scenario -> wall time its input stopped
 
     def reader():
         for raw in (proc.stderr or []):
@@ -97,6 +105,9 @@ def run_once(binary, document, scenarios, offscreen, timeout):
                     continue
                 if word[0] == "begin":
                     state["current"] = word[1]
+                elif word[0] == "inputend":
+                    if state["current"]:
+                        input_end[state["current"]] = time.time()
                 elif word[0] == "end":
                     state["current"] = None
                 elif word[0] == "done":
@@ -106,7 +117,8 @@ def run_once(binary, document, scenarios, offscreen, timeout):
             m = LINE.match(raw)
             if m and state["current"]:
                 sections[state["current"]].append(
-                    (float(m.group(1)), m.group(2), fields(m.group(3))))
+                    (float(m.group(1)), m.group(2), fields(m.group(3)),
+                     time.time()))
 
     t = threading.Thread(target=reader, daemon=True)
     t.start()
@@ -123,13 +135,33 @@ def run_once(binary, document, scenarios, offscreen, timeout):
         except subprocess.TimeoutExpired:
             proc.kill()
     t.join(2)
-    return ok, sections, state["rss"]
+    return ok, sections, state["rss"], input_end
 
 
-def summarize(lines):
-    gui = [f for _, ev, f in lines if ev == "gui"]
-    reqs = [1 for _, ev, _ in lines if ev == "request"]
-    settles = [float(f["ms"]) for _, ev, f in lines if ev == "settle"]
+def summarize(lines, input_end=None):
+    gui = [f for _, ev, f, _ in lines if ev == "gui"]
+    reqs = [1 for _, ev, _, _ in lines if ev == "request"]
+    settles = [float(f["ms"]) for _, ev, f, _ in lines if ev == "settle"]
+
+    # From the last input until the renders then outstanding are done: how
+    # long the page you stopped on takes to be drawn. 0 if everything asked
+    # for was already drawn when the input stopped. (Wall clock; the runner
+    # timestamps the lines as it reads them.)
+    after_stop = 0.0
+    if input_end:
+        busy = False
+        for _, ev, _, wall in sorted(lines, key=lambda l: l[3]):
+            if wall >= input_end:
+                if not busy:
+                    break  # all drawn already
+                if ev == "settle":
+                    after_stop = (wall - input_end) * 1000.0
+                    break
+                continue
+            if ev == "request":
+                busy = True
+            elif ev == "settle":
+                busy = False
 
     applied = [g for g in gui if g["outcome"] in APPLIED]
     wasted = [g for g in gui if g["outcome"] in WASTED]
@@ -146,6 +178,7 @@ def summarize(lines):
         "gui_ms": sum(cb),
         "gui_max_ms": max(cb) if cb else 0.0,
         "settle_ms": max(settles) if settles else 0.0,
+        "after_stop_ms": after_stop,
     }
 
 
@@ -164,6 +197,7 @@ COLUMNS = [
     ("gui_ms", "gui_ms", "{:.0f}"),
     ("gui_max_ms", "gui_max", "{:.1f}"),
     ("settle_ms", "settle_ms", "{:.0f}"),
+    ("after_stop_ms", "stop_ms", "{:.0f}"),
     ("rss_mb", "rss_mb", "{:.0f}"),
 ]
 
@@ -199,11 +233,12 @@ def main():
     ap.add_argument("documents", nargs="+")
     ap.add_argument("--binary", default=str(ROOT / "build" / "lektra"))
     ap.add_argument("--runs", type=int, default=5)
-    ap.add_argument("--scenarios", default="A,B,C")
+    ap.add_argument("--scenarios", default="A,B,C,D")
     ap.add_argument("--offscreen", action="store_true")
     ap.add_argument("--save")
     ap.add_argument("--compare")
     ap.add_argument("--timeout", type=int, default=180)
+    ap.add_argument("--env", action="append", default=[])
     args = ap.parse_args()
 
     if not Path(args.binary).exists():
@@ -217,14 +252,16 @@ def main():
         rss_runs = []
         for i in range(args.runs):
             print(f"{doc}: run {i + 1}/{args.runs} ...", flush=True)
-            ok, sections, rss = run_once(args.binary, doc, args.scenarios,
-                                         args.offscreen, args.timeout)
+            ok, sections, rss, input_end = run_once(args.binary, doc, args.scenarios,
+                                         args.offscreen, args.timeout,
+                                         args.env)
             if not ok:
                 print("  (did not finish; run discarded)")
                 continue
             rss_runs.append(rss)
             for scen, lines in sections.items():
-                per_scenario[scen].append(summarize(lines))
+                per_scenario[scen].append(
+                    summarize(lines, input_end.get(scen)))
 
         if not per_scenario:
             print(f"{doc}: no usable runs "

@@ -41,6 +41,7 @@ a negative change is an improvement. `--only A,B`, `--doc NAME` and
 | A | 200 scroll steps of about a screen, 16 ms apart | queueing, cancellation, item churn |
 | B | 30 zoom steps of +10 %, 60 ms apart | cancellation of stale renders |
 | C | zoom to 8x, then 100 pan steps | partial-region renders and refreshes |
+| D | 40 page-sized scroll steps 80 ms apart (a held key), then stop | scheduling: how fast the page you stop on is drawn |
 
 ## Columns
 
@@ -54,6 +55,7 @@ a negative change is an improvement. `--only A,B`, `--doc NAME` and
 | gui_ms | total GUI-thread time spent handling finished renders |
 | gui_max | slowest single result on the GUI thread |
 | settle_ms | first request of a burst to the last result |
+| stop_ms | from the last input until the renders outstanding then are done: how long the page you stopped on takes to appear; 0 if all was already drawn (the figure to watch for scrolling) |
 | rss_mb | peak resident memory of the run |
 
 ## What each planned change should move
@@ -79,3 +81,15 @@ RTRACE <ms> settle  ms=.. requests=..
 
 `outcome` is one of `applied`, `applied_preload`, `cancelled`, `superseded`,
 `stale_zoom`, `null_image`. With the variable unset the calls cost one branch.
+
+## Comparing two builds
+
+`--env KEY=VALUE` passes an environment variable to Lektra, which is handy when
+a change is put behind a temporary switch for an A/B run. Run the same
+documents with and without it, then compare:
+
+```
+python3 scripts/bench/run_render_bench.py FILE.pdf --runs 5 --save a.json
+python3 scripts/bench/run_render_bench.py FILE.pdf --runs 5 --env SOME_SWITCH=1 --save b.json
+python3 scripts/bench/show_render_bench.py a.json b.json
+```

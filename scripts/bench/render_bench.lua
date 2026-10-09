@@ -2,10 +2,12 @@
 --
 --   LEKTRA_RENDER_TRACE=1 lektra --foreground -c scripts/bench/render_bench.lua FILE.pdf
 --
--- Scenarios (LEKTRA_BENCH_SCENARIOS, default "A,B,C"):
+-- Scenarios (LEKTRA_BENCH_SCENARIOS, default "A,B,C,D"):
 --   A  fast scroll        200 steps of about one screen, 16 ms apart
 --   B  zoom storm         30 zoom steps of +10%, 60 ms apart, then settle
 --   C  deep zoom pan      zoom to 8x, then 100 pan steps, 30 ms apart
+--   D  page-down repeat   40 steps of one screen, 80 ms apart (a held key),
+--                         then stop: how fast is the page you land on drawn
 --
 -- It prints "BENCH begin X" / "BENCH end X" / "BENCH done" on stderr; the
 -- runner uses them to cut the RTRACE lines into scenarios.
@@ -16,7 +18,7 @@ local function mark(text)
 end
 
 local wanted = {}
-for s in (os.getenv("LEKTRA_BENCH_SCENARIOS") or "A,B,C"):gmatch("[^,]+") do
+for s in (os.getenv("LEKTRA_BENCH_SCENARIOS") or "A,B,C,D"):gmatch("[^,]+") do
     wanted[s:upper()] = true
 end
 
@@ -37,6 +39,7 @@ function scenarios.A(view)
         view:scroll(0, step)
         lektra.sleep(0.016)
     end
+    mark("inputend")
     settle(view)
 end
 
@@ -51,6 +54,7 @@ function scenarios.B(view)
         view:set_zoom(z)
         lektra.sleep(0.06)
     end
+    mark("inputend")
     settle(view)
     view:set_zoom(1.0)
     settle(view, 1.0)
@@ -65,9 +69,23 @@ function scenarios.C(view)
         view:scroll((i % 2 == 0) and 300 or -300, 300)
         lektra.sleep(0.03)
     end
+    mark("inputend")
     settle(view)
     view:set_zoom(1.0)
     settle(view, 1.0)
+end
+
+function scenarios.D(view)
+    view:set_layout(lektra.LayoutMode.Vertical)
+    view:set_zoom(1.0)
+    view:goto_page(1)
+    settle(view, 1.5)
+    for _ = 1, 40 do
+        view:scroll(0, 700)
+        lektra.sleep(0.08)
+    end
+    mark("inputend")
+    settle(view)
 end
 
 -- Waits (up to `seconds`) for a view whose document is open.
@@ -102,7 +120,7 @@ local function start()
             return
         end
         lektra.sleep(1.5) -- first page and the initial preload
-        for _, name in ipairs({ "A", "B", "C" }) do
+        for _, name in ipairs({ "A", "B", "C", "D" }) do
             if wanted[name] then
                 mark("begin " .. name)
                 local ok, err = pcall(scenarios[name], v)

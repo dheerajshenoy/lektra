@@ -1663,26 +1663,22 @@ DocumentView::handleHScrollValueChanged(int value) noexcept
     if (m_layout_mode == LayoutMode::SINGLE)
         return;
 
+    noteScrollMotion(value);
+
     // During fast scrolling, only invalidate cache, don't trigger render
     invalidateVisiblePagesCache();
 
     updateCurrentPage();
+
+    // Anything queued or running for pages we've scrolled past is dead weight
+    // and would delay the pages that are on screen now.
+    pruneRendersForScroll();
 
     // Immediately request renders for currently visible pages so they don't
     // appear blank during fast scrolling (requestPageRender is a no-op if the
     // page is already pending).
     // Pages that already have a sharp render are left alone: the debounced
     // refresh below decides whether they need a new one.
-
-    // Anything queued or running for pages we've scrolled past is dead weight
-    // and would delay the pages that are on screen now.
-    {
-        const std::set<int> &visible = getVisiblePages();
-        std::set<int> wanted         = visible;
-        const std::set<int> preload  = getPreloadPages(visible);
-        wanted.insert(preload.begin(), preload.end());
-        prunePendingRenders(wanted);
-    }
 
     for (int pageno : getVisiblePages())
     {
@@ -1702,11 +1698,62 @@ DocumentView::handleHScrollValueChanged(int value) noexcept
 }
 
 void
-DocumentView::handleVScrollValueChanged(int /*value */) noexcept
+DocumentView::noteScrollMotion(int value) noexcept
+{
+    if (!m_scroll_clock.isValid())
+        m_scroll_clock.start();
+    const qint64 now = m_scroll_clock.elapsed();
+
+    if (m_last_scroll_ms >= 0)
+    {
+        const qint64 dt = std::max<qint64>(1, now - m_last_scroll_ms);
+        const double v
+            = std::abs(value - m_last_scroll_value) / static_cast<double>(dt);
+        // A long pause starts the average over.
+        m_scroll_speed = dt > 200 ? v : 0.5 * m_scroll_speed + 0.5 * v;
+    }
+    m_last_scroll_ms    = now;
+    m_last_scroll_value = value;
+}
+
+// More than about one and a half screens per second, and still moving.
+bool
+DocumentView::isScrollingFast() const noexcept
+{
+    if (m_last_scroll_ms < 0 || !m_scroll_clock.isValid())
+        return false;
+    if (m_scroll_clock.elapsed() - m_last_scroll_ms > 150)
+        return false;
+
+    const int extent = (m_layout_mode == LayoutMode::HORIZONTAL)
+                           ? m_gview->viewport()->width()
+                           : m_gview->viewport()->height();
+    return m_scroll_speed * 1000.0 > 1.5 * std::max(1, extent);
+}
+
+void
+DocumentView::pruneRendersForScroll() noexcept
+{
+    const std::set<int> &visible = getVisiblePages();
+    std::set<int> wanted         = visible;
+    // While scrolling fast only what is on screen matters; the pages around
+    // it come back once the scrolling slows down.
+    if (!isScrollingFast())
+    {
+        const std::set<int> preload = getPreloadPages(visible);
+        wanted.insert(preload.begin(), preload.end());
+    }
+    prunePendingRenders(wanted);
+}
+
+void
+DocumentView::handleVScrollValueChanged(int value) noexcept
 {
     // Don't render on scroll for single-page documents or images
     if (m_layout_mode == LayoutMode::SINGLE)
         return;
+
+    noteScrollMotion(value);
 
     // During fast scrolling, only invalidate cache, don't trigger render
     invalidateVisiblePagesCache();
@@ -1715,13 +1762,7 @@ DocumentView::handleVScrollValueChanged(int /*value */) noexcept
 
     // Anything queued or running for pages we've scrolled past is dead weight
     // and would delay the pages that are on screen now.
-    {
-        const std::set<int> &visible = getVisiblePages();
-        std::set<int> wanted         = visible;
-        const std::set<int> preload  = getPreloadPages(visible);
-        wanted.insert(preload.begin(), preload.end());
-        prunePendingRenders(wanted);
-    }
+    pruneRendersForScroll();
 
     // Immediately request renders for currently visible pages so they don't
     // appear blank during fast scrolling (requestPageRender is a no-op if the

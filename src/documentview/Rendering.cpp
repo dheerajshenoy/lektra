@@ -54,6 +54,7 @@
 #include <QtConcurrent/QtConcurrent>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <qdebug.h>
 #include <qguiapplication.h>
 #include <qicon.h>
@@ -456,9 +457,11 @@ DocumentView::renderPagesImpl(bool skipCurrent) noexcept
             requestPageRender(pageno);
         }
 
-        // Preload pages
-        for (int pageno : preloadPages)
-            requestPageRender(pageno, false, false);
+        // Preload pages, but not while scrolling fast: they would only get in
+        // the way of the pages that are on screen.
+        if (!isScrollingFast())
+            for (int pageno : preloadPages)
+                requestPageRender(pageno, false, false);
 
         updateSceneRect();
     }
@@ -592,10 +595,27 @@ DocumentView::startNextRenderJob() noexcept
            && (!m_visible_render_queue.isEmpty() || !m_render_queue.isEmpty()))
     {
         // Visible-page queue is always drained first; fall back to preload
-        // queue
-        int pageno = (!m_visible_render_queue.isEmpty())
-                         ? m_visible_render_queue.dequeue()
-                         : m_render_queue.dequeue();
+        // queue. Within a queue the page nearest the current one goes first
+        // (the newest among equals), so the page you land on is drawn before
+        // the ones you scrolled past.
+        const auto takeNearest = [this](QQueue<int> &queue)
+        {
+            int best         = 0;
+            int bestDistance = std::numeric_limits<int>::max();
+            for (int i = 0; i < queue.size(); ++i)
+            {
+                const int d = std::abs(queue.at(i) - m_pageno);
+                if (d <= bestDistance)
+                {
+                    bestDistance = d;
+                    best         = i;
+                }
+            }
+            return queue.takeAt(best);
+        };
+        const int pageno = (!m_visible_render_queue.isEmpty())
+                               ? takeNearest(m_visible_render_queue)
+                               : takeNearest(m_render_queue);
 
         if (!m_pending_renders.contains(pageno)
             || m_inflight_renders.contains(pageno))

@@ -21,6 +21,7 @@
 #include <cctype>
 #include <limits>
 #include <map>
+#include <new>
 #include <qbytearrayview.h>
 #include <qregularexpression.h>
 #include <qstyle.h>
@@ -865,6 +866,10 @@ Model::renderPageWithExtrasAsync(
     fz_pixmap *pix     = nullptr;
     fz_device *dev     = nullptr;
     fz_device *tracker = nullptr;
+    // The pixels are drawn straight into memory that the QImage then owns, so
+    // there is no copy of the whole page afterwards. Freed here only if it
+    // was never handed to a QImage.
+    unsigned char *pixels = nullptr;
 
     fz_try(ctx)
     {
@@ -915,7 +920,22 @@ Model::renderPageWithExtrasAsync(
         }
 
         // // --- Render page to QImage ---
-        pix = fz_new_pixmap_with_bbox(ctx, job.colorspace, bbox, nullptr, 0);
+        {
+            const int pw = bbox.x1 - bbox.x0;
+            const int ph = bbox.y1 - bbox.y0;
+            const int pn = fz_colorspace_n(ctx, job.colorspace);
+            // Scanlines padded to 4 bytes, as Qt allocates them itself.
+            const size_t pstride = (static_cast<size_t>(pw) * pn + 3) & ~size_t{3};
+            if (pw <= 0 || ph <= 0 || pn <= 0)
+                fz_throw(ctx, FZ_ERROR_GENERIC, "Empty render area");
+            pixels = new (std::nothrow) unsigned char[pstride * ph];
+            if (!pixels)
+                fz_throw(ctx, FZ_ERROR_GENERIC, "Out of memory for the page");
+            pix = fz_new_pixmap_with_data(ctx, job.colorspace, pw, ph, nullptr,
+                                          0, static_cast<int>(pstride), pixels);
+            pix->x = bbox.x0; // the pixmap covers bbox, not (0, 0)
+            pix->y = bbox.y0;
+        }
         fz_clear_pixmap_with_value(ctx, pix, 255);
 
         dev = fz_new_draw_device(ctx, fz_identity, pix);
@@ -1011,11 +1031,12 @@ Model::renderPageWithExtrasAsync(
             }
         }
 
-        // Construct with the MuPDF stride so Qt copies each scanline
-        // correctly regardless of its own alignment padding.
-        QImage image(samples, width, height, stride, fmt);
-        image
-            = image.copy(); // detach from MuPDF's buffer before fz_drop_pixmap
+        // Hand the buffer to the QImage; it frees it when the last copy goes.
+        // (`samples` is `pixels`: the pixmap was made around that memory.)
+        QImage image(
+            samples, width, height, stride, fmt,
+            [](void *p) { delete[] static_cast<unsigned char *>(p); }, pixels);
+        pixels = nullptr;
 
         image.setDotsPerMeterX(static_cast<int>((job.dpi * 1000) / 25.4));
         image.setDotsPerMeterY(static_cast<int>((job.dpi * 1000) / 25.4));
@@ -1196,6 +1217,7 @@ Model::renderPageWithExtrasAsync(
 
         fz_drop_link(ctx, head);
         fz_drop_pixmap(ctx, pix);
+        delete[] pixels; // null once a QImage owns it
         fz_drop_display_list(ctx, dlist);
 
         // fz_drop_page(ctx, text_page);

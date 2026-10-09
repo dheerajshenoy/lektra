@@ -1065,6 +1065,16 @@ private:
     // Pool slots held by running tasks (cancelled ones included, until they
     // actually return).
     int m_render_slots_used = 0;
+    // How fast the view is being scrolled (px per ms, smoothed), to hold back
+    // preloading while it is.
+    QElapsedTimer m_scroll_clock;
+    qint64 m_last_scroll_ms   = -1;
+    int m_last_scroll_value   = 0;
+    double m_scroll_speed     = 0;
+    void noteScrollMotion(int value) noexcept;
+    [[nodiscard]] bool isScrollingFast() const noexcept;
+    // Drops queued and running renders for pages that are no longer wanted.
+    void pruneRendersForScroll() noexcept;
     // LEKTRA_RENDER_TRACE: start of the current burst of render requests (-1
     // when idle) and how many were made in it.
     double m_trace_burst_start = -1;
