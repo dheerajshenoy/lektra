@@ -79,25 +79,23 @@ padding = [ 2, 2, 2, 2 ]   # left, top, right, bottom (pixels); a single number,
 # Which modules the statusbar shows and where. Modules: session, filename, page,
 # zoom, progress, mode, portal, narrow. A module that is not listed is not shown.
 #
-# Items go from left to right. The free space goes to the gaps:
-#   "|"                a gap that takes all of it
-#   { stretch = 2 }    a gap with twice the share of another one
-#   { spacer = 12 }    a gap of 12 pixels
-# A module can be a table to say more about it:
-#   { module = "filename", stretch = 1, min_width = 80, max_width = 400,
-#     margin = 4, align = "right" }          # stretch: it takes a share of the free space
-#   { module = "page", at = 0.5, anchor = "center" }   # at a fixed spot: 0 to 1 along the bar
-#   { text = "|" }                           # a piece of text, e.g. a separator
-# A list of lists is several rows.
+# The layout is a table of sections. Each is a module, or a list of items:
+#   layout = { left = [ "session", "filename" ], center = "page", right = [ "progress", "mode" ] }
+# A section you leave out is empty. A list of such tables is several rows.
+#
+# An item can be a table to say more about it:
+#   { module = "filename", max_width = 400, min_width = 80, margin = 4 }
+#   { text = "|" }          # a piece of text, e.g. a separator
+#   { spacer = 12 }         # a gap of 12 pixels
+#
+# A flat list also works. Items go from left to right and the free space goes
+# to the gaps: "|" takes all of it, { stretch = 2 } twice the share of another.
+# For a fixed spot use { module = "page", at = 0.5, anchor = "center" }
+# (at: 0 to 1 along the bar; anchor: which edge of the item is put there).
+#   layout = [ "filename", "|", "page", "zoom", "|", "mode" ]
 #
 # This is the default:
-layout = [ "session", "filename", "portal", "narrow", "|", "progress", "mode",
-           { module = "page", at = 0.5, anchor = "center" } ]
-#
-# Examples:
-#   layout = [ "filename", "|", "page", "zoom", "|", "mode" ]               # page and zoom in the middle
-#   layout = [ "mode", { text = "|" }, "page", { stretch = 1 }, "filename" ]
-#   layout = [ [ "filename", "|", "session" ], [ "page", "|", "zoom", "progress" ] ]   # two rows
+layout = { left = [ "session", "filename", "portal", "narrow" ], center = "page", right = [ "progress", "mode" ] }
 
 [statusbar.components.mode]
 show = true

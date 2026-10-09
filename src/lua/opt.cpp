@@ -1,3 +1,4 @@
+#include "StatusbarLayoutSpec.hpp"
 #include "Config.hpp"
 #include "DocumentView.hpp"
 #include "Lektra.hpp"
@@ -945,7 +946,7 @@ static const LuaField statusbarFields[] = {
 {
     if (lua_istable(L, 3))
         static_cast<Config::Statusbar *>(p)->layout
-            = luaToVariant(L, 3).toList();
+            = statusbar_layout::fromVariant(luaToVariant(L, 3));
 }, [](Lektra *lk) { lk->applyStatusbarLayout(); }},
 
     {"padding",

@@ -776,9 +776,11 @@ Lektra::initConfig() noexcept
                         QObject::tr("expected a number, or a list of four "
                                     "numbers (left, top, right, bottom)"));
 
-        if (auto *order = statusbar["layout"].as_array())
+        if (const toml::node *order = statusbar["layout"].node();
+            order && (order->is_array() || order->is_table()))
         {
-            m_config.statusbar.layout = tomlToVariant(*order).toList();
+            m_config.statusbar.layout
+                = statusbar_layout::fromVariant(tomlToVariant(*order));
             QStringList problems;
             statusbar_layout::parse(m_config.statusbar.layout, &problems);
             for (const QString &problem : std::as_const(problems))
@@ -786,7 +788,7 @@ Lektra::initConfig() noexcept
         }
         else if (statusbar["layout"])
             configIssue(statusbar["layout"].node(),
-                        QObject::tr("expected a list for the layout"));
+                        QObject::tr("expected a list or a table of sections for the layout"));
 
         if (auto components = statusbar["components"])
         {

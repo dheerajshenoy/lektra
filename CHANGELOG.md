@@ -106,7 +106,7 @@
 
 #### Statusbar
 
-- New statusbar layout: `[statusbar].layout` (also `lektra.opt.statusbar.layout`) places the modules freely instead of in three fixed groups. Items go left to right and `"|"`, `{ stretch = 2 }` and `{ spacer = 12 }` are gaps; `{ module = "page", at = 0.25, anchor = "center" }` pins a module at a position along the bar; modules take `min_width`, `max_width`, `margin` and `align`; `{ text = "•" }` adds a separator; a list of lists makes several rows. `[statusbar].padding` also takes a single number for all four sides.
+- New statusbar layout: `[statusbar].layout` (also `lektra.opt.statusbar.layout`) places the modules freely instead of in three fixed groups. Items go left to right and `"|"`, `{ stretch = 2 }` and `{ spacer = 12 }` are gaps; `{ module = "page", at = 0.25, anchor = "center" }` pins a module at a position along the bar; modules take `min_width`, `max_width`, `margin` and `align`; `{ text = "•" }` adds a separator; a list of lists makes several rows. `[statusbar].padding` also takes a single number for all four sides. The layout can be given as `left`, `center` and `right` sections: `{ left = {"session", "filename"}, center = "page", right = {"progress", "mode"} }`.
 - New `zoom` statusbar module showing the current zoom level (e.g. `150%`); previously `[statusbar.components.zoom]` existed but nothing was shown.
 
 #### Documents and export

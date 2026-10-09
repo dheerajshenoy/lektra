@@ -528,18 +528,13 @@ struct Config
         // or left out if there is no room
         // }
         // @type list
-        // @default ["session", "filename", "portal", "narrow", "|", "progress",
-        // "mode", { module = "page", at = 0.5, anchor = "center" }]
+        // @default { left = ["session", "filename", "portal", "narrow"],
+        // center = "page", right = ["progress", "mode"] }
         // @added 0.7.9
-        QList<QVariant> layout = {
-            "session",
-            "filename",
-            "portal",
-            "narrow",
-            "|",
-            "progress",
-            "mode",
-            QVariantMap{{"module", "page"}, {"at", 0.5}, {"anchor", "center"}}};
+        QList<QVariant> layout = {QVariantMap{
+            {"left", QVariantList{"session", "filename", "portal", "narrow"}},
+            {"center", "page"},
+            {"right", QVariantList{"progress", "mode"}}}};
 
         // @section statusbar.component
         // @section_desc {

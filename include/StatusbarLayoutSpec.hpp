@@ -23,6 +23,15 @@
 //   { spacer = 12 }            a gap of 12 px
 //   { stretch = 2 }            a flexible gap that takes twice the share
 //
+// Instead of a flat list the layout can be a table of sections:
+//
+//   { left = { "session", "filename" }, center = "page",
+//     right = { "progress", "mode" } }
+//
+// Each section is a module, or a list of items as above. They are placed
+// left, center, right with the free space shared between them. A list of such
+// tables is several rows.
+//
 // Options of a module or text: stretch, min_width, max_width, margin (a number
 // or {left, right}), align ("left" | "center" | "right"), and for absolute
 // placement `at` (0 to 1: the position along the bar) with `anchor` ("left" |
@@ -380,6 +389,60 @@ parseItem(const QVariant &value, Item &out, QStringList &warnings)
 inline QVariantList
 defaultLayout();
 
+// A table with `left`, `center` and/or `right` sections.
+inline bool
+isSections(const QVariant &v)
+{
+    if (v.typeId() != QMetaType::QVariantMap)
+        return false;
+    const QVariantMap map = v.toMap();
+    return map.contains("left") || map.contains("center")
+           || map.contains("right");
+}
+
+// The option as the list `parse` reads: a sections table is one row.
+inline QVariantList
+fromVariant(const QVariant &value)
+{
+    if (isList(value))
+        return value.toList();
+    if (value.typeId() == QMetaType::QVariantMap)
+        return {value};
+    return {};
+}
+
+// A sections table as the flat list of one row: left, a gap, center, a gap,
+// right.
+inline QVariantList
+sectionsToRow(const QVariantMap &map, QStringList &messages)
+{
+    static const QStringList known = {"left", "center", "right"};
+    for (auto it = map.constBegin(); it != map.constEnd(); ++it)
+        if (!known.contains(it.key()))
+            messages << QStringLiteral("unknown section \"%1\" in the "
+                                       "statusbar layout%2")
+                            .arg(it.key(), didYouMean(it.key(), known));
+
+    auto section = [&map](const char *key) -> QVariantList
+    {
+        const QVariant v = map.value(QString::fromLatin1(key));
+        if (!v.isValid())
+            return {};
+        return isList(v) ? v.toList() : QVariantList{v};
+    };
+
+    QVariantList row = section("left");
+    const QVariantList center = section("center");
+    if (!center.isEmpty())
+    {
+        row << QStringLiteral("|");
+        row += center;
+    }
+    row << QStringLiteral("|");
+    row += section("right");
+    return row;
+}
+
 // The whole option. Items that are not valid are left out (and reported in
 // `warnings`), a module that is listed twice is only placed the first time.
 inline Rows
@@ -388,7 +451,9 @@ parse(const QVariantList &layout, QStringList *warnings = nullptr)
     QStringList messages;
     Rows rows;
 
-    const bool multiRow = !layout.isEmpty() && isList(layout.first());
+    const bool multiRow = !layout.isEmpty()
+                          && (isList(layout.first())
+                              || isSections(layout.first()));
     QList<QVariantList> sources;
     if (multiRow)
     {
@@ -396,9 +461,12 @@ parse(const QVariantList &layout, QStringList *warnings = nullptr)
         {
             if (isList(row))
                 sources.append(row.toList());
+            else if (isSections(row))
+                sources.append(sectionsToRow(row.toMap(), messages));
             else
                 messages << QStringLiteral(
-                    "when the layout has rows, every row must be a list");
+                    "when the layout has rows, every row must be a list or "
+                    "a table of sections");
         }
     }
     else
@@ -471,13 +539,9 @@ parse(const QVariantList &layout, QStringList *warnings = nullptr)
 inline QVariantList
 defaultLayout()
 {
-    return {QStringLiteral("session"),
-            QStringLiteral("filename"),
-            QStringLiteral("portal"),
-            QStringLiteral("narrow"),
-            QStringLiteral("|"),
-            QStringLiteral("progress"),
-            QStringLiteral("mode"),
-            QVariantMap{{"module", "page"}, {"at", 0.5}, {"anchor", "center"}}};
+    return {QVariantMap{
+        {"left", QVariantList{"session", "filename", "portal", "narrow"}},
+        {"center", "page"},
+        {"right", QVariantList{"progress", "mode"}}}};
 }
 } // namespace statusbar_layout

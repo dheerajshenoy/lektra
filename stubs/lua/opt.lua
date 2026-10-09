@@ -203,8 +203,16 @@ lektra.opt.layout = {}
 ---@field at? number Place it at this position along the bar (0 to 1) instead of in the flow.
 ---@field anchor? "left"|"center"|"right" With `at`: which edge of the item is put at that position (default left).
 
+---@alias StatusbarSection StatusbarModule|StatusbarLayoutItem|(StatusbarModule|"|"|StatusbarLayoutItem)[]
+
+---The statusbar laid out in three sections, placed left, center, right. A section you leave out is empty.
+---@class StatusbarSections
+---@field left? StatusbarSection
+---@field center? StatusbarSection
+---@field right? StatusbarSection
+
 ---@class OptStatusbar
----@field layout? (StatusbarModule|"|"|StatusbarLayoutItem)[]|(StatusbarModule|"|"|StatusbarLayoutItem)[][] Which modules the statusbar shows and where: one list is one row, a list of lists is several rows. Items are placed left to right and the free space goes to the gaps. Example: `{"session", "filename", "|", {module = "page", at = 0.5, anchor = "center"}, "zoom", "progress", "mode"}`.
+---@field layout? StatusbarSections|StatusbarSections[]|(StatusbarModule|"|"|StatusbarLayoutItem)[]|(StatusbarModule|"|"|StatusbarLayoutItem)[][] Which modules the statusbar shows and where. Example: `{left = {"session", "filename"}, center = "page", right = {"progress", "mode"}}`. A list of such tables is several rows. A flat list also works (items go left to right, `"|"` takes the free space).
 ---@field padding? integer|integer[] Padding in pixels: one number for all four sides, or a four-element array `{left, top, right, bottom}`. Reading it gives the array.
 ---@field visible? boolean Whether the status bar is shown.
 ---@field components? OptStatusbarComponents Per-component visibility toggles.
