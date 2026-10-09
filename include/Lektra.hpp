@@ -372,6 +372,9 @@ private:
     // the actual inserted index. The Startup widget uses plain addTab
     // directly and does not go through this helper.
     int insertNewTab(QWidget *page, const QString &title) noexcept;
+    // A tab for `file` that is only opened when it is first shown
+    // (tabs.lazy_load).
+    void insertLazyTab(const QString &file) noexcept;
     void centerMouseInDocumentView(DocumentView *view) noexcept;
     DocumentView *findOpenView(const QString &path) const noexcept;
     void construct() noexcept;

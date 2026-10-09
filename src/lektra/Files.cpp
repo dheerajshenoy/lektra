@@ -139,6 +139,21 @@ Lektra::OpenFileInContainer(DocumentContainer *container,
 }
 
 void
+Lektra::insertLazyTab(const QString &file) noexcept
+{
+    auto *placeholder = new QWidget(this);
+    placeholder->setProperty("tabRole", "lazy");
+    placeholder->setProperty("filePath", file);
+    // No callback for plain multi-file open, but store an empty
+    // one so materialization code is uniform
+    placeholder->setProperty("callback", QVariant::fromValue(CallbackFn{}));
+
+    const QString title
+        = m_config.tabs.full_path ? file : QFileInfo(file).fileName();
+    insertNewTab(placeholder, title);
+}
+
+void
 Lektra::OpenFiles(const QStringList &files) noexcept
 {
     bool isFirst = true;
@@ -150,19 +165,7 @@ Lektra::OpenFiles(const QStringList &files) noexcept
         }
         else
         {
-            const QString filePath = file;
-            auto *placeholder      = new QWidget(this);
-            placeholder->setProperty("tabRole", "lazy");
-            placeholder->setProperty("filePath", filePath);
-            // No callback for plain multi-file open, but store an empty
-            // one so materialization code is uniform
-            placeholder->setProperty("callback",
-                                     QVariant::fromValue(CallbackFn{}));
-
-            const QString title = m_config.tabs.full_path
-                                      ? filePath
-                                      : QFileInfo(filePath).fileName();
-            insertNewTab(placeholder, title);
+            insertLazyTab(file);
         }
         isFirst = false;
     }
@@ -278,17 +281,7 @@ Lektra::OpenFilesInNewTab(const QStringList &files,
         }
         else
         {
-            auto *placeholder = new QWidget(this);
-            placeholder->setProperty("tabRole", "lazy");
-            placeholder->setProperty("filePath", file);
-            // No callback for plain multi-file open, but store an empty
-            // one so materialization code is uniform
-            placeholder->setProperty("callback",
-                                     QVariant::fromValue(CallbackFn{}));
-
-            const QString title
-                = m_config.tabs.full_path ? file : QFileInfo(file).fileName();
-            insertNewTab(placeholder, title);
+            insertLazyTab(file);
         }
         isFirst = false;
     }

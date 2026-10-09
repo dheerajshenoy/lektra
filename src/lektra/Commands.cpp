@@ -315,11 +315,18 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
                         gotoPage(pageOverride);
                     runCliCommands();
                 });
-                // Remaining files each open in their own tab; setting the
-                // current index back to 0 keeps the user on the first file
-                // so runCliCommands (which acts on m_doc) targets it.
+                // Remaining files each get a tab of their own, only opened
+                // when first shown if tabs.lazy_load is on (a shell glob can
+                // easily be hundreds of files); setting the current index
+                // back to 0 keeps the user on the first file so
+                // runCliCommands (which acts on m_doc) targets it.
                 for (int i = 1; i < qtFiles.size(); ++i)
-                    OpenFileInNewTab(qtFiles[i]);
+                {
+                    if (m_config.tabs.lazy_load)
+                        insertLazyTab(qtFiles[i]);
+                    else
+                        OpenFileInNewTab(qtFiles[i]);
+                }
                 if (qtFiles.size() > 1)
                     m_tab_widget->setCurrentIndex(0);
             }
