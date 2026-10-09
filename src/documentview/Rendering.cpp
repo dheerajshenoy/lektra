@@ -642,7 +642,7 @@ DocumentView::startNextRenderJob() noexcept
         m_model->requestPageRender(
             job,
             [self, pageno, dispatchZoom, dispatchKey,
-             cancelToken](const Model::PageRenderResult &result)
+             cancelToken](Model::PageRenderResult result)
         {
             if (!self)
                 return;

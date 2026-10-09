@@ -661,7 +661,9 @@ Model::requestPageRender(const RenderJob &job,
             return;
         }
 
-        PageRenderResult result = watcher->result();
+        // takeResult() moves the result out; result() would copy the link
+        // and annotation vectors.
+        PageRenderResult result = watcher->future().takeResult();
         watcher->deleteLater();
 
         const bool cancelled
