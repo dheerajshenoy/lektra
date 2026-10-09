@@ -692,19 +692,52 @@ TabBar::paintEvent(QPaintEvent *event)
     }
 }
 
+void
+TabBar::setTabWidthLimits(int minWidth, int maxWidth) noexcept
+{
+    m_min_tab_width = std::max(0, minWidth);
+    m_max_tab_width = std::max(0, maxWidth);
+    // (A maximum below the minimum would leave no valid size: the minimum wins.)
+    if (m_max_tab_width > 0 && m_max_tab_width < m_min_tab_width)
+        m_max_tab_width = m_min_tab_width;
+    updateGeometry();
+    update();
+}
+
 QSize
 TabBar::tabSizeHint(int index) const
 {
     QSize s = QTabBar::tabSizeHint(index);
 
-    const QTabBar::Shape sh = shape();
-    const bool isVertical
-        = (sh == QTabBar::RoundedWest || sh == QTabBar::RoundedEast
-           || sh == QTabBar::TriangularWest || sh == QTabBar::TriangularEast);
-    if (!isVertical)
-        return s;
+    if (!isHorizontal())
+        s.setHeight(s.height() + 50);
 
-    s.setHeight(s.height() + 50);
+    // The limits are along the tab bar: the width of a tab in a horizontal bar,
+    // its height in a vertical one.
+    const int extent = isHorizontal() ? s.width() : s.height();
+    int limited      = extent;
+    if (m_max_tab_width > 0)
+        limited = std::min(limited, m_max_tab_width);
+    if (m_min_tab_width > 0)
+        limited = std::max(limited, m_min_tab_width);
+    if (isHorizontal())
+        s.setWidth(limited);
+    else
+        s.setHeight(limited);
+    return s;
+}
+
+// The smallest a tab may be squeezed to when there is not room for all of them.
+QSize
+TabBar::minimumTabSizeHint(int index) const
+{
+    QSize s = QTabBar::minimumTabSizeHint(index);
+    if (m_min_tab_width <= 0)
+        return s;
+    if (isHorizontal())
+        s.setWidth(std::max(s.width(), m_min_tab_width));
+    else
+        s.setHeight(std::max(s.height(), m_min_tab_width));
     return s;
 }
 

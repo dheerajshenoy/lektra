@@ -642,6 +642,8 @@ Lektra::initConfig() noexcept
                 m_config.tabs.close_button_mode = CBM::All;
         }
         set(tabs["scroll_text_on_hover"], m_config.tabs.scroll_text_on_hover);
+        set(tabs["min_width"], m_config.tabs.min_width);
+        set(tabs["max_width"], m_config.tabs.max_width);
 
         if (auto str = tabs["elide_mode"])
         {

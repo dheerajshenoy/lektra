@@ -108,6 +108,10 @@ public:
     // back and forth so all of it can be read. Horizontal tab bars only.
     void setScrollTextOnHover(bool enabled) noexcept;
 
+    // Limits for the size of a tab along the tab bar, in pixels; 0 is no
+    // limit.
+    void setTabWidthLimits(int minWidth, int maxWidth) noexcept;
+
 signals:
     void tabDataRequested(int index, TabData *outData);
     void tabDropReceived(const TabData &data);
@@ -122,6 +126,7 @@ protected:
     void paintEvent(QPaintEvent *event) override;
     void leaveEvent(QEvent *event) override;
     QSize tabSizeHint(int index) const override;
+    QSize minimumTabSizeHint(int index) const override;
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;
     void dropEvent(QDropEvent *event) override;
@@ -153,6 +158,8 @@ private:
     int m_selection_anchor = -1;
 
     bool m_scroll_text_on_hover = false;
+    int m_min_tab_width         = 0;
+    int m_max_tab_width         = 0;
     int m_hover_tab             = -1;
     QTimer *m_scroll_timer      = nullptr; // repaints the scrolling tab
     QElapsedTimer m_scroll_clock;          // restarted when a tab is entered

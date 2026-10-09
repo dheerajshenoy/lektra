@@ -1494,6 +1494,20 @@ static const LuaField tabsFields[] = {
     else
         tabs->location = QTabWidget::North;
 }},
+    {"max_width",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Tabs *>(p)->max_width);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Tabs *>(p)->max_width = std::max<lua_Integer>(0, lua_tointeger(L, 3)); }},
+    {"min_width",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Tabs *>(p)->min_width);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Tabs *>(p)->min_width = std::max<lua_Integer>(0, lua_tointeger(L, 3)); }},
     {"movable",
      [](lua_State *L, P p)
 {

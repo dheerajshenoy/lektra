@@ -134,6 +134,8 @@ full_path  = false          # show the full file path in the tab label
 lazy_load  = true           # only materialise a tab's view when it becomes current
 open_position = "end"       # end | start | after_current
 scroll_text_on_hover = false  # scroll a title that does not fit while the mouse is over the tab
+min_width  = 0              # narrowest a tab may be, in pixels (0: no limit)
+max_width  = 0              # widest a tab may be, in pixels (0: no limit)
 
 
 # -----------------------------------------------------------------------------

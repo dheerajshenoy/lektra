@@ -292,6 +292,8 @@ lektra.opt.link_hints = {}
 ---@field full_path? boolean Display the full file path as the tab title.
 ---@field lazy_load? boolean Defer loading of background tabs until they are activated.
 ---@field location? TabsLocation Where the tab bar sits in the main window.
+---@field max_width? integer Widest a tab may be, in pixels along the tab bar (0: no limit).
+---@field min_width? integer Narrowest a tab may be, in pixels along the tab bar (0: no limit).
 ---@field movable? boolean Allow tabs to be dragged and reordered.
 ---@field open_position? TabsOpenPosition Where a newly opened tab is placed in the tab bar.
 ---@field scroll_text_on_hover? boolean Scroll a tab title that does not fit while the mouse is over the tab (tabs at the top or bottom).

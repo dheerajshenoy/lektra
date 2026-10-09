@@ -650,6 +650,16 @@
           "default": false,
           "description": "Scroll the title of a tab whose text does not fit while the mouse is over it, so the whole title can be read. Only for tabs at the top or bottom (since 0.8.0)"
         },
+        "min_width": {
+          "type": "integer",
+          "default": 0,
+          "description": "Narrowest a tab may be, in pixels (along the tab bar, so the height of a tab in a tab bar on the left or right). 0 means no limit (since 0.8.0)"
+        },
+        "max_width": {
+          "type": "integer",
+          "default": 0,
+          "description": "Widest a tab may be, in pixels (along the tab bar). A longer title is shortened to fit. 0 means no limit (since 0.8.0)"
+        },
         "elide_mode": {
           "type": "string",
           "enum": [

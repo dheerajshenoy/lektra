@@ -372,6 +372,9 @@ private:
     // the actual inserted index. The Startup widget uses plain addTab
     // directly and does not go through this helper.
     int insertNewTab(QWidget *page, const QString &title) noexcept;
+    // When >= 0, the next insertNewTab() puts its tab at exactly this index
+    // (used when a lazy tab is opened in the place of its placeholder).
+    int m_tab_insert_index = -1;
     // A tab for `file` that is only opened when it is first shown
     // (tabs.lazy_load).
     void insertLazyTab(const QString &file) noexcept;

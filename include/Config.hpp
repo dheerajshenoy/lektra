@@ -989,6 +989,24 @@ struct Config
         // @default false
         // @added 0.8.0
         bool scroll_text_on_hover = false;
+
+        // @desc {
+        // Narrowest a tab may be, in pixels (along the tab bar, so the height
+        // of a tab in a tab bar on the left or right). 0 means no limit
+        // }
+        // @type int
+        // @default 0
+        // @added 0.8.0
+        int min_width = 0;
+
+        // @desc {
+        // Widest a tab may be, in pixels (along the tab bar). A longer title
+        // is shortened to fit. 0 means no limit
+        // }
+        // @type int
+        // @default 0
+        // @added 0.8.0
+        int max_width = 0;
     } tabs;
     // @endsection
 
