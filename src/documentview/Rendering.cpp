@@ -1,5 +1,6 @@
 #include "DocumentView.hpp"
 #include "PageRange.hpp"
+#include "RenderTrace.hpp"
 
 #include <QFileInfo>
 #include <QImageReader>
@@ -623,6 +624,7 @@ DocumentView::startNextRenderJob() noexcept
                 return;
 
             DocumentView *view = self.data();
+            const double cbStart = rtrace::enabled() ? rtrace::nowMs() : 0.0;
 
             --view->m_render_slots_used;
 
@@ -640,6 +642,9 @@ DocumentView::startNextRenderJob() noexcept
                 // forget it so it can be requested again.
                 if (current)
                     view->m_pending_renders.remove(pageno);
+                view->traceRenderResult(pageno,
+                                        current ? "cancelled" : "superseded",
+                                        cbStart, result);
                 view->startNextRenderJob();
                 return;
             }
@@ -650,6 +655,7 @@ DocumentView::startNextRenderJob() noexcept
             // already queued fresh renders at the correct zoom.
             if (!qFuzzyCompare(dispatchZoom, view->m_current_zoom))
             {
+                view->traceRenderResult(pageno, "stale_zoom", cbStart, result);
                 view->startNextRenderJob();
                 return;
             }
@@ -698,6 +704,8 @@ DocumentView::startNextRenderJob() noexcept
                     if (!view->m_thumbnail_mode)
                         view->renderLinks(pageno, result.links);
                     view->m_gscene->blockSignals(false);
+                    view->traceRenderResult(pageno, "applied_preload", cbStart,
+                                            result);
                     view->startNextRenderJob();
                     return;
                 }
@@ -743,11 +751,42 @@ DocumentView::startNextRenderJob() noexcept
             else
             {
                 qWarning() << "Failed to render page" << pageno;
+                view->traceRenderResult(pageno, "null_image", cbStart, result);
+                view->startNextRenderJob();
+                return;
             }
 
+            view->traceRenderResult(pageno, "applied", cbStart, result);
             view->startNextRenderJob();
         },
             cancelToken);
+    }
+}
+
+// LEKTRA_RENDER_TRACE: one line per finished render (what happened to it, and
+// what it cost on the GUI thread), and one "settle" line when the last pending
+// render of a burst has finished.
+void
+DocumentView::traceRenderResult(int pageno, const char *outcome,
+                                double cbStartMs,
+                                const Model::PageRenderResult &result) noexcept
+{
+    if (!rtrace::enabled())
+        return;
+
+    rtrace::log("gui",
+                "page=%d outcome=%s cb_ms=%.2f render_ms=%.2f queue_ms=%.2f "
+                "cache_ms=%.2f",
+                pageno, outcome, rtrace::nowMs() - cbStartMs, result.render_ms,
+                result.queue_ms, result.cache_ms);
+
+    if (m_trace_burst_start >= 0 && m_pending_renders.isEmpty()
+        && m_inflight_renders.isEmpty() && m_visible_render_queue.isEmpty()
+        && m_render_queue.isEmpty())
+    {
+        rtrace::log("settle", "ms=%.2f requests=%d",
+                    rtrace::nowMs() - m_trace_burst_start, m_trace_requests);
+        m_trace_burst_start = -1;
     }
 }
 
@@ -1391,6 +1430,18 @@ DocumentView::requestPageRender(int pageno, bool force, bool visible) noexcept
     {
         it.value()->store(true, std::memory_order_release);
         m_inflight_renders.erase(it);
+    }
+
+    if (rtrace::enabled())
+    {
+        if (m_trace_burst_start < 0)
+        {
+            m_trace_burst_start = rtrace::nowMs();
+            m_trace_requests    = 0;
+        }
+        ++m_trace_requests;
+        rtrace::log("request", "page=%d visible=%d force=%d", pageno,
+                    visible ? 1 : 0, force ? 1 : 0);
     }
 
     m_pending_renders.insert(pageno);

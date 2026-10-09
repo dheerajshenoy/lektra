@@ -1065,6 +1065,12 @@ private:
     // Pool slots held by running tasks (cancelled ones included, until they
     // actually return).
     int m_render_slots_used = 0;
+    // LEKTRA_RENDER_TRACE: start of the current burst of render requests (-1
+    // when idle) and how many were made in it.
+    double m_trace_burst_start = -1;
+    int m_trace_requests       = 0;
+    void traceRenderResult(int pageno, const char *outcome, double cbStartMs,
+                           const Model::PageRenderResult &result) noexcept;
     QSet<int> m_placeholder_pages;
 
     // Render settings a page's current GraphicsImageItem was rendered with;

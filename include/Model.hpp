@@ -218,6 +218,10 @@ public:
         // Set when the render was skipped (document closing/reloading or
         // the caller cancelled it); `image` is null in that case.
         bool cancelled = false;
+        // Timing of the render, for LEKTRA_RENDER_TRACE (ms).
+        double queue_ms  = 0; // waiting for a worker thread
+        double cache_ms  = 0; // loading the page into the page cache
+        double render_ms = 0; // drawing it
         std::vector<RenderLink> links;
         std::vector<RenderAnnotation> annotations;
     };

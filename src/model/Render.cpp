@@ -3,6 +3,7 @@
 #include "Config.hpp"
 #include "ImageAnimation.hpp"
 #include "Model.hpp"
+#include "RenderTrace.hpp"
 #include "utils.hpp"
 
 #include <QFile>
@@ -661,8 +662,15 @@ Model::requestPageRender(const RenderJob &job,
         {
             if (cancelled)
             {
-                result           = {};
-                result.cancelled = true;
+                // Keep what the render cost, for LEKTRA_RENDER_TRACE.
+                const double queue_ms  = result.queue_ms;
+                const double cache_ms  = result.cache_ms;
+                const double render_ms = result.render_ms;
+                result                 = {};
+                result.cancelled       = true;
+                result.queue_ms        = queue_ms;
+                result.cache_ms        = cache_ms;
+                result.render_ms       = render_ms;
             }
             callback(std::move(result));
         }
@@ -683,9 +691,12 @@ Model::requestPageRender(const RenderJob &job,
         }
     });
 
+    const double requestedAt = rtrace::enabled() ? rtrace::nowMs() : 0.0;
     auto future = QtConcurrent::run(&m_render_pool,
-                                    [this, job, cancel]() -> PageRenderResult
+                                    [this, job, cancel,
+                                     requestedAt]() -> PageRenderResult
     {
+        const double startedAt = rtrace::enabled() ? rtrace::nowMs() : 0.0;
         m_active_renders.fetch_add(1, std::memory_order_relaxed);
 
         struct Guard
@@ -708,9 +719,25 @@ Model::requestPageRender(const RenderJob &job,
             return {};
 
         ensurePageCached(job.pageno);
+        const double cachedAt = rtrace::enabled() ? rtrace::nowMs() : 0.0;
         if (aborted())
             return {};
-        return renderPageWithExtrasAsync(job, cancel);
+        PageRenderResult result = renderPageWithExtrasAsync(job, cancel);
+        if (rtrace::enabled())
+        {
+            const double doneAt = rtrace::nowMs();
+            result.queue_ms     = startedAt - requestedAt;
+            result.cache_ms     = cachedAt - startedAt;
+            result.render_ms    = doneAt - cachedAt;
+            rtrace::log("worker",
+                        "page=%d queue_ms=%.2f cache_ms=%.2f render_ms=%.2f "
+                        "w=%d h=%d partial=%d zoom=%.3f",
+                        job.pageno, result.queue_ms, result.cache_ms,
+                        result.render_ms, result.image.width(),
+                        result.image.height(), result.partial ? 1 : 0,
+                        static_cast<double>(job.zoom));
+        }
+        return result;
     });
 
     watcher->setFuture(future); // no synchronizer, just the watcher
