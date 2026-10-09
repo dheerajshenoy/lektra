@@ -23,6 +23,17 @@ documents, the same machine and nothing else heavy running. A real window
 needs a display; `--offscreen` works without one but leaves out the paint
 cost, so it cannot show the effect of a pixel-format change.
 
+## Show saved results
+
+```
+python3 scripts/bench/show_render_bench.py before.json after1.json after2.json
+```
+
+One table per document and scenario, a column per file, and from the second
+file on a change column against the first. Lower is better for every metric, so
+a negative change is an improvement. `--only A,B`, `--doc NAME` and
+`--metrics wasted_ms,settle_ms` narrow the output.
+
 ## Scenarios
 
 | | does | exercises |
