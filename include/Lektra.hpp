@@ -314,6 +314,10 @@ public:
     void SplitsToWindows() noexcept;
     void SplitsToTabs() noexcept;
     void ToggleLaserPointerCursor() noexcept;
+    inline Picker::Keybindings &pickerKeybindings() noexcept
+    {
+        return m_picker_keybinds;
+    }
 
 protected:
     void resizeEvent(QResizeEvent *event) override;

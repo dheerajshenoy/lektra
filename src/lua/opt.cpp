@@ -3,6 +3,7 @@
 #include "Lektra.hpp"
 #include "utils.hpp"
 
+#include <QKeySequence>
 #include <cmath>
 #include <cstring>
 #include <lauxlib.h>
@@ -1627,6 +1628,83 @@ static const LuaField pickerFields[] = {
 // through `->shadow.<field>`, which read at offset(shadow) into memory PAST the
 // actual shadow object — same UB pattern as the earlier annotPopupFields bug.
 // The cast is now correct.
+// --- picker.keys ---
+// Each action takes one key ("Up") or a list of them ({"Up", "Ctrl+P"}),
+// in the same notation as [picker.keys] in config.toml.
+static int
+pushKeyList(lua_State *L, const QList<QKeyCombination> &keys)
+{
+    lua_newtable(L);
+    int i = 1;
+    for (const QKeyCombination &kc : keys)
+    {
+        const QString text
+            = QKeySequence(kc).toString(QKeySequence::PortableText);
+        lua_pushstring(L, text.toUtf8().constData());
+        lua_rawseti(L, -2, i++);
+    }
+    return 1;
+}
+
+static void
+readKeyList(lua_State *L, int idx, QList<QKeyCombination> &keys)
+{
+    auto parse = [L](const char *text) -> QKeyCombination
+    {
+        const QKeySequence seq = QKeySequence::fromString(
+            QString::fromUtf8(text), QKeySequence::PortableText);
+        if (seq.isEmpty())
+            luaL_error(L, "picker.keys: '%s' is not a key", text);
+        return seq[0];
+    };
+
+    QList<QKeyCombination> out;
+    if (lua_type(L, idx) == LUA_TSTRING)
+        out << parse(lua_tostring(L, idx));
+    else if (lua_istable(L, idx))
+    {
+        const lua_Integer n = luaL_len(L, idx);
+        for (lua_Integer i = 1; i <= n; ++i)
+        {
+            lua_rawgeti(L, idx, i);
+            if (lua_type(L, -1) != LUA_TSTRING)
+                luaL_error(L, "picker.keys: keys are strings like \"Ctrl+K\"");
+            out << parse(lua_tostring(L, -1));
+            lua_pop(L, 1);
+        }
+    }
+    else
+        luaL_error(L, "picker.keys: expected a key or a list of keys");
+
+    if (out.isEmpty())
+        luaL_error(L, "picker.keys: at least one key is needed");
+    keys = out;
+}
+
+#define PICKER_KEY_FIELD(NAME, MEMBER)                                         \
+    {NAME,                                                                     \
+     [](lua_State *L, P p)                                                     \
+{ return pushKeyList(L, static_cast<Picker::Keybindings *>(p)->MEMBER); },     \
+     [](lua_State *L, P p)                                                     \
+{ readKeyList(L, 3, static_cast<Picker::Keybindings *>(p)->MEMBER); }}
+
+// Alphabetical order required — findField uses binary search.
+static const LuaField pickerKeyFields[] = {
+    PICKER_KEY_FIELD("accept", accept),
+    PICKER_KEY_FIELD("collapse", collapse),
+    PICKER_KEY_FIELD("dismiss", dismiss),
+    PICKER_KEY_FIELD("down", moveDown),
+    PICKER_KEY_FIELD("expand", expand),
+    PICKER_KEY_FIELD("history_next", historyNext),
+    PICKER_KEY_FIELD("history_prev", historyPrev),
+    PICKER_KEY_FIELD("page_down", pageDown),
+    PICKER_KEY_FIELD("page_up", pageUp),
+    PICKER_KEY_FIELD("section_next", sectionNext),
+    PICKER_KEY_FIELD("section_prev", sectionPrev),
+    PICKER_KEY_FIELD("toggle_structure_mode", toggleStructureMode),
+    PICKER_KEY_FIELD("up", moveUp),
+};
+
 static const LuaField pickerShadowFields[] = {
     {"blur_radius",
      [](lua_State *L, P p)
@@ -2876,6 +2954,9 @@ buildOptTable(lua_State *L, const OptScope &scope)
         pushSection(L, scope, &config.picker.shadow, pickerShadowFields,
                     "picker");
         addChild(L, picker_idx, "shadow");
+        pushSection(L, scope, &scope.lektra->pickerKeybindings(),
+                    pickerKeyFields, "picker");
+        addChild(L, picker_idx, "keys");
         addChild(L, opt_idx, "picker");
     }
 

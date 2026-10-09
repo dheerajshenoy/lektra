@@ -206,6 +206,7 @@ lua_ui_picker(lua_State *L, Lektra *lektra)
 
     Config::Picker config;
     auto *picker = new LuaPicker(config, lektra);
+    picker->setKeybindings(lektra->pickerKeybindings());
     picker->setColumns(col_defs);
     picker->setStructureMode(flat ? Picker::StructureMode::Flat
                                   : Picker::StructureMode::Hierarchical);

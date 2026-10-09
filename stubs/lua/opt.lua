@@ -304,6 +304,23 @@ lektra.opt.tabs = {}
 ---@field offset_y? integer Vertical shadow offset in pixels.
 ---@field opacity? integer Shadow opacity (0–255).
 
+---@alias PickerKeys string|string[] One key (`"Up"`) or a list of keys (`{"Up", "Ctrl+P"}`).
+
+---@class OptPickerKeys
+---@field accept? PickerKeys Accept the selected row.
+---@field collapse? PickerKeys Collapse the selected row.
+---@field dismiss? PickerKeys Close the picker.
+---@field down? PickerKeys Move the selection down.
+---@field expand? PickerKeys Expand the selected row.
+---@field history_next? PickerKeys Next search in the picker history.
+---@field history_prev? PickerKeys Previous search in the picker history.
+---@field page_down? PickerKeys Move the selection a page down.
+---@field page_up? PickerKeys Move the selection a page up.
+---@field section_next? PickerKeys Jump to the next section.
+---@field section_prev? PickerKeys Jump to the previous section.
+---@field toggle_structure_mode? PickerKeys Switch between the tree and the flat list.
+---@field up? PickerKeys Move the selection up.
+
 ---@class OptPicker
 ---@field width? number Picker widget width (as a fraction of the window or in pixels).
 ---@field height? number Picker widget height.
@@ -311,11 +328,14 @@ lektra.opt.tabs = {}
 ---@field alternating_row_color? boolean Alternate row background colors in the picker list.
 ---@field prompt? string Placeholder text shown in the picker's search box.
 ---@field shadow? OptPickerShadow Drop-shadow sub-table.
+---@field keys? OptPickerKeys Keys used in every picker (same actions as `[picker.keys]` in config.toml). The arrow keys always work.
 ---@field highlight_matches? boolean Highlight the typed text in matching picker rows.
 ---@field highlight_matches_color? string|integer Color of the match highlight (0xRRGGBBAA or "#RRGGBBAA").
 lektra.opt.picker = {
     ---@type OptPickerShadow
     shadow = {},
+    ---@type OptPickerKeys
+    keys = {},
 }
 
 ---@class OptOutline

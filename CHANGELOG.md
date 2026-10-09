@@ -12,6 +12,7 @@
 
 #### Options
 
+- The picker keys can now be set from Lua: `lektra.opt.picker.keys.down = {"Down", "Ctrl+N"}` (the same actions as `[picker.keys]`). The arrow keys always move the selection in pickers.
 - Options of a view now work as in Vim: `lektra.opt.<section>.<key>` is `:set` (the default and the current view), the new `lektra.opt_global` is `:setglobal` (only the default), `view:opt()` is `:setlocal` (only that view), and the new `view:opt_reset([section])` is `:setlocal opt<` (back to what a new view would have). A new split still starts with a copy of the options of the view it was made from.
 
 #### Tabs and views
