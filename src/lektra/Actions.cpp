@@ -616,6 +616,34 @@ Lektra::ToggleHighContrast() noexcept
         m_actionHighContrast->setChecked(on);
 }
 
+// Toggle text squiggly mode
+void
+Lektra::ToggleTextSquiggly() noexcept
+{
+    if (m_doc)
+    {
+        if (m_doc->fileType() == Model::FileType::PDF)
+            m_doc->ToggleTextSquiggly();
+        else
+            QMessageBox::information(this, tr("Toggle Text Squiggly"),
+                                     tr("Not a PDF file to annotate"));
+    }
+}
+
+// Toggle text strikeout mode
+void
+Lektra::ToggleTextStrikeOut() noexcept
+{
+    if (m_doc)
+    {
+        if (m_doc->fileType() == Model::FileType::PDF)
+            m_doc->ToggleTextStrikeOut();
+        else
+            QMessageBox::information(this, tr("Toggle Text Strikeout"),
+                                     tr("Not a PDF file to annotate"));
+    }
+}
+
 // Toggle text underline mode
 void
 Lektra::ToggleTextUnderline() noexcept
@@ -1028,6 +1056,22 @@ Lektra::TextUnderlineCurrentSelection() noexcept
 {
     if (m_doc)
         m_doc->handleTextUnderlineRequested();
+}
+
+// squiggly annotation for the current selection
+void
+Lektra::TextSquigglyCurrentSelection() noexcept
+{
+    if (m_doc)
+        m_doc->handleTextSquigglyRequested();
+}
+
+// strikeout annotation for the current selection
+void
+Lektra::TextStrikeOutCurrentSelection() noexcept
+{
+    if (m_doc)
+        m_doc->handleTextStrikeOutRequested();
 }
 
 bool

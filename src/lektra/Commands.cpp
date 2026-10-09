@@ -776,6 +776,10 @@ Lektra::initCommands() noexcept
     m_command_manager->reg(
         "annot_underline_mode", tr("Toggle text underline mode"),
         [this](const QStringList &) { ToggleTextUnderline(); });
+    m_command_manager->reg("annot_squiggly_mode", tr("Toggle text squiggly underline mode"),
+                           [this](const QStringList &) { ToggleTextSquiggly(); });
+    m_command_manager->reg("annot_strikeout_mode", tr("Toggle text strikeout mode"),
+                           [this](const QStringList &) { ToggleTextStrikeOut(); });
     m_command_manager->reg("none_mode", tr("Toggle none interaction mode"),
                            [this](const QStringList &) { ToggleNoneMode(); });
 
@@ -1061,6 +1065,12 @@ Lektra::initCommands() noexcept
     m_command_manager->reg(
         "underline_selection", tr("Underline current text selection"),
         [this](const QStringList &) { TextUnderlineCurrentSelection(); });
+    m_command_manager->reg(
+        "squiggly_selection", tr("Squiggly underline current text selection"),
+        [this](const QStringList &) { TextSquigglyCurrentSelection(); });
+    m_command_manager->reg(
+        "strikeout_selection", tr("Strikeout current text selection"),
+        [this](const QStringList &) { TextStrikeOutCurrentSelection(); });
     m_command_manager->reg(
         "high_contrast", tr("Toggle high-contrast tone stretch"),
         [this](const QStringList &) { ToggleHighContrast(); });

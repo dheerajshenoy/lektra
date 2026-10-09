@@ -45,12 +45,26 @@ public:
 
     void redo() override
     {
-        m_objNum
-            = m_kind == Model::TextMarkup::Underline
-                  ? m_model->addUnderlineAnnotation(m_pageno, m_quads, m_color,
-                                                    m_comment)
-                  : m_model->addHighlightAnnotation(m_pageno, m_quads, m_color,
-                                                    m_comment);
+        switch (m_kind)
+        {
+            case Model::TextMarkup::Underline:
+                m_objNum = m_model->addUnderlineAnnotation(m_pageno, m_quads,
+                                                           m_color, m_comment);
+                break;
+            case Model::TextMarkup::Squiggly:
+                m_objNum = m_model->addMarkupAnnotation(
+                    m_pageno, PDF_ANNOT_SQUIGGLY, m_quads, m_color, m_comment);
+                break;
+            case Model::TextMarkup::StrikeOut:
+                m_objNum = m_model->addMarkupAnnotation(
+                    m_pageno, PDF_ANNOT_STRIKE_OUT, m_quads, m_color,
+                    m_comment);
+                break;
+            default:
+                m_objNum = m_model->addHighlightAnnotation(
+                    m_pageno, m_quads, m_color, m_comment);
+                break;
+        }
     }
 
 private:

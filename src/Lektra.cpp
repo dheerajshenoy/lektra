@@ -663,6 +663,10 @@ Lektra::modeColorChangeRequested(const GraphicsView::Mode mode) noexcept
             model->setHighlightColor(color);
         else if (mode == GraphicsView::Mode::TextUnderline)
             model->setUnderlineColor(color);
+        else if (mode == GraphicsView::Mode::TextSquiggly)
+            model->setSquigglyColor(color);
+        else if (mode == GraphicsView::Mode::TextStrikeOut)
+            model->setStrikeOutColor(color);
         else if (mode == GraphicsView::Mode::TextSelection)
             model->setSelectionColor(color);
         else if (mode == GraphicsView::Mode::AnnotPopup)

@@ -39,6 +39,15 @@ public:
                     d.objNum = m_model->addHighlightAnnotation(
                         m_pageno, d.quads, color, d.contents);
                     break;
+                case PDF_ANNOT_UNDERLINE:
+                    d.objNum = m_model->addUnderlineAnnotation(
+                        m_pageno, d.quads, color, d.contents);
+                    break;
+                case PDF_ANNOT_SQUIGGLY:
+                case PDF_ANNOT_STRIKE_OUT:
+                    d.objNum = m_model->addMarkupAnnotation(
+                        m_pageno, d.type, d.quads, color, d.contents);
+                    break;
                 case PDF_ANNOT_SQUARE:
                     d.objNum = m_model->addRectAnnotation(m_pageno, d.rect,
                                                           d.contents);
@@ -124,6 +133,9 @@ private:
                 switch (d.type)
                 {
                     case PDF_ANNOT_HIGHLIGHT:
+                    case PDF_ANNOT_UNDERLINE:
+                    case PDF_ANNOT_SQUIGGLY:
+                    case PDF_ANNOT_STRIKE_OUT:
                         pdf_annot_color(ctx, a, &n, d.color);
                         d.color[3] = d.opacity;
                         for (int i = 0, c = pdf_annot_quad_point_count(ctx, a);

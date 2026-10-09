@@ -531,6 +531,8 @@ public:
     void renderPage() noexcept;
     void handleTextHighlightRequested() noexcept;
     void handleTextUnderlineRequested() noexcept;
+    void handleTextSquigglyRequested() noexcept;
+    void handleTextStrikeOutRequested() noexcept;
     void markSelectedText(Model::TextMarkup kind) noexcept;
     void handleTextCommentRequested() noexcept;
     void setFitMode(FitMode mode) noexcept;
@@ -644,6 +646,8 @@ public:
     }
     void ToggleTextHighlight() noexcept;
     void ToggleTextUnderline() noexcept;
+    void ToggleTextSquiggly() noexcept;
+    void ToggleTextStrikeOut() noexcept;
     void ToggleRegionSelect() noexcept;
     void ToggleAnnotRect() noexcept;
     void ToggleAnnotEllipse() noexcept;

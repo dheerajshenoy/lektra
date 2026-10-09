@@ -715,6 +715,8 @@ DocumentView::renderAnnotations(
             break;
 
             case PDF_ANNOT_UNDERLINE:
+            case PDF_ANNOT_SQUIGGLY:
+            case PDF_ANNOT_STRIKE_OUT:
             {
                 // The underline itself is in the page's appearance; this item
                 // only gives it hover, comment and selection, as a highlight

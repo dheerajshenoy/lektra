@@ -139,6 +139,13 @@ GraphicsView::clearRubberBand() noexcept
 }
 
 bool
+GraphicsView::isTextMarkupMode() const noexcept
+{
+    return m_mode == Mode::TextHighlight || m_mode == Mode::TextUnderline
+           || m_mode == Mode::TextSquiggly || m_mode == Mode::TextStrikeOut;
+}
+
+bool
 GraphicsView::isRubberBandAnnotMode() const noexcept
 {
     return m_mode == Mode::AnnotRect || m_mode == Mode::AnnotEllipse
@@ -188,8 +195,7 @@ GraphicsView::updateCursorForMode() noexcept
              << "mode:" << static_cast<int>(m_mode);
 #endif
     if (m_selecting
-        && (m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight
-            || m_mode == Mode::TextUnderline))
+        && (m_mode == Mode::TextSelection || isTextMarkupMode()))
     {
         setCursor(Qt::IBeamCursor);
     }
@@ -228,6 +234,8 @@ GraphicsView::setMode(Mode mode) noexcept
         case Mode::TextSelection:
         case Mode::TextHighlight:
         case Mode::TextUnderline:
+        case Mode::TextSquiggly:
+        case Mode::TextStrikeOut:
             emit textSelectionDeletionRequested();
             break;
 
@@ -273,7 +281,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
     // on any page content (gutters, background) before asking the model.
     if (event->button() == Qt::LeftButton && m_imageDragProvider
         && (m_mode == Mode::None || m_mode == Mode::TextSelection
-            || m_mode == Mode::TextHighlight || m_mode == Mode::TextUnderline)
+            || isTextMarkupMode())
         && itemAt(event->pos()))
     {
         const QImage img = m_imageDragProvider(mapToScene(event->pos()));
@@ -334,8 +342,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
     // Checked before the generic non-left-button early return so that middle
     // click (and other explicit link actions) are caught even when the button
     // has no configured MouseAction binding.
-    if (m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight
-        || m_mode == Mode::TextUnderline)
+    if (m_mode == Mode::TextSelection || isTextMarkupMode())
     {
         if (QGraphicsItem *item = itemAt(event->pos()))
         {
@@ -388,6 +395,8 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
 
         case Mode::TextHighlight:
         case Mode::TextUnderline:
+        case Mode::TextSquiggly:
+        case Mode::TextStrikeOut:
         {
             m_selecting       = true;
             m_mousePressPos   = scenePos;
@@ -504,8 +513,7 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
     }
 
     // If we are selecting text/highlight, throttle signals
-    if ((m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight
-         || m_mode == Mode::TextUnderline)
+    if ((m_mode == Mode::TextSelection || isTextMarkupMode())
         && m_selecting)
     {
         // After a double/triple click the word/line is already selected: a
@@ -541,8 +549,7 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
             = std::clamp(event->pos().y(), 0, vpRect.height() - 1);
         const QPointF scenePos = mapToScene(QPoint(clampedX, clampedY));
 
-        if (m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight
-            || m_mode == Mode::TextUnderline)
+        if (m_mode == Mode::TextSelection || isTextMarkupMode())
             emit textSelectionRequested(m_selection_start, scenePos);
 
         event->accept();
@@ -659,8 +666,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     const bool isDrag      = dist > m_drag_threshold;
 
     // Handle Text Selection / Highlighting Modes
-    if (m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight
-        || m_mode == Mode::TextUnderline)
+    if (m_mode == Mode::TextSelection || isTextMarkupMode())
     {
         updateCursorForMode();
 
@@ -679,6 +685,10 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
             emit textSelectionRequested(m_selection_start, scenePos);
             if (m_mode == Mode::TextUnderline)
                 emit textUnderlineRequested(m_selection_start, scenePos);
+            else if (m_mode == Mode::TextSquiggly)
+                emit textSquigglyRequested(m_selection_start, scenePos);
+            else if (m_mode == Mode::TextStrikeOut)
+                emit textStrikeOutRequested(m_selection_start, scenePos);
             else
                 emit textHighlightRequested(m_selection_start, scenePos);
         }
@@ -1014,8 +1024,7 @@ void
 GraphicsView::applyAutoScroll() noexcept
 {
     if (!m_selecting
-        || (m_mode != Mode::TextSelection && m_mode != Mode::TextHighlight
-            && m_mode != Mode::TextUnderline))
+        || (m_mode != Mode::TextSelection && !isTextMarkupMode()))
     {
         stopAutoScroll();
         return;

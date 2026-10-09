@@ -480,6 +480,10 @@ DocumentView::initConnections() noexcept
                 &DocumentView::handleTextHighlightRequested);
         connect(m_gview, &GraphicsView::textUnderlineRequested, this,
                 &DocumentView::handleTextUnderlineRequested);
+        connect(m_gview, &GraphicsView::textSquigglyRequested, this,
+                &DocumentView::handleTextSquigglyRequested);
+        connect(m_gview, &GraphicsView::textStrikeOutRequested, this,
+                &DocumentView::handleTextStrikeOutRequested);
     }
 
     connect(m_gview, &GraphicsView::zoomInRequested, this,

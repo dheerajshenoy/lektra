@@ -1159,6 +1159,72 @@ Model::addUnderlineAnnotation(const int pageno,
 }
 
 int
+Model::addMarkupAnnotation(const int pageno, const enum pdf_annot_type type,
+                           const std::vector<fz_quad> &quads,
+                           const QColor &color, const QString &content) noexcept
+{
+    int objNum{-1};
+    if (quads.empty())
+        return objNum;
+
+    pdf_annot *annot = nullptr;
+    pdf_page *page   = nullptr;
+
+    // Held across the try, so that an error thrown inside cannot skip the
+    // release.
+    std::unique_lock<std::mutex> lock(m_doc_mutex);
+
+    fz_try(m_ctx)
+    {
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        annot = pdf_create_annot(m_ctx, page, type);
+        if (!annot)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to create annotation");
+
+        pdf_set_annot_quad_points(m_ctx, annot, quads.size(), &quads[0]);
+
+        const QColor &preset = type == PDF_ANNOT_SQUIGGLY ? m_squiggly_color
+                                                          : m_strikeout_color;
+        const QColor c
+            = color.isValid() ? color
+                              : (preset.isValid() ? preset : QColor(Qt::red));
+        const float mucolor[3] = {static_cast<float>(c.redF()),
+                                  static_cast<float>(c.greenF()),
+                                  static_cast<float>(c.blueF())};
+        pdf_set_annot_color(m_ctx, annot, 3, mucolor);
+        pdf_set_annot_opacity(m_ctx, annot, static_cast<float>(c.alphaF()));
+        pdf_set_annot_contents(m_ctx, annot, content.toUtf8().constData());
+
+        pdf_update_annot(m_ctx, annot);
+        pdf_update_page(m_ctx, page);
+
+        if (pdf_obj *obj = pdf_annot_obj(m_ctx, annot))
+            objNum = pdf_to_num(m_ctx, obj);
+    }
+    fz_always(m_ctx)
+    {
+        pdf_drop_annot(m_ctx, annot);
+        pdf_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Adding the markup failed:" << fz_caught_message(m_ctx);
+        return objNum;
+    }
+    lock.unlock();
+
+    if (objNum >= 0)
+    {
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
+    }
+    return objNum;
+}
+
+int
 Model::addHighlightAnnotation(const int pageno,
                               const std::vector<fz_quad> &quads,
                               const QColor &color,
@@ -1987,6 +2053,8 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
                 case PDF_ANNOT_TEXT:
                 case PDF_ANNOT_HIGHLIGHT:
                 case PDF_ANNOT_UNDERLINE:
+                case PDF_ANNOT_SQUIGGLY:
+                case PDF_ANNOT_STRIKE_OUT:
                     pdf_set_annot_color(m_ctx, annot, 3, rgb);
                     break;
                 default:
@@ -2052,6 +2120,8 @@ Model::getAnnotColor(const int pageno, const int objNum) noexcept
                 case PDF_ANNOT_TEXT:
                 case PDF_ANNOT_HIGHLIGHT:
                 case PDF_ANNOT_UNDERLINE:
+                case PDF_ANNOT_SQUIGGLY:
+                case PDF_ANNOT_STRIKE_OUT:
                     pdf_annot_color(m_ctx, annot, &n, rgb);
                     break;
                 default:

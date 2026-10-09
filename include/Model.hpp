@@ -742,6 +742,16 @@ public:
     {
         m_underline_color = color;
     }
+    // Colour of the squiggly underlines and strikeouts made from now on
+    // (default: red).
+    void setSquigglyColor(const QColor &color) noexcept
+    {
+        m_squiggly_color = color;
+    }
+    void setStrikeOutColor(const QColor &color) noexcept
+    {
+        m_strikeout_color = color;
+    }
     void setSelectionColor(const QColor &color) noexcept;
     void setAnnotRectColor(const QColor &color) noexcept;
     bool SaveChanges() noexcept;
@@ -761,7 +771,9 @@ public:
     enum class TextMarkup
     {
         Highlight,
-        Underline
+        Underline,
+        Squiggly,
+        StrikeOut
     };
     void highlight_text_selection(int pageno, QPointF start, QPointF end,
                                   const QString &comment = {},
@@ -1054,6 +1066,13 @@ private:
                            const QColor &color    = QColor(),
                            const QString &content = {}) noexcept;
     void writeUnderlineAppearance(pdf_annot *annot) noexcept;
+    // A squiggly underline (SQUIGGLY) or a strikeout (STRIKE_OUT), drawn the
+    // way MuPDF does.
+    [[nodiscard]] int addMarkupAnnotation(const int pageno,
+                                          const enum pdf_annot_type type,
+                                          const std::vector<fz_quad> &quads,
+                                          const QColor &color    = QColor(),
+                                          const QString &content = {}) noexcept;
     [[nodiscard]] int addTextAnnotation(const int pageno, const fz_rect &rect,
                                         const QString &text) noexcept;
     void removeAnnotations(const int pageno,
@@ -1074,6 +1093,8 @@ private:
     [[nodiscard]] QString fileSizeToString() const noexcept;
     QUndoStack *m_undo_stack = nullptr;
     QColor m_underline_color; // invalid: use annotations.underline.color
+    QColor m_squiggly_color;  // invalid: red
+    QColor m_strikeout_color; // invalid: red
     // std::optional<std::wstring>
     // get_paper_name_at_position(const int pageno, const fz_point) noexcept;
 

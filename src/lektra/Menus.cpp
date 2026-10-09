@@ -328,6 +328,20 @@ Lektra::initMenubar() noexcept
     m_actionTextUnderline->setCheckable(true);
     modeActionGroup->addAction(m_actionTextUnderline);
 
+    m_actionTextSquiggly = m_modeMenu->addAction(
+        tr("Text Squiggly\t%1")
+            .arg(m_config.keybinds["annot_squiggly_mode"].join(", ")),
+        this, &Lektra::ToggleTextSquiggly);
+    m_actionTextSquiggly->setCheckable(true);
+    modeActionGroup->addAction(m_actionTextSquiggly);
+
+    m_actionTextStrikeOut = m_modeMenu->addAction(
+        tr("Text Strikeout\t%1")
+            .arg(m_config.keybinds["annot_strikeout_mode"].join(", ")),
+        this, &Lektra::ToggleTextStrikeOut);
+    m_actionTextStrikeOut->setCheckable(true);
+    modeActionGroup->addAction(m_actionTextStrikeOut);
+
     m_actionAnnotRect = m_modeMenu->addAction(
         tr("Annotate Rectangle\t%1")
             .arg(m_config.keybinds["annot_rect_mode"].join(", ")),
@@ -397,6 +411,12 @@ Lektra::initMenubar() noexcept
             break;
         case GraphicsView::Mode::TextUnderline:
             m_actionTextUnderline->setChecked(true);
+            break;
+        case GraphicsView::Mode::TextSquiggly:
+            m_actionTextSquiggly->setChecked(true);
+            break;
+        case GraphicsView::Mode::TextStrikeOut:
+            m_actionTextStrikeOut->setChecked(true);
             break;
         case GraphicsView::Mode::AnnotSelect:
             m_actionAnnotEdit->setChecked(true);
@@ -617,6 +637,10 @@ Lektra::initMenubar() noexcept
         th("format-text-color", QStyle::SP_FileDialogListView));
     m_actionTextUnderline->setIcon(
         th("format-text-underline", QStyle::SP_FileDialogListView));
+    m_actionTextSquiggly->setIcon(
+        th("format-text-underline", QStyle::SP_FileDialogListView));
+    m_actionTextStrikeOut->setIcon(
+        th("format-text-strikethrough", QStyle::SP_FileDialogListView));
     m_actionAnnotRect->setIcon(
         th("draw-rectangle", QStyle::SP_FileDialogContentsView));
     m_actionAnnotEllipse->setIcon(
@@ -718,6 +742,8 @@ Lektra::updateUiEnabledState() noexcept
     setAdvancedVisible(m_actionRegionSelect);
     setAdvancedVisible(m_actionTextHighlight);
     setAdvancedVisible(m_actionTextUnderline);
+    setAdvancedVisible(m_actionTextSquiggly);
+    setAdvancedVisible(m_actionTextStrikeOut);
     setAdvancedVisible(m_actionAnnotRect);
     setAdvancedVisible(m_actionAnnotEllipse);
     setAdvancedVisible(m_actionAnnotPolygon);
@@ -792,6 +818,8 @@ Lektra::updateUiEnabledState() noexcept
     m_actionAnnotPopup->setEnabled(isPDF);
     m_actionTextHighlight->setEnabled(isPDF);
     m_actionTextUnderline->setEnabled(isPDF);
+    m_actionTextSquiggly->setEnabled(isPDF);
+    m_actionTextStrikeOut->setEnabled(isPDF);
     m_actionFileProperties->setEnabled(hasFile);
 
     // Undo/Redo reset
@@ -1028,6 +1056,12 @@ Lektra::updateSelectionModeActions() noexcept
             break;
         case GraphicsView::Mode::TextUnderline:
             m_actionTextUnderline->setChecked(true);
+            break;
+        case GraphicsView::Mode::TextSquiggly:
+            m_actionTextSquiggly->setChecked(true);
+            break;
+        case GraphicsView::Mode::TextStrikeOut:
+            m_actionTextStrikeOut->setChecked(true);
             break;
         case GraphicsView::Mode::AnnotSelect:
             m_actionAnnotEdit->setChecked(true);

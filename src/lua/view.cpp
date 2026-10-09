@@ -164,6 +164,12 @@ annotTypeName(enum pdf_annot_type type)
     {
         case PDF_ANNOT_HIGHLIGHT:
             return "highlight";
+        case PDF_ANNOT_UNDERLINE:
+            return "underline";
+        case PDF_ANNOT_SQUIGGLY:
+            return "squiggly";
+        case PDF_ANNOT_STRIKE_OUT:
+            return "strikeout";
         case PDF_ANNOT_SQUARE:
             return "rect";
         case PDF_ANNOT_TEXT:
@@ -563,7 +569,8 @@ static const luaL_Reg DocumentViewMethods[] = {
                         "none",           "visual_line",   "region_selection",
                         "text_selection", "text_highlight", "annot_select",
                         "annot_rect",     "annot_popup",   "text_underline",
-                        "annot_ellipse",  "annot_polygon", "annot_note"};
+                        "annot_ellipse",  "annot_polygon", "annot_note",
+                        "text_squiggly",  "text_strikeout"};
                     const int mode = static_cast<int>((*view)->selectionMode());
                     lua_pushstring(L, mode >= 0 && mode < int(std::size(names))
                                           ? names[mode]

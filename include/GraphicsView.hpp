@@ -33,6 +33,8 @@ public:
         AnnotEllipse,
         AnnotPolygon, // click the corners, double click to finish
         AnnotNote,    // an inline note, written on the page
+        TextSquiggly,  // like TextHighlight, but makes squiggly underlines
+        TextStrikeOut, // like TextHighlight, but makes strikeouts
         COUNT
     };
 
@@ -208,6 +210,8 @@ signals:
     void textSelectionRequested(QPointF a, QPointF b);
     void textHighlightRequested(QPointF a, QPointF b);
     void textUnderlineRequested(QPointF a, QPointF b);
+    void textSquigglyRequested(QPointF a, QPointF b);
+    void textStrikeOutRequested(QPointF a, QPointF b);
     void linkCtrlClickRequested(QPointF scenePos);
     void linkPreviewRequested(QPointF scenePos);
     void linkMiddleClickRequested(QPointF scenePos);
@@ -385,6 +389,7 @@ private:
     void finishPolygon() noexcept;
     void cancelPolygon() noexcept;
     bool isRubberBandAnnotMode() const noexcept;
+    bool isTextMarkupMode() const noexcept;
     int m_drag_threshold       = 50;
 
     // Drag-image-out state: set in mousePressEvent() when the press landed

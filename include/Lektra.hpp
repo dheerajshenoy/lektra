@@ -169,6 +169,8 @@ public:
     void ToggleTextSelection() noexcept;
     void ToggleTextHighlight() noexcept;
     void ToggleTextUnderline() noexcept;
+    void ToggleTextSquiggly() noexcept;
+    void ToggleTextStrikeOut() noexcept;
     void ToggleRegionSelect() noexcept;
     void NarrowToRegion() noexcept;
     void ZoomToSelection() noexcept;
@@ -287,6 +289,8 @@ public:
     void ShowDonate() noexcept;
     void TextHighlightCurrentSelection() noexcept;
     void TextUnderlineCurrentSelection() noexcept;
+    void TextSquigglyCurrentSelection() noexcept;
+    void TextStrikeOutCurrentSelection() noexcept;
     void TabsCloseLeft() noexcept;
     void TabsCloseRight() noexcept;
     void TabsCloseOthers() noexcept;
@@ -570,6 +574,8 @@ private:
     QAction *m_actionDonate                     = nullptr;
     QAction *m_actionTextHighlight              = nullptr;
     QAction *m_actionTextUnderline              = nullptr;
+    QAction *m_actionTextSquiggly = nullptr;
+    QAction *m_actionTextStrikeOut = nullptr;
     QAction *m_actionAnnotRect                  = nullptr;
     QAction *m_actionAnnotEllipse = nullptr;
     QAction *m_actionAnnotPolygon = nullptr;

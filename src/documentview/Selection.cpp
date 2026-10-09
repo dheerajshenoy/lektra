@@ -351,7 +351,19 @@ DocumentView::handleTextUnderlineRequested() noexcept
     markSelectedText(Model::TextMarkup::Underline);
 }
 
-// Highlights or underlines the selected text, page by page.
+void
+DocumentView::handleTextSquigglyRequested() noexcept
+{
+    markSelectedText(Model::TextMarkup::Squiggly);
+}
+
+void
+DocumentView::handleTextStrikeOutRequested() noexcept
+{
+    markSelectedText(Model::TextMarkup::StrikeOut);
+}
+
+// Marks the selected text (highlight, underline, ...), page by page.
 void
 DocumentView::markSelectedText(Model::TextMarkup kind) noexcept
 {
@@ -943,6 +955,30 @@ DocumentView::ToggleTextHighlight() noexcept
     emit selectionModeChanged(newMode);
 }
 
+// Toggle text squiggly mode
+void
+DocumentView::ToggleTextSquiggly() noexcept
+{
+    const auto newMode = (m_gview->mode() == GraphicsView::Mode::TextSquiggly)
+                             ? m_gview->getDefaultMode()
+                             : GraphicsView::Mode::TextSquiggly;
+
+    m_gview->setMode(newMode);
+    emit selectionModeChanged(newMode);
+}
+
+// Toggle text strikeout mode
+void
+DocumentView::ToggleTextStrikeOut() noexcept
+{
+    const auto newMode = (m_gview->mode() == GraphicsView::Mode::TextStrikeOut)
+                             ? m_gview->getDefaultMode()
+                             : GraphicsView::Mode::TextStrikeOut;
+
+    m_gview->setMode(newMode);
+    emit selectionModeChanged(newMode);
+}
+
 // Toggle text underline mode
 void
 DocumentView::ToggleTextUnderline() noexcept
@@ -1182,6 +1218,10 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
                       &DocumentView::handleTextHighlightRequested);
             addAction(tr("Underline Text"),
                       &DocumentView::handleTextUnderlineRequested);
+            addAction(tr("Squiggly Underline Text"),
+                      &DocumentView::handleTextSquigglyRequested);
+            addAction(tr("Strikeout Text"),
+                      &DocumentView::handleTextStrikeOutRequested);
         }
 #ifdef WITH_LUA
         dispatchLuaEvent(DispatchType::OnTextSelectionContextMenuRequested);
