@@ -548,11 +548,32 @@ static const luaL_Reg DocumentViewMethods[] = {
 
     VIEW_METHOD("mode",
                 {
-                    if (*view)
-                        lua_pushinteger(
-                            L, static_cast<int>((*view)->selectionMode()));
-                    else
+                    if (!*view)
+                    {
                         lua_pushnil(L);
+                        return 1;
+                    }
+                    static const char *names[] = {
+                        "none",           "visual_line",   "region_selection",
+                        "text_selection", "text_highlight", "annot_select",
+                        "annot_rect",     "annot_popup",   "text_underline"};
+                    const int mode = static_cast<int>((*view)->selectionMode());
+                    lua_pushstring(L, mode >= 0 && mode < int(std::size(names))
+                                          ? names[mode]
+                                          : "none");
+                    return 1;
+                }),
+
+    VIEW_METHOD("progress",
+                {
+                    if (!*view)
+                    {
+                        lua_pushnil(L);
+                        return 1;
+                    }
+                    // the same figure the statusbar shows
+                    lua_pushinteger(L, ((*view)->pageNo() + 1) * 100
+                                           / std::max(1, (*view)->numPages()));
                     return 1;
                 }),
 

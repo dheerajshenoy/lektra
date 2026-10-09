@@ -273,9 +273,13 @@ function View:id() end
 ---@return integer spacing
 function View:spacing() end
 
----Gets the current mode of the view
----@return Mode mode The current interaction mode (e.g., "select", "pan", "zoom").
+---Gets the current mode of the view, as shown in the statusbar.
+---@return "none"|"visual_line"|"region_selection"|"text_selection"|"text_highlight"|"annot_select"|"annot_rect"|"annot_popup"|"text_underline"|nil mode
 function View:mode() end
+
+---Reading progress in percent (0 to 100): the current page over the page count, as shown in the statusbar.
+---@return integer|nil progress
+function View:progress() end
 
 ---Sets the interaction mode of the view
 ---@param mode Mode The desired interaction mode
