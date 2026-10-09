@@ -40,6 +40,8 @@ extern "C"
 #include <qevent.h>
 #include <set>
 #include <unordered_map>
+#include <algorithm>
+#include <vector>
 
 #ifdef WITH_LUA
     #include "LuaCallback.hpp"
@@ -808,7 +810,14 @@ private:
         const std::vector<Model::RenderAnnotation> &annots) noexcept;
     void buildFlatSearchHitIndex() noexcept;
     int getClosestHitIndex(bool above = false) noexcept;
-    void removeUnusedPageItems(const std::set<int> &visiblePages) noexcept;
+    // Page numbers, sorted and without duplicates: cheaper to build and search
+    // than a std::set for the handful of pages involved on every scroll tick.
+    using PageList = std::vector<int>;
+    static bool inPageList(const PageList &pages, int pageno) noexcept
+    {
+        return std::binary_search(pages.begin(), pages.end(), pageno);
+    }
+    void removeUnusedPageItems(const PageList &visiblePages) noexcept;
     void clearDocumentItems() noexcept;
     void ensureVisiblePagePlaceholders() noexcept;
     void updateCurrentPage() noexcept;
@@ -851,12 +860,12 @@ private:
     void connectModelFailureSignals() noexcept;
     QGraphicsPathItem *ensureSearchItemForPage(int pageno) noexcept;
 
-    std::set<int> getPreloadPages(const std::set<int> &visiblePages) noexcept;
+    PageList getPreloadPages(const std::set<int> &visiblePages) noexcept;
     const std::set<int> &getVisiblePages() noexcept;
     void invalidateVisiblePagesCache() noexcept;
     void removePageItem(int pageno) noexcept;
     void createAndAddPlaceholderPageItem(int pageno) noexcept;
-    void prunePendingRenders(const std::set<int> &visiblePages) noexcept;
+    void prunePendingRenders(const PageList &visiblePages) noexcept;
     void renderSearchHitsForPage(int pageno) noexcept;
     void renderSearchHitsInScrollbar() noexcept;
     void clearSearchHits() noexcept;

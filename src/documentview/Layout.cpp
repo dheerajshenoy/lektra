@@ -1735,13 +1735,14 @@ void
 DocumentView::pruneRendersForScroll() noexcept
 {
     const std::set<int> &visible = getVisiblePages();
-    std::set<int> wanted         = visible;
+    PageList wanted(visible.begin(), visible.end());
     // While scrolling fast only what is on screen matters; the pages around
     // it come back once the scrolling slows down.
     if (!isScrollingFast())
     {
-        const std::set<int> preload = getPreloadPages(visible);
-        wanted.insert(preload.begin(), preload.end());
+        const PageList preload = getPreloadPages(visible);
+        wanted.insert(wanted.end(), preload.begin(), preload.end());
+        std::sort(wanted.begin(), wanted.end());
     }
     prunePendingRenders(wanted);
 }

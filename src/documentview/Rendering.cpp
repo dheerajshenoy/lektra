@@ -417,10 +417,12 @@ DocumentView::renderPagesImpl(bool skipCurrent) noexcept
     }
 
     const std::set<int> &visiblePages = getVisiblePages();
-    const std::set<int> preloadPages  = getPreloadPages(visiblePages);
+    const PageList preloadPages       = getPreloadPages(visiblePages);
 
-    std::set<int> pages = visiblePages;
-    pages.insert(preloadPages.begin(), preloadPages.end());
+    PageList pages;
+    pages.reserve(visiblePages.size() + preloadPages.size() + 4);
+    pages.insert(pages.end(), visiblePages.begin(), visiblePages.end());
+    pages.insert(pages.end(), preloadPages.begin(), preloadPages.end());
 
     // Keep all pages in the active selection range alive so that
     // handleTextSelection never skips a middle page (missing item → gap in the
@@ -428,8 +430,10 @@ DocumentView::renderPagesImpl(bool skipCurrent) noexcept
     if (m_selection_start_page >= 0 && m_selection_end_page >= 0)
     {
         for (int p = m_selection_start_page; p <= m_selection_end_page; ++p)
-            pages.insert(p);
+            pages.push_back(p);
     }
+    std::sort(pages.begin(), pages.end());
+    pages.erase(std::unique(pages.begin(), pages.end()), pages.end());
 
 #ifndef NDEBUG
     qDebug() << "DocumentView::renderPages(): Rendering pages:" << pages;
@@ -813,14 +817,15 @@ DocumentView::traceRenderResult(int pageno, const char *outcome,
 // Drop queued renders and cancel running ones for pages that are no longer
 // wanted.
 void
-DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
+DocumentView::prunePendingRenders(const PageList &visiblePages) noexcept
 {
     for (auto it = m_pending_renders.begin(); it != m_pending_renders.end();)
-        it = visiblePages.count(*it) ? ++it : m_pending_renders.erase(it);
+        it = inPageList(visiblePages, *it) ? ++it
+                                           : m_pending_renders.erase(it);
 
     for (auto it = m_inflight_renders.begin(); it != m_inflight_renders.end();)
     {
-        if (visiblePages.count(it.key()))
+        if (inPageList(visiblePages, it.key()))
         {
             ++it;
             continue;
@@ -835,7 +840,7 @@ DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
         while (!q.isEmpty())
         {
             const int p = q.dequeue();
-            if (visiblePages.contains(p))
+            if (inPageList(visiblePages, p))
                 filtered.enqueue(p);
         }
         q = std::move(filtered);
@@ -845,7 +850,7 @@ DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
 }
 
 void
-DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
+DocumentView::removeUnusedPageItems(const PageList &visibleSet) noexcept
 {
     std::vector<int> toRemove;
     for (auto it = m_page_items_hash.cbegin(); it != m_page_items_hash.cend();
@@ -854,7 +859,7 @@ DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
         const int pageno = it.key();
         auto *item       = it.value();
 
-        if (visibleSet.count(pageno))
+        if (inPageList(visibleSet, pageno))
             continue;
 
         clearLinksForPage(pageno);
@@ -994,7 +999,7 @@ DocumentView::cachePageStride() noexcept
     invalidateVisiblePagesCache();
 }
 
-std::set<int>
+DocumentView::PageList
 DocumentView::getPreloadPages(const std::set<int> &visiblePages) noexcept
 {
     if (visiblePages.empty())
@@ -1012,20 +1017,22 @@ DocumentView::getPreloadPages(const std::set<int> &visiblePages) noexcept
     const double ahead  = m_page_offsets[lastVisible] + preloadDistance;
     const double behind = m_page_offsets[firstVisible] - preloadDistance;
 
-    std::set<int> preloadPages;
-
+    // Pages before the visible ones are found nearest-first, so they are
+    // reversed to keep the list sorted.
+    PageList preloadPages;
     for (int p = firstVisible - 1; p >= 0; --p)
     {
         if (m_page_offsets[p] < behind)
             break;
-        preloadPages.insert(p);
+        preloadPages.push_back(p);
     }
+    std::reverse(preloadPages.begin(), preloadPages.end());
 
     for (int p = lastVisible + 1; p < numPages; ++p)
     {
         if (m_page_offsets[p] > ahead)
             break;
-        preloadPages.insert(p);
+        preloadPages.push_back(p);
     }
 
     return preloadPages;
