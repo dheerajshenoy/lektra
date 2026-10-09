@@ -1535,6 +1535,13 @@ static const LuaField tabsFields[] = {
     else
         tabs->open_position = OP::End;
 }},
+    {"scroll_text_on_hover",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Tabs *>(p)->scroll_text_on_hover);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Tabs *>(p)->scroll_text_on_hover = lua_toboolean(L, 3); }},
     {"visible",
      [](lua_State *L, P p)
 {

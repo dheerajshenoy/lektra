@@ -645,6 +645,11 @@
           ],
           "description": "When to show the tab close (x) button (since 0.3.0)"
         },
+        "scroll_text_on_hover": {
+          "type": "boolean",
+          "default": false,
+          "description": "Scroll the title of a tab whose text does not fit while the mouse is over it, so the whole title can be read. Only for tabs at the top or bottom (since 0.8.0)"
+        },
         "elide_mode": {
           "type": "string",
           "enum": [

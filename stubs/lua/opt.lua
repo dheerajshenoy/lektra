@@ -294,6 +294,7 @@ lektra.opt.link_hints = {}
 ---@field location? TabsLocation Where the tab bar sits in the main window.
 ---@field movable? boolean Allow tabs to be dragged and reordered.
 ---@field open_position? TabsOpenPosition Where a newly opened tab is placed in the tab bar.
+---@field scroll_text_on_hover? boolean Scroll a tab title that does not fit while the mouse is over the tab (tabs at the top or bottom).
 ---@field visible? boolean Whether the tab bar is shown.
 lektra.opt.tabs = {}
 

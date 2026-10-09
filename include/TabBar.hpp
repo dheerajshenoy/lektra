@@ -11,8 +11,10 @@
 #include <QPixmap>
 #include <QSet>
 #include <QStyle>
+#include <QElapsedTimer>
 #include <QStyleOptionTab>
 #include <QTabBar>
+#include <QTimer>
 #include <QToolButton>
 #include <QVariant>
 #include <QVector>
@@ -102,6 +104,10 @@ public:
     void selectAllTabs() noexcept;
     bool isTabFailed(int index) const noexcept;
 
+    // While the mouse is over a tab whose title does not fit, scroll the title
+    // back and forth so all of it can be read. Horizontal tab bars only.
+    void setScrollTextOnHover(bool enabled) noexcept;
+
 signals:
     void tabDataRequested(int index, TabData *outData);
     void tabDropReceived(const TabData &data);
@@ -114,6 +120,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
+    void leaveEvent(QEvent *event) override;
     QSize tabSizeHint(int index) const override;
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;
@@ -124,6 +131,13 @@ protected:
     void tabMoved(int from, int to);
 
 private:
+    bool isHorizontal() const noexcept;
+    // The tab whose title is scrolling now, or -1.
+    int scrollingTab() const noexcept;
+    // Where the title of tab `index` goes (without the tab's icon and buttons).
+    QRect tabTextRect(int index) const noexcept;
+    void updateHoveredTab(const QPoint &pos) noexcept;
+    void paintTabsWithScrollingText(int scrolling) noexcept;
     // Re-applies m_close_button_mode's per-tab button placement. A no-op
     // unless mode == Current — All/Hidden are handled entirely by Qt's own
     // setTabsClosable(), no per-tab bookkeeping needed.
@@ -137,4 +151,9 @@ private:
     QHash<int, QString> m_custom_titles; // keyed by the tab id (tabData)
     QSet<int> m_selected_tabs;
     int m_selection_anchor = -1;
+
+    bool m_scroll_text_on_hover = false;
+    int m_hover_tab             = -1;
+    QTimer *m_scroll_timer      = nullptr; // repaints the scrolling tab
+    QElapsedTimer m_scroll_clock;          // restarted when a tab is entered
 };

@@ -641,6 +641,8 @@ Lektra::initConfig() noexcept
             else
                 m_config.tabs.close_button_mode = CBM::All;
         }
+        set(tabs["scroll_text_on_hover"], m_config.tabs.scroll_text_on_hover);
+
         if (auto str = tabs["elide_mode"])
         {
             Qt::TextElideMode mode;

@@ -18,6 +18,7 @@
 
 #### Tabs and views
 
+- New `tabs.scroll_text_on_hover` option: while the mouse is over a tab whose title does not fit, the title scrolls back and forth so all of it can be read (tabs at the top or bottom).
 - New `split_to_windows` and `split_to_tabs` commands move the splits of a tab (or of the selected tabs) into windows or tabs of their own, keeping the first split in place; "Move Splits to Separate Windows" is also in the tab menu. Lua: `lektra.tabs.split_to_windows()`, `lektra.tabs.split_to_tabs()` and, for one split, `view:detach_to_window()` / `view:detach_to_tab()`.
 - Tab indices in Lua are now 1-based everywhere, like pages and Lua tables (`Tab:index()`, `lektra.tabs.close/rename/select/selected/get_id`, the `indices` lists, `lektra.view.list(tab)`); `lektra.tabs.goto` is now `lektra.tabs.switch`, because `goto` is a reserved word in Lua and could not be called as `lektra.tabs.goto(...)`.
 

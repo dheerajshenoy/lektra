@@ -3,6 +3,9 @@
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
+#include <QStylePainter>
+#include <algorithm>
+#include <cmath>
 
 TabBar::TabBar(QWidget *parent) : QTabBar(parent)
 {
@@ -11,6 +14,21 @@ TabBar::TabBar(QWidget *parent) : QTabBar(parent)
     setMovable(false); // We handle reordering manually
     setAcceptDrops(true);
     setTabsClosable(true); // matches the CloseButtonMode::All default
+    setMouseTracking(true); // for the scrolling title of the hovered tab
+
+    m_scroll_timer = new QTimer(this);
+    m_scroll_timer->setInterval(33);
+    connect(m_scroll_timer, &QTimer::timeout, this, [this]()
+    {
+        const int tab = scrollingTab();
+        if (tab < 0)
+        {
+            m_scroll_timer->stop();
+            update();
+            return;
+        }
+        update(tabRect(tab));
+    });
 
     connect(this, &QTabBar::currentChanged, this, &TabBar::refreshCloseButtons);
 }
@@ -312,8 +330,158 @@ TabBar::clearTabSelection() noexcept
 }
 
 void
+TabBar::setScrollTextOnHover(bool enabled) noexcept
+{
+    m_scroll_text_on_hover = enabled;
+    if (!enabled)
+    {
+        m_hover_tab = -1;
+        m_scroll_timer->stop();
+        update();
+    }
+}
+
+bool
+TabBar::isHorizontal() const noexcept
+{
+    const QTabBar::Shape s = shape();
+    return !(s == QTabBar::RoundedWest || s == QTabBar::RoundedEast
+             || s == QTabBar::TriangularWest || s == QTabBar::TriangularEast);
+}
+
+QRect
+TabBar::tabTextRect(int index) const noexcept
+{
+    QStyleOptionTab opt;
+    initStyleOption(&opt, index);
+    return style()->subElementRect(QStyle::SE_TabBarTabText, &opt, this);
+}
+
+// The hovered tab, if its title is wider than the room it has.
+int
+TabBar::scrollingTab() const noexcept
+{
+    if (!m_scroll_text_on_hover || !isHorizontal() || m_hover_tab < 0
+        || m_hover_tab >= count())
+        return -1;
+    const QRect textRect = tabTextRect(m_hover_tab);
+    if (!textRect.isValid())
+        return -1;
+    return fontMetrics().horizontalAdvance(tabText(m_hover_tab))
+                   > textRect.width()
+               ? m_hover_tab
+               : -1;
+}
+
+void
+TabBar::updateHoveredTab(const QPoint &pos) noexcept
+{
+    if (!m_scroll_text_on_hover)
+        return;
+    const int tab = tabAt(pos);
+    if (tab == m_hover_tab)
+        return;
+
+    const int before = m_hover_tab;
+    m_hover_tab      = tab;
+    m_scroll_clock.restart();
+    if (scrollingTab() >= 0)
+        m_scroll_timer->start();
+    else
+        m_scroll_timer->stop();
+    if (before >= 0 && before < count())
+        update(tabRect(before)); // back to the normal, shortened title
+    if (tab >= 0)
+        update(tabRect(tab));
+}
+
+void
+TabBar::leaveEvent(QEvent *event)
+{
+    if (m_hover_tab >= 0)
+    {
+        const int before = m_hover_tab;
+        m_hover_tab      = -1;
+        m_scroll_timer->stop();
+        if (before < count())
+            update(tabRect(before));
+    }
+    QTabBar::leaveEvent(event);
+}
+
+// Draws the tabs as QTabBar::paintEvent does, except that tab `scrolling` is
+// drawn without its title, and the whole title is drawn in its place, shifted
+// along. (Drawing over the normal tab would leave its elided title showing
+// through any style whose tabs are not opaque, so the tab has to be drawn
+// without it in the first place.)
+void
+TabBar::paintTabsWithScrollingText(int scrolling) noexcept
+{
+    QStylePainter painter(this);
+
+    auto drawTab = [&](int i)
+    {
+        QStyleOptionTab opt;
+        initStyleOption(&opt, i);
+        if (!(opt.state & QStyle::State_Enabled))
+            opt.palette.setCurrentColorGroup(QPalette::Disabled);
+        if (i == scrolling)
+            opt.text.clear();
+        painter.drawControl(QStyle::CE_TabBarTab, opt);
+    };
+
+    for (int i = 0; i < count(); ++i)
+        if (i != currentIndex())
+            drawTab(i);
+    if (currentIndex() >= 0)
+        drawTab(currentIndex());
+
+    // The title: still for a moment, then slid to its end, still again, and
+    // back.
+    QStyleOptionTab opt;
+    initStyleOption(&opt, scrolling);
+    const QRect textRect = tabTextRect(scrolling);
+    const QString text   = tabText(scrolling);
+    const int textWidth  = fontMetrics().horizontalAdvance(text);
+    const int overflow   = textWidth - textRect.width();
+
+    constexpr double pixelsPerSecond = 45.0;
+    constexpr double pauseSeconds    = 0.7;
+    const double travel              = overflow / pixelsPerSecond;
+    const double cycle               = 2.0 * (pauseSeconds + travel);
+    double t = std::fmod(m_scroll_clock.elapsed() / 1000.0, cycle);
+    double offset;
+    if (t < pauseSeconds)
+        offset = 0;
+    else if (t < pauseSeconds + travel)
+        offset = (t - pauseSeconds) * pixelsPerSecond;
+    else if (t < 2 * pauseSeconds + travel)
+        offset = overflow;
+    else
+        offset = overflow - (t - 2 * pauseSeconds - travel) * pixelsPerSecond;
+    offset = std::clamp(offset, 0.0, static_cast<double>(overflow));
+
+    painter.save();
+    painter.setClipRect(textRect);
+    painter.setPen(isTabFailed(scrolling)
+                       ? QColor(Qt::red)
+                       : opt.palette.color(opt.state & QStyle::State_Enabled
+                                               ? QPalette::Normal
+                                               : QPalette::Disabled,
+                                           QPalette::WindowText));
+    painter.setFont(font());
+    painter.drawText(QRect(textRect.left() - qRound(offset), textRect.top(),
+                           textWidth, textRect.height()),
+                     Qt::AlignVCenter | Qt::AlignLeft, text);
+    painter.restore();
+}
+
+void
 TabBar::mouseMoveEvent(QMouseEvent *event)
 {
+    if (!(event->buttons() & Qt::LeftButton))
+        updateHoveredTab(event->position().toPoint());
+
     // Early exit if not dragging with left button
     if (!(event->buttons() & Qt::LeftButton) || m_drag_tab_index < 0)
     {
@@ -414,7 +582,11 @@ TabBar::mouseReleaseEvent(QMouseEvent *event)
 void
 TabBar::paintEvent(QPaintEvent *event)
 {
-    QTabBar::paintEvent(event);
+    const int scrolling = scrollingTab();
+    if (scrolling >= 0)
+        paintTabsWithScrollingText(scrolling);
+    else
+        QTabBar::paintEvent(event);
     if (count() == 0)
         return;
 
@@ -436,8 +608,8 @@ TabBar::paintEvent(QPaintEvent *event)
         textPainter.setRenderHint(QPainter::Antialiasing, true);
         for (int i : std::as_const(m_failed_tabs))
         {
-            if (i < 0 || i >= count())
-                continue;
+            if (i < 0 || i >= count() || i == scrolling)
+                continue; // (a scrolling title is drawn red already)
 
             QStyleOptionTab opt;
             initStyleOption(&opt, i);

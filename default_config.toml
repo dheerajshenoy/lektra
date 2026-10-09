@@ -133,6 +133,7 @@ location   = "top"          # top | bottom | left | right
 full_path  = false          # show the full file path in the tab label
 lazy_load  = true           # only materialise a tab's view when it becomes current
 open_position = "end"       # end | start | after_current
+scroll_text_on_hover = false  # scroll a title that does not fit while the mouse is over the tab
 
 
 # -----------------------------------------------------------------------------

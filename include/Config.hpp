@@ -979,6 +979,16 @@ struct Config
             AfterCurrent // insert immediately after the current tab
         };
         OpenPosition open_position = OpenPosition::End;
+
+        // @desc {
+        // Scroll the title of a tab whose text does not fit while the mouse
+        // is over it, so the whole title can be read. Only for tabs at the
+        // top or bottom
+        // }
+        // @type bool
+        // @default false
+        // @added 0.8.0
+        bool scroll_text_on_hover = false;
     } tabs;
     // @endsection
 

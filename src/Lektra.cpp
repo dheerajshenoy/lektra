@@ -246,6 +246,8 @@ Lektra::initGui() noexcept
     m_tab_widget->setCloseButtonMode(
         static_cast<TabBar::CloseButtonMode>(m_config.tabs.close_button_mode));
     m_tab_widget->setMovable(m_config.tabs.movable);
+    m_tab_widget->tabBar()->setScrollTextOnHover(
+        m_config.tabs.scroll_text_on_hover);
     m_tab_widget->setTabPosition(m_config.tabs.location);
 
     m_layout->addWidget(m_search_bar);
