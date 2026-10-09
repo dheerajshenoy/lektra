@@ -37,11 +37,29 @@ public:
         return Type::Rect;
     }
 
+    bool canTransform() const noexcept override
+    {
+        return true;
+    }
+
+    bool canResize() const noexcept override
+    {
+        return true;
+    }
+
+    QRectF geometryRect() const override
+    {
+        return m_rect;
+    }
+
     QRectF boundingRect() const override
     {
         // Extend outward to contain the full outer glow stroke + AA cushion.
-        const qreal margin = m_glow_width + 2.0;
-        return m_rect.adjusted(-margin, -margin, margin, margin);
+        const qreal margin = std::max<qreal>(m_glow_width + 2.0, 12.0);
+        const QRectF r = m_preview_rect.isValid()
+                             ? m_rect.united(m_preview_rect)
+                             : m_rect;
+        return r.adjusted(-margin, -margin, margin, margin);
     }
 
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
@@ -77,6 +95,8 @@ public:
             painter->drawRect(m_rect);
             painter->restore();
         }
+
+        paintManipulation(painter, option);
 
         Q_UNUSED(widget);
     }

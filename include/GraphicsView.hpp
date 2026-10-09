@@ -55,6 +55,14 @@ public:
         viewport()->update();
     }
 
+    inline void setAnnotManipulator(
+        std::function<bool(QPointF)> grab,
+        std::function<Qt::CursorShape(QPointF)> cursor) noexcept
+    {
+        m_annotGrab   = std::move(grab);
+        m_annotCursor = std::move(cursor);
+    }
+
     inline void setNarrowRect(const QRectF &sceneRect) noexcept
     {
         m_narrow_scene_rect = sceneRect;
@@ -204,6 +212,9 @@ signals:
     void linkPreviewRequested(QPointF scenePos);
     void linkMiddleClickRequested(QPointF scenePos);
     void annotRectRequested(QRectF sceneRect);
+    void annotManipMoved(QPointF scenePos, bool keepAspect);
+    void annotManipFinished(QPointF scenePos);
+    void annotManipCancelled();
     void annotEllipseRequested(QRectF sceneRect);
     void annotNoteRequested(QRectF sceneRect);
     void annotPolygonRequested(QVector<QPointF> scenePoints);
@@ -380,6 +391,13 @@ private:
     // on an embedded image; consumed in mouseMoveEvent() once the drag
     // threshold is crossed (or discarded on release, for a plain click).
     std::function<QImage(QPointF)> m_imageDragProvider;
+
+    // Annotation select mode: moving and resizing of the selected annotation.
+    // `grab` is asked on a press and says whether it started one; `cursor`
+    // says what the mouse is over.
+    std::function<bool(QPointF)> m_annotGrab;
+    std::function<Qt::CursorShape(QPointF)> m_annotCursor;
+    bool m_annot_manip = false;
     QImage m_pendingDragImage;
     QPoint m_pendingDragStartPos;
     void startImageDrag() noexcept;

@@ -49,10 +49,28 @@ public:
         return m_type;
     }
 
+    bool canTransform() const noexcept override
+    {
+        return true;
+    }
+
+    bool canResize() const noexcept override
+    {
+        return true;
+    }
+
+    QRectF geometryRect() const override
+    {
+        return m_rect;
+    }
+
     QRectF boundingRect() const override
     {
-        const qreal margin = m_glow_width + 2.0;
-        return m_rect.adjusted(-margin, -margin, margin, margin);
+        const qreal margin = std::max<qreal>(m_glow_width + 2.0, 12.0);
+        const QRectF r = m_preview_rect.isValid()
+                             ? m_rect.united(m_preview_rect)
+                             : m_rect;
+        return r.adjusted(-margin, -margin, margin, margin);
     }
 
     QPainterPath shape() const override
@@ -86,6 +104,8 @@ public:
             painter->drawRect(m_rect);
             painter->restore();
         }
+
+        paintManipulation(painter, option);
 
         Q_UNUSED(widget);
     }

@@ -9,6 +9,7 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QLabel>
 #include <QObject>
+#include <QRectF>
 #include <QPen>
 #include <qstyleoption.h>
 
@@ -55,6 +56,48 @@ public:
     };
 
     virtual Type atype() const noexcept = 0;
+
+    // --- Interactive moving and resizing (annotation select mode) ---
+    enum class Handle
+    {
+        None = -1,
+        TopLeft,
+        Top,
+        TopRight,
+        Right,
+        BottomRight,
+        Bottom,
+        BottomLeft,
+        Left,
+        Body, // not a handle: the annotation itself, to move
+    };
+
+    /** Whether the annotation can be moved (and resized, see canResize()). */
+    virtual bool canTransform() const noexcept
+    {
+        return false;
+    }
+
+    /** Whether it can also be resized; some can only be moved. */
+    virtual bool canResize() const noexcept
+    {
+        return canTransform();
+    }
+
+    /** The rectangle that is moved and resized, in item coordinates. */
+    virtual QRectF geometryRect() const
+    {
+        return {};
+    }
+
+    /** What is at `itemPos`: one of the handles, the body, or None. Handles
+     * are only there while the annotation is selected. `pxScale` is the zoom
+     * of the view, as the handles have a size in pixels. */
+    Handle handleAt(const QPointF &itemPos, qreal pxScale) const noexcept;
+
+    /** The outline of the new geometry while it is dragged. */
+    void setPreviewRect(const QRectF &rect) noexcept;
+    void clearPreviewRect() noexcept;
 
     /** Restore brush and pen to the values they had at construction time. */
     void restoreBrushPen() noexcept;
@@ -148,6 +191,9 @@ protected:
     void contextMenuEvent(QGraphicsSceneContextMenuEvent *event) override;
     void drawGlow(QPainter *painter, const QRectF &rect,
                   qreal width) const noexcept;
+    // Handles of a selected annotation, and the preview of a drag.
+    void paintManipulation(QPainter *painter,
+                           const QStyleOptionGraphicsItem *option) const;
     void showTooltip(const QPoint &screenPos);
     void moveTooltip(const QPoint &screenPos);
     void setTooltipFontSize(int pointSize);
@@ -161,6 +207,7 @@ protected:
     QPen m_originalPen;
 
     QString m_comment;
+    QRectF m_preview_rect;
 
     bool m_glow_enabled{false};
     int m_glow_width{6};

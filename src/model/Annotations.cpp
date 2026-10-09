@@ -1834,6 +1834,108 @@ Model::exportTextHighlights(const QString &path) noexcept
     return true;
 }
 
+bool
+Model::annotGeometry(int pageno, int objNum, AnnotGeometry &out) noexcept
+{
+    if (!m_pdf_doc)
+        return false;
+
+    bool found     = false;
+    pdf_page *page = nullptr;
+
+    fz_try(m_ctx)
+    {
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        for (pdf_annot *annot = pdf_first_annot(m_ctx, page); annot;
+             annot            = pdf_next_annot(m_ctx, annot))
+        {
+            if (pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot)) != objNum)
+                continue;
+
+            out.vertices.clear();
+            out.rect = pdf_annot_rect(m_ctx, annot);
+            if (pdf_annot_type(m_ctx, annot) == PDF_ANNOT_POLYGON)
+            {
+                for (int i = 0, c = pdf_annot_vertex_count(m_ctx, annot);
+                     i < c; ++i)
+                    out.vertices.push_back(pdf_annot_vertex(m_ctx, annot, i));
+            }
+            found = true;
+            break;
+        }
+    }
+    fz_always(m_ctx)
+    {
+        pdf_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "annotGeometry failed:" << fz_caught_message(m_ctx);
+        return false;
+    }
+    return found;
+}
+
+void
+Model::setAnnotGeometry(int pageno, int objNum,
+                        const AnnotGeometry &geometry) noexcept
+{
+    if (!m_pdf_doc)
+        return;
+
+    bool changed   = false;
+    pdf_page *page = nullptr;
+
+    fz_try(m_ctx)
+    {
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        for (pdf_annot *annot = pdf_first_annot(m_ctx, page); annot;
+             annot            = pdf_next_annot(m_ctx, annot))
+        {
+            if (pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot)) != objNum)
+                continue;
+
+            if (pdf_annot_type(m_ctx, annot) == PDF_ANNOT_POLYGON)
+            {
+                pdf_clear_annot_vertices(m_ctx, annot);
+                for (const fz_point &p : geometry.vertices)
+                    pdf_add_annot_vertex(m_ctx, annot, p);
+            }
+            else
+            {
+                pdf_set_annot_rect(m_ctx, annot, geometry.rect);
+            }
+            pdf_update_annot(m_ctx, annot);
+            pdf_update_page(m_ctx, page);
+            changed = true;
+            break;
+        }
+    }
+    fz_always(m_ctx)
+    {
+        pdf_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "setAnnotGeometry failed:" << fz_caught_message(m_ctx);
+        return;
+    }
+
+    if (changed)
+    {
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
+    }
+}
+
 void
 Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
 {

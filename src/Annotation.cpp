@@ -2,6 +2,8 @@
 
 #include "utils.hpp"
 
+#include <cmath>
+
 #include <QGuiApplication>
 #include <QMenu>
 #include <QPainter>
@@ -91,6 +93,107 @@ Annotation::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
     painter->drawRect(rect);
 
     Q_UNUSED(option);
+}
+
+static QPointF
+handlePoint(const QRectF &r, Annotation::Handle h)
+{
+    using H = Annotation::Handle;
+    switch (h)
+    {
+        case H::TopLeft:
+            return r.topLeft();
+        case H::Top:
+            return {r.center().x(), r.top()};
+        case H::TopRight:
+            return r.topRight();
+        case H::Right:
+            return {r.right(), r.center().y()};
+        case H::BottomRight:
+            return r.bottomRight();
+        case H::Bottom:
+            return {r.center().x(), r.bottom()};
+        case H::BottomLeft:
+            return r.bottomLeft();
+        case H::Left:
+            return {r.left(), r.center().y()};
+        default:
+            return r.center();
+    }
+}
+
+Annotation::Handle
+Annotation::handleAt(const QPointF &itemPos, qreal pxScale) const noexcept
+{
+    if (!canTransform() || !isSelected() || pxScale <= 0)
+        return Handle::None;
+
+    const QRectF r = geometryRect();
+    const qreal tol = 6.0 / pxScale;
+
+    if (canResize())
+    {
+        for (int i = 0; i < 8; ++i)
+        {
+            const QPointF c = handlePoint(r, static_cast<Handle>(i));
+            if (std::abs(itemPos.x() - c.x()) <= tol
+                && std::abs(itemPos.y() - c.y()) <= tol)
+                return static_cast<Handle>(i);
+        }
+    }
+    return r.contains(itemPos) ? Handle::Body : Handle::None;
+}
+
+void
+Annotation::setPreviewRect(const QRectF &rect) noexcept
+{
+    prepareGeometryChange();
+    m_preview_rect = rect;
+    update();
+}
+
+void
+Annotation::clearPreviewRect() noexcept
+{
+    prepareGeometryChange();
+    m_preview_rect = QRectF();
+    update();
+}
+
+void
+Annotation::paintManipulation(QPainter *painter,
+                              const QStyleOptionGraphicsItem *option) const
+{
+    painter->save();
+    painter->setBrush(Qt::NoBrush);
+
+    if (m_preview_rect.isValid())
+    {
+        QPen pen(Qt::black, 1.0, Qt::DashLine);
+        pen.setCosmetic(true);
+        painter->setPen(pen);
+        painter->drawRect(m_preview_rect);
+    }
+
+    if ((option->state & QStyle::State_Selected) && canResize()
+        && canTransform())
+    {
+        const QRectF r = m_preview_rect.isValid() ? m_preview_rect
+                                                  : geometryRect();
+        const qreal scale = painter->worldTransform().m11();
+        const qreal half  = scale > 0 ? 4.0 / scale : 4.0;
+        QPen pen(Qt::black);
+        pen.setCosmetic(true);
+        painter->setPen(pen);
+        painter->setBrush(Qt::white);
+        for (int i = 0; i < 8; ++i)
+        {
+            const QPointF c = handlePoint(r, static_cast<Handle>(i));
+            painter->drawRect(QRectF(c.x() - half, c.y() - half, 2 * half,
+                                     2 * half));
+        }
+    }
+    painter->restore();
 }
 
 void

@@ -36,10 +36,28 @@ public:
         return Type::Popup;
     }
 
+    bool canTransform() const noexcept override
+    {
+        return true;
+    }
+
+    bool canResize() const noexcept override
+    {
+        return false;
+    }
+
+    QRectF geometryRect() const override
+    {
+        return m_rect;
+    }
+
     QRectF boundingRect() const override
     {
-        const qreal margin = m_glow_width + 2.0;
-        return m_iconRect().adjusted(-margin, -margin, margin, margin);
+        const qreal margin = std::max<qreal>(m_glow_width + 2.0, 12.0);
+        QRectF r = m_iconRect().united(m_rect);
+        if (m_preview_rect.isValid())
+            r = r.united(m_preview_rect);
+        return r.adjusted(-margin, -margin, margin, margin);
     }
 
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
@@ -98,6 +116,8 @@ public:
             painter->drawRect(m_rect);
             painter->restore();
         }
+
+        paintManipulation(painter, option);
     }
 
 protected:

@@ -1023,6 +1023,18 @@ private:
     void buildPageCache_djvu(int pageno) noexcept;
     [[nodiscard]] int addRectAnnotation(const int pageno, const fz_rect &rect,
                                         const QString &content = {}) noexcept;
+    // Where an annotation is on its page (PDF space): its rectangle, or the
+    // corners of a polygon.
+    struct AnnotGeometry
+    {
+        fz_rect rect{};
+        std::vector<fz_point> vertices;
+    };
+    [[nodiscard]] bool annotGeometry(int pageno, int objNum,
+                                     AnnotGeometry &out) noexcept;
+    void setAnnotGeometry(int pageno, int objNum,
+                          const AnnotGeometry &geometry) noexcept;
+
     // An ellipse (CIRCLE, from `rect`), a polygon (from `vertices`) or an
     // inline note (FREE_TEXT, `content` is its text, in `rect`).
     [[nodiscard]] int addShapeAnnotation(const int pageno,
@@ -1156,6 +1168,7 @@ private:
     friend class TextHighlightAnnotationCommand;
     friend class RectAnnotationCommand;
     friend class ShapeAnnotationCommand;
+    friend class AnnotGeometryCommand;
     friend class TextAnnotationCommand;
     friend class DeleteAnnotationsCommand;
     friend class DocumentView;

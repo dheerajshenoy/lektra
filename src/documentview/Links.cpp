@@ -11,6 +11,7 @@
 
 // Commands
 #include "Commands/AnnotColorCommand.hpp"
+#include "Commands/AnnotGeometryCommand.hpp"
 #include "Commands/AnnotCommentCommand.hpp"
 #include "Commands/DeleteAnnotationsCommand.hpp"
 #include "Commands/RectAnnotationCommand.hpp"
@@ -825,6 +826,13 @@ DocumentView::renderAnnotations(
 
         m_gscene->addItem(annot_item);
         m_page_annotations_hash[pageno].push_back(annot_item);
+
+        if (pageno == m_reselect_pageno
+            && annot_item->index() == m_reselect_objnum)
+        {
+            annot_item->setSelected(true);
+            m_reselect_pageno = m_reselect_objnum = -1;
+        }
     }
 }
 
@@ -850,6 +858,223 @@ DocumentView::handleAnnotSelectClearRequested() noexcept
             annot->setSelected(false);
         }
     }
+}
+
+// The selected annotation under the mouse, and what of it: a handle or its body.
+bool
+DocumentView::grabAnnotation(QPointF scenePos) noexcept
+{
+    const qreal scale = m_gview->transform().m11();
+
+    for (auto it = m_page_annotations_hash.begin();
+         it != m_page_annotations_hash.end(); ++it)
+    {
+        for (Annotation *annot : it.value())
+        {
+            if (!annot || !annot->isSelected() || !annot->canTransform())
+                continue;
+
+            const auto handle
+                = annot->handleAt(annot->mapFromScene(scenePos), scale);
+            if (handle == Annotation::Handle::None)
+                continue;
+
+            m_annot_drag.annot     = annot;
+            m_annot_drag.pageno    = it.key();
+            m_annot_drag.handle    = handle;
+            m_annot_drag.startPos  = annot->mapFromScene(scenePos);
+            m_annot_drag.startRect = annot->geometryRect();
+            m_annot_drag.rect      = m_annot_drag.startRect;
+            return true;
+        }
+    }
+    return false;
+}
+
+Qt::CursorShape
+DocumentView::annotationCursor(QPointF scenePos) noexcept
+{
+    const qreal scale = m_gview->transform().m11();
+
+    for (auto it = m_page_annotations_hash.begin();
+         it != m_page_annotations_hash.end(); ++it)
+    {
+        for (Annotation *annot : it.value())
+        {
+            if (!annot || !annot->isSelected() || !annot->canTransform())
+                continue;
+
+            switch (annot->handleAt(annot->mapFromScene(scenePos), scale))
+            {
+                case Annotation::Handle::TopLeft:
+                case Annotation::Handle::BottomRight:
+                    return Qt::SizeFDiagCursor;
+                case Annotation::Handle::TopRight:
+                case Annotation::Handle::BottomLeft:
+                    return Qt::SizeBDiagCursor;
+                case Annotation::Handle::Top:
+                case Annotation::Handle::Bottom:
+                    return Qt::SizeVerCursor;
+                case Annotation::Handle::Left:
+                case Annotation::Handle::Right:
+                    return Qt::SizeHorCursor;
+                case Annotation::Handle::Body:
+                    return Qt::SizeAllCursor;
+                case Annotation::Handle::None:
+                    break;
+            }
+        }
+    }
+    return Qt::ArrowCursor;
+}
+
+void
+DocumentView::dragAnnotation(QPointF scenePos, bool keepAspect) noexcept
+{
+    Annotation *annot = m_annot_drag.annot;
+    if (!annot)
+        return;
+
+    const GraphicsImageItem *pageItem
+        = m_page_items_hash.value(m_annot_drag.pageno, nullptr);
+    const QRectF bounds = pageItem ? pageItem->boundingRect() : QRectF();
+
+    using H = Annotation::Handle;
+    constexpr qreal minSize = 8.0;
+
+    const QPointF delta = annot->mapFromScene(scenePos) - m_annot_drag.startPos;
+    const QRectF &start = m_annot_drag.startRect;
+    QRectF r            = start;
+
+    if (m_annot_drag.handle == H::Body)
+    {
+        r.translate(delta);
+        if (bounds.isValid())
+        {
+            // keep it on the page
+            r.translate(std::max(bounds.left() - r.left(), 0.0), 0);
+            r.translate(std::min(bounds.right() - r.right(), 0.0), 0);
+            r.translate(0, std::max(bounds.top() - r.top(), 0.0));
+            r.translate(0, std::min(bounds.bottom() - r.bottom(), 0.0));
+        }
+    }
+    else
+    {
+        const H h = m_annot_drag.handle;
+        const bool left
+            = h == H::Left || h == H::TopLeft || h == H::BottomLeft;
+        const bool right
+            = h == H::Right || h == H::TopRight || h == H::BottomRight;
+        const bool top = h == H::Top || h == H::TopLeft || h == H::TopRight;
+        const bool bottom
+            = h == H::Bottom || h == H::BottomLeft || h == H::BottomRight;
+
+        qreal l = start.left(), t = start.top(), rr = start.right(),
+              b = start.bottom();
+        if (left)
+            l = std::min(start.left() + delta.x(), rr - minSize);
+        if (right)
+            rr = std::max(start.right() + delta.x(), l + minSize);
+        if (top)
+            t = std::min(start.top() + delta.y(), b - minSize);
+        if (bottom)
+            b = std::max(start.bottom() + delta.y(), t + minSize);
+
+        if (bounds.isValid())
+        {
+            l  = std::max(l, bounds.left());
+            t  = std::max(t, bounds.top());
+            rr = std::min(rr, bounds.right());
+            b  = std::min(b, bounds.bottom());
+        }
+
+        // Shift on a corner: keep the proportions, the opposite corner stays.
+        if (keepAspect && (left || right) && (top || bottom)
+            && start.height() > 0)
+        {
+            const qreal ratio = start.width() / start.height();
+            qreal w           = rr - l;
+            qreal hgt         = b - t;
+            if (w / std::max(hgt, 1.0) > ratio)
+                w = hgt * ratio;
+            else
+                hgt = w / ratio;
+            if (left)
+                l = rr - w;
+            else
+                rr = l + w;
+            if (top)
+                t = b - hgt;
+            else
+                b = t + hgt;
+        }
+
+        r = QRectF(QPointF(l, t), QPointF(rr, b));
+    }
+
+    m_annot_drag.rect = r;
+    annot->setPreviewRect(r);
+}
+
+void
+DocumentView::dropAnnotation(QPointF) noexcept
+{
+    Annotation *annot = m_annot_drag.annot;
+    const AnnotDrag drag = m_annot_drag;
+    m_annot_drag         = {};
+
+    if (!annot)
+        return;
+
+    annot->clearPreviewRect();
+
+    if (drag.rect == drag.startRect || !m_model)
+        return;
+
+    const int pageno = drag.pageno;
+    const int objNum = annot->index();
+
+    auto toPdf = [&](const QRectF &r)
+    {
+        const fz_point a = m_model->toPDFSpace(pageno, r.topLeft());
+        const fz_point b = m_model->toPDFSpace(pageno, r.bottomRight());
+        return fz_rect{std::min(a.x, b.x), std::min(a.y, b.y),
+                       std::max(a.x, b.x), std::max(a.y, b.y)};
+    };
+
+    Model::AnnotGeometry before, after;
+    if (!m_model->annotGeometry(pageno, objNum, before))
+        return;
+
+    const fz_rect from = toPdf(drag.startRect);
+    const fz_rect to   = toPdf(drag.rect);
+
+    after.rect = to;
+    if (annot->atype() == Annotation::Type::Polygon)
+    {
+        const float sx = (from.x1 - from.x0) > 0
+                             ? (to.x1 - to.x0) / (from.x1 - from.x0)
+                             : 1.0f;
+        const float sy = (from.y1 - from.y0) > 0
+                             ? (to.y1 - to.y0) / (from.y1 - from.y0)
+                             : 1.0f;
+        for (const fz_point &p : before.vertices)
+            after.vertices.push_back(fz_point{to.x0 + (p.x - from.x0) * sx,
+                                              to.y0 + (p.y - from.y0) * sy});
+    }
+
+    m_reselect_pageno = pageno;
+    m_reselect_objnum = objNum;
+    m_model->undoStack()->push(new AnnotGeometryCommand(
+        m_model, pageno, objNum, std::move(before), std::move(after)));
+}
+
+void
+DocumentView::cancelAnnotationDrag() noexcept
+{
+    if (m_annot_drag.annot)
+        m_annot_drag.annot->clearPreviewRect();
+    m_annot_drag = {};
 }
 
 void

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AboutDialog.hpp"
+#include "Annotation.hpp"
 #include "ColorDialog.hpp"
 #include "GraphicsImageItem.hpp"
 #include "GraphicsScene.hpp"
@@ -30,6 +31,7 @@ extern "C"
 #include <QFutureWatcher>
 #include <QGraphicsItem>
 #include <QHash>
+#include <QPointer>
 #include <QQueue>
 #include <QScrollBar>
 #include <QSet>
@@ -737,6 +739,12 @@ private slots:
     void handleAnnotSelectRequested(QRectF area) noexcept;
     void handleAnnotSelectRequested(QPointF area) noexcept;
     void handleAnnotSelectClearRequested() noexcept;
+    // Moving and resizing of the selected annotation (annot select mode).
+    bool grabAnnotation(QPointF scenePos) noexcept;
+    Qt::CursorShape annotationCursor(QPointF scenePos) noexcept;
+    void dragAnnotation(QPointF scenePos, bool keepAspect) noexcept;
+    void dropAnnotation(QPointF scenePos) noexcept;
+    void cancelAnnotationDrag() noexcept;
     void handleRegionSelectRequested(QRectF area) noexcept;
     void handleAnnotRectRequested(QRectF area) noexcept;
     void handleAnnotEllipseRequested(QRectF area) noexcept;
@@ -1090,6 +1098,20 @@ private:
     QHash<int, GraphicsImageItem *> m_page_items_hash;
     QHash<int, std::vector<BrowseLinkItem *>> m_page_links_hash;
     QHash<int, std::vector<Annotation *>> m_page_annotations_hash;
+
+    struct AnnotDrag
+    {
+        QPointer<Annotation> annot;
+        int pageno = -1;
+        Annotation::Handle handle{Annotation::Handle::None};
+        QPointF startPos; // in the item's coordinates
+        QRectF startRect;
+        QRectF rect;
+    };
+    AnnotDrag m_annot_drag;
+    // Selected again once its page is drawn anew after a move.
+    int m_reselect_pageno = -1;
+    int m_reselect_objnum = -1;
     QSet<int> m_pending_renders;
     QQueue<int> m_visible_render_queue;
     QQueue<int> m_render_queue;

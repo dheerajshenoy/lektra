@@ -204,6 +204,13 @@ GraphicsView::setMode(Mode mode) noexcept
 {
     m_selecting = false;
 
+    if (m_annot_manip)
+    {
+        m_annot_manip = false;
+        emit annotManipCancelled();
+    }
+    viewport()->unsetCursor();
+
     switch (m_mode)
     {
         case Mode::RegionSelection:
@@ -413,11 +420,20 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
             event->accept();
             return;
 
+        case Mode::AnnotSelect:
+            if (event->button() == Qt::LeftButton && m_annotGrab
+                && m_annotGrab(scenePos))
+            {
+                m_annot_manip = true;
+                event->accept();
+                return;
+            }
+            [[fallthrough]];
+
         case Mode::RegionSelection:
         case Mode::AnnotRect:
         case Mode::AnnotEllipse:
         case Mode::AnnotNote:
-        case Mode::AnnotSelect:
             m_start     = event->pos();
             m_rect      = QRect();
             m_dragging  = false;
@@ -468,6 +484,23 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
     {
         QGraphicsView::mouseMoveEvent(event);
         return;
+    }
+
+    if (m_annot_manip)
+    {
+        emit annotManipMoved(mapToScene(event->pos()),
+                             event->modifiers() & Qt::ShiftModifier);
+        event->accept();
+        return;
+    }
+
+    if (m_mode == Mode::AnnotSelect && !m_selecting && m_annotCursor)
+    {
+        const Qt::CursorShape shape = m_annotCursor(mapToScene(event->pos()));
+        if (shape == Qt::ArrowCursor)
+            viewport()->unsetCursor();
+        else
+            viewport()->setCursor(shape);
     }
 
     // If we are selecting text/highlight, throttle signals
@@ -567,6 +600,14 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     if (!m_pendingDragImage.isNull())
     {
         m_pendingDragImage = QImage();
+        event->accept();
+        return;
+    }
+
+    if (m_annot_manip && event->button() == Qt::LeftButton)
+    {
+        m_annot_manip = false;
+        emit annotManipFinished(mapToScene(event->pos()));
         event->accept();
         return;
     }

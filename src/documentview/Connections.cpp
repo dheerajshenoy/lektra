@@ -511,6 +511,15 @@ DocumentView::initConnections() noexcept
 
         connect(m_gview, &GraphicsView::annotRectRequested, this,
                 &DocumentView::handleAnnotRectRequested);
+        m_gview->setAnnotManipulator(
+            [this](QPointF p) { return grabAnnotation(p); },
+            [this](QPointF p) { return annotationCursor(p); });
+        connect(m_gview, &GraphicsView::annotManipMoved, this,
+                &DocumentView::dragAnnotation);
+        connect(m_gview, &GraphicsView::annotManipFinished, this,
+                &DocumentView::dropAnnotation);
+        connect(m_gview, &GraphicsView::annotManipCancelled, this,
+                &DocumentView::cancelAnnotationDrag);
         connect(m_gview, &GraphicsView::annotEllipseRequested, this,
                 &DocumentView::handleAnnotEllipseRequested);
         connect(m_gview, &GraphicsView::annotPolygonRequested, this,
