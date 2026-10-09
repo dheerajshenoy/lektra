@@ -161,7 +161,8 @@ DocumentView::initGui() noexcept
     m_spinner->setInnerRadius(5.0);
     m_spinner->setColor(palette().color(QPalette::Text));
 
-    m_spacing = m_config.layout.spacing;
+    m_spacing      = m_config.layout.spacing;
+    m_grid_columns = std::clamp(m_config.layout.grid_columns, 1, 32);
 
     m_hq_render_timer = new QTimer(this);
     m_hq_render_timer->setInterval(150);

@@ -245,11 +245,14 @@ applyViewToml(toml::table &toml, Config &cfg)
                 mode = DocumentView::LayoutMode::HORIZONTAL;
             else if (str == "book")
                 mode = DocumentView::LayoutMode::BOOK;
+            else if (str == "grid")
+                mode = DocumentView::LayoutMode::GRID;
             else
                 mode = DocumentView::LayoutMode::VERTICAL;
 
             cfg.layout.mode = mode;
         }
+        set(layout["grid_columns"], cfg.layout.grid_columns);
         if (auto str = layout["initial_fit"])
         {
             DocumentView::FitMode initial_fit;

@@ -438,7 +438,8 @@ DocumentView::initConnections() noexcept
                 &DocumentView::refreshVisiblePages, Qt::UniqueConnection);
     }
     else if (m_layout_mode == LayoutMode::VERTICAL
-             || m_layout_mode == LayoutMode::BOOK)
+             || m_layout_mode == LayoutMode::BOOK
+             || m_layout_mode == LayoutMode::GRID)
     {
         connect(m_vscroll, &QScrollBar::valueChanged, this,
                 &DocumentView::handleVScrollValueChanged, Qt::UniqueConnection);
@@ -1245,6 +1246,7 @@ DocumentView::applyLocalConfigChanges() noexcept
         rerender = true;
     }
 
+    bool regotoPage = false;
     if (sections.contains("layout"))
     {
         m_auto_resize = m_config.layout.auto_resize;
@@ -1252,6 +1254,19 @@ DocumentView::applyLocalConfigChanges() noexcept
         {
             m_spacing = m_config.layout.spacing;
             relayout  = true;
+        }
+        const int columns = std::clamp(m_config.layout.grid_columns, 1, 32);
+        if (columns != m_grid_columns)
+        {
+            m_grid_columns = columns;
+            if (m_layout_mode == LayoutMode::GRID)
+            {
+                // pages change rows: the pages and the layout start over
+                clearDocumentItems();
+                invalidateVisiblePagesCache();
+                relayout    = true;
+                regotoPage  = true;
+            }
         }
     }
 
@@ -1272,6 +1287,9 @@ DocumentView::applyLocalConfigChanges() noexcept
         else
             renderPages();
     }
+
+    if (regotoPage && m_model->numPages() > 0)
+        GotoPage(std::clamp(m_pageno, 0, m_model->numPages() - 1));
 
     m_gview->viewport()->update();
 }

@@ -1329,7 +1329,8 @@ DocumentView::renderSearchHitsInScrollbar() noexcept
     std::vector<double> markers;
     markers.reserve(m_search_hit_flat_refs.size());
     if (m_layout_mode == LayoutMode::VERTICAL
-        || m_layout_mode == LayoutMode::BOOK)
+        || m_layout_mode == LayoutMode::BOOK
+        || m_layout_mode == LayoutMode::GRID)
     {
         for (const auto &hitRef : m_search_hit_flat_refs)
         {

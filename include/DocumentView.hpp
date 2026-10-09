@@ -106,6 +106,7 @@ public:
         HORIZONTAL,
         VERTICAL,
         BOOK,
+        GRID,
         COUNT
     };
 
@@ -151,6 +152,13 @@ public:
     // The options a new view of this file type would start with: the global
     // ones, with the overrides of [filetype.<type>] on top.
     Config freshLocalConfig() const noexcept;
+
+    // Pages per row of the grid layout; re-lays the pages out if it is shown.
+    void setGridColumns(int columns) noexcept;
+    inline int gridColumns() const noexcept
+    {
+        return m_grid_columns;
+    }
 
     inline void setSpacing(int spacing) noexcept
     {
@@ -770,6 +778,10 @@ private:
     }
 
     double pageXOffset(int pageno, double pageW, double sceneW) const noexcept;
+    // Grid layout: the first page of the row `pageno` is in, and the page
+    // after its last (the document's page count at most).
+    int gridRowStart(int pageno) const noexcept;
+    int gridRowEnd(int pageno) const noexcept;
     double pageOffset(int pageno) const noexcept;
     double pageStride(int pageno) const noexcept;
     void CopyTextFromRegion(QRectF area) noexcept;
@@ -944,6 +956,8 @@ private:
     FitMode m_fit_mode           = FitMode::COUNT;
     int m_pageno                 = -1;
     int m_spacing                = 10;
+    // Pages per row in the grid layout (layout.grid_columns), at least 1.
+    int m_grid_columns           = 3;
     double m_current_zoom        = MIN_ZOOM_FACTOR;
     bool m_auto_resize           = false;
     bool m_trim_margins          = false;

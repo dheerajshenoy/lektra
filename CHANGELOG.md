@@ -18,6 +18,7 @@
 
 #### Tabs and views
 
+- New grid layout: pages are laid out in rows of several columns (`layout.mode = "grid"`, `--layout grid`, the `layout_grid` command or View → Layout → Grid). `layout.grid_columns` (default 3) sets the pages per row, and the `grid_columns` command changes it (`grid_columns 4`, `grid_columns +1`). Fit width fits the whole row, and next/previous page move by row.
 - New `tabs.min_width` and `tabs.max_width` options set the narrowest and widest a tab may be, in pixels (0: no limit); a longer title is shortened to fit.
 - New `tabs.scroll_text_on_hover` option: while the mouse is over a tab whose title does not fit, the title scrolls back and forth so all of it can be read (tabs at the top or bottom).
 - New `split_to_windows` and `split_to_tabs` commands move the splits of a tab (or of the selected tabs) into windows or tabs of their own, keeping the first split in place; "Move Splits to Separate Windows" is also in the tab menu. Lua: `lektra.tabs.split_to_windows()`, `lektra.tabs.split_to_tabs()` and, for one split, `view:detach_to_window()` / `view:detach_to_tab()`.

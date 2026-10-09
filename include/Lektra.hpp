@@ -269,6 +269,9 @@ public:
     void TabMoveLeft() noexcept;
     void ReselectLastTextSelection() noexcept;
     void SetLayoutMode(DocumentView::LayoutMode mode) noexcept;
+    // Pages per row of the grid layout: a number, +N / -N to change it, or
+    // asked for when there is no argument. Switches to the grid layout.
+    void SetGridColumns(const QStringList &args) noexcept;
     void SetMark(const QStringList &args = {}) noexcept;
     void GotoMark(const QStringList &args = {}) noexcept;
     void DeleteMark(const QStringList &args = {}) noexcept;
@@ -524,6 +527,7 @@ private:
     QAction *m_actionLayoutLeftToRight          = nullptr;
     QAction *m_actionLayoutTopToBottom          = nullptr;
     QAction *m_actionLayoutBook                 = nullptr;
+    QAction *m_actionLayoutGrid                 = nullptr;
     QAction *m_actionEncrypt                    = nullptr;
     QAction *m_actionDecrypt                    = nullptr;
     QMenu *m_modeMenu                           = nullptr;

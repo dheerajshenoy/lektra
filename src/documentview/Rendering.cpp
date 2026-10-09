@@ -202,6 +202,32 @@ DocumentView::getVisiblePages() noexcept
                 i += 2;
         }
     }
+    else if (m_layout_mode == LayoutMode::GRID)
+    {
+        // Rows of m_grid_columns pages share one offset. Find the first row
+        // that ends below the top of the view, then take rows until one
+        // starts below its bottom.
+        const int C    = m_grid_columns;
+        const int rows = (N + C - 1) / C;
+        auto rowEnd    = [&](int r) { return m_page_offsets[std::min((r + 1) * C, N)]; };
+
+        int lo = 0, hi = rows;
+        while (lo < hi)
+        {
+            const int mid = (lo + hi) / 2;
+            if (rowEnd(mid) > a0)
+                hi = mid;
+            else
+                lo = mid + 1;
+        }
+        for (int r = lo; r < rows; ++r)
+        {
+            if (m_page_offsets[r * C] >= a1)
+                break;
+            for (int p = r * C; p < std::min((r + 1) * C, N); ++p)
+                m_visible_pages_cache.insert(p);
+        }
+    }
     else
     {
         // (offsets are strictly increasing, binary search is safe)
@@ -968,6 +994,28 @@ DocumentView::cachePageStride() noexcept
             }
         }
     }
+    else if (m_layout_mode == LayoutMode::GRID)
+    {
+        // Rows of m_grid_columns pages, side by side; a row is as tall as its
+        // tallest page and as wide as its pages plus the gaps between them.
+        const int C = m_grid_columns;
+        for (int i = 0; i < N; i += C)
+        {
+            const int end = std::min(i + C, N);
+            double rowW = 0.0, rowH = 0.0;
+            for (int p = i; p < end; ++p)
+            {
+                double w, h;
+                getExtents(p, w, h);
+                m_page_offsets[p] = cursor;
+                rowW += w;
+                rowH = std::max(rowH, h);
+            }
+            rowW += spacingScene * (end - i - 1);
+            maxCross = std::max(maxCross, rowW);
+            cursor += rowH + spacingScene;
+        }
+    }
     else
     {
         if (m_thumbnail_mode && m_thumbnail_label_height == 0.0)
@@ -1066,7 +1114,8 @@ DocumentView::updateSceneRect() noexcept
         layoutRect
             = QRectF(-xMargin, -yMargin, totalWidth + 2.0 * xMargin, sceneH);
     }
-    else if (m_layout_mode == LayoutMode::BOOK)
+    else if (m_layout_mode == LayoutMode::BOOK
+             || m_layout_mode == LayoutMode::GRID)
     {
         const double totalHeight  = totalPageExtent();
         const double sceneW       = std::max(viewW, m_max_page_cross_extent);
@@ -1228,6 +1277,13 @@ DocumentView::pageAtScenePos(QPointF scenePos, int &outPageIndex,
             candidates.push_back(candidate + 1);
         }
     }
+    else if (m_layout_mode == LayoutMode::GRID)
+    {
+        // Every page of the row at that height; the one under the point is
+        // found by the bounding-rect test below.
+        for (int p = gridRowStart(candidate); p < gridRowEnd(candidate); ++p)
+            candidates.push_back(p);
+    }
     else
     {
         candidates = {candidate, candidate - 1, candidate + 1};
@@ -1313,7 +1369,10 @@ DocumentView::pageAtAxisCoord(double coord) const noexcept
                                      m_page_offsets.cend(), coord);
     const int candidate
         = static_cast<int>(std::distance(m_page_offsets.cbegin(), it) - 1);
-    return std::clamp(candidate, 0, m_model->numPages() - 1);
+    const int page = std::clamp(candidate, 0, m_model->numPages() - 1);
+    // The pages of a row share an offset, so the search lands on the last
+    // one; the row is represented by its first.
+    return m_layout_mode == LayoutMode::GRID ? gridRowStart(page) : page;
 }
 
 void
@@ -1536,6 +1595,7 @@ DocumentView::renderPageFromImage(int pageno, QImage image, QSize fullSize,
     // visually. Flag for a re-layout on the next renderPages() pass.
     if (!m_page_layout_stale && m_layout_mode != LayoutMode::SINGLE
         && m_layout_mode != LayoutMode::BOOK
+        && m_layout_mode != LayoutMode::GRID
         && pageno + 1 < static_cast<int>(m_page_offsets.size()))
     {
         const bool hz           = (m_layout_mode == LayoutMode::HORIZONTAL);
@@ -1808,7 +1868,34 @@ DocumentView::pageXOffset(int pageno, double pageW,
                    ? (spineX - pageW)
                    : spineX + spacingScene; // Odd=Left, Even=Right
     }
+    if (m_layout_mode == LayoutMode::GRID)
+    {
+        // The row is centred as a whole; the page sits after those before it.
+        const double gap = m_spacing * m_current_zoom;
+        const int start  = gridRowStart(pageno);
+        const int end    = gridRowEnd(pageno);
+        double rowW      = gap * (end - start - 1);
+        for (int p = start; p < end; ++p)
+            rowW += pageSceneSize(p).width();
+        double x = std::max(0.0, (sceneW - rowW) / 2.0);
+        for (int p = start; p < pageno; ++p)
+            x += pageSceneSize(p).width() + gap;
+        return x;
+    }
     return (sceneW - pageW) / 2.0; // Centered for Single/Top-to-Bottom
+}
+
+int
+DocumentView::gridRowStart(int pageno) const noexcept
+{
+    return (std::max(pageno, 0) / m_grid_columns) * m_grid_columns;
+}
+
+int
+DocumentView::gridRowEnd(int pageno) const noexcept
+{
+    return std::min(gridRowStart(pageno) + m_grid_columns,
+                    m_model->numPages());
 }
 
 // Helper: stride (extent + spacing) of a specific page
@@ -1824,6 +1911,14 @@ DocumentView::pageStride(int pageno) const noexcept
         int nextIdx = (pageno == 0) ? 1 : pageno + (pageno % 2 != 0 ? 2 : 1);
         nextIdx
             = std::min(nextIdx, static_cast<int>(m_page_offsets.size()) - 1);
+        return m_page_offsets[nextIdx] - m_page_offsets[pageno];
+    }
+
+    if (m_layout_mode == LayoutMode::GRID)
+    {
+        // The next row starts after the last page of this one.
+        const int nextIdx = std::min(gridRowEnd(pageno),
+                                     static_cast<int>(m_page_offsets.size()) - 1);
         return m_page_offsets[nextIdx] - m_page_offsets[pageno];
     }
 

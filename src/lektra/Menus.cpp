@@ -180,15 +180,21 @@ Lektra::initMenubar() noexcept
         tr("Book\t%1").arg(m_config.keybinds["layout_book"].join(", ")), this,
         [&]() { SetLayoutMode(DocumentView::LayoutMode::BOOK); });
 
+    m_actionLayoutGrid = m_layoutMenu->addAction(
+        tr("Grid\t%1").arg(m_config.keybinds["layout_grid"].join(", ")), this,
+        [&]() { SetLayoutMode(DocumentView::LayoutMode::GRID); });
+
     layoutActionGroup->addAction(m_actionLayoutSingle);
     layoutActionGroup->addAction(m_actionLayoutLeftToRight);
     layoutActionGroup->addAction(m_actionLayoutTopToBottom);
     layoutActionGroup->addAction(m_actionLayoutBook);
+    layoutActionGroup->addAction(m_actionLayoutGrid);
 
     m_actionLayoutSingle->setCheckable(true);
     m_actionLayoutLeftToRight->setCheckable(true);
     m_actionLayoutTopToBottom->setCheckable(true);
     m_actionLayoutBook->setCheckable(true);
+    m_actionLayoutGrid->setCheckable(true);
     m_actionLayoutSingle->setChecked(m_config.layout.mode
                                      == DocumentView::LayoutMode::SINGLE);
 
@@ -198,6 +204,8 @@ Lektra::initMenubar() noexcept
         m_config.layout.mode == DocumentView::LayoutMode::VERTICAL);
     m_actionLayoutBook->setChecked(m_config.layout.mode
                                    == DocumentView::LayoutMode::BOOK);
+    m_actionLayoutGrid->setChecked(m_config.layout.mode
+                                   == DocumentView::LayoutMode::GRID);
 
     // --- Toggle Menu ---
 

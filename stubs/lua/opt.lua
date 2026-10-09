@@ -16,10 +16,11 @@ lektra.opt = {}
 
 ---@enum LayoutMode
 lektra.LayoutMode = {
-    Vertical   = 0,
+    Single     = 0,
     Horizontal = 1,
-    Single     = 2,
+    Vertical   = 2,
     Book       = 3,
+    Grid       = 4,
 }
 
 ---@enum FitMode
@@ -136,7 +137,8 @@ lektra.opt.window = {}
 ---@class OptLayout
 ---@field initial_fit? FitMode Fit mode applied when a document is first opened.
 ---@field auto_resize? boolean Automatically resize the view to fit when the window resizes.
----@field mode? LayoutMode Page layout mode (single, vertical, horizontal, book).
+---@field mode? LayoutMode Page layout mode (single, vertical, horizontal, book, grid).
+---@field grid_columns? integer Pages per row in the grid layout, 1 to 32.
 ---@field spacing? integer Gap between pages in pixels.
 lektra.opt.layout = {}
 

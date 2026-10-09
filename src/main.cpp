@@ -208,7 +208,7 @@ init_args(argparse::ArgumentParser &program)
         .flag();
 
     program.add_argument("--layout")
-        .help("Set initial layout (single, vertical, horizontal, book)")
+        .help("Set initial layout (single, vertical, horizontal, book, grid)")
         .default_value(std::string{"vertical"})
         .metavar("LAYOUT");
 

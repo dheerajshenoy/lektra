@@ -1166,6 +1166,44 @@ Lektra::SetLayoutMode(DocumentView::LayoutMode mode) noexcept
 }
 
 void
+Lektra::SetGridColumns(const QStringList &args) noexcept
+{
+    if (!m_doc)
+        return;
+
+    const int current = m_doc->gridColumns();
+    int columns       = current;
+    bool ok           = true;
+
+    if (args.isEmpty())
+    {
+        columns = QInputDialog::getInt(this, tr("Grid Columns"),
+                                       tr("Pages per row:"), current, 1, 32, 1,
+                                       &ok);
+    }
+    else
+    {
+        const QString arg = args.first().trimmed();
+        const int value   = arg.toInt(&ok);
+        if (ok)
+            columns = (arg.startsWith('+') || arg.startsWith('-'))
+                          ? current + value
+                          : value;
+    }
+
+    if (!ok)
+    {
+        m_message_bar->showMessage(tr("Grid columns: a number such as 4, or +1 "
+                                      "/ -1"));
+        return;
+    }
+
+    // The columns first, so showing the grid lays it out with the new number.
+    m_doc->setGridColumns(columns);
+    m_doc->setLayoutMode(DocumentView::LayoutMode::GRID);
+}
+
+void
 Lektra::Show_command_picker() noexcept
 {
     if (!m_command_picker)

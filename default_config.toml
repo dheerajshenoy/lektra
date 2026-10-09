@@ -53,10 +53,11 @@ fg = "#000000FF"
 # [layout] — Multi-page layout / initial fit
 # -----------------------------------------------------------------------------
 [layout]
-mode        = "vertical"   # vertical | horizontal | single | book
+mode        = "vertical"   # vertical | horizontal | single | book | grid
 initial_fit = "width"      # width | height | window
 auto_resize = false        # re-run the fit when the view resizes
 spacing     = 10           # gap between pages in pixels
+grid_columns = 3           # pages per row in the grid layout
 
 
 # -----------------------------------------------------------------------------

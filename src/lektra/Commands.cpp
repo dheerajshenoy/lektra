@@ -359,6 +359,8 @@ Lektra::applyCommandLineOverrides(
             mode = DocumentView::LayoutMode::HORIZONTAL;
         else if (str == "book")
             mode = DocumentView::LayoutMode::BOOK;
+        else if (str == "grid")
+            mode = DocumentView::LayoutMode::GRID;
         else
             mode = DocumentView::LayoutMode::VERTICAL;
 
@@ -987,6 +989,14 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("layout_book", tr("Book (two page spread) layout"),
                            [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::BOOK); });
+    m_command_manager->reg("layout_grid",
+                           tr("Grid layout (pages in rows of several columns)"),
+                           [this](const QStringList &)
+    { SetLayoutMode(DocumentView::LayoutMode::GRID); });
+    m_command_manager->reg(
+        "grid_columns",
+        tr("Set the number of pages per row of the grid layout (and show it)"),
+        [this](const QStringList &args) { SetGridColumns(args); });
 
     // Miscellaneous
     m_command_manager->reg("preview", tr("Show the preview window"),

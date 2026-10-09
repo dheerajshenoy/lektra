@@ -95,6 +95,26 @@ DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
     GotoPage(m_pageno);
 }
 
+void
+DocumentView::setGridColumns(int columns) noexcept
+{
+    columns = std::clamp(columns, 1, 32);
+    m_config.layout.grid_columns = columns;
+    if (columns == m_grid_columns)
+        return;
+    m_grid_columns = columns;
+
+    if (m_layout_mode != LayoutMode::GRID || m_model->numPages() == 0)
+        return;
+
+    // Pages change rows: start over with the new rows, staying on the page.
+    clearDocumentItems();
+    invalidateVisiblePagesCache();
+    cachePageStride();
+    updateSceneRect();
+    GotoPage(std::clamp(m_pageno, 0, m_model->numPages() - 1));
+}
+
 // Rotate page clockwise
 void
 DocumentView::RotateClock() noexcept
@@ -282,6 +302,20 @@ DocumentView::setFitMode(FitMode mode) noexcept
         const double s = std::abs(std::sin(t));
         bboxW          = baseW * c + baseH * s;
         bboxH          = baseW * s + baseH * c;
+
+        if (mode == FitMode::Width && m_layout_mode == LayoutMode::GRID)
+        {
+            // Fit the whole row the page is in.
+            auto widthOf = [&](int p)
+            {
+                const auto dim = m_model->page_dimension_pts(p);
+                return ((dim.width_pts / 72.0) * m_model->DPI()) * c
+                       + ((dim.height_pts / 72.0) * m_model->DPI()) * s;
+            };
+            bboxW = 0.0;
+            for (int p = gridRowStart(m_pageno); p < gridRowEnd(m_pageno); ++p)
+                bboxW += widthOf(p);
+        }
 
         if (mode == FitMode::Width && m_layout_mode == LayoutMode::BOOK)
         {
@@ -836,6 +870,13 @@ DocumentView::GotoNextPage() noexcept
         int next = (m_pageno == 0) ? 1 : m_pageno + 2;
         GotoPage(std::min(next, m_model->numPages() - 1));
     }
+    else if (m_layout_mode == DocumentView::LayoutMode::GRID)
+    {
+        // The first page of the next row (none if this is the last row).
+        const int next = gridRowEnd(m_pageno);
+        if (next < m_model->numPages())
+            GotoPage(next);
+    }
     else
     {
         GotoPage(m_pageno + 1);
@@ -852,6 +893,13 @@ DocumentView::GotoPrevPage() noexcept
     {
         int prev = (m_pageno <= 2) ? 0 : m_pageno - 2;
         GotoPage(prev);
+    }
+    else if (m_layout_mode == DocumentView::LayoutMode::GRID)
+    {
+        // The first page of the row above (the first row has none).
+        const int row = gridRowStart(m_pageno);
+        if (row > 0)
+            GotoPage(row - m_grid_columns);
     }
     else
     {

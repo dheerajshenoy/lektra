@@ -46,6 +46,7 @@ initLuaEnums(lua_State *L)
         {"Horizontal", (int)DocumentView::LayoutMode::HORIZONTAL},
         {"Single", (int)DocumentView::LayoutMode::SINGLE},
         {"Book", (int)DocumentView::LayoutMode::BOOK},
+        {"Grid", (int)DocumentView::LayoutMode::GRID},
     };
 
     static const LuaEnumEntry fitMode[] = {
@@ -644,6 +645,17 @@ static const LuaField layoutFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::Layout *>(p)->auto_resize = lua_toboolean(L, 3); }},
+
+    {"grid_columns",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Layout *>(p)->grid_columns);
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::Layout *>(p)->grid_columns
+        = static_cast<int>(std::clamp<lua_Integer>(lua_tointeger(L, 3), 1, 32));
+}},
 
     {"initial_fit",
      [](lua_State *L, P p)

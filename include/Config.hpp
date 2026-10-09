@@ -400,7 +400,7 @@ struct Config
 
         // @desc Initial page layout mode
         // @type str
-        // @choice vertical, horizontal, single, book
+        // @choice vertical, horizontal, single, book, grid
         // @default vertical
         // @added 0.5.1
         DocumentView::LayoutMode mode = DocumentView::LayoutMode::VERTICAL;
@@ -422,6 +422,15 @@ struct Config
         // @default 10
         // @added 0.5.1
         int spacing = 10;
+
+        // @desc {
+        // Pages per row in the grid layout (layout.mode = "grid"), from 1 to
+        // 32
+        // }
+        // @type int
+        // @default 3
+        // @added 0.8.0
+        int grid_columns = 3;
     } layout;
     // @endsection
 

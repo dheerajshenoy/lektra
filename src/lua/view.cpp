@@ -652,6 +652,9 @@ static const luaL_Reg DocumentViewMethods[] = {
                     case static_cast<int>(DocumentView::LayoutMode::BOOK):
                         (*view)->setLayoutMode(DocumentView::LayoutMode::BOOK);
                         break;
+                    case static_cast<int>(DocumentView::LayoutMode::GRID):
+                        (*view)->setLayoutMode(DocumentView::LayoutMode::GRID);
+                        break;
                     default:
                         return luaL_error(L, "Invalid layout mode: %d",
                                           layout_mode);

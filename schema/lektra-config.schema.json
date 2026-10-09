@@ -160,9 +160,15 @@
             "vertical",
             "single",
             "horizontal",
-            "book"
+            "book",
+            "grid"
           ],
           "description": "Initial page layout mode (since 0.5.1)"
+        },
+        "grid_columns": {
+          "type": "integer",
+          "default": 3,
+          "description": "Pages per row in the grid layout (layout.mode = \"grid\"), from 1 to 32 (since 0.8.0)"
         },
         "initial_fit": {
           "type": "string",
@@ -1742,9 +1748,15 @@
                   "vertical",
                   "single",
                   "horizontal",
-                  "book"
+                  "book",
+                  "grid"
                 ],
                 "description": "Initial page layout mode (since 0.5.1)"
+              },
+              "grid_columns": {
+                "type": "integer",
+                "default": 3,
+                "description": "Pages per row in the grid layout (layout.mode = \"grid\"), from 1 to 32 (since 0.8.0)"
               },
               "initial_fit": {
                 "type": "string",
