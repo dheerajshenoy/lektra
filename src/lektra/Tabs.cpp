@@ -155,9 +155,14 @@ Lektra::handleCurrentTabChanged(int index) noexcept
         m_tab_widget->removeTab(index);
         w->deleteLater();
 
-        DocumentView *_ = OpenFileInNewTab(filePath, lazy);
+        // The real tab goes exactly where the placeholder was. (Adding it at
+        // the end and moving it back used the wrong slot with
+        // tabs.open_position other than "end", and left the tab bar's
+        // per-tab state (split badges, selection) behind.)
+        m_tab_insert_index = index;
+        DocumentView *_    = OpenFileInNewTab(filePath, lazy);
+        m_tab_insert_index = -1;
 
-        m_tab_widget->tabBar()->moveTab(m_tab_widget->count() - 1, index);
         m_tab_widget->setCurrentIndex(index);
 
         m_tab_widget->blockSignals(false);
@@ -1065,6 +1070,13 @@ Lektra::Close_split() noexcept
 int
 Lektra::insertNewTab(QWidget *page, const QString &title) noexcept
 {
+    if (m_tab_insert_index >= 0)
+    {
+        const int at       = std::min(m_tab_insert_index, m_tab_widget->count());
+        m_tab_insert_index = -1;
+        return m_tab_widget->insertTab(at, page, title);
+    }
+
     using OP = Config::Tabs::OpenPosition;
     switch (m_config.tabs.open_position)
     {
