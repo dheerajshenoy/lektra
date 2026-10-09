@@ -53,6 +53,17 @@
     #include <archive_entry.h>
 #endif
 
+// fz_tint_pixmap maps black to `fg` and white to `bg` over the whole page.
+// With black on white (the defaults) that changes nothing but still costs a
+// pass over every pixel, so it is skipped; 0/0 means "colours not set".
+static bool
+needsTint(int fg, int bg) noexcept
+{
+    if (fg == 0 && bg == 0)
+        return false;
+    return !(fg == 0x000000 && bg == 0xFFFFFF);
+}
+
 // Same but starting from fz_transform_page (render path sites).
 static fz_matrix
 buildRenderTransform(fz_rect bounds, float zoom, float rotation, bool flip_h,
@@ -962,7 +973,7 @@ Model::renderPageWithExtrasAsync(
         const int fg = (m_fg_color >> 8) & 0xFFFFFF;
         const int bg = (m_bg_color >> 8) & 0xFFFFFF;
 
-        if (fg != 0 || bg != 0)
+        if (needsTint(fg, bg))
             fz_tint_pixmap(ctx, pix, fg, bg);
 
         if (job.invert_color)
@@ -1333,7 +1344,7 @@ Model::renderPtsRegion(int pageno, QRectF ptsRect, float targetDPI) noexcept
 
         const int fg = (m_fg_color >> 8) & 0xFFFFFF;
         const int bg = (m_bg_color >> 8) & 0xFFFFFF;
-        if (fg != 0 || bg != 0)
+        if (needsTint(fg, bg))
             fz_tint_pixmap(ctx, pix, fg, bg);
 
         if (m_invert_color)
@@ -1479,7 +1490,7 @@ Model::imageAt(int pageno, QPointF logicalPt) noexcept
             {
                 const int fg = (m_fg_color >> 8) & 0xFFFFFF;
                 const int bg = (m_bg_color >> 8) & 0xFFFFFF;
-                if (fg != 0 || bg != 0)
+                if (needsTint(fg, bg))
                     fz_tint_pixmap(ctx, pix, fg, bg);
                 if (m_invert_color)
                     fz_invert_pixmap(ctx, pix);
