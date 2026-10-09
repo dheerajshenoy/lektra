@@ -1486,28 +1486,34 @@ DocumentView::renderPageFromImage(int pageno, QImage image, QSize fullSize,
         << "DocumentView::renderPageFromImage(): Rendering page from image "
         << "for pageno = " << pageno;
 #endif
-    bool wasHighlighted = false;
-    auto it             = m_page_items_hash.find(pageno);
-    if (it != m_page_items_hash.end())
+    // The item that is there (a placeholder or an earlier render) is reused:
+    // only its pixels, scale and position change. That keeps it in the scene
+    // (no removal, deletion and re-insertion per render), and its highlight.
+    GraphicsImageItem *existing = m_page_items_hash.value(pageno, nullptr);
+    if (existing && existing->scene() == m_gscene)
     {
-        GraphicsImageItem *old = it.value();
-        if (old && old->scene() == m_gscene)
-        {
-            wasHighlighted = old->isHighlighted();
-            m_gscene->removeItem(old);
-            delete old;
-        }
+        // A fresh item starts unscaled; repositionPages() sets the scale.
+        existing->setTransform(QTransform());
+        existing->setScale(1.0);
+        if (fullSize.isValid() && !region.isEmpty())
+            existing->setPartialImage(std::move(image), fullSize, region);
+        else
+            existing->setImage(std::move(image));
+        positionPageItem(existing, pageno);
+        if (m_thumbnail_mode && m_config.thumbnail.show_page_numbers)
+            existing->setPageNumber(pageno, m_config.thumbnail.font_size);
+        existing->show(); // a hidden preload item becomes the real one
+        m_placeholder_pages.remove(pageno);
+        m_preload_pages.remove(pageno);
+    }
+    else
+    {
         m_page_items_hash.remove(pageno);
+        createAndAddPageItem(pageno, std::move(image), fullSize, region);
     }
 
-    // New item pointer will differ from the cached one — force one recompute.
+    // The item's pixels changed — force one recompute.
     m_cached_hit_page_item = nullptr;
-
-    createAndAddPageItem(pageno, std::move(image), fullSize, region);
-
-    if (wasHighlighted)
-        if (auto *newItem = m_page_items_hash.value(pageno, nullptr))
-            newItem->setHighlighted(true);
     clearLinksForPage(pageno);
     clearAnnotationsForPage(pageno);
     clearSearchItemsForPage(pageno);
@@ -1585,20 +1591,11 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
     m_placeholder_pages.insert(pageno);
 }
 
+// Puts a page item where the current layout wants it.
 void
-DocumentView::createAndAddPageItem(int pageno, QImage img, QSize fullSize,
-                                   QRect region) noexcept
+DocumentView::positionPageItem(GraphicsImageItem *pageItem,
+                               int pageno) noexcept
 {
-#ifndef NDEBUG
-    qDebug() << "DocumentView::createAndAddPageItem(): Adding page item for "
-             << "pageno = " << pageno;
-#endif
-    auto *pageItem = new GraphicsImageItem();
-    if (fullSize.isValid() && !region.isEmpty())
-        pageItem->setPartialImage(std::move(img), fullSize, region);
-    else
-        pageItem->setImage(std::move(img));
-
     // Logical scene size of the rendered image.
     const QSizeF logicalSize = pageSceneSize(pageno);
     const double pageW       = logicalSize.width();
@@ -1622,6 +1619,23 @@ DocumentView::createAndAddPageItem(int pageno, QImage img, QSize fullSize,
         const qreal yPos = pageOffset(pageno);
         pageItem->setPos(xPos, yPos);
     }
+}
+
+void
+DocumentView::createAndAddPageItem(int pageno, QImage img, QSize fullSize,
+                                   QRect region) noexcept
+{
+#ifndef NDEBUG
+    qDebug() << "DocumentView::createAndAddPageItem(): Adding page item for "
+             << "pageno = " << pageno;
+#endif
+    auto *pageItem = new GraphicsImageItem();
+    if (fullSize.isValid() && !region.isEmpty())
+        pageItem->setPartialImage(std::move(img), fullSize, region);
+    else
+        pageItem->setImage(std::move(img));
+
+    positionPageItem(pageItem, pageno);
 
     if (m_thumbnail_mode)
     {

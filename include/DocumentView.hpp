@@ -507,6 +507,7 @@ public:
     bool EncryptDocument() noexcept;
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
+    void positionPageItem(GraphicsImageItem *pageItem, int pageno) noexcept;
     void createAndAddPageItem(int pageno, QImage image, QSize fullSize = {},
                               QRect region = {}) noexcept;
     void renderImage() noexcept;
