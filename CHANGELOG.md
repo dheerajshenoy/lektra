@@ -18,6 +18,7 @@
 
 #### Tabs and views
 
+- New text underline mode (`annot_underline_mode` command, key `6`, Tools → Mode → Text Underline): select text with the mouse and it is underlined when you release, like text highlight mode. The context menu of a selection has "Underline Text" too.
 - New `underline_selection` command underlines the selected text. PDF has no setting for how an underline looks and MuPDF always draws it the same, so Lektra writes the underline's appearance itself: `[annotations.underline]` sets its `color`, `thickness`, `offset` (how far above the text) and `style` (`solid`, `dashed` or `dotted`). Underlines made by other programs are now also shown with hover and comments like highlights.
 - New grid layout: pages are laid out in rows of several columns (`layout.mode = "grid"`, `--layout grid`, the `layout_grid` command or View → Layout → Grid). `layout.grid_columns` (default 3) sets the pages per row, and the `grid_columns` command changes it (`grid_columns 4`, `grid_columns +1`). Fit width fits the whole row, and next/previous page move by row.
 - New `tabs.min_width` and `tabs.max_width` options set the narrowest and widest a tab may be, in pixels (0: no limit); a longer title is shortened to fit.

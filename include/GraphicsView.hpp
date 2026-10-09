@@ -29,6 +29,7 @@ public:
         AnnotSelect,
         AnnotRect,
         AnnotPopup,
+        TextUnderline, // like TextHighlight, but makes underlines
         COUNT
     };
 
@@ -195,6 +196,7 @@ signals:
     void modeChanged(Mode mode);
     void textSelectionRequested(QPointF a, QPointF b);
     void textHighlightRequested(QPointF a, QPointF b);
+    void textUnderlineRequested(QPointF a, QPointF b);
     void linkCtrlClickRequested(QPointF scenePos);
     void linkPreviewRequested(QPointF scenePos);
     void linkMiddleClickRequested(QPointF scenePos);

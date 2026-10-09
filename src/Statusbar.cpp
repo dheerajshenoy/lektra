@@ -379,6 +379,8 @@ Statusbar::setMode(GraphicsView::Mode mode) noexcept
          {"edit-select-text", QT_TR_NOOP("Text Selection"), false}},
         {GraphicsView::Mode::TextHighlight,
          {"format-text-color", QT_TR_NOOP("Text Highlight"), true}},
+        {GraphicsView::Mode::TextUnderline,
+         {"format-text-underline", QT_TR_NOOP("Text Underline"), true}},
         {GraphicsView::Mode::AnnotSelect,
          {"edit-select", QT_TR_NOOP("Annot Select"), false}},
         {GraphicsView::Mode::AnnotRect,

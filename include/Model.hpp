@@ -737,6 +737,11 @@ public:
     bool encrypt(const EncryptInfo &info) noexcept;
     void setPopupColor(const QColor &color) noexcept;
     void setHighlightColor(const QColor &color) noexcept;
+    // Colour of the underlines made from now on (default: the config's).
+    void setUnderlineColor(const QColor &color) noexcept
+    {
+        m_underline_color = color;
+    }
     void setSelectionColor(const QColor &color) noexcept;
     void setAnnotRectColor(const QColor &color) noexcept;
     bool SaveChanges() noexcept;
@@ -1049,6 +1054,7 @@ private:
     [[nodiscard]] FileSize computeFileSize() noexcept;
     [[nodiscard]] QString fileSizeToString() const noexcept;
     QUndoStack *m_undo_stack = nullptr;
+    QColor m_underline_color; // invalid: use annotations.underline.color
     // std::optional<std::wstring>
     // get_paper_name_at_position(const int pageno, const fz_point) noexcept;
 

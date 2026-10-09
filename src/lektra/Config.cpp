@@ -1253,6 +1253,7 @@ Lektra::initDefaultKeybinds() noexcept
         {"annot_rect_mode", "3"},
         {"selection_mode_region", "4"},
         {"annot_popup_mode", "5"},
+        {"annot_underline_mode", "6"},
         {"link_hint_visit", "f"},
         {"file_open_tab", "o"},
         {"file_picker", "Ctrl+Shift+o"},

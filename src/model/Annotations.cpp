@@ -1119,8 +1119,11 @@ Model::addUnderlineAnnotation(const int pageno,
         pdf_set_annot_quad_points(m_ctx, annot, quads.size(), &quads[0]);
 
         const QColor c
-            = color.isValid() ? color
-                              : rgbaToQColor(m_config.annotations.underline.color);
+            = color.isValid()
+                  ? color
+                  : (m_underline_color.isValid()
+                         ? m_underline_color
+                         : rgbaToQColor(m_config.annotations.underline.color));
         const float mucolor[3] = {static_cast<float>(c.redF()),
                                   static_cast<float>(c.greenF()),
                                   static_cast<float>(c.blueF())};

@@ -489,6 +489,7 @@ annot_highlight_mode  = "2"
 annot_rect_mode       = "3"
 selection_mode_region = "4"
 annot_popup_mode      = "5"
+annot_underline_mode  = "6"
 visual_line_mode      = "v"
 
 # Caret mode (accessibility: keyboard-driven character-level text cursor,

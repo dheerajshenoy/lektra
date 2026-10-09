@@ -616,6 +616,20 @@ Lektra::ToggleHighContrast() noexcept
         m_actionHighContrast->setChecked(on);
 }
 
+// Toggle text underline mode
+void
+Lektra::ToggleTextUnderline() noexcept
+{
+    if (m_doc)
+    {
+        if (m_doc->fileType() == Model::FileType::PDF)
+            m_doc->ToggleTextUnderline();
+        else
+            QMessageBox::information(this, tr("Toggle Text Underline"),
+                                     tr("Not a PDF file to annotate"));
+    }
+}
+
 // Toggle text highlight mode
 void
 Lektra::ToggleTextHighlight() noexcept

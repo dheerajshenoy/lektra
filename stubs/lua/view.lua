@@ -13,6 +13,7 @@ Mode = {
     AnnotSelect = 5,
     AnnotRect = 6,
     AnnotPopup = 7,
+    TextUnderline = 8,
 }
 
 ---@class Container

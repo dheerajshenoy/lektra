@@ -943,6 +943,18 @@ DocumentView::ToggleTextHighlight() noexcept
     emit selectionModeChanged(newMode);
 }
 
+// Toggle text underline mode
+void
+DocumentView::ToggleTextUnderline() noexcept
+{
+    const auto newMode = (m_gview->mode() == GraphicsView::Mode::TextUnderline)
+                             ? m_gview->getDefaultMode()
+                             : GraphicsView::Mode::TextUnderline;
+
+    m_gview->setMode(newMode);
+    emit selectionModeChanged(newMode);
+}
+
 void
 DocumentView::ToggleTextSelection() noexcept
 {
@@ -1132,6 +1144,8 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
             addAction(tr("Comment"), &DocumentView::handleTextCommentRequested);
             addAction(tr("Highlight Text"),
                       &DocumentView::handleTextHighlightRequested);
+            addAction(tr("Underline Text"),
+                      &DocumentView::handleTextUnderlineRequested);
         }
 #ifdef WITH_LUA
         dispatchLuaEvent(DispatchType::OnTextSelectionContextMenuRequested);

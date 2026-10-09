@@ -321,6 +321,13 @@ Lektra::initMenubar() noexcept
     m_actionTextHighlight->setCheckable(true);
     modeActionGroup->addAction(m_actionTextHighlight);
 
+    m_actionTextUnderline = m_modeMenu->addAction(
+        tr("Text Underline\t%1")
+            .arg(m_config.keybinds["annot_underline_mode"].join(", ")),
+        this, &Lektra::ToggleTextUnderline);
+    m_actionTextUnderline->setCheckable(true);
+    modeActionGroup->addAction(m_actionTextUnderline);
+
     m_actionAnnotRect = m_modeMenu->addAction(
         tr("Annotate Rectangle\t%1")
             .arg(m_config.keybinds["annot_rect_mode"].join(", ")),
@@ -366,6 +373,9 @@ Lektra::initMenubar() noexcept
             break;
         case GraphicsView::Mode::TextHighlight:
             m_actionTextHighlight->setChecked(true);
+            break;
+        case GraphicsView::Mode::TextUnderline:
+            m_actionTextUnderline->setChecked(true);
             break;
         case GraphicsView::Mode::AnnotSelect:
             m_actionAnnotEdit->setChecked(true);
@@ -574,6 +584,8 @@ Lektra::initMenubar() noexcept
     m_actionTextSelect->setIcon(
         th("edit-select", QStyle::SP_FileDialogListView));
     m_actionTextHighlight->setIcon(
+        th("format-text-color", QStyle::SP_FileDialogListView));
+    m_actionTextUnderline->setIcon(
         th("format-text-underline", QStyle::SP_FileDialogListView));
     m_actionAnnotRect->setIcon(
         th("draw-rectangle", QStyle::SP_FileDialogContentsView));
@@ -669,6 +681,7 @@ Lektra::updateUiEnabledState() noexcept
     setAdvancedVisible(m_actionTextSelect);
     setAdvancedVisible(m_actionRegionSelect);
     setAdvancedVisible(m_actionTextHighlight);
+    setAdvancedVisible(m_actionTextUnderline);
     setAdvancedVisible(m_actionAnnotRect);
     setAdvancedVisible(m_actionAnnotEdit);
     setAdvancedVisible(m_actionAnnotPopup);
@@ -736,6 +749,7 @@ Lektra::updateUiEnabledState() noexcept
     m_actionAnnotEdit->setEnabled(isPDF);
     m_actionAnnotPopup->setEnabled(isPDF);
     m_actionTextHighlight->setEnabled(isPDF);
+    m_actionTextUnderline->setEnabled(isPDF);
     m_actionFileProperties->setEnabled(hasFile);
 
     // Undo/Redo reset
@@ -969,6 +983,9 @@ Lektra::updateSelectionModeActions() noexcept
             break;
         case GraphicsView::Mode::TextHighlight:
             m_actionTextHighlight->setChecked(true);
+            break;
+        case GraphicsView::Mode::TextUnderline:
+            m_actionTextUnderline->setChecked(true);
             break;
         case GraphicsView::Mode::AnnotSelect:
             m_actionAnnotEdit->setChecked(true);

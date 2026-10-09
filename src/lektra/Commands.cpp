@@ -764,6 +764,9 @@ Lektra::initCommands() noexcept
     m_command_manager->reg(
         "annot_highlight_mode", tr("Toggle text highlight mode"),
         [this](const QStringList &) { ToggleTextHighlight(); });
+    m_command_manager->reg(
+        "annot_underline_mode", tr("Toggle text underline mode"),
+        [this](const QStringList &) { ToggleTextUnderline(); });
     m_command_manager->reg("none_mode", tr("Toggle none interaction mode"),
                            [this](const QStringList &) { ToggleNoneMode(); });
 

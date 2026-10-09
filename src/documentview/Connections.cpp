@@ -474,8 +474,12 @@ DocumentView::initConnections() noexcept
 
     /* Graphics View Signals */
     if (m_model->supports_text_selection())
+    {
         connect(m_gview, &GraphicsView::textHighlightRequested, this,
                 &DocumentView::handleTextHighlightRequested);
+        connect(m_gview, &GraphicsView::textUnderlineRequested, this,
+                &DocumentView::handleTextUnderlineRequested);
+    }
 
     connect(m_gview, &GraphicsView::zoomInRequested, this,
             &DocumentView::ZoomIn);

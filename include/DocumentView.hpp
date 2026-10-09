@@ -641,6 +641,7 @@ public:
         return m_trim_margins;
     }
     void ToggleTextHighlight() noexcept;
+    void ToggleTextUnderline() noexcept;
     void ToggleRegionSelect() noexcept;
     void ToggleAnnotRect() noexcept;
     void ToggleAnnotSelect() noexcept;

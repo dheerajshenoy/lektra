@@ -168,6 +168,7 @@ public:
     void ToggleFullscreen() noexcept;
     void ToggleTextSelection() noexcept;
     void ToggleTextHighlight() noexcept;
+    void ToggleTextUnderline() noexcept;
     void ToggleRegionSelect() noexcept;
     void NarrowToRegion() noexcept;
     void ZoomToSelection() noexcept;
@@ -565,6 +566,7 @@ private:
     QAction *m_actionAbout                      = nullptr;
     QAction *m_actionDonate                     = nullptr;
     QAction *m_actionTextHighlight              = nullptr;
+    QAction *m_actionTextUnderline              = nullptr;
     QAction *m_actionAnnotRect                  = nullptr;
     QAction *m_actionAnnotPopup                 = nullptr;
     QAction *m_actionTextSelect                 = nullptr;
