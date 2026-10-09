@@ -899,6 +899,15 @@ Lektra::startIPCServer(const QString &name)
     qDebug() << "Starting IPC server with name:" << name;
 #endif
 
+    // Another instance may already be listening on this name; do not take the
+    // socket away from it. A stale socket file left by a crash does not answer.
+    {
+        QLocalSocket probe;
+        probe.connectToServer(name);
+        if (probe.waitForConnected(300))
+            return;
+    }
+
     auto *server = new QLocalServer(this);
     // Remove existing socket file if it crashed previously
     QLocalServer::removeServer(name);

@@ -119,9 +119,9 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
         probe.connectToServer(ipcName);
         socketInUse = probe.waitForConnected(300);
     }
-    if (!newWindow
-        && (hasSynctexForward
-            || (singleInstance && argparser.is_used("files"))))
+    // Hands the files (or the synctex request) to a running instance and exits;
+    // returns if there is none to talk to.
+    const auto handOffToRunningInstance = [&]()
     {
         QLocalSocket probe;
         probe.connectToServer(ipcName);
@@ -159,14 +159,29 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
             probe.disconnectFromServer();
             std::exit(0);
         }
-    }
+    };
+
+    if (!newWindow
+        && (hasSynctexForward
+            || (singleInstance && argparser.is_used("files"))))
+        handOffToRunningInstance();
 
     // This creates the UI and applies the initial user config file settings
     this->construct();
 
     applyCommandLineOverrides(argparser);
 
-    if (!socketInUse && (singleInstance || argparser.is_used("socket")))
+    // The option may also have been set from init.lua
+    // (lektra.opt.behavior.single_instance), which only ran during construct(),
+    // so decide again now: hand over to a running instance if there is one,
+    // and otherwise become the one that listens.
+    const bool singleInstanceNow
+        = singleInstance || m_config.behavior.single_instance;
+    if (!newWindow && !singleInstance && singleInstanceNow
+        && argparser.is_used("files"))
+        handOffToRunningInstance();
+
+    if (!socketInUse && (singleInstanceNow || argparser.is_used("socket")))
         startIPCServer(ipcName); // correct place — after construct()
 
     if (argparser.is_used("about"))
