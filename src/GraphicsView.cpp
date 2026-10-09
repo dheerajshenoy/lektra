@@ -138,6 +138,48 @@ GraphicsView::clearRubberBand() noexcept
     m_rect = QRect();
 }
 
+bool
+GraphicsView::isRubberBandAnnotMode() const noexcept
+{
+    return m_mode == Mode::AnnotRect || m_mode == Mode::AnnotEllipse
+           || m_mode == Mode::AnnotNote;
+}
+
+void
+GraphicsView::addPolygonPoint(const QPointF &scenePos) noexcept
+{
+    // A click on the first corner closes the polygon.
+    if (m_polygon_points.size() >= 3)
+    {
+        const QPoint first = mapFromScene(m_polygon_points.first());
+        const QPoint here  = mapFromScene(scenePos);
+        if ((first - here).manhattanLength() <= 10)
+        {
+            finishPolygon();
+            return;
+        }
+    }
+
+    m_polygon_points.push_back(scenePos);
+    viewport()->update();
+}
+
+void
+GraphicsView::finishPolygon() noexcept
+{
+    const QVector<QPointF> points = m_polygon_points;
+    cancelPolygon();
+    if (points.size() >= 3)
+        emit annotPolygonRequested(points);
+}
+
+void
+GraphicsView::cancelPolygon() noexcept
+{
+    m_polygon_points.clear();
+    viewport()->update();
+}
+
 void
 GraphicsView::updateCursorForMode() noexcept
 {
@@ -166,8 +208,14 @@ GraphicsView::setMode(Mode mode) noexcept
     {
         case Mode::RegionSelection:
         case Mode::AnnotRect:
+        case Mode::AnnotEllipse:
+        case Mode::AnnotNote:
             if (m_rubberBand)
                 m_rubberBand->hide();
+            break;
+
+        case Mode::AnnotPolygon:
+            cancelPolygon();
             break;
 
         case Mode::TextSelection:
@@ -358,8 +406,17 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
             return;
         }
 
+        case Mode::AnnotPolygon:
+            // Only the Select action adds a corner (the same one that starts
+            // a drag in the other annotation modes).
+            addPolygonPoint(scenePos);
+            event->accept();
+            return;
+
         case Mode::RegionSelection:
         case Mode::AnnotRect:
+        case Mode::AnnotEllipse:
+        case Mode::AnnotNote:
         case Mode::AnnotSelect:
             m_start     = event->pos();
             m_rect      = QRect();
@@ -463,7 +520,7 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
     // m_selecting is only set when a bound Select action started the drag,
     // so no need to re-check the button here.
     if ((m_mode == Mode::AnnotSelect || m_mode == Mode::RegionSelection
-         || m_mode == Mode::AnnotRect)
+         || isRubberBandAnnotMode())
         && m_selecting)
     {
         if (!m_dragging
@@ -491,6 +548,14 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
 void
 GraphicsView::mouseDoubleClickEvent(QMouseEvent *event)
 {
+    // The first click of the double click already added its corner.
+    if (m_mode == Mode::AnnotPolygon && event->button() == Qt::LeftButton)
+    {
+        finishPolygon();
+        event->accept();
+        return;
+    }
+
     mousePressEvent(event);
 }
 
@@ -580,7 +645,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     }
 
     // Handle Region/Annotation Selection Modes
-    if (m_mode == Mode::RegionSelection || m_mode == Mode::AnnotRect
+    if (m_mode == Mode::RegionSelection || isRubberBandAnnotMode()
         || m_mode == Mode::AnnotSelect)
     {
         const QRectF sceneRect  = mapToScene(m_rect).boundingRect();
@@ -604,6 +669,10 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
                 emit regionSelectRequested(sceneRect);
             else if (m_mode == Mode::AnnotRect)
                 emit annotRectRequested(sceneRect);
+            else if (m_mode == Mode::AnnotEllipse)
+                emit annotEllipseRequested(sceneRect);
+            else if (m_mode == Mode::AnnotNote)
+                emit annotNoteRequested(sceneRect);
         }
 
         return;
@@ -1037,6 +1106,20 @@ GraphicsView::paintEvent(QPaintEvent *event)
             0, 0, 0,
             static_cast<int>(m_config.split.dim_inactive_opacity * 255));
         painter.fillRect(event->rect(), dimColor);
+    }
+
+    if (m_mode == Mode::AnnotPolygon && !m_polygon_points.isEmpty())
+    {
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        QPolygon corners;
+        for (const QPointF &p : m_polygon_points)
+            corners << mapFromScene(p);
+        painter.setPen(QPen(Qt::black, 1.5, Qt::DashLine));
+        painter.drawPolyline(corners);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(Qt::black);
+        for (const QPoint &p : corners)
+            painter.drawEllipse(p, 3, 3);
     }
 
     if (m_mode == Mode::VisualLine)

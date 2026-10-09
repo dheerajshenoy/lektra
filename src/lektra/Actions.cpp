@@ -666,6 +666,48 @@ Lektra::ToggleAnnotRect() noexcept
     }
 }
 
+// Toggle ellipse annotation mode
+void
+Lektra::ToggleAnnotEllipse() noexcept
+{
+    if (m_doc)
+    {
+        if (m_doc->fileType() == Model::FileType::PDF)
+            m_doc->ToggleAnnotEllipse();
+        else
+            QMessageBox::information(this, tr("Toggle Annot Ellipse"),
+                                     tr("Not a PDF file to annotate"));
+    }
+}
+
+// Toggle polygon annotation mode
+void
+Lektra::ToggleAnnotPolygon() noexcept
+{
+    if (m_doc)
+    {
+        if (m_doc->fileType() == Model::FileType::PDF)
+            m_doc->ToggleAnnotPolygon();
+        else
+            QMessageBox::information(this, tr("Toggle Annot Polygon"),
+                                     tr("Not a PDF file to annotate"));
+    }
+}
+
+// Toggle note annotation mode
+void
+Lektra::ToggleAnnotNote() noexcept
+{
+    if (m_doc)
+    {
+        if (m_doc->fileType() == Model::FileType::PDF)
+            m_doc->ToggleAnnotNote();
+        else
+            QMessageBox::information(this, tr("Toggle Annot Note"),
+                                     tr("Not a PDF file to annotate"));
+    }
+}
+
 // Toggle annotation select mode
 void
 Lektra::ToggleAnnotSelect() noexcept

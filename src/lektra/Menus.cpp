@@ -335,6 +335,27 @@ Lektra::initMenubar() noexcept
     m_actionAnnotRect->setCheckable(true);
     modeActionGroup->addAction(m_actionAnnotRect);
 
+    m_actionAnnotEllipse = m_modeMenu->addAction(
+        tr("Annotate Ellipse\t%1")
+            .arg(m_config.keybinds["annot_ellipse_mode"].join(", ")),
+        this, &Lektra::ToggleAnnotEllipse);
+    m_actionAnnotEllipse->setCheckable(true);
+    modeActionGroup->addAction(m_actionAnnotEllipse);
+
+    m_actionAnnotPolygon = m_modeMenu->addAction(
+        tr("Annotate Polygon\t%1")
+            .arg(m_config.keybinds["annot_polygon_mode"].join(", ")),
+        this, &Lektra::ToggleAnnotPolygon);
+    m_actionAnnotPolygon->setCheckable(true);
+    modeActionGroup->addAction(m_actionAnnotPolygon);
+
+    m_actionAnnotNote = m_modeMenu->addAction(
+        tr("Annotate Inline Note\t%1")
+            .arg(m_config.keybinds["annot_note_mode"].join(", ")),
+        this, &Lektra::ToggleAnnotNote);
+    m_actionAnnotNote->setCheckable(true);
+    modeActionGroup->addAction(m_actionAnnotNote);
+
     m_actionAnnotEdit = m_modeMenu->addAction(
         tr("Edit Annotations\t%1")
             .arg(m_config.keybinds["annot_edit_mode"].join(", ")),
@@ -385,6 +406,15 @@ Lektra::initMenubar() noexcept
             break;
         case GraphicsView::Mode::AnnotPopup:
             m_actionAnnotPopup->setChecked(true);
+            break;
+        case GraphicsView::Mode::AnnotEllipse:
+            m_actionAnnotEllipse->setChecked(true);
+            break;
+        case GraphicsView::Mode::AnnotPolygon:
+            m_actionAnnotPolygon->setChecked(true);
+            break;
+        case GraphicsView::Mode::AnnotNote:
+            m_actionAnnotNote->setChecked(true);
             break;
 
         case GraphicsView::Mode::VisualLine:
@@ -589,6 +619,12 @@ Lektra::initMenubar() noexcept
         th("format-text-underline", QStyle::SP_FileDialogListView));
     m_actionAnnotRect->setIcon(
         th("draw-rectangle", QStyle::SP_FileDialogContentsView));
+    m_actionAnnotEllipse->setIcon(
+        th("draw-ellipse", QStyle::SP_FileDialogContentsView));
+    m_actionAnnotPolygon->setIcon(
+        th("draw-polygon", QStyle::SP_FileDialogContentsView));
+    m_actionAnnotNote->setIcon(
+        th("insert-text", QStyle::SP_FileDialogContentsView));
     m_actionAnnotEdit->setIcon(
         th("document-edit", QStyle::SP_FileDialogListView));
     m_actionAnnotPopup->setIcon(
@@ -683,6 +719,9 @@ Lektra::updateUiEnabledState() noexcept
     setAdvancedVisible(m_actionTextHighlight);
     setAdvancedVisible(m_actionTextUnderline);
     setAdvancedVisible(m_actionAnnotRect);
+    setAdvancedVisible(m_actionAnnotEllipse);
+    setAdvancedVisible(m_actionAnnotPolygon);
+    setAdvancedVisible(m_actionAnnotNote);
     setAdvancedVisible(m_actionAnnotEdit);
     setAdvancedVisible(m_actionAnnotPopup);
     setAdvancedVisible(m_actionVisualLineMode);
@@ -746,6 +785,9 @@ Lektra::updateUiEnabledState() noexcept
     m_actionEncrypt->setEnabled(isPDF);
     m_actionDecrypt->setEnabled(isPDF);
     m_actionAnnotRect->setEnabled(isPDF);
+    m_actionAnnotEllipse->setEnabled(isPDF);
+    m_actionAnnotPolygon->setEnabled(isPDF);
+    m_actionAnnotNote->setEnabled(isPDF);
     m_actionAnnotEdit->setEnabled(isPDF);
     m_actionAnnotPopup->setEnabled(isPDF);
     m_actionTextHighlight->setEnabled(isPDF);
@@ -995,6 +1037,15 @@ Lektra::updateSelectionModeActions() noexcept
             break;
         case GraphicsView::Mode::AnnotPopup:
             m_actionAnnotPopup->setChecked(true);
+            break;
+        case GraphicsView::Mode::AnnotEllipse:
+            m_actionAnnotEllipse->setChecked(true);
+            break;
+        case GraphicsView::Mode::AnnotPolygon:
+            m_actionAnnotPolygon->setChecked(true);
+            break;
+        case GraphicsView::Mode::AnnotNote:
+            m_actionAnnotNote->setChecked(true);
             break;
         default:
             break;

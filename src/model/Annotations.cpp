@@ -1266,8 +1266,9 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect,
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to create annotation");
 
         pdf_set_annot_rect(m_ctx, annot, rect);
-        pdf_set_annot_interior_color(m_ctx, annot, 3, m_annot_rect_color);
+        // Outline only, so the content underneath stays readable.
         pdf_set_annot_color(m_ctx, annot, 3, m_annot_rect_color);
+        pdf_set_annot_border_width(m_ctx, annot, 2.0f);
         pdf_set_annot_opacity(m_ctx, annot, m_annot_rect_color[3]);
 
         if (!content.isEmpty())
@@ -1307,6 +1308,97 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect,
              << " ObjNum:" << objNum;
 #endif
 
+    return objNum;
+}
+
+int
+Model::addShapeAnnotation(const int pageno, const enum pdf_annot_type type,
+                          const fz_rect &rect,
+                          const std::vector<fz_point> &vertices,
+                          const QString &content) noexcept
+{
+    int objNum       = -1;
+    pdf_annot *annot = nullptr;
+    pdf_page *page   = nullptr;
+
+    fz_try(m_ctx)
+    {
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        annot = pdf_create_annot(m_ctx, page, type);
+
+        if (!annot)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to create annotation");
+
+        switch (type)
+        {
+            case PDF_ANNOT_CIRCLE:
+                pdf_set_annot_rect(m_ctx, annot, rect);
+                pdf_set_annot_color(m_ctx, annot, 3, m_annot_rect_color);
+                pdf_set_annot_border_width(m_ctx, annot, 2.0f);
+                pdf_set_annot_opacity(m_ctx, annot, m_annot_rect_color[3]);
+                break;
+
+            case PDF_ANNOT_POLYGON:
+                for (const fz_point &p : vertices)
+                    pdf_add_annot_vertex(m_ctx, annot, p);
+                pdf_set_annot_color(m_ctx, annot, 3, m_annot_rect_color);
+                pdf_set_annot_border_width(m_ctx, annot, 2.0f);
+                pdf_set_annot_opacity(m_ctx, annot, m_annot_rect_color[3]);
+                break;
+
+            case PDF_ANNOT_FREE_TEXT:
+            {
+                // An inline note: black text on a pale yellow background.
+                const float text_color[3]       = {0.0f, 0.0f, 0.0f};
+                const float background_color[3] = {1.0f, 0.97f, 0.7f};
+                pdf_set_annot_rect(m_ctx, annot, rect);
+                pdf_set_annot_default_appearance(m_ctx, annot, "Helv", 12.0f,
+                                                 3, text_color);
+                pdf_set_annot_interior_color(m_ctx, annot, 3,
+                                             background_color);
+                pdf_set_annot_border_width(m_ctx, annot, 0.0f);
+                break;
+            }
+
+            default:
+                fz_throw(m_ctx, FZ_ERROR_GENERIC, "Unsupported shape");
+        }
+
+        if (!content.isEmpty())
+            pdf_set_annot_contents(m_ctx, annot, content.toUtf8().constData());
+
+        pdf_update_annot(m_ctx, annot);
+        pdf_update_page(m_ctx, page);
+
+        pdf_obj *obj = pdf_annot_obj(m_ctx, annot);
+        if (!obj)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC,
+                     "Failed to get annotation object");
+
+        objNum = pdf_to_num(m_ctx, obj);
+    }
+    fz_always(m_ctx)
+    {
+        pdf_drop_annot(m_ctx, annot);
+        pdf_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Adding the annotation failed:"
+                   << fz_caught_message(m_ctx);
+        return objNum;
+    }
+
+    if (objNum >= 0)
+    {
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
+    }
     return objNum;
 }
 
@@ -1767,9 +1859,18 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
             switch (pdf_annot_type(m_ctx, annot))
             {
                 case PDF_ANNOT_SQUARE:
+                case PDF_ANNOT_CIRCLE:
+                case PDF_ANNOT_POLYGON:
+                    // Older rects were filled; keep their fill in sync.
+                    if (pdf_dict_get(m_ctx, pdf_annot_obj(m_ctx, annot),
+                                     PDF_NAME(IC)))
+                        pdf_set_annot_interior_color(m_ctx, annot, 3, rgb);
+                    pdf_set_annot_color(m_ctx, annot, 3, rgb);
+                    break;
+                case PDF_ANNOT_FREE_TEXT: // the colour is the background
                     pdf_set_annot_interior_color(m_ctx, annot, 3, rgb);
                     break;
-                case PDF_ANNOT_TEXT: // has no interior colour, only a colour
+                case PDF_ANNOT_TEXT:
                 case PDF_ANNOT_HIGHLIGHT:
                 case PDF_ANNOT_UNDERLINE:
                     pdf_set_annot_color(m_ctx, annot, 3, rgb);
@@ -1827,13 +1928,18 @@ Model::getAnnotColor(const int pageno, const int objNum) noexcept
                 continue;
 
             int n{3};
-            float rgb[3];
+            float rgb[3]{0, 0, 0};
             switch (pdf_annot_type(m_ctx, annot))
             {
-                case PDF_ANNOT_SQUARE:
-                    pdf_annot_interior_color(m_ctx, annot, &n, rgb);
+                case PDF_ANNOT_FREE_TEXT: // the colour is the background
+                    if (pdf_dict_get(m_ctx, pdf_annot_obj(m_ctx, annot),
+                                     PDF_NAME(IC)))
+                        pdf_annot_interior_color(m_ctx, annot, &n, rgb);
                     break;
-                case PDF_ANNOT_TEXT: // has no interior colour, only a colour
+                case PDF_ANNOT_SQUARE:
+                case PDF_ANNOT_CIRCLE:
+                case PDF_ANNOT_POLYGON:
+                case PDF_ANNOT_TEXT:
                 case PDF_ANNOT_HIGHLIGHT:
                 case PDF_ANNOT_UNDERLINE:
                     pdf_annot_color(m_ctx, annot, &n, rgb);
@@ -1957,15 +2063,9 @@ Model::annotationInfos(int pageno) noexcept
                 if (const char *contents = pdf_annot_contents(m_ctx, annot))
                     info.contents = QString::fromUtf8(contents);
 
-                // a rectangle is filled with its interior colour, the other
-                // kinds only have a colour
                 int n        = 3;
                 float rgb[3] = {0, 0, 0};
-                if (info.type == PDF_ANNOT_SQUARE
-                    && pdf_annot_has_interior_color(m_ctx, annot))
-                    pdf_annot_interior_color(m_ctx, annot, &n, rgb);
-                else
-                    pdf_annot_color(m_ctx, annot, &n, rgb);
+                pdf_annot_color(m_ctx, annot, &n, rgb);
                 info.color.setRgbF(rgb[0], rgb[1], rgb[2],
                                    pdf_annot_opacity(m_ctx, annot));
 

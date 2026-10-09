@@ -176,6 +176,9 @@ public:
     void NarrowToSection(const QStringList &args) noexcept;
     void WidenRegion() noexcept;
     void ToggleAnnotRect() noexcept;
+    void ToggleAnnotEllipse() noexcept;
+    void ToggleAnnotPolygon() noexcept;
+    void ToggleAnnotNote() noexcept;
     void ToggleAnnotSelect() noexcept;
     void ToggleAnnotPopup() noexcept;
     void FileProperties() noexcept;
@@ -568,6 +571,9 @@ private:
     QAction *m_actionTextHighlight              = nullptr;
     QAction *m_actionTextUnderline              = nullptr;
     QAction *m_actionAnnotRect                  = nullptr;
+    QAction *m_actionAnnotEllipse = nullptr;
+    QAction *m_actionAnnotPolygon = nullptr;
+    QAction *m_actionAnnotNote = nullptr;
     QAction *m_actionAnnotPopup                 = nullptr;
     QAction *m_actionTextSelect                 = nullptr;
     QAction *m_actionRegionSelect               = nullptr;

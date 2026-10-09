@@ -1023,6 +1023,13 @@ private:
     void buildPageCache_djvu(int pageno) noexcept;
     [[nodiscard]] int addRectAnnotation(const int pageno, const fz_rect &rect,
                                         const QString &content = {}) noexcept;
+    // An ellipse (CIRCLE, from `rect`), a polygon (from `vertices`) or an
+    // inline note (FREE_TEXT, `content` is its text, in `rect`).
+    [[nodiscard]] int addShapeAnnotation(const int pageno,
+                                         const enum pdf_annot_type type,
+                                         const fz_rect &rect,
+                                         const std::vector<fz_point> &vertices,
+                                         const QString &content = {}) noexcept;
     [[nodiscard]] int
     addHighlightAnnotation(const int pageno, const std::vector<fz_quad> &quads,
                            const QColor &color    = QColor(),
@@ -1148,6 +1155,7 @@ private:
 
     friend class TextHighlightAnnotationCommand;
     friend class RectAnnotationCommand;
+    friend class ShapeAnnotationCommand;
     friend class TextAnnotationCommand;
     friend class DeleteAnnotationsCommand;
     friend class DocumentView;

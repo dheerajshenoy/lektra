@@ -761,6 +761,15 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("annot_rect_mode",
                            tr("Toggle rectangle annotation mode"),
                            [this](const QStringList &) { ToggleAnnotRect(); });
+    m_command_manager->reg("annot_ellipse_mode",
+                           tr("Toggle ellipse annotation mode"),
+                           [this](const QStringList &) { ToggleAnnotEllipse(); });
+    m_command_manager->reg("annot_polygon_mode",
+                           tr("Toggle polygon annotation mode"),
+                           [this](const QStringList &) { ToggleAnnotPolygon(); });
+    m_command_manager->reg("annot_note_mode",
+                           tr("Toggle inline note annotation mode"),
+                           [this](const QStringList &) { ToggleAnnotNote(); });
     m_command_manager->reg(
         "annot_highlight_mode", tr("Toggle text highlight mode"),
         [this](const QStringList &) { ToggleTextHighlight(); });

@@ -511,6 +511,12 @@ DocumentView::initConnections() noexcept
 
         connect(m_gview, &GraphicsView::annotRectRequested, this,
                 &DocumentView::handleAnnotRectRequested);
+        connect(m_gview, &GraphicsView::annotEllipseRequested, this,
+                &DocumentView::handleAnnotEllipseRequested);
+        connect(m_gview, &GraphicsView::annotPolygonRequested, this,
+                &DocumentView::handleAnnotPolygonRequested);
+        connect(m_gview, &GraphicsView::annotNoteRequested, this,
+                &DocumentView::handleAnnotNoteRequested);
 
         connect(m_gview, &GraphicsView::annotPopupRequested, this,
                 &DocumentView::handleAnnotPopupRequested);

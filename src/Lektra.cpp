@@ -655,7 +655,9 @@ Lektra::modeColorChangeRequested(const GraphicsView::Mode mode) noexcept
     {
         QColor color = colorDialog.selectedColor();
         auto model   = m_doc->model();
-        if (mode == GraphicsView::Mode::AnnotRect)
+        if (mode == GraphicsView::Mode::AnnotRect
+            || mode == GraphicsView::Mode::AnnotEllipse
+            || mode == GraphicsView::Mode::AnnotPolygon)
             model->setAnnotRectColor(color);
         else if (mode == GraphicsView::Mode::TextHighlight)
             model->setHighlightColor(color);

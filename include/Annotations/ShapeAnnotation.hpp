@@ -6,48 +6,68 @@
 #include <QAction>
 #include <QGraphicsItem>
 #include <QGraphicsSceneContextMenuEvent>
-#include <QGraphicsSceneHoverEvent>
-#include <QGraphicsSceneMouseEvent>
 #include <QMenu>
 #include <QObject>
 #include <QPainter>
+#include <QPainterPath>
 
-class RectAnnotation : public Annotation
+// The overlay of an ellipse, a polygon or an inline note. The shape itself is
+// in the page's appearance; this item only gives it hover, comment and
+// selection. Uses the options of the rectangle annotation.
+class ShapeAnnotation : public Annotation
 {
     Q_OBJECT
 
 public:
-    RectAnnotation(const Config::Annotations::Rect &config, const QRectF &rect,
-                   int index, const QString &comment, const QColor &color,
-                   QGraphicsItem *parent = nullptr)
-        : Annotation(index, color, parent), m_config(config), m_rect(rect)
+    ShapeAnnotation(const Config::Annotations::Rect &config, Type type,
+                    const QRectF &rect, int index, const QString &comment,
+                    const QColor &color, QGraphicsItem *parent = nullptr)
+        : Annotation(index, color, parent), m_type(type), m_rect(rect)
     {
         m_comment = comment;
-        setGlowEnabled(m_config.hover_glow);
-        setGlowWidth(m_config.glow_width);
-        setGlowColor(m_config.glow_color);
+        setGlowEnabled(config.hover_glow);
+        setGlowWidth(config.glow_width);
+        setGlowColor(config.glow_color);
         setFlags(flags() | QGraphicsItem::ItemIsFocusable);
-        setTooltipFontSize(m_config.comment_font_size);
-        setCommentMarkerVisible(m_config.comment_marker);
+        setTooltipFontSize(config.comment_font_size);
+
+        // An inline note's text is already on the page.
+        if (m_type == Type::Note)
+        {
+            m_tooltip_enabled = false;
+            setCommentMarkerVisible(false);
+        }
+        else
+        {
+            setCommentMarkerVisible(config.comment_marker);
+        }
         updateCommentMarker();
     }
 
     inline Type atype() const noexcept override
     {
-        return Type::Rect;
+        return m_type;
     }
 
     QRectF boundingRect() const override
     {
-        // Extend outward to contain the full outer glow stroke + AA cushion.
         const qreal margin = m_glow_width + 2.0;
         return m_rect.adjusted(-margin, -margin, margin, margin);
+    }
+
+    QPainterPath shape() const override
+    {
+        QPainterPath path;
+        if (m_type == Type::Ellipse)
+            path.addEllipse(m_rect);
+        else
+            path.addRect(m_rect);
+        return path;
     }
 
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
                QWidget *widget) override
     {
-        // Outer glow — drawn first, underneath everything.
         if (m_hovered && isGlowEnabled())
         {
             painter->save();
@@ -55,17 +75,6 @@ public:
             painter->restore();
         }
 
-        // Outline only.
-        QPen outline(m_brush.color(), 2.0);
-        outline.setCosmetic(true);
-        painter->setPen(outline);
-        painter->setBrush(Qt::NoBrush);
-        painter->drawRect(m_rect);
-
-        // if (m_comment_marker && hasComment())
-        //     m_comment_marker->setAnnotationRect(m_rect);
-
-        // Selection indicator.
         if (option->state & QStyle::State_Selected)
         {
             painter->save();
@@ -86,9 +95,13 @@ protected:
     {
         QMenu menu;
 
-        QAction *deleteAction      = menu.addAction(tr("Delete"));
-        QAction *changeColorAction = menu.addAction(tr("Change Color"));
-        QAction *commentAction     = menu.addAction(tr("Comment"));
+        QAction *deleteAction = menu.addAction(tr("Delete"));
+        QAction *changeColorAction
+            = menu.addAction(m_type == Type::Note ? tr("Change Background")
+                                                  : tr("Change Color"));
+        QAction *commentAction
+            = menu.addAction(m_type == Type::Note ? tr("Edit Text")
+                                                  : tr("Comment"));
 
         connect(deleteAction, &QAction::triggered, this,
                 [this] { emit annotDeleteRequested(); });
@@ -97,15 +110,11 @@ protected:
         connect(commentAction, &QAction::triggered, this,
                 [this] { emit annotCommentRequested(); });
 
-        // Bracket exec() with the flag so hoverLeaveEvent (fired by Qt when
-        // the menu grabs the mouse) does not clear m_hovered and extinguish
-        // the glow while the user reads the menu.
+        // See RectAnnotation::contextMenuEvent.
         m_context_menu_open = true;
         menu.exec(e->screenPos());
         m_context_menu_open = false;
 
-        // If the cursor genuinely left the item while the menu was open,
-        // honour that now.
         if (!isUnderMouse())
         {
             m_hovered = false;
@@ -123,6 +132,6 @@ protected:
     }
 
 private:
-    const Config::Annotations::Rect &m_config;
+    Type m_type;
     QRectF m_rect;
 };

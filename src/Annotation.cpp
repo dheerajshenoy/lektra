@@ -179,7 +179,7 @@ Annotation::contextMenuEvent(QGraphicsSceneContextMenuEvent *event)
 void
 Annotation::showTooltip(const QPoint &screenPos)
 {
-    if (m_comment.isEmpty())
+    if (m_comment.isEmpty() || !m_tooltip_enabled)
         return;
 
     if (!m_tooltip)

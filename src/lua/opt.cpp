@@ -1,7 +1,7 @@
-#include "StatusbarLayoutSpec.hpp"
 #include "Config.hpp"
 #include "DocumentView.hpp"
 #include "Lektra.hpp"
+#include "StatusbarLayoutSpec.hpp"
 #include "utils.hpp"
 
 #include <QKeySequence>
@@ -120,6 +120,7 @@ static const LuaField pageFields[] = {
 };
 
 // --- synctex ---
+#ifdef WITH_SYNCTEX
 static const LuaField synctexFields[] = {
     {"editor_command",
      [](lua_State *L, P p)
@@ -138,6 +139,7 @@ static const LuaField synctexFields[] = {
 }, [](lua_State *L, P p)
 { static_cast<Config::Synctex *>(p)->enabled = lua_toboolean(L, 3); }},
 };
+#endif
 
 // --- search ---
 static const LuaField searchFields[] = {
@@ -414,7 +416,6 @@ static const LuaField annotUnderlineFields[] = {
         = static_cast<float>(lua_tonumber(L, 3));
 }},
 };
-
 
 // --- annotations.rect ---
 static const LuaField annotRectFields[] = {
@@ -795,7 +796,8 @@ static const LuaField layoutFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::Layout *>(p)->grid_columns);
     return 1;
-}, [](lua_State *L, P p)
+},
+     [](lua_State *L, P p)
 {
     static_cast<Config::Layout *>(p)->grid_columns
         = static_cast<int>(std::clamp<lua_Integer>(lua_tointeger(L, 3), 1, 32));
@@ -1655,15 +1657,23 @@ static const LuaField tabsFields[] = {
 {
     lua_pushinteger(L, static_cast<Config::Tabs *>(p)->max_width);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Tabs *>(p)->max_width = std::max<lua_Integer>(0, lua_tointeger(L, 3)); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Tabs *>(p)->max_width
+        = std::max<lua_Integer>(0, lua_tointeger(L, 3));
+}},
     {"min_width",
      [](lua_State *L, P p)
 {
     lua_pushinteger(L, static_cast<Config::Tabs *>(p)->min_width);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Tabs *>(p)->min_width = std::max<lua_Integer>(0, lua_tointeger(L, 3)); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Tabs *>(p)->min_width
+        = std::max<lua_Integer>(0, lua_tointeger(L, 3));
+}},
     {"movable",
      [](lua_State *L, P p)
 {
@@ -1710,8 +1720,11 @@ static const LuaField tabsFields[] = {
 {
     lua_pushboolean(L, static_cast<Config::Tabs *>(p)->scroll_text_on_hover);
     return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Tabs *>(p)->scroll_text_on_hover = lua_toboolean(L, 3); }},
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Tabs *>(p)->scroll_text_on_hover = lua_toboolean(L, 3);
+}},
     {"visible",
      [](lua_State *L, P p)
 {
@@ -1724,26 +1737,32 @@ static const LuaField tabsFields[] = {
 // --- picker ---
 // Picker fields shared by every picker-derived section (those are copied from
 // [picker] at load, so lektra.opt.picker.* alone would not reach them).
-#define PICKER_HIGHLIGHT_FIELDS \
-    {"highlight_matches", \
-     [](lua_State *L, P p) \
-{ \
-    lua_pushboolean(L, static_cast<Config::Picker *>(p)->highlight_matches); \
-    return 1; \
-}, [](lua_State *L, P p) \
-{ static_cast<Config::Picker *>(p)->highlight_matches = lua_toboolean(L, 3); }}, \
-    {"highlight_matches_color", \
-     [](lua_State *L, P p) \
-{ \
-    lua_pushinteger(L, \
-                    static_cast<Config::Picker *>(p)->highlight_matches_color); \
-    return 1; \
-}, \
-     [](lua_State *L, P p) \
-{ \
-    static_cast<Config::Picker *>(p)->highlight_matches_color = readLuaColor( \
-        L, 3, static_cast<Config::Picker *>(p)->highlight_matches_color); \
-}},
+#define PICKER_HIGHLIGHT_FIELDS                                                \
+    {"highlight_matches",                                                      \
+     [](lua_State *L, P p)                                                     \
+    {                                                                          \
+        lua_pushboolean(L,                                                     \
+                        static_cast<Config::Picker *>(p)->highlight_matches);  \
+        return 1;                                                              \
+    },                                                                         \
+     [](lua_State *L, P p)                                                     \
+    {                                                                          \
+        static_cast<Config::Picker *>(p)->highlight_matches                    \
+            = lua_toboolean(L, 3);                                             \
+    }},                                                                        \
+        {"highlight_matches_color",                                            \
+         [](lua_State *L, P p)                                                 \
+    {                                                                          \
+        lua_pushinteger(                                                       \
+            L, static_cast<Config::Picker *>(p)->highlight_matches_color);     \
+        return 1;                                                              \
+    }, [](lua_State *L, P p)                                                   \
+    {                                                                          \
+        static_cast<Config::Picker *>(p)->highlight_matches_color              \
+            = readLuaColor(                                                    \
+                L, 3,                                                          \
+                static_cast<Config::Picker *>(p)->highlight_matches_color);    \
+    }},
 
 static const LuaField pickerFields[] = {
     {"alternating_row_color",
@@ -1774,15 +1793,14 @@ static const LuaField pickerFields[] = {
 }, [](lua_State *L, P p)
 { static_cast<Config::Picker *>(p)->height = lua_tonumber(L, 3); }},
 
-    PICKER_HIGHLIGHT_FIELDS
-    {"prompt",
-     [](lua_State *L, P p)
+    PICKER_HIGHLIGHT_FIELDS{"prompt",
+                            [](lua_State *L, P p)
 {
     lua_pushstring(
         L, static_cast<Config::Picker *>(p)->prompt.toUtf8().constData());
     return 1;
 },
-     [](lua_State *L, P p)
+                            [](lua_State *L, P p)
 {
     static_cast<Config::Picker *>(p)->prompt
         = QString::fromUtf8(luaL_checkstring(L, 3));
@@ -1859,11 +1877,10 @@ readKeyList(lua_State *L, int idx, QList<QKeyCombination> &keys)
 }
 
 #define PICKER_KEY_FIELD(NAME, MEMBER)                                         \
-    {NAME,                                                                     \
+    {NAME, [](lua_State *L, P p)                                               \
+    { return pushKeyList(L, static_cast<Picker::Keybindings *>(p)->MEMBER); }, \
      [](lua_State *L, P p)                                                     \
-{ return pushKeyList(L, static_cast<Picker::Keybindings *>(p)->MEMBER); },     \
-     [](lua_State *L, P p)                                                     \
-{ readKeyList(L, 3, static_cast<Picker::Keybindings *>(p)->MEMBER); }}
+    { readKeyList(L, 3, static_cast<Picker::Keybindings *>(p)->MEMBER); }}
 
 // Alphabetical order required — findField uses binary search.
 static const LuaField pickerKeyFields[] = {
@@ -1985,9 +2002,8 @@ static const LuaField outlineFields[] = {
         = lua_tointeger(L, 3);
 }},
 
-    PICKER_HIGHLIGHT_FIELDS
-    {"indent_width",
-     [](lua_State *L, P p)
+    PICKER_HIGHLIGHT_FIELDS{"indent_width",
+                            [](lua_State *L, P p)
 {
     lua_pushinteger(L, static_cast<Config::Outline *>(p)->indent_width);
     return 1;
@@ -2039,16 +2055,15 @@ static const LuaField highlightSearchFields[] = {
 {
     static_cast<Config::HighlightSearch *>(p)->flat_menu = lua_toboolean(L, 3);
 }},
-    PICKER_HIGHLIGHT_FIELDS
-    {"prompt",
-     [](lua_State *L, P p)
+    PICKER_HIGHLIGHT_FIELDS{"prompt",
+                            [](lua_State *L, P p)
 {
     lua_pushstring(
         L,
         static_cast<Config::HighlightSearch *>(p)->prompt.toUtf8().constData());
     return 1;
 },
-     [](lua_State *L, P p)
+                            [](lua_State *L, P p)
 {
     static_cast<Config::HighlightSearch *>(p)->prompt
         = QString::fromUtf8(luaL_checkstring(L, 3));
@@ -2068,15 +2083,14 @@ static const LuaField commandPaletteFields[] = {
     static_cast<Config::CommandPalette *>(p)->description = lua_toboolean(L, 3);
 }},
 
-    PICKER_HIGHLIGHT_FIELDS
-    {"persist_frequency",
-     [](lua_State *L, P p)
+    PICKER_HIGHLIGHT_FIELDS{"persist_frequency",
+                            [](lua_State *L, P p)
 {
     lua_pushboolean(
         L, static_cast<Config::CommandPalette *>(p)->persist_frequency);
     return 1;
 },
-     [](lua_State *L, P p)
+                            [](lua_State *L, P p)
 {
     static_cast<Config::CommandPalette *>(p)->persist_frequency
         = lua_toboolean(L, 3);
@@ -2999,12 +3013,14 @@ buildOptTable(lua_State *L, const OptScope &scope)
     pushSection(L, scope, &config.page, pageFields, "page");
     addChild(L, opt_idx, "page");
 
+#ifdef WITH_SYNCTEX
     if (!viewOnly)
     {
         // lektra.opt.synctex
         pushSection(L, scope, &config.synctex, synctexFields, "synctex");
         addChild(L, opt_idx, "synctex");
     }
+#endif
 
     // lektra.opt.search
     pushSection(L, scope, &config.search, searchFields, "search");

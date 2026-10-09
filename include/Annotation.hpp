@@ -48,6 +48,9 @@ public:
         Highlight = 0,
         Popup,
         Rect,
+        Ellipse,
+        Polygon,
+        Note,
         COUNT
     };
 
@@ -171,6 +174,9 @@ protected:
     bool m_context_menu_open{false};
 
     bool m_comment_marker_visible{true};
+
+    // Off for annotations whose comment is already shown on the page.
+    bool m_tooltip_enabled{true};
 
 private:
     QColor m_glow_color{QColor::fromRgba(0xFFFFFF00)};

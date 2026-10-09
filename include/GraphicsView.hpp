@@ -30,6 +30,9 @@ public:
         AnnotRect,
         AnnotPopup,
         TextUnderline, // like TextHighlight, but makes underlines
+        AnnotEllipse,
+        AnnotPolygon, // click the corners, double click to finish
+        AnnotNote,    // an inline note, written on the page
         COUNT
     };
 
@@ -201,6 +204,9 @@ signals:
     void linkPreviewRequested(QPointF scenePos);
     void linkMiddleClickRequested(QPointF scenePos);
     void annotRectRequested(QRectF sceneRect);
+    void annotEllipseRequested(QRectF sceneRect);
+    void annotNoteRequested(QRectF sceneRect);
+    void annotPolygonRequested(QVector<QPointF> scenePoints);
     void annotPopupRequested(QPointF scenePos);
     void regionSelectRequested(QRectF sceneRect);
     void annotSelectRequested(QRectF sceneRect);
@@ -361,6 +367,13 @@ private:
     Mode m_mode                = Mode::TextSelection;
     Mode m_default_mode        = Mode::None;
     QRubberBand *m_rubberBand  = nullptr;
+
+    // Polygon annotation mode: the corners so far (drawn in paintEvent).
+    QVector<QPointF> m_polygon_points;
+    void addPolygonPoint(const QPointF &scenePos) noexcept;
+    void finishPolygon() noexcept;
+    void cancelPolygon() noexcept;
+    bool isRubberBandAnnotMode() const noexcept;
     int m_drag_threshold       = 50;
 
     // Drag-image-out state: set in mousePressEvent() when the press landed

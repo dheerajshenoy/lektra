@@ -991,6 +991,42 @@ DocumentView::ToggleAnnotRect() noexcept
     emit selectionModeChanged(newMode);
 }
 
+// Toggle annotation ellipse mode
+void
+DocumentView::ToggleAnnotEllipse() noexcept
+{
+    const auto newMode = (m_gview->mode() == GraphicsView::Mode::AnnotEllipse)
+                             ? m_gview->getDefaultMode()
+                             : GraphicsView::Mode::AnnotEllipse;
+
+    m_gview->setMode(newMode);
+    emit selectionModeChanged(newMode);
+}
+
+// Toggle annotation polygon mode
+void
+DocumentView::ToggleAnnotPolygon() noexcept
+{
+    const auto newMode = (m_gview->mode() == GraphicsView::Mode::AnnotPolygon)
+                             ? m_gview->getDefaultMode()
+                             : GraphicsView::Mode::AnnotPolygon;
+
+    m_gview->setMode(newMode);
+    emit selectionModeChanged(newMode);
+}
+
+// Toggle annotation note mode
+void
+DocumentView::ToggleAnnotNote() noexcept
+{
+    const auto newMode = (m_gview->mode() == GraphicsView::Mode::AnnotNote)
+                             ? m_gview->getDefaultMode()
+                             : GraphicsView::Mode::AnnotNote;
+
+    m_gview->setMode(newMode);
+    emit selectionModeChanged(newMode);
+}
+
 // Toggle annotation selection mode
 void
 DocumentView::ToggleAnnotSelect() noexcept

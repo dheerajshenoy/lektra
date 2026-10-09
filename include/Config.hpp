@@ -257,12 +257,12 @@ struct Config
 
             // @desc {
             // How far above the bottom of the underlined text the line is, as
-            // a fraction of its height (0.14 is what Acrobat and MuPDF draw)
+            // a fraction of its height (Acrobat and MuPDF use 0.14, which sits close to the text)
             // }
             // @type float
-            // @default 0.14
+            // @default 0.05
             // @added 0.8.0
-            float offset = 0.14f;
+            float offset = 0.05f;
 
             // @desc Line style
             // @type str

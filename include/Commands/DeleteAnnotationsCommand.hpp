@@ -43,6 +43,12 @@ public:
                     d.objNum = m_model->addRectAnnotation(m_pageno, d.rect,
                                                           d.contents);
                     break;
+                case PDF_ANNOT_CIRCLE:
+                case PDF_ANNOT_POLYGON:
+                case PDF_ANNOT_FREE_TEXT:
+                    d.objNum = m_model->addShapeAnnotation(
+                        m_pageno, d.type, d.rect, d.vertices, d.contents);
+                    break;
                 case PDF_ANNOT_TEXT:
                     d.objNum = m_model->addTextAnnotation(m_pageno, d.rect,
                                                           d.contents);
@@ -80,6 +86,7 @@ private:
         float opacity  = 1.0f;
         fz_rect rect;
         std::vector<fz_quad> quads;
+        std::vector<fz_point> vertices;
         QString contents;
     };
 
@@ -125,9 +132,23 @@ private:
                         break;
 
                     case PDF_ANNOT_SQUARE:
-                        pdf_annot_interior_color(ctx, a, &n, d.color);
+                        pdf_annot_color(ctx, a, &n, d.color);
                         d.color[3] = d.opacity;
                         d.rect     = pdf_annot_rect(ctx, a);
+                        break;
+
+                    case PDF_ANNOT_CIRCLE:
+                        pdf_annot_color(ctx, a, &n, d.color);
+                        d.color[3] = d.opacity;
+                        d.rect     = pdf_annot_rect(ctx, a);
+                        break;
+
+                    case PDF_ANNOT_POLYGON:
+                        pdf_annot_color(ctx, a, &n, d.color);
+                        d.color[3] = d.opacity;
+                        for (int i = 0, c = pdf_annot_vertex_count(ctx, a);
+                             i < c; ++i)
+                            d.vertices.push_back(pdf_annot_vertex(ctx, a, i));
                         break;
 
                     case PDF_ANNOT_TEXT:

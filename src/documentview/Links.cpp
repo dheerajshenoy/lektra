@@ -6,6 +6,7 @@
 #include "Annotations/HighlightAnnotation.hpp"
 #include "Annotations/PopupAnnotation.hpp"
 #include "Annotations/RectAnnotation.hpp"
+#include "Annotations/ShapeAnnotation.hpp"
 #include "BrowseLinkItem.hpp"
 
 // Commands
@@ -13,6 +14,7 @@
 #include "Commands/AnnotCommentCommand.hpp"
 #include "Commands/DeleteAnnotationsCommand.hpp"
 #include "Commands/RectAnnotationCommand.hpp"
+#include "Commands/ShapeAnnotationCommand.hpp"
 #include "Commands/TextAnnotationCommand.hpp"
 
 // Other
@@ -735,6 +737,21 @@ DocumentView::renderAnnotations(
             }
             break;
 
+            case PDF_ANNOT_CIRCLE:
+            case PDF_ANNOT_POLYGON:
+            case PDF_ANNOT_FREE_TEXT:
+            {
+                const auto type
+                    = annot.type == PDF_ANNOT_CIRCLE ? Annotation::Type::Ellipse
+                      : annot.type == PDF_ANNOT_POLYGON
+                          ? Annotation::Type::Polygon
+                          : Annotation::Type::Note;
+                annot_item = new ShapeAnnotation(
+                    m_config.annotations.rect, type, annot.rect, annot.index,
+                    annot.text, annot.color);
+            }
+            break;
+
             case PDF_ANNOT_TEXT:
             {
                 annot_item = new PopupAnnotation(m_config.annotations.popup,
@@ -995,6 +1012,92 @@ DocumentView::handleAnnotRectRequested(QRectF area) noexcept
     // setModified(true);
 }
 
+// Handle annotation ellipse requested
+void
+DocumentView::handleAnnotEllipseRequested(QRectF area) noexcept
+{
+    if (!m_model || !m_model->supports_annotations())
+        return;
+
+    int pageno;
+    GraphicsImageItem *pageItem;
+
+    if (!pageAtScenePos(area.center(), pageno, pageItem))
+        return;
+
+    const QRectF pageLocalRect = pageItem->mapFromScene(area).boundingRect();
+    const fz_point topLeft
+        = m_model->toPDFSpace(pageno, pageLocalRect.topLeft());
+    const fz_point bottomRight
+        = m_model->toPDFSpace(pageno, pageLocalRect.bottomRight());
+
+    const fz_rect rect = {topLeft.x, topLeft.y, bottomRight.x, bottomRight.y};
+
+    m_model->undoStack()->push(new ShapeAnnotationCommand(
+        m_model, pageno, PDF_ANNOT_CIRCLE, rect));
+}
+
+// Handle annotation polygon requested (the corners, in scene space)
+void
+DocumentView::handleAnnotPolygonRequested(QVector<QPointF> points) noexcept
+{
+    if (!m_model || !m_model->supports_annotations() || points.size() < 3)
+        return;
+
+    QPointF sum;
+    for (const QPointF &p : points)
+        sum += p;
+
+    int pageno;
+    GraphicsImageItem *pageItem;
+
+    if (!pageAtScenePos(sum / points.size(), pageno, pageItem))
+        return;
+
+    std::vector<fz_point> vertices;
+    vertices.reserve(points.size());
+    for (const QPointF &p : points)
+        vertices.push_back(
+            m_model->toPDFSpace(pageno, pageItem->mapFromScene(p)));
+
+    m_model->undoStack()->push(new ShapeAnnotationCommand(
+        m_model, pageno, PDF_ANNOT_POLYGON, fz_empty_rect,
+        std::move(vertices)));
+}
+
+// Handle inline note requested: text written on the page, in `area`
+void
+DocumentView::handleAnnotNoteRequested(QRectF area) noexcept
+{
+    if (!m_model || !m_model->supports_annotations())
+        return;
+
+    int pageno;
+    GraphicsImageItem *pageItem;
+
+    if (!pageAtScenePos(area.center(), pageno, pageItem))
+        return;
+
+    bool ok;
+    const QString text
+        = InputDialog::getText(tr("Add Inline Note"), tr("Enter note text:"),
+                               tr("Enter text here"), "", ok, this);
+
+    if (!ok || text.isEmpty())
+        return;
+
+    const QRectF pageLocalRect = pageItem->mapFromScene(area).boundingRect();
+    const fz_point topLeft
+        = m_model->toPDFSpace(pageno, pageLocalRect.topLeft());
+    const fz_point bottomRight
+        = m_model->toPDFSpace(pageno, pageLocalRect.bottomRight());
+
+    const fz_rect rect = {topLeft.x, topLeft.y, bottomRight.x, bottomRight.y};
+
+    m_model->undoStack()->push(new ShapeAnnotationCommand(
+        m_model, pageno, PDF_ANNOT_FREE_TEXT, rect, {}, text));
+}
+
 // Handle annotation popup (text/sticky note) requested
 void
 DocumentView::handleAnnotPopupRequested(QPointF scenePos) noexcept
@@ -1064,6 +1167,8 @@ DocumentView::ToggleCommentMarkers() noexcept
                 }
                 break;
                 case Annotation::Type::Rect:
+                case Annotation::Type::Ellipse:
+                case Annotation::Type::Polygon:
                 {
                     annot->setCommentMarkerVisible(
                         m_config.annotations.rect.comment_marker);

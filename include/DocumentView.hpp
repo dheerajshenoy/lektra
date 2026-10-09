@@ -644,6 +644,9 @@ public:
     void ToggleTextUnderline() noexcept;
     void ToggleRegionSelect() noexcept;
     void ToggleAnnotRect() noexcept;
+    void ToggleAnnotEllipse() noexcept;
+    void ToggleAnnotPolygon() noexcept;
+    void ToggleAnnotNote() noexcept;
     void ToggleAnnotSelect() noexcept;
     void ToggleAnnotPopup() noexcept;
     void ToggleTextSelection() noexcept;
@@ -736,6 +739,9 @@ private slots:
     void handleAnnotSelectClearRequested() noexcept;
     void handleRegionSelectRequested(QRectF area) noexcept;
     void handleAnnotRectRequested(QRectF area) noexcept;
+    void handleAnnotEllipseRequested(QRectF area) noexcept;
+    void handleAnnotPolygonRequested(QVector<QPointF> points) noexcept;
+    void handleAnnotNoteRequested(QRectF area) noexcept;
     void handleAnnotPopupRequested(QPointF scenePos) noexcept;
     void handleHScrollValueChanged(int value) noexcept;
     void handleVScrollValueChanged(int value) noexcept;

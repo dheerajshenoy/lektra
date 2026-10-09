@@ -727,9 +727,19 @@ Model::buildPageCache(int pageno) noexcept
                     }
                     break;
 
+                    case PDF_ANNOT_FREE_TEXT: // the colour is the background
+                        if (pdf_dict_get(ctx, pdf_annot_obj(ctx, annot),
+                                         PDF_NAME(IC)))
+                            pdf_annot_interior_color(ctx, annot, &n, color);
+                        ca.color = QColor::fromRgbF(color[0], color[1],
+                                                    color[2], ca.opacity);
+                        break;
+
                     case PDF_ANNOT_SQUARE:
+                    case PDF_ANNOT_CIRCLE:
+                    case PDF_ANNOT_POLYGON:
                     {
-                        pdf_annot_interior_color(ctx, annot, &n, color);
+                        pdf_annot_color(ctx, annot, &n, color);
                         ca.color = QColor::fromRgbF(color[0], color[1],
                                                     color[2], ca.opacity);
                     }

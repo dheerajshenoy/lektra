@@ -168,6 +168,12 @@ annotTypeName(enum pdf_annot_type type)
             return "rect";
         case PDF_ANNOT_TEXT:
             return "note";
+        case PDF_ANNOT_CIRCLE:
+            return "ellipse";
+        case PDF_ANNOT_POLYGON:
+            return "polygon";
+        case PDF_ANNOT_FREE_TEXT:
+            return "inline_note";
         default:
             return "other";
     }
@@ -556,7 +562,8 @@ static const luaL_Reg DocumentViewMethods[] = {
                     static const char *names[] = {
                         "none",           "visual_line",   "region_selection",
                         "text_selection", "text_highlight", "annot_select",
-                        "annot_rect",     "annot_popup",   "text_underline"};
+                        "annot_rect",     "annot_popup",   "text_underline",
+                        "annot_ellipse",  "annot_polygon", "annot_note"};
                     const int mode = static_cast<int>((*view)->selectionMode());
                     lua_pushstring(L, mode >= 0 && mode < int(std::size(names))
                                           ? names[mode]
