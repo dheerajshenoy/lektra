@@ -208,6 +208,32 @@ applyViewToml(toml::table &toml, Config &cfg)
                 cfg.annotations.highlight.comment_font_size);
         }
 
+        if (auto underline = annots["underline"])
+        {
+            set_color(underline["color"], cfg.annotations.underline.color);
+            set(underline["hover_glow"], cfg.annotations.underline.hover_glow);
+            set(underline["comment"], cfg.annotations.underline.comment);
+            set(underline["comment_marker"],
+                cfg.annotations.underline.comment_marker);
+            set(underline["glow_width"], cfg.annotations.underline.glow_width);
+            set_color(underline["glow_color"],
+                      cfg.annotations.underline.glow_color);
+            set(underline["comment_font_size"],
+                cfg.annotations.underline.comment_font_size);
+            set(underline["thickness"], cfg.annotations.underline.thickness);
+            set(underline["offset"], cfg.annotations.underline.offset);
+            if (auto str = underline["style"])
+            {
+                using US = Config::Annotations::Underline::Style;
+                if (str == "dashed")
+                    cfg.annotations.underline.style = US::Dashed;
+                else if (str == "dotted")
+                    cfg.annotations.underline.style = US::Dotted;
+                else
+                    cfg.annotations.underline.style = US::Solid;
+            }
+        }
+
         if (auto rect = annots["rect"])
         {
             set_color(rect["color"], cfg.annotations.rect.color);

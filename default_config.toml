@@ -261,6 +261,12 @@ comment           = true
 comment_marker    = true
 comment_font_size = 12
 
+[annotations.underline]
+color      = "#E53935FF"   # color of new underlines
+thickness  = 0.0625        # line thickness, as a fraction of the text height
+offset     = 0.14          # how far above the bottom of the text, as a fraction of its height
+style      = "solid"       # solid | dashed | dotted
+
 [annotations.rect]
 color             = "#55FF5588"
 hover_glow        = true

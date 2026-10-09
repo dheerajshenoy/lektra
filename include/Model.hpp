@@ -752,8 +752,15 @@ public:
 
     QString get_selected_text(int pageno, QPointF a, QPointF b,
                               bool formatted) noexcept;
+    // What text selection markup annotations are made of.
+    enum class TextMarkup
+    {
+        Highlight,
+        Underline
+    };
     void highlight_text_selection(int pageno, QPointF start, QPointF end,
-                                  const QString &comment = {}) noexcept;
+                                  const QString &comment = {},
+                                  TextMarkup kind = TextMarkup::Highlight) noexcept;
     void invalidatePageCaches() noexcept;
     void invalidatePageCache(int pageno) noexcept;
     void search(const QString &term, bool caseSensitive = false,
@@ -1015,6 +1022,14 @@ private:
     addHighlightAnnotation(const int pageno, const std::vector<fz_quad> &quads,
                            const QColor &color    = QColor(),
                            const QString &content = {}) noexcept;
+    // An underline whose look (thickness, position, style) comes from
+    // annotations.underline: MuPDF only draws a fixed one, so the appearance
+    // stream is written here.
+    [[nodiscard]] int
+    addUnderlineAnnotation(const int pageno, const std::vector<fz_quad> &quads,
+                           const QColor &color    = QColor(),
+                           const QString &content = {}) noexcept;
+    void writeUnderlineAppearance(pdf_annot *annot) noexcept;
     [[nodiscard]] int addTextAnnotation(const int pageno, const fz_rect &rect,
                                         const QString &text) noexcept;
     void removeAnnotations(const int pageno,

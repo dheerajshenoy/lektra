@@ -904,7 +904,8 @@ Model::loadOutlineFromFile(const QString &path) noexcept
 
 void
 Model::highlight_text_selection(int pageno, QPointF start, QPointF end,
-                                const QString &comment) noexcept
+                                const QString &comment,
+                                TextMarkup kind) noexcept
 {
     constexpr int MAX_HITS = 1000;
     fz_quad hits[MAX_HITS];
@@ -961,7 +962,197 @@ Model::highlight_text_selection(int pageno, QPointF start, QPointF end,
     // // Create and push the command onto the undo stack for undo/redo
     // support
     m_undo_stack->push(new TextHighlightAnnotationCommand(
-        this, pageno, std::move(quads), comment));
+        this, pageno, std::move(quads), comment, nullptr, QColor(), kind));
+}
+
+void
+Model::writeUnderlineAppearance(pdf_annot *annot) noexcept
+{
+    using US = Config::Annotations::Underline::Style;
+    const auto &cfg = m_config.annotations.underline;
+
+    fz_buffer *buf = nullptr;
+    pdf_obj *res   = nullptr;
+    fz_var(buf);
+    fz_var(res);
+
+    fz_try(m_ctx)
+    {
+        pdf_obj *obj = pdf_annot_obj(m_ctx, annot);
+        pdf_obj *qp  = pdf_dict_get(m_ctx, obj, PDF_NAME(QuadPoints));
+        const int n  = pdf_array_len(m_ctx, qp);
+        if (n < 8)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "underline without quad points");
+
+        const float thickness = std::clamp(cfg.thickness, 0.005f, 0.5f);
+        const float offset    = std::clamp(cfg.offset, 0.0f, 1.0f);
+
+        buf = fz_new_buffer(m_ctx, 256);
+
+        // Opacity, as MuPDF's own appearances do it.
+        const float opacity = pdf_annot_opacity(m_ctx, annot);
+        if (opacity < 1.0f)
+        {
+            res = pdf_new_dict(m_ctx, m_pdf_doc, 1);
+            pdf_obj *egs = pdf_dict_put_dict(m_ctx, res, PDF_NAME(ExtGState), 1);
+            pdf_obj *gs  = pdf_dict_put_dict(m_ctx, egs, PDF_NAME(H), 2);
+            pdf_dict_put(m_ctx, gs, PDF_NAME(Type), PDF_NAME(ExtGState));
+            pdf_dict_put_real(m_ctx, gs, PDF_NAME(CA), opacity);
+            pdf_dict_put_real(m_ctx, gs, PDF_NAME(ca), opacity);
+            fz_append_printf(m_ctx, buf, "/H gs\n");
+        }
+
+        int nc = 3;
+        float color[4]{0, 0, 0, 0};
+        pdf_annot_color(m_ctx, annot, &nc, color);
+        switch (nc)
+        {
+            case 1:
+                fz_append_printf(m_ctx, buf, "%g G\n", color[0]);
+                break;
+            case 4:
+                fz_append_printf(m_ctx, buf, "%g %g %g %g K\n", color[0],
+                                 color[1], color[2], color[3]);
+                break;
+            case 3:
+                fz_append_printf(m_ctx, buf, "%g %g %g RG\n", color[0],
+                                 color[1], color[2]);
+                break;
+            default:
+                fz_append_printf(m_ctx, buf, "0 G\n");
+                break;
+        }
+
+        fz_rect rect = fz_empty_rect;
+        for (int i = 0; i + 8 <= n; i += 8)
+        {
+            // Cross-wise order, as MuPDF reads it: upper left, upper right,
+            // lower left, lower right.
+            fz_point ul{pdf_array_get_real(m_ctx, qp, i + 0),
+                        pdf_array_get_real(m_ctx, qp, i + 1)};
+            fz_point ur{pdf_array_get_real(m_ctx, qp, i + 2),
+                        pdf_array_get_real(m_ctx, qp, i + 3)};
+            fz_point ll{pdf_array_get_real(m_ctx, qp, i + 4),
+                        pdf_array_get_real(m_ctx, qp, i + 5)};
+            fz_point lr{pdf_array_get_real(m_ctx, qp, i + 6),
+                        pdf_array_get_real(m_ctx, qp, i + 7)};
+
+            const float h = std::hypot(ul.x - ll.x, ul.y - ll.y);
+            const float w = h * thickness;
+            auto lerp     = [](fz_point a, fz_point b, float t)
+            {
+                return fz_make_point(a.x + t * (b.x - a.x),
+                                     a.y + t * (b.y - a.y));
+            };
+            const fz_point a = lerp(ll, ul, offset);
+            const fz_point b = lerp(lr, ur, offset);
+
+            fz_append_printf(m_ctx, buf, "%g w\n", w);
+            if (cfg.style == US::Dashed)
+                fz_append_printf(m_ctx, buf, "0 J [%g %g] 0 d\n", w * 4, w * 2);
+            else if (cfg.style == US::Dotted)
+                fz_append_printf(m_ctx, buf, "1 J [0 %g] 0 d\n", w * 2);
+            else
+                fz_append_printf(m_ctx, buf, "0 J [] 0 d\n");
+            fz_append_printf(m_ctx, buf, "%g %g m\n%g %g l\nS\n", a.x, a.y,
+                             b.x, b.y);
+
+            const fz_point pts[4] = {ul, ur, ll, lr};
+            for (const fz_point &p : pts)
+                rect = fz_union_rect(
+                    rect, fz_make_rect(p.x - w, p.y - w, p.x + w, p.y + w));
+        }
+
+        pdf_set_annot_appearance(m_ctx, annot, "N", nullptr, fz_identity, rect,
+                                 res, buf);
+
+        // The annotation's rectangle (in the page's own space, like the quad
+        // points) must cover the line; pdf_set_annot_rect() refuses text
+        // markup annotations, so it is written directly.
+        pdf_begin_operation(m_ctx, m_pdf_doc, "Set underline rectangle");
+        fz_try(m_ctx)
+            pdf_dict_put_rect(m_ctx, obj, PDF_NAME(Rect), rect);
+        fz_always(m_ctx)
+            pdf_end_operation(m_ctx, m_pdf_doc);
+        fz_catch(m_ctx)
+            fz_rethrow(m_ctx);
+        // Changed by the calls above; clean so that MuPDF does not take it for
+        // an edit that needs a new (default) appearance.
+        pdf_clean_obj(m_ctx, obj);
+    }
+    fz_always(m_ctx)
+    {
+        fz_drop_buffer(m_ctx, buf);
+        pdf_drop_obj(m_ctx, res);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Could not write the underline appearance:"
+                   << fz_caught_message(m_ctx);
+    }
+}
+
+int
+Model::addUnderlineAnnotation(const int pageno,
+                              const std::vector<fz_quad> &quads,
+                              const QColor &color,
+                              const QString &content) noexcept
+{
+    int objNum{-1};
+    if (quads.empty())
+        return objNum;
+
+    pdf_annot *annot = nullptr;
+    pdf_page *page   = nullptr;
+
+    fz_try(m_ctx)
+    {
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_UNDERLINE);
+        if (!annot)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to create annotation");
+
+        pdf_set_annot_quad_points(m_ctx, annot, quads.size(), &quads[0]);
+
+        const QColor c
+            = color.isValid() ? color
+                              : rgbaToQColor(m_config.annotations.underline.color);
+        const float mucolor[3] = {static_cast<float>(c.redF()),
+                                  static_cast<float>(c.greenF()),
+                                  static_cast<float>(c.blueF())};
+        pdf_set_annot_color(m_ctx, annot, 3, mucolor);
+        pdf_set_annot_opacity(m_ctx, annot, static_cast<float>(c.alphaF()));
+        pdf_set_annot_contents(m_ctx, annot, content.toUtf8().constData());
+
+        // MuPDF's own (fixed) underline first, then ours over it.
+        pdf_update_annot(m_ctx, annot);
+        writeUnderlineAppearance(annot);
+        pdf_update_page(m_ctx, page);
+
+        if (pdf_obj *obj = pdf_annot_obj(m_ctx, annot))
+            objNum = pdf_to_num(m_ctx, obj);
+    }
+    fz_always(m_ctx)
+    {
+        pdf_drop_annot(m_ctx, annot);
+        pdf_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Adding the underline failed:" << fz_caught_message(m_ctx);
+        return objNum;
+    }
+
+    if (objNum >= 0)
+    {
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
+    }
+    return objNum;
 }
 
 int
@@ -1577,6 +1768,7 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
                     break;
                 case PDF_ANNOT_TEXT: // has no interior colour, only a colour
                 case PDF_ANNOT_HIGHLIGHT:
+                case PDF_ANNOT_UNDERLINE:
                     pdf_set_annot_color(m_ctx, annot, 3, rgb);
                     break;
                 default:
@@ -1584,6 +1776,9 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
             }
             pdf_set_annot_opacity(m_ctx, annot, color.alphaF());
             pdf_update_annot(m_ctx, annot);
+            // The update drew MuPDF's own underline again.
+            if (pdf_annot_type(m_ctx, annot) == PDF_ANNOT_UNDERLINE)
+                writeUnderlineAppearance(annot);
             pdf_update_page(m_ctx, page);
             changed = true;
             break;
@@ -1637,6 +1832,7 @@ Model::getAnnotColor(const int pageno, const int objNum) noexcept
                     break;
                 case PDF_ANNOT_TEXT: // has no interior colour, only a colour
                 case PDF_ANNOT_HIGHLIGHT:
+                case PDF_ANNOT_UNDERLINE:
                     pdf_annot_color(m_ctx, annot, &n, rgb);
                     break;
                 default:

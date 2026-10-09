@@ -711,6 +711,22 @@ DocumentView::renderAnnotations(
             }
             break;
 
+            case PDF_ANNOT_UNDERLINE:
+            {
+                // The underline itself is in the page's appearance; this item
+                // only gives it hover, comment and selection, as a highlight
+                // has.
+                Config::Annotations::Highlight options;
+                static_cast<Config::Annotations::Base &>(options)
+                    = m_config.annotations.underline;
+                options.comment_marker
+                    = m_config.annotations.underline.comment_marker;
+                annot_item
+                    = new HighlightAnnotation(options, annot.rect, annot.index,
+                                              annot.text, annot.rects);
+            }
+            break;
+
             case PDF_ANNOT_SQUARE:
             {
                 annot_item

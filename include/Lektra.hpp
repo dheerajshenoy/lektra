@@ -282,6 +282,7 @@ public:
     void ShowAbout() noexcept;
     void ShowDonate() noexcept;
     void TextHighlightCurrentSelection() noexcept;
+    void TextUnderlineCurrentSelection() noexcept;
     void TabsCloseLeft() noexcept;
     void TabsCloseRight() noexcept;
     void TabsCloseOthers() noexcept;

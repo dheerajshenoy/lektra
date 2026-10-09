@@ -155,5 +155,5 @@ protected:
 private:
     QRectF m_rect;
     std::vector<QRectF> m_rects;
-    const Config::Annotations::Highlight &m_config;
+    Config::Annotations::Highlight m_config; // a copy: underlines pass a temporary
 };

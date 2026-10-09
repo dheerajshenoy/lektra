@@ -714,6 +714,7 @@ Model::buildPageCache(int pageno) noexcept
                         break;
 
                     case PDF_ANNOT_HIGHLIGHT:
+                    case PDF_ANNOT_UNDERLINE:
                     {
                         pdf_annot_color(ctx, annot, &n, color);
                         ca.color     = QColor::fromRgbF(color[0], color[1],

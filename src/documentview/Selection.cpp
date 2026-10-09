@@ -342,6 +342,19 @@ DocumentView::handleClickSelection(int clickType, QPointF scenePos) noexcept
 void
 DocumentView::handleTextHighlightRequested() noexcept
 {
+    markSelectedText(Model::TextMarkup::Highlight);
+}
+
+void
+DocumentView::handleTextUnderlineRequested() noexcept
+{
+    markSelectedText(Model::TextMarkup::Underline);
+}
+
+// Highlights or underlines the selected text, page by page.
+void
+DocumentView::markSelectedText(Model::TextMarkup kind) noexcept
+{
     if (!hasTextSelection())
         return;
 
@@ -359,26 +372,27 @@ DocumentView::handleTextHighlightRequested() noexcept
         if (p == startP && p == endP)
         {
             m_model->highlight_text_selection(p, item->mapFromScene(start),
-                                              item->mapFromScene(end));
+                                              item->mapFromScene(end), {}, kind);
         }
         else if (p == startP)
         {
             // From start point to END of page
             m_model->highlight_text_selection(
                 p, item->mapFromScene(start),
-                QPointF(item->boundingRect().bottomRight()));
+                QPointF(item->boundingRect().bottomRight()), {}, kind);
         }
         else if (p == endP)
         {
             // From START of page to end point
             m_model->highlight_text_selection(p, QPointF(0, 0),
-                                              item->mapFromScene(end));
+                                              item->mapFromScene(end), {}, kind);
         }
         else
         {
             // Full page
             m_model->highlight_text_selection(
-                p, QPointF(0, 0), QPointF(item->boundingRect().bottomRight()));
+                p, QPointF(0, 0), QPointF(item->boundingRect().bottomRight()),
+                {}, kind);
         }
     }
 

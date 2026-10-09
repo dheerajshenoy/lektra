@@ -272,6 +272,149 @@ static const LuaField annotHighlightFields[] = {
 }},
 };
 
+// --- annotations.underline ---
+static const LuaField annotUnderlineFields[] = {
+    {"color",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Annotations::Underline *>(p)->color);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Annotations::Underline *>(p)->color = readLuaColor(
+        L, 3, static_cast<Config::Annotations::Underline *>(p)->color);
+}},
+    {"comment",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L,
+                    static_cast<Config::Annotations::Underline *>(p)->comment);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Annotations::Underline *>(p)->comment
+        = lua_toboolean(L, 3);
+}},
+    {"comment_font_size",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(
+        L, static_cast<Config::Annotations::Underline *>(p)->comment_font_size);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Annotations::Underline *>(p)->comment_font_size
+        = lua_tointeger(L, 3);
+}},
+    {"comment_marker",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(
+        L, static_cast<Config::Annotations::Underline *>(p)->comment_marker);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Annotations::Underline *>(p)->comment_marker
+        = lua_toboolean(L, 3);
+}},
+    {"glow_color",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(
+        L, static_cast<Config::Annotations::Underline *>(p)->glow_color);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Annotations::Underline *>(p)->glow_color = readLuaColor(
+        L, 3, static_cast<Config::Annotations::Underline *>(p)->glow_color);
+}},
+    {"glow_width",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(
+        L, static_cast<Config::Annotations::Underline *>(p)->glow_width);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Annotations::Underline *>(p)->glow_width
+        = lua_tointeger(L, 3);
+}},
+    {"hover_glow",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(
+        L, static_cast<Config::Annotations::Underline *>(p)->hover_glow);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Annotations::Underline *>(p)->hover_glow
+        = lua_toboolean(L, 3);
+}},
+    {"offset",
+     [](lua_State *L, P p)
+{
+    lua_pushnumber(L, static_cast<Config::Annotations::Underline *>(p)->offset);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Annotations::Underline *>(p)->offset
+        = static_cast<float>(lua_tonumber(L, 3));
+}},
+    // "solid" | "dashed" | "dotted"
+    {"style",
+     [](lua_State *L, P p)
+{
+    using US = Config::Annotations::Underline::Style;
+    switch (static_cast<Config::Annotations::Underline *>(p)->style)
+    {
+        case US::Dashed:
+            lua_pushstring(L, "dashed");
+            break;
+        case US::Dotted:
+            lua_pushstring(L, "dotted");
+            break;
+        case US::Solid:
+        default:
+            lua_pushstring(L, "solid");
+            break;
+    }
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    using US      = Config::Annotations::Underline::Style;
+    const char *v = luaL_checkstring(L, 3);
+    auto *u       = static_cast<Config::Annotations::Underline *>(p);
+    if (!strcmp(v, "dashed"))
+        u->style = US::Dashed;
+    else if (!strcmp(v, "dotted"))
+        u->style = US::Dotted;
+    else
+        u->style = US::Solid;
+}},
+    {"thickness",
+     [](lua_State *L, P p)
+{
+    lua_pushnumber(L,
+                   static_cast<Config::Annotations::Underline *>(p)->thickness);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Annotations::Underline *>(p)->thickness
+        = static_cast<float>(lua_tonumber(L, 3));
+}},
+};
+
+
 // --- annotations.rect ---
 static const LuaField annotRectFields[] = {
     {"color",
@@ -2875,6 +3018,11 @@ buildOptTable(lua_State *L, const OptScope &scope)
     pushSection(L, scope, &config.annotations.highlight, annotHighlightFields,
                 "annotations");
     addChild(L, annotations_idx, "highlight");
+
+    // lektra.opt.annotations.underline
+    pushSection(L, scope, &config.annotations.underline, annotUnderlineFields,
+                "annotations");
+    addChild(L, annotations_idx, "underline");
 
     // lektra.opt.annotations.rect
     pushSection(L, scope, &config.annotations.rect, annotRectFields,

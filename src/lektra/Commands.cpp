@@ -1047,6 +1047,9 @@ Lektra::initCommands() noexcept
         "highlight_selection", tr("Highlight current text selection"),
         [this](const QStringList &) { TextHighlightCurrentSelection(); });
     m_command_manager->reg(
+        "underline_selection", tr("Underline current text selection"),
+        [this](const QStringList &) { TextUnderlineCurrentSelection(); });
+    m_command_manager->reg(
         "high_contrast", tr("Toggle high-contrast tone stretch"),
         [this](const QStringList &) { ToggleHighContrast(); });
     m_command_manager->reg("invert_color",

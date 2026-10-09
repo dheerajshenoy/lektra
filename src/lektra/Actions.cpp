@@ -966,6 +966,14 @@ Lektra::TextHighlightCurrentSelection() noexcept
         m_doc->handleTextHighlightRequested();
 }
 
+// Underline annotation for the current selection
+void
+Lektra::TextUnderlineCurrentSelection() noexcept
+{
+    if (m_doc)
+        m_doc->handleTextUnderlineRequested();
+}
+
 bool
 Lektra::handleLinkHintEvent(QEvent *event) noexcept
 {

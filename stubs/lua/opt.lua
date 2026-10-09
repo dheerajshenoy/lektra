@@ -79,6 +79,20 @@ lektra.opt.search = {}
 ---@field glow_width? integer Width of the glow effect in pixels.
 ---@field hover_glow? boolean Show glow only on hover.
 
+---@alias UnderlineStyle "solid"|"dashed"|"dotted"
+
+---@class OptAnnotationsUnderline
+---@field color? Color Color of new underlines (`Color`).
+---@field comment? boolean Show comment text for underlines.
+---@field comment_font_size? integer Font size of the comment text.
+---@field comment_marker? boolean Show the comment marker icon.
+---@field glow_color? Color Glow color around the underline (`Color`).
+---@field glow_width? integer Width of the glow effect in pixels.
+---@field hover_glow? boolean Show glow only on hover.
+---@field offset? number How far above the bottom of the text the line is, as a fraction of the text height (default 0.14).
+---@field style? UnderlineStyle Line style.
+---@field thickness? number Thickness of the line, as a fraction of the text height (default 0.0625).
+
 ---@class OptAnnotationsRect
 ---@field color? Color Rectangle annotation color (`Color`).
 ---@field comment? boolean Show comment text for rectangles.
@@ -99,11 +113,14 @@ lektra.opt.search = {}
 
 ---@class OptAnnotations
 ---@field highlight? OptAnnotationsHighlight
+---@field underline? OptAnnotationsUnderline
 ---@field rect? OptAnnotationsRect
 ---@field popup? OptAnnotationsPopup
 lektra.opt.annotations = {
     ---@type OptAnnotationsHighlight
     highlight = {},
+    ---@type OptAnnotationsUnderline
+    underline = {},
     ---@type OptAnnotationsRect
     rect = {},
     ---@type OptAnnotationsPopup

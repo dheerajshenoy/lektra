@@ -224,6 +224,61 @@ struct Config
         } highlight;
         // @endsection
 
+        // @section annotations.underline
+        // @section_desc {
+        // Underline annotation options struct. PDF has no setting for how an
+        // underline looks, so Lektra draws the ones it creates itself, as set
+        // here
+        // }
+        // @section_type struct
+        // @section_added 0.8.0
+        struct Underline : public Base
+        {
+            // @desc Show marker in the corner of the underline (if comment exists)
+            // @type bool
+            // @default true
+            // @added 0.8.0
+            bool comment_marker = true;
+
+            // @desc Color of new underlines
+            // @type str
+            // @default "#E53935FF"
+            // @added 0.8.0
+            uint32_t color = 0xE53935FF;
+
+            // @desc {
+            // Thickness of the line, as a fraction of the height of the
+            // underlined text (0.0625 is what Acrobat and MuPDF draw)
+            // }
+            // @type float
+            // @default 0.0625
+            // @added 0.8.0
+            float thickness = 0.0625f;
+
+            // @desc {
+            // How far above the bottom of the underlined text the line is, as
+            // a fraction of its height (0.14 is what Acrobat and MuPDF draw)
+            // }
+            // @type float
+            // @default 0.14
+            // @added 0.8.0
+            float offset = 0.14f;
+
+            // @desc Line style
+            // @type str
+            // @choice solid, dashed, dotted
+            // @default solid
+            // @added 0.8.0
+            enum class Style
+            {
+                Solid = 0,
+                Dashed,
+                Dotted
+            };
+            Style style = Style::Solid;
+        } underline;
+        // @endsection
+
     } annotations;
     // @endsection
 

@@ -24,9 +24,11 @@ public:
                                    const std::vector<fz_quad> &quads,
                                    const QString &comment = {},
                                    QUndoCommand *parent   = nullptr,
-                                   const QColor &color    = {})
+                                   const QColor &color    = {},
+                                   Model::TextMarkup kind
+                                   = Model::TextMarkup::Highlight)
         : QUndoCommand(parent), m_model(model), m_pageno(pageno),
-          m_quads(quads), m_comment(comment), m_color(color)
+          m_quads(quads), m_comment(comment), m_color(color), m_kind(kind)
     {
     }
 
@@ -43,8 +45,12 @@ public:
 
     void redo() override
     {
-        m_objNum = m_model->addHighlightAnnotation(m_pageno, m_quads, m_color,
-                                                   m_comment);
+        m_objNum
+            = m_kind == Model::TextMarkup::Underline
+                  ? m_model->addUnderlineAnnotation(m_pageno, m_quads, m_color,
+                                                    m_comment)
+                  : m_model->addHighlightAnnotation(m_pageno, m_quads, m_color,
+                                                    m_comment);
     }
 
 private:
@@ -53,5 +59,6 @@ private:
     std::vector<fz_quad> m_quads;
     QString m_comment;
     QColor m_color;
+    Model::TextMarkup m_kind;
     int m_objNum{-1};
 };

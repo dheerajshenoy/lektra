@@ -528,6 +528,8 @@ public:
     void renderPagesImpl(bool skipCurrent) noexcept;
     void renderPage() noexcept;
     void handleTextHighlightRequested() noexcept;
+    void handleTextUnderlineRequested() noexcept;
+    void markSelectedText(Model::TextMarkup kind) noexcept;
     void handleTextCommentRequested() noexcept;
     void setFitMode(FitMode mode) noexcept;
     void GotoPage(int pageno) noexcept;

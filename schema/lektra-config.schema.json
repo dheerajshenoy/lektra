@@ -71,6 +71,69 @@
           "additionalProperties": false,
           "description": "Highlight annotation options struct (since 0.6.5)"
         },
+        "underline": {
+          "type": "object",
+          "properties": {
+            "color": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#E53935FF"
+            },
+            "hover_glow": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable hover effect (e.g., glow on highlight) (since 0.6.5)"
+            },
+            "comment": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show comment text in tooltip on hover (if comment exists) (since 0.6.5)"
+            },
+            "comment_marker": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show marker in the corner of the underline (if comment exists) (since 0.8.0)"
+            },
+            "glow_width": {
+              "type": "integer",
+              "default": 5,
+              "description": "Glow width in pixels (since 0.6.5)"
+            },
+            "glow_color": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#FF5000AA"
+            },
+            "comment_font_size": {
+              "type": "integer",
+              "default": 12,
+              "description": "Font size for the comment tooltip (in points) (since 0.6.5)"
+            },
+            "thickness": {
+              "type": "number",
+              "default": 0.0625,
+              "description": "Thickness of the line, as a fraction of the height of the underlined text (0.0625 is what Acrobat and MuPDF draw) (since 0.8.0)"
+            },
+            "offset": {
+              "type": "number",
+              "default": 0.14,
+              "description": "How far above the bottom of the underlined text the line is, as a fraction of its height (0.14 is what Acrobat and MuPDF draw) (since 0.8.0)"
+            },
+            "style": {
+              "type": "string",
+              "enum": [
+                "dashed",
+                "dotted",
+                "solid"
+              ],
+              "description": "Line style (since 0.8.0)"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Underline annotation options struct. PDF has no setting for how an underline looks, so Lektra draws the ones it creates itself, as set here (since 0.8.0)"
+        },
         "rect": {
           "type": "object",
           "properties": {
@@ -1966,6 +2029,69 @@
                 },
                 "additionalProperties": false,
                 "description": "Highlight annotation options struct (since 0.6.5)"
+              },
+              "underline": {
+                "type": "object",
+                "properties": {
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                    "default": "#E53935FF"
+                  },
+                  "hover_glow": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable hover effect (e.g., glow on highlight) (since 0.6.5)"
+                  },
+                  "comment": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show comment text in tooltip on hover (if comment exists) (since 0.6.5)"
+                  },
+                  "comment_marker": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show marker in the corner of the underline (if comment exists) (since 0.8.0)"
+                  },
+                  "glow_width": {
+                    "type": "integer",
+                    "default": 5,
+                    "description": "Glow width in pixels (since 0.6.5)"
+                  },
+                  "glow_color": {
+                    "type": "string",
+                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                    "default": "#FF5000AA"
+                  },
+                  "comment_font_size": {
+                    "type": "integer",
+                    "default": 12,
+                    "description": "Font size for the comment tooltip (in points) (since 0.6.5)"
+                  },
+                  "thickness": {
+                    "type": "number",
+                    "default": 0.0625,
+                    "description": "Thickness of the line, as a fraction of the height of the underlined text (0.0625 is what Acrobat and MuPDF draw) (since 0.8.0)"
+                  },
+                  "offset": {
+                    "type": "number",
+                    "default": 0.14,
+                    "description": "How far above the bottom of the underlined text the line is, as a fraction of its height (0.14 is what Acrobat and MuPDF draw) (since 0.8.0)"
+                  },
+                  "style": {
+                    "type": "string",
+                    "enum": [
+                      "dashed",
+                      "dotted",
+                      "solid"
+                    ],
+                    "description": "Line style (since 0.8.0)"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Underline annotation options struct. PDF has no setting for how an underline looks, so Lektra draws the ones it creates itself, as set here (since 0.8.0)"
               },
               "rect": {
                 "type": "object",
