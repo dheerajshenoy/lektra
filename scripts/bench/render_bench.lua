@@ -12,6 +12,14 @@
 -- It prints "BENCH begin X" / "BENCH end X" / "BENCH done" on stderr; the
 -- runner uses them to cut the RTRACE lines into scenarios.
 
+-- LEKTRA_BENCH_DARK=1: render with page colours and high contrast on, so the
+-- tint and tone-stretch passes run (the defaults do neither).
+if os.getenv("LEKTRA_BENCH_DARK") then
+    lektra.opt.page.bg = "#1e1e2e"
+    lektra.opt.page.fg = "#cdd6f4"
+    lektra.opt.behavior.high_contrast = true
+end
+
 local function mark(text)
     io.stderr:write("BENCH " .. text .. "\n")
     io.stderr:flush()

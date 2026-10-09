@@ -38,6 +38,12 @@
 
 - Improved rendering performance when scrolling
 
+- Pages render faster: a pass over every page that changed nothing with the default page colours is skipped, and page colours, dark mode and high contrast are applied in one pass.
+
+- Fast scrolling and zooming waste less work: renders that are no longer needed stop early, pages are not preloaded while scrolling fast, and the page you land on is drawn first.
+
+- Fix a small memory leak when a page was dropped from the cache while it was being rendered.
+
 ## 0.7.9.1 (2026-10-05)
 
 ### Bug Fixes

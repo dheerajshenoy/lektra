@@ -3,6 +3,7 @@
 #include "Config.hpp"
 #include "ImageAnimation.hpp"
 #include "Model.hpp"
+#include "PixmapPost.hpp"
 #include "RenderTrace.hpp"
 #include "utils.hpp"
 
@@ -973,28 +974,44 @@ Model::renderPageWithExtrasAsync(
         const int fg = (m_fg_color >> 8) & 0xFFFFFF;
         const int bg = (m_bg_color >> 8) & 0xFFFFFF;
 
-        if (needsTint(fg, bg))
-            fz_tint_pixmap(ctx, pix, fg, bg);
-
-        if (job.invert_color)
-            fz_invert_pixmap(ctx, pix);
-
-        // High-contrast tone stretch — applied after invert so "dark mode
-        // + high contrast" is a legitimate combination. LUT-based, single
-        // pass over the sample buffer, ~1ms per page. Independent of
-        // invert: users can turn on high contrast without dark mode when
-        // reading grayish scans.
+        // Tint, invert and high contrast (a tone stretch, applied after invert
+        // so "dark mode + high contrast" is a legitimate combination; it is
+        // independent of invert, for reading grayish scans) are all per-byte
+        // mappings. They are done together in one pass over the pixels.
+        const bool tint_active          = needsTint(fg, bg);
         const bool high_contrast_active = m_config.behavior.high_contrast;
-        if (high_contrast_active)
+        if (tint_active || job.invert_color || high_contrast_active)
         {
-            unsigned char lut[256];
-            buildHighContrastLUT(lut,
-                                 m_config.behavior.high_contrast_black_point,
-                                 m_config.behavior.high_contrast_white_point);
-            const size_t nbytes
-                = static_cast<size_t>(fz_pixmap_stride(ctx, pix))
-                  * static_cast<size_t>(fz_pixmap_height(ctx, pix));
-            applyHighContrastSamples(fz_pixmap_samples(ctx, pix), nbytes, lut);
+            unsigned char hc[256];
+            if (high_contrast_active)
+                buildHighContrastLUT(
+                    hc, m_config.behavior.high_contrast_black_point,
+                    m_config.behavior.high_contrast_white_point);
+
+            unsigned char post[3][256];
+            if (pixmap_post::buildLuts(ctx, pix, tint_active, fg, bg,
+                                       job.invert_color,
+                                       high_contrast_active ? hc : nullptr,
+                                       post))
+            {
+                pixmap_post::apply(pix, post);
+            }
+            else
+            {
+                // A pixmap the fused pass does not handle: one pass each.
+                if (tint_active)
+                    fz_tint_pixmap(ctx, pix, fg, bg);
+                if (job.invert_color)
+                    fz_invert_pixmap(ctx, pix);
+                if (high_contrast_active)
+                {
+                    const size_t nbytes
+                        = static_cast<size_t>(fz_pixmap_stride(ctx, pix))
+                          * static_cast<size_t>(fz_pixmap_height(ctx, pix));
+                    applyHighContrastSamples(fz_pixmap_samples(ctx, pix),
+                                             nbytes, hc);
+                }
+            }
         }
 
         // Image protection covers both invert and high contrast: if the
