@@ -244,6 +244,18 @@ def main():
     if not Path(args.binary).exists():
         sys.exit(f"binary not found: {args.binary}")
 
+    # Numbers from a Debug or sanitizer build say little about the real thing:
+    # AddressSanitizer alone intercepts every allocation and memset.
+    try:
+        linked = subprocess.run(["ldd", args.binary], capture_output=True,
+                                text=True).stdout
+    except OSError:
+        linked = ""
+    if "libasan" in linked or "libubsan" in linked:
+        print("WARNING: this binary is built with a sanitizer (AddressSanitizer).\n"
+              "         Build with -DCMAKE_BUILD_TYPE=Release (or -DWITH_ASAN=OFF)\n"
+              "         for numbers that mean anything.\n", flush=True)
+
     saved = json.loads(Path(args.compare).read_text()) if args.compare else {}
     everything = {}
 
