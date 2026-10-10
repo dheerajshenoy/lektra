@@ -720,7 +720,6 @@ void
 Lektra::showTutorialFile() noexcept
 {
     const QString doc_path = AppPaths::appTutorialPath();
-    PPRINT("doc_path = ", doc_path);
     if (!doc_path.isEmpty() && QFileInfo::exists(doc_path))
     {
         OpenFileInNewTab(doc_path);

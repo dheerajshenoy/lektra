@@ -140,7 +140,6 @@ TabWidget::addTab(QWidget *page, const QString &title) noexcept
     int id = g_newId();
     m_stacked_widget->addWidget(page);
     const int tabIndex = m_tab_bar->addTab(title);
-    PPRINT("Added tab with id ", id, " at index", tabIndex);
     m_tab_bar->setTabData(tabIndex, id);
     m_tab_bar->set_split_count(tabIndex, 1);
     emit tabAdded(tabIndex);
