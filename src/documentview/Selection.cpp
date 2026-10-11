@@ -1526,6 +1526,13 @@ DocumentView::imageAt(QPointF scenePos) noexcept
         return {};
 
     const QPointF logicalPt = pageItem->mapFromScene(scenePos);
+
+    // Text over the image (a scan with an OCR layer) wins: a press there is
+    // the start of a text selection, not of dragging the image out.
+    if (!m_model->selectWordAt(pageno, m_model->toPDFSpace(pageno, logicalPt))
+             .empty())
+        return {};
+
     return m_model->imageAt(pageno, logicalPt).image;
 }
 

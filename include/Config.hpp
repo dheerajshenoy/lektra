@@ -1409,6 +1409,16 @@ struct Config
         bool auto_scroll = true;
 
         // @desc {
+        // Drag an image of the page out of the window by pressing on it and
+        // moving the mouse (to drop it into another program). Turn it off if
+        // that gets in the way of selecting text.
+        // }
+        // @type bool
+        // @default true
+        // @added 0.8.0
+        bool drag_image_out = true;
+
+        // @desc {
         // Quit LEKTRA when the last open tab is closed. When false (the
         // default), an empty window remains — the startup widget may be
         // shown if that path is taken. `confirm_on_quit` still applies.

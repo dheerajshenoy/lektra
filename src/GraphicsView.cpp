@@ -280,6 +280,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
     // those alone. itemAt() is a cheap early-out for clicks that don't land
     // on any page content (gutters, background) before asking the model.
     if (event->button() == Qt::LeftButton && m_imageDragProvider
+        && m_config.behavior.drag_image_out
         && (m_mode == Mode::None || m_mode == Mode::TextSelection
             || isTextMarkupMode())
         && itemAt(event->pos()))

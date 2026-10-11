@@ -2277,6 +2277,13 @@ static const LuaField behaviorFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::Behavior *>(p)->auto_scroll = lua_toboolean(L, 3); }},
+    {"drag_image_out",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Behavior *>(p)->drag_image_out);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Behavior *>(p)->drag_image_out = lua_toboolean(L, 3); }},
     {"cache_pages",
      [](lua_State *L, P p)
 {
