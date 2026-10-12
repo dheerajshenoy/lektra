@@ -513,6 +513,8 @@ caret_word_next        = [ "Ctrl+Right", "w" ]
 caret_word_prev        = [ "Ctrl+Left", "b" ]
 caret_word_end         = "e"
 caret_visual           = ""
+# Find a lost caret: scrolls to it and pulses a ring around it
+caret_locate           = "F8"
 caret_visual_line      = "Shift+V"
 caret_doc_start        = "Ctrl+Home"
 caret_doc_end          = "Ctrl+End"

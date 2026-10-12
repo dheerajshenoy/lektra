@@ -1884,6 +1884,13 @@ Lektra::CaretVisual() noexcept
 }
 
 void
+Lektra::CaretLocate() noexcept
+{
+    if (m_doc)
+        m_doc->caretLocate();
+}
+
+void
 Lektra::CaretVisualLine() noexcept
 {
     if (!m_doc || !m_doc->caretMode())

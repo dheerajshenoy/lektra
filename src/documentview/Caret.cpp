@@ -259,6 +259,8 @@ DocumentView::ToggleCaretMode() noexcept
             m_caret_blink_timer->stop();
         m_caret_visual      = false;
         m_caret_visual_line = false;
+        if (m_caret_locate_anim)
+            m_caret_locate_anim->stop();
         hideCaret();
     }
 }
@@ -817,6 +819,80 @@ DocumentView::hideCaret() noexcept
 {
     if (m_caret_item)
         m_caret_item->hide();
+    if (m_caret_locate_item)
+        m_caret_locate_item->hide();
+}
+
+void
+DocumentView::caretLocate() noexcept
+{
+    if (!m_caret_mode)
+        return;
+
+    // The caret may be hidden or on a page that was left (a jump from
+    // search, outline, goto...): bring its page back first.
+    if (m_caret_chars.empty() || !m_page_items_hash.value(m_caret_pageno))
+    {
+        caretEnterPage(m_caret_pageno);
+        m_caret_index = std::min(m_caret_index,
+                                 static_cast<int>(m_caret_chars.size()));
+    }
+
+    renderCaret();
+    const QRectF rect
+        = caretSceneRect(m_caret_chars, m_caret_pageno, m_caret_index);
+    if (rect.isEmpty())
+        return;
+
+    m_gview->centerOn(rect.center());
+
+    if (!m_caret_locate_item)
+    {
+        m_caret_locate_item = m_gscene->addEllipse(QRectF());
+        QPen pen(Qt::red, 3);
+        pen.setCosmetic(true);
+        m_caret_locate_item->setPen(pen);
+        m_caret_locate_item->setBrush(Qt::NoBrush);
+        m_caret_locate_item->setZValue(ZVALUE_TEXT_SELECTION + 2);
+    }
+
+    if (!m_caret_locate_anim)
+    {
+        m_caret_locate_anim = new QVariantAnimation(this);
+        m_caret_locate_anim->setDuration(600);
+        m_caret_locate_anim->setLoopCount(2);
+        m_caret_locate_anim->setStartValue(0.0);
+        m_caret_locate_anim->setEndValue(1.0);
+        connect(m_caret_locate_anim, &QVariantAnimation::valueChanged, this,
+                [this](const QVariant &v)
+        {
+            if (!m_caret_mode || !m_caret_locate_item)
+                return;
+            const QRectF caret
+                = caretSceneRect(m_caret_chars, m_caret_pageno, m_caret_index);
+            if (caret.isEmpty())
+                return;
+
+            // The ring shrinks from 90 px to 12 px around the caret,
+            // whatever the zoom.
+            const double t     = v.toDouble();
+            const double zoom  = std::max(0.01, m_gview->transform().m11());
+            const double r     = (90.0 - 78.0 * t) / zoom;
+            const QPointF c    = caret.center();
+            m_caret_locate_item->setRect(c.x() - r, c.y() - r, 2 * r, 2 * r);
+            m_caret_locate_item->setOpacity(0.35 + 0.65 * t);
+            m_caret_locate_item->show();
+        });
+        connect(m_caret_locate_anim, &QVariantAnimation::finished, this,
+                [this]()
+        {
+            if (m_caret_locate_item)
+                m_caret_locate_item->hide();
+        });
+    }
+
+    m_caret_locate_anim->stop();
+    m_caret_locate_anim->start();
 }
 
 void

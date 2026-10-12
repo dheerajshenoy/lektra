@@ -1313,6 +1313,7 @@ Lektra::initDefaultKeybinds() noexcept
         {"caret_select_doc_end", "Ctrl+Shift+End"},
         {"caret_highlight", "Ctrl+H"},
         {"caret_word_end", "e"},
+        {"caret_locate", "F8"},
         {"caret_visual_line", "Shift+V"},
         {"selection_copy", "y"},
     };

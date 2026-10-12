@@ -26,6 +26,8 @@ extern "C"
 #include "DispatchType.hpp"
 
 #include <QElapsedTimer>
+#include <QGraphicsEllipseItem>
+#include <QVariantAnimation>
 #include <functional>
 #include <QFileInfo>
 #include <QFileSystemWatcher>
@@ -518,6 +520,9 @@ public:
     void caretMoveWordEnd() noexcept;
     // Vim-style visual mode: while on, every caret movement extends the
     // selection from where it was turned on.
+    // "Find my cursor": scrolls the caret into view and pulses a shrinking
+    // ring around it.
+    void caretLocate() noexcept;
     void caretToggleVisual() noexcept;
     // Linewise (vim V): the selection is always whole lines.
     void caretToggleVisualLine() noexcept;
@@ -1144,6 +1149,8 @@ private:
     std::vector<Model::CachedTextChar> m_caret_chars;
     QGraphicsPathItem *m_caret_item  = nullptr;
     QTimer *m_caret_blink_timer      = nullptr;
+    QGraphicsEllipseItem *m_caret_locate_item = nullptr;
+    QVariantAnimation *m_caret_locate_anim    = nullptr;
     bool m_thumbnail_mode            = false;
     int m_thumbnail_highlighted_page = -1;
 #ifdef WITH_SYNCTEX

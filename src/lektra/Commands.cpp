@@ -523,6 +523,9 @@ Lektra::initCommands() noexcept
         "caret_visual_line",
         tr("Caret mode: toggle linewise visual selection (like vim V)"),
         [this](const QStringList &) { CaretVisualLine(); });
+    m_command_manager->reg(
+        "caret_locate", tr("Caret mode: find the caret (scroll to it and pulse)"),
+        [this](const QStringList &) { CaretLocate(); });
     m_command_manager->reg("caret_highlight",
                            tr("Caret mode: highlight the selection"),
                            [this](const QStringList &) { CaretHighlight(); });
