@@ -233,6 +233,8 @@ DocumentView::ToggleCaretMode() noexcept
         if (m_visual_line_mode)
             set_visual_line_mode(false);
 
+        m_caret_visual        = false;
+        m_caret_visual_line   = false;
         m_caret_anchor_index  = -1;
         m_caret_anchor_pageno = -1;
         m_caret_pref_x        = -1.0;
@@ -255,6 +257,8 @@ DocumentView::ToggleCaretMode() noexcept
     {
         if (m_caret_blink_timer)
             m_caret_blink_timer->stop();
+        m_caret_visual      = false;
+        m_caret_visual_line = false;
         hideCaret();
     }
 }
@@ -274,29 +278,42 @@ DocumentView::caretIsValidStop(int index) const noexcept
     return m_caret_chars[index - 1].rune != '\n';
 }
 
-void
-DocumentView::caretLineRange(int index, int &lineStart,
-                             int &lineEnd) const noexcept
+namespace
 {
-    const int n = static_cast<int>(m_caret_chars.size());
+// Line containing `index`: [lineStart, lineEnd), lineEnd being the line's
+// '\n' entry (or the end of the page).
+template <class Chars>
+void
+lineRangeIn(const Chars &chars, int index, int &lineStart,
+            int &lineEnd) noexcept
+{
+    const int n = static_cast<int>(chars.size());
     lineStart   = 0;
     lineEnd     = n;
     if (n == 0)
         return;
 
     int probe = index;
-    if (probe >= n || m_caret_chars[probe].rune == '\n')
+    if (probe >= n || chars[probe].rune == '\n')
         probe = (index > 0) ? index - 1 : 0;
     if (probe >= n)
         probe = n - 1;
 
     lineStart = probe;
-    while (lineStart > 0 && m_caret_chars[lineStart - 1].rune != '\n')
+    while (lineStart > 0 && chars[lineStart - 1].rune != '\n')
         lineStart--;
 
     lineEnd = probe;
-    while (lineEnd < n && m_caret_chars[lineEnd].rune != '\n')
+    while (lineEnd < n && chars[lineEnd].rune != '\n')
         lineEnd++;
+}
+} // namespace
+
+void
+DocumentView::caretLineRange(int index, int &lineStart,
+                             int &lineEnd) const noexcept
+{
+    lineRangeIn(m_caret_chars, index, lineStart, lineEnd);
 }
 
 double
@@ -365,27 +382,10 @@ DocumentView::caretSelectionPoint(
     const std::vector<Model::CachedTextChar> &chars, int pageno, int index,
     QPointF &out) const noexcept
 {
-    GraphicsImageItem *pageItem = m_page_items_hash.value(pageno, nullptr);
-    const int n                 = static_cast<int>(chars.size());
-    if (!pageItem || n == 0)
+    const QRectF r = caretSceneRect(chars, pageno, index);
+    if (r.isEmpty())
         return false;
-
-    int j = std::max(index, 0);
-    while (j < n && chars[j].rune == '\n')
-        j++;
-    if (j >= n)
-    {
-        j = n - 1;
-        while (j >= 0 && chars[j].rune == '\n')
-            j--;
-        if (j < 0)
-            return false;
-    }
-
-    const fz_quad &q = chars[j].quad;
-    const double cx  = (q.ul.x + q.ur.x + q.ll.x + q.lr.x) / 4.0;
-    const double cy  = (q.ul.y + q.ur.y + q.ll.y + q.lr.y) / 4.0;
-    out = pagePointsToScene(pageItem, QRectF(cx, cy, 0.0, 0.0)).center();
+    out = r.center();
     return true;
 }
 
@@ -689,6 +689,39 @@ DocumentView::caretWordPrev() noexcept
 }
 
 void
+DocumentView::caretWordEnd() noexcept
+{
+    const auto cls = [this](int k)
+    {
+        return (k >= 0 && k < static_cast<int>(m_caret_chars.size()))
+                   ? caretClassOf(m_caret_chars[k].rune)
+                   : 0;
+    };
+
+    int i = m_caret_index;
+    for (;;)
+    {
+        const int n = static_cast<int>(m_caret_chars.size());
+        while (i < n && cls(i) == 0)
+            ++i;
+        if (i < n)
+            break;
+        if (!caretEnterAdjacentTextPage(true))
+        {
+            m_caret_index = n;
+            return;
+        }
+        i = 0;
+    }
+
+    const int n = static_cast<int>(m_caret_chars.size());
+    const int c = cls(i);
+    while (i < n && cls(i) == c)
+        ++i;
+    m_caret_index = i;
+}
+
+void
 DocumentView::caretToDocEdge(bool end) noexcept
 {
     const int N = m_model->numPages();
@@ -754,16 +787,13 @@ DocumentView::updateCaretSelection() noexcept
         return;
 
     const bool samePage = m_caret_anchor_pageno == m_caret_pageno;
-    if (samePage && m_caret_anchor_index == m_caret_index)
+    if (!m_caret_visual_line && samePage
+        && m_caret_anchor_index == m_caret_index)
     {
         ClearTextSelection();
         return;
     }
 
-    // The selection engine takes the characters from the one under the
-    // start point up to (not including) the one under the end point, so
-    // aim both points at the middle of a character rather than at a caret
-    // edge, which lies between two.
     std::vector<Model::CachedTextChar> anchorChars;
     const std::vector<Model::CachedTextChar> *anchorSrc = &m_caret_chars;
     if (!samePage)
@@ -772,24 +802,42 @@ DocumentView::updateCaretSelection() noexcept
         anchorSrc   = &anchorChars;
     }
 
+    int anchorIdx = m_caret_anchor_index;
+    int focusIdx  = m_caret_index;
+
+    if (m_caret_visual_line)
+    {
+        // Whole lines: from the start of the first line to the end of the
+        // last, whichever of anchor and focus comes first.
+        const bool anchorFirst
+            = m_caret_anchor_pageno < m_caret_pageno
+              || (samePage && m_caret_anchor_index <= m_caret_index);
+
+        int aStart, aEnd, fStart, fEnd;
+        lineRangeIn(*anchorSrc, anchorIdx, aStart, aEnd);
+        lineRangeIn(m_caret_chars, focusIdx, fStart, fEnd);
+
+        anchorIdx = anchorFirst ? aStart : aEnd;
+        focusIdx  = anchorFirst ? fEnd : fStart;
+    }
+
+    // The selection engine takes the text between the character boundaries
+    // nearest to the two points, so use the caret edges.
     QPointF anchorPos, focusPos;
-    if (!caretSelectionPoint(*anchorSrc, m_caret_anchor_pageno,
-                             m_caret_anchor_index, anchorPos)
-        || !caretSelectionPoint(m_caret_chars, m_caret_pageno, m_caret_index,
+    if (!caretSelectionPoint(*anchorSrc, m_caret_anchor_pageno, anchorIdx,
+                             anchorPos)
+        || !caretSelectionPoint(m_caret_chars, m_caret_pageno, focusIdx,
                                 focusPos))
         return;
 
     handleTextSelection(anchorPos, focusPos);
 }
 
-void
-DocumentView::caretRunMotion(const std::function<void()> &motion,
-                             bool extend) noexcept
+bool
+DocumentView::caretBeginMotion(bool extend) noexcept
 {
-    if (!m_caret_mode)
-        return;
-
-    if (extend)
+    const bool ext = extend || m_caret_visual;
+    if (ext)
     {
         if (m_caret_anchor_index < 0)
         {
@@ -802,13 +850,35 @@ DocumentView::caretRunMotion(const std::function<void()> &motion,
         m_caret_anchor_index = -1;
         ClearTextSelection();
     }
+    return ext;
+}
 
+void
+DocumentView::caretRunMotion(const std::function<void()> &motion,
+                             bool extend) noexcept
+{
+    if (!m_caret_mode)
+        return;
+
+    const bool ext = caretBeginMotion(extend);
     m_caret_pref_x = -1.0;
     motion();
 
-    if (extend)
+    if (ext)
         updateCaretSelection();
     renderCaret();
+}
+
+void
+DocumentView::caretVerticalMotion(bool up, bool extend) noexcept
+{
+    if (!m_caret_mode)
+        return;
+
+    const bool ext = caretBeginMotion(extend);
+    caretMoveVertical(up);
+    if (ext)
+        updateCaretSelection();
 }
 
 void
@@ -826,21 +896,13 @@ DocumentView::caretMoveRight() noexcept
 void
 DocumentView::caretMoveUp() noexcept
 {
-    if (!m_caret_mode)
-        return;
-    m_caret_anchor_index = -1;
-    ClearTextSelection();
-    caretMoveVertical(true);
+    caretVerticalMotion(true, false);
 }
 
 void
 DocumentView::caretMoveDown() noexcept
 {
-    if (!m_caret_mode)
-        return;
-    m_caret_anchor_index = -1;
-    ClearTextSelection();
-    caretMoveVertical(false);
+    caretVerticalMotion(false, false);
 }
 
 void
@@ -848,12 +910,13 @@ DocumentView::caretMoveLineStart() noexcept
 {
     if (!m_caret_mode || m_caret_chars.empty())
         return;
-    m_caret_anchor_index = -1;
-    ClearTextSelection();
+    const bool ext = caretBeginMotion(false);
     int lineStart, lineEnd;
     caretLineRange(m_caret_index, lineStart, lineEnd);
     m_caret_index  = lineStart;
     m_caret_pref_x = caretCharCenterX(lineStart);
+    if (ext)
+        updateCaretSelection();
     renderCaret();
 }
 
@@ -862,12 +925,13 @@ DocumentView::caretMoveLineEnd() noexcept
 {
     if (!m_caret_mode || m_caret_chars.empty())
         return;
-    m_caret_anchor_index = -1;
-    ClearTextSelection();
+    const bool ext = caretBeginMotion(false);
     int lineStart, lineEnd;
     caretLineRange(m_caret_index, lineStart, lineEnd);
     m_caret_index  = lineEnd;
     m_caret_pref_x = caretCharCenterX(lineEnd > 0 ? lineEnd - 1 : 0);
+    if (ext)
+        updateCaretSelection();
     renderCaret();
 }
 
@@ -886,29 +950,13 @@ DocumentView::caretSelectRight() noexcept
 void
 DocumentView::caretSelectUp() noexcept
 {
-    if (!m_caret_mode)
-        return;
-    if (m_caret_anchor_index < 0)
-    {
-        m_caret_anchor_index  = m_caret_index;
-        m_caret_anchor_pageno = m_caret_pageno;
-    }
-    caretMoveVertical(true);
-    updateCaretSelection();
+    caretVerticalMotion(true, true);
 }
 
 void
 DocumentView::caretSelectDown() noexcept
 {
-    if (!m_caret_mode)
-        return;
-    if (m_caret_anchor_index < 0)
-    {
-        m_caret_anchor_index  = m_caret_index;
-        m_caret_anchor_pageno = m_caret_pageno;
-    }
-    caretMoveVertical(false);
-    updateCaretSelection();
+    caretVerticalMotion(false, true);
 }
 
 void
@@ -966,7 +1014,75 @@ DocumentView::caretHighlightSelection() noexcept
         return;
 
     handleTextHighlightRequested(); // clears the selection when done
+    m_caret_visual        = false;
+    m_caret_visual_line   = false;
     m_caret_anchor_index  = -1;
     m_caret_anchor_pageno = -1;
     renderCaret();
+}
+
+void
+DocumentView::caretMoveWordEnd() noexcept
+{
+    caretRunMotion([this] { caretWordEnd(); }, false);
+}
+
+void
+DocumentView::caretToggleVisual() noexcept
+{
+    if (!m_caret_mode)
+        return;
+
+    if (m_caret_visual && !m_caret_visual_line)
+    {
+        caretExitVisual();
+        return;
+    }
+
+    // From linewise, v goes to charwise visual, as in vim.
+    const bool wasLinewise = m_caret_visual_line;
+    m_caret_visual         = true;
+    m_caret_visual_line    = false;
+    if (m_caret_anchor_index < 0)
+    {
+        m_caret_anchor_index  = m_caret_index;
+        m_caret_anchor_pageno = m_caret_pageno;
+    }
+    if (wasLinewise)
+        updateCaretSelection();
+}
+
+void
+DocumentView::caretToggleVisualLine() noexcept
+{
+    if (!m_caret_mode)
+        return;
+
+    if (m_caret_visual_line)
+    {
+        caretExitVisual();
+        return;
+    }
+
+    m_caret_visual      = true;
+    m_caret_visual_line = true;
+    if (m_caret_anchor_index < 0)
+    {
+        m_caret_anchor_index  = m_caret_index;
+        m_caret_anchor_pageno = m_caret_pageno;
+    }
+    updateCaretSelection();
+}
+
+void
+DocumentView::caretExitVisual() noexcept
+{
+    if (!m_caret_visual)
+        return;
+
+    m_caret_visual        = false;
+    m_caret_visual_line   = false;
+    m_caret_anchor_index  = -1;
+    m_caret_anchor_pageno = -1;
+    ClearTextSelection();
 }

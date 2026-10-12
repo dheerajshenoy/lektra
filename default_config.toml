@@ -505,8 +505,15 @@ caret_select_left  = [ "Shift+Left", "Shift+H" ]
 caret_select_right = [ "Shift+Right", "Shift+L" ]
 caret_select_up    = "Shift+Up"
 caret_select_down  = "Shift+Down"
-caret_word_next        = "Ctrl+Right"
-caret_word_prev        = "Ctrl+Left"
+# w / b / e also work as in vim; v starts a visual selection (Shift+V a
+# linewise one) (the
+# visual_line_mode key, in caret mode), Esc or y ends it, gg / G go to the
+# start / end of the text
+caret_word_next        = [ "Ctrl+Right", "w" ]
+caret_word_prev        = [ "Ctrl+Left", "b" ]
+caret_word_end         = "e"
+caret_visual           = ""
+caret_visual_line      = "Shift+V"
 caret_doc_start        = "Ctrl+Home"
 caret_doc_end          = "Ctrl+End"
 caret_select_word_next = "Ctrl+Shift+Right"

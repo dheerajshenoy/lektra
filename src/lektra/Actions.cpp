@@ -318,8 +318,12 @@ Lektra::Selection_cancel() noexcept
 void
 Lektra::Selection_copy() noexcept
 {
-    if (m_doc)
-        m_doc->YankSelection();
+    if (!m_doc)
+        return;
+
+    m_doc->YankSelection();
+    // Like vim, yanking ends visual mode.
+    m_doc->caretExitVisual();
 }
 
 // Fit the document to the width of the window
@@ -972,6 +976,13 @@ Lektra::FirstPage() noexcept
     if (!m_doc)
         return;
 
+    // gg / G are vim's start / end of the text in caret mode
+    if (m_doc->caretMode())
+    {
+        m_doc->caretMoveDocStart();
+        return;
+    }
+
     m_doc->GotoFirstPage();
     updatePageNavigationActions();
 }
@@ -1020,9 +1031,16 @@ Lektra::NextPage() noexcept
 void
 Lektra::LastPage() noexcept
 {
-    if (m_doc)
-        m_doc->GotoLastPage();
+    if (!m_doc)
+        return;
 
+    if (m_doc->caretMode())
+    {
+        m_doc->caretMoveDocEnd();
+        return;
+    }
+
+    m_doc->GotoLastPage();
     updatePageNavigationActions();
 }
 
@@ -1648,6 +1666,13 @@ Lektra::ToggleVisualLineMode() noexcept
     if (!m_doc)
         return;
 
+    // In caret mode the same key starts the vim-style visual selection.
+    if (m_doc->caretMode())
+    {
+        CaretVisual();
+        return;
+    }
+
     bool newState = !m_doc->visual_line_mode();
     m_doc->set_visual_line_mode(newState);
 
@@ -1838,6 +1863,35 @@ Lektra::CaretSelectDocEnd() noexcept
 {
     if (m_doc)
         m_doc->caretSelectDocEnd();
+}
+
+void
+Lektra::CaretWordEnd() noexcept
+{
+    if (m_doc)
+        m_doc->caretMoveWordEnd();
+}
+
+void
+Lektra::CaretVisual() noexcept
+{
+    if (!m_doc || !m_doc->caretMode())
+        return;
+
+    m_doc->caretToggleVisual();
+    if (m_doc->caretVisual())
+        m_message_bar->showMessage(tr("-- VISUAL --"));
+}
+
+void
+Lektra::CaretVisualLine() noexcept
+{
+    if (!m_doc || !m_doc->caretMode())
+        return;
+
+    m_doc->caretToggleVisualLine();
+    if (m_doc->caretVisual())
+        m_message_bar->showMessage(tr("-- VISUAL LINE --"));
 }
 
 void

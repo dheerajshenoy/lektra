@@ -515,6 +515,17 @@ public:
     void caretSelectWordPrev() noexcept;
     void caretSelectDocStart() noexcept;
     void caretSelectDocEnd() noexcept;
+    void caretMoveWordEnd() noexcept;
+    // Vim-style visual mode: while on, every caret movement extends the
+    // selection from where it was turned on.
+    void caretToggleVisual() noexcept;
+    // Linewise (vim V): the selection is always whole lines.
+    void caretToggleVisualLine() noexcept;
+    void caretExitVisual() noexcept;
+    inline bool caretVisual() const noexcept
+    {
+        return m_caret_visual;
+    }
     // Highlights the caret-mode selection and drops it, keeping the caret.
     void caretHighlightSelection() noexcept;
     void FollowLink(const Model::LinkInfo &info) noexcept;
@@ -975,6 +986,11 @@ private:
     void caretPlaceInitial() noexcept;
     void caretWordNext() noexcept;
     void caretWordPrev() noexcept;
+    void caretWordEnd() noexcept;
+    // Sets or drops the selection anchor for a motion; returns whether the
+    // motion extends the selection (asked for, or visual mode is on).
+    bool caretBeginMotion(bool extend) noexcept;
+    void caretVerticalMotion(bool up, bool extend) noexcept;
     void caretToDocEdge(bool end) noexcept;
     // Runs `motion`, extending the selection from the anchor or collapsing it.
     void caretRunMotion(const std::function<void()> &motion,
@@ -1109,6 +1125,8 @@ private:
     bool m_visual_line_mode               = false;
     // Caret Mode
     bool m_caret_mode                     = false;
+    bool m_caret_visual                   = false;
+    bool m_caret_visual_line              = false;
     int m_caret_pageno                    = -1;
     int m_caret_index                     = -1;
     // Sticky horizontal column (page-point space) used by Up/Down, like a

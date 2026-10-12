@@ -166,6 +166,9 @@ public:
     void CaretSelectDocStart() noexcept;
     void CaretSelectDocEnd() noexcept;
     void CaretHighlight() noexcept;
+    void CaretWordEnd() noexcept;
+    void CaretVisual() noexcept;
+    void CaretVisualLine() noexcept;
 #ifdef WITH_LLM_SUPPORT
     void ToggleLLMView() noexcept;
 #endif

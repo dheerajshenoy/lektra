@@ -513,6 +513,16 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("caret_select_doc_end",
                            tr("Caret mode: extend selection to end of document"),
                            [this](const QStringList &) { CaretSelectDocEnd(); });
+    m_command_manager->reg("caret_word_end",
+                           tr("Caret mode: move to end of word"),
+                           [this](const QStringList &) { CaretWordEnd(); });
+    m_command_manager->reg(
+        "caret_visual", tr("Caret mode: toggle visual selection (like vim v)"),
+        [this](const QStringList &) { CaretVisual(); });
+    m_command_manager->reg(
+        "caret_visual_line",
+        tr("Caret mode: toggle linewise visual selection (like vim V)"),
+        [this](const QStringList &) { CaretVisualLine(); });
     m_command_manager->reg("caret_highlight",
                            tr("Caret mode: highlight the selection"),
                            [this](const QStringList &) { CaretHighlight(); });

@@ -1312,6 +1312,8 @@ Lektra::initDefaultKeybinds() noexcept
         {"caret_select_doc_start", "Ctrl+Shift+Home"},
         {"caret_select_doc_end", "Ctrl+Shift+End"},
         {"caret_highlight", "Ctrl+H"},
+        {"caret_word_end", "e"},
+        {"caret_visual_line", "Shift+V"},
         {"selection_copy", "y"},
     };
 
@@ -1327,6 +1329,9 @@ Lektra::initDefaultKeybinds() noexcept
     // page_next/page_prev outside caret mode).
     setupKeybinding("caret_select_left", {"Shift+Left", "Shift+H"});
     setupKeybinding("caret_select_right", {"Shift+Right", "Shift+L"});
+    // Vim word motions (they do nothing outside caret mode)
+    setupKeybinding("caret_word_next", {"Ctrl+Right", "w"});
+    setupKeybinding("caret_word_prev", {"Ctrl+Left", "b"});
 }
 
 void

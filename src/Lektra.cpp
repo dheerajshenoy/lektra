@@ -479,6 +479,10 @@ Lektra::eventFilter(QObject *object, QEvent *event)
                 }
             }
 
+            // Esc leaves caret visual mode, like vim
+            if (m_doc && m_doc->caretVisual())
+                m_doc->caretExitVisual();
+
             return true;
         }
     }
