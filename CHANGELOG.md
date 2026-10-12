@@ -18,6 +18,8 @@
 
 #### Tabs and views
 
+- New `bibtex` command copies the BibTeX entry of the paper you are reading to the clipboard. It finds the DOI in the PDF's metadata or first two pages (or an arXiv number) and fetches the entry with curl in the background.
+
 - New text underline mode (`annot_underline_mode` command, key `6`, Tools → Mode → Text Underline): select text with the mouse and it is underlined when you release, like text highlight mode. The context menu of a selection has "Underline Text" too.
 - New ellipse (`annot_ellipse_mode`, key `7`), polygon (`annot_polygon_mode`, key `8`) and inline note (`annot_note_mode`, key `9`) annotation modes. Drag for an ellipse or an inline note (text written on the page); click the corners of a polygon and double click, or click the first corner, to finish. Rectangle annotations are now outlines instead of filled.
 - In annotation edit mode a selected rectangle, ellipse, polygon, inline note or popup can now be moved by dragging it, and all but the popup resized by its handles (hold Shift on a corner to keep the proportions). It can be undone.

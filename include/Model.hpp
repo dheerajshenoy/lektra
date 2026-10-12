@@ -444,6 +444,12 @@ public:
         return m_filepath;
     }
 
+    // Plain text of one page (for scanning it, e.g. for a DOI)
+    [[nodiscard]] QString pageText(int pageno) noexcept
+    {
+        return QString::fromStdString(getTextInPage(pageno, false));
+    }
+
     [[nodiscard]] inline int numPages() const noexcept
     {
         return m_page_count;

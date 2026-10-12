@@ -214,6 +214,7 @@ public:
     void LastPage() noexcept;
     void NextPage() noexcept;
     void OpenContainingFolder() noexcept;
+    void Bibtex() noexcept;
     DocumentView *OpenFile(const QString &filename, int on_doc_id = -1,
                            const CallbackFn &callback = {}) noexcept;
     bool OpenFileDWIM(const QString &filename    = {},

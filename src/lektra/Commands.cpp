@@ -1110,6 +1110,9 @@ Lektra::initCommands() noexcept
     m_command_manager->reg(
         "reopen_last_closed_file", tr("Reopen last closed file"),
         [this](const QStringList &) { Reopen_last_closed_file(); });
+    m_command_manager->reg(
+        "bibtex", tr("Copy the BibTeX entry of the current paper"),
+        [this](const QStringList &) { Bibtex(); });
     m_command_manager->reg("copy_page_image", tr("Copy current page as image"),
                            [this](const QStringList &) { Copy_page_image(); });
     m_command_manager->reg(

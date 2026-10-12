@@ -394,6 +394,7 @@ qt_add_executable(${PROJECT_NAME}
     src/Lektra.cpp
     src/lektra/Config.cpp
     src/lektra/Commands.cpp
+    src/lektra/Bibtex.cpp
     src/lektra/Menus.cpp
     src/lektra/Notices.cpp
     src/lektra/Tabs.cpp
