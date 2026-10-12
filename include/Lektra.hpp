@@ -157,6 +157,15 @@ public:
     void CaretSelectRight() noexcept;
     void CaretSelectUp() noexcept;
     void CaretSelectDown() noexcept;
+    void CaretWordNext() noexcept;
+    void CaretWordPrev() noexcept;
+    void CaretDocStart() noexcept;
+    void CaretDocEnd() noexcept;
+    void CaretSelectWordNext() noexcept;
+    void CaretSelectWordPrev() noexcept;
+    void CaretSelectDocStart() noexcept;
+    void CaretSelectDocEnd() noexcept;
+    void CaretHighlight() noexcept;
 #ifdef WITH_LLM_SUPPORT
     void ToggleLLMView() noexcept;
 #endif

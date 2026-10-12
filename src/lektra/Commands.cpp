@@ -489,6 +489,33 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("caret_select_down",
                            tr("Caret mode: extend selection down"),
                            [this](const QStringList &) { CaretSelectDown(); });
+    m_command_manager->reg("caret_word_next",
+                           tr("Caret mode: move to next word"),
+                           [this](const QStringList &) { CaretWordNext(); });
+    m_command_manager->reg("caret_word_prev",
+                           tr("Caret mode: move to previous word"),
+                           [this](const QStringList &) { CaretWordPrev(); });
+    m_command_manager->reg("caret_doc_start",
+                           tr("Caret mode: move to start of document"),
+                           [this](const QStringList &) { CaretDocStart(); });
+    m_command_manager->reg("caret_doc_end",
+                           tr("Caret mode: move to end of document"),
+                           [this](const QStringList &) { CaretDocEnd(); });
+    m_command_manager->reg("caret_select_word_next",
+                           tr("Caret mode: extend selection to next word"),
+                           [this](const QStringList &) { CaretSelectWordNext(); });
+    m_command_manager->reg("caret_select_word_prev",
+                           tr("Caret mode: extend selection to previous word"),
+                           [this](const QStringList &) { CaretSelectWordPrev(); });
+    m_command_manager->reg("caret_select_doc_start",
+                           tr("Caret mode: extend selection to start of document"),
+                           [this](const QStringList &) { CaretSelectDocStart(); });
+    m_command_manager->reg("caret_select_doc_end",
+                           tr("Caret mode: extend selection to end of document"),
+                           [this](const QStringList &) { CaretSelectDocEnd(); });
+    m_command_manager->reg("caret_highlight",
+                           tr("Caret mode: highlight the selection"),
+                           [this](const QStringList &) { CaretHighlight(); });
 
 #ifdef WITH_LLM_SUPPORT
     m_command_manager->reg("llm_view", tr("Toggle LLM chat panel"),

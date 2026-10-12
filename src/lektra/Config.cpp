@@ -1303,6 +1303,15 @@ Lektra::initDefaultKeybinds() noexcept
         {"caret_select_right", "Shift+Right"},
         {"caret_select_up", "Shift+Up"},
         {"caret_select_down", "Shift+Down"},
+        {"caret_word_next", "Ctrl+Right"},
+        {"caret_word_prev", "Ctrl+Left"},
+        {"caret_doc_start", "Ctrl+Home"},
+        {"caret_doc_end", "Ctrl+End"},
+        {"caret_select_word_next", "Ctrl+Shift+Right"},
+        {"caret_select_word_prev", "Ctrl+Shift+Left"},
+        {"caret_select_doc_start", "Ctrl+Shift+Home"},
+        {"caret_select_doc_end", "Ctrl+Shift+End"},
+        {"caret_highlight", "Ctrl+H"},
         {"selection_copy", "y"},
     };
 

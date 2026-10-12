@@ -26,6 +26,7 @@ extern "C"
 #include "DispatchType.hpp"
 
 #include <QElapsedTimer>
+#include <functional>
 #include <QFileInfo>
 #include <QFileSystemWatcher>
 #include <QFutureWatcher>
@@ -506,6 +507,16 @@ public:
     void caretSelectRight() noexcept;
     void caretSelectUp() noexcept;
     void caretSelectDown() noexcept;
+    void caretMoveWordNext() noexcept;
+    void caretMoveWordPrev() noexcept;
+    void caretMoveDocStart() noexcept;
+    void caretMoveDocEnd() noexcept;
+    void caretSelectWordNext() noexcept;
+    void caretSelectWordPrev() noexcept;
+    void caretSelectDocStart() noexcept;
+    void caretSelectDocEnd() noexcept;
+    // Highlights the caret-mode selection and drops it, keeping the caret.
+    void caretHighlightSelection() noexcept;
     void FollowLink(const Model::LinkInfo &info) noexcept;
     void setInvertColor(bool invert) noexcept;
     void openAsync(const QString &filePath) noexcept;
@@ -943,7 +954,31 @@ private:
     // edge of m_caret_chars[index] if that's a real character, otherwise the
     // right edge of the previous one (end-of-line / end-of-text). Empty if
     // it can't be resolved (no page item, empty page, etc).
-    QRectF caretSceneRect(int pageno, int index) const noexcept;
+    QRectF caretSceneRect(const std::vector<Model::CachedTextChar> &chars,
+                          int pageno, int index) const noexcept;
+    // Page-point rect -> scene rect on the page's item.
+    QRectF pagePointsToScene(GraphicsImageItem *pageItem,
+                             const QRectF &pagePts) const noexcept;
+    // Scene point inside the character at (or after, skipping line breaks)
+    // `index`: a stable point for the selection engine, which picks the
+    // closest character (unlike a caret edge, which sits between two).
+    bool caretSelectionPoint(const std::vector<Model::CachedTextChar> &chars,
+                             int pageno, int index,
+                             QPointF &out) const noexcept;
+    int caretIndexNear(const std::vector<Model::CachedTextChar> &chars,
+                       int pageno, QPointF scenePos) const noexcept;
+    // Makes `pageno` the caret page and loads its characters; scrolls to it
+    // only when it is not already laid out (or in single-page layout).
+    void caretEnterPage(int pageno) noexcept;
+    // Nearest page in that direction that has text; false if there is none.
+    bool caretEnterAdjacentTextPage(bool next) noexcept;
+    void caretPlaceInitial() noexcept;
+    void caretWordNext() noexcept;
+    void caretWordPrev() noexcept;
+    void caretToDocEdge(bool end) noexcept;
+    // Runs `motion`, extending the selection from the anchor or collapsing it.
+    void caretRunMotion(const std::function<void()> &motion,
+                        bool extend) noexcept;
     // Pure index-stepping, shared by the plain move and select-extend
     // commands: crosses a page boundary (updating m_caret_pageno/
     // m_caret_chars) but does not touch the selection anchor or render

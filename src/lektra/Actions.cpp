@@ -1784,6 +1784,69 @@ Lektra::CaretSelectDown() noexcept
         m_doc->caretSelectDown();
 }
 
+void
+Lektra::CaretWordNext() noexcept
+{
+    if (m_doc)
+        m_doc->caretMoveWordNext();
+}
+
+void
+Lektra::CaretWordPrev() noexcept
+{
+    if (m_doc)
+        m_doc->caretMoveWordPrev();
+}
+
+void
+Lektra::CaretDocStart() noexcept
+{
+    if (m_doc)
+        m_doc->caretMoveDocStart();
+}
+
+void
+Lektra::CaretDocEnd() noexcept
+{
+    if (m_doc)
+        m_doc->caretMoveDocEnd();
+}
+
+void
+Lektra::CaretSelectWordNext() noexcept
+{
+    if (m_doc)
+        m_doc->caretSelectWordNext();
+}
+
+void
+Lektra::CaretSelectWordPrev() noexcept
+{
+    if (m_doc)
+        m_doc->caretSelectWordPrev();
+}
+
+void
+Lektra::CaretSelectDocStart() noexcept
+{
+    if (m_doc)
+        m_doc->caretSelectDocStart();
+}
+
+void
+Lektra::CaretSelectDocEnd() noexcept
+{
+    if (m_doc)
+        m_doc->caretSelectDocEnd();
+}
+
+void
+Lektra::CaretHighlight() noexcept
+{
+    if (m_doc)
+        m_doc->caretHighlightSelection();
+}
+
 // Sync zoom and scroll of all the views of the current tab.
 void
 Lektra::SyncViews() noexcept
