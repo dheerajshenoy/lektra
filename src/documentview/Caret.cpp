@@ -722,6 +722,44 @@ DocumentView::caretWordEnd() noexcept
 }
 
 void
+DocumentView::caretFollowSearchHit(int pageno, const fz_quad &quad) noexcept
+{
+    if (!m_caret_mode)
+        return;
+
+    // Single-page layout drops the selection when the page changes.
+    if (pageno != m_caret_pageno && m_layout_mode == LayoutMode::SINGLE)
+        caretExitVisual();
+
+    m_caret_pageno = pageno;
+    ensureCaretCharsLoaded();
+    if (m_caret_chars.empty())
+        return;
+
+    int best     = 0;
+    double bestD = std::numeric_limits<double>::max();
+    for (int i = 0; i < static_cast<int>(m_caret_chars.size()); ++i)
+    {
+        if (m_caret_chars[i].rune == '\n')
+            continue;
+        const fz_quad &q = m_caret_chars[i].quad;
+        const double d   = std::abs(q.ul.x - quad.ul.x)
+                         + 4.0 * std::abs(q.ul.y - quad.ul.y);
+        if (d < bestD)
+        {
+            bestD = d;
+            best  = i;
+        }
+    }
+
+    m_caret_index  = best;
+    m_caret_pref_x = -1.0;
+    if (m_caret_anchor_index >= 0)
+        updateCaretSelection();
+    renderCaret();
+}
+
+void
 DocumentView::caretToDocEdge(bool end) noexcept
 {
     const int N = m_model->numPages();
@@ -744,6 +782,7 @@ DocumentView::renderCaret() noexcept
 
     const QRectF rect
         = caretSceneRect(m_caret_chars, m_caret_pageno, m_caret_index);
+    m_caret_render_pending = rect.isEmpty();
     if (rect.isEmpty())
     {
         hideCaret();

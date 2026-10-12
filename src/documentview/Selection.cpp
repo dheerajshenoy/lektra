@@ -916,6 +916,8 @@ DocumentView::GotoHit(int index) noexcept
         renderPage();
     else
         renderPages();
+
+    caretFollowSearchHit(ref.page, hit.quad);
 }
 
 bool

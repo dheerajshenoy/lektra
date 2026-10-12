@@ -784,6 +784,10 @@ DocumentView::startNextRenderJob() noexcept
                 if (view->m_pending_jump.pageno == pageno)
                     view->GotoLocation(view->m_pending_jump);
 
+                if (view->m_caret_render_pending
+                    && view->m_caret_pageno == pageno)
+                    view->renderCaret();
+
                 if (view->m_scroll_to_hit_pending && view->m_search_index >= 0
                     && !view->m_search_hit_flat_refs.empty()
                     && view->m_search_hit_flat_refs[view->m_search_index].page

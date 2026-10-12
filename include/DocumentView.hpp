@@ -987,6 +987,8 @@ private:
     void caretWordNext() noexcept;
     void caretWordPrev() noexcept;
     void caretWordEnd() noexcept;
+    // Moves the caret to a search hit (called when a hit is jumped to).
+    void caretFollowSearchHit(int pageno, const fz_quad &quad) noexcept;
     // Sets or drops the selection anchor for a motion; returns whether the
     // motion extends the selection (asked for, or visual mode is on).
     bool caretBeginMotion(bool extend) noexcept;
@@ -1127,6 +1129,9 @@ private:
     bool m_caret_mode                     = false;
     bool m_caret_visual                   = false;
     bool m_caret_visual_line              = false;
+    // The caret could not be drawn because its page is not laid out yet;
+    // redo it when that page has rendered.
+    bool m_caret_render_pending           = false;
     int m_caret_pageno                    = -1;
     int m_caret_index                     = -1;
     // Sticky horizontal column (page-point space) used by Up/Down, like a
