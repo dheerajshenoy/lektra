@@ -1152,6 +1152,9 @@ private:
     QGraphicsEllipseItem *m_caret_locate_item = nullptr;
     QVariantAnimation *m_caret_locate_anim    = nullptr;
     bool m_thumbnail_mode            = false;
+    // Zoom of the pixels currently shown for an image (it is rendered at the
+    // zoom, then only scaled by the item until the next render).
+    double m_image_rendered_zoom     = 1.0;
     int m_thumbnail_highlighted_page = -1;
 #ifdef WITH_SYNCTEX
     synctex_scanner_p m_synctex_scanner = nullptr;

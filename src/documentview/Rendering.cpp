@@ -551,6 +551,7 @@ DocumentView::renderImage() noexcept
     {
         createAndAddPageItem(0, img);
     }
+    m_image_rendered_zoom = m_current_zoom;
     updateSceneRect();
     repositionPages();
 }

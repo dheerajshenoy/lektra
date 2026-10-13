@@ -501,8 +501,13 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         m_current_zoom = factor;
         m_model->setZoom(m_current_zoom);
 
-        // Use setScale directly to ensure it matches the zoom factor precisely
-        imageItem->setScale(m_current_zoom);
+        // The pixels were rendered at m_image_rendered_zoom (animated images
+        // are shown at their natural size), so only the difference is left
+        // to scale; the full zoom would show them too big until the
+        // re-render and then shift the view when they snap back.
+        imageItem->setScale(m_model->isAnimated()
+                                ? m_current_zoom
+                                : m_current_zoom / m_image_rendered_zoom);
 
         // 4. Update the layout.
         // repositionPages() likely moves the item (setPos), which changes
