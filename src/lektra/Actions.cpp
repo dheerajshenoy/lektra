@@ -2087,10 +2087,22 @@ Lektra::setLaserPointerCursor(bool state) noexcept
     m_presentation.laser_pointer_enabled = state;
     if (state)
     {
-        const auto &lp = m_config.presentation.laser_pointer;
+        const auto &lp = m_config.laser_pointer;
         this->setCursor(
             createLaserPointerCursor(lp.size, rgbaToQColor(lp.color)));
+        if (lp.trail)
+        {
+            if (!m_laser_trail)
+                m_laser_trail = new LaserTrail(this);
+            m_laser_trail->setStyle(rgbaToQColor(lp.color),
+                                    qMax(2, lp.size / 3), lp.trail_fade_ms);
+            m_laser_trail->setActive(true);
+        }
     }
     else
+    {
         this->unsetCursor();
+        if (m_laser_trail)
+            m_laser_trail->setActive(false);
+    }
 }

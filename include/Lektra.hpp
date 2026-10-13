@@ -5,6 +5,7 @@
 #include "Config.hpp"
 #include "DocumentView.hpp"
 #include "HighlightSearchPicker.hpp"
+#include "LaserTrail.hpp"
 #include "MarkManager.hpp"
 #include "MessageBar.hpp"
 #include "NoticeBar.hpp"
@@ -653,6 +654,7 @@ private:
         DocumentView::FitMode fit_mode = DocumentView::FitMode::Width;
         bool laser_pointer_enabled     = false;
     } m_presentation;
+    LaserTrail *m_laser_trail             = nullptr;
     StartupWidget *m_startup_widget       = nullptr;
     LinkHintMode m_link_hint_current_mode = LinkHintMode::None;
     QMap<int, Model::LinkInfo> m_link_hint_map;

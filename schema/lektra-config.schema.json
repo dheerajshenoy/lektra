@@ -1613,33 +1613,32 @@
       "additionalProperties": false,
       "description": "LLM View options struct (since 0.7.8)"
     },
-    "presentation": {
+    "laser_pointer": {
       "type": "object",
       "properties": {
-        "laser_pointer": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "default": false,
-              "description": "Enable laser pointer (since 0.8.0)"
-            },
-            "color": {
-              "type": "integer",
-              "description": "Laser pointer color (since 0.8.0)",
-              "default": "#FF0000FF"
-            },
-            "size": {
-              "type": "integer",
-              "default": 20,
-              "description": "Laser pointer size in pixels (since 0.8.0)"
-            }
-          },
-          "additionalProperties": false,
-          "description": "Laser pointer options struct (since 0.8.0)"
+        "color": {
+          "type": "integer",
+          "description": "Laser pointer color (since 0.8.0)",
+          "default": "#FF0000FF"
+        },
+        "size": {
+          "type": "integer",
+          "default": 20,
+          "description": "Laser pointer size in pixels (since 0.8.0)"
+        },
+        "trail": {
+          "type": "boolean",
+          "default": false,
+          "description": "Draw a trail while the left mouse button is held, fading from its oldest end like Excalidraw's laser pointer (since 0.8.0)"
+        },
+        "trail_fade_ms": {
+          "type": "integer",
+          "default": 1000,
+          "description": "How long the trail takes to fade away, in milliseconds (since 0.8.0)"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Laser pointer options struct (since 0.8.0)"
     },
     "rendering": {
       "type": "object",

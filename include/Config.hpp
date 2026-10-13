@@ -1729,41 +1729,37 @@ struct Config
     } updates;
     // @endsection
 
-    // @section presentation
-    // @section_desc Presentation mode options struct
+    // @section laser_pointer
+    // @section_desc Laser pointer options struct
     // @section_type struct
     // @section_added 0.8.0
-    struct Presentation
+    struct LaserPointer
     {
 
-        // @section presentation.laser_pointer
-        // @section_desc Laser pointer options struct
-        // @section_type struct
-        // @section_added 0.8.0
-        struct LaserPointer
-        {
+        // @desc Laser pointer color
+        // @type str
+        // @default "#FF0000FF"
+        // @added 0.8.0
+        uint32_t color = 0xFF0000FF;
 
-            // @desc Enable laser pointer
-            // @type bool
-            // @default false
-            // @added 0.8.0
-            bool enabled = false;
+        // @desc Laser pointer size in pixels
+        // @type int
+        // @default 20
+        // @added 0.8.0
+        int size = 20; // @desc Laser pointer size in pixels
 
-            // @desc Laser pointer color
-            // @type str
-            // @default "#FF0000FF"
-            // @added 0.8.0
-            uint32_t color = 0xFF0000FF;
+        // @desc Draw a trail while the left mouse button is held, fading from its oldest end like Excalidraw's laser pointer
+        // @type bool
+        // @default false
+        // @added 0.8.0
+        bool trail = false;
 
-            // @desc Laser pointer size in pixels
-            // @type int
-            // @default 20
-            // @added 0.8.0
-            int size = 20; // @desc Laser pointer size in pixels
-        } laser_pointer;
-        // @endsection
-
-    } presentation;
+        // @desc How long the trail takes to fade away, in milliseconds
+        // @type int
+        // @default 1000
+        // @added 0.8.0
+        int trail_fade_ms = 1000;
+    } laser_pointer;
     // @endsection
 
     // @section donate

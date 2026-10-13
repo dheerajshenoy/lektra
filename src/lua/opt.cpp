@@ -2631,48 +2631,58 @@ static const LuaField llmViewFields[] = {
 };
 
 static const LuaField laserPointerFields[] = {
-    // enabled, color
-    {"enabled",
-     [](lua_State *L, P p)
-{
-    lua_pushboolean(
-        L, static_cast<Config::Presentation::LaserPointer *>(p)->enabled);
-    return 1;
-},
-     [](lua_State *L, P p)
-{
-    static_cast<Config::Presentation::LaserPointer *>(p)->enabled
-        = lua_toboolean(L, 3);
-}},
     {"color",
      [](lua_State *L, P p)
 {
     // color is uint32_t
     lua_pushinteger(
-        L, static_cast<Config::Presentation::LaserPointer *>(p)->color);
+        L, static_cast<Config::LaserPointer *>(p)->color);
     return 1;
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::Presentation::LaserPointer *>(p)->color
+    static_cast<Config::LaserPointer *>(p)->color
         = readLuaColor(L, 3, 0xFF0000); // default red
 }},
     {"size",
      [](lua_State *L, P p)
 {
     lua_pushnumber(L,
-                   static_cast<Config::Presentation::LaserPointer *>(p)->size);
+                   static_cast<Config::LaserPointer *>(p)->size);
     return 1;
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::Presentation::LaserPointer *>(p)->size
+    static_cast<Config::LaserPointer *>(p)->size
         = lua_tonumber(L, 3);
+}},
+    {"trail",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(
+        L, static_cast<Config::LaserPointer *>(p)->trail);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::LaserPointer *>(p)->trail
+        = lua_toboolean(L, 3);
+}},
+    {"trail_fade_ms",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(
+        L,
+        static_cast<Config::LaserPointer *>(p)->trail_fade_ms);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::LaserPointer *>(p)->trail_fade_ms
+        = lua_tointeger(L, 3);
 }},
 };
 
-// --- presentation ---
-static const LuaField presentationFields[] = {{}};
 
 // --- updates ---
 static const LuaField updatesFields[] = {
@@ -3241,15 +3251,10 @@ buildOptTable(lua_State *L, const OptScope &scope)
 
     if (!viewOnly)
     {
-        // lektra.opt.presentation (with .laser_pointer attached as a nested
-        // child)
-        pushSection(L, scope, &config.presentation, presentationFields,
-                    "presentation");
-        const int presentation_idx = lua_absindex(L, -1);
-        pushSection(L, scope, &config.presentation.laser_pointer,
-                    laserPointerFields, "presentation");
-        addChild(L, presentation_idx, "laser_pointer");
-        addChild(L, opt_idx, "presentation");
+        // lektra.opt.laser_pointer
+        pushSection(L, scope, &config.laser_pointer, laserPointerFields,
+                    "laser_pointer");
+        addChild(L, opt_idx, "laser_pointer");
     }
 
     // lektra.opt — plain assignment into the "lektra" global table (not a

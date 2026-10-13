@@ -413,12 +413,11 @@ lektra.opt.command_palette = {}
 lektra.opt.llm_view = {}
 
 ---@class OptLaserPointer
----@field enabled? boolean Use the laser pointer cursor when entering presentation mode.
 ---@field color? string|integer Laser pointer color (0xRRGGBBAA or "#RRGGBBAA").
 ---@field size? integer Laser pointer size in pixels.
-
----@class OptPresentation
----@field laser_pointer? OptLaserPointer Laser pointer shown as the cursor in presentation mode.
+---@field trail? boolean Draw a fading trail while the left mouse button is held.
+---@field trail_fade_ms? integer How long the trail takes to fade, in milliseconds.
+lektra.opt.laser_pointer = {}
 
 ---@class OptReflow
 ---@field font_family? string Font family for reflowable documents (installed font, serif, sans-serif or monospace); empty keeps the document's own.
@@ -540,7 +539,7 @@ lektra.opt.misc = {}
 ---@field donate? OptDonate
 ---@field misc? OptMisc
 ---@field llm_view? OptLLMView
----@field presentation? OptPresentation
+---@field laser_pointer? OptLaserPointer
 
 ---@type GlobalOptions
 lektra.opt_global = {}
