@@ -4,7 +4,9 @@
 
 ## HIGH PRIORITY
 
+- [ ] LaTeX math rendering in comment blocks
 - [ ] Picker style choose, `minibuffer` or `floating`
+- [ ] Version diffing
 
 ## MEDIUM PRIORITY
 
