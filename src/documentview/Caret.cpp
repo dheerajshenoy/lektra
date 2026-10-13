@@ -1201,3 +1201,50 @@ DocumentView::caretExitVisual() noexcept
     m_caret_anchor_pageno = -1;
     ClearTextSelection();
 }
+
+void
+DocumentView::caretFindChar(uint32_t rune, bool forward) noexcept
+{
+    if (!m_caret_mode || m_caret_chars.empty())
+        return;
+
+    m_caret_find_rune    = rune;
+    m_caret_find_forward = forward;
+
+    int lineStart, lineEnd;
+    caretLineRange(m_caret_index, lineStart, lineEnd);
+
+    int target = -1;
+    if (forward)
+    {
+        for (int j = m_caret_index + 1; j < lineEnd; ++j)
+            if (m_caret_chars[j].rune == rune)
+            {
+                target = j;
+                break;
+            }
+    }
+    else
+    {
+        for (int j = std::min(m_caret_index, lineEnd) - 1; j >= lineStart; --j)
+            if (m_caret_chars[j].rune == rune)
+            {
+                target = j;
+                break;
+            }
+    }
+
+    if (target < 0)
+        return;
+
+    caretRunMotion([this, target] { m_caret_index = target; }, false);
+}
+
+void
+DocumentView::caretRepeatFind(bool reverse) noexcept
+{
+    if (m_caret_find_rune == 0)
+        return;
+    caretFindChar(m_caret_find_rune,
+                  reverse ? !m_caret_find_forward : m_caret_find_forward);
+}

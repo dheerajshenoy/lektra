@@ -416,6 +416,11 @@ Lektra::eventFilter(QObject *object, QEvent *event)
         return handleLinkHintEvent(event);
     }
 
+    if (m_caret_find_pending)
+    {
+        return handleCaretFindEvent(event);
+    }
+
     // TODO: Do this cleanly, looks like spaghetti code.
     // Close preview window on Escape
     if (type == QEvent::KeyRelease)

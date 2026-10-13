@@ -518,6 +518,10 @@ public:
     void caretSelectDocStart() noexcept;
     void caretSelectDocEnd() noexcept;
     void caretMoveWordEnd() noexcept;
+    // vim f / F: move to the next / previous occurrence of a character on
+    // the line. Repeat is vim's ; (same way) and , (the other way).
+    void caretFindChar(uint32_t rune, bool forward) noexcept;
+    void caretRepeatFind(bool reverse) noexcept;
     // Vim-style visual mode: while on, every caret movement extends the
     // selection from where it was turned on.
     // "Find my cursor": scrolls the caret into view and pulses a shrinking
@@ -1134,6 +1138,8 @@ private:
     bool m_caret_mode                     = false;
     bool m_caret_visual                   = false;
     bool m_caret_visual_line              = false;
+    uint32_t m_caret_find_rune            = 0;
+    bool m_caret_find_forward             = true;
     // The caret could not be drawn because its page is not laid out yet;
     // redo it when that page has rendered.
     bool m_caret_render_pending           = false;

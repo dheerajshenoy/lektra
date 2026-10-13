@@ -526,6 +526,20 @@ Lektra::initCommands() noexcept
     m_command_manager->reg(
         "caret_locate", tr("Caret mode: find the caret (scroll to it and pulse)"),
         [this](const QStringList &) { CaretLocate(); });
+    m_command_manager->reg("caret_find_char",
+                           tr("Caret mode: find a character on the line (f)"),
+                           [this](const QStringList &) { CaretFindChar(); });
+    m_command_manager->reg(
+        "caret_find_char_back",
+        tr("Caret mode: find a character backwards on the line (F)"),
+        [this](const QStringList &) { CaretFindCharBack(); });
+    m_command_manager->reg(
+        "caret_find_repeat", tr("Caret mode: repeat the last f / F"),
+        [this](const QStringList &) { CaretFindRepeat(); });
+    m_command_manager->reg(
+        "caret_find_repeat_reverse",
+        tr("Caret mode: repeat the last f / F the other way"),
+        [this](const QStringList &) { CaretFindRepeatReverse(); });
     m_command_manager->reg("caret_highlight",
                            tr("Caret mode: highlight the selection"),
                            [this](const QStringList &) { CaretHighlight(); });

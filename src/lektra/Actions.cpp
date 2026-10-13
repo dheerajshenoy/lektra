@@ -275,6 +275,13 @@ Lektra::FlipV() noexcept
 void
 Lektra::VisitLinkKB() noexcept
 {
+    // In caret mode the same key is vim's f (find a character on the line)
+    if (m_doc && m_doc->caretMode())
+    {
+        CaretFindChar();
+        return;
+    }
+
     if (m_doc)
     {
         m_lockedInputBuffer.clear();
@@ -1888,6 +1895,84 @@ Lektra::CaretLocate() noexcept
 {
     if (m_doc)
         m_doc->caretLocate();
+}
+
+void
+Lektra::CaretFindChar() noexcept
+{
+    if (!m_doc || !m_doc->caretMode())
+        return;
+
+    m_caret_find_pending = true;
+    m_caret_find_forward = true;
+    m_message_bar->showMessage(tr("f: type a character"));
+}
+
+void
+Lektra::CaretFindCharBack() noexcept
+{
+    if (!m_doc || !m_doc->caretMode())
+        return;
+
+    m_caret_find_pending = true;
+    m_caret_find_forward = false;
+    m_message_bar->showMessage(tr("F: type a character"));
+}
+
+void
+Lektra::CaretFindRepeat() noexcept
+{
+    if (m_doc && m_doc->caretMode())
+        m_doc->caretRepeatFind(false);
+}
+
+void
+Lektra::CaretFindRepeatReverse() noexcept
+{
+    if (m_doc && m_doc->caretMode())
+        m_doc->caretRepeatFind(true);
+}
+
+// Takes the next key press as the character for f / F.
+bool
+Lektra::handleCaretFindEvent(QEvent *event) noexcept
+{
+    switch (event->type())
+    {
+        case QEvent::ShortcutOverride:
+            event->accept();
+            return true;
+
+        case QEvent::KeyPress:
+        {
+            const auto *keyEvent = static_cast<QKeyEvent *>(event);
+            switch (keyEvent->key())
+            {
+                case Qt::Key_Shift:
+                case Qt::Key_Control:
+                case Qt::Key_Alt:
+                case Qt::Key_Meta:
+                case Qt::Key_AltGr:
+                case Qt::Key_CapsLock:
+                    return true; // still waiting for the character
+                default:
+                    break;
+            }
+
+            m_caret_find_pending = false;
+
+            const QString text = keyEvent->text();
+            if (m_doc && m_doc->caretMode() && text.size() == 1
+                && text.at(0).isPrint())
+                m_doc->caretFindChar(text.at(0).unicode(),
+                                     m_caret_find_forward);
+            return true;
+        }
+
+        default:
+            break;
+    }
+    return false;
 }
 
 void

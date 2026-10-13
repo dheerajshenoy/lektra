@@ -513,6 +513,12 @@ caret_word_next        = [ "Ctrl+Right", "w" ]
 caret_word_prev        = [ "Ctrl+Left", "b" ]
 caret_word_end         = "e"
 caret_visual           = ""
+# f (the link_hint_visit key, in caret mode) and F find a character on the
+# line; ; and , repeat that
+caret_find_char         = ""
+caret_find_char_back    = "Shift+F"
+caret_find_repeat       = ";"
+caret_find_repeat_reverse = ","
 # Find a lost caret: scrolls to it and pulses a ring around it
 caret_locate           = "F8"
 caret_visual_line      = "Shift+V"

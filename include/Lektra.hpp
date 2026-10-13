@@ -170,6 +170,10 @@ public:
     void CaretVisual() noexcept;
     void CaretVisualLine() noexcept;
     void CaretLocate() noexcept;
+    void CaretFindChar() noexcept;
+    void CaretFindCharBack() noexcept;
+    void CaretFindRepeat() noexcept;
+    void CaretFindRepeatReverse() noexcept;
 #ifdef WITH_LLM_SUPPORT
     void ToggleLLMView() noexcept;
 #endif
@@ -510,6 +514,7 @@ private:
     void gotoMark(const QString &key) noexcept;
     void deleteMark(const QString &key) noexcept;
     bool handleLinkHintEvent(QEvent *event) noexcept;
+    bool handleCaretFindEvent(QEvent *event) noexcept;
     void handleTabContextMenu(int index, const QPoint &globalPos) noexcept;
     void showMultiTabMenu(const QList<int> &indices,
                           const QPoint &globalPos) noexcept;
@@ -619,6 +624,9 @@ private:
     QString m_lockedInputBuffer; // Used for link hints and waiting input event
                                  // like for marks etc.
     bool m_link_hint_mode = false;
+    // Caret mode f / F: waiting for the character to find
+    bool m_caret_find_pending = false;
+    bool m_caret_find_forward = true;
     bool m_focus_mode     = false;
 
     // Focus mode: like presentation, save the exact chrome state on enter so

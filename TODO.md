@@ -4,7 +4,6 @@
 
 ## HIGH PRIORITY
 
-- [ ] Fix scroll wheel zoom being very slow
 - [ ] Picker style choose, `minibuffer` or `floating`
 
 ## MEDIUM PRIORITY
