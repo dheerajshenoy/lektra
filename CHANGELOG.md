@@ -55,26 +55,16 @@ Some options were renamed to be consistent. The old names are ignored, so update
 ### Bug Fixes
 
 - Fit width going to the last page of the document
-
 - Fix an image drifting up and to the left when zooming in or out, until the view settled.
-
 - Color options set from Lua (`lektra.opt` and `view:opt()`) now accept a hex string such as `"#1e1e2e"`, like `config.toml` does; before, only `page.bg` and `page.fg` did and the others needed an integer.
-
 - Fix scrollbars that are turned off (`scrollbars.vertical` / `scrollbars.horizontal`) showing up when zooming or resizing.
-
 - Scrolling no longer asks for a new render of pages that are already rendered on every small scrollbar movement.
 - Statusbar layout: a mistyped module or key is reported with a suggestion, an all-invalid layout falls back to the default one, and items placed with `at` no longer draw on top of each other.
-
 - Improved rendering performance when scrolling
-
 - Pages render faster: a pass over every page that changed nothing with the default page colours is skipped, and page colours, dark mode and high contrast are applied in one pass.
-
 - Fast scrolling and zooming waste less work: renders that are no longer needed stop early, pages are not preloaded while scrolling fast, and the page you land on is drawn first.
-
 - Fix a small memory leak when a page was dropped from the cache while it was being rendered.
-
 - Opening many files from the command line (`lektra ~/Downloads/*.pdf`) now only loads the first one and the others when you switch to them, as `tabs.lazy_load` says; before, every file was loaded at once.
-
 - Single-instance mode now works when it is turned on from `init.lua` (`lektra.opt.behavior.single_instance`), not only from `config.toml` or `--single-instance`, and a second instance no longer takes the socket away from a running one.
 
 ## 0.7.9.1 (2026-10-05)
