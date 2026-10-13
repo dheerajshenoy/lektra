@@ -1,5 +1,7 @@
 #include "LaserTrail.hpp"
 
+#include "GraphicsView.hpp"
+
 #include <QApplication>
 #include <QMouseEvent>
 #include <QPainter>
@@ -49,8 +51,9 @@ LaserTrail::setActive(bool active)
 }
 
 void
-LaserTrail::setStyle(const QColor &color, int width, int fade_ms)
+LaserTrail::setStyle(const QColor &color, int width, int fade_ms, bool trail)
 {
+    m_trail   = trail;
     m_color   = color;
     m_width   = qMax(1, width);
     m_fade_ms = qMax(50, fade_ms);
@@ -59,40 +62,50 @@ LaserTrail::setStyle(const QColor &color, int width, int fade_ms)
 bool
 LaserTrail::eventFilter(QObject *obj, QEvent *event)
 {
-    switch (event->type())
-    {
-        case QEvent::MouseButtonPress:
-        case QEvent::MouseMove:
-        case QEvent::MouseButtonRelease:
-        {
-            auto *me = static_cast<QMouseEvent *>(event);
-            if (!qobject_cast<QWidget *>(obj) || !parentWidget()
-                || !parentWidget()->isAncestorOf(static_cast<QWidget *>(obj)))
-                break;
-            if (event->type() == QEvent::MouseButtonPress
-                && me->button() == Qt::LeftButton)
-                m_down = true;
-            else if (event->type() == QEvent::MouseButtonRelease
-                     && me->button() == Qt::LeftButton)
-                m_down = false;
-            else if (event->type() == QEvent::MouseMove && !m_down)
-                break;
+    const QEvent::Type type = event->type();
+    if (type != QEvent::MouseButtonPress && type != QEvent::MouseMove
+        && type != QEvent::MouseButtonRelease
+        && type != QEvent::MouseButtonDblClick)
+        return false;
 
-            if (m_down)
-            {
-                setGeometry(parentWidget()->rect());
-                const QPoint p = mapFromGlobal(me->globalPosition().toPoint());
-                const bool start = event->type() == QEvent::MouseButtonPress;
-                m_samples.push_back({p, m_clock.elapsed(), start});
-                if (!m_timer.isActive())
-                    m_timer.start();
-            }
-            break;
+    // Only the viewport of a document view; menus, tabs etc. stay usable.
+    auto *w = qobject_cast<QWidget *>(obj);
+    if (!w || !qobject_cast<GraphicsView *>(w->parentWidget())
+        || !parentWidget() || !parentWidget()->isAncestorOf(w))
+        return false;
+
+    auto *me = static_cast<QMouseEvent *>(event);
+    bool swallow = false;
+
+    if (type == QEvent::MouseButtonPress || type == QEvent::MouseButtonDblClick)
+    {
+        if (me->button() == Qt::LeftButton)
+        {
+            m_down  = true;
+            swallow = true;
         }
-        default:
-            break;
     }
-    return false;
+    else if (type == QEvent::MouseButtonRelease)
+    {
+        if (me->button() == Qt::LeftButton)
+        {
+            m_down  = false;
+            swallow = true;
+        }
+    }
+    else if (me->buttons() & Qt::LeftButton)
+        swallow = true;
+
+    if (m_trail && m_down && swallow && type != QEvent::MouseButtonRelease)
+    {
+        setGeometry(parentWidget()->rect());
+        const QPoint p = mapFromGlobal(me->globalPosition().toPoint());
+        m_samples.push_back(
+            {p, m_clock.elapsed(), type == QEvent::MouseButtonPress});
+        if (!m_timer.isActive())
+            m_timer.start();
+    }
+    return swallow;
 }
 
 void

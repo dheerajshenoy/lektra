@@ -407,22 +407,6 @@ struct Config
         // @added 0.3.0
         bool fullscreen = false;
 
-        // @desc Show the menubar
-        // @type bool
-        // @default true
-        // @added 0.3.0
-        bool menubar = true;
-
-        // @desc {
-        // Show standard-style icons next to menu items in the menubar.
-        // Turn off for a text-only menu; icons are set on every action
-        // regardless so this flag toggles their visibility at runtime.
-        // }
-        // @type bool
-        // @default true
-        // @added 0.7.8
-        bool show_menu_icons = true;
-
         // @desc Show startup widget tab
         // @type bool
         // @default true
@@ -1727,6 +1711,30 @@ struct Config
         // @added 0.7.9
         bool whats_new = false;
     } updates;
+    // @endsection
+
+    // @section menubar
+    // @section_desc Menubar options struct
+    // @section_type struct
+    // @section_added 0.8.0
+    struct Menubar
+    {
+        // @desc Show the menubar
+        // @type bool
+        // @default true
+        // @added 0.8.0
+        bool visible = true;
+
+        // @desc {
+        // Show standard-style icons next to menu items in the menubar.
+        // Turn off for a text-only menu; icons are set on every action
+        // regardless so this flag toggles their visibility at runtime.
+        // }
+        // @type bool
+        // @default true
+        // @added 0.8.0
+        bool show_icons = true;
+    } menubar;
     // @endsection
 
     // @section laser_pointer

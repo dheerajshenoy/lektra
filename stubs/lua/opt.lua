@@ -144,8 +144,6 @@ lektra.opt.portal = {}
 ---@field bg? Color Window background color (`Color`).
 ---@field accent? Color Accent color (`Color`).
 ---@field fullscreen? boolean Start in fullscreen mode.
----@field menubar? boolean Show the menu bar.
----@field show_menu_icons? boolean Show standard icons next to menubar items (toggles Qt::AA_DontShowIconsInMenus).
 ---@field startup_tab? boolean Open a new tab on startup.
 ---@field title_format? string Printf-style format string for the window title.
 ---@field initial_size? integer[] Two-element array `{width, height}` for the initial window size.
@@ -412,6 +410,11 @@ lektra.opt.command_palette = {}
 ---@field tools? boolean Let the assistant use tools (run_command, run_lua, lookup_api) and look up the Lua API on demand instead of receiving all of it with every request. Turn off for models without tool calling.
 lektra.opt.llm_view = {}
 
+---@class OptMenubar
+---@field visible? boolean Show the menu bar.
+---@field show_icons? boolean Show standard icons next to menubar items (toggles Qt::AA_DontShowIconsInMenus).
+lektra.opt.menubar = {}
+
 ---@class OptLaserPointer
 ---@field color? string|integer Laser pointer color (0xRRGGBBAA or "#RRGGBBAA").
 ---@field size? integer Laser pointer size in pixels.
@@ -539,6 +542,7 @@ lektra.opt.misc = {}
 ---@field donate? OptDonate
 ---@field misc? OptMisc
 ---@field llm_view? OptLLMView
+---@field menubar? OptMenubar
 ---@field laser_pointer? OptLaserPointer
 
 ---@type GlobalOptions

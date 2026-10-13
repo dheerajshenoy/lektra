@@ -723,8 +723,6 @@ Lektra::initConfig() noexcept
     if (auto window = toml["window"])
     {
         set(window["startup_tab"], m_config.window.startup_tab);
-        set(window["menubar"], m_config.window.menubar);
-        set(window["show_menu_icons"], m_config.window.show_menu_icons);
         set(window["fullscreen"], m_config.window.fullscreen);
         set_color(window["accent"], m_config.window.accent);
         set_color(window["bg"], m_config.window.bg);
@@ -1024,10 +1022,17 @@ Lektra::initConfig() noexcept
     }
 #endif
 
+    // Menubar
+    if (auto menubar = toml["menubar"])
+    {
+        set(menubar["visible"], m_config.menubar.visible);
+        set(menubar["show_icons"], m_config.menubar.show_icons);
+    }
+
     // Laser Pointer
     if (auto laser_pointer = toml["laser_pointer"])
     {
-        set(laser_pointer["color"], m_config.laser_pointer.color);
+        set_color(laser_pointer["color"], m_config.laser_pointer.color);
         set(laser_pointer["size"], m_config.laser_pointer.size);
         set(laser_pointer["trail"], m_config.laser_pointer.trail);
         set(laser_pointer["trail_fade_ms"],

@@ -532,11 +532,11 @@ Lektra::initMenubar() noexcept
 
     // Icons are always assigned to actions below — the visibility is
     // controlled globally by Qt::AA_DontShowIconsInMenus. That way toggling
-    // window.show_menu_icons at runtime (via `lektra.opt.window
-    // .show_menu_icons`, say) takes effect immediately without needing to
+    // menubar.show_icons at runtime (via `lektra.opt.menubar
+    // .show_icons`, say) takes effect immediately without needing to
     // re-run initMenubar.
     QCoreApplication::setAttribute(Qt::AA_DontShowIconsInMenus,
-                                   !m_config.window.show_menu_icons);
+                                   !m_config.menubar.show_icons);
 
     // --- Standard-style icons on menu actions ---
     // Grouped in one block so a future theme change or icon reassignment

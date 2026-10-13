@@ -259,7 +259,7 @@ Lektra::initGui() noexcept
 
     m_tab_widget->setTabBarAutoHide(m_config.tabs.auto_hide);
     m_statusbar->setVisible(m_config.statusbar.visible);
-    m_menuBar->setVisible(m_config.window.menubar);
+    m_menuBar->setVisible(m_config.menubar.visible);
     m_tab_widget->tabBar()->setVisible(m_config.tabs.visible);
 
     initMenubar();

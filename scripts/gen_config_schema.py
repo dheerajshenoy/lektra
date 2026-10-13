@@ -412,7 +412,8 @@ def annotation_for(ann, path, key=None):
         candidates += ["annotations.[type]", f"annotations.{path[1]}"]
     # pickers share one set of keys
     if key and path and path[-1] != "picker" and key in (
-            "width", "height", "border", "alternating_row_color"):
+            "width", "height", "border", "alternating_row_color",
+            "highlight_matches", "highlight_matches_color"):
         candidates.append("picker")
     if len(path) >= 2 and path[-1] == "shadow":
         candidates.append("picker.shadow")

@@ -118,8 +118,8 @@
             },
             "offset": {
               "type": "number",
-              "default": 0.14,
-              "description": "How far above the bottom of the underlined text the line is, as a fraction of its height (0.14 is what Acrobat and MuPDF draw) (since 0.8.0)"
+              "default": 0.05,
+              "description": "How far above the bottom of the underlined text the line is, as a fraction of its height (Acrobat and MuPDF use 0.14, which sits close to the text) (since 0.8.0)"
             },
             "style": {
               "type": "string",
@@ -541,6 +541,11 @@
           "default": true,
           "description": "Auto scroll when selecting text that is out of view (since 0.7.1)"
         },
+        "drag_image_out": {
+          "type": "boolean",
+          "default": true,
+          "description": "Drag an image of the page out of the window by pressing on it and moving the mouse (to drop it into another program). Turn it off if that gets in the way of selecting text. (since 0.8.0)"
+        },
         "close_on_last_tab": {
           "type": "boolean",
           "default": false,
@@ -780,16 +785,6 @@
           "default": false,
           "description": "Show startup widget tab (since 0.3.0)"
         },
-        "menubar": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show the menubar (since 0.3.0)"
-        },
-        "show_menu_icons": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show standard-style icons next to menu items in the menubar. Turn off for a text-only menu; icons are set on every action regardless so this flag toggles their visibility at runtime. (since 0.7.8)"
-        },
         "fullscreen": {
           "type": "boolean",
           "default": false,
@@ -856,7 +851,6 @@
           "description": "Statusbar padding in pixels: one number for all four sides, or [left, top, right, bottom]."
         },
         "layout": {
-          "type": "array",
           "description": "Which modules the statusbar shows and where. A list of items is one row, a list of lists is several rows. The modules are session, filename, page, zoom, progress, mode, portal and narrow. Items are placed from left to right, and the free space goes to the gaps: \"|\" is a gap that takes all of it, { stretch = 2 } a gap that takes twice the share of another, { spacer = 12 } a gap of 12 px. A module can also be a table, { module = \"filename\", stretch = 1, min_width = 80, max_width = 400, margin = 4, align = \"right\" }, and with at (0 to 1, the position along the bar) and anchor (\"left\", \"center\" or \"right\", the edge of the item put there) it is placed at a fixed position instead: { module = \"page\", at = 0.5, anchor = \"center\" }. { text = \"|\" } shows a piece of text, for example a separator. A module that is not listed is not shown. An item placed with at that would overlap another item is moved right or left out of the way, or left out if there is no room (since 0.7.9)"
         },
         "components": {
@@ -1271,12 +1265,14 @@
         },
         "highlight_matches": {
           "type": "boolean",
-          "default": true
+          "default": true,
+          "description": "Highlight matches in the picker list (since 0.8.0)"
         },
         "highlight_matches_color": {
           "type": "string",
           "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+          "default": "#4FC3F7FF"
         },
         "shadow": {
           "type": "object",
@@ -1383,12 +1379,14 @@
         },
         "highlight_matches": {
           "type": "boolean",
-          "default": true
+          "default": true,
+          "description": "Highlight matches in the picker list (since 0.8.0)"
         },
         "highlight_matches_color": {
           "type": "string",
           "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+          "default": "#4FC3F7FF"
         },
         "shadow": {
           "type": "object",
@@ -1456,12 +1454,14 @@
         },
         "highlight_matches": {
           "type": "boolean",
-          "default": true
+          "default": true,
+          "description": "Highlight matches in the picker list (since 0.8.0)"
         },
         "highlight_matches_color": {
           "type": "string",
           "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+          "default": "#4FC3F7FF"
         },
         "shadow": {
           "type": "object",
@@ -1613,12 +1613,30 @@
       "additionalProperties": false,
       "description": "LLM View options struct (since 0.7.8)"
     },
+    "menubar": {
+      "type": "object",
+      "properties": {
+        "visible": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the menubar (since 0.8.0)"
+        },
+        "show_icons": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show standard-style icons next to menu items in the menubar. Turn off for a text-only menu; icons are set on every action regardless so this flag toggles their visibility at runtime. (since 0.8.0)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Menubar options struct (since 0.8.0)"
+    },
     "laser_pointer": {
       "type": "object",
       "properties": {
         "color": {
-          "type": "integer",
-          "description": "Laser pointer color (since 0.8.0)",
+          "type": "string",
+          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
           "default": "#FF0000FF"
         },
         "size": {
@@ -2076,8 +2094,8 @@
                   },
                   "offset": {
                     "type": "number",
-                    "default": 0.14,
-                    "description": "How far above the bottom of the underlined text the line is, as a fraction of its height (0.14 is what Acrobat and MuPDF draw) (since 0.8.0)"
+                    "default": 0.05,
+                    "description": "How far above the bottom of the underlined text the line is, as a fraction of its height (Acrobat and MuPDF use 0.14, which sits close to the text) (since 0.8.0)"
                   },
                   "style": {
                     "type": "string",
@@ -2295,6 +2313,11 @@
                 "type": "boolean",
                 "default": true,
                 "description": "Auto scroll when selecting text that is out of view (since 0.7.1)"
+              },
+              "drag_image_out": {
+                "type": "boolean",
+                "default": true,
+                "description": "Drag an image of the page out of the window by pressing on it and moving the mouse (to drop it into another program). Turn it off if that gets in the way of selecting text. (since 0.8.0)"
               },
               "close_on_last_tab": {
                 "type": "boolean",

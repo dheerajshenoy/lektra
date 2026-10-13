@@ -28,12 +28,17 @@
 
 
 # -----------------------------------------------------------------------------
+# [menubar] — Menu bar
+# -----------------------------------------------------------------------------
+[menubar]
+visible          = true
+show_icons       = true   # standard-style icons next to menubar items
+
+# -----------------------------------------------------------------------------
 # [window] — Main window
 # -----------------------------------------------------------------------------
 [window]
 fullscreen       = false
-menubar          = true
-show_menu_icons  = true   # standard-style icons next to menubar items
 startup_tab      = false
 title_format     = "%1 - lektra"
 initial_size     = { width = 600, height = 400 }
@@ -607,10 +612,11 @@ toggle_structure_mode = "Ctrl+Space"
 history_prev          = "Ctrl+Up"
 history_next          = "Ctrl+Down"
 
-[presentation.laser_pointer]
-enabled = false
+[laser_pointer]
 color = "#FF0000FF"
 size = 20
+trail = false
+trail_fade_ms = 1000
 
 # Per-file-type overrides. Any of the view settings ([page], [layout], [zoom],
 # [selection], [reflow], [scrollbars], [search], [jump_marker], [annotations], [links],

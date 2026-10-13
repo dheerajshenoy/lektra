@@ -737,32 +737,6 @@ static const LuaField windowFields[] = {
     lua_pop(L, 2);
 }},
 
-    {"menubar",
-     [](lua_State *L, P p)
-{
-    lua_pushboolean(L, static_cast<Config::Window *>(p)->menubar);
-    return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Window *>(p)->menubar = lua_toboolean(L, 3); }},
-
-    // Setting this toggles Qt::AA_DontShowIconsInMenus but Lektra doesn't
-    // watch the flag for changes — a manual `qApp->setAttribute(...)` in a
-    // startup script would be needed for the change to take effect
-    // mid-session. Simplest UX: change it in config.toml and restart.
-    {"show_menu_icons",
-     [](lua_State *L, P p)
-{
-    lua_pushboolean(L, static_cast<Config::Window *>(p)->show_menu_icons);
-    return 1;
-},
-     [](lua_State *L, P p)
-{
-    static_cast<Config::Window *>(p)->show_menu_icons = lua_toboolean(L, 3);
-    QCoreApplication::setAttribute(
-        Qt::AA_DontShowIconsInMenus,
-        !static_cast<Config::Window *>(p)->show_menu_icons);
-}},
-
     {"startup_tab",
      [](lua_State *L, P p)
 {
@@ -2630,6 +2604,34 @@ static const LuaField llmViewFields[] = {
 { static_cast<Config::LLMView *>(p)->tools = lua_toboolean(L, 3); }},
 };
 
+static const LuaField menubarFields[] = {
+    {"visible",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Menubar *>(p)->visible);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Menubar *>(p)->visible = lua_toboolean(L, 3); }},
+
+    // Setting this toggles Qt::AA_DontShowIconsInMenus but Lektra doesn't
+    // watch the flag for changes — a manual `qApp->setAttribute(...)` in a
+    // startup script would be needed for the change to take effect
+    // mid-session. Simplest UX: change it in config.toml and restart.
+    {"show_icons",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Menubar *>(p)->show_icons);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Menubar *>(p)->show_icons = lua_toboolean(L, 3);
+    QCoreApplication::setAttribute(
+        Qt::AA_DontShowIconsInMenus,
+        !static_cast<Config::Menubar *>(p)->show_icons);
+}},
+};
+
 static const LuaField laserPointerFields[] = {
     {"color",
      [](lua_State *L, P p)
@@ -3251,6 +3253,10 @@ buildOptTable(lua_State *L, const OptScope &scope)
 
     if (!viewOnly)
     {
+        // lektra.opt.menubar
+        pushSection(L, scope, &config.menubar, menubarFields, "menubar");
+        addChild(L, opt_idx, "menubar");
+
         // lektra.opt.laser_pointer
         pushSection(L, scope, &config.laser_pointer, laserPointerFields,
                     "laser_pointer");

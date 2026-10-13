@@ -13,6 +13,7 @@
 #### Options
 
 - New `laser_pointer.trail` option: with the laser pointer, drawing with the left button leaves a trail that fades from its oldest end, like Excalidraw (`trail_fade_ms` sets the duration).
+- The menubar options moved to their own `[menubar]` section: `window.menubar` is now `menubar.visible` and `window.show_menu_icons` is `menubar.show_icons`. Update your config and Lua scripts.
 - New `outline.preload` option: load the outline in the background after a document opens, instead of the first time the outline picker is opened (the default).
 - The picker keys can now be set from Lua: `lektra.opt.picker.keys.down = {"Down", "Ctrl+N"}` (the same actions as `[picker.keys]`).
 - Options of a view now work as in Vim: `lektra.opt.<section>.<key>` is `:set` (the default and the current view), the new `lektra.opt_global` is `:setglobal` (only the default), `view:opt()` is `:setlocal` (only that view), and the new `view:opt_reset([section])` is `:setlocal opt<` (back to what a new view would have). A new split still starts with a copy of the options of the view it was made from.
