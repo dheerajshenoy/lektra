@@ -226,6 +226,15 @@ DocumentView::ToggleCaretMode() noexcept
         return;
     }
 
+    if (!m_caret_mode && !m_model->hasTextLayer())
+    {
+        QMessageBox::information(
+            this, tr("Caret Mode"),
+            tr("This document has no text layer, so caret mode isn't "
+               "available."));
+        return;
+    }
+
     m_caret_mode = !m_caret_mode;
 
     if (m_caret_mode)
