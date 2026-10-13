@@ -20,7 +20,7 @@ CommandPicker::CommandPicker(const Config::CommandPalette &config,
                  .alignment = Qt::AlignLeft | Qt::AlignVCenter});
     if (m_config.description)
         cols.append({.header = "Description", .stretch = 2});
-    if (m_config.show_shortcuts)
+    if (m_config.shortcuts)
         cols.append({.header    = "Shortcut",
                      .stretch   = 0,
                      .alignment = Qt::AlignRight | Qt::AlignVCenter});
@@ -62,7 +62,7 @@ CommandPicker::collectItems()
         cols.append(cmd.name);
         if (m_config.description)
             cols.append(cmd.description);
-        if (m_config.show_shortcuts)
+        if (m_config.shortcuts)
             cols.append(m_shortcuts.value(cmd.name).join(", "));
         items.push_back(
             {.columns = cols, .data = static_cast<quint64>(i), .children = {}});

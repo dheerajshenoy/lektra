@@ -12,7 +12,7 @@ OutlinePicker::OutlinePicker(const Config::Outline &config,
     // setStructureMode(StructureMode::Hierarchical);
 
     // Configure the columns for the new populate() logic
-    if (config.show_page_number)
+    if (config.page_numbers)
     {
         setColumns({{.header = tr("Title"), .stretch = 1},
                     {.header = tr("Page"), .stretch = 0}});
@@ -53,7 +53,7 @@ OutlinePicker::collectItems()
 
     if (structureMode() == StructureMode::Flat)
     {
-        if (m_config.show_page_number)
+        if (m_config.page_numbers)
         {
             for (size_t i = 0; i < m_entries.size(); ++i)
             {
@@ -104,7 +104,7 @@ OutlinePicker::collectItems()
             path.removeLast();
 
         Item node;
-        if (m_config.show_page_number)
+        if (m_config.page_numbers)
             node.columns = {e.title, QString::number(e.page + 1)};
         else
             node.columns = {e.title};

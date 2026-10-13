@@ -69,7 +69,7 @@ INVALID = {
     "value not in the choices": ('[layout]\nmode="diagonal"\n', "layout.mode"),
     "bad colour": ('[page]\nbg="red"\n', "page.bg"),
     "section written as a value": ('[filetype.epub]\nlayout="single"\n', "filetype.epub.layout"),
-    "section not allowed in filetype": ('[filetype.epub.statusbar]\nvisible=false\n', "statusbar"),
+    "section not allowed in filetype": ('[filetype.epub.statusbar]\nshow=false\n', "statusbar"),
     "string where boolean expected": ('[behavior]\ninvert_mode="yes"\n', "behavior.invert_mode"),
     "keybinding of the wrong type": ('[keybindings]\nzoom_in=5\n', "keybindings.zoom_in"),
 }

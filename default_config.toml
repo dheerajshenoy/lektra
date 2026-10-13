@@ -31,8 +31,8 @@
 # [menubar] — Menu bar
 # -----------------------------------------------------------------------------
 [menubar]
-visible          = true
-show_icons       = true   # standard-style icons next to menubar items
+show             = true
+icons       = true   # standard-style icons next to menubar items
 
 # -----------------------------------------------------------------------------
 # [window] — Main window
@@ -78,7 +78,7 @@ anchor_to_mouse = true     # zoom under the cursor instead of view centre
 # [statusbar]
 # -----------------------------------------------------------------------------
 [statusbar]
-visible = true
+show    = true
 padding = [ 2, 2, 2, 2 ]   # left, top, right, bottom (pixels); a single number, e.g. 4, sets all four
 
 # Which modules the statusbar shows and where. Modules: session, filename, page,
@@ -128,7 +128,7 @@ show = true
 # [tabs]
 # -----------------------------------------------------------------------------
 [tabs]
-visible    = true
+show       = true
 auto_hide  = false          # hide the tab bar when only one tab is open
 close_button_mode = "all"  # all | current | hidden
 movable    = true
@@ -183,7 +183,7 @@ opacity                = 0.95
 # [thumbnail_panel]
 # -----------------------------------------------------------------------------
 [thumbnail_panel]
-show_page_numbers      = true
+page_numbers      = true
 panel_width            = 0.15      # fraction of the main view
 font_size              = 10
 highlight_current_page = true
@@ -207,7 +207,7 @@ hide_timeout = 1.5     # seconds of inactivity before hiding
 # -----------------------------------------------------------------------------
 [outline]
 indent_width      = 10
-show_page_numbers = true
+page_numbers = true
 flat_menu         = true
 preload           = false  # true: load the outline after the document opens; false: on first use
 # Picker.shared knobs also apply here — width, height, border,
@@ -239,7 +239,7 @@ opacity     = 120
 [command_palette]
 description        = false
 vscrollbar          = true
-show_shortcuts      = true
+shortcuts      = true
 prompt              = "Command"
 sort_by_frequency   = true
 persist_frequency   = true

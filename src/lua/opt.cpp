@@ -598,16 +598,16 @@ static const LuaField thumbnailPanelFields[] = {
     static_cast<Config::ThumbnailPanel *>(p)->panel_width
         = static_cast<float>(lua_tonumber(L, 3));
 }},
-    {"show_page_numbers",
+    {"page_numbers",
      [](lua_State *L, P p)
 {
     lua_pushboolean(
-        L, static_cast<Config::ThumbnailPanel *>(p)->show_page_numbers);
+        L, static_cast<Config::ThumbnailPanel *>(p)->page_numbers);
     return 1;
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::ThumbnailPanel *>(p)->show_page_numbers
+    static_cast<Config::ThumbnailPanel *>(p)->page_numbers
         = lua_toboolean(L, 3);
 }},
     {"sync_scroll",
@@ -953,13 +953,13 @@ static const LuaField statusbarFields[] = {
         padding.fill(static_cast<int>(lua_tointeger(L, 3)));
 }, [](Lektra *lk) { lk->applyStatusbarLayout(); }},
 
-    {"visible",
+    {"show",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L, static_cast<Config::Statusbar *>(p)->visible);
+    lua_pushboolean(L, static_cast<Config::Statusbar *>(p)->show);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Statusbar *>(p)->visible = lua_toboolean(L, 3); }},
+{ static_cast<Config::Statusbar *>(p)->show = lua_toboolean(L, 3); }},
 };
 
 // --- statusbar.components.mode ---
@@ -1699,13 +1699,13 @@ static const LuaField tabsFields[] = {
 {
     static_cast<Config::Tabs *>(p)->scroll_text_on_hover = lua_toboolean(L, 3);
 }},
-    {"visible",
+    {"show",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L, static_cast<Config::Tabs *>(p)->visible);
+    lua_pushboolean(L, static_cast<Config::Tabs *>(p)->show);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Tabs *>(p)->visible = lua_toboolean(L, 3); }},
+{ static_cast<Config::Tabs *>(p)->show = lua_toboolean(L, 3); }},
 };
 
 // --- picker ---
@@ -2005,13 +2005,13 @@ static const LuaField outlineFields[] = {
         = QString::fromUtf8(luaL_checkstring(L, 3));
 }},
 
-    {"show_page_number",
+    {"page_numbers",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L, static_cast<Config::Outline *>(p)->show_page_number);
+    lua_pushboolean(L, static_cast<Config::Outline *>(p)->page_numbers);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Outline *>(p)->show_page_number = lua_toboolean(L, 3); }},
+{ static_cast<Config::Outline *>(p)->page_numbers = lua_toboolean(L, 3); }},
 
     // Note: Picker fields (width, height, etc) should be added here or handled
     // via a shared base mapper
@@ -2084,16 +2084,16 @@ static const LuaField commandPaletteFields[] = {
         = QString::fromUtf8(lua_tostring(L, 3));
 }},
 
-    {"show_shortcuts",
+    {"shortcuts",
      [](lua_State *L, P p)
 {
     lua_pushboolean(L,
-                    static_cast<Config::CommandPalette *>(p)->show_shortcuts);
+                    static_cast<Config::CommandPalette *>(p)->shortcuts);
     return 1;
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::CommandPalette *>(p)->show_shortcuts
+    static_cast<Config::CommandPalette *>(p)->shortcuts
         = lua_toboolean(L, 3);
 }},
 
@@ -2588,13 +2588,13 @@ static const LuaField llmViewFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::LLMView *>(p)->separate_window = lua_toboolean(L, 3); }},
-    {"show_at_startup",
+    {"at_startup",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L, static_cast<Config::LLMView *>(p)->show_at_startup);
+    lua_pushboolean(L, static_cast<Config::LLMView *>(p)->at_startup);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::LLMView *>(p)->show_at_startup = lua_toboolean(L, 3); }},
+{ static_cast<Config::LLMView *>(p)->at_startup = lua_toboolean(L, 3); }},
     {"tools",
      [](lua_State *L, P p)
 {
@@ -2605,30 +2605,30 @@ static const LuaField llmViewFields[] = {
 };
 
 static const LuaField menubarFields[] = {
-    {"visible",
+    {"show",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L, static_cast<Config::Menubar *>(p)->visible);
+    lua_pushboolean(L, static_cast<Config::Menubar *>(p)->show);
     return 1;
 }, [](lua_State *L, P p)
-{ static_cast<Config::Menubar *>(p)->visible = lua_toboolean(L, 3); }},
+{ static_cast<Config::Menubar *>(p)->show = lua_toboolean(L, 3); }},
 
     // Setting this toggles Qt::AA_DontShowIconsInMenus but Lektra doesn't
     // watch the flag for changes — a manual `qApp->setAttribute(...)` in a
     // startup script would be needed for the change to take effect
     // mid-session. Simplest UX: change it in config.toml and restart.
-    {"show_icons",
+    {"icons",
      [](lua_State *L, P p)
 {
-    lua_pushboolean(L, static_cast<Config::Menubar *>(p)->show_icons);
+    lua_pushboolean(L, static_cast<Config::Menubar *>(p)->icons);
     return 1;
 },
      [](lua_State *L, P p)
 {
-    static_cast<Config::Menubar *>(p)->show_icons = lua_toboolean(L, 3);
+    static_cast<Config::Menubar *>(p)->icons = lua_toboolean(L, 3);
     QCoreApplication::setAttribute(
         Qt::AA_DontShowIconsInMenus,
-        !static_cast<Config::Menubar *>(p)->show_icons);
+        !static_cast<Config::Menubar *>(p)->icons);
 }},
 };
 

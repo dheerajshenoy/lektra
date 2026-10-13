@@ -395,7 +395,6 @@ def load_annotations():
 # TOML key -> C++ member name, where the loader reads a key under another name
 KEY_ALIAS = {
     ("behavior", "page_history"): "page_history_limit",
-    ("outline", "show_page_numbers"): "show_page_number",
     ("jump_marker", "jump_marker"): "color",
 }
 

@@ -1571,7 +1571,7 @@ DocumentView::renderPageFromImage(int pageno, QImage image, QSize fullSize,
         else
             existing->setImage(std::move(image));
         positionPageItem(existing, pageno);
-        if (m_thumbnail_mode && m_config.thumbnail.show_page_numbers)
+        if (m_thumbnail_mode && m_config.thumbnail.page_numbers)
             existing->setPageNumber(pageno, m_config.thumbnail.font_size);
         existing->show(); // a hidden preload item becomes the real one
         m_placeholder_pages.remove(pageno);
@@ -1711,7 +1711,7 @@ DocumentView::createAndAddPageItem(int pageno, QImage img, QSize fullSize,
 
     if (m_thumbnail_mode)
     {
-        if (m_config.thumbnail.show_page_numbers)
+        if (m_config.thumbnail.page_numbers)
             pageItem->setPageNumber(pageno, m_config.thumbnail.font_size);
     }
 

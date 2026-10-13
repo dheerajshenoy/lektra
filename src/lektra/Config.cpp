@@ -645,8 +645,8 @@ Lektra::initConfig() noexcept
 
     if (auto thumbnail_panel = toml["thumbnail_panel"])
     {
-        set(thumbnail_panel["show_page_numbers"],
-            m_config.thumbnail.show_page_numbers);
+        set(thumbnail_panel["page_numbers"],
+            m_config.thumbnail.page_numbers);
         set(thumbnail_panel["panel_width"], m_config.thumbnail.panel_width);
         set(thumbnail_panel["font_size"], m_config.thumbnail.font_size);
         set(thumbnail_panel["highlight_current_page"],
@@ -657,7 +657,7 @@ Lektra::initConfig() noexcept
     // Tabs
     if (auto tabs = toml["tabs"])
     {
-        set(tabs["visible"], m_config.tabs.visible);
+        set(tabs["show"], m_config.tabs.show);
         set(tabs["auto_hide"], m_config.tabs.auto_hide);
         set(tabs["movable"], m_config.tabs.movable);
 
@@ -754,7 +754,7 @@ Lektra::initConfig() noexcept
     // Statusbar
     if (auto statusbar = toml["statusbar"])
     {
-        set(statusbar["visible"], m_config.statusbar.visible);
+        set(statusbar["show"], m_config.statusbar.show);
 
         // A list of four numbers (left, top, right, bottom), or one number
         // for all four sides.
@@ -926,8 +926,8 @@ Lektra::initConfig() noexcept
         set(command_palette["vscrollbar"], m_config.command_palette.vscrollbar);
         // set(command_palette["show_grid"], m_config.command_palette.grid);
         // TODO: Implement grid in command palette
-        set(command_palette["show_shortcuts"],
-            m_config.command_palette.show_shortcuts);
+        set(command_palette["shortcuts"],
+            m_config.command_palette.shortcuts);
         set(command_palette["prompt"], m_config.command_palette.prompt);
         set(command_palette["sort_by_frequency"],
             m_config.command_palette.sort_by_frequency);
@@ -954,7 +954,7 @@ Lektra::initConfig() noexcept
                           static_cast<Config::Picker &>(m_config.outline));
 
         set(outline["indent_width"], m_config.outline.indent_width);
-        set(outline["show_page_numbers"], m_config.outline.show_page_number);
+        set(outline["page_numbers"], m_config.outline.page_numbers);
         set(outline["flat_menu"], m_config.outline.flat_menu);
         set(outline["preload"], m_config.outline.preload);
     }
@@ -989,7 +989,7 @@ Lektra::initConfig() noexcept
 #ifdef WITH_LLM_SUPPORT
     if (auto llm_view = toml["llm_view"])
     {
-        set(llm_view["show_at_startup"], m_config.llm_view.show_at_startup);
+        set(llm_view["at_startup"], m_config.llm_view.at_startup);
         set(llm_view["auto_run"], m_config.llm_view.auto_run);
         set(llm_view["tools"], m_config.llm_view.tools);
         set(llm_view["save_history"], m_config.llm_view.save_history);
@@ -1025,8 +1025,8 @@ Lektra::initConfig() noexcept
     // Menubar
     if (auto menubar = toml["menubar"])
     {
-        set(menubar["visible"], m_config.menubar.visible);
-        set(menubar["show_icons"], m_config.menubar.show_icons);
+        set(menubar["show"], m_config.menubar.show);
+        set(menubar["icons"], m_config.menubar.icons);
     }
 
     // Laser Pointer

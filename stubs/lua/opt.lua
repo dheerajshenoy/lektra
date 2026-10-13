@@ -128,7 +128,7 @@ lektra.opt.annotations = {
 }
 
 ---@class OptThumbnailPanel
----@field show_page_numbers? boolean Show page numbers under thumbnails.
+---@field page_numbers? boolean Show page numbers under thumbnails.
 ---@field panel_width? integer Width of the thumbnail panel in pixels.
 lektra.opt.thumbnail_panel = {}
 
@@ -212,7 +212,7 @@ lektra.opt.layout = {}
 ---@class OptStatusbar
 ---@field layout? StatusbarSections|StatusbarSections[]|(StatusbarModule|"|"|StatusbarLayoutItem)[]|(StatusbarModule|"|"|StatusbarLayoutItem)[][] Which modules the statusbar shows and where. Example: `{left = {"session", "filename"}, center = "page", right = {"progress", "mode"}}`. A list of such tables is several rows. A flat list also works (items go left to right, `"|"` takes the free space).
 ---@field padding? integer|integer[] Padding in pixels: one number for all four sides, or a four-element array `{left, top, right, bottom}`. Reading it gives the array.
----@field visible? boolean Whether the status bar is shown.
+---@field show? boolean Whether the status bar is shown.
 ---@field components? OptStatusbarComponents Per-component visibility toggles.
 lektra.opt.statusbar = {
     ---@type OptStatusbarComponents
@@ -322,7 +322,7 @@ lektra.opt.link_hints = {}
 ---@field movable? boolean Allow tabs to be dragged and reordered.
 ---@field open_position? TabsOpenPosition Where a newly opened tab is placed in the tab bar.
 ---@field scroll_text_on_hover? boolean Scroll a tab title that does not fit while the mouse is over the tab (tabs at the top or bottom).
----@field visible? boolean Whether the tab bar is shown.
+---@field show? boolean Whether the tab bar is shown.
 lektra.opt.tabs = {}
 
 ---@class OptPickerShadow
@@ -375,7 +375,7 @@ lektra.opt.picker = {
 ---@field indent_width? integer Pixels to indent each outline level.
 ---@field preload? boolean Load the outline in the background after a document opens (true), or the first time the outline picker is opened (false).
 ---@field prompt? string Placeholder text shown in the outline picker's search box.
----@field show_page_number? boolean Show the page number next to each outline entry.
+---@field page_numbers? boolean Show the page number next to each outline entry.
 lektra.opt.outline = {}
 
 ---@class OptHighlightSearch
@@ -390,7 +390,7 @@ lektra.opt.highlight_search = {}
 ---@field highlight_matches_color? string|integer Color of the match highlight (0xRRGGBBAA or "#RRGGBBAA").
 ---@field prompt? string Placeholder text shown in the command palette input.
 ---@field vscrollbar? boolean Show a vertical scrollbar in the command palette.
----@field show_shortcuts? boolean Show keyboard shortcuts next to commands.
+---@field shortcuts? boolean Show keyboard shortcuts next to commands.
 ---@field description? boolean Show command descriptions in the palette.
 ---@field sort_by_frequency? boolean Sort commands by how often you've picked them from the palette (most-used first, smex-style). Usage counts persist across sessions when persist_frequency is true.
 ---@field persist_frequency? boolean Persist command-palette usage counts to disk so sort_by_frequency ranking survives across restarts. When false, usage is still tracked for the current session but nothing is loaded/saved to disk.
@@ -406,13 +406,13 @@ lektra.opt.command_palette = {}
 ---@field model? string Model name sent with each request.
 ---@field save_history? boolean Save chats to disk so they can be reopened from the History menu.
 ---@field separate_window? boolean Show the panel in a separate window.
----@field show_at_startup? boolean Open the LLM panel when Lektra starts.
+---@field at_startup? boolean Open the LLM panel when Lektra starts.
 ---@field tools? boolean Let the assistant use tools (run_command, run_lua, lookup_api) and look up the Lua API on demand instead of receiving all of it with every request. Turn off for models without tool calling.
 lektra.opt.llm_view = {}
 
 ---@class OptMenubar
----@field visible? boolean Show the menu bar.
----@field show_icons? boolean Show standard icons next to menubar items (toggles Qt::AA_DontShowIconsInMenus).
+---@field show? boolean Show the menu bar.
+---@field icons? boolean Show standard icons next to menubar items (toggles Qt::AA_DontShowIconsInMenus).
 lektra.opt.menubar = {}
 
 ---@class OptLaserPointer

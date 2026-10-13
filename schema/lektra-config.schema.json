@@ -663,7 +663,7 @@
     "thumbnail_panel": {
       "type": "object",
       "properties": {
-        "show_page_numbers": {
+        "page_numbers": {
           "type": "boolean",
           "default": true,
           "description": "Show page number below page thumbnail (since 0.6.9)"
@@ -695,7 +695,7 @@
     "tabs": {
       "type": "object",
       "properties": {
-        "visible": {
+        "show": {
           "type": "boolean",
           "default": true,
           "description": "Show tabs (since 0.3.0)"
@@ -829,7 +829,7 @@
     "statusbar": {
       "type": "object",
       "properties": {
-        "visible": {
+        "show": {
           "type": "boolean",
           "default": true,
           "description": "Show statusbar (since 0.5.5)"
@@ -1223,7 +1223,7 @@
           "default": true,
           "description": "Show the vertical scrollbar in the picker (since 0.5.4)"
         },
-        "show_shortcuts": {
+        "shortcuts": {
           "type": "boolean",
           "default": true,
           "description": "Show shortcuts (since 0.5.4)"
@@ -1342,7 +1342,7 @@
           "default": 10,
           "description": "Indent width (since 0.6.5)"
         },
-        "show_page_numbers": {
+        "page_numbers": {
           "type": "boolean",
           "default": true,
           "description": "Show page numbers (since 0.6.5)"
@@ -1548,7 +1548,7 @@
     "llm_view": {
       "type": "object",
       "properties": {
-        "show_at_startup": {
+        "at_startup": {
           "type": "boolean",
           "default": false,
           "description": "Show the LLM view when Lektra starts (since 0.7.9)"
@@ -1616,12 +1616,12 @@
     "menubar": {
       "type": "object",
       "properties": {
-        "visible": {
+        "show": {
           "type": "boolean",
           "default": true,
           "description": "Show the menubar (since 0.8.0)"
         },
-        "show_icons": {
+        "icons": {
           "type": "boolean",
           "default": true,
           "description": "Show standard-style icons next to menu items in the menubar. Turn off for a text-only menu; icons are set on every action regardless so this flag toggles their visibility at runtime. (since 0.8.0)"

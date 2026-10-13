@@ -292,7 +292,7 @@ struct Config
         // @type bool
         // @default true
         // @added 0.6.9
-        bool show_page_numbers = true;
+        bool page_numbers = true;
 
         // @desc {
         // Relative width of the thumbnail panel (compared to the main
@@ -483,7 +483,7 @@ struct Config
         // @type bool
         // @default true
         // @added 0.5.5
-        bool visible = true;
+        bool show = true;
 
         using Padding   = std::array<int, 4>;
         // @desc Padding
@@ -957,7 +957,7 @@ struct Config
         // @type bool
         // @default true
         // @added 0.3.0
-        bool visible = true;
+        bool show = true;
 
         // @desc Auto hide tabs when tab count equals 1
         // @type bool
@@ -1194,7 +1194,7 @@ struct Config
         // @type bool
         // @default true
         // @added 0.6.5
-        bool show_page_number = true;
+        bool page_numbers = true;
 
         // @desc {
         // if true, show the outline in a flat menu instead of a hierarchical
@@ -1288,7 +1288,7 @@ struct Config
         // @type bool
         // @default true
         // @added 0.5.4
-        bool show_shortcuts = true;
+        bool shortcuts = true;
 
         // @desc Show command description
         // @type bool
@@ -1723,7 +1723,7 @@ struct Config
         // @type bool
         // @default true
         // @added 0.8.0
-        bool visible = true;
+        bool show = true;
 
         // @desc {
         // Show standard-style icons next to menu items in the menubar.
@@ -1733,7 +1733,7 @@ struct Config
         // @type bool
         // @default true
         // @added 0.8.0
-        bool show_icons = true;
+        bool icons = true;
     } menubar;
     // @endsection
 
@@ -1798,7 +1798,7 @@ struct Config
         // @type bool
         // @default false
         // @added 0.7.9
-        bool show_at_startup = false;
+        bool at_startup = false;
 
         // @desc {
         // Run the Lua script the assistant writes as soon as its reply is

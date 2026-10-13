@@ -133,7 +133,7 @@ Lektra::construct() noexcept
 #ifdef WITH_LLM_SUPPORT
     // Created before the window is first shown so the dock is part of the
     // initial layout instead of appearing after it.
-    if (m_config.llm_view.show_at_startup)
+    if (m_config.llm_view.at_startup)
         initLLMView();
 #endif
     this->show();
@@ -258,9 +258,9 @@ Lektra::initGui() noexcept
     m_layout->addWidget(m_statusbar);
 
     m_tab_widget->setTabBarAutoHide(m_config.tabs.auto_hide);
-    m_statusbar->setVisible(m_config.statusbar.visible);
-    m_menuBar->setVisible(m_config.menubar.visible);
-    m_tab_widget->tabBar()->setVisible(m_config.tabs.visible);
+    m_statusbar->setVisible(m_config.statusbar.show);
+    m_menuBar->setVisible(m_config.menubar.show);
+    m_tab_widget->tabBar()->setVisible(m_config.tabs.show);
 
     initMenubar();
 
