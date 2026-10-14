@@ -4,10 +4,10 @@
 
 ## HIGH PRIORITY
 
+- [ ] Implement an MCP for lektra
 - [ ] LaTeX math rendering in comment blocks
 - [ ] Picker style choose, `minibuffer` or `floating`
 - [ ] Version diffing
-- [x] Add REDACT tool
 
 ## MEDIUM PRIORITY
 
