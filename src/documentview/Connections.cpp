@@ -1,4 +1,7 @@
 #include "DocumentView.hpp"
+
+#include <QDir>
+#include <QFileInfo>
 #include "ImageAnimation.hpp"
 
 #include <QMovie>
@@ -516,6 +519,8 @@ DocumentView::initConnections() noexcept
 
         connect(m_gview, &GraphicsView::annotRectRequested, this,
                 &DocumentView::handleAnnotRectRequested);
+        connect(m_gview, &GraphicsView::annotRedactRequested, this,
+                &DocumentView::handleAnnotRedactRequested);
         m_gview->setAnnotManipulator(
             [this](QPointF p) { return grabAnnotation(p); },
             [this](QPointF p) { return annotationCursor(p); });
@@ -736,6 +741,14 @@ DocumentView::SaveFile() noexcept
 
         m_model->undoStack()->setClean();
 
+        // The file was rewritten (redactions), so the open document is stale
+        if (m_model->takeReloadAfterSave())
+        {
+            m_reload_pending            = true;
+            m_last_reload_observed_size = -1;
+            tryReloadLater(0);
+        }
+
 #ifndef NDEBUG
         qDebug() << "DocumentView::SaveFile(): Save successful";
 #endif
@@ -774,6 +787,105 @@ DocumentView::SaveAsFile() noexcept
 #ifdef WITH_LUA
     dispatchLuaEvent(DispatchType::OnFileSaved);
 #endif
+}
+
+// Permanently remove what is under the redaction marks
+void
+DocumentView::ApplyRedactions() noexcept
+{
+    if (!m_model || !m_model->supports_save())
+        return;
+
+    const int marks = m_model->redactionCount();
+    if (marks <= 0)
+    {
+        QMessageBox::information(
+            this, tr("Apply redactions"),
+            tr("There are no redaction marks. Mark areas with the redact "
+               "mode first."));
+        return;
+    }
+
+    const bool toNewFile = m_config.annotations.redact.save_to_new_file;
+    QMessageBox box(
+        QMessageBox::Warning, tr("Apply redactions"),
+        tr("This permanently removes the text, images and drawings under %n "
+           "redaction mark(s).",
+           nullptr, marks),
+        QMessageBox::Yes | QMessageBox::Cancel, this);
+    box.setInformativeText(
+        toNewFile
+            ? tr("It cannot be undone. The original file is not changed: you "
+                 "will be asked where to save the redacted copy.")
+            : tr("It cannot be undone once the file is saved. Until then, "
+                 "closing without saving (or reloading) brings the original "
+                 "back."));
+    box.setDefaultButton(QMessageBox::Cancel);
+    if (box.exec() != QMessageBox::Yes)
+        return;
+
+    stopPendingRenders();
+    const int applied = m_model->applyRedactions();
+    if (applied < 0)
+    {
+        QMessageBox::critical(
+            this, tr("Apply redactions"),
+            tr("Redacting failed. Do not save this file; reload it from "
+               "disk."));
+        invalidateVisiblePagesCache();
+        renderPages();
+        return;
+    }
+
+    // The old undo steps refer to marks that are gone, and applying cannot be
+    // undone. Keep the document modified so that it is not closed unsaved
+    // without asking.
+    m_model->undoStack()->clear();
+    m_model->undoStack()->resetClean();
+    invalidateVisiblePagesCache();
+    renderPages();
+
+    if (!toNewFile)
+        return;
+
+    const QFileInfo info(filePath());
+    const QString suggestion
+        = info.absoluteDir().filePath(info.completeBaseName() + "_redacted."
+                                      + info.suffix());
+    for (;;)
+    {
+        const QString filename = QFileDialog::getSaveFileName(
+            this, tr("Save redacted copy"), suggestion);
+
+        if (filename.isEmpty())
+        {
+            QMessageBox::information(
+                this, tr("Apply redactions"),
+                tr("The redactions are applied but not saved. Use Save As to "
+                   "keep a redacted copy, or close without saving to get the "
+                   "original back."));
+            return;
+        }
+
+        if (QFileInfo(filename).absoluteFilePath() == info.absoluteFilePath())
+        {
+            QMessageBox::warning(
+                this, tr("Apply redactions"),
+                tr("Choose a different file than the original."));
+            continue;
+        }
+
+        if (!m_model->SaveAs(filename))
+        {
+            QMessageBox::critical(this, tr("Saving as failed"),
+                                  tr("Could not save the redacted copy."));
+            return;
+        }
+#ifdef WITH_LUA
+        dispatchLuaEvent(DispatchType::OnFileSaved);
+#endif
+        return;
+    }
 }
 
 // Close the current file

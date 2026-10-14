@@ -349,6 +349,12 @@ Lektra::initMenubar() noexcept
     m_actionAnnotRect->setCheckable(true);
     modeActionGroup->addAction(m_actionAnnotRect);
 
+    m_actionAnnotRedact = m_modeMenu->addAction(
+        tr("Redact\t%1").arg(m_config.keybinds["annot_redact_mode"].join(", ")),
+        this, &Lektra::ToggleAnnotRedact);
+    m_actionAnnotRedact->setCheckable(true);
+    modeActionGroup->addAction(m_actionAnnotRedact);
+
     m_actionAnnotEllipse = m_modeMenu->addAction(
         tr("Annotate Ellipse\t%1")
             .arg(m_config.keybinds["annot_ellipse_mode"].join(", ")),
@@ -426,6 +432,9 @@ Lektra::initMenubar() noexcept
             break;
         case GraphicsView::Mode::AnnotPopup:
             m_actionAnnotPopup->setChecked(true);
+            break;
+        case GraphicsView::Mode::AnnotRedact:
+            m_actionAnnotRedact->setChecked(true);
             break;
         case GraphicsView::Mode::AnnotEllipse:
             m_actionAnnotEllipse->setChecked(true);
@@ -643,6 +652,8 @@ Lektra::initMenubar() noexcept
         th("format-text-strikethrough", QStyle::SP_FileDialogListView));
     m_actionAnnotRect->setIcon(
         th("draw-rectangle", QStyle::SP_FileDialogContentsView));
+    m_actionAnnotRedact->setIcon(
+        th("edit-delete", QStyle::SP_FileDialogContentsView));
     m_actionAnnotEllipse->setIcon(
         th("draw-ellipse", QStyle::SP_FileDialogContentsView));
     m_actionAnnotPolygon->setIcon(
@@ -745,6 +756,7 @@ Lektra::updateUiEnabledState() noexcept
     setAdvancedVisible(m_actionTextSquiggly);
     setAdvancedVisible(m_actionTextStrikeOut);
     setAdvancedVisible(m_actionAnnotRect);
+    setAdvancedVisible(m_actionAnnotRedact);
     setAdvancedVisible(m_actionAnnotEllipse);
     setAdvancedVisible(m_actionAnnotPolygon);
     setAdvancedVisible(m_actionAnnotNote);
@@ -811,6 +823,7 @@ Lektra::updateUiEnabledState() noexcept
     m_actionEncrypt->setEnabled(isPDF);
     m_actionDecrypt->setEnabled(isPDF);
     m_actionAnnotRect->setEnabled(isPDF);
+    m_actionAnnotRedact->setEnabled(isPDF);
     m_actionAnnotEllipse->setEnabled(isPDF);
     m_actionAnnotPolygon->setEnabled(isPDF);
     m_actionAnnotNote->setEnabled(isPDF);
@@ -1071,6 +1084,9 @@ Lektra::updateSelectionModeActions() noexcept
             break;
         case GraphicsView::Mode::AnnotPopup:
             m_actionAnnotPopup->setChecked(true);
+            break;
+        case GraphicsView::Mode::AnnotRedact:
+            m_actionAnnotRedact->setChecked(true);
             break;
         case GraphicsView::Mode::AnnotEllipse:
             m_actionAnnotEllipse->setChecked(true);

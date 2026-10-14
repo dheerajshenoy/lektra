@@ -705,6 +705,34 @@ Lektra::ToggleAnnotRect() noexcept
     }
 }
 
+// Toggle redaction mode
+void
+Lektra::ToggleAnnotRedact() noexcept
+{
+    if (m_doc)
+    {
+        if (m_doc->fileType() == Model::FileType::PDF)
+            m_doc->ToggleAnnotRedact();
+        else
+            QMessageBox::information(this, tr("Redact"),
+                                     tr("Not a PDF file to redact"));
+    }
+}
+
+// Apply the redaction marks
+void
+Lektra::ApplyRedactions() noexcept
+{
+    if (m_doc)
+    {
+        if (m_doc->fileType() == Model::FileType::PDF)
+            m_doc->ApplyRedactions();
+        else
+            QMessageBox::information(this, tr("Redact"),
+                                     tr("Not a PDF file to redact"));
+    }
+}
+
 // Toggle ellipse annotation mode
 void
 Lektra::ToggleAnnotEllipse() noexcept

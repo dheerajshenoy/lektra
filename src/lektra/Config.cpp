@@ -246,6 +246,10 @@ applyViewToml(toml::table &toml, Config &cfg)
                 cfg.annotations.rect.comment_font_size);
         }
 
+        if (auto redact = annots["redact"])
+            set(redact["save_to_new_file"],
+                cfg.annotations.redact.save_to_new_file);
+
         if (auto popup = annots["popup"])
         {
             set(popup["hover_glow"], cfg.annotations.popup.hover_glow);

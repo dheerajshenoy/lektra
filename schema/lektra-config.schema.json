@@ -178,6 +178,18 @@
           "additionalProperties": false,
           "description": "Rect annotation options struct (since 0.6.5)"
         },
+        "redact": {
+          "type": "object",
+          "properties": {
+            "save_to_new_file": {
+              "type": "boolean",
+              "default": true,
+              "description": "After applying redactions, ask where to save the redacted copy (offering `name_redacted.pdf`) instead of leaving the changes unsaved in the open file, so the original is never overwritten by mistake (since 0.8.0)"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Redaction options struct (since 0.8.0)"
+        },
         "popup": {
           "type": "object",
           "properties": {
@@ -2153,6 +2165,18 @@
                 },
                 "additionalProperties": false,
                 "description": "Rect annotation options struct (since 0.6.5)"
+              },
+              "redact": {
+                "type": "object",
+                "properties": {
+                  "save_to_new_file": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "After applying redactions, ask where to save the redacted copy (offering `name_redacted.pdf`) instead of leaving the changes unsaved in the open file, so the original is never overwritten by mistake (since 0.8.0)"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Redaction options struct (since 0.8.0)"
               },
               "popup": {
                 "type": "object",

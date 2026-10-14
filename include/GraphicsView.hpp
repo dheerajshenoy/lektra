@@ -36,6 +36,7 @@ public:
         AnnotNote,    // an inline note, written on the page
         TextSquiggly,  // like TextHighlight, but makes squiggly underlines
         TextStrikeOut, // like TextHighlight, but makes strikeouts
+        AnnotRedact,   // drag to mark an area for redaction
         COUNT
     };
 
@@ -217,6 +218,7 @@ signals:
     void linkPreviewRequested(QPointF scenePos);
     void linkMiddleClickRequested(QPointF scenePos);
     void annotRectRequested(QRectF sceneRect);
+    void annotRedactRequested(QRectF sceneRect);
     void annotManipMoved(QPointF scenePos, bool keepAspect);
     void annotManipFinished(QPointF scenePos);
     void annotManipCancelled();

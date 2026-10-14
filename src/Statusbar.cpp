@@ -389,6 +389,8 @@ Statusbar::setMode(GraphicsView::Mode mode) noexcept
          {"edit-select", QT_TR_NOOP("Annot Select"), false}},
         {GraphicsView::Mode::AnnotRect,
          {"draw-rectangle", QT_TR_NOOP("Annot Rect"), true}},
+        {GraphicsView::Mode::AnnotRedact,
+         {"edit-delete", QT_TR_NOOP("Annot Redact"), true}},
         {GraphicsView::Mode::AnnotEllipse,
          {"draw-ellipse", QT_TR_NOOP("Annot Ellipse"), true}},
         {GraphicsView::Mode::AnnotPolygon,

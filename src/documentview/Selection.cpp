@@ -1029,6 +1029,18 @@ DocumentView::ToggleAnnotRect() noexcept
     emit selectionModeChanged(newMode);
 }
 
+// Toggle redaction mode
+void
+DocumentView::ToggleAnnotRedact() noexcept
+{
+    const auto newMode = (m_gview->mode() == GraphicsView::Mode::AnnotRedact)
+                             ? m_gview->getDefaultMode()
+                             : GraphicsView::Mode::AnnotRedact;
+
+    m_gview->setMode(newMode);
+    emit selectionModeChanged(newMode);
+}
+
 // Toggle annotation ellipse mode
 void
 DocumentView::ToggleAnnotEllipse() noexcept

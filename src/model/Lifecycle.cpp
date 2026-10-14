@@ -1425,8 +1425,31 @@ Model::SaveChanges() noexcept
         const std::string pathStr(pathBytes.constData(), pathBytes.size());
         std::lock_guard<std::mutex> lock(m_doc_mutex);
         pdf_write_options opts = m_pdf_write_options;
-        opts.do_incremental    = 1;
-        pdf_save_document(m_ctx, m_pdf_doc, pathStr.c_str(), &opts);
+
+        if (m_redacted)
+        {
+            // Rewrite the whole file, without the objects that are no longer
+            // used, into a temporary file next to it, then put that in place.
+            const QString tmpPath = m_filepath + ".lektra-redact.tmp";
+            const QByteArray tmpBytes = tmpPath.toUtf8();
+            opts.do_incremental       = 0;
+            opts.do_garbage           = std::max(opts.do_garbage, 2);
+            pdf_save_document(m_ctx, m_pdf_doc, tmpBytes.constData(), &opts);
+
+            if (!QFile::remove(m_filepath) || !QFile::rename(tmpPath, m_filepath))
+            {
+                QFile::remove(tmpPath);
+                fz_throw(m_ctx, FZ_ERROR_GENERIC,
+                         "Could not replace the file with the redacted one");
+            }
+            m_redacted          = false;
+            m_reload_after_save = true;
+        }
+        else
+        {
+            opts.do_incremental = 1;
+            pdf_save_document(m_ctx, m_pdf_doc, pathStr.c_str(), &opts);
+        }
 
         m_undo_stack->setClean();
 
@@ -1452,6 +1475,11 @@ Model::SaveAs(const QString &newFilePath) noexcept
     {
         std::lock_guard<std::mutex> lock(m_doc_mutex);
         pdf_write_options opts = m_pdf_write_options;
+
+        // Redacted: leave out the objects that are no longer used (the
+        // content that was removed)
+        if (m_redacted)
+            opts.do_garbage = std::max(opts.do_garbage, 2);
 
         pdf_save_document(m_ctx, m_pdf_doc, pathStr.c_str(), &opts);
     }

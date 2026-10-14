@@ -111,11 +111,15 @@ lektra.opt.search = {}
 ---@field glow_width? integer Width of the glow effect in pixels.
 ---@field hover_glow? boolean Show glow only on hover.
 
+---@class OptAnnotationsRedact
+---@field save_to_new_file? boolean After applying redactions, ask where to save the redacted copy instead of leaving the changes unsaved in the open file.
+
 ---@class OptAnnotations
 ---@field highlight? OptAnnotationsHighlight
 ---@field underline? OptAnnotationsUnderline
 ---@field rect? OptAnnotationsRect
 ---@field popup? OptAnnotationsPopup
+---@field redact? OptAnnotationsRedact
 lektra.opt.annotations = {
     ---@type OptAnnotationsHighlight
     highlight = {},
@@ -125,6 +129,8 @@ lektra.opt.annotations = {
     rect = {},
     ---@type OptAnnotationsPopup
     popup = {},
+    ---@type OptAnnotationsRedact
+    redact = {},
 }
 
 ---@class OptThumbnailPanel

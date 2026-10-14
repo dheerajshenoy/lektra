@@ -815,6 +815,13 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("annot_rect_mode",
                            tr("Toggle rectangle annotation mode"),
                            [this](const QStringList &) { ToggleAnnotRect(); });
+    m_command_manager->reg("annot_redact_mode",
+                           tr("Toggle redaction mode (drag to mark an area)"),
+                           [this](const QStringList &) { ToggleAnnotRedact(); });
+    m_command_manager->reg(
+        "redact_apply",
+        tr("Permanently remove what is under the redaction marks"),
+        [this](const QStringList &) { ApplyRedactions(); });
     m_command_manager->reg("annot_ellipse_mode",
                            tr("Toggle ellipse annotation mode"),
                            [this](const QStringList &) { ToggleAnnotEllipse(); });

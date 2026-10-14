@@ -7,7 +7,7 @@
 - [ ] LaTeX math rendering in comment blocks
 - [ ] Picker style choose, `minibuffer` or `floating`
 - [ ] Version diffing
-- [ ] Add REDACT tool
+- [x] Add REDACT tool
 
 ## MEDIUM PRIORITY
 

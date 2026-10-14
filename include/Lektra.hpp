@@ -196,6 +196,8 @@ public:
     void NarrowToSection(const QStringList &args) noexcept;
     void WidenRegion() noexcept;
     void ToggleAnnotRect() noexcept;
+    void ToggleAnnotRedact() noexcept;
+    void ApplyRedactions() noexcept;
     void ToggleAnnotEllipse() noexcept;
     void ToggleAnnotPolygon() noexcept;
     void ToggleAnnotNote() noexcept;
@@ -598,6 +600,7 @@ private:
     QAction *m_actionTextSquiggly = nullptr;
     QAction *m_actionTextStrikeOut = nullptr;
     QAction *m_actionAnnotRect                  = nullptr;
+    QAction *m_actionAnnotRedact                = nullptr;
     QAction *m_actionAnnotEllipse = nullptr;
     QAction *m_actionAnnotPolygon = nullptr;
     QAction *m_actionAnnotNote = nullptr;

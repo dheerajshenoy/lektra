@@ -572,7 +572,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                         "text_selection", "text_highlight", "annot_select",
                         "annot_rect",     "annot_popup",   "text_underline",
                         "annot_ellipse",  "annot_polygon", "annot_note",
-                        "text_squiggly",  "text_strikeout"};
+                        "text_squiggly",  "text_strikeout", "annot_redact"};
                     const int mode = static_cast<int>((*view)->selectionMode());
                     lua_pushstring(L, mode >= 0 && mode < int(std::size(names))
                                           ? names[mode]

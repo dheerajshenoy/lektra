@@ -17,6 +17,7 @@
 #include "Commands/DeleteAnnotationsCommand.hpp"
 #include "Commands/ImageAnnotationCommand.hpp"
 #include "Commands/RectAnnotationCommand.hpp"
+#include "Commands/RedactAnnotationCommand.hpp"
 #include "Commands/ShapeAnnotationCommand.hpp"
 #include "Commands/TextAnnotationCommand.hpp"
 
@@ -1339,6 +1340,36 @@ DocumentView::handleAnnotRectRequested(QRectF area) noexcept
     m_model->undoStack()->push(
         new RectAnnotationCommand(m_model, pageno, rect));
     // setModified(true);
+}
+
+// Handle redaction mark requested
+void
+DocumentView::handleAnnotRedactRequested(QRectF area) noexcept
+{
+    if (!m_model || !m_model->supports_annotations())
+        return;
+
+    int pageno;
+    GraphicsImageItem *pageItem;
+
+    if (!pageAtScenePos(area.center(), pageno, pageItem))
+        return;
+
+    const QRectF pageLocalRect = pageItem->mapFromScene(area).boundingRect();
+    const fz_point topLeft
+        = m_model->toPDFSpace(pageno, pageLocalRect.topLeft());
+    const fz_point bottomRight
+        = m_model->toPDFSpace(pageno, pageLocalRect.bottomRight());
+
+    const fz_rect rect = {
+        std::min(topLeft.x, bottomRight.x),
+        std::min(topLeft.y, bottomRight.y),
+        std::max(topLeft.x, bottomRight.x),
+        std::max(topLeft.y, bottomRight.y),
+    };
+
+    m_model->undoStack()->push(
+        new RedactAnnotationCommand(m_model, pageno, rect));
 }
 
 // Handle annotation ellipse requested

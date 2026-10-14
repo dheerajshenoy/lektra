@@ -417,6 +417,22 @@ static const LuaField annotUnderlineFields[] = {
 }},
 };
 
+// --- annotations.redact ---
+static const LuaField annotRedactFields[] = {
+    {"save_to_new_file",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(
+        L, static_cast<Config::Annotations::Redact *>(p)->save_to_new_file);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Annotations::Redact *>(p)->save_to_new_file
+        = lua_toboolean(L, 3);
+}},
+};
+
 // --- annotations.rect ---
 static const LuaField annotRectFields[] = {
     {"color",
@@ -3064,6 +3080,11 @@ buildOptTable(lua_State *L, const OptScope &scope)
     pushSection(L, scope, &config.annotations.rect, annotRectFields,
                 "annotations");
     addChild(L, annotations_idx, "rect");
+
+    // lektra.opt.annotations.redact
+    pushSection(L, scope, &config.annotations.redact, annotRedactFields,
+                "annotations");
+    addChild(L, annotations_idx, "redact");
 
     // lektra.opt.annotations.popup
     pushSection(L, scope, &config.annotations.popup, annotPopupFields,

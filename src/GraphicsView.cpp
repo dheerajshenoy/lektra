@@ -150,7 +150,7 @@ bool
 GraphicsView::isRubberBandAnnotMode() const noexcept
 {
     return m_mode == Mode::AnnotRect || m_mode == Mode::AnnotEllipse
-           || m_mode == Mode::AnnotNote;
+           || m_mode == Mode::AnnotNote || m_mode == Mode::AnnotRedact;
 }
 
 void
@@ -222,6 +222,7 @@ GraphicsView::setMode(Mode mode) noexcept
     {
         case Mode::RegionSelection:
         case Mode::AnnotRect:
+        case Mode::AnnotRedact:
         case Mode::AnnotEllipse:
         case Mode::AnnotNote:
             if (m_rubberBand)
@@ -443,6 +444,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
 
         case Mode::RegionSelection:
         case Mode::AnnotRect:
+        case Mode::AnnotRedact:
         case Mode::AnnotEllipse:
         case Mode::AnnotNote:
             m_start     = event->pos();
@@ -739,6 +741,8 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
                 emit regionSelectRequested(sceneRect);
             else if (m_mode == Mode::AnnotRect)
                 emit annotRectRequested(sceneRect);
+            else if (m_mode == Mode::AnnotRedact)
+                emit annotRedactRequested(sceneRect);
             else if (m_mode == Mode::AnnotEllipse)
                 emit annotEllipseRequested(sceneRect);
             else if (m_mode == Mode::AnnotNote)

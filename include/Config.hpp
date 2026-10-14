@@ -279,6 +279,25 @@ struct Config
         } underline;
         // @endsection
 
+        // @section annotations.redact
+        // @section_desc Redaction options struct
+        // @section_type struct
+        // @section_added 0.8.0
+        struct Redact
+        {
+            // @desc {
+            // After applying redactions, ask where to save the redacted copy
+            // (offering `name_redacted.pdf`) instead of leaving the changes
+            // unsaved in the open file, so the original is never overwritten
+            // by mistake
+            // }
+            // @type bool
+            // @default true
+            // @added 0.8.0
+            bool save_to_new_file = true;
+        } redact;
+        // @endsection
+
     } annotations;
     // @endsection
 

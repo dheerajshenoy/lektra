@@ -223,7 +223,7 @@ public:
         enum pdf_annot_type type;
         QColor color;
         QString text;
-        int index = -1;
+        int index   = -1;
         // An image: `rect` is the image before it is turned by `angle`
         // (degrees, clockwise), around the centre of `rect`.
         qreal angle = 0;
@@ -236,10 +236,10 @@ public:
         // `region` (device pixels) of a `full_size` page.
         QSize full_size;
         QRect region;
-        bool partial   = false;
+        bool partial     = false;
         // Set when the render was skipped (document closing/reloading or
         // the caller cancelled it); `image` is null in that case.
-        bool cancelled = false;
+        bool cancelled   = false;
         // Timing of the render, for LEKTRA_RENDER_TRACE (ms).
         double queue_ms  = 0; // waiting for a worker thread
         double cache_ms  = 0; // loading the page into the page cache
@@ -597,8 +597,7 @@ public:
     void
     requestPageRender(const RenderJob &job,
                       const std::function<void(PageRenderResult)> &callback,
-                      std::shared_ptr<RenderCancel> cancel
-                      = nullptr) noexcept;
+                      std::shared_ptr<RenderCancel> cancel = nullptr) noexcept;
     QImage requestImageRender(bool highQuality = false) noexcept;
     // Rasterizes a page (plus its links/annotations) off the GUI
     // thread. `cancel` (optional) is polled between the render
@@ -606,9 +605,10 @@ public:
     // result comes back with `cancelled == true` and a null
     // image. The display list replay polls the token's MuPDF cookie, so a
     // render already drawing stops early too.
-    PageRenderResult renderPageWithExtrasAsync(
-        const RenderJob &job,
-        const std::shared_ptr<RenderCancel> &cancel = nullptr) noexcept;
+    PageRenderResult
+    renderPageWithExtrasAsync(const RenderJob &job,
+                              const std::shared_ptr<RenderCancel> &cancel
+                              = nullptr) noexcept;
     [[nodiscard]] QImage renderRegionAtDPI(int pageno, QRectF logicalRect,
                                            float targetDPI) noexcept;
     // Renders a rectangle of a page, given in page-space points, at the given
@@ -765,6 +765,17 @@ public:
     void setAnnotRectColor(const QColor &color) noexcept;
     bool SaveChanges() noexcept;
     bool SaveAs(const QString &newFilePath) noexcept;
+    // Redaction marks (see addRedactAnnotation) left in the document
+    [[nodiscard]] int redactionCount() noexcept;
+    // Permanently removes what is under every redaction mark. Not undoable;
+    // returns the number of marks applied, or -1 if it failed.
+    int applyRedactions() noexcept;
+    // True once after SaveChanges rewrote the file on disk, which the open
+    // document no longer matches: reload it
+    [[nodiscard]] inline bool takeReloadAfterSave() noexcept
+    {
+        return std::exchange(m_reload_after_save, false);
+    }
     QPointF toPixelSpace(int pageno, fz_point pt) const noexcept;
     fz_point toPDFSpace(int pageno, QPointF pt) const noexcept;
 
@@ -786,7 +797,8 @@ public:
     };
     void highlight_text_selection(int pageno, QPointF start, QPointF end,
                                   const QString &comment = {},
-                                  TextMarkup kind = TextMarkup::Highlight) noexcept;
+                                  TextMarkup kind
+                                  = TextMarkup::Highlight) noexcept;
     void invalidatePageCaches() noexcept;
     void invalidatePageCache(int pageno) noexcept;
     void search(const QString &term, bool caseSensitive = false,
@@ -1047,6 +1059,9 @@ private:
     void buildPageCache_djvu(int pageno) noexcept;
     [[nodiscard]] int addRectAnnotation(const int pageno, const fz_rect &rect,
                                         const QString &content = {}) noexcept;
+    // A mark for the area to redact; nothing is removed until applyRedactions
+    [[nodiscard]] int addRedactAnnotation(const int pageno,
+                                          const fz_rect &rect) noexcept;
     // Where an annotation is on its page (PDF space): its rectangle, or the
     // corners of a polygon.
     struct AnnotGeometry
@@ -1160,6 +1175,10 @@ private:
     mutable std::mutex m_content_bbox_mutex;
 
     pdf_write_options m_pdf_write_options = pdf_default_write_options;
+    // Redactions were applied: saves must rewrite the whole file (an
+    // incremental save keeps the removed content in the earlier revision)
+    bool m_redacted = false;
+    bool m_reload_after_save = false;
     bool m_link_show_boundary             = false;
     bool m_detect_url_links               = false;
     FileType m_filetype                   = FileType::NONE;
@@ -1227,6 +1246,7 @@ private:
 
     friend class TextHighlightAnnotationCommand;
     friend class RectAnnotationCommand;
+    friend class RedactAnnotationCommand;
     friend class ShapeAnnotationCommand;
     friend class ImageAnnotationCommand;
     friend class AnnotGeometryCommand;

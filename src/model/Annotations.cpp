@@ -808,13 +808,12 @@ Model::prefetchOutlineAsync() noexcept
                         float x = n->x, y = n->y;
                         if (loc.chapter < 0 && n->uri)
                             loc = fz_resolve_link(ctx, m_doc, n->uri, &x, &y);
-                        entries.push_back(
-                            {.title     = title,
-                             .depth     = depth,
-                             .page      = fz_page_number_from_location(ctx,
-                                                                  m_doc, loc),
-                             .location  = QPointF(x, y),
-                             .isHeading = (n->down != nullptr)});
+                        entries.push_back({.title = title,
+                                           .depth = depth,
+                                           .page = fz_page_number_from_location(
+                                               ctx, m_doc, loc),
+                                           .location  = QPointF(x, y),
+                                           .isHeading = (n->down != nullptr)});
                         if (n->down)
                             walk(n->down, depth + 1);
                     }
@@ -847,8 +846,7 @@ Model::prefetchOutlineAsync() noexcept
                 m_outline_entries_src   = m_outline;
                 m_outline_entries_valid = true;
             }
-        },
-            Qt::QueuedConnection);
+        }, Qt::QueuedConnection);
 
         fz_drop_context(ctx);
     });
@@ -970,7 +968,7 @@ Model::highlight_text_selection(int pageno, QPointF start, QPointF end,
 void
 Model::writeUnderlineAppearance(pdf_annot *annot) noexcept
 {
-    using US = Config::Annotations::Underline::Style;
+    using US        = Config::Annotations::Underline::Style;
     const auto &cfg = m_config.annotations.underline;
 
     fz_buffer *buf = nullptr;
@@ -996,8 +994,9 @@ Model::writeUnderlineAppearance(pdf_annot *annot) noexcept
         if (opacity < 1.0f)
         {
             res = pdf_new_dict(m_ctx, m_pdf_doc, 1);
-            pdf_obj *egs = pdf_dict_put_dict(m_ctx, res, PDF_NAME(ExtGState), 1);
-            pdf_obj *gs  = pdf_dict_put_dict(m_ctx, egs, PDF_NAME(H), 2);
+            pdf_obj *egs
+                = pdf_dict_put_dict(m_ctx, res, PDF_NAME(ExtGState), 1);
+            pdf_obj *gs = pdf_dict_put_dict(m_ctx, egs, PDF_NAME(H), 2);
             pdf_dict_put(m_ctx, gs, PDF_NAME(Type), PDF_NAME(ExtGState));
             pdf_dict_put_real(m_ctx, gs, PDF_NAME(CA), opacity);
             pdf_dict_put_real(m_ctx, gs, PDF_NAME(ca), opacity);
@@ -1056,8 +1055,8 @@ Model::writeUnderlineAppearance(pdf_annot *annot) noexcept
                 fz_append_printf(m_ctx, buf, "1 J [0 %g] 0 d\n", w * 2);
             else
                 fz_append_printf(m_ctx, buf, "0 J [] 0 d\n");
-            fz_append_printf(m_ctx, buf, "%g %g m\n%g %g l\nS\n", a.x, a.y,
-                             b.x, b.y);
+            fz_append_printf(m_ctx, buf, "%g %g m\n%g %g l\nS\n", a.x, a.y, b.x,
+                             b.y);
 
             const fz_point pts[4] = {ul, ur, ll, lr};
             for (const fz_point &p : pts)
@@ -1072,12 +1071,9 @@ Model::writeUnderlineAppearance(pdf_annot *annot) noexcept
         // points) must cover the line; pdf_set_annot_rect() refuses text
         // markup annotations, so it is written directly.
         pdf_begin_operation(m_ctx, m_pdf_doc, "Set underline rectangle");
-        fz_try(m_ctx)
-            pdf_dict_put_rect(m_ctx, obj, PDF_NAME(Rect), rect);
-        fz_always(m_ctx)
-            pdf_end_operation(m_ctx, m_pdf_doc);
-        fz_catch(m_ctx)
-            fz_rethrow(m_ctx);
+        fz_try(m_ctx) pdf_dict_put_rect(m_ctx, obj, PDF_NAME(Rect), rect);
+        fz_always(m_ctx) pdf_end_operation(m_ctx, m_pdf_doc);
+        fz_catch(m_ctx) fz_rethrow(m_ctx);
         // Changed by the calls above; clean so that MuPDF does not take it for
         // an edit that needs a new (default) appearance.
         pdf_clean_obj(m_ctx, obj);
@@ -1126,9 +1122,9 @@ Model::addUnderlineAnnotation(const int pageno,
                   : (m_underline_color.isValid()
                          ? m_underline_color
                          : rgbaToQColor(m_config.annotations.underline.color));
-        const float mucolor[3] = {static_cast<float>(c.redF()),
-                                  static_cast<float>(c.greenF()),
-                                  static_cast<float>(c.blueF())};
+        const float mucolor[3]
+            = {static_cast<float>(c.redF()), static_cast<float>(c.greenF()),
+               static_cast<float>(c.blueF())};
         pdf_set_annot_color(m_ctx, annot, 3, mucolor);
         pdf_set_annot_opacity(m_ctx, annot, static_cast<float>(c.alphaF()));
         pdf_set_annot_contents(m_ctx, annot, content.toUtf8().constData());
@@ -1148,7 +1144,8 @@ Model::addUnderlineAnnotation(const int pageno,
     }
     fz_catch(m_ctx)
     {
-        qWarning() << "Adding the underline failed:" << fz_caught_message(m_ctx);
+        qWarning() << "Adding the underline failed:"
+                   << fz_caught_message(m_ctx);
         return objNum;
     }
 
@@ -1188,14 +1185,14 @@ Model::addMarkupAnnotation(const int pageno, const enum pdf_annot_type type,
 
         pdf_set_annot_quad_points(m_ctx, annot, quads.size(), &quads[0]);
 
-        const QColor &preset = type == PDF_ANNOT_SQUIGGLY ? m_squiggly_color
-                                                          : m_strikeout_color;
-        const QColor c
-            = color.isValid() ? color
-                              : (preset.isValid() ? preset : QColor(Qt::red));
-        const float mucolor[3] = {static_cast<float>(c.redF()),
-                                  static_cast<float>(c.greenF()),
-                                  static_cast<float>(c.blueF())};
+        const QColor &preset
+            = type == PDF_ANNOT_SQUIGGLY ? m_squiggly_color : m_strikeout_color;
+        const QColor c = color.isValid()
+                             ? color
+                             : (preset.isValid() ? preset : QColor(Qt::red));
+        const float mucolor[3]
+            = {static_cast<float>(c.redF()), static_cast<float>(c.greenF()),
+               static_cast<float>(c.blueF())};
         pdf_set_annot_color(m_ctx, annot, 3, mucolor);
         pdf_set_annot_opacity(m_ctx, annot, static_cast<float>(c.alphaF()));
         pdf_set_annot_contents(m_ctx, annot, content.toUtf8().constData());
@@ -1380,6 +1377,155 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect,
 }
 
 int
+Model::addRedactAnnotation(const int pageno, const fz_rect &rect) noexcept
+{
+    int objNum       = -1;
+    pdf_annot *annot = nullptr;
+    pdf_page *page   = nullptr;
+
+    fz_try(m_ctx)
+    {
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_REDACT);
+
+        if (!annot)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to create annotation");
+
+        pdf_set_annot_rect(m_ctx, annot, rect);
+        pdf_update_annot(m_ctx, annot);
+        pdf_update_page(m_ctx, page);
+
+        pdf_obj *obj = pdf_annot_obj(m_ctx, annot);
+        if (!obj)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC,
+                     "Failed to get annotation object");
+
+        objNum = pdf_to_num(m_ctx, obj);
+    }
+    fz_always(m_ctx)
+    {
+        pdf_drop_annot(m_ctx, annot);
+        pdf_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Adding the redaction mark failed:"
+                   << fz_caught_message(m_ctx);
+        return objNum;
+    }
+
+    if (objNum >= 0)
+    {
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
+    }
+
+    return objNum;
+}
+
+int
+Model::redactionCount() noexcept
+{
+    if (!m_pdf_doc)
+        return 0;
+
+    int count = 0;
+    std::lock_guard<std::mutex> lock(m_doc_mutex);
+    for (int i = 0; i < m_page_count; ++i)
+    {
+        pdf_page *page = nullptr;
+        fz_var(page);
+        fz_try(m_ctx)
+        {
+            page = pdf_load_page(m_ctx, m_pdf_doc, i);
+            for (pdf_annot *a = pdf_first_annot(m_ctx, page); a;
+                 a            = pdf_next_annot(m_ctx, a))
+                if (pdf_annot_type(m_ctx, a) == PDF_ANNOT_REDACT)
+                    ++count;
+        }
+        fz_always(m_ctx)
+            pdf_drop_page(m_ctx, page);
+        fz_catch(m_ctx)
+            qWarning() << "Counting redactions failed on page" << i << ":"
+                       << fz_caught_message(m_ctx);
+    }
+    return count;
+}
+
+int
+Model::applyRedactions() noexcept
+{
+    if (!m_pdf_doc)
+        return -1;
+
+    int applied = 0;
+    bool failed = false;
+    std::vector<int> changed;
+
+    {
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        for (int i = 0; i < m_page_count; ++i)
+        {
+            pdf_page *page = nullptr;
+            int marks      = 0;
+            fz_var(page);
+            fz_var(marks);
+            fz_try(m_ctx)
+            {
+                page = pdf_load_page(m_ctx, m_pdf_doc, i);
+                for (pdf_annot *a = pdf_first_annot(m_ctx, page); a;
+                     a            = pdf_next_annot(m_ctx, a))
+                    if (pdf_annot_type(m_ctx, a) == PDF_ANNOT_REDACT)
+                        ++marks;
+
+                if (marks > 0)
+                {
+                    // Black boxes where the content was; text, and the
+                    // pixels of images, under a mark are removed.
+                    pdf_redact_options opts = {
+                        1, PDF_REDACT_IMAGE_PIXELS,
+                        PDF_REDACT_LINE_ART_REMOVE_IF_TOUCHED,
+                        PDF_REDACT_TEXT_REMOVE};
+                    pdf_redact_page(m_ctx, m_pdf_doc, page, &opts);
+                    pdf_update_page(m_ctx, page);
+                }
+            }
+            fz_always(m_ctx)
+                pdf_drop_page(m_ctx, page);
+            fz_catch(m_ctx)
+            {
+                qWarning() << "Redacting page" << i
+                           << "failed:" << fz_caught_message(m_ctx);
+                failed = true;
+                marks  = 0;
+            }
+
+            if (marks > 0)
+            {
+                applied += marks;
+                changed.push_back(i);
+            }
+        }
+    }
+
+    if (applied > 0)
+        m_redacted = true;
+
+    for (int i : changed)
+    {
+        invalidatePageCache(i);
+        emit reloadRequested(i);
+    }
+
+    return failed ? -1 : applied;
+}
+
+int
 Model::addShapeAnnotation(const int pageno, const enum pdf_annot_type type,
                           const fz_rect &rect,
                           const std::vector<fz_point> &vertices,
@@ -1428,8 +1574,8 @@ Model::addShapeAnnotation(const int pageno, const enum pdf_annot_type type,
                 const float text_color[3]       = {0.0f, 0.0f, 0.0f};
                 const float background_color[3] = {1.0f, 0.97f, 0.7f};
                 pdf_set_annot_rect(m_ctx, annot, rect);
-                pdf_set_annot_default_appearance(m_ctx, annot, "Helv", 12.0f,
-                                                 3, text_color);
+                pdf_set_annot_default_appearance(m_ctx, annot, "Helv", 12.0f, 3,
+                                                 text_color);
                 pdf_set_annot_color(m_ctx, annot, 3, background_color);
                 pdf_set_annot_border_width(m_ctx, annot, 0.0f);
                 break;
@@ -1492,9 +1638,8 @@ Model::imageOf(fz_context *ctx, pdf_annot *annot)
 {
     pdf_obj *xobjects = pdf_dict_getp(ctx, pdf_annot_obj(ctx, annot),
                                       "AP/N/Resources/XObject");
-    return pdf_dict_len(ctx, xobjects) > 0
-               ? pdf_dict_get_val(ctx, xobjects, 0)
-               : nullptr;
+    return pdf_dict_len(ctx, xobjects) > 0 ? pdf_dict_get_val(ctx, xobjects, 0)
+                                           : nullptr;
 }
 
 // Where an image annotation is (see Model::AnnotGeometry).
@@ -1516,17 +1661,17 @@ Model::readImageFrame(fz_context *ctx, pdf_annot *annot, AnnotGeometry &out)
     // The sides, in the page's own space and then in the page space.
     fz_matrix ctm;
     pdf_page_transform(ctx, pdf_annot_page(ctx, annot), nullptr, &ctm);
-    const fz_point right = fz_transform_vector(
-        {w * std::cos(phi), w * std::sin(phi)}, ctm);
-    const fz_point up = fz_transform_vector(
-        {-h * std::sin(phi), h * std::cos(phi)}, ctm);
+    const fz_point right
+        = fz_transform_vector({w * std::cos(phi), w * std::sin(phi)}, ctm);
+    const fz_point up
+        = fz_transform_vector({-h * std::sin(phi), h * std::cos(phi)}, ctm);
 
-    out.rect     = pdf_annot_rect(ctx, annot);
-    out.center   = {(out.rect.x0 + out.rect.x1) / 2,
-                    (out.rect.y0 + out.rect.y1) / 2};
-    out.ux       = right;
-    out.uy       = {-up.x, -up.y};
-    out.framed   = true;
+    out.rect = pdf_annot_rect(ctx, annot);
+    out.center
+        = {(out.rect.x0 + out.rect.x1) / 2, (out.rect.y0 + out.rect.y1) / 2};
+    out.ux     = right;
+    out.uy     = {-up.x, -up.y};
+    out.framed = true;
     out.vertices.clear();
     return true;
 }
@@ -1549,16 +1694,16 @@ Model::writeImageAppearance(fz_context *ctx, pdf_annot *annot,
     const float h     = std::max(std::hypot(uy.x, uy.y), 1.0f);
     const float deg   = std::atan2(ux.y, ux.x) * 180.0f / float(M_PI);
 
-    const fz_matrix m = fz_rotate(deg);
-    const fz_rect box = {0, 0, w, h};
+    const fz_matrix m    = fz_rotate(deg);
+    const fz_rect box    = {0, 0, w, h};
     const fz_rect turned = fz_transform_rect(box, m);
     const float bw       = turned.x1 - turned.x0;
     const float bh       = turned.y1 - turned.y0;
-    const fz_rect rect = fz_transform_rect(
+    const fz_rect rect   = fz_transform_rect(
         {c.x - bw / 2, c.y - bh / 2, c.x + bw / 2, c.y + bh / 2}, ctm);
 
-    pdf_obj *res      = nullptr;
-    pdf_obj *xobjects = nullptr;
+    pdf_obj *res        = nullptr;
+    pdf_obj *xobjects   = nullptr;
     fz_buffer *contents = nullptr;
     fz_var(res);
     fz_var(xobjects);
@@ -1593,7 +1738,8 @@ Model::writeImageAppearance(fz_context *ctx, pdf_annot *annot,
 
 // Sets the text of an annotation without MuPDF drawing an image over again.
 void
-Model::setAnnotContentsKeepImage(fz_context *ctx, pdf_annot *annot, const char *text)
+Model::setAnnotContentsKeepImage(fz_context *ctx, pdf_annot *annot,
+                                 const char *text)
 {
     if (!isImageAnnot(ctx, annot))
     {
@@ -1619,7 +1765,6 @@ Model::setAnnotContentsKeepImage(fz_context *ctx, pdf_annot *annot, const char *
         fz_rethrow(ctx);
     }
 }
-
 
 int
 Model::addImageAnnotation(const int pageno, const QByteArray &data,
@@ -1754,16 +1899,17 @@ Model::annotImageData(int pageno, int objNum) noexcept
                                                     nullptr, nullptr, nullptr);
                     for (int y = 0; y < img.height(); ++y)
                     {
-                        const int my = std::min(
-                            mask->h - 1, int(int64_t(y) * mask->h / img.height()));
+                        const int my
+                            = std::min(mask->h - 1, int(int64_t(y) * mask->h
+                                                        / img.height()));
                         const unsigned char *src
                             = mask->samples + size_t(my) * mask->stride;
                         unsigned char *dst = img.scanLine(y);
                         for (int x = 0; x < img.width(); ++x)
                         {
-                            const int mx = std::min(
-                                mask->w - 1,
-                                int(int64_t(x) * mask->w / img.width()));
+                            const int mx
+                                = std::min(mask->w - 1, int(int64_t(x) * mask->w
+                                                            / img.width()));
                             dst[4 * x + 3] = src[mask->n * mx];
                         }
                     }
@@ -1927,7 +2073,7 @@ void
 Model::addAnnotComment(const int pageno, int objNum,
                        const QString &text) noexcept
 {
-    objNum = resolveAnnot(objNum);
+    objNum         = resolveAnnot(objNum);
     bool changed   = false;
     pdf_page *page = nullptr;
 
@@ -1971,7 +2117,7 @@ Model::addAnnotComment(const int pageno, int objNum,
 void
 Model::removeAnnotComment(const int pageno, int objNum) noexcept
 {
-    objNum = resolveAnnot(objNum);
+    objNum         = resolveAnnot(objNum);
     bool changed   = false;
     pdf_page *page = nullptr;
 
@@ -2298,8 +2444,8 @@ Model::annotGeometry(int pageno, int objNum, AnnotGeometry &out) noexcept
             else
             {
                 out.rect = pdf_bound_annot(m_ctx, annot);
-                for (int i = 0, c = pdf_annot_vertex_count(m_ctx, annot);
-                     i < c; ++i)
+                for (int i = 0, c = pdf_annot_vertex_count(m_ctx, annot); i < c;
+                     ++i)
                     out.vertices.push_back(pdf_annot_vertex(m_ctx, annot, i));
             }
             found = true;

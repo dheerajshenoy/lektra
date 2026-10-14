@@ -682,6 +682,9 @@ public:
     void ToggleTextStrikeOut() noexcept;
     void ToggleRegionSelect() noexcept;
     void ToggleAnnotRect() noexcept;
+    void ToggleAnnotRedact() noexcept;
+    // Permanently removes what is under the redaction marks, after asking
+    void ApplyRedactions() noexcept;
     void ToggleAnnotEllipse() noexcept;
     void ToggleAnnotPolygon() noexcept;
     void ToggleAnnotNote() noexcept;
@@ -790,6 +793,7 @@ private:
     void cancelAnnotationDrag() noexcept;
     void handleRegionSelectRequested(QRectF area) noexcept;
     void handleAnnotRectRequested(QRectF area) noexcept;
+    void handleAnnotRedactRequested(QRectF area) noexcept;
     void handleAnnotEllipseRequested(QRectF area) noexcept;
     void handleAnnotPolygonRequested(QVector<QPointF> points) noexcept;
     void handleAnnotNoteRequested(QRectF area) noexcept;
