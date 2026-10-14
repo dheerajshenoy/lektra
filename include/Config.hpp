@@ -1422,6 +1422,25 @@ struct Config
         bool drag_image_out = true;
 
         // @desc {
+        // Where saving writes. `overwrite` saves into the open file. `ask`
+        // asks for a new file on the first save of a file and `suffix` saves
+        // to `name_annotated.ext` next to it (asking if that exists); either
+        // way the original is left alone, the view follows the new file and
+        // later saves go there.
+        // }
+        // @type str
+        // @choice overwrite, ask, suffix
+        // @default overwrite
+        // @added 0.8.0
+        enum class SaveMode
+        {
+            Overwrite = 0,
+            Ask,
+            Suffix
+        };
+        SaveMode save_mode = SaveMode::Overwrite;
+
+        // @desc {
         // Quit LEKTRA when the last open tab is closed. When false (the
         // default), an empty window remains — the startup widget may be
         // shown if that path is taken. `confirm_on_quit` still applies.

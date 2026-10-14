@@ -2274,6 +2274,37 @@ static const LuaField behaviorFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::Behavior *>(p)->drag_image_out = lua_toboolean(L, 3); }},
+    // "overwrite" | "ask" | "suffix"
+    {"save_mode",
+     [](lua_State *L, P p)
+{
+    using SM = Config::Behavior::SaveMode;
+    switch (static_cast<Config::Behavior *>(p)->save_mode)
+    {
+        case SM::Ask:
+            lua_pushstring(L, "ask");
+            break;
+        case SM::Suffix:
+            lua_pushstring(L, "suffix");
+            break;
+        case SM::Overwrite:
+        default:
+            lua_pushstring(L, "overwrite");
+            break;
+    }
+    return 1;
+}, [](lua_State *L, P p)
+{
+    using SM      = Config::Behavior::SaveMode;
+    const char *v = luaL_checkstring(L, 3);
+    auto *b       = static_cast<Config::Behavior *>(p);
+    if (!strcmp(v, "ask"))
+        b->save_mode = SM::Ask;
+    else if (!strcmp(v, "suffix"))
+        b->save_mode = SM::Suffix;
+    else
+        b->save_mode = SM::Overwrite;
+}},
     {"cache_pages",
      [](lua_State *L, P p)
 {

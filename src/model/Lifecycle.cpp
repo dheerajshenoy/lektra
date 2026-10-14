@@ -1326,6 +1326,9 @@ Model::reloadDocument() noexcept
     if (m_filepath.isEmpty())
         return false;
 
+    // What is read now is what is on disk, without unsaved redactions
+    m_redacted = false;
+
     // Open the fresh document BEFORE cleanup() drops the old one.
     // cleanup() calls fz_drop_document(m_ctx, m_doc) and nulls m_doc,
     // so we must have the new handle ready before that happens.

@@ -446,6 +446,7 @@ lektra.opt.rendering = {}
 ---@class OptBehavior
 ---@field auto_reload? boolean Automatically reload the document when the file changes on disk.
 ---@field auto_scroll? boolean Scroll to keep an out-of-view text selection visible.
+---@field save_mode? "overwrite"|"ask"|"suffix" Where saving writes: into the open file, or to a new file (asked for, or `name_annotated.ext`) that the view then follows.
 ---@field cache_pages? integer Number of rendered pages to keep in the page cache.
 ---@field cache_password? boolean Keep the password for encrypted PDFs in memory so auto-reload can re-authenticate.
 ---@field close_on_last_tab? boolean Quit LEKTRA when the last tab is closed (confirm_on_quit still applies).

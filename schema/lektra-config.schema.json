@@ -558,6 +558,15 @@
           "default": true,
           "description": "Drag an image of the page out of the window by pressing on it and moving the mouse (to drop it into another program). Turn it off if that gets in the way of selecting text. (since 0.8.0)"
         },
+        "save_mode": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "suffix",
+            "overwrite"
+          ],
+          "description": "Where saving writes. `overwrite` saves into the open file. `ask` asks for a new file on the first save of a file and `suffix` saves to `name_annotated.ext` next to it (asking if that exists); either way the original is left alone, the view follows the new file and later saves go there. (since 0.8.0)"
+        },
         "close_on_last_tab": {
           "type": "boolean",
           "default": false,
@@ -2342,6 +2351,15 @@
                 "type": "boolean",
                 "default": true,
                 "description": "Drag an image of the page out of the window by pressing on it and moving the mouse (to drop it into another program). Turn it off if that gets in the way of selecting text. (since 0.8.0)"
+              },
+              "save_mode": {
+                "type": "string",
+                "enum": [
+                  "ask",
+                  "suffix",
+                  "overwrite"
+                ],
+                "description": "Where saving writes. `overwrite` saves into the open file. `ask` asks for a new file on the first save of a file and `suffix` saves to `name_annotated.ext` next to it (asking if that exists); either way the original is left alone, the view follows the new file and later saves go there. (since 0.8.0)"
               },
               "close_on_last_tab": {
                 "type": "boolean",

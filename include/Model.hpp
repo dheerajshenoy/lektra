@@ -446,6 +446,17 @@ public:
     {
         return m_filepath;
     }
+    // Makes `path` the file of this document (call reloadDocument after, to
+    // read it)
+    inline void setFilePath(const QString &path) noexcept
+    {
+        m_filepath = path;
+    }
+    // Redactions were applied and not saved yet
+    [[nodiscard]] inline bool isRedacted() const noexcept
+    {
+        return m_redacted;
+    }
 
     // Plain text of one page (for scanning it, e.g. for a DOI)
     [[nodiscard]] QString pageText(int pageno) noexcept

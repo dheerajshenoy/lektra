@@ -394,6 +394,16 @@ applyViewToml(toml::table &toml, Config &cfg)
         set(behavior["mupdf_store_size"], cfg.behavior.mupdf_store_size);
         set(behavior["auto_scroll"], cfg.behavior.auto_scroll);
         set(behavior["drag_image_out"], cfg.behavior.drag_image_out);
+        if (auto str = behavior["save_mode"])
+        {
+            using SM = Config::Behavior::SaveMode;
+            if (str == "ask")
+                cfg.behavior.save_mode = SM::Ask;
+            else if (str == "suffix")
+                cfg.behavior.save_mode = SM::Suffix;
+            else
+                cfg.behavior.save_mode = SM::Overwrite;
+        }
         set(behavior["close_on_last_tab"], cfg.behavior.close_on_last_tab);
         set(behavior["high_contrast"], cfg.behavior.high_contrast);
         set(behavior["high_contrast_black_point"],

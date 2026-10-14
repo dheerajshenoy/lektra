@@ -663,6 +663,15 @@ public:
     void FileProperties() noexcept;
     void SaveFile() noexcept;
     void SaveAsFile() noexcept;
+    // behavior.save_mode: saves into a new file instead, and follows it.
+    // Original: the user chose the open file itself, so save into it.
+    enum class NewFileSave
+    {
+        Saved,
+        Cancelled,
+        Original
+    };
+    NewFileSave saveToNewFile() noexcept;
     void CloseFile() noexcept;
     void ToggleCommentMarkers() noexcept;
     void ToggleThumbnailPanel() noexcept;
@@ -1116,6 +1125,8 @@ private:
     bool m_scroll_to_hit_pending              = false;
     QFileSystemWatcher *m_file_watcher        = nullptr;
     bool m_reload_pending                     = false;
+    // Saved into a new file (behavior.save_mode); saves go there from now on
+    bool m_save_redirected = false;
     qint64 m_last_reload_observed_size        = -1;
     DocumentContainer *m_container            = nullptr;
     // max cross-axis page size, cached by cachePageStride()

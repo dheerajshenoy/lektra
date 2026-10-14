@@ -723,6 +723,13 @@ DocumentView::SaveFile() noexcept
     if (!m_is_modified || !m_model->supports_save())
         return;
 
+    if (m_config.behavior.save_mode != Config::Behavior::SaveMode::Overwrite
+        && !m_save_redirected)
+    {
+        if (saveToNewFile() != NewFileSave::Original)
+            return;
+    }
+
 #ifndef NDEBUG
     qDebug() << "DocumentView::SaveFile(): Saving file with unsaved changes.";
 #endif
@@ -762,6 +769,67 @@ DocumentView::SaveFile() noexcept
             this, tr("Saving failed"),
             tr("Could not save the current file. Try 'Save As' instead."));
     }
+}
+
+// Save into a new file (behavior.save_mode), and follow it: the open document
+// becomes that file, so the original is never written to.
+DocumentView::NewFileSave
+DocumentView::saveToNewFile() noexcept
+{
+    const QFileInfo info(filePath());
+    const QString suggestion
+        = info.absoluteDir().filePath(info.completeBaseName() + "_annotated."
+                                      + info.suffix());
+
+    QString target;
+    if (m_config.behavior.save_mode == Config::Behavior::SaveMode::Suffix
+        && !QFileInfo::exists(suggestion))
+        target = suggestion;
+    else
+        target = QFileDialog::getSaveFileName(this, tr("Save as"), suggestion);
+
+    if (target.isEmpty())
+        return NewFileSave::Cancelled;
+
+    if (QFileInfo(target).absoluteFilePath() == info.absoluteFilePath())
+        return NewFileSave::Original;
+
+    stopPendingRenders();
+
+    // Redactions renumber the objects, so the undo steps no longer match
+    const bool redacted = m_model->isRedacted();
+
+    if (!m_model->SaveAs(target))
+    {
+        QMessageBox::critical(this, tr("Saving failed"),
+                              tr("Could not save to %1.").arg(target));
+        return NewFileSave::Cancelled;
+    }
+
+    const QString oldPath = m_model->filePath();
+    m_model->setFilePath(QFileInfo(target).canonicalFilePath());
+    m_save_redirected = true;
+
+    if (redacted)
+        m_model->undoStack()->clear();
+    m_model->undoStack()->setClean();
+
+    if (m_file_watcher)
+    {
+        m_file_watcher->removePath(oldPath);
+        m_file_watcher->addPath(m_model->filePath());
+    }
+
+    // Read the saved file, which is what the view is now
+    m_reload_pending            = true;
+    m_last_reload_observed_size = -1;
+    tryReloadLater(0);
+
+    emit fileNameChanged(fileName());
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnFileSaved);
+#endif
+    return NewFileSave::Saved;
 }
 
 // Save the current file as a new file
@@ -904,6 +972,7 @@ DocumentView::CloseFile() noexcept
     resetConnections();
     m_model->close();
     m_awaiting_first_render = false;
+    m_save_redirected       = false;
 
 #ifdef WITH_LUA
     dispatchLuaEvent(DispatchType::OnFileClose);
