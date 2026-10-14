@@ -18,3 +18,9 @@ Then run the generators. Never hand-edit their output.
 
 Also do this after adding or changing a command (`reg(...)` description) or
 editing the `---` comments in `stubs/lua/*.lua`: re-run `gen_docs_md.py`.
+
+## Interaction Patterns & Behavior Guidelines
+
+- Always present a step-by-step implementation plan before writing or modifying code.
+- Wait for user confirmation before executing multi-step tasks or altering core logic.
+- Explain the impact of each step on existing functionality or data.
