@@ -13,7 +13,7 @@ and [GitHub](https://github.com/dheerajshenoy/lektra), kept in sync.
 
 * **Fast and Lightweight:** Opens instantly with a small memory footprint and smooth scrolling.
 * **Handles Large Files:** High performance on massive documents by only rendering visible content at high zoom levels.
-* **Versatile Viewing Modes:** Supports single page, continuous scrolling, book layout, presentation mode, and smart margin trimming.
+* **Versatile Viewing Modes:** Supports single page, continuous scrolling, book and grid layouts, presentation mode, and smart margin trimming.
 * **Text Reflow:** Re-paginates EPUB, FB2, and Mobi files to fit your custom fonts, text size, and line spacing.
 * **Comfort & Dark Mode:** Customize page colors, flip/rotate, invert colors, or use high-contrast themes for easy reading.
 * **Rich Media Support:** Plays animated GIFs, WebPs, and APNGs, and displays multi-page TIFFs natively.
@@ -24,7 +24,9 @@ and [GitHub](https://github.com/dheerajshenoy/lektra), kept in sync.
 * **Tabs, Splits, & Portals:** Rearrange multi-document tabs, split windows, or open small linked view "portals" to read two parts of a file side-by-side.
 * **Synchronized Views:** Link zoom, scroll, and rotation across multiple open documents for side-by-side comparison.
 * **Smart Text & Image Capture:** Caret keyboard mode, double/triple click selection, and direct drag-and-drop image extraction to other apps.
-* **Built-in Annotations:** Add highlights, notes, and rectangles directly to the PDF file, with inline commenting and annotation exporting.
+* **Built-in Annotations:** Add highlights, underlines, strikeouts, rectangles, ellipses, polygons, notes and images directly to the PDF file, with inline commenting and annotation exporting.
+* **Redaction:** Mark areas and permanently remove the text and images under them, saved as a new copy so the original stays untouched.
+* **Safe Saving:** Optionally save annotations to a new file instead of overwriting the original.
 * **Academic & SyncTeX Tools:** Jump seamlessly between LaTeX editor source code and PDF locations, plus view metadata and EXIF data.
 * **Flexible Page Export:** Save page ranges or cropped regions as PNG, JPEG, WebP, PDF, SVG, Text, or HTML at any custom DPI.
 * **Command Palette:** Quickly run frequency-sorted commands and find files using an Emacs-style file picker.
