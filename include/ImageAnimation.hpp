@@ -6,11 +6,12 @@
 #include <memory>
 
 class ApngDecoder;
+class JxlAnimation;
 class QMovie;
 
 // Plays an animated image, one frame at a time: GIF and animated WebP through
-// QMovie, and APNG through ApngDecoder (Qt's own PNG reader only gives the
-// first frame). Both are used the same way.
+// QMovie, APNG through ApngDecoder (Qt's own PNG reader only gives the
+// first frame) and JPEG XL through JxlAnimation. All are used the same way.
 class ImageAnimation : public QObject
 {
     Q_OBJECT
@@ -39,6 +40,7 @@ private:
 
     QMovie *m_movie = nullptr;
     std::unique_ptr<ApngDecoder> m_apng;
+    std::unique_ptr<JxlAnimation> m_jxl;
     QTimer m_timer;
     QImage m_frame;
     int m_delayMs    = 100;

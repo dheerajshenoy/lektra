@@ -1,6 +1,7 @@
 #include "ImageAnimation.hpp"
 
 #include "ApngDecoder.hpp"
+#include "JxlDecoder.hpp"
 
 #include <QMovie>
 
@@ -27,6 +28,23 @@ ImageAnimation::open(const QString &path, QObject *parent)
             return nullptr;
         }
         return animation;
+    }
+
+    if (JxlAnimation::isAnimated(path))
+    {
+        animation->m_jxl = JxlAnimation::load(path);
+        if (animation->m_jxl)
+        {
+            animation->m_timer.setSingleShot(true);
+            connect(&animation->m_timer, &QTimer::timeout, animation,
+                    &ImageAnimation::advance);
+            animation->m_frame
+                = animation->m_jxl->nextFrame(&animation->m_delayMs);
+            if (!animation->m_frame.isNull())
+                return animation;
+        }
+        delete animation;
+        return nullptr;
     }
 
     animation->m_movie = new QMovie(path, QByteArray(), animation);
@@ -88,16 +106,18 @@ ImageAnimation::currentImage() const
     return m_movie ? m_movie->currentImage() : m_frame;
 }
 
-// The timer of an APNG: show the next frame and wait for as long as it asks.
+// The timer of an APNG or JPEG XL: show the next frame and wait for as long as it asks.
 void
 ImageAnimation::advance()
 {
-    if (!m_running || !m_apng)
+    if (!m_running || !(m_apng || m_jxl))
         return;
 
-    bool wrapped       = false;
-    int delay          = m_delayMs;
-    const QImage frame = m_apng->nextFrame(&delay, &wrapped);
+    bool wrapped = false;
+    int delay    = m_delayMs;
+    const QImage frame = m_apng ? m_apng->nextFrame(&delay, &wrapped)
+                                : m_jxl->nextFrame(&delay, &wrapped);
+    const int playCount = m_apng ? m_apng->playCount() : m_jxl->playCount();
     if (frame.isNull())
     {
         stop();
@@ -110,7 +130,7 @@ ImageAnimation::advance()
         // (0 is for ever); after the last one the animation stays on its last
         // frame, which is still the one showing.
         ++m_roundsDone;
-        if (m_apng->playCount() > 0 && m_roundsDone >= m_apng->playCount())
+        if (playCount > 0 && m_roundsDone >= playCount)
         {
             m_finished = true;
             stop();

@@ -3,6 +3,7 @@
 #include "Config.hpp"
 #include "DynLib.hpp"
 #include "ImageAnimation.hpp"
+#include "JxlDecoder.hpp"
 #include "Model.hpp"
 #include "utils.hpp"
 
@@ -477,255 +478,6 @@ populateExifProperties(const QString &path, Model::Properties &props) noexcept
     el.data_unref(data);
 }
 
-// ---- JPEG XL dynamic-loader support -------------------------------------
-// Only the few ABI details needed for a one-frame RGBA8 decode are declared
-// here, so libjxl headers are not needed to build.
-enum : int
-{
-    JXL_DEC_SUCCESS_          = 0,
-    JXL_DEC_NEED_IMAGE_OUT_   = 5,
-    JXL_DEC_BASIC_INFO_       = 0x40,
-    JXL_DEC_COLOR_ENCODING_   = 0x100,
-    JXL_DEC_FULL_IMAGE_       = 0x1000,
-};
-
-struct JxlPixelFormat_
-{
-    uint32_t num_channels;
-    int data_type; // JXL_TYPE_UINT8 = 2
-    int endianness;
-    size_t align;
-};
-
-// Leading fields of JxlBasicInfo; the rest is padding (sizeof is ~204).
-struct JxlBasicInfo_
-{
-    int32_t have_container;
-    uint32_t xsize, ysize;
-    uint32_t bits_per_sample, exponent_bits_per_sample;
-    unsigned char rest[512];
-};
-
-using PFN_jxl_create   = void *(*)(const void *);
-using PFN_jxl_destroy  = void (*)(void *);
-using PFN_jxl_subscribe = int (*)(void *, int);
-using PFN_jxl_set_input = int (*)(void *, const uint8_t *, size_t);
-using PFN_jxl_process  = int (*)(void *);
-using PFN_jxl_info     = int (*)(const void *, JxlBasicInfo_ *);
-using PFN_jxl_bufsize  = int (*)(const void *, const JxlPixelFormat_ *,
-                                 size_t *);
-using PFN_jxl_setbuf   = int (*)(void *, const JxlPixelFormat_ *, void *,
-                                 size_t);
-using PFN_jxl_srgb     = void (*)(void *, int);
-using PFN_jxl_outprof  = int (*)(void *, const void *, const uint8_t *,
-                                 size_t);
-using PFN_jxl_runner_create = void *(*)(const void *);
-using PFN_jxl_runner_destroy = void (*)(void *);
-using PFN_jxl_runner_threads = uint32_t (*)(uint64_t, uint64_t);
-using PFN_jxl_runner_set = void (*)(void *, size_t);
-using PFN_jxl_set_runner = int (*)(void *, void *, void *);
-
-struct JxlLib
-{
-    PFN_jxl_create create              = nullptr;
-    PFN_jxl_destroy destroy            = nullptr;
-    PFN_jxl_subscribe subscribe        = nullptr;
-    PFN_jxl_set_input set_input        = nullptr;
-    PFN_jxl_process process            = nullptr;
-    PFN_jxl_info get_info              = nullptr;
-    PFN_jxl_bufsize buf_size           = nullptr;
-    PFN_jxl_setbuf set_buf             = nullptr;
-    // Optional: converting to sRGB needs libjxl >= 0.8
-    PFN_jxl_srgb enc_srgb              = nullptr;
-    PFN_jxl_outprof set_out_profile    = nullptr;
-    // Optional: multi-threaded decoding (libjxl_threads)
-    PFN_jxl_runner_create runner_create   = nullptr;
-    PFN_jxl_runner_destroy runner_destroy = nullptr;
-    PFN_jxl_runner_threads runner_suggest = nullptr;
-    PFN_jxl_runner_set runner_set         = nullptr;
-    void *runner_fn                       = nullptr;
-    PFN_jxl_set_runner set_runner         = nullptr;
-    bool ok                               = false;
-
-    static JxlLib &get() noexcept
-    {
-        static JxlLib s;
-        return s;
-    }
-
-private:
-    QLibrary lib;
-    QLibrary threads_lib;
-
-    JxlLib() noexcept
-    {
-#if defined(Q_OS_WIN)
-        const bool loaded = (lib.setFileName("libjxl"), lib.load());
-#else
-        // libjxl's soname follows its minor version, so try each known one.
-        const bool loaded = DynLib::load(
-            lib, "LEKTRA_LIB_JXL", "jxl",
-            {"0.12", "0.11", "0.10", "0.9", "0.8", "0.7"});
-#endif
-        if (!loaded)
-        {
-            qWarning() << "Unable to load libjxl; JPEG XL files can't be opened";
-            return;
-        }
-
-#define LOADSYM(field, sym)                                                    \
-    field = reinterpret_cast<decltype(field)>(lib.resolve(sym));               \
-    if (!field)                                                                \
-    {                                                                          \
-        qWarning() << "Missing symbol" << sym;                                 \
-        return;                                                                \
-    }
-        LOADSYM(create, "JxlDecoderCreate")
-        LOADSYM(destroy, "JxlDecoderDestroy")
-        LOADSYM(subscribe, "JxlDecoderSubscribeEvents")
-        LOADSYM(set_input, "JxlDecoderSetInput")
-        LOADSYM(process, "JxlDecoderProcessInput")
-        LOADSYM(get_info, "JxlDecoderGetBasicInfo")
-        LOADSYM(buf_size, "JxlDecoderImageOutBufferSize")
-        LOADSYM(set_buf, "JxlDecoderSetImageOutBuffer")
-#undef LOADSYM
-
-        enc_srgb = reinterpret_cast<PFN_jxl_srgb>(
-            lib.resolve("JxlColorEncodingSetToSRGB"));
-        set_out_profile = reinterpret_cast<PFN_jxl_outprof>(
-            lib.resolve("JxlDecoderSetOutputColorProfile"));
-        set_runner = reinterpret_cast<PFN_jxl_set_runner>(
-            lib.resolve("JxlDecoderSetParallelRunner"));
-
-#if defined(Q_OS_WIN)
-        threads_lib.setFileName("libjxl_threads");
-        const bool threads = threads_lib.load();
-#else
-        const bool threads = DynLib::load(
-            threads_lib, "LEKTRA_LIB_JXL_THREADS", "jxl_threads",
-            {"0.12", "0.11", "0.10", "0.9", "0.8", "0.7"});
-#endif
-        if (threads)
-        {
-            runner_create = reinterpret_cast<PFN_jxl_runner_create>(
-                threads_lib.resolve("JxlResizableParallelRunnerCreate"));
-            runner_destroy = reinterpret_cast<PFN_jxl_runner_destroy>(
-                threads_lib.resolve("JxlResizableParallelRunnerDestroy"));
-            runner_suggest = reinterpret_cast<PFN_jxl_runner_threads>(
-                threads_lib.resolve("JxlResizableParallelRunnerSuggestThreads"));
-            runner_set = reinterpret_cast<PFN_jxl_runner_set>(
-                threads_lib.resolve("JxlResizableParallelRunnerSetThreads"));
-            runner_fn = reinterpret_cast<void *>(
-                threads_lib.resolve("JxlResizableParallelRunner"));
-        }
-        ok = true;
-    }
-};
-
-// Decodes the first frame of a JPEG XL file to an 8-bit RGBA image. Returns a
-// null image on any failure.
-static QImage
-decodeJxl(const QString &path) noexcept
-{
-    auto &jxl = JxlLib::get();
-    if (!jxl.ok)
-        return {};
-
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly))
-        return {};
-    const QByteArray data = file.readAll();
-    if (data.isEmpty())
-        return {};
-
-    void *dec = jxl.create(nullptr);
-    if (!dec)
-        return {};
-
-    void *runner = nullptr;
-    if (jxl.set_runner && jxl.runner_create && jxl.runner_fn
-        && jxl.runner_destroy)
-    {
-        runner = jxl.runner_create(nullptr);
-        if (runner)
-            jxl.set_runner(dec, jxl.runner_fn, runner);
-    }
-
-    QImage img;
-    const JxlPixelFormat_ fmt{4, 2 /*UINT8*/, 0 /*native*/, 0};
-
-    auto finish = [&]
-    {
-        jxl.destroy(dec);
-        if (runner)
-            jxl.runner_destroy(runner);
-    };
-
-    if (jxl.subscribe(dec, JXL_DEC_BASIC_INFO_ | JXL_DEC_COLOR_ENCODING_
-                               | JXL_DEC_FULL_IMAGE_)
-        != JXL_DEC_SUCCESS_
-        || jxl.set_input(dec, reinterpret_cast<const uint8_t *>(data.constData()),
-                         static_cast<size_t>(data.size()))
-               != JXL_DEC_SUCCESS_)
-    {
-        finish();
-        return {};
-    }
-
-    uint32_t w = 0, h = 0;
-    for (;;)
-    {
-        const int status = jxl.process(dec);
-        if (status == JXL_DEC_BASIC_INFO_)
-        {
-            JxlBasicInfo_ info{};
-            if (jxl.get_info(dec, &info) != JXL_DEC_SUCCESS_ || !info.xsize
-                || !info.ysize)
-                break;
-            w = info.xsize;
-            h = info.ysize;
-            if (runner && jxl.runner_suggest && jxl.runner_set)
-                jxl.runner_set(runner, jxl.runner_suggest(w, h));
-        }
-        else if (status == JXL_DEC_COLOR_ENCODING_)
-        {
-            // Ask for sRGB output so wide-gamut/linear files look right.
-            if (jxl.enc_srgb && jxl.set_out_profile)
-            {
-                alignas(8) unsigned char enc[512] = {};
-                jxl.enc_srgb(enc, 0);
-                jxl.set_out_profile(dec, enc, nullptr, 0);
-            }
-        }
-        else if (status == JXL_DEC_NEED_IMAGE_OUT_)
-        {
-            size_t size = 0;
-            if (!w || !h || jxl.buf_size(dec, &fmt, &size) != JXL_DEC_SUCCESS_)
-                break;
-            img = QImage(static_cast<int>(w), static_cast<int>(h),
-                         QImage::Format_RGBA8888);
-            if (img.isNull() || static_cast<size_t>(img.sizeInBytes()) < size
-                || jxl.set_buf(dec, &fmt, img.bits(), size) != JXL_DEC_SUCCESS_)
-            {
-                img = QImage();
-                break;
-            }
-        }
-        else if (status == JXL_DEC_FULL_IMAGE_)
-        {
-            finish();
-            return img;
-        }
-        else
-        {
-            break; // error, truncated input, or end without an image
-        }
-    }
-
-    finish();
-    return {};
-}
-
 } // namespace
 
 static bool
@@ -1141,7 +893,7 @@ Model::openAsync_image(const QString &canonPath) noexcept
 
         if (m_filetype == FileType::JXL)
         {
-            QImage img = decodeJxl(canonPath);
+            QImage img = JxlAnimation::decodeFirstFrame(canonPath);
             if (img.isNull())
             {
                 QMetaObject::invokeMethod(this, &Model::openFileFailed,
@@ -1150,8 +902,11 @@ Model::openAsync_image(const QString &canonPath) noexcept
             }
             const float fw = static_cast<float>(img.width());
             const float fh = static_cast<float>(img.height());
+            const bool animated = JxlAnimation::isAnimated(canonPath);
             QMetaObject::invokeMethod(
-                this, [this, img = std::move(img), fw, fh]() mutable
+                this,
+                [this, canonPath, img = std::move(img), fw, fh,
+                 animated]() mutable
             {
                 waitForPendingRenders();
                 cleanup_image();
@@ -1162,7 +917,14 @@ Model::openAsync_image(const QString &canonPath) noexcept
                 m_default_page_dim = {fw * 72.0f / m_dpi, fh * 72.0f / m_dpi};
                 m_page_dim_cache.dimensions.assign(1, m_default_page_dim);
                 m_page_dim_cache.known.assign(1, true);
-                m_image_cache = std::move(img);
+                if (animated)
+                {
+                    m_movie       = ImageAnimation::open(canonPath, this);
+                    m_is_animated = m_movie != nullptr;
+                }
+                // Not animated, or could not be played: show the first frame
+                if (!m_movie)
+                    m_image_cache = std::move(img);
                 emit openFileFinished();
             }, Qt::QueuedConnection);
             return;

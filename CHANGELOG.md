@@ -34,7 +34,7 @@ Some options were renamed to be consistent. The old names are ignored, so update
 
 #### Images
 
-- JPEG XL (`.jxl`) images can now be opened, if `libjxl` is installed on the system.
+- JPEG XL (`.jxl`) images, including animated ones, can now be opened if `libjxl` is installed on the system.
 - Optional libraries (`librsvg`, `libexif`, `djvulibre`, `libjxl`) are now found under any installed version. If one isn't found, set `LEKTRA_LIB_RSVG`, `LEKTRA_LIB_CAIRO`, `LEKTRA_LIB_EXIF`, `LEKTRA_LIB_DJVU` or `LEKTRA_LIB_JXL` to its path.
 
 #### Tabs and views

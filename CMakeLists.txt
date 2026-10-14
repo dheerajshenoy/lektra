@@ -403,6 +403,7 @@ qt_add_executable(${PROJECT_NAME}
     src/lektra/Actions.cpp
     src/ApngDecoder.cpp
     src/ImageAnimation.cpp
+    src/JxlDecoder.cpp
     src/Statusbar.cpp
     src/StatusbarLayout.cpp
     src/Model.cpp
