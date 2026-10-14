@@ -180,6 +180,8 @@ annotTypeName(enum pdf_annot_type type)
             return "polygon";
         case PDF_ANNOT_FREE_TEXT:
             return "inline_note";
+        case PDF_ANNOT_STAMP:
+            return "image";
         default:
             return "other";
     }

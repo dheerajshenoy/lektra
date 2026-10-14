@@ -52,6 +52,7 @@ public:
         Ellipse,
         Polygon,
         Note,
+        Image,
         COUNT
     };
 
@@ -70,6 +71,7 @@ public:
         BottomLeft,
         Left,
         Body, // not a handle: the annotation itself, to move
+        Rotate, // above the top, turns it
     };
 
     /** Whether the annotation can be moved (and resized, see canResize()). */
@@ -90,13 +92,25 @@ public:
         return {};
     }
 
+    /** Whether it can be turned, around the centre of geometryRect(). */
+    virtual bool canRotate() const noexcept
+    {
+        return false;
+    }
+
+    /** How far it is turned, in degrees clockwise. */
+    virtual qreal rotation() const noexcept
+    {
+        return 0;
+    }
+
     /** What is at `itemPos`: one of the handles, the body, or None. Handles
      * are only there while the annotation is selected. `pxScale` is the zoom
      * of the view, as the handles have a size in pixels. */
     Handle handleAt(const QPointF &itemPos, qreal pxScale) const noexcept;
 
     /** The outline of the new geometry while it is dragged. */
-    void setPreviewRect(const QRectF &rect) noexcept;
+    void setPreviewRect(const QRectF &rect, qreal angle = 0) noexcept;
     void clearPreviewRect() noexcept;
 
     /** Restore brush and pen to the values they had at construction time. */
@@ -208,6 +222,7 @@ protected:
 
     QString m_comment;
     QRectF m_preview_rect;
+    qreal m_preview_angle{0};
 
     bool m_glow_enabled{false};
     int m_glow_width{6};

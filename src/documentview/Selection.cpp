@@ -1286,6 +1286,17 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
         hasActions = true;
     }
 
+    if (m_model->supports_annotations() && !m_thumbnail_mode)
+    {
+        if (hasActions)
+            menu->addSeparator();
+        const QPointF scenePos = m_gview->mapToScene(
+            m_gview->viewport()->mapFromGlobal(globalPos));
+        addAction(tr("Insert Image Here..."),
+                  [this, scenePos]() { AddImageAnnotation({}, scenePos); });
+        hasActions = true;
+    }
+
     if (!hasActions)
     {
         delete menu;

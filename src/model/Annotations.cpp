@@ -4,6 +4,7 @@
 #include "Model.hpp"
 #include "utils.hpp"
 
+#include <QBuffer>
 #include <QFile>
 #include <QImageReader>
 #include <QJsonArray>
@@ -17,6 +18,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cmath>
 #include <limits>
 #include <map>
 #include <qbytearrayview.h>
@@ -1471,6 +1473,353 @@ Model::addShapeAnnotation(const int pageno, const enum pdf_annot_type type,
     return objNum;
 }
 
+// ---------------------------------------------------------------------------
+// Image annotations: a stamp whose appearance is the image, turned by the
+// matrix of the appearance form and marked with /LektraImage. MuPDF draws
+// its own appearance for a stamp whenever it is changed, so every change of
+// one goes through writeImageAppearance().
+// ---------------------------------------------------------------------------
+bool
+Model::isImageAnnot(fz_context *ctx, pdf_annot *annot)
+{
+    return pdf_annot_type(ctx, annot) == PDF_ANNOT_STAMP
+           && pdf_dict_gets(ctx, pdf_annot_obj(ctx, annot), "LektraImage");
+}
+
+// The image of the appearance (not kept).
+pdf_obj *
+Model::imageOf(fz_context *ctx, pdf_annot *annot)
+{
+    pdf_obj *xobjects = pdf_dict_getp(ctx, pdf_annot_obj(ctx, annot),
+                                      "AP/N/Resources/XObject");
+    return pdf_dict_len(ctx, xobjects) > 0
+               ? pdf_dict_get_val(ctx, xobjects, 0)
+               : nullptr;
+}
+
+// Where an image annotation is (see Model::AnnotGeometry).
+bool
+Model::readImageFrame(fz_context *ctx, pdf_annot *annot, AnnotGeometry &out)
+{
+    pdf_obj *form = pdf_dict_getp(ctx, pdf_annot_obj(ctx, annot), "AP/N");
+    pdf_obj *bbox = pdf_dict_get(ctx, form, PDF_NAME(BBox));
+    pdf_obj *mat  = pdf_dict_get(ctx, form, PDF_NAME(Matrix));
+    if (!bbox || !mat)
+        return false;
+
+    const fz_rect box = pdf_to_rect(ctx, bbox);
+    const fz_matrix m = pdf_to_matrix(ctx, mat);
+    const float w     = box.x1 - box.x0;
+    const float h     = box.y1 - box.y0;
+    const float phi   = std::atan2(m.b, m.a);
+
+    // The sides, in the page's own space and then in the page space.
+    fz_matrix ctm;
+    pdf_page_transform(ctx, pdf_annot_page(ctx, annot), nullptr, &ctm);
+    const fz_point right = fz_transform_vector(
+        {w * std::cos(phi), w * std::sin(phi)}, ctm);
+    const fz_point up = fz_transform_vector(
+        {-h * std::sin(phi), h * std::cos(phi)}, ctm);
+
+    out.rect     = pdf_annot_rect(ctx, annot);
+    out.center   = {(out.rect.x0 + out.rect.x1) / 2,
+                    (out.rect.y0 + out.rect.y1) / 2};
+    out.ux       = right;
+    out.uy       = {-up.x, -up.y};
+    out.framed   = true;
+    out.vertices.clear();
+    return true;
+}
+
+// Draws `image` in the frame.
+void
+Model::writeImageAppearance(fz_context *ctx, pdf_annot *annot,
+                            const AnnotGeometry &g, pdf_obj *image)
+{
+    pdf_document *doc = pdf_annot_page(ctx, annot)->doc;
+
+    fz_matrix ctm;
+    pdf_page_transform(ctx, pdf_annot_page(ctx, annot), nullptr, &ctm);
+    const fz_matrix inv = fz_invert_matrix(ctm);
+
+    const fz_point c  = fz_transform_point(g.center, inv);
+    const fz_point ux = fz_transform_vector(g.ux, inv);
+    const fz_point uy = fz_transform_vector(g.uy, inv);
+    const float w     = std::max(std::hypot(ux.x, ux.y), 1.0f);
+    const float h     = std::max(std::hypot(uy.x, uy.y), 1.0f);
+    const float deg   = std::atan2(ux.y, ux.x) * 180.0f / float(M_PI);
+
+    const fz_matrix m = fz_rotate(deg);
+    const fz_rect box = {0, 0, w, h};
+    const fz_rect turned = fz_transform_rect(box, m);
+    const float bw       = turned.x1 - turned.x0;
+    const float bh       = turned.y1 - turned.y0;
+    const fz_rect rect = fz_transform_rect(
+        {c.x - bw / 2, c.y - bh / 2, c.x + bw / 2, c.y + bh / 2}, ctm);
+
+    pdf_obj *res      = nullptr;
+    pdf_obj *xobjects = nullptr;
+    fz_buffer *contents = nullptr;
+    fz_var(res);
+    fz_var(xobjects);
+    fz_var(contents);
+    fz_try(ctx)
+    {
+        res      = pdf_new_dict(ctx, doc, 1);
+        xobjects = pdf_new_dict(ctx, doc, 1);
+        pdf_dict_puts(ctx, xobjects, "Img", image);
+        pdf_dict_put(ctx, res, PDF_NAME(XObject), xobjects);
+
+        contents = fz_new_buffer(ctx, 64);
+        fz_append_printf(ctx, contents, "q %g 0 0 %g 0 0 cm /Img Do Q", w, h);
+
+        // The rectangle first: setting it makes MuPDF draw the annotation
+        // again, setting the appearance says it is drawn.
+        pdf_set_annot_rect(ctx, annot, rect);
+        pdf_set_annot_appearance(ctx, annot, "N", nullptr, m, box, res,
+                                 contents);
+    }
+    fz_always(ctx)
+    {
+        fz_drop_buffer(ctx, contents);
+        pdf_drop_obj(ctx, xobjects);
+        pdf_drop_obj(ctx, res);
+    }
+    fz_catch(ctx)
+    {
+        fz_rethrow(ctx);
+    }
+}
+
+// Sets the text of an annotation without MuPDF drawing an image over again.
+void
+Model::setAnnotContentsKeepImage(fz_context *ctx, pdf_annot *annot, const char *text)
+{
+    if (!isImageAnnot(ctx, annot))
+    {
+        pdf_set_annot_contents(ctx, annot, text);
+        return;
+    }
+
+    AnnotGeometry g;
+    pdf_obj *image = pdf_keep_obj(ctx, imageOf(ctx, annot));
+    fz_try(ctx)
+    {
+        const bool framed = readImageFrame(ctx, annot, g);
+        pdf_set_annot_contents(ctx, annot, text);
+        if (framed && image)
+            writeImageAppearance(ctx, annot, g, image);
+    }
+    fz_always(ctx)
+    {
+        pdf_drop_obj(ctx, image);
+    }
+    fz_catch(ctx)
+    {
+        fz_rethrow(ctx);
+    }
+}
+
+
+int
+Model::addImageAnnotation(const int pageno, const QByteArray &data,
+                          const AnnotGeometry &frame,
+                          const QString &content) noexcept
+{
+    int objNum       = -1;
+    pdf_annot *annot = nullptr;
+    pdf_page *page   = nullptr;
+    fz_buffer *buf   = nullptr;
+    fz_image *image  = nullptr;
+    pdf_obj *imgobj  = nullptr;
+
+    std::unique_lock<std::mutex> lock(m_doc_mutex);
+
+    fz_var(buf);
+    fz_var(image);
+    fz_var(imgobj);
+    fz_var(annot);
+    fz_var(page);
+    fz_try(m_ctx)
+    {
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        buf = fz_new_buffer_from_copied_data(
+            m_ctx, reinterpret_cast<const unsigned char *>(data.constData()),
+            size_t(data.size()));
+        image  = fz_new_image_from_buffer(m_ctx, buf);
+        imgobj = pdf_add_image(m_ctx, m_pdf_doc, image);
+
+        annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_STAMP);
+        if (!annot)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to create annotation");
+
+        pdf_dict_puts_drop(m_ctx, pdf_annot_obj(m_ctx, annot), "LektraImage",
+                           PDF_TRUE);
+        if (!content.isEmpty())
+            pdf_set_annot_contents(m_ctx, annot, content.toUtf8().constData());
+
+        writeImageAppearance(m_ctx, annot, frame, imgobj);
+        pdf_update_page(m_ctx, page);
+
+        objNum = pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot));
+    }
+    fz_always(m_ctx)
+    {
+        pdf_drop_obj(m_ctx, imgobj);
+        fz_drop_image(m_ctx, image);
+        fz_drop_buffer(m_ctx, buf);
+        pdf_drop_annot(m_ctx, annot);
+        pdf_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Adding the image failed:" << fz_caught_message(m_ctx);
+        return -1;
+    }
+    lock.unlock();
+
+    if (objNum >= 0)
+    {
+        invalidatePageCache(pageno);
+        emit reloadRequested(pageno);
+    }
+    return objNum;
+}
+
+QByteArray
+Model::annotImageData(int pageno, int objNum) noexcept
+{
+    QByteArray png;
+    objNum = resolveAnnot(objNum);
+
+    pdf_page *page = nullptr;
+    std::unique_lock<std::mutex> lock(m_doc_mutex);
+
+    fz_try(m_ctx)
+    {
+        page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        for (pdf_annot *annot = pdf_first_annot(m_ctx, page); annot;
+             annot            = pdf_next_annot(m_ctx, annot))
+        {
+            if (pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot)) != objNum
+                || !isImageAnnot(m_ctx, annot))
+                continue;
+
+            pdf_obj *imgobj = imageOf(m_ctx, annot);
+            if (!imgobj)
+                break;
+
+            fz_image *image  = nullptr;
+            fz_pixmap *color = nullptr;
+            fz_pixmap *rgb   = nullptr;
+            fz_pixmap *mask  = nullptr;
+            fz_var(image);
+            fz_var(color);
+            fz_var(rgb);
+            fz_var(mask);
+            fz_try(m_ctx)
+            {
+                image = pdf_load_image(m_ctx, m_pdf_doc, imgobj);
+                color = fz_get_pixmap_from_image(m_ctx, image, nullptr, nullptr,
+                                                 nullptr, nullptr);
+                rgb   = fz_convert_pixmap(m_ctx, color, fz_device_rgb(m_ctx),
+                                          nullptr, nullptr,
+                                          fz_default_color_params, 0);
+
+                QImage img(rgb->w, rgb->h, QImage::Format_RGBA8888);
+                for (int y = 0; y < rgb->h; ++y)
+                {
+                    const unsigned char *src
+                        = rgb->samples + size_t(y) * rgb->stride;
+                    unsigned char *dst = img.scanLine(y);
+                    for (int x = 0; x < rgb->w; ++x)
+                    {
+                        dst[4 * x]     = src[rgb->n * x];
+                        dst[4 * x + 1] = src[rgb->n * x + 1];
+                        dst[4 * x + 2] = src[rgb->n * x + 2];
+                        dst[4 * x + 3] = 255;
+                    }
+                }
+
+                // The transparency of the image is an image of its own.
+                if (image->mask)
+                {
+                    mask = fz_get_pixmap_from_image(m_ctx, image->mask, nullptr,
+                                                    nullptr, nullptr, nullptr);
+                    for (int y = 0; y < img.height(); ++y)
+                    {
+                        const int my = std::min(
+                            mask->h - 1, int(int64_t(y) * mask->h / img.height()));
+                        const unsigned char *src
+                            = mask->samples + size_t(my) * mask->stride;
+                        unsigned char *dst = img.scanLine(y);
+                        for (int x = 0; x < img.width(); ++x)
+                        {
+                            const int mx = std::min(
+                                mask->w - 1,
+                                int(int64_t(x) * mask->w / img.width()));
+                            dst[4 * x + 3] = src[mask->n * mx];
+                        }
+                    }
+                }
+
+                QBuffer out(&png);
+                out.open(QIODevice::WriteOnly);
+                img.save(&out, "PNG");
+            }
+            fz_always(m_ctx)
+            {
+                fz_drop_pixmap(m_ctx, mask);
+                fz_drop_pixmap(m_ctx, rgb);
+                fz_drop_pixmap(m_ctx, color);
+                fz_drop_image(m_ctx, image);
+            }
+            fz_catch(m_ctx)
+            {
+                fz_rethrow(m_ctx);
+            }
+            break;
+        }
+    }
+    fz_always(m_ctx)
+    {
+        pdf_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "annotImageData failed:" << fz_caught_message(m_ctx);
+        return {};
+    }
+    return png;
+}
+
+void
+Model::aliasAnnot(int from, int to) noexcept
+{
+    if (from != to)
+        m_annot_alias[from] = to;
+}
+
+int
+Model::resolveAnnot(int objNum) const noexcept
+{
+    // A chain at most as long as the table, in case of a loop.
+    for (size_t i = 0; i <= m_annot_alias.size(); ++i)
+    {
+        const auto it = m_annot_alias.find(objNum);
+        if (it == m_annot_alias.end())
+            break;
+        objNum = it->second;
+    }
+    return objNum;
+}
+
 int
 Model::addTextAnnotation(const int pageno, const fz_rect &rect,
                          const QString &text) noexcept
@@ -1541,8 +1890,9 @@ Model::addTextAnnotation(const int pageno, const fz_rect &rect,
 }
 
 QString
-Model::getAnnotComment(const int pageno, const int objNum) noexcept
+Model::getAnnotComment(const int pageno, int objNum) noexcept
 {
+    objNum = resolveAnnot(objNum);
     QString comment;
     pdf_page *page = nullptr;
     fz_try(m_ctx)
@@ -1574,9 +1924,10 @@ Model::getAnnotComment(const int pageno, const int objNum) noexcept
 }
 
 void
-Model::addAnnotComment(const int pageno, const int objNum,
+Model::addAnnotComment(const int pageno, int objNum,
                        const QString &text) noexcept
 {
+    objNum = resolveAnnot(objNum);
     bool changed   = false;
     pdf_page *page = nullptr;
 
@@ -1593,7 +1944,7 @@ Model::addAnnotComment(const int pageno, const int objNum,
                 continue;
 
             const QByteArray utf8 = text.toUtf8();
-            pdf_set_annot_contents(m_ctx, annot, utf8.constData());
+            setAnnotContentsKeepImage(m_ctx, annot, utf8.constData());
             pdf_update_annot(m_ctx, annot);
             pdf_update_page(m_ctx, page);
             changed = true;
@@ -1618,8 +1969,9 @@ Model::addAnnotComment(const int pageno, const int objNum,
 }
 
 void
-Model::removeAnnotComment(const int pageno, const int objNum) noexcept
+Model::removeAnnotComment(const int pageno, int objNum) noexcept
 {
+    objNum = resolveAnnot(objNum);
     bool changed   = false;
     pdf_page *page = nullptr;
 
@@ -1635,7 +1987,7 @@ Model::removeAnnotComment(const int pageno, const int objNum) noexcept
             if (pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot)) != objNum)
                 continue;
 
-            pdf_set_annot_contents(m_ctx, annot, "");
+            setAnnotContentsKeepImage(m_ctx, annot, "");
             pdf_update_annot(m_ctx, annot);
             pdf_update_page(m_ctx, page);
             changed = true;
@@ -1680,13 +2032,17 @@ Model::setUrlLinkRegex(const QString &pattern) noexcept
 void
 Model::removeAnnotations(int pageno, const std::vector<int> &objNums) noexcept
 {
-    if (objNums.empty())
+    std::vector<int> resolved;
+    resolved.reserve(objNums.size());
+    for (int n : objNums)
+        resolved.push_back(resolveAnnot(n));
+    if (resolved.empty())
         return;
 
     // Build fast lookup set
     std::unordered_set<int> to_delete;
-    to_delete.reserve(objNums.size());
-    for (int n : objNums)
+    to_delete.reserve(resolved.size());
+    for (int n : resolved)
         to_delete.insert(n);
 
     pdf_page *page = nullptr;
@@ -1906,6 +2262,7 @@ Model::exportTextHighlights(const QString &path) noexcept
 bool
 Model::annotGeometry(int pageno, int objNum, AnnotGeometry &out) noexcept
 {
+    objNum = resolveAnnot(objNum);
     if (!m_pdf_doc)
         return false;
 
@@ -1929,6 +2286,12 @@ Model::annotGeometry(int pageno, int objNum, AnnotGeometry &out) noexcept
                 continue;
 
             out.vertices.clear();
+            out.framed = false;
+            if (isImageAnnot(m_ctx, annot))
+            {
+                found = readImageFrame(m_ctx, annot, out);
+                break;
+            }
             // a polygon has no rectangle of its own
             if (pdf_annot_type(m_ctx, annot) != PDF_ANNOT_POLYGON)
                 out.rect = pdf_annot_rect(m_ctx, annot);
@@ -1960,6 +2323,7 @@ void
 Model::setAnnotGeometry(int pageno, int objNum,
                         const AnnotGeometry &geometry) noexcept
 {
+    objNum = resolveAnnot(objNum);
     if (!m_pdf_doc)
         return;
 
@@ -1982,7 +2346,24 @@ Model::setAnnotGeometry(int pageno, int objNum,
             if (pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot)) != objNum)
                 continue;
 
-            if (pdf_annot_type(m_ctx, annot) == PDF_ANNOT_POLYGON)
+            if (geometry.framed && isImageAnnot(m_ctx, annot))
+            {
+                pdf_obj *image = pdf_keep_obj(m_ctx, imageOf(m_ctx, annot));
+                fz_try(m_ctx)
+                {
+                    if (image)
+                        writeImageAppearance(m_ctx, annot, geometry, image);
+                }
+                fz_always(m_ctx)
+                {
+                    pdf_drop_obj(m_ctx, image);
+                }
+                fz_catch(m_ctx)
+                {
+                    fz_rethrow(m_ctx);
+                }
+            }
+            else if (pdf_annot_type(m_ctx, annot) == PDF_ANNOT_POLYGON)
             {
                 pdf_clear_annot_vertices(m_ctx, annot);
                 for (const fz_point &p : geometry.vertices)
@@ -2019,6 +2400,7 @@ Model::setAnnotGeometry(int pageno, int objNum,
 void
 Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
 {
+    index = resolveAnnot(index);
     if (!m_pdf_doc)
         return;
 
@@ -2036,6 +2418,9 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
         {
             if (pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot)) != index)
                 continue;
+
+            if (isImageAnnot(m_ctx, annot))
+                break;
 
             const float rgb[3] = {color.redF(), color.greenF(), color.blueF()};
             switch (pdf_annot_type(m_ctx, annot))
@@ -2092,8 +2477,9 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
 }
 
 QColor
-Model::getAnnotColor(const int pageno, const int objNum) noexcept
+Model::getAnnotColor(const int pageno, int objNum) noexcept
 {
+    objNum = resolveAnnot(objNum);
     QColor color;
     pdf_page *page = nullptr;
 

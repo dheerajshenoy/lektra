@@ -824,6 +824,11 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("annot_note_mode",
                            tr("Toggle inline note annotation mode"),
                            [this](const QStringList &) { ToggleAnnotNote(); });
+    m_command_manager->reg("annot_image",
+                           tr("Place an image on the page (asks for the file "
+                              "if no path is given)"),
+                           [this](const QStringList &args)
+    { AddImageAnnotation(args); });
     m_command_manager->reg(
         "annot_highlight_mode", tr("Toggle text highlight mode"),
         [this](const QStringList &) { ToggleTextHighlight(); });

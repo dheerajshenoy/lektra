@@ -747,6 +747,20 @@ Lektra::ToggleAnnotNote() noexcept
     }
 }
 
+// Place an image on the page (the file is asked for if not given)
+void
+Lektra::AddImageAnnotation(const QStringList &args) noexcept
+{
+    if (!m_doc)
+        return;
+
+    if (m_doc->fileType() == Model::FileType::PDF)
+        m_doc->AddImageAnnotation(args.value(0));
+    else
+        QMessageBox::information(this, tr("Add Image"),
+                                 tr("Not a PDF file to annotate"));
+}
+
 // Toggle annotation select mode
 void
 Lektra::ToggleAnnotSelect() noexcept

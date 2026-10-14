@@ -199,6 +199,7 @@ public:
     void ToggleAnnotEllipse() noexcept;
     void ToggleAnnotPolygon() noexcept;
     void ToggleAnnotNote() noexcept;
+    void AddImageAnnotation(const QStringList &args) noexcept;
     void ToggleAnnotSelect() noexcept;
     void ToggleAnnotPopup() noexcept;
     void FileProperties() noexcept;

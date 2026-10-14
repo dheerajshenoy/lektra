@@ -39,8 +39,11 @@ public:
 
     void redo() override
     {
-        m_objNum = m_model->addShapeAnnotation(m_pageno, m_type, m_rect,
-                                               m_vertices, m_text);
+        const int before = m_objNum;
+        m_objNum         = m_model->addShapeAnnotation(m_pageno, m_type, m_rect,
+                                                       m_vertices, m_text);
+        if (before >= 0 && m_objNum >= 0)
+            m_model->aliasAnnot(before, m_objNum);
     }
 
 private:

@@ -18,6 +18,7 @@
 #include <QSvgRenderer>
 #include <QtConcurrent/QtConcurrent>
 #include <algorithm>
+#include <cmath>
 #include <array>
 #include <cctype>
 #include <limits>
@@ -1229,6 +1230,17 @@ Model::renderPageWithExtrasAsync(
             fz_rect r = fz_transform_rect(annot.rect, transform);
             QRectF qtRect(r.x0 * scale, r.y0 * scale, (r.x1 - r.x0) * scale,
                           (r.y1 - r.y0) * scale);
+            if (annot.framed)
+            {
+                const fz_point c  = fz_transform_point(annot.center, transform);
+                const fz_point ux = fz_transform_vector(annot.ux, transform);
+                const fz_point uy = fz_transform_vector(annot.uy, transform);
+                const qreal w     = std::hypot(ux.x, ux.y) * scale;
+                const qreal h     = std::hypot(uy.x, uy.y) * scale;
+                qtRect = QRectF(c.x * scale - w / 2, c.y * scale - h / 2, w, h);
+                renderAnnot.angle
+                    = std::atan2(ux.y, ux.x) * 180.0 / M_PI;
+            }
             renderAnnot.rect  = qtRect;
             renderAnnot.type  = annot.type;
             renderAnnot.index = annot.index;

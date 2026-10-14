@@ -4,6 +4,7 @@
 
 // Annotations
 #include "Annotations/HighlightAnnotation.hpp"
+#include "Annotations/ImageAnnotation.hpp"
 #include "Annotations/PopupAnnotation.hpp"
 #include "Annotations/RectAnnotation.hpp"
 #include "Annotations/ShapeAnnotation.hpp"
@@ -14,6 +15,7 @@
 #include "Commands/AnnotGeometryCommand.hpp"
 #include "Commands/AnnotCommentCommand.hpp"
 #include "Commands/DeleteAnnotationsCommand.hpp"
+#include "Commands/ImageAnnotationCommand.hpp"
 #include "Commands/RectAnnotationCommand.hpp"
 #include "Commands/ShapeAnnotationCommand.hpp"
 #include "Commands/TextAnnotationCommand.hpp"
@@ -31,11 +33,15 @@
 #include "WaitingSpinnerWidget.hpp"
 #include "utils.hpp"
 
+#include <QBuffer>
 #include <QClipboard>
 #include <QDesktopServices>
+#include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFontMetricsF>
 #include <QFutureWatcher>
+#include <QImageReader>
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -755,6 +761,14 @@ DocumentView::renderAnnotations(
             }
             break;
 
+            case PDF_ANNOT_STAMP:
+            {
+                annot_item = new ImageAnnotation(m_config.annotations.rect,
+                                                 annot.rect, annot.angle,
+                                                 annot.index, annot.text);
+            }
+            break;
+
             case PDF_ANNOT_TEXT:
             {
                 annot_item = new PopupAnnotation(m_config.annotations.popup,
@@ -887,6 +901,8 @@ DocumentView::grabAnnotation(QPointF scenePos) noexcept
             m_annot_drag.startPos  = annot->mapFromScene(scenePos);
             m_annot_drag.startRect = annot->geometryRect();
             m_annot_drag.rect      = m_annot_drag.startRect;
+            m_annot_drag.startAngle = annot->rotation();
+            m_annot_drag.angle      = m_annot_drag.startAngle;
             return true;
         }
     }
@@ -922,6 +938,8 @@ DocumentView::annotationCursor(QPointF scenePos) noexcept
                     return Qt::SizeHorCursor;
                 case Annotation::Handle::Body:
                     return Qt::SizeAllCursor;
+                case Annotation::Handle::Rotate:
+                    return Qt::CrossCursor;
                 case Annotation::Handle::None:
                     break;
             }
@@ -944,20 +962,45 @@ DocumentView::dragAnnotation(QPointF scenePos, bool keepAspect) noexcept
     using H = Annotation::Handle;
     constexpr qreal minSize = 8.0;
 
-    const QPointF delta = annot->mapFromScene(scenePos) - m_annot_drag.startPos;
+    const QPointF pos   = annot->mapFromScene(scenePos);
+    const QPointF delta = pos - m_annot_drag.startPos;
     const QRectF &start = m_annot_drag.startRect;
+    const qreal angle0  = m_annot_drag.startAngle;
     QRectF r            = start;
+    qreal angle         = angle0;
 
-    if (m_annot_drag.handle == H::Body)
+    // The vector `v` turned by `deg` (clockwise on the screen)
+    auto turn = [](const QPointF &v, qreal deg)
+    {
+        const qreal a = qDegreesToRadians(deg);
+        return QPointF(v.x() * std::cos(a) - v.y() * std::sin(a),
+                       v.x() * std::sin(a) + v.y() * std::cos(a));
+    };
+
+    if (m_annot_drag.handle == H::Rotate)
+    {
+        const QPointF c = start.center();
+        angle = qRadiansToDegrees(std::atan2(pos.y() - c.y(), pos.x() - c.x()))
+                + 90.0;
+        if (keepAspect) // Shift: in steps
+            angle = std::round(angle / 15.0) * 15.0;
+        angle = std::remainder(angle, 360.0);
+    }
+    else if (m_annot_drag.handle == H::Body)
     {
         r.translate(delta);
         if (bounds.isValid())
         {
             // keep it on the page
-            r.translate(std::max(bounds.left() - r.left(), 0.0), 0);
-            r.translate(std::min(bounds.right() - r.right(), 0.0), 0);
-            r.translate(0, std::max(bounds.top() - r.top(), 0.0));
-            r.translate(0, std::min(bounds.bottom() - r.bottom(), 0.0));
+            QTransform t;
+            t.translate(r.center().x(), r.center().y());
+            t.rotate(angle0);
+            t.translate(-r.center().x(), -r.center().y());
+            const QRectF seen = t.mapRect(r);
+            r.translate(std::max(bounds.left() - seen.left(), 0.0), 0);
+            r.translate(std::min(bounds.right() - seen.right(), 0.0), 0);
+            r.translate(0, std::max(bounds.top() - seen.top(), 0.0));
+            r.translate(0, std::min(bounds.bottom() - seen.bottom(), 0.0));
         }
     }
     else
@@ -971,18 +1014,21 @@ DocumentView::dragAnnotation(QPointF scenePos, bool keepAspect) noexcept
         const bool bottom
             = h == H::Bottom || h == H::BottomLeft || h == H::BottomRight;
 
+        // Resized in the frame of the annotation, where it is not turned.
+        const QPointF d = turn(delta, -angle0);
+
         qreal l = start.left(), t = start.top(), rr = start.right(),
               b = start.bottom();
         if (left)
-            l = std::min(start.left() + delta.x(), rr - minSize);
+            l = std::min(start.left() + d.x(), rr - minSize);
         if (right)
-            rr = std::max(start.right() + delta.x(), l + minSize);
+            rr = std::max(start.right() + d.x(), l + minSize);
         if (top)
-            t = std::min(start.top() + delta.y(), b - minSize);
+            t = std::min(start.top() + d.y(), b - minSize);
         if (bottom)
-            b = std::max(start.bottom() + delta.y(), t + minSize);
+            b = std::max(start.bottom() + d.y(), t + minSize);
 
-        if (bounds.isValid())
+        if (bounds.isValid() && angle0 == 0)
         {
             l  = std::max(l, bounds.left());
             t  = std::max(t, bounds.top());
@@ -991,8 +1037,11 @@ DocumentView::dragAnnotation(QPointF scenePos, bool keepAspect) noexcept
         }
 
         // Shift on a corner: keep the proportions, the opposite corner stays.
-        if (keepAspect && (left || right) && (top || bottom)
-            && start.height() > 0)
+        // An image keeps them unless Shift is held, to not stretch it.
+        const bool keep = annot->atype() == Annotation::Type::Image
+                              ? !keepAspect
+                              : keepAspect;
+        if (keep && (left || right) && (top || bottom) && start.height() > 0)
         {
             const qreal ratio = start.width() / start.height();
             qreal w           = rr - l;
@@ -1012,10 +1061,20 @@ DocumentView::dragAnnotation(QPointF scenePos, bool keepAspect) noexcept
         }
 
         r = QRectF(QPointF(l, t), QPointF(rr, b));
+
+        // The opposite side stays where it is on the page: the new centre is
+        // where the centre of this one is, turned around the old centre.
+        if (angle0 != 0)
+        {
+            const QPointF c = start.center()
+                              + turn(r.center() - start.center(), angle0);
+            r.moveCenter(c);
+        }
     }
 
-    m_annot_drag.rect = r;
-    annot->setPreviewRect(r);
+    m_annot_drag.rect  = r;
+    m_annot_drag.angle = angle;
+    annot->setPreviewRect(r, angle);
 }
 
 void
@@ -1030,7 +1089,8 @@ DocumentView::dropAnnotation(QPointF) noexcept
 
     annot->clearPreviewRect();
 
-    if (drag.rect == drag.startRect || !m_model)
+    if ((drag.rect == drag.startRect && drag.angle == drag.startAngle)
+        || !m_model)
         return;
 
     const int pageno = drag.pageno;
@@ -1047,6 +1107,16 @@ DocumentView::dropAnnotation(QPointF) noexcept
     Model::AnnotGeometry before, after;
     if (!m_model->annotGeometry(pageno, objNum, before))
         return;
+
+    if (annot->atype() == Annotation::Type::Image)
+    {
+        after = frameOf(pageno, drag.rect, drag.angle);
+        m_reselect_pageno = pageno;
+        m_reselect_objnum = objNum;
+        m_model->undoStack()->push(new AnnotGeometryCommand(
+            m_model, pageno, objNum, std::move(before), std::move(after)));
+        return;
+    }
 
     const fz_rect from = toPdf(drag.startRect);
     const fz_rect to   = toPdf(drag.rect);
@@ -1081,6 +1151,26 @@ DocumentView::dropAnnotation(QPointF) noexcept
     m_reselect_objnum = objNum;
     m_model->undoStack()->push(new AnnotGeometryCommand(
         m_model, pageno, objNum, std::move(before), std::move(after)));
+}
+
+Model::AnnotGeometry
+DocumentView::frameOf(int pageno, const QRectF &rect, qreal angle) const noexcept
+{
+    QTransform t;
+    t.translate(rect.center().x(), rect.center().y());
+    t.rotate(angle);
+    t.translate(-rect.center().x(), -rect.center().y());
+
+    const fz_point tl = m_model->toPDFSpace(pageno, t.map(rect.topLeft()));
+    const fz_point tr = m_model->toPDFSpace(pageno, t.map(rect.topRight()));
+    const fz_point bl = m_model->toPDFSpace(pageno, t.map(rect.bottomLeft()));
+
+    Model::AnnotGeometry g;
+    g.framed = true;
+    g.ux     = {tr.x - tl.x, tr.y - tl.y};
+    g.uy     = {bl.x - tl.x, bl.y - tl.y};
+    g.center = {(tr.x + bl.x) / 2, (tr.y + bl.y) / 2};
+    return g;
 }
 
 void
@@ -1335,6 +1425,77 @@ DocumentView::handleAnnotNoteRequested(QRectF area) noexcept
 
     m_model->undoStack()->push(new ShapeAnnotationCommand(
         m_model, pageno, PDF_ANNOT_FREE_TEXT, rect, {}, text));
+}
+
+// Place an image on the page, at `scenePos` or in the middle of the view
+void
+DocumentView::AddImageAnnotation(const QString &filePath,
+                                 std::optional<QPointF> scenePos) noexcept
+{
+    if (!m_model || !m_model->supports_annotations())
+        return;
+
+    const QPointF at
+        = scenePos ? *scenePos
+                   : m_gview->mapToScene(m_gview->viewport()->rect().center());
+
+    int pageno;
+    GraphicsImageItem *pageItem;
+    if (!pageAtScenePos(at, pageno, pageItem))
+        return;
+
+    QString path = filePath;
+    if (path.isEmpty())
+        path = QFileDialog::getOpenFileName(
+            this, tr("Add Image"), QString(),
+            tr("Images (*.png *.jpg *.jpeg *.bmp *.gif *.tif *.tiff *.webp);;"
+               "All files (*)"));
+    if (path.isEmpty())
+        return;
+
+    QImageReader reader(path);
+    reader.setAutoTransform(true);
+    const QSize size = reader.size();
+    if (!size.isValid() || size.isEmpty())
+    {
+        QMessageBox::warning(this, tr("Add Image"),
+                             tr("Could not read the image."));
+        return;
+    }
+
+    // PNG and JPEG go into the document as they are, anything else (or an
+    // image that has to be turned first) as PNG.
+    const QString suffix = QFileInfo(path).suffix().toLower();
+    QByteArray data;
+    if ((suffix == "png" || suffix == "jpg" || suffix == "jpeg")
+        && reader.transformation() == QImageIOHandler::TransformationNone)
+    {
+        QFile file(path);
+        if (file.open(QIODevice::ReadOnly))
+            data = file.readAll();
+    }
+    if (data.isEmpty())
+    {
+        const QImage image = reader.read();
+        if (image.isNull())
+        {
+            QMessageBox::warning(this, tr("Add Image"),
+                                 tr("Could not read the image."));
+            return;
+        }
+        QBuffer buffer(&data);
+        buffer.open(QIODevice::WriteOnly);
+        image.save(&buffer, "PNG");
+    }
+
+    // A third of the width of the page, with the proportions of the image.
+    const qreal ratio = qreal(size.width()) / qreal(size.height());
+    const qreal w     = pageItem->boundingRect().width() / 3.0;
+    QRectF frame(0, 0, w, w / ratio);
+    frame.moveCenter(pageItem->mapFromScene(at));
+
+    m_model->undoStack()->push(new ImageAnnotationCommand(
+        m_model, pageno, std::move(data), frameOf(pageno, frame, 0)));
 }
 
 // Handle annotation popup (text/sticky note) requested

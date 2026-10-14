@@ -122,33 +122,56 @@ handlePoint(const QRectF &r, Annotation::Handle h)
     }
 }
 
+// How far above the top the handle that turns an annotation is, in pixels.
+static constexpr qreal kRotateHandleOffset = 22.0;
+
 Annotation::Handle
 Annotation::handleAt(const QPointF &itemPos, qreal pxScale) const noexcept
 {
     if (!canTransform() || !isSelected() || pxScale <= 0)
         return Handle::None;
 
-    const QRectF r = geometryRect();
+    const QRectF r  = geometryRect();
     const qreal tol = 6.0 / pxScale;
+
+    // Looked at in the frame of the annotation, where it is not turned.
+    QPointF p = itemPos;
+    if (canRotate() && rotation() != 0)
+    {
+        QTransform t;
+        t.translate(r.center().x(), r.center().y());
+        t.rotate(-rotation());
+        t.translate(-r.center().x(), -r.center().y());
+        p = t.map(itemPos);
+    }
+
+    if (canRotate())
+    {
+        const QPointF c(r.center().x(),
+                        r.top() - kRotateHandleOffset / pxScale);
+        if (std::abs(p.x() - c.x()) <= tol && std::abs(p.y() - c.y()) <= tol)
+            return Handle::Rotate;
+    }
 
     if (canResize())
     {
         for (int i = 0; i < 8; ++i)
         {
             const QPointF c = handlePoint(r, static_cast<Handle>(i));
-            if (std::abs(itemPos.x() - c.x()) <= tol
-                && std::abs(itemPos.y() - c.y()) <= tol)
+            if (std::abs(p.x() - c.x()) <= tol
+                && std::abs(p.y() - c.y()) <= tol)
                 return static_cast<Handle>(i);
         }
     }
-    return r.contains(itemPos) ? Handle::Body : Handle::None;
+    return r.contains(p) ? Handle::Body : Handle::None;
 }
 
 void
-Annotation::setPreviewRect(const QRectF &rect) noexcept
+Annotation::setPreviewRect(const QRectF &rect, qreal angle) noexcept
 {
     prepareGeometryChange();
-    m_preview_rect = rect;
+    m_preview_rect  = rect;
+    m_preview_angle = angle;
     update();
 }
 
@@ -156,7 +179,8 @@ void
 Annotation::clearPreviewRect() noexcept
 {
     prepareGeometryChange();
-    m_preview_rect = QRectF();
+    m_preview_rect  = QRectF();
+    m_preview_angle = 0;
     update();
 }
 
@@ -169,10 +193,15 @@ Annotation::paintManipulation(QPainter *painter,
 
     if (m_preview_rect.isValid())
     {
+        painter->save();
+        painter->translate(m_preview_rect.center());
+        painter->rotate(m_preview_angle);
+        painter->translate(-m_preview_rect.center());
         QPen pen(Qt::black, 1.0, Qt::DashLine);
         pen.setCosmetic(true);
         painter->setPen(pen);
         painter->drawRect(m_preview_rect);
+        painter->restore();
     }
 
     if ((option->state & QStyle::State_Selected) && canResize()
@@ -180,8 +209,15 @@ Annotation::paintManipulation(QPainter *painter,
     {
         const QRectF r = m_preview_rect.isValid() ? m_preview_rect
                                                   : geometryRect();
+        const qreal angle = m_preview_rect.isValid() ? m_preview_angle
+                                                     : rotation();
         const qreal scale = painter->worldTransform().m11();
         const qreal half  = scale > 0 ? 4.0 / scale : 4.0;
+
+        painter->translate(r.center());
+        painter->rotate(angle);
+        painter->translate(-r.center());
+
         QPen pen(Qt::black);
         pen.setCosmetic(true);
         painter->setPen(pen);
@@ -191,6 +227,14 @@ Annotation::paintManipulation(QPainter *painter,
             const QPointF c = handlePoint(r, static_cast<Handle>(i));
             painter->drawRect(QRectF(c.x() - half, c.y() - half, 2 * half,
                                      2 * half));
+        }
+
+        if (canRotate() && scale > 0)
+        {
+            const QPointF top(r.center().x(), r.top());
+            const QPointF c(top.x(), top.y() - kRotateHandleOffset / scale);
+            painter->drawLine(top, c);
+            painter->drawEllipse(c, half, half);
         }
     }
     painter->restore();

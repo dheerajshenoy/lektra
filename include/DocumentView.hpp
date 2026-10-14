@@ -28,6 +28,7 @@ extern "C"
 #include <QElapsedTimer>
 #include <QGraphicsEllipseItem>
 #include <QVariantAnimation>
+#include <optional>
 #include <functional>
 #include <QFileInfo>
 #include <QFileSystemWatcher>
@@ -684,6 +685,10 @@ public:
     void ToggleAnnotEllipse() noexcept;
     void ToggleAnnotPolygon() noexcept;
     void ToggleAnnotNote() noexcept;
+    // Places an image on the page: at `scenePos`, or in the middle of the
+    // view. Asks for the file if `path` is empty.
+    void AddImageAnnotation(const QString &path = {},
+                            std::optional<QPointF> scenePos = {}) noexcept;
     void ToggleAnnotSelect() noexcept;
     void ToggleAnnotPopup() noexcept;
     void ToggleTextSelection() noexcept;
@@ -1188,7 +1193,12 @@ private:
         QPointF startPos; // in the item's coordinates
         QRectF startRect;
         QRectF rect;
+        qreal startAngle = 0; // degrees, clockwise
+        qreal angle      = 0;
     };
+    // Where a rectangle of the page, turned by `angle`, is (page space).
+    [[nodiscard]] Model::AnnotGeometry frameOf(int pageno, const QRectF &rect,
+                                               qreal angle) const noexcept;
     AnnotDrag m_annot_drag;
     // Selected again once its page is drawn anew after a move.
     int m_reselect_pageno = -1;

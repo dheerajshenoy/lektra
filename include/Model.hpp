@@ -224,6 +224,9 @@ public:
         QColor color;
         QString text;
         int index = -1;
+        // An image: `rect` is the image before it is turned by `angle`
+        // (degrees, clockwise), around the centre of `rect`.
+        qreal angle = 0;
     };
 
     struct PageRenderResult
@@ -863,6 +866,9 @@ private:
         QString text;
         int index;
         float opacity;
+        // An image: where it is, see AnnotGeometry
+        bool framed = false;
+        fz_point center{}, ux{}, uy{};
     };
 
     struct PageDimension
@@ -1047,7 +1053,34 @@ private:
     {
         fz_rect rect{};
         std::vector<fz_point> vertices;
+        // An image is not just a rectangle, it can be turned: `center` and the
+        // two sides it is drawn along (`ux` the top, `uy` the left, as vectors
+        // of the page space). `rect` is then what it covers.
+        bool framed = false;
+        fz_point center{}, ux{}, uy{};
     };
+    // An image placed on the page (a stamp annotation with the image as its
+    // appearance). `data` is the file of the image (PNG, JPEG, ...).
+    [[nodiscard]] int addImageAnnotation(const int pageno,
+                                         const QByteArray &data,
+                                         const AnnotGeometry &frame,
+                                         const QString &content = {}) noexcept;
+    // The image of an image annotation, as PNG (empty if it has none).
+    [[nodiscard]] QByteArray annotImageData(int pageno, int objNum) noexcept;
+    // An annotation that was added again gets another number; the commands
+    // that remember the old one are pointed to the new one.
+    void aliasAnnot(int from, int to) noexcept;
+    [[nodiscard]] int resolveAnnot(int objNum) const noexcept;
+    std::unordered_map<int, int> m_annot_alias;
+    // Of an image annotation (see addImageAnnotation).
+    static bool isImageAnnot(fz_context *ctx, pdf_annot *annot);
+    static pdf_obj *imageOf(fz_context *ctx, pdf_annot *annot);
+    static bool readImageFrame(fz_context *ctx, pdf_annot *annot,
+                               AnnotGeometry &out);
+    static void writeImageAppearance(fz_context *ctx, pdf_annot *annot,
+                                     const AnnotGeometry &g, pdf_obj *image);
+    static void setAnnotContentsKeepImage(fz_context *ctx, pdf_annot *annot,
+                                          const char *text);
     [[nodiscard]] bool annotGeometry(int pageno, int objNum,
                                      AnnotGeometry &out) noexcept;
     void setAnnotGeometry(int pageno, int objNum,
@@ -1195,6 +1228,7 @@ private:
     friend class TextHighlightAnnotationCommand;
     friend class RectAnnotationCommand;
     friend class ShapeAnnotationCommand;
+    friend class ImageAnnotationCommand;
     friend class AnnotGeometryCommand;
     friend class TextAnnotationCommand;
     friend class DeleteAnnotationsCommand;

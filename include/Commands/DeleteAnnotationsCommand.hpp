@@ -31,6 +31,7 @@ public:
     {
         for (AnnotData &d : m_annotations)
         {
+            const int removed = d.objNum;
             QColor color(d.color[0] * 255, d.color[1] * 255, d.color[2] * 255,
                          d.color[3] * 255);
             switch (d.type)
@@ -62,9 +63,19 @@ public:
                     d.objNum = m_model->addTextAnnotation(m_pageno, d.rect,
                                                           d.contents);
                     break;
+                case PDF_ANNOT_STAMP:
+                    if (!d.image.isEmpty())
+                        d.objNum = m_model->addImageAnnotation(
+                            m_pageno, d.image, d.frame, d.contents);
+                    break;
                 default:
                     break;
             }
+
+            // Made again, it has another number than commands before this
+            // one know it by.
+            if (removed >= 0 && d.objNum >= 0)
+                m_model->aliasAnnot(removed, d.objNum);
 
             // Restore the comment if there was one
             if (!d.contents.isEmpty())
@@ -97,6 +108,9 @@ private:
         std::vector<fz_quad> quads;
         std::vector<fz_point> vertices;
         QString contents;
+        // An image: where it is and what it shows (PNG).
+        Model::AnnotGeometry frame;
+        QByteArray image;
     };
 
     void captureAnnotationsData(const QSet<int> &objNums)
@@ -189,6 +203,14 @@ private:
         {
             qWarning() << "DeleteAnnotationsCommand: failed to capture:"
                        << fz_caught_message(ctx);
+        }
+
+        for (AnnotData &d : m_annotations)
+        {
+            if (d.type != PDF_ANNOT_STAMP)
+                continue;
+            if (m_model->annotGeometry(m_pageno, d.objNum, d.frame))
+                d.image = m_model->annotImageData(m_pageno, d.objNum);
         }
     }
 

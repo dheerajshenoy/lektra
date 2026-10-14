@@ -740,6 +740,20 @@ Model::buildPageCache(int pageno) noexcept
                     }
                     break;
 
+                    case PDF_ANNOT_STAMP: // only the images of Lektra
+                    {
+                        AnnotGeometry g;
+                        if (!isImageAnnot(ctx, annot)
+                            || !readImageFrame(ctx, annot, g))
+                            continue;
+                        ca.framed = true;
+                        ca.center = g.center;
+                        ca.ux     = g.ux;
+                        ca.uy     = g.uy;
+                        ca.color  = Qt::transparent;
+                    }
+                    break;
+
                     default:
                         continue;
                 }
