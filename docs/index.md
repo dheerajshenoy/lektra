@@ -16,7 +16,7 @@ and [GitHub](https://github.com/dheerajshenoy/lektra), kept in sync.
 * **Versatile Viewing Modes:** Supports single page, continuous scrolling, book and grid layouts, presentation mode, and smart margin trimming.
 * **Text Reflow:** Re-paginates EPUB, FB2, and Mobi files to fit your custom fonts, text size, and line spacing.
 * **Comfort & Dark Mode:** Customize page colors, flip/rotate, invert colors, or use high-contrast themes for easy reading.
-* **Rich Media Support:** Plays animated GIFs, WebPs, and APNGs, and displays multi-page TIFFs natively.
+* **Rich Media Support:** Plays animated GIFs, WebPs, APNGs, and JPEG XLs, and displays multi-page TIFFs natively.
 * **Outline & Thumbnails:** Fast visual navigation with side panels, including auto-generated outlines for unindexed PDFs.
 * **Smart Search:** Search with regex, jump to hits above/below, and see search results marked directly on the scrollbar.
 * **Keyboard Navigation:** Vim-like keybindings, link hints to click without a mouse, and jump history to move back and forward.
@@ -41,8 +41,9 @@ and [GitHub](https://github.com/dheerajshenoy/lektra), kept in sync.
 DjVu (if `djvulibre` is installed on the system).
 
 **Images:** JPG, PNG, APNG, BMP, WEBP, GIF, TIFF, ICO, SVG, PPM, PGM and PBM,
-including animated images (GIF, WebP, APNG) and multi-page TIFFs. Edge cases of
-SVG are handled by `librsvg` if it is installed.
+including animated images (GIF, WebP, APNG) and multi-page TIFFs. JPEG XL (JXL,
+also animated) is supported if `libjxl` is installed. Edge cases of SVG are
+handled by `librsvg` if it is installed.
 
 ## Where to go next
 
