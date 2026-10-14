@@ -310,6 +310,7 @@ public:
     void ShowAbout() noexcept;
     void ShowDonate() noexcept;
     void TextHighlightCurrentSelection() noexcept;
+    void TextCommentCurrentSelection() noexcept;
     void TextUnderlineCurrentSelection() noexcept;
     void TextSquigglyCurrentSelection() noexcept;
     void TextStrikeOutCurrentSelection() noexcept;

@@ -1117,6 +1117,14 @@ Lektra::TextHighlightCurrentSelection() noexcept
         m_doc->handleTextHighlightRequested();
 }
 
+// Highlight with a comment for the current selection
+void
+Lektra::TextCommentCurrentSelection() noexcept
+{
+    if (m_doc)
+        m_doc->handleTextCommentRequested();
+}
+
 // Underline annotation for the current selection
 void
 Lektra::TextUnderlineCurrentSelection() noexcept

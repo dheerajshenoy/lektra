@@ -1129,6 +1129,9 @@ Lektra::initCommands() noexcept
         "highlight_selection", tr("Highlight current text selection"),
         [this](const QStringList &) { TextHighlightCurrentSelection(); });
     m_command_manager->reg(
+        "comment_selection", tr("Highlight current text selection with a comment"),
+        [this](const QStringList &) { TextCommentCurrentSelection(); });
+    m_command_manager->reg(
         "underline_selection", tr("Underline current text selection"),
         [this](const QStringList &) { TextUnderlineCurrentSelection(); });
     m_command_manager->reg(
