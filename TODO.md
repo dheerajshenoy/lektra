@@ -7,6 +7,7 @@
 - [ ] LaTeX math rendering in comment blocks
 - [ ] Picker style choose, `minibuffer` or `floating`
 - [ ] Version diffing
+- [ ] Add REDACT tool
 
 ## MEDIUM PRIORITY
 
@@ -20,7 +21,7 @@
 - [ ] Macros
 - [ ] Multi-Document / Workspace Search
 - [ ] Telescope / FZF-style Fuzzy Text Search Across Document
-- [ ] Zotero / BibTeX Integration & Reference Inspection
+- [ ] Zotero Integration & Reference Inspection
 - LLM View
     - [x] Chat History
     - [x] Image attachment
