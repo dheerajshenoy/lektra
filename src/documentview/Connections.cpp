@@ -531,6 +531,13 @@ DocumentView::initConnections() noexcept
                 &DocumentView::handleAnnotPolygonRequested);
         connect(m_gview, &GraphicsView::annotNoteRequested, this,
                 &DocumentView::handleAnnotNoteRequested);
+        connect(m_gview, &GraphicsView::annotEditRequested, this,
+                [this](Annotation *annot)
+        {
+            m_gview->setMode(GraphicsView::Mode::AnnotSelect);
+            emit selectionModeChanged(GraphicsView::Mode::AnnotSelect);
+            annot->setSelected(true);
+        });
 
         connect(m_gview, &GraphicsView::annotPopupRequested, this,
                 &DocumentView::handleAnnotPopupRequested);

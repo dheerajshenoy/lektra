@@ -1,5 +1,6 @@
 #include "GraphicsView.hpp"
 
+#include "Annotation.hpp"
 #include "Config.hpp"
 #include "utils.hpp"
 
@@ -595,6 +596,23 @@ GraphicsView::mouseDoubleClickEvent(QMouseEvent *event)
         finishPolygon();
         event->accept();
         return;
+    }
+
+    // Double click on an annotation: edit it.
+    if (event->button() == Qt::LeftButton
+        && (m_mode == Mode::None || m_mode == Mode::TextSelection))
+    {
+        for (QGraphicsItem *item = itemAt(event->pos()); item;
+             item                = item->parentItem())
+        {
+            // No RTTI: annotations tag themselves.
+            if (item->data(0).toString() == "annotation")
+            {
+                emit annotEditRequested(static_cast<Annotation *>(item));
+                event->accept();
+                return;
+            }
+        }
     }
 
     mousePressEvent(event);

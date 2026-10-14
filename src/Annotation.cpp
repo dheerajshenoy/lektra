@@ -15,6 +15,7 @@ Annotation::Annotation(const int index, const QColor &color,
       m_originalBrush(m_brush), m_originalPen(m_pen)
 {
     setAcceptHoverEvents(true);
+    setData(0, "annotation");
     setFlags(QGraphicsItem::ItemIsSelectable);
 }
 

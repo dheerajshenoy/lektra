@@ -13,6 +13,7 @@
 
 struct Config;
 
+class Annotation;
 class GraphicsPixmapItem;
 
 class GraphicsView : public QGraphicsView
@@ -221,6 +222,8 @@ signals:
     void annotManipCancelled();
     void annotEllipseRequested(QRectF sceneRect);
     void annotNoteRequested(QRectF sceneRect);
+    // Double click on an annotation, in a mode where it is not edited
+    void annotEditRequested(Annotation *annot);
     void annotPolygonRequested(QVector<QPointF> scenePoints);
     void annotPopupRequested(QPointF scenePos);
     void regionSelectRequested(QRectF sceneRect);
