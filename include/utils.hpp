@@ -221,6 +221,7 @@ supportedFormats()
            "*.bmp "
            "*.gif "
            "*.webp "
+           "*.jxl "
            "*.tga "
            "*.ico "
            "*.ppm *.pgm *.pbm);;"

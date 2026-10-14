@@ -32,6 +32,11 @@ Some options were renamed to be consistent. The old names are ignored, so update
 - The picker keys can now be set from Lua: `lektra.opt.picker.keys.down = {"Down", "Ctrl+N"}` (the same actions as `[picker.keys]`).
 - Options of a view now work as in Vim: `lektra.opt.<section>.<key>` is `:set` (the default and the current view), the new `lektra.opt_global` is `:setglobal` (only the default), `view:opt()` is `:setlocal` (only that view), and the new `view:opt_reset([section])` is `:setlocal opt<` (back to what a new view would have). A new split still starts with a copy of the options of the view it was made from.
 
+#### Images
+
+- JPEG XL (`.jxl`) images can now be opened, if `libjxl` is installed on the system.
+- Optional libraries (`librsvg`, `libexif`, `djvulibre`, `libjxl`) are now found under any installed version. If one isn't found, set `LEKTRA_LIB_RSVG`, `LEKTRA_LIB_CAIRO`, `LEKTRA_LIB_EXIF`, `LEKTRA_LIB_DJVU` or `LEKTRA_LIB_JXL` to its path.
+
 #### Tabs and views
 
 - New `bibtex` command copies the BibTeX entry of the paper you are reading to the clipboard. It finds the DOI in the PDF's metadata or first two pages (or an arXiv number) and fetches the entry with curl in the background.

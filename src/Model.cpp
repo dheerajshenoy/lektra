@@ -10,6 +10,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include "DynLib.hpp"
 #include <QLibrary>
 #include <QMovie>
 #include <QPainter>
@@ -173,11 +174,11 @@ struct DjVuLib
     }
 
 private:
-    QLibrary lib{"djvulibre"};
+    QLibrary lib;
 
     DjVuLib() noexcept
     {
-        if (!lib.load())
+        if (!DynLib::load(lib, "LEKTRA_LIB_DJVU", "djvulibre", {"21"}))
         {
             qCritical() << "Unable to load djvulibre";
             return;
@@ -336,6 +337,9 @@ Model::getFileType(const QString &path) noexcept
         return FileType::XLSX;
     if (suffix == "pptx")
         return FileType::PPTX;
+    // Not every shared-mime-info database knows image/jxl yet
+    if (suffix == "jxl")
+        return FileType::JXL;
     // Comic archives: MuPDF reads zip (cbz), tar (cbt), and rar/7z (cbr, cb7)
     // via libarchive. Archives have no content marker that says "comic", so
     // go by extension.
@@ -371,6 +375,8 @@ Model::getFileType(const QString &path) noexcept
     // Images
     if (name == "image/jpeg")
         return FileType::JPG;
+    if (name == "image/jxl")
+        return FileType::JXL;
     if (name == "image/png" || name == "image/apng")
         return FileType::PNG; // APNG shares PNG mime on most systems
     if (name == "image/tiff")
@@ -452,6 +458,8 @@ Model::fileTypeName(FileType type, const QString &filepath) noexcept
             return "DJVU";
         case FileType::JPG:
             return "JPEG";
+        case FileType::JXL:
+            return "JPEG XL";
         case FileType::PNG:
             return "PNG";
         case FileType::TIFF:

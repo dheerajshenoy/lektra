@@ -82,6 +82,7 @@ public:
         PPTX,
         // Images
         JPG,
+        JXL,
         PNG,
         SVG,
         APNG,
@@ -1188,8 +1189,8 @@ private:
     pdf_write_options m_pdf_write_options = pdf_default_write_options;
     // Redactions were applied: saves must rewrite the whole file (an
     // incremental save keeps the removed content in the earlier revision)
-    bool m_redacted = false;
-    bool m_reload_after_save = false;
+    bool m_redacted                       = false;
+    bool m_reload_after_save              = false;
     bool m_link_show_boundary             = false;
     bool m_detect_url_links               = false;
     FileType m_filetype                   = FileType::NONE;

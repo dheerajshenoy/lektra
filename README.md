@@ -41,6 +41,7 @@ Read the [documentation](https://lektra.readthedocs.io/en/latest/) for more info
 - JPG, PNG, APNG, BMP, WEBP, GIF, TIFF, ICO, SVG, PPM, PGM, PBM
 - multi-frame animated images (e.g. animated GIFs, animated WebPs etc.) and multi-page TIFFs.
 - Edge cases of SVGs can be handled through `librsvg` if it's found on the system
+- JPEG XL (JXL) if `libjxl` is installed on the system
 
 # Contributing
 

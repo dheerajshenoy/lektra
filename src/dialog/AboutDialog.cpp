@@ -1,5 +1,6 @@
 #include "AboutDialog.hpp"
 
+#include "DynLib.hpp"
 #include <QFormLayout>
 #include <QLibrary>
 #include <QPainter>
@@ -106,12 +107,8 @@ AboutDialog::softwaresUsedSection() noexcept
 
     {
         using PFN_ver = const char *(*)();
-#if defined(Q_OS_WIN)
-        QLibrary djvuLib("djvulibre");
-#else
-        QLibrary djvuLib("djvulibre", 21);
-#endif
-        if (djvuLib.load())
+        QLibrary djvuLib;
+        if (DynLib::load(djvuLib, "LEKTRA_LIB_DJVU", "djvulibre", {"21"}))
         {
             auto fn = reinterpret_cast<PFN_ver>(
                 djvuLib.resolve("ddjvu_get_version_string"));

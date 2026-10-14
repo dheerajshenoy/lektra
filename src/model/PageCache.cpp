@@ -9,6 +9,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include "DynLib.hpp"
 #include <QLibrary>
 #include <QMovie>
 #include <QPainter>
@@ -307,11 +308,11 @@ struct DjVuLib
     }
 
 private:
-    QLibrary lib{"djvulibre"};
+    QLibrary lib;
 
     DjVuLib() noexcept
     {
-        if (!lib.load())
+        if (!DynLib::load(lib, "LEKTRA_LIB_DJVU", "djvulibre", {"21"}))
         {
             qCritical() << "Unable to load djvulibre";
             return;
