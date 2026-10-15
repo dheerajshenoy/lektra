@@ -792,6 +792,17 @@ GraphicsView::wheelEvent(QWheelEvent *event)
 void
 GraphicsView::contextMenuEvent(QContextMenuEvent *event)
 {
+    // Let annotations show their own context menu instead of the generic one.
+    for (QGraphicsItem *item = itemAt(event->pos()); item;
+         item                = item->parentItem())
+    {
+        if (item->type() == Annotation::Type_)
+        {
+            QGraphicsView::contextMenuEvent(event);
+            return;
+        }
+    }
+
     bool handled = false;
     emit contextMenuRequested(event->globalPos(), &handled);
     if (handled)

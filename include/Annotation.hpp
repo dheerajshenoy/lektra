@@ -58,6 +58,16 @@ public:
 
     virtual Type atype() const noexcept = 0;
 
+    // Identifies annotations via QGraphicsItem::type() (RTTI is disabled).
+    enum
+    {
+        Type_ = QGraphicsItem::UserType + 100
+    };
+    int type() const override
+    {
+        return Type_;
+    }
+
     // --- Interactive moving and resizing (annotation select mode) ---
     enum class Handle
     {
