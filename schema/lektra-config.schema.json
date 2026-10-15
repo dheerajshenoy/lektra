@@ -457,7 +457,7 @@
         "absolute_jump": {
           "type": "boolean",
           "default": false,
-          "description": "When true, the \"next\" match is always the next index in the results list. When false, the \"next\" match is the one physically closest to the cursor. (since 0.6.9)"
+          "description": "When true, the \"next\" match is always the next index in the results list. When false, like in vim, \"next\" and \"previous\" are relative to where you are: once you have scrolled away from the current match, they go to the first match after the top of the view, or the last one before it. (since 0.6.9)"
         },
         "match_color": {
           "type": "string",
@@ -1980,7 +1980,7 @@
               "absolute_jump": {
                 "type": "boolean",
                 "default": false,
-                "description": "When true, the \"next\" match is always the next index in the results list. When false, the \"next\" match is the one physically closest to the cursor. (since 0.6.9)"
+                "description": "When true, the \"next\" match is always the next index in the results list. When false, like in vim, \"next\" and \"previous\" are relative to where you are: once you have scrolled away from the current match, they go to the first match after the top of the view, or the last one before it. (since 0.6.9)"
               },
               "match_color": {
                 "type": "string",

@@ -178,15 +178,63 @@ DocumentView::getClosestHitIndex(bool above) noexcept
     const int currentPage = m_pageno;
     const int n           = static_cast<int>(m_search_hit_flat_refs.size());
 
-    // If the current hit is on the current page, step to the adjacent hit
+    // If the current hit is still in view, step to the adjacent hit
     // in the flat list — this handles multiple hits on the same page correctly.
-    if (m_search_index >= 0 && m_search_index < n
-        && m_search_hit_flat_refs[m_search_index].page == currentPage)
+    const auto currentHitVisible = [&]
+    {
+        if (m_search_index < 0 || m_search_index >= n)
+            return false;
+        const HitRef &ref = m_search_hit_flat_refs[m_search_index];
+        if (ref.page != currentPage)
+            return false;
+        if (m_layout_mode == LayoutMode::SINGLE)
+            return true;
+        const QPointF p = hitSceneCenter(
+            ref.page, m_search_hits[ref.page][ref.indexInPage]);
+        return m_gview->mapToScene(m_gview->viewport()->rect())
+            .boundingRect()
+            .contains(p);
+    };
+
+    if (currentHitVisible())
     {
         if (above)
             return (m_search_index - 1 + n) % n;
         else
             return (m_search_index + 1) % n;
+    }
+
+    // Re-anchor on the top-left of the viewport, like vim does with the
+    // cursor: next is the first hit after it, prev the last hit before it.
+    // Single page mode only ever shows one page, so anchor by page there.
+    if (m_layout_mode != LayoutMode::SINGLE)
+    {
+        const bool horizontal = m_layout_mode == LayoutMode::HORIZONTAL;
+        const QPointF anchor
+            = m_gview->mapToScene(m_gview->viewport()->rect().topLeft());
+        const double anchorMajor = horizontal ? anchor.x() : anchor.y();
+
+        int best = -1;
+        for (int i = 0; i < n; ++i)
+        {
+            const HitRef &ref = m_search_hit_flat_refs[i];
+            const QPointF p   = hitSceneCenter(
+                ref.page, m_search_hits[ref.page][ref.indexInPage]);
+            const double major = horizontal ? p.x() : p.y();
+
+            if (above)
+            {
+                if (major < anchorMajor)
+                    best = i; // keep the last one before the anchor
+                else
+                    break;
+            }
+            else if (major > anchorMajor)
+                return i;
+        }
+        if (above)
+            return best >= 0 ? best : n - 1; // wrap to last
+        return 0;                            // wrap to first
     }
 
     // User has scrolled to a different page — re-anchor by page.
@@ -205,20 +253,17 @@ DocumentView::getClosestHitIndex(bool above) noexcept
         return static_cast<int>(
             std::distance(m_search_hit_flat_refs.begin(), it));
     }
-    else
-    {
-        // First hit on a page strictly after currentPage
-        auto it = std::upper_bound(m_search_hit_flat_refs.begin(),
-                                   m_search_hit_flat_refs.end(), currentPage,
-                                   [](int page, const HitRef &ref)
-        { return page < ref.page; });
 
-        if (it == m_search_hit_flat_refs.end())
-            return 0; // wrap to first
+    // First hit on a page strictly after currentPage
+    auto it = std::upper_bound(m_search_hit_flat_refs.begin(),
+                               m_search_hit_flat_refs.end(), currentPage,
+                               [](int page, const HitRef &ref)
+    { return page < ref.page; });
 
-        return static_cast<int>(
-            std::distance(m_search_hit_flat_refs.begin(), it));
-    }
+    if (it == m_search_hit_flat_refs.end())
+        return 0; // wrap to first
+
+    return static_cast<int>(std::distance(m_search_hit_flat_refs.begin(), it));
 }
 
 void
@@ -828,6 +873,44 @@ DocumentView::PrevHit() noexcept
 }
 
 // Navigate to a specific search hit by index
+QPointF
+DocumentView::hitSceneCenter(int page, const Model::SearchHit &hit) const noexcept
+{
+    const float scale = m_model->logicalScale();
+    const double hitX = (hit.quad.ul.x + hit.quad.ur.x) * scale / 2.0;
+    const double hitY = (hit.quad.ul.y + hit.quad.ll.y) * scale / 2.0;
+
+    QPointF scenePos;
+    if (m_layout_mode == LayoutMode::HORIZONTAL)
+    {
+        scenePos
+            = QPointF(pageOffset(page) + hitX,
+                      pageXOffset(page, pageSceneSize(page).width(),
+                                  m_gview->sceneRect().width())
+                          + hitY);
+    }
+    else if (m_layout_mode == LayoutMode::SINGLE)
+    {
+        const QRectF sr = m_gview->sceneRect();
+        // Ensure the hit is calculated relative to the centered page
+        // position
+        scenePos        = QPointF(
+            sr.left() + (sr.width() - pageSceneSize(page).width()) / 2.0
+                + hitX,
+            sr.top() + (sr.height() - pageSceneSize(page).height()) / 2.0
+                + hitY);
+    }
+    else // TOP_TO_BOTTOM, BOOK
+    {
+        scenePos
+            = QPointF(pageXOffset(page, pageSceneSize(page).width(),
+                                  m_gview->sceneRect().width())
+                          + hitX,
+                      pageOffset(page) + hitY);
+    }
+    return scenePos;
+}
+
 void
 DocumentView::GotoHit(int index) noexcept
 {
@@ -854,48 +937,7 @@ DocumentView::GotoHit(int index) noexcept
     emit searchIndexChanged(index);
     emit currentPageChanged(ref.page + 1);
 
-    // Compute hit centre in scene coordinates directly from cached offsets.
-    const double hitX = (hit.quad.ul.x + hit.quad.ur.x) * scale / 2.0;
-    const double hitY = (hit.quad.ul.y + hit.quad.ll.y) * scale / 2.0;
-
-    QPointF scenePos;
-    if (m_layout_mode == LayoutMode::HORIZONTAL)
-    {
-        scenePos
-            = QPointF(pageOffset(ref.page) + hitX,
-                      pageXOffset(ref.page, pageSceneSize(ref.page).width(),
-                                  m_gview->sceneRect().width())
-                          + hitY);
-    }
-    else if (m_layout_mode == LayoutMode::SINGLE)
-    {
-        const QRectF sr = m_gview->sceneRect();
-        // Ensure the hit is calculated relative to the centered page
-        // position
-        scenePos        = QPointF(
-            sr.left() + (sr.width() - pageSceneSize(ref.page).width()) / 2.0
-                + hitX,
-            sr.top() + (sr.height() - pageSceneSize(ref.page).height()) / 2.0
-                + hitY);
-    }
-    // else if (m_layout_mode == LayoutMode::SINGLE)
-    // {
-    //     const QRectF sr = m_gview->sceneRect();
-    //     scenePos        = QPointF(
-    //         sr.x() + (sr.width() - pageSceneSize(ref.page).width()) / 2.0
-    //             + hitX,
-    //         sr.y() + (sr.height() - pageSceneSize(ref.page).height())
-    //         / 2.0
-    //             + hitY);
-    // }
-    else // TOP_TO_BOTTOM, BOOK
-    {
-        scenePos
-            = QPointF(pageXOffset(ref.page, pageSceneSize(ref.page).width(),
-                                  m_gview->sceneRect().width())
-                          + hitX,
-                      pageOffset(ref.page) + hitY);
-    }
+    const QPointF scenePos = hitSceneCenter(ref.page, hit);
 
     m_scroll_to_hit_pending = true;
     m_scroll_page_update_timer->stop();

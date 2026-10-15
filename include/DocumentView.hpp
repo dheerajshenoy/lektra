@@ -830,6 +830,9 @@ protected:
 private:
     // A page as a picture for exporting (see exportPages()).
     QImage renderPageForExport(int pageno, int dpi) noexcept;
+    [[nodiscard]] QPointF hitSceneCenter(int page,
+                                         const Model::SearchHit &hit) const noexcept;
+
     struct HitRef
     {
         int page;

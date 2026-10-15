@@ -117,8 +117,10 @@ struct Config
 
         // @desc {
         // When true, the "next" match is always the next index in the results
-        // list. When false, the "next" match is the one physically closest to
-        // the cursor.
+        // list. When false, like in vim, "next" and "previous" are relative to
+        // where you are: once you have scrolled away from the current match,
+        // they go to the first match after the top of the view, or the last
+        // one before it.
         // }
         // @type bool
         // @default false
