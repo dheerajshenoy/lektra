@@ -76,6 +76,8 @@ Some options were renamed to be consistent. The old names are ignored, so update
 - Fix a small memory leak when a page was dropped from the cache while it was being rendered.
 - Opening many files from the command line (`lektra ~/Downloads/*.pdf`) now only loads the first one and the others when you switch to them, as `tabs.lazy_load` says; before, every file was loaded at once.
 - Single-instance mode now works when it is turned on from `init.lua` (`lektra.opt.behavior.single_instance`), not only from `config.toml` or `--single-instance`, and a second instance no longer takes the socket away from a running one.
+- Right-clicking an annotation now shows its own menu instead of "Insert Image Here...".
+- Auto-reload now says when the file was moved, renamed or deleted, instead of a generic "Could not reload the document".
 
 ## 0.7.9.1 (2026-10-05)
 
