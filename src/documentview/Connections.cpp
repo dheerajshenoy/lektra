@@ -1235,6 +1235,15 @@ DocumentView::tryReloadLater(int attempt) noexcept
     if (attempt > 15) // ~15 * 100ms = 1.5s
     {
         m_reload_pending = false;
+        const QString missingPath = m_model->filePath();
+        if (!QFileInfo::exists(missingPath))
+        {
+            QMessageBox::warning(
+                this, tr("Auto-reload failed"),
+                tr("The file was moved, renamed or deleted:\n%1")
+                    .arg(missingPath));
+            return;
+        }
         QMessageBox::warning(this, tr("Auto-reload failed"),
                              tr("Could not reload the document."));
         return;
