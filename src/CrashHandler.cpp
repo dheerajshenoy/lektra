@@ -198,9 +198,9 @@ CrashHandler::install() noexcept
 #else // _WIN32
 
     #define WIN32_LEAN_AND_MEAN
-    #include <dbghelp.h>
     #include <stdio.h>
     #include <windows.h>
+    #include <dbghelp.h>
 
 static void
 win_write(HANDLE h, const char *s)
