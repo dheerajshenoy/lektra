@@ -179,7 +179,7 @@ if(MSVC)
         INSTALL_COMMAND
         ${CMAKE_COMMAND} -E make_directory "${MUPDF_INSTALL_DIR}/lib"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${MUPDF_SOURCE_DIR}/platform/win32/x64/Release/libmupdf.lib"
+        "${MUPDF_SOURCE_DIR}/platform/win32/x64/$<CONFIG>/libmupdf.lib"
         MUPDF_LIB_FILE
 
         BUILD_BYPRODUCTS "${MUPDF_LIB_FILE}"
@@ -618,7 +618,7 @@ endif()
 
 if(MSVC)
     target_link_libraries(${PROJECT_NAME} PRIVATE
-        "${MUPDF_SOURCE_DIR}/platform/win32/x64/Release/libmupdf.lib"
+        "${MUPDF_SOURCE_DIR}/platform/win32/x64/$<CONFIG>/libmupdf.lib"
         dbghelp
     )
 else()
