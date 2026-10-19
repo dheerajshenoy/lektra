@@ -232,6 +232,8 @@ signals:
     void annotSelectRequested(QRectF sceneRect);
     void annotSelectRequested(QPointF scenePos);
     void annotSelectClearRequested();
+    // The visible part of the scene changed (scrolled or resized).
+    void viewChanged();
     void zoomInRequested();
     void zoomRequested(float factor, QPointF anchorScenePos);
     void textSelectionDeletionRequested();

@@ -1772,6 +1772,20 @@ Lektra::ToggleCommentMarkers() noexcept
 }
 
 void
+Lektra::ToggleMinimap() noexcept
+{
+    if (!m_doc)
+        return;
+
+    // Global default (for views created later) and the current view.
+    Config::Minimap &local = m_doc->localConfig().minimap;
+    local.enabled          = !local.enabled;
+    m_config.minimap.enabled = local.enabled;
+
+    m_doc->updateMinimap();
+}
+
+void
 Lektra::ToggleThumbnailPanel() noexcept
 {
     if (!m_doc)

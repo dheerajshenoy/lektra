@@ -419,6 +419,7 @@ qt_add_executable(${PROJECT_NAME}
     src/dialog/DonateDialog.cpp
     src/dialog/ExportPagesDialog.cpp
     src/GraphicsView.cpp
+    src/Minimap.cpp
     src/GraphicsScene.cpp
     src/DocumentView.cpp
     src/documentview/Rendering.cpp

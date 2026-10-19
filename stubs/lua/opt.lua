@@ -271,6 +271,15 @@ lektra.opt.split = {}
 ---@field vertical? boolean Show the vertical scrollbar.
 lektra.opt.scrollbars = {}
 
+---@class OptMinimap
+---@field animated? boolean Keep the minimap up to date while an animated image plays.
+---@field enabled? boolean Show the minimap while zoomed in.
+---@field margin? integer Distance from the edges of the view in pixels.
+---@field opacity? number Opacity of the minimap (0.0–1.0).
+---@field position? "top_left"|"top_right"|"bottom_left"|"bottom_right" Corner of the view the minimap is placed in.
+---@field size? integer Length of the longer side of the minimap in pixels.
+lektra.opt.minimap = {}
+
 ---@class OptJumpMarker
 ---@field color? Color Jump marker color (`Color`).
 ---@field enabled? boolean Whether jump markers are shown.
@@ -507,6 +516,7 @@ lektra.opt.misc = {}
 ---@field selection OptSelection
 ---@field split OptSplit
 ---@field scrollbars OptScrollbars
+---@field minimap OptMinimap
 ---@field jump_marker OptJumpMarker
 ---@field links OptLinks
 ---@field link_hints OptLinkHints
@@ -534,6 +544,7 @@ lektra.opt.misc = {}
 ---@field selection? OptSelection
 ---@field split? OptSplit
 ---@field scrollbars? OptScrollbars
+---@field minimap? OptMinimap
 ---@field jump_marker? OptJumpMarker
 ---@field links? OptLinks
 ---@field link_hints? OptLinkHints

@@ -1,4 +1,5 @@
 #include "DocumentView.hpp"
+#include "Minimap.hpp"
 
 #include <QMovie>
 #include <QScopeGuard>
@@ -1277,6 +1278,164 @@ DocumentView::setInvertColor(bool invert) noexcept
         renderPage();
     else
         renderPages();
+}
+
+void
+DocumentView::updateMinimapMarker() noexcept
+{
+    if (!m_minimap)
+        return;
+
+    const GraphicsImageItem *item
+        = m_minimap->isVisible() ? m_page_items_hash.value(m_minimap_page)
+                                 : nullptr;
+    const QRectF b = item ? item->boundingRect() : QRectF();
+    const QRectF view
+        = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
+
+    // Anything but a scroll within the same page (resized, another page under
+    // the center, no longer zoomed in) takes the full update.
+    if (b.isEmpty() || m_minimap_viewport != m_gview->viewport()->size()
+        || !item->sceneBoundingRect().contains(view.center()))
+    {
+        updateMinimap();
+        return;
+    }
+
+    const QRectF seen
+        = item->mapFromScene(m_gview->mapToScene(m_gview->viewport()->rect()))
+              .boundingRect()
+              .intersected(b);
+    if (seen.isEmpty())
+    {
+        updateMinimap();
+        return;
+    }
+    m_minimap->setVisibleRect(QRectF((seen.x() - b.x()) / b.width(),
+                                     (seen.y() - b.y()) / b.height(),
+                                     seen.width() / b.width(),
+                                     seen.height() / b.height()));
+}
+
+void
+DocumentView::updateMinimap() noexcept
+{
+    if (!m_minimap)
+        return;
+
+    m_minimap_viewport = m_gview->viewport()->size();
+
+    if (!m_config.minimap.enabled || m_page_items_hash.isEmpty())
+    {
+        m_minimap->hide();
+        return;
+    }
+
+    // Dragging in the minimap: keep the thumbnail and the page as they are
+    // and only move the marker.
+    if (m_minimap_dragging && m_minimap->isVisible())
+    {
+        const GraphicsImageItem *item
+            = m_page_items_hash.value(m_minimap_page, nullptr);
+        if (item && !item->boundingRect().isEmpty())
+        {
+            const QRectF b = item->boundingRect();
+            const QRectF seen
+                = item
+                      ->mapFromScene(m_gview->mapToScene(
+                          m_gview->viewport()->rect()))
+                      .boundingRect()
+                      .intersected(b);
+            m_minimap->setVisibleRect(QRectF((seen.x() - b.x()) / b.width(),
+                                         (seen.y() - b.y()) / b.height(),
+                                         seen.width() / b.width(),
+                                         seen.height() / b.height()));
+            return;
+        }
+    }
+
+    // The page being looked at: the one under the center of the view.
+    const QPointF center = m_gview->mapToScene(m_gview->viewport()->rect())
+                               .boundingRect()
+                               .center();
+    int pageIndex               = -1;
+    GraphicsImageItem *pageItem = nullptr;
+    if (!pageAtScenePos(center, pageIndex, pageItem) || !pageItem)
+    {
+        pageIndex = m_pageno;
+        pageItem  = m_page_items_hash.value(pageIndex, nullptr);
+    }
+
+    const QRectF bounds = pageItem ? pageItem->boundingRect() : QRectF();
+    if (!pageItem || pageItem->isNull() || bounds.isEmpty())
+    {
+        m_minimap->hide();
+        return;
+    }
+
+    const QRectF seen
+        = pageItem
+              ->mapFromScene(m_gview->mapToScene(m_gview->viewport()->rect()))
+              .boundingRect()
+              .intersected(bounds);
+    const bool overX = seen.width() < bounds.width() * 0.98;
+    const bool overY = seen.height() < bounds.height() * 0.98;
+
+    // Zoomed in = the page is cut off on the side its fit mode would fit.
+    const bool fitsWidth
+        = m_fit_mode == FitMode::Width || m_fit_mode == FitMode::WidthSmart;
+    if (seen.isEmpty() || !(fitsWidth ? overX : (overX || overY)))
+    {
+        m_minimap->hide();
+        return;
+    }
+
+    // A zoomed-in page is only rendered near the view; the minimap needs all
+    // of it, so draw the whole page at the size of the minimap.
+    QImage whole;
+    if (!m_model->isImage())
+    {
+        const qreal dpr  = m_gview->devicePixelRatioF();
+        const QSizeF pts = m_model->pageSizePts(pageIndex);
+        const QString key
+            = QStringLiteral("%1|%2|%3|%4|%5|%6|%7")
+                  .arg(pageIndex)
+                  .arg(m_model->rotation())
+                  .arg(m_model->invertColor())
+                  .arg(m_config.minimap.size)
+                  .arg(dpr)
+                  .arg(pts.width())
+                  .arg(pts.height());
+        if (key != m_minimap_whole_key)
+        {
+            m_minimap_whole_key = key;
+            m_minimap_whole     = {};
+            if (pts.width() > 0 && pts.height() > 0)
+            {
+                const double dpi
+                    = 72.0 * qMax(32, m_config.minimap.size) * dpr * 2
+                      / qMax(pts.width(), pts.height());
+                m_minimap_whole = m_model->renderPtsRegion(
+                    pageIndex, QRectF(QPointF(0, 0), pts), float(dpi));
+            }
+        }
+        whole = m_minimap_whole;
+        pageItem->setBackdrop(whole);
+    }
+
+    m_minimap_page = pageIndex;
+    m_minimap->setPage(pageItem, pageIndex,
+                       QRectF((seen.x() - bounds.x()) / bounds.width(),
+                              (seen.y() - bounds.y()) / bounds.height(),
+                              seen.width() / bounds.width(),
+                              seen.height() / bounds.height()),
+                       whole,
+                       m_config.minimap.animated && m_model->isAnimated()
+                           ? pageItem->image().cacheKey()
+                           : 0);
+    m_minimap->reposition();
+    m_minimap->show();
+    m_minimap->raise();
 }
 
 // Returns the current location in the document that the user is viewing

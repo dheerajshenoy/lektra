@@ -999,6 +999,7 @@ GraphicsView::resizeEvent(QResizeEvent *event)
     updateScrollbars();
     if (m_scrollbarsVisible)
         layoutScrollbars();
+    emit viewChanged();
 }
 
 void
@@ -1007,6 +1008,7 @@ GraphicsView::scrollContentsBy(int dx, int dy)
     QGraphicsView::scrollContentsBy(dx, dy);
     if (m_scrollbarsVisible)
         layoutScrollbars();
+    emit viewChanged();
 }
 
 bool

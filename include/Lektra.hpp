@@ -142,6 +142,7 @@ public:
     void Show_command_picker() noexcept;
     void Show_bookmark_picker() noexcept;
     void ToggleCommentMarkers() noexcept;
+    void ToggleMinimap() noexcept;
     void ToggleNoneMode() noexcept;
     void ToggleVisualLineMode() noexcept;
     void TogglePresentationMode() noexcept;

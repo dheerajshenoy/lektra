@@ -76,6 +76,7 @@ static constexpr float kReflowFontSizeDefault = 11.0f;
 struct Config;
 class DocumentContainer;
 class QMenu;
+class Minimap;
 
 class DocumentView : public QWidget
 {
@@ -578,6 +579,11 @@ public:
     void GotoFirstPage() noexcept;
     void GotoLastPage() noexcept;
     void setZoom(double factor, bool restoreLocation = true) noexcept;
+    // Show, move or hide the minimap for the current view and options.
+    void updateMinimap() noexcept;
+    // The cheap update for scrolling: moves the marker, and falls back to
+    // updateMinimap() when more than that has changed.
+    void updateMinimapMarker() noexcept;
     void setZoomAnchored(double factor, QPointF anchorScenePos) noexcept;
     enum class SearchScope
     {
@@ -1060,6 +1066,17 @@ private:
     GraphicsView *m_gview = nullptr;
     std::function<void(QRectF)> m_region_select_cb;
     GraphicsScene *m_gscene      = nullptr;
+    Minimap *m_minimap           = nullptr;
+    QTimer *m_minimap_timer      = nullptr;
+    int m_minimap_page           = -1;
+    QSize m_minimap_viewport;
+    // While the minimap is dragged no page is rendered; one render follows
+    // when the button is released.
+    bool m_minimap_dragging = false;
+    // The whole page, rendered small, for when the page item only holds the
+    // part near the view; `m_minimap_whole_key` says what it was rendered for.
+    QImage m_minimap_whole;
+    QString m_minimap_whole_key;
     FitMode m_fit_mode           = FitMode::COUNT;
     int m_pageno                 = -1;
     int m_spacing                = 10;

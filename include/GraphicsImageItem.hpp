@@ -69,6 +69,17 @@ public:
         update();
     }
 
+    // A low-resolution picture of the whole page, drawn under the sharp
+    // region of a partial page so the rest is not blank. Kept across renders.
+    void setBackdrop(const QImage &image) noexcept
+    {
+        if (m_backdrop.cacheKey() == image.cacheKey())
+            return;
+        m_backdrop = image;
+        if (isPartial())
+            update();
+    }
+
     [[nodiscard]] inline bool isPartial() const noexcept
     {
         return m_full_px.isValid();
@@ -173,6 +184,8 @@ public:
         if (isPartial())
         {
             painter->fillRect(exposed, m_fill);
+            if (!m_backdrop.isNull())
+                painter->drawImage(m_bounding_rect, m_backdrop);
             painter->drawImage(imageRect(), m_image);
         }
         else
@@ -235,6 +248,7 @@ private:
 
     QGraphicsSimpleTextItem *m_label = nullptr;
     QImage m_image;
+    QImage m_backdrop;
     QSize m_full_px;   // valid only for partial images
     QRect m_region_px; // where m_image sits inside the full page, in pixels
     QColor m_fill = Qt::white;

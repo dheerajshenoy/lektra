@@ -354,6 +354,12 @@ DocumentView::initConnections() noexcept
 {
     resetConnections();
 
+    // (here and not in initGui(): resetConnections() drops every connection
+    // from the view)
+    if (m_minimap)
+        connect(m_gview, &GraphicsView::viewChanged, this,
+                &DocumentView::updateMinimapMarker);
+
 #ifndef NDEBUG
     qDebug() << "DocumentView::initConnections(): Initializing connections";
 #endif

@@ -372,6 +372,48 @@
       "additionalProperties": false,
       "description": "Scrollbars options struct (since 0.5.1)"
     },
+    "minimap": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the minimap while zoomed in (since 0.8.0)"
+        },
+        "size": {
+          "type": "integer",
+          "default": 240,
+          "description": "Length of the longer side of the minimap in pixels (since 0.8.0)"
+        },
+        "margin": {
+          "type": "integer",
+          "default": 12,
+          "description": "Distance from the edges of the view in pixels (since 0.8.0)"
+        },
+        "opacity": {
+          "type": "number",
+          "default": 0.85,
+          "description": "Opacity of the minimap (0.0 to 1.0) (since 0.8.0)"
+        },
+        "animated": {
+          "type": "boolean",
+          "default": true,
+          "description": "Keep the minimap up to date while an animated image plays. It is redrawn up to 30 times a second, which costs some CPU; turn it off to freeze the minimap during an animation (since 0.8.0)"
+        },
+        "position": {
+          "type": "string",
+          "enum": [
+            "top_left",
+            "top_right",
+            "bottom_left",
+            "bottom_right"
+          ],
+          "description": "Corner of the view the minimap is placed in (since 0.8.0)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "A small overview of the current page in a corner of the view, shown while zoomed in so that the page does not fit. It marks the visible area; click or drag in it to move there. Works for documents and images (since 0.8.0)"
+    },
     "jump_marker": {
       "type": "object",
       "properties": {
@@ -2222,6 +2264,48 @@
               }
             },
             "additionalProperties": false
+          },
+          "minimap": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "default": true,
+                "description": "Show the minimap while zoomed in (since 0.8.0)"
+              },
+              "size": {
+                "type": "integer",
+                "default": 240,
+                "description": "Length of the longer side of the minimap in pixels (since 0.8.0)"
+              },
+              "margin": {
+                "type": "integer",
+                "default": 12,
+                "description": "Distance from the edges of the view in pixels (since 0.8.0)"
+              },
+              "opacity": {
+                "type": "number",
+                "default": 0.85,
+                "description": "Opacity of the minimap (0.0 to 1.0) (since 0.8.0)"
+              },
+              "animated": {
+                "type": "boolean",
+                "default": true,
+                "description": "Keep the minimap up to date while an animated image plays. It is redrawn up to 30 times a second, which costs some CPU; turn it off to freeze the minimap during an animation (since 0.8.0)"
+              },
+              "position": {
+                "type": "string",
+                "enum": [
+                  "top_left",
+                  "top_right",
+                  "bottom_left",
+                  "bottom_right"
+                ],
+                "description": "Corner of the view the minimap is placed in (since 0.8.0)"
+              }
+            },
+            "additionalProperties": false,
+            "description": "A small overview of the current page in a corner of the view, shown while zoomed in so that the page does not fit. It marks the visible area; click or drag in it to move there. Works for documents and images (since 0.8.0)"
           },
           "links": {
             "type": "object",

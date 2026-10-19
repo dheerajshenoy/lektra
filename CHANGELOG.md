@@ -32,6 +32,10 @@ Some options were renamed to be consistent. The old names are ignored, so update
 - The picker keys can now be set from Lua: `lektra.opt.picker.keys.down = {"Down", "Ctrl+N"}` (the same actions as `[picker.keys]`).
 - Options of a view now work as in Vim: `lektra.opt.<section>.<key>` is `:set` (the default and the current view), the new `lektra.opt_global` is `:setglobal` (only the default), `view:opt()` is `:setlocal` (only that view), and the new `view:opt_reset([section])` is `:setlocal opt<` (back to what a new view would have). A new split still starts with a copy of the options of the view it was made from.
 
+#### Minimap
+
+- New minimap: while zoomed in on a page (a document or an image), a small overview of that page appears in a corner of the view with the visible area marked; click or drag in it to move there. The new `[minimap]` options set `enabled`, `position` (`top_left`, `top_right`, `bottom_left`, `bottom_right`), `size`, `margin`, `opacity` and `animated` (keep it updated while an animated image plays), and the `toggle_minimap` command shows or hides it.
+
 #### Images
 
 - JPEG XL (`.jxl`) images, including animated ones, can now be opened if `libjxl` is installed on the system.

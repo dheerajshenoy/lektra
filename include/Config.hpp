@@ -855,6 +855,66 @@ struct Config
     } scrollbars;
     // @endsection
 
+    // @section minimap
+    // @section_desc {
+    // A small overview of the current page in a corner of the view, shown
+    // while zoomed in so that the page does not fit. It marks the visible
+    // area; click or drag in it to move there. Works for documents and images
+    // }
+    // @section_type struct
+    // @section_added 0.8.0
+    struct Minimap
+    {
+        // @desc Show the minimap while zoomed in
+        // @type bool
+        // @default true
+        // @added 0.8.0
+        bool enabled = true;
+
+        // @desc Corner of the view the minimap is placed in
+        // @type str
+        // @choice top_left, top_right, bottom_left, bottom_right
+        // @default bottom_right
+        // @added 0.8.0
+        enum class Position
+        {
+            TopLeft = 0,
+            TopRight,
+            BottomLeft,
+            BottomRight
+        };
+        Position position = Position::BottomRight;
+
+        // @desc Length of the longer side of the minimap in pixels
+        // @type int
+        // @default 240
+        // @added 0.8.0
+        int size = 240;
+
+        // @desc Distance from the edges of the view in pixels
+        // @type int
+        // @default 12
+        // @added 0.8.0
+        int margin = 12;
+
+        // @desc Opacity of the minimap (0.0 to 1.0)
+        // @type float
+        // @default 0.85
+        // @added 0.8.0
+        float opacity = 0.85;
+
+        // @desc {
+        // Keep the minimap up to date while an animated image plays. It is
+        // redrawn up to 30 times a second, which costs some CPU; turn it off
+        // to freeze the minimap during an animation
+        // }
+        // @type bool
+        // @default true
+        // @added 0.8.0
+        bool animated = true;
+    } minimap;
+    // @endsection
+
     // @section jump_marker
     // @section_desc Jump marker options struct
     // @section_type struct

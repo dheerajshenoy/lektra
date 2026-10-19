@@ -24,6 +24,7 @@
 #include "InputDialog.hpp"
 #include "Lektra.hpp"
 #include "LinkHint.hpp"
+#include "Minimap.hpp"
 #include "PropertiesWidget.hpp"
 #include "WaitingSpinnerWidget.hpp"
 #include "utils.hpp"
@@ -213,6 +214,55 @@ DocumentView::initGui() noexcept
     // This must be done after setVerticalScrollBar/setHorizontalScrollBar
     m_vscroll->setParent(m_gview->viewport());
     m_hscroll->setParent(m_gview->viewport());
+
+    if (!m_thumbnail_mode)
+    {
+        m_minimap = new Minimap(m_config, m_gview);
+        connect(m_minimap, &Minimap::moveRequested, this,
+                [this](QPointF norm)
+        {
+            const int pageno = m_minimap_page;
+            GraphicsImageItem *item = m_page_items_hash.value(pageno, nullptr);
+            if (!item)
+                return;
+            const QRectF b = item->boundingRect();
+            m_gview->centerOn(item->mapToScene(
+                QPointF(b.x() + norm.x() * b.width(),
+                        b.y() + norm.y() * b.height())));
+        });
+
+        connect(m_minimap, &Minimap::dragStarted, this, [this]
+        {
+            m_minimap_dragging = true;
+            m_scroll_page_update_timer->stop();
+            m_hq_render_timer->stop();
+        });
+        connect(m_minimap, &Minimap::dragFinished, this, [this]
+        {
+            if (!m_minimap_dragging)
+                return;
+            m_minimap_dragging = false;
+            m_scroll_page_update_timer->start();
+            m_hq_render_timer->start();
+        });
+
+        // The page is redrawn after a zoom, so the thumbnail is refreshed
+        // shortly after the scene changes (cheap when nothing changed).
+        m_minimap_timer = new QTimer(this);
+        m_minimap_timer->setSingleShot(true);
+        m_minimap_timer->setInterval(33);
+        connect(m_minimap_timer, &QTimer::timeout, this,
+                &DocumentView::updateMinimap);
+        connect(m_gscene, &QGraphicsScene::changed, this, [this]
+        {
+            // Animated: refresh at a steady rate, since a timer that restarts
+            // on every change never fires while frames keep coming.
+            if (!m_config.minimap.animated || !m_minimap_timer->isActive())
+                m_minimap_timer->start();
+        });
+        connect(this, &DocumentView::zoomChanged, this,
+                [this] { updateMinimap(); });
+    }
 
     // Apply scrollbar size from config
     m_vscroll->setSize(m_config.scrollbars.size);

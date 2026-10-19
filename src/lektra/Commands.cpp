@@ -581,6 +581,9 @@ Lektra::initCommands() noexcept
         "toggle_comment_markers", tr("Toggle comment markers"),
         [this](const QStringList &) { ToggleCommentMarkers(); });
 
+    m_command_manager->reg("toggle_minimap", tr("Toggle minimap"),
+                           [this](const QStringList &) { ToggleMinimap(); });
+
     // Link hints
     m_command_manager->reg("link_hint_visit",
                            tr("Open link using keyboard hint"),

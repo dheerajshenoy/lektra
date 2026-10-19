@@ -1310,6 +1310,87 @@ static const LuaField splitFields[] = {
 }},
 };
 
+// --- minimap ---
+static const LuaField minimapFields[] = {
+    {"animated",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Minimap *>(p)->animated);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Minimap *>(p)->animated = lua_toboolean(L, 3); }},
+
+    {"enabled",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Minimap *>(p)->enabled);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Minimap *>(p)->enabled = lua_toboolean(L, 3); }},
+
+    {"margin",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Minimap *>(p)->margin);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Minimap *>(p)->margin = lua_tointeger(L, 3); }},
+
+    {"opacity",
+     [](lua_State *L, P p)
+{
+    lua_pushnumber(L, static_cast<Config::Minimap *>(p)->opacity);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Minimap *>(p)->opacity = lua_tonumber(L, 3); }},
+
+    // "top_left" | "top_right" | "bottom_left" | "bottom_right"
+    {"position",
+     [](lua_State *L, P p)
+{
+    using MP = Config::Minimap::Position;
+    switch (static_cast<Config::Minimap *>(p)->position)
+    {
+        case MP::TopLeft:
+            lua_pushstring(L, "top_left");
+            break;
+        case MP::TopRight:
+            lua_pushstring(L, "top_right");
+            break;
+        case MP::BottomLeft:
+            lua_pushstring(L, "bottom_left");
+            break;
+        case MP::BottomRight:
+        default:
+            lua_pushstring(L, "bottom_right");
+            break;
+    }
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    using MP      = Config::Minimap::Position;
+    const char *v = luaL_checkstring(L, 3);
+    auto *mm      = static_cast<Config::Minimap *>(p);
+    if (!strcmp(v, "top_left"))
+        mm->position = MP::TopLeft;
+    else if (!strcmp(v, "top_right"))
+        mm->position = MP::TopRight;
+    else if (!strcmp(v, "bottom_left"))
+        mm->position = MP::BottomLeft;
+    else
+        mm->position = MP::BottomRight;
+}},
+
+    {"size",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Minimap *>(p)->size);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Minimap *>(p)->size = lua_tointeger(L, 3); }},
+};
+
 // --- scrollbars ---
 static const LuaField scrollbarsFields[] = {
     {"auto_hide",
@@ -3204,6 +3285,10 @@ buildOptTable(lua_State *L, const OptScope &scope)
     pushSection(L, scope, &config.scrollbars, scrollbarsFields, "scrollbars");
     addChild(L, opt_idx, "scrollbars");
 
+    // lektra.opt.minimap
+    pushSection(L, scope, &config.minimap, minimapFields, "minimap");
+    addChild(L, opt_idx, "minimap");
+
     // lektra.opt.jump_marker
     pushSection(L, scope, &config.jump_marker, jumpMarkerFields, "jump_marker");
     addChild(L, opt_idx, "jump_marker");
@@ -3369,6 +3454,8 @@ Lektra::resetViewOptions(DocumentView *view, const QString &section) noexcept
          [](Config &to, const Config &from) { to.split = from.split; }},
         {"scrollbars", [](Config &to, const Config &from)
     { to.scrollbars = from.scrollbars; }},
+        {"minimap", [](Config &to, const Config &from)
+    { to.minimap = from.minimap; }},
         {"jump_marker", [](Config &to, const Config &from)
     { to.jump_marker = from.jump_marker; }},
         {"links",

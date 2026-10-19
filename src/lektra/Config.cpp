@@ -345,6 +345,28 @@ applyViewToml(toml::table &toml, Config &cfg)
         set(scrollbars["hide_timeout"], cfg.scrollbars.hide_timeout);
     }
 
+    if (auto minimap = toml["minimap"])
+    {
+        set(minimap["enabled"], cfg.minimap.enabled);
+        set(minimap["size"], cfg.minimap.size);
+        set(minimap["margin"], cfg.minimap.margin);
+        set(minimap["opacity"], cfg.minimap.opacity);
+        set(minimap["animated"], cfg.minimap.animated);
+
+        if (auto str = minimap["position"])
+        {
+            using MP = Config::Minimap::Position;
+            if (str == "top_left")
+                cfg.minimap.position = MP::TopLeft;
+            else if (str == "top_right")
+                cfg.minimap.position = MP::TopRight;
+            else if (str == "bottom_left")
+                cfg.minimap.position = MP::BottomLeft;
+            else
+                cfg.minimap.position = MP::BottomRight;
+        }
+    }
+
     if (auto jump_marker = toml["jump_marker"])
     {
         set(jump_marker["enabled"], cfg.jump_marker.enabled);
@@ -586,7 +608,7 @@ Lektra::initConfig() noexcept
                                          .toStdString();
             static const QSet<QString> kSections
                 = {"page",       "layout",   "zoom",        "selection",
-                   "scrollbars", "search",   "jump_marker", "annotations",
+                   "scrollbars", "search",   "jump_marker", "annotations", "minimap",
                    "links",      "behavior", "reflow"};
             for (const auto &[sec, value] : *section)
             {

@@ -423,6 +423,8 @@ DocumentView::regionNeedsRefresh(int pageno) const noexcept
 void
 DocumentView::renderPagesImpl(bool skipCurrent) noexcept
 {
+    if (m_minimap_dragging)
+        return;
 
     // Guard
     if (m_layout_mode == LayoutMode::SINGLE)
@@ -560,6 +562,9 @@ DocumentView::renderImage() noexcept
 void
 DocumentView::renderPage() noexcept
 {
+    if (m_minimap_dragging)
+        return;
+
     if (m_model->isImage())
     {
         renderImage();
@@ -1506,6 +1511,15 @@ DocumentView::cancelAllRenders() noexcept
 void
 DocumentView::requestPageRender(int pageno, bool force, bool visible) noexcept
 {
+    // Dragging in the minimap: pages that have a render keep it (and their
+    // backdrop) until the button is released.
+    if (m_minimap_dragging && !force)
+    {
+        const GraphicsImageItem *item = m_page_items_hash.value(pageno, nullptr);
+        if (item && !item->isNull() && !m_placeholder_pages.contains(pageno))
+            return;
+    }
+
     if (!force && m_pending_renders.contains(pageno))
         return;
 
