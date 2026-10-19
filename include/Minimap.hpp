@@ -49,6 +49,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
 
 private:
+    int optionsKey() const noexcept;
     void rebuildThumbnail(const GraphicsImageItem *page,
                           const QImage &whole) noexcept;
     void requestMove(const QPoint &pos) noexcept;

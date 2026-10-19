@@ -897,6 +897,25 @@ struct Config
         // @added 0.8.0
         int margin = 12;
 
+        // @desc Draw the page in the minimap. Off: a plain panel with only the
+        // visible area marked, and the page is not rendered for it
+        // @type bool
+        // @default true
+        // @added 0.8.0
+        bool render_page = true;
+
+        // @desc Border color of the minimap
+        // @type str
+        // @default "#000000A0"
+        // @added 0.8.0
+        uint32_t border_color = 0x000000A0;
+
+        // @desc Border width of the minimap in pixels (0: no border)
+        // @type int
+        // @default 1
+        // @added 0.8.0
+        int border_width = 1;
+
         // @desc Opacity of the minimap (0.0 to 1.0)
         // @type float
         // @default 0.85
@@ -912,6 +931,37 @@ struct Config
         // @default true
         // @added 0.8.0
         bool animated = true;
+
+        // @section minimap.viewport
+        // @section_desc The box marking the visible area in the minimap
+        // @section_type struct
+        // @section_added 0.8.0
+        struct Viewport
+        {
+            // @desc Outline color
+            // @type str
+            // @default "#3DAEE9FF"
+            // @added 0.8.0
+            uint32_t color = 0x3daee9FF;
+
+            // @desc Outline width in pixels (0: no outline)
+            // @type float
+            // @default 1.5
+            // @added 0.8.0
+            float width = 1.5f;
+
+            // @desc Fill color (use a low alpha)
+            // @type str
+            // @default "#3DAEE928"
+            // @added 0.8.0
+            uint32_t fill = 0x3daee928;
+
+            // @desc Color laid over the part of the page outside the box
+            // @type str
+            // @default "#0000005A"
+            // @added 0.8.0
+            uint32_t dim_color = 0x0000005A;
+        } viewport;
     } minimap;
     // @endsection
 

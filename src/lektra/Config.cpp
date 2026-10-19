@@ -352,6 +352,17 @@ applyViewToml(toml::table &toml, Config &cfg)
         set(minimap["margin"], cfg.minimap.margin);
         set(minimap["opacity"], cfg.minimap.opacity);
         set(minimap["animated"], cfg.minimap.animated);
+        set(minimap["render_page"], cfg.minimap.render_page);
+
+        if (auto viewport = minimap["viewport"])
+        {
+            set(viewport["width"], cfg.minimap.viewport.width);
+            set_color(viewport["color"], cfg.minimap.viewport.color);
+            set_color(viewport["fill"], cfg.minimap.viewport.fill);
+            set_color(viewport["dim_color"], cfg.minimap.viewport.dim_color);
+        }
+        set(minimap["border_width"], cfg.minimap.border_width);
+        set_color(minimap["border_color"], cfg.minimap.border_color);
 
         if (auto str = minimap["position"])
         {

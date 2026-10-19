@@ -400,6 +400,22 @@
           "default": true,
           "description": "Keep the minimap up to date while an animated image plays. It is redrawn up to 30 times a second, which costs some CPU; turn it off to freeze the minimap during an animation (since 0.8.0)"
         },
+        "render_page": {
+          "type": "boolean",
+          "default": true,
+          "description": "Draw the page in the minimap. Off: a plain panel with only the (since 0.8.0)"
+        },
+        "border_width": {
+          "type": "integer",
+          "default": 1,
+          "description": "Border width of the minimap in pixels (0: no border) (since 0.8.0)"
+        },
+        "border_color": {
+          "type": "string",
+          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+          "default": "#000000A0"
+        },
         "position": {
           "type": "string",
           "enum": [
@@ -409,6 +425,36 @@
             "bottom_right"
           ],
           "description": "Corner of the view the minimap is placed in (since 0.8.0)"
+        },
+        "viewport": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "number",
+              "default": 1.5,
+              "description": "Outline width in pixels (0: no outline) (since 0.8.0)"
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#3DAEE9FF"
+            },
+            "fill": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#3DAEE928"
+            },
+            "dim_color": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#0000005A"
+            }
+          },
+          "additionalProperties": false,
+          "description": "The box marking the visible area in the minimap (since 0.8.0)"
         }
       },
       "additionalProperties": false,
@@ -2293,6 +2339,22 @@
                 "default": true,
                 "description": "Keep the minimap up to date while an animated image plays. It is redrawn up to 30 times a second, which costs some CPU; turn it off to freeze the minimap during an animation (since 0.8.0)"
               },
+              "render_page": {
+                "type": "boolean",
+                "default": true,
+                "description": "Draw the page in the minimap. Off: a plain panel with only the (since 0.8.0)"
+              },
+              "border_width": {
+                "type": "integer",
+                "default": 1,
+                "description": "Border width of the minimap in pixels (0: no border) (since 0.8.0)"
+              },
+              "border_color": {
+                "type": "string",
+                "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                "default": "#000000A0"
+              },
               "position": {
                 "type": "string",
                 "enum": [
@@ -2302,6 +2364,36 @@
                   "bottom_right"
                 ],
                 "description": "Corner of the view the minimap is placed in (since 0.8.0)"
+              },
+              "viewport": {
+                "type": "object",
+                "properties": {
+                  "width": {
+                    "type": "number",
+                    "default": 1.5,
+                    "description": "Outline width in pixels (0: no outline) (since 0.8.0)"
+                  },
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                    "default": "#3DAEE9FF"
+                  },
+                  "fill": {
+                    "type": "string",
+                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                    "default": "#3DAEE928"
+                  },
+                  "dim_color": {
+                    "type": "string",
+                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                    "default": "#0000005A"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "The box marking the visible area in the minimap (since 0.8.0)"
               }
             },
             "additionalProperties": false,

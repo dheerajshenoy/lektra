@@ -34,7 +34,7 @@ Some options were renamed to be consistent. The old names are ignored, so update
 
 #### Minimap
 
-- New minimap: while zoomed in on a page (a document or an image), a small overview of that page appears in a corner of the view with the visible area marked; click or drag in it to move there. The new `[minimap]` options set `enabled`, `position` (`top_left`, `top_right`, `bottom_left`, `bottom_right`), `size`, `margin`, `opacity` and `animated` (keep it updated while an animated image plays), and the `toggle_minimap` command shows or hides it.
+- New minimap: while zoomed in on a page (a document or an image), a small overview of that page appears in a corner of the view with the visible area marked; click or drag in it to move there. The new `[minimap]` options set `enabled`, `position` (`top_left`, `top_right`, `bottom_left`, `bottom_right`), `size`, `margin`, `opacity`, `border_color`, `border_width`, the `[minimap.viewport]` table (`color`, `width`, `fill`, `dim_color`) for the box marking the visible area, `render_page` and `animated` (keep it updated while an animated image plays), and the `toggle_minimap` command shows or hides it.
 
 #### Images
 

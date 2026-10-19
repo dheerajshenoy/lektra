@@ -33,6 +33,13 @@ Minimap::rebuildThumbnail(const GraphicsImageItem *page,
 
     QImage thumb(logical * dpr, QImage::Format_ARGB32_Premultiplied);
     thumb.setDevicePixelRatio(dpr);
+    if (!m_config.minimap.render_page)
+    {
+        thumb.fill(palette().window().color());
+        m_thumb = std::move(thumb);
+        setFixedSize(logical);
+        return;
+    }
     thumb.fill(partial && !src.isNull() ? QColor(src.pixel(0, 0))
                                                   : QColor(Qt::white));
 
@@ -69,6 +76,12 @@ Minimap::rebuildThumbnail(const GraphicsImageItem *page,
     setFixedSize(logical);
 }
 
+int
+Minimap::optionsKey() const noexcept
+{
+    return m_config.minimap.size * 2 + (m_config.minimap.render_page ? 1 : 0);
+}
+
 void
 Minimap::setPage(const GraphicsImageItem *page, int pageno,
                  const QRectF &visible, const QImage &whole,
@@ -76,11 +89,11 @@ Minimap::setPage(const GraphicsImageItem *page, int pageno,
 {
     const qint64 image_key = whole.isNull() ? refreshKey : whole.cacheKey();
     if (pageno != m_page_key || image_key != m_image_key
-        || m_config.minimap.size != m_size_key || m_thumb.isNull())
+        || optionsKey() != m_size_key || m_thumb.isNull())
     {
         m_page_key  = pageno;
         m_image_key = image_key;
-        m_size_key  = m_config.minimap.size;
+        m_size_key  = optionsKey();
         rebuildThumbnail(page, whole);
         reposition();
     }
@@ -129,23 +142,31 @@ Minimap::paintEvent(QPaintEvent *)
 
     const QRectF v(m_visible.x() * width(), m_visible.y() * height(),
                    m_visible.width() * width(), m_visible.height() * height());
-    const QColor accent = rgbaToQColor(m_config.window.accent);
 
     // Dim what is out of view, then outline what is in it.
     QPainterPath outside;
     outside.addRect(rect());
     QPainterPath inside;
     inside.addRect(v);
-    p.fillPath(outside.subtracted(inside), QColor(0, 0, 0, 90));
-    QColor fill = accent;
-    fill.setAlpha(40);
-    p.fillRect(v, fill);
-    p.setPen(QPen(accent, 1.5));
-    p.drawRect(v.adjusted(0.75, 0.75, -0.75, -0.75));
+    p.fillPath(outside.subtracted(inside),
+               rgbaToQColor(m_config.minimap.viewport.dim_color));
+    p.fillRect(v, rgbaToQColor(m_config.minimap.viewport.fill));
+    const qreal lw = m_config.minimap.viewport.width;
+    if (lw > 0)
+    {
+        p.setPen(QPen(rgbaToQColor(m_config.minimap.viewport.color), lw));
+        p.drawRect(v.adjusted(lw / 2, lw / 2, -lw / 2, -lw / 2));
+    }
 
-    p.setOpacity(1.0);
-    p.setPen(QPen(QColor(0, 0, 0, 160), 1));
-    p.drawRect(rect().adjusted(0, 0, -1, -1));
+    const int bw = m_config.minimap.border_width;
+    if (bw > 0)
+    {
+        p.setOpacity(1.0);
+        p.setPen(QPen(rgbaToQColor(m_config.minimap.border_color), bw,
+                      Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+        const qreal half = bw / 2.0;
+        p.drawRect(QRectF(rect()).adjusted(half, half, -half, -half));
+    }
 }
 
 void

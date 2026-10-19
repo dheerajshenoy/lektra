@@ -1310,6 +1310,53 @@ static const LuaField splitFields[] = {
 }},
 };
 
+// --- minimap.viewport ---
+static const LuaField minimapViewportFields[] = {
+    {"color",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Minimap::Viewport *>(p)->color);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    auto *vp = static_cast<Config::Minimap::Viewport *>(p);
+    vp->color = readLuaColor(L, 3, vp->color);
+}},
+
+    {"dim_color",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Minimap::Viewport *>(p)->dim_color);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    auto *vp = static_cast<Config::Minimap::Viewport *>(p);
+    vp->dim_color = readLuaColor(L, 3, vp->dim_color);
+}},
+
+    {"fill",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Minimap::Viewport *>(p)->fill);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    auto *vp = static_cast<Config::Minimap::Viewport *>(p);
+    vp->fill = readLuaColor(L, 3, vp->fill);
+}},
+
+    {"width",
+     [](lua_State *L, P p)
+{
+    lua_pushnumber(L, static_cast<Config::Minimap::Viewport *>(p)->width);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Minimap::Viewport *>(p)->width = lua_tonumber(L, 3); }},
+};
+
 // --- minimap ---
 static const LuaField minimapFields[] = {
     {"animated",
@@ -1319,6 +1366,26 @@ static const LuaField minimapFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::Minimap *>(p)->animated = lua_toboolean(L, 3); }},
+
+    {"border_color",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Minimap *>(p)->border_color);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Minimap *>(p)->border_color
+        = readLuaColor(L, 3, static_cast<Config::Minimap *>(p)->border_color);
+}},
+
+    {"border_width",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Minimap *>(p)->border_width);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Minimap *>(p)->border_width = lua_tointeger(L, 3); }},
 
     {"enabled",
      [](lua_State *L, P p)
@@ -1382,6 +1449,14 @@ static const LuaField minimapFields[] = {
         mm->position = MP::BottomRight;
 }},
 
+    {"render_page",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Minimap *>(p)->render_page);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Minimap *>(p)->render_page = lua_toboolean(L, 3); }},
+
     {"size",
      [](lua_State *L, P p)
 {
@@ -1389,6 +1464,7 @@ static const LuaField minimapFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::Minimap *>(p)->size = lua_tointeger(L, 3); }},
+
 };
 
 // --- scrollbars ---
@@ -3287,6 +3363,12 @@ buildOptTable(lua_State *L, const OptScope &scope)
 
     // lektra.opt.minimap
     pushSection(L, scope, &config.minimap, minimapFields, "minimap");
+    {
+        const int minimap_idx = lua_absindex(L, -1);
+        pushSection(L, scope, &config.minimap.viewport, minimapViewportFields,
+                    "minimap");
+        addChild(L, minimap_idx, "viewport");
+    }
     addChild(L, opt_idx, "minimap");
 
     // lektra.opt.jump_marker

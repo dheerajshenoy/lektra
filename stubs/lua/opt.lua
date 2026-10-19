@@ -271,14 +271,27 @@ lektra.opt.split = {}
 ---@field vertical? boolean Show the vertical scrollbar.
 lektra.opt.scrollbars = {}
 
+---@class OptMinimapViewport
+---@field color? Color Outline color (RRGGBBAA).
+---@field dim_color? Color Color laid over the part of the page outside the box (RRGGBBAA).
+---@field fill? Color Fill color (RRGGBBAA, use a low alpha).
+---@field width? number Outline width in pixels (0: no outline).
+
 ---@class OptMinimap
 ---@field animated? boolean Keep the minimap up to date while an animated image plays.
+---@field border_color? Color Border color as an RRGGBBAA hex integer (e.g. 0x000000A0).
+---@field border_width? integer Border width in pixels (0: no border).
 ---@field enabled? boolean Show the minimap while zoomed in.
 ---@field margin? integer Distance from the edges of the view in pixels.
 ---@field opacity? number Opacity of the minimap (0.0–1.0).
 ---@field position? "top_left"|"top_right"|"bottom_left"|"bottom_right" Corner of the view the minimap is placed in.
+---@field render_page? boolean Draw the page in the minimap (off: a plain panel with only the visible area marked).
 ---@field size? integer Length of the longer side of the minimap in pixels.
-lektra.opt.minimap = {}
+---@field viewport? OptMinimapViewport The box marking the visible area.
+lektra.opt.minimap = {
+    ---@type OptMinimapViewport
+    viewport = {},
+}
 
 ---@class OptJumpMarker
 ---@field color? Color Jump marker color (`Color`).

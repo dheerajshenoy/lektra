@@ -1393,7 +1393,7 @@ DocumentView::updateMinimap() noexcept
     // A zoomed-in page is only rendered near the view; the minimap needs all
     // of it, so draw the whole page at the size of the minimap.
     QImage whole;
-    if (!m_model->isImage())
+    if (!m_model->isImage() && m_config.minimap.render_page)
     {
         const qreal dpr  = m_gview->devicePixelRatioF();
         const QSizeF pts = m_model->pageSizePts(pageIndex);
