@@ -72,6 +72,7 @@ Some options were renamed to be consistent. The old names are ignored, so update
 - Fix an image drifting up and to the left when zooming in or out, until the view settled.
 - Color options set from Lua (`lektra.opt` and `view:opt()`) now accept a hex string such as `"#1e1e2e"`, like `config.toml` does; before, only `page.bg` and `page.fg` did and the others needed an integer.
 - Fix scrollbars that are turned off (`scrollbars.vertical` / `scrollbars.horizontal`) showing up when zooming or resizing.
+- In single-instance mode, files given with a relative path (and the `--synctex-forward` paths) now open in the running instance.
 - Scrolling no longer asks for a new render of pages that are already rendered on every small scrollbar movement.
 - Statusbar layout: a mistyped module or key is reported with a suggestion, an all-invalid layout falls back to the default one, and items placed with `at` no longer draw on top of each other.
 - Improved rendering performance when scrolling

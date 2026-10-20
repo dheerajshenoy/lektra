@@ -123,6 +123,13 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
     // returns if there is none to talk to.
     const auto handOffToRunningInstance = [&]()
     {
+        // The running instance has its own working directory, so relative
+        // paths must be resolved here.
+        const auto absolutePath = [](const QString &path)
+        {
+            return QDir::cleanPath(QFileInfo(path).absoluteFilePath());
+        };
+
         QLocalSocket probe;
         probe.connectToServer(ipcName);
         if (probe.waitForConnected(300))
@@ -135,7 +142,7 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
                 QJsonArray fileArr;
                 QStringList names;
                 for (const auto &f : files)
-                    fileArr.append(QString::fromLocal8Bit(f.c_str()));
+                    fileArr.append(absolutePath(QString::fromLocal8Bit(f.c_str())));
                 msg["files"]  = fileArr;
                 msg["page"]   = argparser.is_used("page")
                                     ? argparser.get<int>("--page")
@@ -149,8 +156,28 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 
 #ifdef WITH_SYNCTEX
             if (hasSynctexForward)
-                msg["synctex_forward"] = QString::fromStdString(
+            {
+                // Format: file.pdf#file.tex:line:column
+                QString arg = QString::fromStdString(
                     argparser.get<std::string>("--synctex-forward"));
+                static const QRegularExpression re(
+                    QStringLiteral(R"(^(.*)#(.*):(\d+):(\d+)$)"));
+                const QRegularExpressionMatch match = re.match(arg);
+                if (match.hasMatch())
+                {
+                    const auto expand = [&](QString p)
+                    {
+                        return absolutePath(
+                            p.replace(QLatin1Char('~'),
+                                      QString::fromLatin1(HOME_DIR)));
+                    };
+                    arg = QStringLiteral("%1#%2:%3:%4")
+                              .arg(expand(match.captured(1)),
+                                   expand(match.captured(2)),
+                                   match.captured(3), match.captured(4));
+                }
+                msg["synctex_forward"] = arg;
+            }
 #endif
 
             probe.write(QJsonDocument(msg).toJson(QJsonDocument::Compact));
