@@ -1813,29 +1813,65 @@ Lektra::ToggleCaretMode() noexcept
 void
 Lektra::CaretLeft() noexcept
 {
-    if (m_doc)
-        m_doc->caretMoveLeft();
+    if (!m_doc)
+        return;
+
+    // Arrow keys turn pages when caret mode is off.
+    if (!m_doc->caretMode())
+    {
+        PrevPage();
+        return;
+    }
+
+    m_doc->caretMoveLeft();
 }
 
 void
 Lektra::CaretRight() noexcept
 {
-    if (m_doc)
-        m_doc->caretMoveRight();
+    if (!m_doc)
+        return;
+
+    // Arrow keys turn pages when caret mode is off.
+    if (!m_doc->caretMode())
+    {
+        NextPage();
+        return;
+    }
+
+    m_doc->caretMoveRight();
 }
 
 void
 Lektra::CaretUp() noexcept
 {
-    if (m_doc)
-        m_doc->caretMoveUp();
+    if (!m_doc)
+        return;
+
+    // Arrow keys turn pages when caret mode is off.
+    if (!m_doc->caretMode())
+    {
+        PrevPage();
+        return;
+    }
+
+    m_doc->caretMoveUp();
 }
 
 void
 Lektra::CaretDown() noexcept
 {
-    if (m_doc)
-        m_doc->caretMoveDown();
+    if (!m_doc)
+        return;
+
+    // Arrow keys turn pages when caret mode is off.
+    if (!m_doc->caretMode())
+    {
+        NextPage();
+        return;
+    }
+
+    m_doc->caretMoveDown();
 }
 
 void

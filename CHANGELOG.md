@@ -32,6 +32,10 @@ Some options were renamed to be consistent. The old names are ignored, so update
 - The picker keys can now be set from Lua: `lektra.opt.picker.keys.down = {"Down", "Ctrl+N"}` (the same actions as `[picker.keys]`).
 - Options of a view now work as in Vim: `lektra.opt.<section>.<key>` is `:set` (the default and the current view), the new `lektra.opt_global` is `:setglobal` (only the default), `view:opt()` is `:setlocal` (only that view), and the new `view:opt_reset([section])` is `:setlocal opt<` (back to what a new view would have). A new split still starts with a copy of the options of the view it was made from.
 
+#### Presentation mode
+
+- Presentation mode now works with clickers: `PgDown`, `Space` and the arrow keys go to the next page, `PgUp` and the arrow keys to the previous one (the arrows still move the caret in caret mode), `F5` starts it and `Esc` leaves it. All other keys are disabled while it is on.
+
 #### Minimap
 
 - New minimap: while zoomed in on a page (a document or an image), a small overview of that page appears in a corner of the view with the visible area marked; click or drag in it to move there. The new `[minimap]` options set `enabled`, `position` (`top_left`, `top_right`, `bottom_left`, `bottom_right`), `size`, `margin`, `opacity`, `border_color`, `border_width`, the `[minimap.viewport]` table (`color`, `width`, `fill`, `dim_color`) for the box marking the visible area, `render_page` and `animated` (keep it updated while an animated image plays), and the `toggle_minimap` command shows or hides it.
@@ -68,11 +72,11 @@ Some options were renamed to be consistent. The old names are ignored, so update
 
 ### Bug Fixes
 
+- In single-instance mode, files given with a relative path (and the `--synctex-forward` paths) now open in the running instance.
 - Fit width going to the last page of the document
 - Fix an image drifting up and to the left when zooming in or out, until the view settled.
 - Color options set from Lua (`lektra.opt` and `view:opt()`) now accept a hex string such as `"#1e1e2e"`, like `config.toml` does; before, only `page.bg` and `page.fg` did and the others needed an integer.
 - Fix scrollbars that are turned off (`scrollbars.vertical` / `scrollbars.horizontal`) showing up when zooming or resizing.
-- In single-instance mode, files given with a relative path (and the `--synctex-forward` paths) now open in the running instance.
 - Scrolling no longer asks for a new render of pages that are already rendered on every small scrollbar movement.
 - Statusbar layout: a mistyped module or key is reported with a suggestion, an all-invalid layout falls back to the default one, and items placed with `at` no longer draw on top of each other.
 - Improved rendering performance when scrolling

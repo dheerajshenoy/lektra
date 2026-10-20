@@ -428,6 +428,12 @@ Lektra::eventFilter(QObject *object, QEvent *event)
         QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
         if (keyEvent->key() == Qt::Key_Escape)
         {
+            if (m_presentation.active)
+            {
+                TogglePresentationMode();
+                return true;
+            }
+
             if (m_preview_view && m_preview_view->isVisible())
             {
                 // if (QWidget *overlay = m_preview_view->parentWidget())

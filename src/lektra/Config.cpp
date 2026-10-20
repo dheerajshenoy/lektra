@@ -1337,6 +1337,7 @@ Lektra::initDefaultKeybinds() noexcept
         {"split_close", "Ctrl+W,c"},
         {"files_recent", "Alt+Shift+o"},
         {"caret_mode", "F7"},
+        {"presentation_mode", "F5"},
         {"caret_left", "Left"},
         {"caret_right", "Right"},
         {"caret_up", "Up"},
@@ -1370,6 +1371,11 @@ Lektra::initDefaultKeybinds() noexcept
         setupKeybinding(QString::fromLatin1(binding.action),
                         {QString::fromLatin1(binding.key)});
     }
+
+    // Extra page-turn keys (clickers send PgUp/PgDown). Left/Right/Up/Down
+    // stay on caret_*, which turn pages when caret mode is off.
+    setupKeybinding("page_next", {"Shift+j", "PgDown", "Space"});
+    setupKeybinding("page_prev", {"Shift+k", "PgUp"});
 
     // Vim visual-mode-style selection in caret mode: Shift+H/L alongside
     // Shift+Left/Right (Shift+J/K are handled specially in
@@ -1454,6 +1460,17 @@ Lektra::unsetKeybinding(const QString &action) noexcept
     m_config.keybinds.remove(action);
 }
 
+// Actions that stay usable while presentation mode is active.
+static bool
+isPresentationAction(const QString &action) noexcept
+{
+    static const QSet<QString> allowed
+        = {"page_next",  "page_prev",  "caret_left",
+           "caret_right", "caret_up",  "caret_down",
+           "presentation_mode", "laser_pointer_cursor"};
+    return allowed.contains(action);
+}
+
 void
 Lektra::setupKeybinding(const QString &action, const QStringList &keys) noexcept
 {
@@ -1504,8 +1521,13 @@ Lektra::setupKeybinding(const QString &action, const QStringList &keys) noexcept
 
         QShortcut *shortcut = new QShortcut(newSeq, this);
         shortcut->setObjectName(action);
-        connect(shortcut, &QShortcut::activated,
-                [command]() { command.action({}); });
+        connect(shortcut, &QShortcut::activated, [this, action, command]()
+        {
+            // Presentation mode only allows navigation and leaving it.
+            if (m_presentation.active && !isPresentationAction(action))
+                return;
+            command.action({});
+        });
 #ifndef NDEBUG
         qDebug() << "Keybinding set:" << action << "->" << key;
 #endif
