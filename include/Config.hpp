@@ -871,6 +871,13 @@ struct Config
         // @added 0.8.0
         bool enabled = true;
 
+        // @desc Show the minimap only on the focused view, not on the other
+        // splits
+        // @type bool
+        // @default false
+        // @added 0.8.0
+        bool only_focused = false;
+
         // @desc Corner of the view the minimap is placed in
         // @type str
         // @choice top_left, top_right, bottom_left, bottom_right

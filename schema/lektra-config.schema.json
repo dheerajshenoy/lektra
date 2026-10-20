@@ -380,6 +380,11 @@
           "default": true,
           "description": "Show the minimap while zoomed in (since 0.8.0)"
         },
+        "only_focused": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show the minimap only on the focused view, not on the other (since 0.8.0)"
+        },
         "size": {
           "type": "integer",
           "default": 240,
@@ -2318,6 +2323,11 @@
                 "type": "boolean",
                 "default": true,
                 "description": "Show the minimap while zoomed in (since 0.8.0)"
+              },
+              "only_focused": {
+                "type": "boolean",
+                "default": false,
+                "description": "Show the minimap only on the focused view, not on the other (since 0.8.0)"
               },
               "size": {
                 "type": "integer",

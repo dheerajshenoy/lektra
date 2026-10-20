@@ -1411,6 +1411,14 @@ static const LuaField minimapFields[] = {
 }, [](lua_State *L, P p)
 { static_cast<Config::Minimap *>(p)->opacity = lua_tonumber(L, 3); }},
 
+    {"only_focused",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Minimap *>(p)->only_focused);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Minimap *>(p)->only_focused = lua_toboolean(L, 3); }},
+
     // "top_left" | "top_right" | "bottom_left" | "bottom_right"
     {"position",
      [](lua_State *L, P p)

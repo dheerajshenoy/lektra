@@ -357,6 +357,7 @@ public:
     {
         m_gview->setActive(state);
         m_gview->update();
+        updateMinimap();
     }
 
     inline bool isActive() const noexcept

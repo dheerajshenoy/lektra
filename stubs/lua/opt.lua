@@ -284,6 +284,7 @@ lektra.opt.scrollbars = {}
 ---@field enabled? boolean Show the minimap while zoomed in.
 ---@field margin? integer Distance from the edges of the view in pixels.
 ---@field opacity? number Opacity of the minimap (0.0–1.0).
+---@field only_focused? boolean Show the minimap only on the focused view, not on the other splits.
 ---@field position? "top_left"|"top_right"|"bottom_left"|"bottom_right" Corner of the view the minimap is placed in.
 ---@field render_page? boolean Draw the page in the minimap (off: a plain panel with only the visible area marked).
 ---@field size? integer Length of the longer side of the minimap in pixels.

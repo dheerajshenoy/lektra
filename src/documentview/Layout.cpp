@@ -1325,7 +1325,8 @@ DocumentView::updateMinimap() noexcept
 
     m_minimap_viewport = m_gview->viewport()->size();
 
-    if (!m_config.minimap.enabled || m_page_items_hash.isEmpty())
+    if (!m_config.minimap.enabled || m_page_items_hash.isEmpty()
+        || (m_config.minimap.only_focused && !isActive()))
     {
         m_minimap->hide();
         return;

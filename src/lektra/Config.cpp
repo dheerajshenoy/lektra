@@ -348,6 +348,7 @@ applyViewToml(toml::table &toml, Config &cfg)
     if (auto minimap = toml["minimap"])
     {
         set(minimap["enabled"], cfg.minimap.enabled);
+        set(minimap["only_focused"], cfg.minimap.only_focused);
         set(minimap["size"], cfg.minimap.size);
         set(minimap["margin"], cfg.minimap.margin);
         set(minimap["opacity"], cfg.minimap.opacity);
