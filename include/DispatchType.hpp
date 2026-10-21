@@ -44,6 +44,8 @@ enum class DispatchType
     OnBookmarkAdded                       = 23,
     OnFileSaved                           = 24,
     OnSynctexJumpRequested                = 25,
+    OnPresentationStarted                 = 26,
+    OnPresentationEnded                   = 27,
     COUNT
 };
 
@@ -76,6 +78,8 @@ static const QHash<QString, DispatchType> s_dispatchEventMap = {
     {"OnBookmarkAdded", DispatchType::OnBookmarkAdded},
     {"OnFileSaved", DispatchType::OnFileSaved},
     {"OnSynctexJumpRequested", DispatchType::OnSynctexJumpRequested},
+    {"OnPresentationStarted", DispatchType::OnPresentationStarted},
+    {"OnPresentationEnded", DispatchType::OnPresentationEnded},
 };
 
 inline static DispatchType

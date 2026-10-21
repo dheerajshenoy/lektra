@@ -1183,6 +1183,7 @@ Lektra::TogglePresentationMode() noexcept
         m_doc->setFitMode(DocumentView::FitMode::Window);
 
         m_presentation.active = true;
+        dispatchLuaEvent(DispatchType::OnPresentationStarted);
     }
     else
     {
@@ -1198,5 +1199,6 @@ Lektra::TogglePresentationMode() noexcept
 
         m_presentation.active = false;
         setLaserPointerCursor(false);
+        dispatchLuaEvent(DispatchType::OnPresentationEnded);
     }
 }
