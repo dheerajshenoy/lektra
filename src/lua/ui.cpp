@@ -236,6 +236,91 @@ lua_ui_picker(lua_State *L, Lektra *lektra)
     picker->launch();
     return 0;
 }
+
+static int
+lua_ui_menu(lua_State *L, Lektra *lektra)
+{
+    if (!lua_istable(L, 1))
+    {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    QMenu *menu = new QMenu(lektra);
+
+    std::function<void(int, QMenu *)> parseMenuItems
+        = [&](int tbl, QMenu *parent_menu)
+    {
+        lua_pushnil(L);
+        while (lua_next(L, tbl))
+        {
+            if (!lua_istable(L, -1))
+            {
+                lua_pop(L, 1);
+                continue;
+            }
+
+            lua_getfield(L, -1, "label");
+            if (!lua_isstring(L, -1))
+            {
+                lua_pop(L, 2);
+                continue;
+            }
+            QString label = QString::fromUtf8(lua_tostring(L, -1));
+            lua_pop(L, 1);
+
+            QAction *action = parent_menu->addAction(label);
+
+            lua_getfield(L, -1, "submenu");
+            if (lua_istable(L, -1))
+            {
+                QMenu *submenu = new QMenu(label, parent_menu);
+                action->setMenu(submenu);
+                parseMenuItems(lua_gettop(L), submenu);
+            }
+            lua_pop(L, 1);
+
+            lua_getfield(L, -1, "icon");
+            if (lua_isstring(L, -1))
+            {
+                QString icon_path = QString::fromUtf8(lua_tostring(L, -1));
+                QIcon icon        = QIcon::fromTheme(icon_path);
+                if (!icon.isNull())
+                    action->setIcon(icon);
+            }
+            lua_pop(L, 1);
+
+            lua_getfield(L, -1, "callback");
+            if (lua_isfunction(L, -1))
+            {
+                int callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+                QObject::connect(action, &QAction::triggered,
+                                 [L = luaMainState(), callback_ref]()
+                {
+                    lua_rawgeti(L, LUA_REGISTRYINDEX, callback_ref);
+                    lua_call(L, 0, 0);
+                });
+                QObject::connect(action, &QObject::destroyed,
+                                 [L = luaMainState(), callback_ref]()
+                { luaL_unref(L, LUA_REGISTRYINDEX, callback_ref); });
+            }
+            else
+            {
+                lua_pop(L, 1);
+            }
+
+            lua_pop(L, 1); // pop item table
+        }
+    };
+
+    parseMenuItems(1, menu);
+
+    // Push as full userdata so we can attach a metatable
+    QMenu **ud = static_cast<QMenu **>(lua_newuserdata(L, sizeof(QMenu *)));
+    *ud        = menu;
+    luaL_setmetatable(L, "LektraMenu");
+    return 1;
+}
 } // namespace
 
 void
@@ -551,86 +636,7 @@ Lektra::initLuaUI() noexcept
         auto *lektra
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
 
-        if (!lua_istable(L, 1))
-        {
-            lua_pushnil(L);
-            return 1;
-        }
-
-        QMenu *menu = new QMenu(lektra);
-
-        std::function<void(int, QMenu *)> parseMenuItems
-            = [&](int tbl, QMenu *parent_menu)
-        {
-            lua_pushnil(L);
-            while (lua_next(L, tbl))
-            {
-                if (!lua_istable(L, -1))
-                {
-                    lua_pop(L, 1);
-                    continue;
-                }
-
-                lua_getfield(L, -1, "label");
-                if (!lua_isstring(L, -1))
-                {
-                    lua_pop(L, 2);
-                    continue;
-                }
-                QString label = QString::fromUtf8(lua_tostring(L, -1));
-                lua_pop(L, 1);
-
-                QAction *action = parent_menu->addAction(label);
-
-                lua_getfield(L, -1, "submenu");
-                if (lua_istable(L, -1))
-                {
-                    QMenu *submenu = new QMenu(label, parent_menu);
-                    action->setMenu(submenu);
-                    parseMenuItems(lua_gettop(L), submenu);
-                }
-                lua_pop(L, 1);
-
-                lua_getfield(L, -1, "icon");
-                if (lua_isstring(L, -1))
-                {
-                    QString icon_path = QString::fromUtf8(lua_tostring(L, -1));
-                    QIcon icon        = QIcon::fromTheme(icon_path);
-                    if (!icon.isNull())
-                        action->setIcon(icon);
-                }
-                lua_pop(L, 1);
-
-                lua_getfield(L, -1, "callback");
-                if (lua_isfunction(L, -1))
-                {
-                    int callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-                    QObject::connect(action, &QAction::triggered,
-                                     [L = luaMainState(), callback_ref]()
-                    {
-                        lua_rawgeti(L, LUA_REGISTRYINDEX, callback_ref);
-                        lua_call(L, 0, 0);
-                    });
-                    QObject::connect(action, &QObject::destroyed,
-                                     [L = luaMainState(), callback_ref]()
-                    { luaL_unref(L, LUA_REGISTRYINDEX, callback_ref); });
-                }
-                else
-                {
-                    lua_pop(L, 1);
-                }
-
-                lua_pop(L, 1); // pop item table
-            }
-        };
-
-        parseMenuItems(1, menu);
-
-        // Push as full userdata so we can attach a metatable
-        QMenu **ud = static_cast<QMenu **>(lua_newuserdata(L, sizeof(QMenu *)));
-        *ud        = menu;
-        luaL_setmetatable(L, "LektraMenu");
-        return 1;
+        return lua_ui_menu(L, lektra);
     }, 1);
     lua_setfield(m_L, -2, "menu");
 

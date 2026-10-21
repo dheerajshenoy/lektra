@@ -97,9 +97,9 @@ set(CMAKE_AUTOUIC ON)
 
 if(MSVC)
     add_compile_options(/Zc:__cplusplus /Zc:preprocessor)
-    set(DEBUG_FLAGS          /Od;/Zi;/RTC1;/W4)
-    set(RELEASE_FLAGS        /O2;/DNDEBUG;/GR-;/W4)
-    set(REL_WITH_DEB_INFO_FLAGS /O2;/Zi;/DNDEBUG;/W4)
+    set(DEBUG_FLAGS          /Od;/Zi;/RTC1;/W2)
+    set(RELEASE_FLAGS        /O2;/DNDEBUG;/GR-;/W2)
+    set(REL_WITH_DEB_INFO_FLAGS /O2;/Zi;/DNDEBUG;/W2)
 else()
     set(DEBUG_FLAGS          -fno-omit-frame-pointer;-ggdb3;-O0;-Wall;-Wextra)
     # -g/-fno-omit-frame-pointer are kept in Release too (not just
