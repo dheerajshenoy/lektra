@@ -322,7 +322,7 @@ struct Config
         // @type float
         // @default 0.15
         // @added 0.6.9
-        float panel_width = 0.15;
+        float panel_width = 0.15f;
 
         // @desc {
         // Font size (in points) for page number labels in the thumbnail
@@ -1789,7 +1789,7 @@ struct Config
         // @type table
         // @default { width = 0.6, height = 0.7 }
         // @added 0.6.6
-        WindowRatio size_ratio = {0.6, 0.7};
+        WindowRatio size_ratio = {0.6f, 0.7f};
 
         // @desc Border radius of the preview window in pixels
         // @type int

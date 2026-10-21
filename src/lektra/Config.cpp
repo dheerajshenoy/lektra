@@ -674,7 +674,7 @@ Lektra::initConfig() noexcept
             m_config.preview.close_on_click_outside);
         if (preview["size_ratio"].is_table())
         {
-            float width{0.6}, height{0.7};
+            float width{0.6f}, height{0.7f};
 
             const auto &size_table = *preview["size_ratio"].as_table();
 
