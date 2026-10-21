@@ -792,11 +792,13 @@ GraphicsView::wheelEvent(QWheelEvent *event)
 void
 GraphicsView::contextMenuEvent(QContextMenuEvent *event)
 {
-    // Let annotations show their own context menu instead of the generic one.
+    // Let annotations and links show their own context menu instead of the
+    // generic one.
     for (QGraphicsItem *item = itemAt(event->pos()); item;
          item                = item->parentItem())
     {
-        if (item->type() == Annotation::Type_)
+        if (item->type() == Annotation::Type_
+            || item->data(0).toString() == QLatin1String("link"))
         {
             QGraphicsView::contextMenuEvent(event);
             return;

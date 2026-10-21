@@ -495,6 +495,11 @@ public:
                         GraphicsImageItem *&outPageItem) const noexcept;
     void setPortal(DocumentView *portal) noexcept;
     void clearPortal() noexcept;
+    // Drops the portal pointer without touching the portal (it is gone).
+    inline void forgetPortal() noexcept
+    {
+        m_portal_view = nullptr;
+    }
     void set_visual_line_mode(bool state) noexcept;
 
     // Caret mode (accessibility feature, cf. Firefox/Okular "caret

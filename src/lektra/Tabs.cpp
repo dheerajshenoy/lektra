@@ -1560,7 +1560,15 @@ Lektra::create_portal(DocumentView *sourceView,
         {
             if (m_config.portal.respect_parent)
             {
-                DocumentContainer *container = pair->portal->container();
+                // This runs after the source is gone, possibly while its
+                // container is being destroyed (window/tab close). The raw
+                // container() pointer may dangle, so look the container up
+                // through the live parent chain instead: a container that
+                // is mid-destruction no longer casts.
+                DocumentContainer *container = nullptr;
+                for (QObject *o = pair->portal->parent(); o && !container;
+                     o          = o->parent())
+                    container = qobject_cast<DocumentContainer *>(o);
                 if (container)
                     container->closeView(pair->portal);
             }
@@ -1577,7 +1585,8 @@ Lektra::create_portal(DocumentView *sourceView,
         pair->portal = nullptr;
         if (pair->source)
         {
-            pair->source->clearPortal();
+            // The portal is already destroyed; don't touch it.
+            pair->source->forgetPortal();
             m_statusbar->setPortalMode(false);
         }
     }, Qt::SingleShotConnection);
