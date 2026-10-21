@@ -93,6 +93,8 @@ Some options were renamed to be consistent. The old names are ignored, so update
 - Opening many files from the command line (`lektra ~/Downloads/*.pdf`) now only loads the first one and the others when you switch to them, as `tabs.lazy_load` says; before, every file was loaded at once.
 - Single-instance mode now works when it is turned on from `init.lua` (`lektra.opt.behavior.single_instance`), not only from `config.toml` or `--single-instance`, and a second instance no longer takes the socket away from a running one.
 - Right-clicking an annotation now shows its own menu instead of "Insert Image Here...".
+- Right-clicking a link now shows the link menu instead of "Insert Image Here...".
+- Fix a crash when closing the window with a portal open.
 - Auto-reload now says when the file was moved, renamed or deleted, instead of a generic "Could not reload the document".
 - Next/previous search match (with `search.absolute_jump` off) now works like vim: after scrolling, it jumps to the first match below the top of the view, or the last one above it, instead of skipping matches on the current page.
 
