@@ -917,6 +917,10 @@ Lektra::onIPCDataReady()
 
     this->raise();
     this->activateWindow();
+    // Window managers often refuse to move the focus; flag the window as
+    // needing attention so the user notices what was opened.
+    if (!isActiveWindow())
+        QApplication::alert(this, 0);
 }
 
 void

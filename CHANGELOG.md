@@ -75,6 +75,7 @@ Some options were renamed to be consistent. The old names are ignored, so update
 
 ### Bug Fixes
 
+- In single-instance mode, the window is now flagged as needing attention (urgent) when a file is opened in it from the command line, since the window manager may not bring it to the front.
 - In single-instance mode, dragging a tab out of the window (and the other "new window" actions) now opens a new window instead of reopening the file in the same one.
 - In single-instance mode, files given with a relative path (and the `--synctex-forward` paths) now open in the running instance.
 - Fit width going to the last page of the document
