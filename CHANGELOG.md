@@ -27,6 +27,7 @@ Some options were renamed to be consistent. The old names are ignored, so update
 
 #### Options
 
+- New `behavior.keep_view` option (on by default): going to the next or previous page keeps the same part of the page in view, e.g. when zoomed into a region, instead of centering on the new page. Turn it off for the old behavior.
 - New `laser_pointer.trail` option: with the laser pointer, drawing with the left button leaves a trail that fades from its oldest end, like Excalidraw (`trail_fade_ms` sets the duration).
 - New `outline.preload` option: load the outline in the background after a document opens, instead of the first time the outline picker is opened (the default).
 - The picker keys can now be set from Lua: `lektra.opt.picker.keys.down = {"Down", "Ctrl+N"}` (the same actions as `[picker.keys]`).

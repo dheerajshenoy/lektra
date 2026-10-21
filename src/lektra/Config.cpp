@@ -427,6 +427,7 @@ applyViewToml(toml::table &toml, Config &cfg)
         set(behavior["cache_pages"], cfg.behavior.cache_pages);
         set(behavior["mupdf_store_size"], cfg.behavior.mupdf_store_size);
         set(behavior["auto_scroll"], cfg.behavior.auto_scroll);
+        set(behavior["keep_view"], cfg.behavior.keep_view);
         set(behavior["drag_image_out"], cfg.behavior.drag_image_out);
         if (auto str = behavior["save_mode"])
         {

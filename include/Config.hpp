@@ -1531,6 +1531,16 @@ struct Config
         bool auto_scroll = true;
 
         // @desc {
+        // Keep the same part of the page in view when going to the next or
+        // previous page, e.g. when zoomed into a region. Off: the view is
+        // centered on the new page
+        // }
+        // @type bool
+        // @default true
+        // @added 0.8.0
+        bool keep_view = true;
+
+        // @desc {
         // Drag an image of the page out of the window by pressing on it and
         // moving the mouse (to drop it into another program). Turn it off if
         // that gets in the way of selecting text.

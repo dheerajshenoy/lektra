@@ -690,7 +690,6 @@ static const LuaField portalFields[] = {
 };
 
 // --- window ---
-// NOTE: must remain sorted alphabetically (binary search in findField)
 static const LuaField windowFields[] = {
     {"accent",
      [](lua_State *L, P p)
@@ -1209,7 +1208,6 @@ static const LuaField selectionFields[] = {
 };
 
 // --- split ---
-// NOTE: must remain sorted alphabetically (binary search in findField)
 static const LuaField splitFields[] = {
     {"dim_inactive",
      [](lua_State *L, P p)
@@ -2037,7 +2035,6 @@ readKeyList(lua_State *L, int idx, QList<QKeyCombination> &keys)
      [](lua_State *L, P p)                                                     \
     { readKeyList(L, 3, static_cast<Picker::Keybindings *>(p)->MEMBER); }}
 
-// Alphabetical order required — findField uses binary search.
 static const LuaField pickerKeyFields[] = {
     PICKER_KEY_FIELD("accept", accept),
     PICKER_KEY_FIELD("collapse", collapse),
@@ -2122,7 +2119,6 @@ static const LuaField pickerShadowFields[] = {
 };
 
 // --- outline (Inherits Picker) ---
-// Alphabetical order required — findField uses binary search.
 static const LuaField outlineFields[] = {
     {"flat_menu",
      [](lua_State *L, P p)
@@ -2432,44 +2428,6 @@ static const LuaField behaviorFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::Behavior *>(p)->auto_scroll = lua_toboolean(L, 3); }},
-    {"drag_image_out",
-     [](lua_State *L, P p)
-{
-    lua_pushboolean(L, static_cast<Config::Behavior *>(p)->drag_image_out);
-    return 1;
-}, [](lua_State *L, P p)
-{ static_cast<Config::Behavior *>(p)->drag_image_out = lua_toboolean(L, 3); }},
-    // "overwrite" | "ask" | "suffix"
-    {"save_mode",
-     [](lua_State *L, P p)
-{
-    using SM = Config::Behavior::SaveMode;
-    switch (static_cast<Config::Behavior *>(p)->save_mode)
-    {
-        case SM::Ask:
-            lua_pushstring(L, "ask");
-            break;
-        case SM::Suffix:
-            lua_pushstring(L, "suffix");
-            break;
-        case SM::Overwrite:
-        default:
-            lua_pushstring(L, "overwrite");
-            break;
-    }
-    return 1;
-}, [](lua_State *L, P p)
-{
-    using SM      = Config::Behavior::SaveMode;
-    const char *v = luaL_checkstring(L, 3);
-    auto *b       = static_cast<Config::Behavior *>(p);
-    if (!strcmp(v, "ask"))
-        b->save_mode = SM::Ask;
-    else if (!strcmp(v, "suffix"))
-        b->save_mode = SM::Suffix;
-    else
-        b->save_mode = SM::Overwrite;
-}},
     {"cache_pages",
      [](lua_State *L, P p)
 {
@@ -2512,6 +2470,13 @@ static const LuaField behaviorFields[] = {
     static_cast<Config::Behavior *>(p)->dont_invert_images
         = lua_toboolean(L, 3);
 }},
+    {"drag_image_out",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Behavior *>(p)->drag_image_out);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Behavior *>(p)->drag_image_out = lua_toboolean(L, 3); }},
     {"high_contrast",
      [](lua_State *L, P p)
 {
@@ -2550,6 +2515,13 @@ static const LuaField behaviorFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::Behavior *>(p)->invert_mode = lua_toboolean(L, 3); }},
+    {"keep_view",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Behavior *>(p)->keep_view);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Behavior *>(p)->keep_view = lua_toboolean(L, 3); }},
     {"mupdf_store_size",
      [](lua_State *L, P p)
 {
@@ -2616,6 +2588,37 @@ static const LuaField behaviorFields[] = {
 {
     static_cast<Config::Behavior *>(p)->remember_last_visited
         = lua_toboolean(L, 3);
+}},
+    // "overwrite" | "ask" | "suffix"
+    {"save_mode",
+     [](lua_State *L, P p)
+{
+    using SM = Config::Behavior::SaveMode;
+    switch (static_cast<Config::Behavior *>(p)->save_mode)
+    {
+        case SM::Ask:
+            lua_pushstring(L, "ask");
+            break;
+        case SM::Suffix:
+            lua_pushstring(L, "suffix");
+            break;
+        case SM::Overwrite:
+        default:
+            lua_pushstring(L, "overwrite");
+            break;
+    }
+    return 1;
+}, [](lua_State *L, P p)
+{
+    using SM      = Config::Behavior::SaveMode;
+    const char *v = luaL_checkstring(L, 3);
+    auto *b       = static_cast<Config::Behavior *>(p);
+    if (!strcmp(v, "ask"))
+        b->save_mode = SM::Ask;
+    else if (!strcmp(v, "suffix"))
+        b->save_mode = SM::Suffix;
+    else
+        b->save_mode = SM::Overwrite;
 }},
     {"single_instance",
      [](lua_State *L, P p)
@@ -2685,7 +2688,6 @@ static const LuaField previewFields[] = {
 };
 
 // --- llm_view ---
-// Field order must stay alphabetical — findField() below is a binary search.
 static const LuaField llmViewFields[] = {
     {"api_key",
      [](lua_State *L, P p)
@@ -2961,18 +2963,9 @@ static const LuaField miscFields[] = {
 static const LuaField *
 findField(const LuaField *fields, int count, const char *key)
 {
-    int lo = 0, hi = count - 1;
-    while (lo <= hi)
-    {
-        int mid = (lo + hi) / 2;
-        int cmp = strcmp(fields[mid].key, key);
-        if (cmp == 0)
-            return &fields[mid];
-        if (cmp < 0)
-            lo = mid + 1;
-        else
-            hi = mid - 1;
-    }
+    for (int i = 0; i < count; ++i)
+        if (strcmp(fields[i].key, key) == 0)
+            return &fields[i];
     return nullptr;
 }
 

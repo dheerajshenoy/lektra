@@ -646,6 +646,11 @@
           "default": true,
           "description": "Auto scroll when selecting text that is out of view (since 0.7.1)"
         },
+        "keep_view": {
+          "type": "boolean",
+          "default": true,
+          "description": "Keep the same part of the page in view when going to the next or previous page, e.g. when zoomed into a region. Off: the view is centered on the new page (since 0.8.0)"
+        },
         "drag_image_out": {
           "type": "boolean",
           "default": true,
@@ -2532,6 +2537,11 @@
                 "type": "boolean",
                 "default": true,
                 "description": "Auto scroll when selecting text that is out of view (since 0.7.1)"
+              },
+              "keep_view": {
+                "type": "boolean",
+                "default": true,
+                "description": "Keep the same part of the page in view when going to the next or previous page, e.g. when zoomed into a region. Off: the view is centered on the new page (since 0.8.0)"
               },
               "drag_image_out": {
                 "type": "boolean",

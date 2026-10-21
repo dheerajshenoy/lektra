@@ -575,6 +575,9 @@ public:
     void CenterOnLocation(const PageLocation &targetlocation) noexcept;
     void GotoPageWithHistory(int pageno) noexcept;
     void GotoLocationWithHistory(const PageLocation &targetlocation) noexcept;
+    // GotoPage() for a next/previous page change: keeps the part of the page
+    // in view when behavior.keep_view is on.
+    void gotoPageKeepingView(int pageno) noexcept;
     void GotoNextPage() noexcept;
     void GotoPrevPage() noexcept;
     void GotoFirstPage() noexcept;
