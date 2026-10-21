@@ -1152,6 +1152,50 @@ Lektra::updateTabbarVisibility() noexcept
         m_tab_widget->tabBar()->setVisible(false);
 }
 
+// Hides the cursor once the mouse has been idle for presentation.hide_cursor_ms.
+// Mouse moves reach us through an app-wide event filter, installed only while
+// presentation mode is on.
+void
+Lektra::startPresentationCursorHide() noexcept
+{
+    const int ms = m_config.presentation.hide_cursor_ms;
+    if (ms <= 0)
+        return;
+
+    if (!m_presentation.cursor_timer)
+    {
+        m_presentation.cursor_timer = new QTimer(this);
+        m_presentation.cursor_timer->setSingleShot(true);
+        connect(m_presentation.cursor_timer, &QTimer::timeout, this, [this]()
+        {
+            // the laser pointer needs its cursor
+            if (m_presentation.active && !m_presentation.laser_pointer_enabled)
+            {
+                setCursor(Qt::BlankCursor);
+                m_presentation.cursor_hidden = true;
+            }
+        });
+    }
+    m_presentation.cursor_timer->setInterval(ms);
+    m_presentation.cursor_timer->start();
+    qApp->installEventFilter(this);
+}
+
+void
+Lektra::stopPresentationCursorHide() noexcept
+{
+    if (!m_presentation.cursor_timer)
+        return;
+    qApp->removeEventFilter(this);
+    m_presentation.cursor_timer->stop();
+    if (m_presentation.cursor_hidden)
+    {
+        m_presentation.cursor_hidden = false;
+        if (!m_presentation.laser_pointer_enabled)
+            unsetCursor();
+    }
+}
+
 void
 Lektra::TogglePresentationMode() noexcept
 {
@@ -1174,21 +1218,30 @@ Lektra::TogglePresentationMode() noexcept
         // Scrollbars are left to the fit-to-window mode — a page fully
         // fitted to the viewport won't need them, and the config-level
         // scrollbar policy is left untouched so exiting restores it too.
-        if (!m_presentation.was_fullscreen)
+        const auto &pc = m_config.presentation;
+        m_presentation.fullscreen_applied
+            = pc.fullscreen && !m_presentation.was_fullscreen;
+        if (m_presentation.fullscreen_applied)
             showFullScreen();
         m_menuBar->hide();
-        m_statusbar->hide();
+        if (!pc.show_statusbar)
+            m_statusbar->hide();
         m_tab_widget->tabBar()->hide();
-        SetLayoutMode(DocumentView::LayoutMode::SINGLE);
-        m_doc->setFitMode(DocumentView::FitMode::Window);
+        if (pc.layout)
+            SetLayoutMode(*pc.layout);
+        m_doc->setFitMode(pc.fit_mode);
 
         m_presentation.active = true;
+        if (pc.laser_on_start)
+            setLaserPointerCursor(true);
+        startPresentationCursorHide();
         dispatchLuaEvent(DispatchType::OnPresentationStarted);
     }
     else
     {
         // Restore the pre-presentation state.
-        if (!m_presentation.was_fullscreen)
+        stopPresentationCursorHide();
+        if (m_presentation.fullscreen_applied && !m_presentation.was_fullscreen)
             showNormal();
         m_menuBar->setVisible(m_presentation.menubar_visible);
         m_statusbar->setVisible(m_presentation.statusbar_visible);

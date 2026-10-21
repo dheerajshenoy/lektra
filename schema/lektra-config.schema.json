@@ -1749,6 +1749,62 @@
       "additionalProperties": false,
       "description": "Menubar options struct (since 0.8.0)"
     },
+    "presentation": {
+      "type": "object",
+      "properties": {
+        "hide_cursor_ms": {
+          "type": "integer",
+          "default": 0,
+          "description": "Hide the mouse cursor after it has been idle for this many milliseconds (0 to never hide it) (since 0.8.0)"
+        },
+        "fullscreen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Go fullscreen when presentation mode starts (since 0.8.0)"
+        },
+        "show_statusbar": {
+          "type": "boolean",
+          "default": false,
+          "description": "Keep the statusbar visible in presentation mode (since 0.8.0)"
+        },
+        "laser_on_start": {
+          "type": "boolean",
+          "default": false,
+          "description": "Turn the laser pointer on when presentation mode starts (since 0.8.0)"
+        },
+        "fit_mode": {
+          "type": "string",
+          "description": "Page fit mode used in presentation mode (since 0.8.0)",
+          "enum": [
+            "width",
+            "height",
+            "window"
+          ]
+        },
+        "layout": {
+          "type": "string",
+          "description": "Page layout used in presentation mode (since 0.8.0)",
+          "enum": [
+            "vertical",
+            "horizontal",
+            "single",
+            "book",
+            "grid",
+            "keep"
+          ]
+        },
+        "allowed_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Extra actions that stay usable in presentation mode, besides navigation (since 0.8.0)."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Presentation mode options struct (since 0.8.0)"
+    },
     "laser_pointer": {
       "type": "object",
       "properties": {

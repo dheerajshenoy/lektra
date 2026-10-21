@@ -500,6 +500,12 @@ SPECIAL = {
         "items": {"type": "string", "pattern": COLOR_PATTERN},
         "description": "Colours offered in the colour dialog.",
     },
+    ("presentation", "allowed_actions"): {
+        "type": "array",
+        "items": {"type": "string"},
+        "default": [],
+        "description": "Extra actions that stay usable in presentation mode, besides navigation (since 0.8.0).",
+    },
     ("llm_view", "extra_body"): {
         "type": "object",
         "description": "Extra fields merged into every request body sent to the LLM endpoint.",

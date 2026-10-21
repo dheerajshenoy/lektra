@@ -37,6 +37,7 @@ Some options were renamed to be consistent. The old names are ignored, so update
 #### Presentation mode
 
 - Presentation mode now works with clickers: `PgDown`, `Space` and the arrow keys go to the next page, `PgUp` and the arrow keys to the previous one (the arrows still move the caret in caret mode), `F5` starts it and `Esc` leaves it. All other keys are disabled while it is on.
+- New `[presentation]` options: `hide_cursor_ms`, `fullscreen`, `fit_mode`, `layout`, `show_statusbar`, `laser_on_start` and `allowed_actions`.
 
 #### Minimap
 

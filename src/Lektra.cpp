@@ -411,6 +411,18 @@ Lektra::eventFilter(QObject *object, QEvent *event)
 {
     const QEvent::Type type = event->type();
 
+    if (type == QEvent::MouseMove && m_presentation.active
+        && m_presentation.cursor_timer)
+    {
+        if (m_presentation.cursor_hidden)
+        {
+            m_presentation.cursor_hidden = false;
+            if (!m_presentation.laser_pointer_enabled)
+                unsetCursor();
+        }
+        m_presentation.cursor_timer->start();
+    }
+
     if (m_link_hint_mode)
     {
         return handleLinkHintEvent(event);

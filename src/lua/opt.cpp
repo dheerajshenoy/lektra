@@ -2900,6 +2900,113 @@ static const LuaField laserPointerFields[] = {
 };
 
 
+static const LuaField presentationFields[] = {
+    {"hide_cursor_ms",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Presentation *>(p)->hide_cursor_ms);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Presentation *>(p)->hide_cursor_ms
+        = lua_tointeger(L, 3);
+}},
+    {"fullscreen",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L, static_cast<Config::Presentation *>(p)->fullscreen);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Presentation *>(p)->fullscreen = lua_toboolean(L, 3);
+}},
+    {"fit_mode",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L,
+                    (int)static_cast<Config::Presentation *>(p)->fit_mode);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Presentation *>(p)->fit_mode
+        = (DocumentView::FitMode)lua_tointeger(L, 3);
+}},
+    // layout: a LayoutMode value, or nil to keep the current layout
+    {"layout",
+     [](lua_State *L, P p)
+{
+    const auto &l = static_cast<Config::Presentation *>(p)->layout;
+    if (l)
+        lua_pushinteger(L, (int)*l);
+    else
+        lua_pushnil(L);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    auto *pc = static_cast<Config::Presentation *>(p);
+    if (lua_isnil(L, 3))
+        pc->layout = std::nullopt;
+    else
+        pc->layout = (DocumentView::LayoutMode)lua_tointeger(L, 3);
+}},
+    {"show_statusbar",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L,
+                    static_cast<Config::Presentation *>(p)->show_statusbar);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Presentation *>(p)->show_statusbar
+        = lua_toboolean(L, 3);
+}},
+    {"laser_on_start",
+     [](lua_State *L, P p)
+{
+    lua_pushboolean(L,
+                    static_cast<Config::Presentation *>(p)->laser_on_start);
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    static_cast<Config::Presentation *>(p)->laser_on_start
+        = lua_toboolean(L, 3);
+}},
+    {"allowed_actions",
+     [](lua_State *L, P p)
+{
+    const auto &list = static_cast<Config::Presentation *>(p)->allowed_actions;
+    lua_createtable(L, list.size(), 0);
+    int i = 1;
+    for (const QString &s : list)
+    {
+        lua_pushstring(L, s.toUtf8().constData());
+        lua_rawseti(L, -2, i++);
+    }
+    return 1;
+},
+     [](lua_State *L, P p)
+{
+    auto *pc = static_cast<Config::Presentation *>(p);
+    pc->allowed_actions.clear();
+    if (!lua_istable(L, 3))
+        return;
+    const int n = (int)lua_rawlen(L, 3);
+    for (int i = 1; i <= n; ++i)
+    {
+        lua_rawgeti(L, 3, i);
+        if (lua_isstring(L, -1))
+            pc->allowed_actions << QString::fromUtf8(lua_tostring(L, -1));
+        lua_pop(L, 1);
+    }
+}},
+};
+
 // --- updates ---
 static const LuaField updatesFields[] = {
     {"check",
@@ -3481,6 +3588,11 @@ buildOptTable(lua_State *L, const OptScope &scope)
         pushSection(L, scope, &config.laser_pointer, laserPointerFields,
                     "laser_pointer");
         addChild(L, opt_idx, "laser_pointer");
+
+        // lektra.opt.presentation
+        pushSection(L, scope, &config.presentation, presentationFields,
+                    "presentation");
+        addChild(L, opt_idx, "presentation");
     }
 
     // lektra.opt — plain assignment into the "lektra" global table (not a

@@ -25,6 +25,7 @@
 #include "TabWidget.hpp"
 #include "argparse.hpp"
 
+#include <QTimer>
 #include <QActionGroup>
 #include <QApplication>
 #include <QClipboard>
@@ -147,6 +148,8 @@ public:
     void ToggleNoneMode() noexcept;
     void ToggleVisualLineMode() noexcept;
     void TogglePresentationMode() noexcept;
+    void startPresentationCursorHide() noexcept;
+    void stopPresentationCursorHide() noexcept;
     void ToggleThumbnailPanel() noexcept;
     void ToggleTrimMargins() noexcept;
     void ToggleCaretMode() noexcept;
@@ -661,6 +664,9 @@ private:
             = DocumentView::LayoutMode::VERTICAL;
         DocumentView::FitMode fit_mode = DocumentView::FitMode::Width;
         bool laser_pointer_enabled     = false;
+        bool fullscreen_applied        = false;
+        bool cursor_hidden             = false;
+        QTimer *cursor_timer           = nullptr;
     } m_presentation;
     LaserTrail *m_laser_trail             = nullptr;
     ColorEyedrop *m_color_eyedrop         = nullptr;

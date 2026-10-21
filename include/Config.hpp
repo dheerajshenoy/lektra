@@ -10,6 +10,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 
 struct Config
@@ -1935,6 +1936,58 @@ struct Config
         // @added 0.8.0
         int trail_fade_ms = 1000;
     } laser_pointer;
+    // @endsection
+
+    // @section presentation
+    // @section_desc Presentation mode options struct
+    // @section_type struct
+    // @section_added 0.8.0
+    struct Presentation
+    {
+        // @desc Hide the mouse cursor after it has been idle for this many milliseconds (0 to never hide it)
+        // @type int
+        // @default 0
+        // @added 0.8.0
+        int hide_cursor_ms = 0;
+
+        // @desc Go fullscreen when presentation mode starts
+        // @type bool
+        // @default true
+        // @added 0.8.0
+        bool fullscreen = true;
+
+        // @desc Page fit mode used in presentation mode
+        // @default window
+        // @choice width, height, window
+        // @added 0.8.0
+        DocumentView::FitMode fit_mode = DocumentView::FitMode::Window;
+
+        // @desc Page layout used in presentation mode
+        // @type str
+        // @choice vertical, horizontal, single, book, grid, keep
+        // @default single
+        // @added 0.8.0
+        std::optional<DocumentView::LayoutMode> layout
+            = DocumentView::LayoutMode::SINGLE; // nullopt = keep
+
+        // @desc Keep the statusbar visible in presentation mode
+        // @type bool
+        // @default false
+        // @added 0.8.0
+        bool show_statusbar = false;
+
+        // @desc Turn the laser pointer on when presentation mode starts
+        // @type bool
+        // @default false
+        // @added 0.8.0
+        bool laser_on_start = false;
+
+        // @desc Extra actions that stay usable in presentation mode, besides navigation
+        // @type list[str]
+        // @default []
+        // @added 0.8.0
+        QStringList allowed_actions;
+    } presentation;
     // @endsection
 
     // @section donate

@@ -1078,6 +1078,53 @@ Lektra::initConfig() noexcept
         set(menubar["icons"], m_config.menubar.icons);
     }
 
+    if (auto presentation = toml["presentation"])
+    {
+        set(presentation["hide_cursor_ms"],
+            m_config.presentation.hide_cursor_ms);
+        set(presentation["fullscreen"], m_config.presentation.fullscreen);
+        set(presentation["show_statusbar"],
+            m_config.presentation.show_statusbar);
+        set(presentation["laser_on_start"],
+            m_config.presentation.laser_on_start);
+
+        if (auto v = presentation["fit_mode"].value<std::string>())
+        {
+            if (*v == "width")
+                m_config.presentation.fit_mode = DocumentView::FitMode::Width;
+            else if (*v == "height")
+                m_config.presentation.fit_mode = DocumentView::FitMode::Height;
+            else
+                m_config.presentation.fit_mode = DocumentView::FitMode::Window;
+        }
+
+        if (auto v = presentation["layout"].value<std::string>())
+        {
+            auto &layout = m_config.presentation.layout;
+            if (*v == "keep")
+                layout = std::nullopt;
+            else if (*v == "vertical")
+                layout = DocumentView::LayoutMode::VERTICAL;
+            else if (*v == "horizontal")
+                layout = DocumentView::LayoutMode::HORIZONTAL;
+            else if (*v == "book")
+                layout = DocumentView::LayoutMode::BOOK;
+            else if (*v == "grid")
+                layout = DocumentView::LayoutMode::GRID;
+            else
+                layout = DocumentView::LayoutMode::SINGLE;
+        }
+
+        if (auto allowed_actions = presentation["allowed_actions"].as_array())
+        {
+            m_config.presentation.allowed_actions.clear();
+            for (const auto &elem : *allowed_actions)
+                if (auto s = elem.value<std::string>())
+                    m_config.presentation.allowed_actions
+                        << QString::fromStdString(*s);
+        }
+    }
+
     // Laser Pointer
     if (auto laser_pointer = toml["laser_pointer"])
     {
@@ -1464,13 +1511,14 @@ Lektra::unsetKeybinding(const QString &action) noexcept
 
 // Actions that stay usable while presentation mode is active.
 static bool
-isPresentationAction(const QString &action) noexcept
+isPresentationAction(const QString &action,
+                     const QStringList &extra) noexcept
 {
     static const QSet<QString> allowed
         = {"page_next",  "page_prev",  "caret_left",
            "caret_right", "caret_up",  "caret_down",
            "presentation_mode", "laser_pointer_cursor"};
-    return allowed.contains(action);
+    return allowed.contains(action) || extra.contains(action);
 }
 
 void
@@ -1526,7 +1574,9 @@ Lektra::setupKeybinding(const QString &action, const QStringList &keys) noexcept
         connect(shortcut, &QShortcut::activated, [this, action, command]()
         {
             // Presentation mode only allows navigation and leaving it.
-            if (m_presentation.active && !isPresentationAction(action))
+            if (m_presentation.active && !isPresentationAction(
+                                          action,
+                                          m_config.presentation.allowed_actions))
                 return;
             command.action({});
         });

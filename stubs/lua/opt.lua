@@ -451,6 +451,16 @@ lektra.opt.menubar = {}
 ---@field trail_fade_ms? integer How long the trail takes to fade, in milliseconds.
 lektra.opt.laser_pointer = {}
 
+---@class OptPresentation
+---@field hide_cursor_ms? integer Hide the mouse cursor after it has been idle for this many milliseconds (0 to never hide it).
+---@field fullscreen? boolean Go fullscreen when presentation mode starts.
+---@field fit_mode? FitMode Page fit mode used in presentation mode.
+---@field layout? LayoutMode|nil Page layout used in presentation mode; nil keeps the current layout.
+---@field show_statusbar? boolean Keep the statusbar visible in presentation mode.
+---@field laser_on_start? boolean Turn the laser pointer on when presentation mode starts.
+---@field allowed_actions? string[] Extra actions that stay usable in presentation mode, besides navigation.
+lektra.opt.presentation = {}
+
 ---@class OptReflow
 ---@field font_family? string Font family for reflowable documents (installed font, serif, sans-serif or monospace); empty keeps the document's own.
 ---@field font_size? number Font size in points.
@@ -577,6 +587,7 @@ lektra.opt.misc = {}
 ---@field llm_view? OptLLMView
 ---@field menubar? OptMenubar
 ---@field laser_pointer? OptLaserPointer
+---@field presentation? OptPresentation
 
 ---@type GlobalOptions
 lektra.opt_global = {}
