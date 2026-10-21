@@ -101,6 +101,21 @@ l_print(lua_State *L)
     return 0;
 }
 
+static int
+l_platform(lua_State* L)
+{
+#if defined(_WIN32)
+        lua_pushstring(L, "windows");
+#elif defined(__linux__)
+        lua_pushstring(L, "linux");
+#elif defined(__APPLE__)
+        luaL_pushstring(L, "macos");
+#else
+        lua_pushstring(L, "unknown");
+#endif
+        return 1;
+}
+
 void
 Lektra::initLuaUtils() noexcept
 {
@@ -117,21 +132,9 @@ Lektra::initLuaUtils() noexcept
     });
     lua_setfield(m_L, -2, "open_url");
 
-    lua_pushcfunction(m_L, [](lua_State *L) -> int
-    {
-#if defined(_WIN32)
-        lua_pushstring(L, "windows");
-#elif defined(__linux__)
-        lua_pushstring(L, "linux");
-#elif defined(__APPLE__)
-        luaL_pushstring(L, "macos");
-#else
-        lua_pushstring(L, "unknown");
-#endif
-        return 1;
-    });
+    lua_pushcfunction(m_L, l_platform);
     lua_setfield(m_L, -2, "platform");
-
+    
     lua_setfield(m_L, -2, "utils");
 }
 
