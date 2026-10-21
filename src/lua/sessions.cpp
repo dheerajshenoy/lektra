@@ -116,7 +116,8 @@ Lektra::initLuaSessions() noexcept
         {
             lua_pushboolean(L,
                             QProcess::startDetached(
-                                QCoreApplication::applicationFilePath(), {}));
+                                QCoreApplication::applicationFilePath(),
+                                {QStringLiteral("--new-window")}));
             return 1;
         }
         lua_pushboolean(L, lektra->OpenFileInNewWindow(

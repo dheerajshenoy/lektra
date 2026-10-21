@@ -490,6 +490,10 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("caret_mode",
                            tr("Toggle caret mode (keyboard text cursor)"),
                            [this](const QStringList &) { ToggleCaretMode(); });
+    m_command_manager->reg("color_eyedrop",
+                           tr("Pick a color from the view (click to copy, Esc "
+                              "to cancel)"),
+                           [this](const QStringList &) { ToggleColorEyedrop(); });
     m_command_manager->reg("caret_left", tr("Caret mode: move left"),
                            [this](const QStringList &) { CaretLeft(); });
     m_command_manager->reg("caret_right", tr("Caret mode: move right"),

@@ -43,6 +43,7 @@ Some options were renamed to be consistent. The old names are ignored, so update
 
 #### Images
 
+- New `color_eyedrop` command: a small round window follows the pointer and shows the color under it and its hex value; click to copy the hex, `Esc` to cancel.
 - JPEG XL (`.jxl`) images, including animated ones, can now be opened if `libjxl` is installed on the system.
 - Optional libraries (`librsvg`, `libexif`, `djvulibre`, `libjxl`) are now found under any installed version. If one isn't found, set `LEKTRA_LIB_RSVG`, `LEKTRA_LIB_CAIRO`, `LEKTRA_LIB_EXIF`, `LEKTRA_LIB_DJVU` or `LEKTRA_LIB_JXL` to its path.
 
@@ -73,6 +74,7 @@ Some options were renamed to be consistent. The old names are ignored, so update
 
 ### Bug Fixes
 
+- In single-instance mode, dragging a tab out of the window (and the other "new window" actions) now opens a new window instead of reopening the file in the same one.
 - In single-instance mode, files given with a relative path (and the `--synctex-forward` paths) now open in the running instance.
 - Fit width going to the last page of the document
 - Fix an image drifting up and to the left when zooming in or out, until the view settled.

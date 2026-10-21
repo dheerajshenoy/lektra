@@ -5,6 +5,7 @@
 #include "Config.hpp"
 #include "DocumentView.hpp"
 #include "HighlightSearchPicker.hpp"
+#include "ColorEyedrop.hpp"
 #include "LaserTrail.hpp"
 #include "MarkManager.hpp"
 #include "MessageBar.hpp"
@@ -149,6 +150,7 @@ public:
     void ToggleThumbnailPanel() noexcept;
     void ToggleTrimMargins() noexcept;
     void ToggleCaretMode() noexcept;
+    void ToggleColorEyedrop() noexcept;
     void CaretLeft() noexcept;
     void CaretRight() noexcept;
     void CaretUp() noexcept;
@@ -661,6 +663,7 @@ private:
         bool laser_pointer_enabled     = false;
     } m_presentation;
     LaserTrail *m_laser_trail             = nullptr;
+    ColorEyedrop *m_color_eyedrop         = nullptr;
     StartupWidget *m_startup_widget       = nullptr;
     LinkHintMode m_link_hint_current_mode = LinkHintMode::None;
     QMap<int, Model::LinkInfo> m_link_hint_map;

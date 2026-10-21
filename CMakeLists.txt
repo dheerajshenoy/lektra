@@ -432,6 +432,7 @@ qt_add_executable(${PROJECT_NAME}
     src/MessageBar.cpp
     src/NoticeBar.cpp
     src/LaserTrail.cpp
+    src/ColorEyedrop.cpp
     src/Annotation.cpp
     src/EditLastPagesWidget.cpp
     src/RecentFilesStore.cpp

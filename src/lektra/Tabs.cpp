@@ -311,21 +311,10 @@ Lektra::handleTabDetachedToNewWindow(int index,
         return;
 
     // Spawn a new Lektra process with the file
-    QStringList args;
-    args << "-p" << QString::number(data.currentPage);
-    args << data.filePath;
-
-    bool started = QProcess::startDetached(
-        QCoreApplication::applicationFilePath(), args);
-
-    if (started)
+    if (startNewWindow(data.filePath, data.currentPage))
     {
         // Close the tab in this window
         m_tab_widget->tabCloseRequested(index);
-    }
-    else
-    {
-        m_message_bar->showMessage(tr("Failed to open tab in new window"));
     }
 }
 
@@ -515,8 +504,11 @@ Lektra::moveTabsToNewWindow(const QList<int> &indices) noexcept
     if (paths.isEmpty())
         return;
 
+    // --new-window: without it, single-instance mode hands the files back to
+    // this window.
     if (!QProcess::startDetached(QCoreApplication::applicationFilePath(),
-                                 paths))
+                                 QStringList{QStringLiteral("--new-window")}
+                                     + paths))
     {
         m_message_bar->showMessage(tr("Failed to open tabs in new window"));
         return;

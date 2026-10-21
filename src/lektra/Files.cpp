@@ -550,7 +550,7 @@ Lektra::OpenFileInNewWindow(const QString &filePath,
         return false;
     }
 
-    QStringList args;
+    QStringList args{QStringLiteral("--new-window")};
     args << fp;
     bool started = QProcess::startDetached(
         QCoreApplication::applicationFilePath(), args);

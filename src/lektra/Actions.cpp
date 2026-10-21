@@ -22,6 +22,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileIconProvider>
+#include <QClipboard>
 #include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -1808,6 +1809,26 @@ Lektra::ToggleCaretMode() noexcept
 {
     if (m_doc)
         m_doc->ToggleCaretMode();
+}
+
+void
+Lektra::ToggleColorEyedrop() noexcept
+{
+    if (!m_doc)
+        return;
+
+    if (!m_color_eyedrop)
+    {
+        m_color_eyedrop = new ColorEyedrop(this);
+        connect(m_color_eyedrop, &ColorEyedrop::picked, this,
+                [this](const QColor &color)
+        {
+            const QString hex = color.name().toUpper();
+            QGuiApplication::clipboard()->setText(hex);
+            m_message_bar->showMessage(tr("Copied %1").arg(hex));
+        });
+    }
+    m_color_eyedrop->setActive(!m_color_eyedrop->isActive());
 }
 
 void
