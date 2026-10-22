@@ -95,6 +95,7 @@ Some options were renamed to be consistent. The old names are ignored, so update
 - Right-clicking an annotation now shows its own menu instead of "Insert Image Here...".
 - Right-clicking a link now shows the link menu instead of "Insert Image Here...".
 - Fix a crash when closing the window with a portal open.
+- Fix the layout not updating after rotating or flipping a page, or toggling trimmed margins.
 - Auto-reload now says when the file was moved, renamed or deleted, instead of a generic "Could not reload the document".
 - Next/previous search match (with `search.absolute_jump` off) now works like vim: after scrolling, it jumps to the first match below the top of the view, or the last one above it, instead of skipping matches on the current page.
 

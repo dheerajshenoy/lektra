@@ -148,6 +148,8 @@ DocumentView::rotateHelper() noexcept
         return;
     }
     cachePageStride();
+    updateSceneRect();
+    repositionPages();
     const std::set<int> &trackedPages = getVisiblePages();
 
     if (trackedPages.empty())
@@ -183,6 +185,8 @@ DocumentView::ToggleTrimMargins() noexcept
     }
 
     cachePageStride();
+    updateSceneRect();
+    repositionPages();
     const std::set<int> &trackedPages = getVisiblePages();
 
     if (trackedPages.empty())
