@@ -27,6 +27,7 @@
 #include <QLocalServer>
 #include <QLocalSocket>
 #include <QMimeData>
+#include <QMimeDatabase>
 #include <QObject>
 #include <QProcess>
 #include <QSplitter>
@@ -976,12 +977,10 @@ Lektra::populateRecentFiles() noexcept
         return;
     }
 
-    // QFileIconProvider asks the platform for the icon associated with a
-    // file's type — native shell association on Windows, Finder's icon on
-    // macOS, the desktop's mime-type icon (application-pdf, image/vnd.djvu,
-    // …) on Linux. Reused across entries since construction queries
-    // platform icon-theme state.
-    static QFileIconProvider iconProvider;
+    // The icon is picked from the file name alone (MatchExtension). Going
+    // through QFileIconProvider with a QFileInfo stats every path, which
+    // blocks startup for as long as a dead network mount takes to time out.
+    static QMimeDatabase mimeDb;
 
     m_recentFilesMenu->clear();
     for (const RecentFileEntry &entry : m_recent_files_store.entries())
@@ -992,7 +991,10 @@ Lektra::populateRecentFiles() noexcept
         const int page      = entry.page_number;
         QAction *fileAction = new QAction(path, m_recentFilesMenu);
 
-        QIcon typeIcon = iconProvider.icon(QFileInfo(path));
+        const QMimeType mime
+            = mimeDb.mimeTypeForFile(path, QMimeDatabase::MatchExtension);
+        QIcon typeIcon = QIcon::fromTheme(mime.iconName(),
+                                          QIcon::fromTheme(mime.genericIconName()));
         fileAction->setIcon(typeIcon.isNull()
                                 ? style()->standardIcon(QStyle::SP_FileIcon)
                                 : typeIcon);

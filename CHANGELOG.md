@@ -1,5 +1,13 @@
 # LEKTRA CHANGELOG
 
+# 0.8.1
+
+### New Features
+
+### Bug Fixes
+
+- Fix a long delay before the first window when a recent file is on an unreachable network mount.
+
 ## 0.8.0
 
 ### Breaking Changes
