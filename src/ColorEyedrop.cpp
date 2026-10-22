@@ -13,13 +13,11 @@ static constexpr int DIAMETER = 84;
 static constexpr int OFFSET   = 18;
 
 ColorEyedrop::ColorEyedrop(QWidget *parent)
-    : QWidget(parent, Qt::Tool | Qt::FramelessWindowHint
-                          | Qt::WindowStaysOnTopHint
-                          | Qt::WindowDoesNotAcceptFocus)
+    : QWidget(parent)
 {
+    // A child widget, not a window: Wayland ignores move() on top-level
+    // windows, which left the circle away from the pointer.
     setAttribute(Qt::WA_TransparentForMouseEvents);
-    setAttribute(Qt::WA_ShowWithoutActivating);
-    setAttribute(Qt::WA_TranslucentBackground);
     setFixedSize(DIAMETER, DIAMETER);
     hide();
 }
@@ -59,16 +57,19 @@ ColorEyedrop::sample(QWidget *viewport, const QPoint &globalPos) const
 void
 ColorEyedrop::follow(const QPoint &globalPos)
 {
-    QPoint pos = globalPos + QPoint(OFFSET, OFFSET);
-    if (const QScreen *s = QGuiApplication::screenAt(globalPos))
-    {
-        const QRect r = s->availableGeometry();
-        if (pos.x() + width() > r.right())
-            pos.setX(globalPos.x() - OFFSET - width());
-        if (pos.y() + height() > r.bottom())
-            pos.setY(globalPos.y() - OFFSET - height());
-    }
+    const QWidget *host = parentWidget();
+    if (!host)
+        return;
+
+    const QPoint local = host->mapFromGlobal(globalPos);
+    QPoint pos         = local + QPoint(OFFSET, OFFSET);
+    const QRect r      = host->rect();
+    if (pos.x() + width() > r.right())
+        pos.setX(local.x() - OFFSET - width());
+    if (pos.y() + height() > r.bottom())
+        pos.setY(local.y() - OFFSET - height());
     move(pos);
+    raise();
     if (!isVisible())
         show();
     update();
