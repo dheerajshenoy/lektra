@@ -3,7 +3,7 @@
 -- This file is NOT loaded automatically from here — it's a reference/demo,
 -- not the live config. Lektra loads init.lua from the config directory:
 --   Linux/macOS: ~/.config/lektra/init.lua
---   Windows:     %APPDATA%\lektra\init.lua
+--   Windows:     C:\Users\<USER>\AppData\Local\lektra\init.lua
 -- Copy whatever you want from this file into that location.
 --
 -- Full API reference: docs/LUA-WIKI.md.

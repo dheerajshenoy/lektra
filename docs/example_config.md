@@ -1,7 +1,7 @@
 # Example config.toml
 
 A `config.toml` that sets a few of the most common options. Put it in the config
-folder, `~/.config/lektra/` (`%APPDATA%\lektra\` on Windows), and change what you
+folder, `~/.config/lektra/` (`C:/Users/<USER>/AppData/Local/lektra/` on Windows), and change what you
 like. Everything is optional: a section or a key you leave out keeps its default.
 
 ```toml

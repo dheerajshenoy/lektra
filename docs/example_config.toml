@@ -1,6 +1,6 @@
 #:schema https://codeberg.org/lektra/lektra/raw/branch/main/schema/lektra-config.schema.json
 #
-# An example ~/.config/lektra/config.toml (%APPDATA%\lektra\config.toml on Windows).
+# An example ~/.config/lektra/config.toml (C:\Users\<USER>\AppData\Local\lektra\config.toml on Windows).
 # Everything is optional: a section or a key that is left out keeps its default.
 
 [window]

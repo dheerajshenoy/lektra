@@ -17,8 +17,7 @@
 #
 # Config file location:
 #   Linux / macOS : $HOME/.config/lektra/config.toml
-#   Windows       : %APPDATA%\lektra\config.toml
-#                   (typically C:\Users\<user>\AppData\Roaming\lektra\)
+#   Windows       : C:\Users\<USER>\AppData\Local\lektra\
 #
 # The Lua init file, if you use one, sits next to config.toml as init.lua.
 #
