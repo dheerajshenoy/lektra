@@ -1229,7 +1229,33 @@ Lektra::TogglePresentationMode() noexcept
         m_tab_widget->tabBar()->hide();
         if (pc.layout)
             SetLayoutMode(*pc.layout);
-        m_doc->setFitMode(pc.fit_mode);
+
+        // showFullScreen() is asynchronous: fitting now would use the old
+        // viewport size, so wait for the window to be fullscreen.
+        if (m_presentation.fullscreen_applied && windowHandle())
+        {
+            m_presentation.fit_pending = true;
+            auto conn = std::make_shared<QMetaObject::Connection>();
+            auto apply = [this, conn]()
+            {
+                QObject::disconnect(*conn);
+                if (!m_presentation.fit_pending)
+                    return;
+                m_presentation.fit_pending = false;
+                if (m_presentation.active && m_doc)
+                    m_doc->setFitMode(m_config.presentation.fit_mode);
+            };
+            *conn = connect(windowHandle(), &QWindow::visibilityChanged, this,
+                            [this, apply](QWindow::Visibility v)
+            {
+                if (v == QWindow::FullScreen)
+                    QTimer::singleShot(0, this, apply);
+            });
+            // In case the window never reports being fullscreen.
+            QTimer::singleShot(500, this, apply);
+        }
+        else
+            m_doc->setFitMode(pc.fit_mode);
 
         m_presentation.active = true;
         if (pc.laser_on_start)
@@ -1241,6 +1267,7 @@ Lektra::TogglePresentationMode() noexcept
     {
         // Restore the pre-presentation state.
         stopPresentationCursorHide();
+        m_presentation.fit_pending = false;
         if (m_presentation.fullscreen_applied && !m_presentation.was_fullscreen)
             showNormal();
         m_menuBar->setVisible(m_presentation.menubar_visible);

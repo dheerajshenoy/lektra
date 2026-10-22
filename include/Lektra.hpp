@@ -665,6 +665,7 @@ private:
         DocumentView::FitMode fit_mode = DocumentView::FitMode::Width;
         bool laser_pointer_enabled     = false;
         bool fullscreen_applied        = false;
+        bool fit_pending               = false; // waiting for fullscreen
         bool cursor_hidden             = false;
         QTimer *cursor_timer           = nullptr;
     } m_presentation;
