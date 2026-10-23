@@ -1270,7 +1270,6 @@ Model::renderPageWithExtrasAsync(
         fz_drop_display_list(ctx, dlist);
 
         // fz_drop_page(ctx, text_page);
-        fz_drop_context(ctx);
     }
     fz_catch(ctx)
     {
@@ -1285,6 +1284,10 @@ Model::renderPageWithExtrasAsync(
             qWarning() << "MuPDF error in thread:" << fz_caught_message(ctx);
         }
     }
+
+    // After fz_catch: dropping inside fz_always frees ctx while MuPDF's
+    // error stack is still live, and fz_catch then reads the freed ctx.
+    fz_drop_context(ctx);
 
     return result;
 }
