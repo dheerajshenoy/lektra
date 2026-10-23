@@ -14,7 +14,7 @@ option(WITH_LIBARCHIVE "Open RAR/7z comic books (cbr, cb7) via libarchive when a
 # Lua scripting (LuaJIT, built from thirdparty/luajit and linked statically).
 option(WITH_CCACHE "Use ccache to cache compilations when it is installed" ON)
 option(WITH_LLD "Link with lld when it is installed (faster linking)" ON)
-option(WITH_LUA     "Enable lua scripting support (bundled LuaJIT)" ON)
+option(WITH_LUA "Enable lua scripting support (bundled LuaJIT)" ON)
 option(WITH_LLM_SUPPORT "Enable LLM support" OFF)
 
 # Internal option to build as AppImage (Linux only)
@@ -24,6 +24,11 @@ option(IS_APPIMAGE "Build as AppImage (Linux only)" OFF)
 # ---------------------------------------------------------------------------
 # Build type default
 # ---------------------------------------------------------------------------
+
+if(WIN32 AND NOT (CMAKE_GENERATOR MATCHES "Visual Studio"))
+    message(FATAL_ERROR [[MSBuild is the only supported generator on Windows]])
+endif()
+
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type")
 endif()
