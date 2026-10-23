@@ -285,6 +285,7 @@ Lektra::VisitLinkKB() noexcept
 
     if (m_doc)
     {
+        cancelLinkHintPick();
         m_lockedInputBuffer.clear();
         m_link_hint_map = m_doc->LinkKB();
         if (!m_link_hint_map.isEmpty())
@@ -303,6 +304,7 @@ Lektra::CopyLinkKB() noexcept
 {
     if (m_doc)
     {
+        cancelLinkHintPick();
         m_lockedInputBuffer.clear();
         m_link_hint_map = m_doc->LinkKB();
         if (!m_link_hint_map.isEmpty())
@@ -312,6 +314,38 @@ Lektra::CopyLinkKB() noexcept
             m_doc->UpdateKBHintsOverlay(m_lockedInputBuffer);
         }
     }
+}
+
+// Shows link hints and gives the chosen link to `callback`
+bool
+Lektra::PickLinkKB(
+    std::function<void(const Model::LinkInfo *)> callback) noexcept
+{
+    if (!m_doc)
+        return false;
+
+    cancelLinkHintPick();
+    m_lockedInputBuffer.clear();
+    m_link_hint_map = m_doc->LinkKB();
+    if (m_link_hint_map.isEmpty())
+        return false;
+
+    m_link_hint_current_mode = LinkHintMode::Pick;
+    m_link_hint_pick_cb      = std::move(callback);
+    m_link_hint_mode         = true;
+    m_doc->UpdateKBHintsOverlay(m_lockedInputBuffer);
+    return true;
+}
+
+// A pending pick ends without a link: its callback gets nullptr
+void
+Lektra::cancelLinkHintPick() noexcept
+{
+    if (!m_link_hint_pick_cb)
+        return;
+    auto callback       = std::move(m_link_hint_pick_cb);
+    m_link_hint_pick_cb = nullptr;
+    callback(nullptr);
 }
 
 // Clears the currently selected text in the file
@@ -1218,7 +1252,10 @@ Lektra::handleLinkHintEvent(QEvent *event) noexcept
             auto it = m_link_hint_map.find(m_lockedInputBuffer);
             if (it != m_link_hint_map.end())
             {
-                const Model::LinkInfo &info = it.value();
+                // the callback may start hint mode again, so end this one first
+                const Model::LinkInfo info = it.value();
+                auto pick_cb               = std::move(m_link_hint_pick_cb);
+                m_link_hint_pick_cb        = nullptr;
 
                 switch (m_link_hint_current_mode)
                 {
@@ -1232,12 +1269,17 @@ Lektra::handleLinkHintEvent(QEvent *event) noexcept
                     case LinkHintMode::Copy:
                         m_clipboard->setText(info.uri);
                         break;
+
+                    case LinkHintMode::Pick:
+                        break;
                 }
 
                 m_lockedInputBuffer.clear();
                 m_link_hint_map.clear();
                 m_doc->ClearKBHintsOverlay();
                 m_link_hint_mode = false;
+                if (pick_cb)
+                    pick_cb(&info);
                 return true;
             }
             keyEvent->accept();

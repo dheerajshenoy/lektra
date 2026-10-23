@@ -27,6 +27,7 @@
 
 #include <QTimer>
 #include <QActionGroup>
+#include <functional>
 #include <QApplication>
 #include <QClipboard>
 #include <QDir>
@@ -267,6 +268,16 @@ public:
     void Selection_cancel() noexcept;
     void VisitLinkKB() noexcept;
     void CopyLinkKB() noexcept;
+    // Hint mode that hands the chosen link to `callback` (nullptr when it is
+    // cancelled) instead of opening or copying it. False if it didn't start.
+    bool PickLinkKB(std::function<void(const Model::LinkInfo *)> callback)
+        noexcept;
+    // The preview overlay, showing `target` of the document of `view`
+    void showPreviewAt(DocumentView *view, PageLocation target) noexcept;
+    // `target` in the portal of `view` (created if needed); null if none
+    DocumentView *openPortalAt(DocumentView *view,
+                               PageLocation target) noexcept;
+    void closePortal(DocumentView *view) noexcept;
     void RotateClock() noexcept;
     void RotateAnticlock() noexcept;
     void FlipH() noexcept;
@@ -377,7 +388,8 @@ private:
     {
         None = 0,
         Visit,
-        Copy
+        Copy,
+        Pick
     };
 
     inline bool validTabIndex(int index) const noexcept
@@ -674,6 +686,8 @@ private:
     StartupWidget *m_startup_widget       = nullptr;
     LinkHintMode m_link_hint_current_mode = LinkHintMode::None;
     QMap<QString, Model::LinkInfo> m_link_hint_map;
+    std::function<void(const Model::LinkInfo *)> m_link_hint_pick_cb;
+    void cancelLinkHintPick() noexcept;
     DocumentView *m_doc     = nullptr;
     TabWidget *m_tab_widget = nullptr;
     QVBoxLayout *m_layout   = nullptr;

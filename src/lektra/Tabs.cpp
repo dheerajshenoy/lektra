@@ -1304,18 +1304,28 @@ Lektra::handleCtrlLinkClickRequested(DocumentView *view,
     if (std::isnan(target.y))
         target.y = 0;
 
+    openPortalAt(view, target);
+}
+
+// Shows `target` in the portal of `view`, creating the portal if needed.
+// Null for a portal view, or when the portal could not be created.
+DocumentView *
+Lektra::openPortalAt(DocumentView *view, PageLocation target) noexcept
+{
     // Check if this is already a portal
-    if (view->is_portal())
-        return;
+    if (!view || view->is_portal())
+        return nullptr;
 
     // Check if portal already exists
     if (auto portal = view->portal())
     {
         portal->GotoLocation(target);
-        return;
+        return portal;
     }
 
     DocumentView *newView = create_portal(view, view->filePath());
+    if (!newView)
+        return nullptr;
 
     // Fix for jump marker event loop not executing
     connect(newView, &DocumentView::openFileFinished, this,
@@ -1324,6 +1334,20 @@ Lektra::handleCtrlLinkClickRequested(DocumentView *view,
         QTimer::singleShot(0, newView, [newView, target]()
         { newView->GotoLocation(target); });
     }, Qt::SingleShotConnection);
+    return newView;
+}
+
+void
+Lektra::closePortal(DocumentView *view) noexcept
+{
+    if (!view)
+        return;
+    // From the portal itself, close the portal of its source
+    DocumentView *portal = view->is_portal() ? view : view->portal();
+    if (!portal)
+        return;
+    if (DocumentContainer *container = portal->container())
+        container->closeView(portal);
 }
 
 void
@@ -1346,6 +1370,15 @@ Lektra::handleLinkPreviewRequested(DocumentView *view,
         target.x = 0;
     if (std::isnan(target.y))
         target.y = 0;
+
+    showPreviewAt(view, target);
+}
+
+void
+Lektra::showPreviewAt(DocumentView *view, PageLocation target) noexcept
+{
+    if (!view)
+        return;
 
     // Create overlay + preview once, reuse after
     if (!m_preview_overlay)

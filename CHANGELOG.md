@@ -5,6 +5,8 @@
 ### New Features
 
 - Link hints can use letters: set `link_hints.charset` (e.g. `"asdfghjkl"`).
+- Lua: `view:link_hints("pick", callback)` gives the chosen link to a script.
+- Lua: `view:preview(target)`, `view:open_portal(target)` and `view:close_portal()`.
 
 ### Bug Fixes
 

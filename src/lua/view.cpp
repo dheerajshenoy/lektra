@@ -12,8 +12,10 @@
 
 #include <QBuffer>
 #include <QByteArray>
+#include <QDesktopServices>
 #include <QEventLoop>
 #include <QMenu>
+#include <QUrl>
 #include <cstring>
 
 namespace
@@ -105,6 +107,32 @@ readLocation(lua_State *L, int idx, int *pageno, float *x, float *y)
     return true;
 }
 
+// Fills the fields a link has from its info alone (no rect or index)
+static void
+pushLinkInfo(lua_State *L, const Model::LinkInfo &info)
+{
+    lua_pushstring(L, info.uri.toUtf8().constData());
+    lua_setfield(L, -2, "uri");
+    lua_pushstring(L, linkTypeName(info.type));
+    lua_setfield(L, -2, "type");
+
+    if (info.target_page >= 0)
+    {
+        lua_pushinteger(L, info.target_page + 1);
+        lua_setfield(L, -2, "target_page");
+        if (!std::isnan(info.target_loc.x))
+        {
+            lua_pushnumber(L, info.target_loc.x);
+            lua_setfield(L, -2, "target_x");
+        }
+        if (!std::isnan(info.target_loc.y))
+        {
+            lua_pushnumber(L, info.target_loc.y);
+            lua_setfield(L, -2, "target_y");
+        }
+    }
+}
+
 static void
 pushLink(lua_State *L, const Model::PageLink &link, int pageno, int index)
 {
@@ -125,26 +153,64 @@ pushLink(lua_State *L, const Model::PageLink &link, int pageno, int index)
     lua_setfield(L, -2, "y1");
     lua_setfield(L, -2, "rect");
 
-    lua_pushstring(L, link.info.uri.toUtf8().constData());
-    lua_setfield(L, -2, "uri");
-    lua_pushstring(L, linkTypeName(link.info.type));
-    lua_setfield(L, -2, "type");
+    pushLinkInfo(L, link.info);
+}
 
-    if (link.info.target_page >= 0)
+static void
+pushViewHandle(lua_State *L, DocumentView *view)
+{
+    if (!view)
     {
-        lua_pushinteger(L, link.info.target_page + 1);
-        lua_setfield(L, -2, "target_page");
-        if (!std::isnan(link.info.target_loc.x))
-        {
-            lua_pushnumber(L, link.info.target_loc.x);
-            lua_setfield(L, -2, "target_x");
-        }
-        if (!std::isnan(link.info.target_loc.y))
-        {
-            lua_pushnumber(L, link.info.target_loc.y);
-            lua_setfield(L, -2, "target_y");
-        }
+        lua_pushnil(L);
+        return;
     }
+    auto **ud = static_cast<DocumentView **>(
+        lua_newuserdata(L, sizeof(DocumentView *)));
+    *ud = view;
+    luaL_getmetatable(L, "DocumentViewMetaTable");
+    lua_setmetatable(L, -2);
+}
+
+// Reads a link table (from links() or a pick) or a location table at `idx`.
+// 1: an internal target, in `loc`; 2: an external link, its address in `uri`.
+static int
+readTarget(lua_State *L, int idx, PageLocation *loc, QString *uri)
+{
+    luaL_checktype(L, idx, LUA_TTABLE);
+
+    lua_getfield(L, idx, "type");
+    const bool external = lua_isstring(L, -1)
+                          && QByteArray(lua_tostring(L, -1)) == "external";
+    lua_pop(L, 1);
+    if (external)
+    {
+        lua_getfield(L, idx, "uri");
+        *uri = QString::fromUtf8(luaL_optstring(L, -1, ""));
+        lua_pop(L, 1);
+        return 2;
+    }
+
+    auto number = [&](const char *name) -> lua_Number
+    {
+        lua_getfield(L, idx, name);
+        const lua_Number v = lua_tonumber(L, -1);
+        lua_pop(L, 1);
+        return v;
+    };
+
+    lua_getfield(L, idx, "target_page");
+    const bool is_link = !lua_isnil(L, -1);
+    lua_pop(L, 1);
+
+    if (is_link)
+    {
+        loc->pageno = static_cast<int>(number("target_page")) - 1;
+        loc->x      = static_cast<float>(number("target_x"));
+        loc->y      = static_cast<float>(number("target_y"));
+    }
+    else if (!readLocation(L, idx, &loc->pageno, &loc->x, &loc->y))
+        luaL_argerror(L, idx, "a link or a { page, x, y } location expected");
+    return 1;
 }
 
 #define VIEW_METHOD(name, ...)                                                 \
@@ -730,6 +796,58 @@ static const luaL_Reg DocumentViewMethods[] = {
                         lua_pushnil(L);
                         return 1;
                     }
+                }),
+
+    // preview(target): the preview overlay for a link or { page, x, y }
+    VIEW_METHOD("preview",
+                {
+                    PageLocation loc{};
+                    QString uri;
+                    const int kind = readTarget(L, 2, &loc, &uri);
+                    if (!*view)
+                        return 0;
+                    if (kind == 2)
+                    {
+                        if (!uri.isEmpty())
+                            QDesktopServices::openUrl(QUrl(uri));
+                        return 0;
+                    }
+                    auto *lektra = qobject_cast<Lektra *>((*view)->window());
+                    if (lektra)
+                        lektra->showPreviewAt(*view, loc);
+                    return 0;
+                }),
+
+    // open_portal(target) -> View|nil: the portal showing a link or location
+    VIEW_METHOD("open_portal",
+                {
+                    PageLocation loc{};
+                    QString uri;
+                    const int kind = readTarget(L, 2, &loc, &uri);
+                    auto *lektra
+                        = *view ? qobject_cast<Lektra *>((*view)->window())
+                                : nullptr;
+                    DocumentView *portal
+                        = (kind == 1 && lektra)
+                              ? lektra->openPortalAt(*view, loc)
+                              : nullptr;
+                    pushViewHandle(L, portal);
+                    return 1;
+                }),
+
+    VIEW_METHOD("portal",
+                {
+                    pushViewHandle(L, *view ? (*view)->portal() : nullptr);
+                    return 1;
+                }),
+
+    VIEW_METHOD("close_portal",
+                {
+                    if (auto *lektra
+                        = *view ? qobject_cast<Lektra *>((*view)->window())
+                                : nullptr)
+                        lektra->closePortal(*view);
+                    return 0;
                 }),
 
     VIEW_METHOD("set_active",
@@ -1437,7 +1555,8 @@ static const luaL_Reg DocumentViewMethods[] = {
     VIEW_METHOD("link_hints",
                 {
                     // Starts hint mode in the current tab: "visit" (default)
-                    // follows the chosen link, "copy" copies its address.
+                    // follows the chosen link, "copy" copies its address, and
+                    // "pick" gives the link to the callback (nil if cancelled).
                     auto *lektra = qobject_cast<Lektra *>((*view)->window());
                     if (!lektra || lektra->currentDocument() != *view)
                     {
@@ -1448,13 +1567,47 @@ static const luaL_Reg DocumentViewMethods[] = {
                         = lua_isnoneornil(L, 2)
                               ? QStringLiteral("visit")
                               : QString::fromUtf8(luaL_checkstring(L, 2));
+                    if (mode == "pick")
+                    {
+                        luaL_checktype(L, 3, LUA_TFUNCTION);
+                        lua_pushvalue(L, 3);
+                        const int cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+                        const bool started = lektra->PickLinkKB(
+                            [L = luaMainState(),
+                             cb_ref](const Model::LinkInfo *info)
+                        {
+                            lua_rawgeti(L, LUA_REGISTRYINDEX, cb_ref);
+                            luaL_unref(L, LUA_REGISTRYINDEX, cb_ref);
+                            if (info)
+                            {
+                                lua_newtable(L);
+                                lua_pushinteger(L, info->source_page + 1);
+                                lua_setfield(L, -2, "page");
+                                pushLinkInfo(L, *info);
+                            }
+                            else
+                                lua_pushnil(L);
+                            if (lua_pcall(L, 1, 0, 0) != LUA_OK)
+                            {
+                                fprintf(stderr,
+                                        "Lua error in link_hints callback: "
+                                        "%s\n",
+                                        lua_tostring(L, -1));
+                                lua_pop(L, 1);
+                            }
+                        });
+                        if (!started)
+                            luaL_unref(L, LUA_REGISTRYINDEX, cb_ref);
+                        lua_pushboolean(L, started);
+                        return 1;
+                    }
                     if (mode == "copy")
                         lektra->CopyLinkKB();
                     else if (mode == "visit")
                         lektra->VisitLinkKB();
                     else
-                        return luaL_error(L, "mode must be \"visit\" or "
-                                             "\"copy\"");
+                        return luaL_error(L, "mode must be \"visit\", "
+                                             "\"copy\" or \"pick\"");
                     lua_pushboolean(L, 1);
                     return 1;
                 }),

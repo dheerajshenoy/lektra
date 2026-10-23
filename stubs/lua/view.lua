@@ -341,6 +341,18 @@ function View:is_portal() end
 ---@param portal_view View The view to set as the portal for the current view. Setting a
 function View:set_portal(portal_view) end
 
+---Opens `target` in the portal of this view, creating the portal if there is none (or going to `target` in the existing one). Does nothing and returns nil for a view that is itself a portal, or for an external link.
+---@param target PageLink|{ page: integer, x: number, y: number } A link from `View:links()` or `View:link_hints("pick", ...)`, or a location (1-based page, x/y in page points).
+---@return View? portal The portal view, or nil.
+function View:open_portal(target) end
+
+---Closes the portal of this view (or this view, if it is a portal). Does nothing if there is none.
+function View:close_portal() end
+
+---Shows the preview overlay (the one of "Open in Preview" on a link) for `target`. An external link opens in the browser instead.
+---@param target PageLink|{ page: integer, x: number, y: number } A link from `View:links()` or `View:link_hints("pick", ...)`, or a location (1-based page, x/y in page points).
+function View:preview(target) end
+
 ---Sets the active state of the view. An active view is the one that currently has focus and receives user input. Setting a view as active will bring it to the foreground and allow the user to interact with it.
 ---@param active boolean True to set the view as active, false to deactivate it.
 function View:set_active(active) end
@@ -561,10 +573,15 @@ function View:links(pageno) end
 function View:follow_link(link) end
 
 ---Starts link hint mode in the current tab, like the `link_hint_visit` and
----`link_hint_copy` commands. The view must be the current tab.
----@param mode? "visit"|"copy" "visit" follows the chosen link (default); "copy" copies its address.
----@return boolean started
-function View:link_hints(mode) end
+---`link_hint_copy` commands. The view must be the current tab. With "pick" the
+---chosen link is given to `callback` instead of being opened or copied; the
+---callback runs once, with nil if the user cancelled (Escape). Inside
+---`lektra.async` it can be waited for:
+---`local link = lektra.await(function(resume) view:link_hints("pick", resume) end)`
+---@param mode? "visit"|"copy"|"pick" "visit" follows the chosen link (default); "copy" copies its address; "pick" gives the link to `callback`.
+---@param callback? fun(link: PageLink?) Required for "pick". The link has the fields of `View:links()` except `index` and `rect`.
+---@return boolean started False if hint mode didn't start (not the current tab, or no visible links); the callback is then not called.
+function View:link_hints(mode, callback) end
 
 ---Selects the text between two positions, in reading order. Both pages must be
 ---rendered (visible or preloaded), so call this after the page has shown up

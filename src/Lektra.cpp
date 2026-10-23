@@ -718,6 +718,7 @@ Lektra::handleEscapeKeyPressed() noexcept
         m_doc->ClearKBHintsOverlay();
         m_link_hint_map.clear();
         m_link_hint_mode = false;
+        cancelLinkHintPick();
     }
 }
 
