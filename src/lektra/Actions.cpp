@@ -1187,21 +1187,35 @@ Lektra::handleLinkHintEvent(QEvent *event) noexcept
                     text = QString(QChar('0' + (key - Qt::Key_0)));
             }
 
-            bool appended = false;
-            if (text.size() == 1 && text.at(0).isDigit())
+            if (text.size() != 1)
+                return true;
+
+            // Take the first hint continuing the input (an exact-case match
+            // wins, otherwise case is ignored) and append its own character
+            const QString candidate = m_lockedInputBuffer + text;
+            QString matched;
+            for (auto h = m_link_hint_map.keyBegin();
+                 h != m_link_hint_map.keyEnd(); ++h)
             {
-                m_lockedInputBuffer += text;
-                appended = true;
+                if (h->startsWith(candidate, Qt::CaseSensitive))
+                {
+                    matched = *h;
+                    break;
+                }
+                if (matched.isEmpty()
+                    && h->startsWith(candidate, Qt::CaseInsensitive))
+                    matched = *h;
             }
 
-            if (!appended)
+            if (matched.isEmpty())
                 return true;
+
+            m_lockedInputBuffer = matched.left(candidate.size());
 
             if (m_doc)
                 m_doc->UpdateKBHintsOverlay(m_lockedInputBuffer);
 
-            int num = m_lockedInputBuffer.toInt();
-            auto it = m_link_hint_map.find(num);
+            auto it = m_link_hint_map.find(m_lockedInputBuffer);
             if (it != m_link_hint_map.end())
             {
                 const Model::LinkInfo &info = it.value();

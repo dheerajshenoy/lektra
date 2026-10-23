@@ -673,7 +673,7 @@ private:
     ColorEyedrop *m_color_eyedrop         = nullptr;
     StartupWidget *m_startup_widget       = nullptr;
     LinkHintMode m_link_hint_current_mode = LinkHintMode::None;
-    QMap<int, Model::LinkInfo> m_link_hint_map;
+    QMap<QString, Model::LinkInfo> m_link_hint_map;
     DocumentView *m_doc     = nullptr;
     TabWidget *m_tab_widget = nullptr;
     QVBoxLayout *m_layout   = nullptr;

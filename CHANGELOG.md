@@ -4,6 +4,8 @@
 
 ### New Features
 
+- Link hints can use letters: set `link_hints.charset` (e.g. `"asdfghjkl"`).
+
 ### Bug Fixes
 
 - Fix a long delay before the first window when a recent file is on an unreachable network mount.

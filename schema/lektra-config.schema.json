@@ -1448,6 +1448,11 @@
           "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
           "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
           "default": "#ea3ee9FF"
+        },
+        "charset": {
+          "type": "string",
+          "default": "0123456789",
+          "description": "Characters used to build link hints, e.g. \"asdfghjkl\" for letters. At least two distinct characters are needed, otherwise digits are used. (since 0.8.1)"
         }
       },
       "additionalProperties": false,

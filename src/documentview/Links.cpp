@@ -162,11 +162,57 @@ DocumentView::handleLinkMiddleClickRequested(QPointF scenePos) noexcept
     emit linkOpenInNewTabRequested(this, clicked_link);
 }
 
+// Builds `count` equal-length hints from `charset` (digits when it has fewer
+// than two distinct characters)
+static QStringList
+makeLinkHints(const QString &charset, size_t count)
+{
+    static const QString defaultCharset = QStringLiteral("0123456789");
+
+    QString chars;
+    for (const QChar c : charset)
+        if (!c.isSpace() && !chars.contains(c))
+            chars += c;
+    if (chars.size() < 2)
+        chars = defaultCharset;
+
+    QStringList hints;
+    hints.reserve(static_cast<qsizetype>(count));
+
+    // Digits keep counting from 1 (or 10, 100, ...)
+    if (chars == defaultCharset)
+    {
+        size_t first = 1;
+        if (count > 9)
+            for (int i = 1; i < QString::number(count).size(); ++i)
+                first *= 10;
+        for (size_t i = 0; i < count; ++i)
+            hints.append(QString::number(first + i));
+        return hints;
+    }
+
+    const size_t base = static_cast<size_t>(chars.size());
+    size_t length     = 1;
+    for (size_t cap = base; cap < count; cap *= base)
+        ++length;
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        QString hint(static_cast<qsizetype>(length), chars.at(0));
+        size_t n = i;
+        for (size_t pos = length; pos > 0; --pos, n /= base)
+            hint[static_cast<qsizetype>(pos - 1)]
+                = chars.at(static_cast<qsizetype>(n % base));
+        hints.append(hint);
+    }
+    return hints;
+}
+
 // Get the link KB for the current document
-QMap<int, Model::LinkInfo>
+QMap<QString, Model::LinkInfo>
 DocumentView::LinkKB() noexcept
 {
-    QMap<int, Model::LinkInfo> hintMap;
+    QMap<QString, Model::LinkInfo> hintMap;
 
     if (!m_gscene)
         return hintMap;
@@ -203,14 +249,9 @@ DocumentView::LinkKB() noexcept
     if (visibleLinks.empty())
         return hintMap;
 
-    int hint = 1;
-    if (visibleLinks.size() > 9)
-    {
-        int digits = QString::number(visibleLinks.size()).size();
-        hint       = 1;
-        for (int i = 1; i < digits; ++i)
-            hint *= 10;
-    }
+    // All hints have the same length, so none is a prefix of another
+    const QStringList hints
+        = makeLinkHints(m_config.link_hints.charset, visibleLinks.size());
 
     float fontSize = m_config.link_hints.size;
     if (fontSize < 1.0f)
@@ -223,12 +264,12 @@ DocumentView::LinkKB() noexcept
     const QColor bg = rgbaToQColor(m_config.link_hints.bg);
     const QColor fg = rgbaToQColor(m_config.link_hints.fg);
 
-    for (const auto &entry : visibleLinks)
+    for (size_t i = 0; i < visibleLinks.size(); ++i)
     {
-        BrowseLinkItem *link = entry.first;
-        const int pageno     = entry.second;
+        BrowseLinkItem *link = visibleLinks[i].first;
+        const int pageno     = visibleLinks[i].second;
 
-        const QString hintText = QString::number(hint);
+        const QString hintText = hints.at(static_cast<qsizetype>(i));
         const QRectF textRect  = metrics.boundingRect(hintText);
         const qreal padding    = 4.0;
         const QSizeF hintSize(textRect.width() + padding * 2.0,
@@ -245,7 +286,7 @@ DocumentView::LinkKB() noexcept
             hintPos.setY(visibleSceneRect.top());
 
         LinkHint *hintItem
-            = new LinkHint(QRectF(hintPos, hintSize), bg, fg, hint, fontSize);
+            = new LinkHint(QRectF(hintPos, hintSize), bg, fg, hintText, fontSize);
         hintItem->setZValue(ZVALUE_KB_LINK_OVERLAY);
         m_gscene->addItem(hintItem);
 
@@ -257,9 +298,7 @@ DocumentView::LinkKB() noexcept
         info.target_loc  = link->location();
         info.source_loc  = link->sourceLocation();
         info.source_page = pageno;
-        hintMap.insert(hint, info);
-
-        ++hint;
+        hintMap.insert(hintText, info);
 
         m_kb_link_hints.push_back(hintItem);
     }

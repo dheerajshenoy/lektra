@@ -994,6 +994,7 @@ Lektra::initConfig() noexcept
         set(link_hints["size"], m_config.link_hints.size);
         set_color(link_hints["bg"], m_config.link_hints.bg);
         set_color(link_hints["fg"], m_config.link_hints.fg);
+        set(link_hints["charset"], m_config.link_hints.charset);
     }
 
     // Outline

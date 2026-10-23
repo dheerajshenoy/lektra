@@ -672,7 +672,7 @@ public:
     // null QImage if there isn't one there. Used to drag an image out of the
     // document (GraphicsView::setImageDragProvider()).
     QImage imageAt(QPointF scenePos) noexcept;
-    QMap<int, Model::LinkInfo> LinkKB() noexcept;
+    QMap<QString, Model::LinkInfo> LinkKB() noexcept;
     void ClearTextSelection() noexcept;
     void YankSelection(bool formatted = true) noexcept;
     void FileProperties() noexcept;

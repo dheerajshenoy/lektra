@@ -12,12 +12,12 @@
 class LinkHint : public QGraphicsItem
 {
 public:
-    LinkHint(const QRectF &rect, const QColor &bg, const QColor &fg, int hint,
-             const float &fontSize)
-        : m_rect(rect), m_bg(bg), m_fg(fg), m_hint(hint), m_fontSize(fontSize)
+    LinkHint(const QRectF &rect, const QColor &bg, const QColor &fg,
+             const QString &hint, const float &fontSize)
+        : m_rect(rect), m_bg(bg), m_fg(fg), m_fontSize(fontSize),
+          m_hint_text(hint)
     {
         setData(0, "kb_link_overlay");
-        m_hint_text = QString::number(m_hint);
     }
 
     enum
@@ -106,7 +106,6 @@ private:
     QRectF m_rect;
     QColor m_bg;
     QColor m_fg;
-    int m_hint;
     float m_fontSize;
     QString m_hint_text;
     int m_prefix_len{0};

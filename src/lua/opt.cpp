@@ -1641,6 +1641,18 @@ static const LuaField linksFields[] = {
 
 // --- link_hints ---
 static const LuaField linkHintsFields[] = {
+    {"charset",
+     [](lua_State *L, P p)
+{
+    lua_pushstring(
+        L, static_cast<Config::Link_hints *>(p)->charset.toUtf8().constData());
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::Link_hints *>(p)->charset
+        = QString::fromUtf8(lua_tostring(L, 3));
+}},
+
     {"bg",
      [](lua_State *L, P p)
 {

@@ -1083,6 +1083,14 @@ struct Config
         // @added 0.6.4
         uint32_t fg = 0xea3ee9FF;
 
+        // @desc { Characters used to build link hints, e.g. "asdfghjkl" for
+        // letters. At least two distinct characters are needed, otherwise
+        // digits are used. }
+        // @type str
+        // @default "0123456789"
+        // @added 0.8.1
+        QString charset = "0123456789";
+
     } link_hints;
     // @endsection
 

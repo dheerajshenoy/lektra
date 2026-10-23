@@ -312,6 +312,7 @@ lektra.opt.jump_marker = {}
 lektra.opt.links = {}
 
 ---@class OptLinkHints
+---@field charset? string Characters used to build link hints, e.g. `"asdfghjkl"` for letters (default `"0123456789"`).
 ---@field bg? Color Link hint background color (`Color`).
 ---@field fg? Color Link hint foreground/text color (`Color`).
 ---@field size? number Font size for link hint labels.
