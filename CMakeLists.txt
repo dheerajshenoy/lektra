@@ -166,6 +166,8 @@ else()
 endif()
 
 
+# Always Release, whatever Lektra's own build type is (as on the other
+# platforms): a Debug MuPDF only adds slowness and asserts.
 if(MSVC)
     set(MUPDF_SLN "${MUPDF_SOURCE_DIR}/platform/win32/mupdf.sln")
     set(MUPDF_LIB_FILE "${MUPDF_INSTALL_DIR}/lib/libmupdf.lib")
@@ -176,7 +178,7 @@ if(MSVC)
 
         BUILD_COMMAND
         MSBuild "${MUPDF_SLN}"
-        /p:Configuration=$<CONFIG>
+        /p:Configuration=Release
         /p:Platform=x64
         /p:PlatformToolset=${CMAKE_VS_PLATFORM_TOOLSET}
         /m
@@ -184,7 +186,7 @@ if(MSVC)
         INSTALL_COMMAND
         ${CMAKE_COMMAND} -E make_directory "${MUPDF_INSTALL_DIR}/lib"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${MUPDF_SOURCE_DIR}/platform/win32/x64/$<CONFIG>/libmupdf.lib"
+        "${MUPDF_SOURCE_DIR}/platform/win32/x64/Release/libmupdf.lib"
         MUPDF_LIB_FILE
 
         BUILD_BYPRODUCTS "${MUPDF_LIB_FILE}"
@@ -625,7 +627,7 @@ endif()
 
 if(MSVC)
     target_link_libraries(${PROJECT_NAME} PRIVATE
-        "${MUPDF_SOURCE_DIR}/platform/win32/x64/$<CONFIG>/libmupdf.lib"
+        "${MUPDF_SOURCE_DIR}/platform/win32/x64/Release/libmupdf.lib"
         dbghelp
     )
 else()
