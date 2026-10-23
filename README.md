@@ -48,6 +48,7 @@ Check out [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ### Thanks to all the contributors who have helped (and helping) make this project better (in no particular order):
 
+- [saccarosium](https://codeberg.org/saccarosium) - For bug fixing the Windows build and providing valuable feedback.
 - [barrettruth](https://github.com/barrettruth) - For contributing the NixOS flake and issue report templates.
 - [techmanwalker](https://github.com/techmanwalker) - For initiating translations and contributing the Spanish translation.
 - [linwaytin](https://codeberg.org/linwaytin) - For providing valuable feedback and bug reports and feature-requesting annotation comment.
@@ -58,3 +59,4 @@ Check out [CONTRIBUTING.md](CONTRIBUTING.md)
 ## If you want to support me
 <a href="https://github.com/sponsors/dheerajshenoy"><img alt="GitHub Sponsors" src="https://img.shields.io/badge/GitHub_Sponsors-FF5F5F?style=for-the-badge&logo=github-sponsors&logoColor=white"></a>
 <a href="https://liberapay.com/dheerajshenoy"><img alt="Liberapay" src="https://img.shields.io/badge/Liberapay-F6C915?style=for-the-badge&logo=liberapay&logoColor=black"></a>
+<a href="https://ko-fi.com/dheerajshenoy"><img alt="Ko-fi" src="https://img.shields.io/badge/Ko--fi-29ABE0?style=for-the-badge&logo=kofi&logoColor=white"></a>
