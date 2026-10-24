@@ -205,23 +205,24 @@ function View:file_path() end
 function View:file_type() end
 
 ---Registers a callback function for the specified event on the view.
----@overload fun(event: { name: string, callback: function }) Registers a callback using an event table with name and callback fields.
----@param event string The name of the event to listen for (e.g., "page_changed", "selection_changed").
----@param callback function The callback function to be called when the event occurs. The callback function will receive the view instance and any relevant event data as arguments.
+---@param event EventType|string The event to listen for: its name ("OnPageChanged") or a `lektra.event.EventType` value.
+---@param callback fun(event: Event) Called with one event table (see `lektra.event.register`): `event.view` is the view, and the event's own fields are on the same table.
 ---@return integer handle A unique handle that can be used to unregister the callback later.
 function View:register(event, callback) end
 
 ---Unregisters a callback function for the specified event on the view.
----@overload fun(event: { name: string, callback: function, handle: integer}) Unregisters a callback using an event table with name and callback fields.
----@param event string The name of the event to stop listening for (e.g., "page_changed", "selection_changed").
----@param handle integer The unique handle returned by the `on` method when the callback was registered.
+---@param event EventType|string The event to stop listening for.
+---@param handle integer The handle returned by `View:register` or `View:register_once`.
 function View:unregister(event, handle) end
 
 ---Registers a one-time callback function for the specified event on the view. The callback will be automatically unregistered after it is called once.
----@overload fun(event: { name: string, callback: function }) Registers a one-time callback using an event table with name and callback fields.
----@param event string The name of the event to listen for (e.g., "page_changed", "selection_changed").
----@param callback function The callback function to be called when the event occurs. The callback function will receive the view instance and any relevant event data as arguments.
-function View:once(event, callback) end
+---@param event EventType|string The event to listen for.
+---@param callback fun(event: Event) Called with one event table (see `lektra.event.register`).
+function View:register_once(event, callback) end
+
+---Removes all callbacks registered on the view for the specified event.
+---@param event EventType|string The event to clear the callbacks of.
+function View:clear_listeners(event) end
 
 ---Registers a callback to customize the context menu for selections.
 ---@param menu_type string "TextSelection" or "RegionSelection"

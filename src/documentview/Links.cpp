@@ -380,7 +380,8 @@ DocumentView::FollowLink(const Model::LinkInfo &info) noexcept
     }
 
 #ifdef WITH_LUA
-    dispatchLuaEvent(DispatchType::OnLinkClicked);
+    LinkClickedEvent event{this, info};
+    dispatchLuaEvent(DispatchType::OnLinkClicked, &event);
 #endif
 }
 

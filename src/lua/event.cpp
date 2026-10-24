@@ -2,6 +2,7 @@
 #include "DocumentView.hpp"
 #include "Lektra.hpp"
 #include "LuaBookmark.hpp"
+#include "LuaEvent.hpp"
 
 #include <QScreen>
 
@@ -49,8 +50,8 @@ Lektra::clearLuaEventCallbacks(DispatchType type) noexcept
 // works without needing the full `lektra.event.EventType.OnPageChanged`
 // path — string literals also give editors reliable overload narrowing
 // on the callback's argument type, unlike the enum-value overloads.
-static DispatchType
-check_dispatch_type(lua_State *L, int idx)
+DispatchType
+checkLuaDispatchType(lua_State *L, int idx)
 {
     if (lua_type(L, idx) == LUA_TSTRING)
     {
@@ -68,58 +69,104 @@ check_dispatch_type(lua_State *L, int idx)
 }
 
 static void
-push_event_arg(lua_State *L, DispatchType type, void *data)
+push_view(lua_State *L, DocumentView *view)
 {
+    auto **ud = static_cast<DocumentView **>(
+        lua_newuserdata(L, sizeof(DocumentView *)));
+    *ud = view;
+    luaL_getmetatable(L, "DocumentViewMetaTable");
+    lua_setmetatable(L, -2);
+}
+
+static void
+push_screen(lua_State *L, const QScreen *screen)
+{
+    lua_newtable(L);
+    lua_pushstring(L, screen->name().toUtf8().constData());
+    lua_setfield(L, -2, "name");
+    lua_pushnumber(L, screen->devicePixelRatio());
+    lua_setfield(L, -2, "dpr");
+    lua_pushnumber(L, screen->logicalDotsPerInch());
+    lua_setfield(L, -2, "logical_dpi");
+    lua_pushnumber(L, screen->physicalDotsPerInch());
+    lua_setfield(L, -2, "physical_dpi");
+    lua_pushnumber(L, screen->refreshRate());
+    lua_setfield(L, -2, "refresh_rate");
+    const QRect g = screen->geometry();
+    lua_newtable(L);
+    lua_pushinteger(L, g.x());
+    lua_setfield(L, -2, "x");
+    lua_pushinteger(L, g.y());
+    lua_setfield(L, -2, "y");
+    lua_pushinteger(L, g.width());
+    lua_setfield(L, -2, "w");
+    lua_pushinteger(L, g.height());
+    lua_setfield(L, -2, "h");
+    lua_setfield(L, -2, "geometry");
+}
+
+void
+pushLuaEvent(lua_State *L, DispatchType type, void *data)
+{
+    lua_newtable(L);
+    lua_pushstring(L, dispatchTypeToString(type).toUtf8().constData());
+    lua_setfield(L, -2, "type");
+
     switch (type)
     {
         case DispatchType::OnScreenChanged:
-        {
-            auto *screen = static_cast<QScreen *>(data);
-            lua_newtable(L);
-            lua_pushstring(L, screen->name().toUtf8().constData());
-            lua_setfield(L, -2, "name");
-            lua_pushnumber(L, screen->devicePixelRatio());
-            lua_setfield(L, -2, "dpr");
-            lua_pushnumber(L, screen->logicalDotsPerInch());
-            lua_setfield(L, -2, "logical_dpi");
-            lua_pushnumber(L, screen->physicalDotsPerInch());
-            lua_setfield(L, -2, "physical_dpi");
-            lua_pushnumber(L, screen->refreshRate());
-            lua_setfield(L, -2, "refresh_rate");
-            QRect g = screen->geometry();
-            lua_newtable(L);
-            lua_pushinteger(L, g.x());
-            lua_setfield(L, -2, "x");
-            lua_pushinteger(L, g.y());
-            lua_setfield(L, -2, "y");
-            lua_pushinteger(L, g.width());
-            lua_setfield(L, -2, "w");
-            lua_pushinteger(L, g.height());
-            lua_setfield(L, -2, "h");
-            lua_setfield(L, -2, "geometry");
+            push_screen(L, static_cast<QScreen *>(data));
+            lua_setfield(L, -2, "screen");
             break;
-        }
+
         case DispatchType::OnSessionLoaded:
             lua_pushstring(L,
                            static_cast<QString *>(data)->toUtf8().constData());
+            lua_setfield(L, -2, "name");
             break;
+
         case DispatchType::OnBookmarkAdded:
             pushLuaBookmark(L, *static_cast<Bookmark *>(data));
+            lua_setfield(L, -2, "bookmark");
             break;
+
         case DispatchType::OnTabChanged:
         case DispatchType::OnTabRemoved:
         case DispatchType::OnTabAdded:
             lua_pushinteger(L, *static_cast<int *>(data));
+            lua_setfield(L, -2, "index");
             break;
-        // Every event DocumentView::dispatchLuaEvent() forwards here carries
-        // the originating view (as `this`) as its arg — push a proper View
-        // userdata for all of them, not just OnFileOpen.
+
+        case DispatchType::OnLinkClicked:
+        {
+            auto *event = static_cast<LinkClickedEvent *>(data);
+            push_view(L, event->view);
+            lua_setfield(L, -2, "view");
+            pushLuaLink(L, event->info);
+            lua_setfield(L, -2, "link");
+            break;
+        }
+
+        case DispatchType::OnSynctexJumpRequested:
+        {
+            auto *request = static_cast<SynctexJumpRequest *>(data);
+            push_view(L, request->view);
+            lua_setfield(L, -2, "view");
+            lua_pushstring(L, request->source_file.toUtf8().constData());
+            lua_setfield(L, -2, "source_file");
+            lua_pushinteger(L, request->line);
+            lua_setfield(L, -2, "line");
+            lua_pushinteger(L, request->col);
+            lua_setfield(L, -2, "col");
+            break;
+        }
+
+        // The events that come from a view carry it as their data.
         case DispatchType::OnReady:
         case DispatchType::OnFileOpen:
         case DispatchType::OnFileClose:
         case DispatchType::OnPageChanged:
         case DispatchType::OnZoomChanged:
-        case DispatchType::OnLinkClicked:
         case DispatchType::OnTextSelected:
         case DispatchType::OnSearchStarted:
         case DispatchType::OnSearchFinished:
@@ -129,47 +176,14 @@ push_event_arg(lua_State *L, DispatchType type, void *data)
         case DispatchType::OnViewChanged:
         case DispatchType::OnModeChanged:
         case DispatchType::OnFileSaved:
-        {
-            if (!data)
-            {
-                lua_pushnil(L);
-                break;
-            }
-            auto **ud = static_cast<DocumentView **>(
-                lua_newuserdata(L, sizeof(DocumentView *)));
-            *ud = static_cast<DocumentView *>(data);
-            luaL_getmetatable(L, "DocumentViewMetaTable");
-            lua_setmetatable(L, -2);
-            break;
-        }
-
-            // ---@overload fun(event: "OnSynctexJumpRequested", callback:
-            // fun(view: View, source_file: string, line: number, col: number)):
-            // integer
-        case DispatchType::OnSynctexJumpRequested:
-        {
-            if (!data)
-            {
-                lua_pushnil(L);
-                break;
-            }
-            auto *arg = static_cast<SynctexJumpRequest *>(data);
-            auto **ud = static_cast<DocumentView **>(
-                lua_newuserdata(L, sizeof(DocumentView *)));
-            *ud = arg->view;
-            luaL_getmetatable(L, "DocumentViewMetaTable");
-            lua_setmetatable(L, -2);
-
-            lua_pushstring(L, arg->source_file.toUtf8().constData());
-            lua_pushinteger(L, arg->line);
-            lua_pushinteger(L, arg->col);
-            break;
-        }
-        default:
             if (data)
-                lua_pushlightuserdata(L, data);
-            else
-                lua_pushnil(L);
+            {
+                push_view(L, static_cast<DocumentView *>(data));
+                lua_setfield(L, -2, "view");
+            }
+            break;
+
+        default:
             break;
     }
 }
@@ -183,7 +197,7 @@ Lektra::initLuaEventDispatcher() noexcept
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
-        DispatchType type = check_dispatch_type(L, 1);
+        DispatchType type = checkLuaDispatchType(L, 1);
         luaL_checktype(L, 2, LUA_TFUNCTION);
 
         int callbackRef = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -195,7 +209,7 @@ Lektra::initLuaEventDispatcher() noexcept
                                [L = self->m_L, callbackRef, type](void *data)
         {
             lua_rawgeti(L, LUA_REGISTRYINDEX, callbackRef);
-            push_event_arg(L, type, data);
+            pushLuaEvent(L, type, data);
             if (lua_pcall(L, 1, 0, 0) != LUA_OK)
             {
                 const char *errorMsg = lua_tostring(L, -1);
@@ -214,7 +228,7 @@ Lektra::initLuaEventDispatcher() noexcept
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
-        DispatchType type = check_dispatch_type(L, 1);
+        DispatchType type = checkLuaDispatchType(L, 1);
         int handle        = luaL_checkinteger(L, 2);
 
         auto *self
@@ -231,7 +245,7 @@ Lektra::initLuaEventDispatcher() noexcept
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
-        DispatchType type = check_dispatch_type(L, 1);
+        DispatchType type = checkLuaDispatchType(L, 1);
         luaL_checktype(L, 2, LUA_TFUNCTION);
 
         int callbackRef = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -243,7 +257,7 @@ Lektra::initLuaEventDispatcher() noexcept
                                [L = self->m_L, callbackRef, type](void *data)
         {
             lua_rawgeti(L, LUA_REGISTRYINDEX, callbackRef);
-            push_event_arg(L, type, data);
+            pushLuaEvent(L, type, data);
             if (lua_pcall(L, 1, 0, 0) != LUA_OK)
             {
                 const char *errorMsg = lua_tostring(L, -1);
@@ -275,7 +289,7 @@ Lektra::initLuaEventDispatcher() noexcept
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
-        DispatchType type = check_dispatch_type(L, 1);
+        DispatchType type = checkLuaDispatchType(L, 1);
         auto *self
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
 
@@ -295,7 +309,7 @@ Lektra::initLuaEventDispatcher() noexcept
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
-        DispatchType type = check_dispatch_type(L, 1);
+        DispatchType type = checkLuaDispatchType(L, 1);
         auto *self
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
         self->clearLuaEventCallbacks(type);

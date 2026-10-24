@@ -82,7 +82,9 @@ class DocumentView : public QWidget
 {
     Q_OBJECT
 public:
-    using CallbackFn          = std::function<void(DocumentView *)>;
+    // Called with the view and the event's payload (see pushLuaEvent): the
+    // view itself for most events, a LinkClickedEvent for OnLinkClicked.
+    using CallbackFn          = std::function<void(DocumentView *, void *)>;
     using LektraCallbackFn    = std::function<void(void *)>;
     using Id                  = int;
     using SelectedAnnotations = std::vector<std::pair<int, Annotation *>>;
@@ -415,6 +417,13 @@ public:
     }
 
 #ifdef WITH_LUA
+    struct ViewEventCallback
+    {
+        int ref;
+        CallbackFn invoker;
+        bool is_once = false;
+    };
+
     inline void addEventListener(DispatchType type, int handle, bool is_once,
                                  CallbackFn callback) noexcept
     {
@@ -1216,9 +1225,9 @@ private:
 #endif
 
 #ifdef WITH_LUA
-    std::unordered_map<DispatchType, std::vector<LuaCallback<DocumentView>>>
+    std::unordered_map<DispatchType, std::vector<ViewEventCallback>>
         m_lua_event_dispatcher;
-    void dispatchLuaEvent(DispatchType type) noexcept;
+    void dispatchLuaEvent(DispatchType type, void *arg = nullptr) noexcept;
     bool removeLuaEventCallback(DispatchType type, int callbackRef) noexcept;
     std::unordered_map<ContextMenuType, std::vector<MenuCallback>>
         m_lua_context_menu_dispatcher;
@@ -1314,3 +1323,13 @@ private:
     PageLocation m_old_jump_marker_loc = {-1, 0, 0};
     std::vector<Model::VisualLineInfo> m_visual_lines;
 };
+
+#ifdef WITH_LUA
+// The payload of OnLinkClicked.
+struct LinkClickedEvent
+{
+    DocumentView *view = nullptr;
+    Model::LinkInfo info;
+};
+#endif
+

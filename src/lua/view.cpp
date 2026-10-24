@@ -7,6 +7,7 @@
 #include "Model.hpp"
 #include "PageRange.hpp"
 #include "ViewPickOverlay.hpp"
+#include "lua/LuaEvent.hpp"
 #include "lua/MainState.hpp"
 #include "utils.hpp"
 
@@ -1148,8 +1149,7 @@ static const luaL_Reg DocumentViewMethods[] = {
         {
             if (*view)
             {
-                DispatchType type
-                    = static_cast<DispatchType>(luaL_checkinteger(L, 2));
+                const DispatchType type = checkLuaDispatchType(L, 2);
 
                 luaL_checktype(L, 3, LUA_TFUNCTION);
                 lua_pushvalue(L, 3);
@@ -1160,17 +1160,14 @@ static const luaL_Reg DocumentViewMethods[] = {
                 // view->addEventListener(DispatchType, CallbackFn)
                 (*view)->addEventListener(
                     type, callbackRef, false,
-                    [L = luaMainState(), callbackRef](DocumentView *v)
+                    [L = luaMainState(), callbackRef,
+                     type](DocumentView *, void *data)
                 {
                     // Push the callback function onto the stack
                     lua_rawgeti(L, LUA_REGISTRYINDEX, callbackRef);
 
-                    // Push the view as an argument to the callback
-                    auto **ud = static_cast<DocumentView **>(
-                        lua_newuserdata(L, sizeof(DocumentView *)));
-                    *ud = v;
-                    luaL_getmetatable(L, "DocumentViewMetaTable");
-                    lua_setmetatable(L, -2);
+                    // Push the event table as the callback's only argument
+                    pushLuaEvent(L, type, data);
 
                     // Call the callback with 1 argument and no return
                     // values
@@ -1194,19 +1191,8 @@ static const luaL_Reg DocumentViewMethods[] = {
                 {
                     if (*view)
                     {
-                        const char *eventName = luaL_checkstring(L, 2);
-                        int handle            = luaL_checkinteger(L, 3);
-
-                        DispatchType dtype;
-                        try
-                        {
-                            dtype = stringToDispatchType(eventName);
-                        }
-                        catch (const std::invalid_argument &e)
-                        {
-                            luaL_error(L, e.what());
-                            return 0;
-                        }
+                        const DispatchType dtype = checkLuaDispatchType(L, 2);
+                        const int handle         = luaL_checkinteger(L, 3);
 
                         (*view)->removeEventListener(dtype, handle);
                     }
@@ -1217,18 +1203,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                 {
                     if (*view)
                     {
-                        const char *eventName = luaL_checkstring(L, 2);
-                        DispatchType dtype;
-                        try
-                        {
-                            dtype = stringToDispatchType(eventName);
-                        }
-                        catch (const std::invalid_argument &e)
-                        {
-                            luaL_error(L, e.what());
-                            return 0;
-                        }
-
+                        const DispatchType dtype = checkLuaDispatchType(L, 2);
                         (*view)->clearEventListeners(dtype);
                     }
                     return 0;
@@ -1315,37 +1290,25 @@ static const luaL_Reg DocumentViewMethods[] = {
             if (*view)
             {
                 // call the event only once
-                const char *eventName = luaL_checkstring(L, 2);
+                const DispatchType dtype = checkLuaDispatchType(L, 2);
                 luaL_checktype(L, 3, LUA_TFUNCTION);
+                lua_pushvalue(L, 3);
 
                 // Store the callback in the registry with a unique key
                 int callbackRef = luaL_ref(L, LUA_REGISTRYINDEX);
 
                 // Add the callback to our dispatcher map
-                DispatchType dtype;
-                try
-                {
-                    dtype = stringToDispatchType(eventName);
-                }
-                catch (const std::invalid_argument &e)
-                {
-                    luaL_error(L, e.what());
-                    return 0;
-                }
 
                 (*view)->addEventListener(
                     dtype, callbackRef, true,
-                    [L = luaMainState(), callbackRef, dtype](DocumentView *v)
+                    [L = luaMainState(), callbackRef,
+                     dtype](DocumentView *v, void *data)
                 {
                     // Push the callback function onto the stack
                     lua_rawgeti(L, LUA_REGISTRYINDEX, callbackRef);
 
-                    // Push the view as an argument to the callback
-                    auto **ud = static_cast<DocumentView **>(
-                        lua_newuserdata(L, sizeof(DocumentView *)));
-                    *ud = v;
-                    luaL_getmetatable(L, "DocumentViewMetaTable");
-                    lua_setmetatable(L, -2);
+                    // Push the event table as the callback's only argument
+                    pushLuaEvent(L, dtype, data);
 
                     // Call the callback with 1 argument and no return
                     // values
@@ -1653,10 +1616,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                             luaL_unref(L, LUA_REGISTRYINDEX, cb_ref);
                             if (info)
                             {
-                                lua_newtable(L);
-                                lua_pushinteger(L, info->source_page + 1);
-                                lua_setfield(L, -2, "page");
-                                pushLinkInfo(L, *info);
+                                pushLuaLink(L, *info);
                             }
                             else
                                 lua_pushnil(L);
@@ -2569,6 +2529,15 @@ registerDocumentView(lua_State *L)
     lua_pop(L, 1); // Pop the metatable
 }
 } // namespace
+
+void
+pushLuaLink(lua_State *L, const Model::LinkInfo &info)
+{
+    lua_newtable(L);
+    lua_pushinteger(L, info.source_page + 1);
+    lua_setfield(L, -2, "page");
+    pushLinkInfo(L, info);
+}
 
 // Register the DocumentView* type with lua
 void

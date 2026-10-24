@@ -34,43 +34,77 @@ lektra.event.EventType = {
     OnPresentationEnded = 27,
 }
 
+-- Event payloads ----------------------------------------------------
+
+--- The table every event callback receives.
+---@class Event
+---@field type string The event name, e.g. "OnLinkClicked".
+
+--- An event that came from a view.
+---@class ViewEvent : Event
+---@field view View The view the event came from.
+
+---@class LinkClickedEvent : ViewEvent
+---@field link PageLink The link that was followed (without `index` and `rect`).
+
+---@class SynctexJumpEvent : ViewEvent
+---@field source_file string The source file, as SyncTeX recorded it.
+---@field line integer
+---@field col integer -1 if SyncTeX does not know the column.
+
+---@class TabEvent : Event
+---@field index integer
+
+---@class SessionLoadedEvent : Event
+---@field name string
+
+---@class BookmarkAddedEvent : Event
+---@field bookmark Bookmark
+
+---@class ScreenChangedEvent : Event
+---@field screen lektra.ScreenInfo
+
+--- Event name -> the table its callbacks receive.
+---@class EventMap
+---@field OnAppReady Event
+---@field OnAppShutdown Event
+---@field OnPresentationStarted Event
+---@field OnPresentationEnded Event
+---@field OnReady ViewEvent
+---@field OnFileOpen ViewEvent
+---@field OnFileClose ViewEvent
+---@field OnFileSaved ViewEvent
+---@field OnPageChanged ViewEvent
+---@field OnZoomChanged ViewEvent
+---@field OnModeChanged ViewEvent
+---@field OnViewChanged ViewEvent
+---@field OnTextSelected ViewEvent
+---@field OnSearchStarted ViewEvent
+---@field OnSearchFinished ViewEvent
+---@field OnSearchCancelled ViewEvent
+---@field OnRegionSelectionContextMenuRequested ViewEvent
+---@field OnTextSelectionContextMenuRequested ViewEvent
+---@field OnLinkClicked LinkClickedEvent
+---@field OnSynctexJumpRequested SynctexJumpEvent
+---@field OnTabChanged TabEvent
+---@field OnTabAdded TabEvent
+---@field OnTabRemoved TabEvent
+---@field OnSessionLoaded SessionLoadedEvent
+---@field OnBookmarkAdded BookmarkAddedEvent
+---@field OnScreenChanged ScreenChangedEvent
+
 --- Registers a callback to be called when the specified event is triggered.
 --- `event` accepts either the string name ("OnPageChanged") or the
 --- `lektra.event.EventType` enum value — the string form is recommended:
 --- it's shorter and (unlike the enum form) editors reliably infer the
 --- callback argument's type from it.
----@overload fun(event: "OnFileOpen", callback: fun(view: View)): integer
----@overload fun(event: "OnReady", callback: fun(view: View)): integer
----@overload fun(event: "OnFileClose", callback: fun(view: View)): integer
----@overload fun(event: "OnPageChanged", callback: fun(view: View)): integer
----@overload fun(event: "OnZoomChanged", callback: fun(view: View)): integer
----@overload fun(event: "OnLinkClicked", callback: fun(view: View)): integer
----@overload fun(event: "OnTextSelected", callback: fun(view: View)): integer
----@overload fun(event: "OnSearchStarted", callback: fun(view: View)): integer
----@overload fun(event: "OnSearchFinished", callback: fun(view: View)): integer
----@overload fun(event: "OnSearchCancelled", callback: fun(view: View)): integer
----@overload fun(event: "OnRegionSelectionContextMenuRequested", callback: fun(view: View)): integer
----@overload fun(event: "OnTextSelectionContextMenuRequested", callback: fun(view: View)): integer
----@overload fun(event: "OnViewChanged", callback: fun(view: View)): integer
----@overload fun(event: "OnScreenChanged", callback: fun(s: lektra.ScreenInfo)): integer
----@overload fun(event: "OnTabChanged", callback: fun(tab: integer)): integer
----@overload fun(event: "OnTabAdded", callback: fun(tab: integer)): integer
----@overload fun(event: "OnTabRemoved", callback: fun(tab: integer)): integer
----@overload fun(event: "OnAppShutdown", callback: fun()): integer
----@overload fun(event: "OnPresentationStarted", callback: fun()): integer
----@overload fun(event: "OnPresentationEnded", callback: fun()): integer
----@overload fun(event: "OnModeChanged", callback: fun(view: View)): integer
----@overload fun(event: "OnSessionLoaded", callback: fun(name: string)): integer
----@overload fun(event: "OnBookmarkAdded", callback: fun(bookmark: Bookmark)): integer
----@overload fun(event: "OnFileSaved", callback: fun(view: View)): integer
----@overload fun(event: "OnSynctexJumpRequested", callback: fun(view: View, source_file: string, line: number, col: number)): integer
----@param event EventType|string
----@param callback fun(arg: any)
+---@generic E : keyof EventMap
+---@param event E|EventType
+---@param callback fun(event: EventMap[E])
 ---@return integer handle
 lektra.event.register = function(event, callback) end
 
 --- Unregisters a callback from the specified event.
----@overload fun(arg: {event: EventType|string, callback: function})
 ---@param event EventType|string The name of the event to stop listening for.
 ---@param handle integer The unique identifier of the registered callback to unregister, as returned by `lektra.event.register`.
 lektra.event.unregister = function(event, handle) end
@@ -78,33 +112,9 @@ lektra.event.unregister = function(event, handle) end
 --- Registers a callback to be called when the specified event is triggered.
 --- The callback is called once and then automatically unregistered.
 --- See `lektra.event.register` for the `event` argument's accepted forms.
----@overload fun(event: "OnFileOpen", callback: fun(view: View)): integer
----@overload fun(event: "OnReady", callback: fun(view: View)): integer
----@overload fun(event: "OnFileClose", callback: fun(view: View)): integer
----@overload fun(event: "OnPageChanged", callback: fun(view: View)): integer
----@overload fun(event: "OnZoomChanged", callback: fun(view: View)): integer
----@overload fun(event: "OnLinkClicked", callback: fun(view: View)): integer
----@overload fun(event: "OnTextSelected", callback: fun(view: View)): integer
----@overload fun(event: "OnSearchStarted", callback: fun(view: View)): integer
----@overload fun(event: "OnSearchFinished", callback: fun(view: View)): integer
----@overload fun(event: "OnSearchCancelled", callback: fun(view: View)): integer
----@overload fun(event: "OnRegionSelectionContextMenuRequested", callback: fun(view: View)): integer
----@overload fun(event: "OnTextSelectionContextMenuRequested", callback: fun(view: View)): integer
----@overload fun(event: "OnViewChanged", callback: fun(view: View)): integer
----@overload fun(event: "OnScreenChanged", callback: fun(s: lektra.ScreenInfo)): integer
----@overload fun(event: "OnTabChanged", callback: fun(tab: integer)): integer
----@overload fun(event: "OnTabAdded", callback: fun(tab: integer)): integer
----@overload fun(event: "OnTabRemoved", callback: fun(tab: integer)): integer
----@overload fun(event: "OnAppShutdown", callback: fun()): integer
----@overload fun(event: "OnPresentationStarted", callback: fun()): integer
----@overload fun(event: "OnPresentationEnded", callback: fun()): integer
----@overload fun(event: "OnModeChanged", callback: fun(view: View)): integer
----@overload fun(event: "OnSessionLoaded", callback: fun(name: string)): integer
----@overload fun(event: "OnBookmarkAdded", callback: fun(bookmark: Bookmark)): integer
----@overload fun(event: "OnFileSaved", callback: fun(view: View)): integer
----@overload fun(event: "OnSynctexJumpRequested", callback: fun(view: View, source_file: string, line: number, col: number)): integer
----@param event EventType|string
----@param callback fun(arg: any)
+---@generic E : keyof EventMap
+---@param event E|EventType
+---@param callback fun(event: EventMap[E])
 ---@return integer handle
 lektra.event.once = function(event, callback) end
 

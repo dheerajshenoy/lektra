@@ -23,26 +23,25 @@ lektra.event.once("OnAppReady", function()
     lektra.ui.message("Lektra is ready", 2)
 end)
 
-lektra.event.register("OnFileOpen", function(view)
-    if view then
-        lektra.ui.message("Opened: " .. view:file_path(), 2)
-    end
+-- Every event callback gets one table: `event.type` is the event name,
+-- `event.view` the view it came from (when it has one), and any other
+-- fields depend on the event, e.g. `event.link` for OnLinkClicked.
+lektra.event.register("OnFileOpen", function(event)
+    lektra.ui.message("Opened: " .. event.view:file_path(), 2)
 end)
 
 -- ---------------------------------------------------------------------
 -- Per-view events
 -- ---------------------------------------------------------------------
 -- Once you have a specific view (e.g. from lektra.view.current(), or
--- the `view` argument an event callback already gives you), you can
+-- the `event.view` an event callback already gives you), you can
 -- attach listeners scoped to just that view. Per-view events also use
 -- string names.
 
-lektra.event.register("OnFileOpen", function(view)
-    if not view then return end
-
-    view:register("OnPageChanged", function(v)
+lektra.event.register("OnFileOpen", function(event)
+    event.view:register("OnPageChanged", function(e)
         lektra.ui.message(
-            string.format("Page %d / %d", v:pageno(), v:page_count()), 1)
+            string.format("Page %d / %d", e.view:pageno(), e.view:page_count()), 1)
     end)
 end)
 
@@ -69,8 +68,8 @@ lektra.keymap.set("word_count", { "Ctrl+Alt+W" })
 -- Timers are parented to the main window and auto-cleaned on shutdown,
 -- so you don't have to call :destroy() yourself in simple cases.
 
-lektra.event.register("OnFileOpen", function(view)
-    if not view then return end
+lektra.event.register("OnFileOpen", function(event)
+    local view = event.view
 
     local reminder = lektra.timer.new(30000, function()
         lektra.ui.message("Still reading? " .. view:file_path(), 2)
@@ -84,10 +83,8 @@ end)
 -- Add an entry to the text-selection context menu that copies the
 -- selection in upper case.
 
-lektra.event.register("OnFileOpen", function(view)
-    if not view then return end
-
-    view:register_context_menu("TextSelection", function(v, menu)
+lektra.event.register("OnFileOpen", function(event)
+    event.view:register_context_menu("TextSelection", function(v, menu)
         menu:add_item("Copy Selection (Upper Case)", function()
             local text = v:selection_text(false)
             lektra.utils.print(text:upper())

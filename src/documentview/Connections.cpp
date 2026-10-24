@@ -1612,10 +1612,15 @@ DocumentView::detachToTab() noexcept
 #ifdef WITH_LUA
 
 void
-DocumentView::dispatchLuaEvent(DispatchType type) noexcept
+DocumentView::dispatchLuaEvent(DispatchType type, void *arg) noexcept
 {
-    for (const auto &callback : m_lua_event_dispatcher[type])
-        callback.invoker(this);
+    // Most events carry just the view; the rest bring their own payload
+    void *payload = arg ? arg : this;
+
+    // Copy so a callback can unregister itself without invalidating iteration
+    const auto callbacks = m_lua_event_dispatcher[type];
+    for (const auto &callback : callbacks)
+        callback.invoker(this, payload);
 
     // Also forward to the global lektra.event.register/once(...) listener
     // list, not just this view's own view:register(...) listeners. Every
@@ -1626,7 +1631,7 @@ DocumentView::dispatchLuaEvent(DispatchType type) noexcept
     // future new event routed through dispatchLuaEvent can't silently
     // reintroduce the same gap.
     if (auto *lektra = qobject_cast<Lektra *>(window()))
-        lektra->dispatchLuaEvent(type, this);
+        lektra->dispatchLuaEvent(type, payload);
 }
 #endif
 #ifdef WITH_LUA
@@ -1636,7 +1641,7 @@ DocumentView::removeEventListener(DispatchType type, int handle) noexcept
 {
     auto &listeners = m_lua_event_dispatcher[type];
     listeners.erase(std::remove_if(listeners.begin(), listeners.end(),
-                                   [handle](const LuaCallback<DocumentView> &cb)
+                                   [handle](const ViewEventCallback &cb)
     { return cb.ref == handle; }),
                     listeners.end());
 }

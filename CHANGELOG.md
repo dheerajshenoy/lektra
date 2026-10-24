@@ -2,10 +2,15 @@
 
 # 0.8.1
 
+### Breaking Changes
+
+- Lua: event callbacks now receive one table, `event`, instead of separate arguments: use `event.view` (was the view argument), `event.index`, `event.name`, `event.bookmark`, `event.screen`, `event.link`, and so on.
+
 ### New Features
 
 - Link hints can use letters: set `link_hints.charset` (e.g. `"asdfghjkl"`).
 - Lua: `view:link_hints("pick", callback)` gives the chosen link to a script, and `view:follow_link()` accepts it.
+- Lua: `OnLinkClicked` gives the followed link as `event.link`.
 - Lua: `view:preview(target)`, `view:open_portal(target)` and `view:close_portal()`.
 
 ### Bug Fixes

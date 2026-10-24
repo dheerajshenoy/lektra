@@ -24,6 +24,17 @@ Document view helpers and per-document actions.
 - `y: number` — Y jump coordinate on the destination page.
 - `children: OutlineEntry[]` — Child entries (empty table for leaf nodes).
 
+**`PageLink`** — a link on a page. The same table everywhere a link appears: `view:links()`, the
+`view:link_hints("pick", cb)` callback and `event.link` of `OnLinkClicked`. A link carries everything
+needed to follow it, so it can be stored and passed to `view:follow_link()`, `view:preview()` or
+`view:open_portal()` later.
+- `page: integer` — 1-based page the link is on.
+- `uri: string` — The link's address.
+- `type: string` — `"page"`, `"section"`, `"fit_v"`, `"fit_h"`, `"location"` or `"external"`.
+- `target_page: integer | nil`, `target_x: number | nil`, `target_y: number | nil` — Where an internal link goes.
+- `source_x: number | nil`, `source_y: number | nil` — Where the link is on its page.
+- `index: integer | nil`, `rect: table | nil` — Position in the page's link list and its box (`x0`, `y0`, `x1`, `y1`, in page points). Only in `view:links()`.
+
 ### View methods
 
 | Method | Returns | Description |
@@ -107,20 +118,28 @@ Document view helpers and per-document actions.
 | `view:mode()` | `integer` | Current selection/interaction mode. |
 | `view:set_mode()` | — | *(Not yet implemented — raises an error.)* |
 | `view:outline()` | `OutlineEntry[]` | Document outline (table of contents) as a tree. Returns an empty table if the document has no outline. |
+| `view:links(pageno?)` | `PageLink[]` | Links on a page (default: the current page). |
+| `view:follow_link(link)` | `boolean` | Follow a link as if it had been clicked. Also `view:follow_link(pageno, index)`. |
+| `view:link_hints(mode?, cb?)` | `boolean` | Start link hint mode: `"visit"` (default), `"copy"` or `"pick"`, which calls `cb(link)` with the chosen `PageLink` (`nil` if cancelled). |
+| `view:preview(target)` | — | Show the preview overlay for a `PageLink` or a `{ page, x, y }` location. |
+| `view:open_portal(target)` | `View \| nil` | Open a `PageLink` or `{ page, x, y }` location in this view's portal. |
+| `view:close_portal()` | — | Close the portal. |
 
 #### Per-view event listeners
 
-- `view:register(event: string, callback: function) -> integer`
-  Register a callback for a view-level event. Returns a handle for later removal.
-  Per-view events use **string names** (unlike `lektra.event` which uses integer constants).
+`event` is an event name (`"OnPageChanged"`) or a `lektra.event.EventType` value. Callbacks get the
+same event table as `lektra.event.register` (see [Event reference](#event-reference)).
 
-- `view:unregister(event: string, handle: integer)`
+- `view:register(event, callback) -> integer`
+  Register a callback for a view-level event. Returns a handle for later removal.
+
+- `view:unregister(event, handle: integer)`
   Remove a previously registered callback by handle.
 
-- `view:register_once(event: string, callback: function)`
+- `view:register_once(event, callback)`
   Register a one-shot callback that fires once then removes itself.
 
-- `view:clear_listeners(event: string)`
+- `view:clear_listeners(event)`
   Remove all callbacks for a view-level event.
 
 #### Context menu listeners
@@ -293,8 +312,8 @@ end, "Count words on current page")
 
 ## lektra.event
 
-Global (app-level) event subscriptions. Uses integer `EventType` constants from
-`lektra.event.EventType`.
+Global (app-level) event subscriptions. `event` arguments are an event name (`"OnPageChanged"`,
+recommended: editors infer the callback's `event` type from it) or a `lektra.event.EventType` value.
 
 ### EventType constants
 
@@ -315,22 +334,39 @@ lektra.event.EventType.OnAnnotationAdded
 lektra.event.EventType.OnAnnotationRemoved
 lektra.event.EventType.OnRegionSelectionContextMenuRequested
 lektra.event.EventType.OnTextSelectionContextMenuRequested
+lektra.event.EventType.OnTabAdded
+lektra.event.EventType.OnTabRemoved
+lektra.event.EventType.OnViewChanged
+lektra.event.EventType.OnScreenChanged
+lektra.event.EventType.OnAppShutdown
+lektra.event.EventType.OnModeChanged
+lektra.event.EventType.OnSessionLoaded
+lektra.event.EventType.OnBookmarkAdded
+lektra.event.EventType.OnFileSaved
+lektra.event.EventType.OnSynctexJumpRequested
+lektra.event.EventType.OnPresentationStarted
+lektra.event.EventType.OnPresentationEnded
 ```
 
 ### Functions
 
-- `lektra.event.register(EventType, callback) -> integer`
+- `lektra.event.register(event, callback) -> integer`
   Register a persistent callback. Returns a handle for `unregister`.
-  Callback receives the `Lektra` instance as a light userdata (rarely needed).
+  The callback receives one event table: `event.type` (the event name), `event.view`
+  (the view it came from, for view events) and the event's own fields — see
+  [Event reference](#event-reference).
 
-- `lektra.event.unregister(EventType, handle)`
+- `lektra.event.unregister(event, handle)`
   Remove a callback by the handle returned from `register`.
 
-- `lektra.event.once(EventType, callback) -> integer`
+- `lektra.event.once(event, callback) -> integer`
   Register a one-shot callback. Automatically removed after first dispatch.
 
-- `lektra.event.count(event_name: string) -> integer`
-  Number of registered callbacks for a named event (takes a string name here).
+- `lektra.event.count(event) -> integer`
+  Number of registered callbacks for an event.
+
+- `lektra.event.clear(event)`
+  Remove all registered callbacks for an event.
 
 ### Example
 
@@ -341,16 +377,13 @@ lektra.event.once(ET.OnAppReady, function()
     lektra.ui.message("Lektra is ready", 2)
 end)
 
-lektra.event.register(ET.OnPageChanged, function()
-    local v = lektra.view.current()
-    if v then
-        lektra.ui.message("Page " .. v:pageno(), 1)
-    end
+lektra.event.register(ET.OnPageChanged, function(event)
+    lektra.ui.message("Page " .. event.view:pageno(), 1)
 end)
 ```
 
-> **Note:** Per-view events registered with `view:register(...)` use **string** event names,
-> not integer `EventType` constants. The two APIs are separate.
+> **Note:** `view:register(...)` takes the same event names and `EventType` values, but only for
+> events that happen in a view, and only for callbacks on that one view.
 
 ---
 
@@ -771,42 +804,63 @@ lektra.utils.print({ key = "value", nested = { 1, 2, 3 } })
 
 ## Event reference
 
-### Global events (`lektra.event`)
+Every callback receives a single table:
 
-Use `lektra.event.EventType.<Name>` as the first argument to `register`, `unregister`, and `once`.
-
-| Name | Fired when |
+| Field | Description |
 |---|---|
-| `OnAppReady` | Application fully initialized. |
-| `OnReady` | A document view is ready. |
-| `OnFileOpen` | A file is opened in a view. |
-| `OnFileClose` | A file is closed. |
-| `OnPageChanged` | Current page changes. |
-| `OnZoomChanged` | Zoom level changes. |
-| `OnLinkClicked` | A link in the document is clicked. |
-| `OnTextSelected` | Text selection changes. |
-| `OnTabChanged` | The active tab changes. |
-| `OnSearchStarted` | A search is started. |
-| `OnSearchFinished` | A search completes. |
-| `OnSearchCancelled` | A search is cancelled. |
-| `OnAnnotationAdded` | An annotation is added. |
-| `OnAnnotationRemoved` | An annotation is removed. |
-| `OnRegionSelectionContextMenuRequested` | Region-selection context menu opens. |
-| `OnTextSelectionContextMenuRequested` | Text-selection context menu opens. |
-| `OnSynctexJumpRequested` | A SyncTeX jump from the PDF to the LaTeX source is requested (see below). |
+| `event.type` | The event name, e.g. `"OnLinkClicked"`. |
+| `event.view` | The view the event came from. Present for events that happen in a view. |
+| other fields | Depend on the event, see the table below. |
+
+```lua
+lektra.event.register("OnLinkClicked", function(event)
+    print(event.link.uri, "clicked in", event.view:file_path())
+end)
+```
+
+| Name | Fired when | Fields | `view:register` |
+|---|---|---|---|
+| `OnAppReady` | Application fully initialized. | | no |
+| `OnAppShutdown` | Application is shutting down. | | no |
+| `OnReady` | A document view is ready. | `view` | yes |
+| `OnFileOpen` | A file is opened in a view. | `view` | yes |
+| `OnFileClose` | A file is closed. | `view` | yes |
+| `OnFileSaved` | A file is saved. | `view` | yes |
+| `OnPageChanged` | Current page changes. | `view` | yes |
+| `OnZoomChanged` | Zoom level changes. | `view` | yes |
+| `OnModeChanged` | The interaction mode changes. | `view` | yes |
+| `OnLinkClicked` | A link in the document is followed. | `view`, `link` (a `PageLink`) | yes |
+| `OnTextSelected` | Text selection changes. | `view` | yes |
+| `OnSearchStarted` | A search is started. | `view` | yes |
+| `OnSearchFinished` | A search completes. | `view` | yes |
+| `OnSearchCancelled` | A search is cancelled. | `view` | yes |
+| `OnRegionSelectionContextMenuRequested` | Region-selection context menu opens. | `view` | yes |
+| `OnTextSelectionContextMenuRequested` | Text-selection context menu opens. | `view` | yes |
+| `OnViewChanged` | The active view changes. | `view` | no |
+| `OnTabChanged` | The active tab changes. | `index` | no |
+| `OnTabAdded` | A tab is added. | `index` | no |
+| `OnTabRemoved` | A tab is removed. | `index` | no |
+| `OnScreenChanged` | The window moves to another screen. | `screen` (`name`, `dpr`, `logical_dpi`, `physical_dpi`, `refresh_rate`, `geometry`) | no |
+| `OnSessionLoaded` | A session is loaded. | `name` | no |
+| `OnBookmarkAdded` | A bookmark is added. | `bookmark` | no |
+| `OnSynctexJumpRequested` | A SyncTeX jump to the LaTeX source is requested (see below). | `view`, `source_file`, `line`, `col` | no |
+| `OnPresentationStarted` | Presentation mode starts. | | no |
+| `OnPresentationEnded` | Presentation mode ends. | | no |
+
+`OnAnnotationAdded` and `OnAnnotationRemoved` exist as names but are not fired yet.
 
 ### `OnSynctexJumpRequested`
 
 Fired when the user asks to jump from a SyncTeX PDF to its LaTeX source (by default
 Shift + left click on the page; the `synctex_jump` mouse binding). The callback gets
-`(view, source_file, line, col)`:
+an event with these fields:
 
-| Argument | Description |
+| Field | Description |
 |---|---|
-| `view` | The view that was clicked. |
-| `source_file` | The source file, as SyncTeX recorded it. |
-| `line` | The line in that file. |
-| `col` | The column, or `-1` if SyncTeX does not know it. |
+| `event.view` | The view that was clicked. |
+| `event.source_file` | The source file, as SyncTeX recorded it. |
+| `event.line` | The line in that file. |
+| `event.col` | The column, or `-1` if SyncTeX does not know it. |
 
 It is fired once for each source location found, just before the editor command
 (`synctex.editor_command`) runs, which still happens. It is a global event: register it
@@ -814,26 +868,10 @@ with `lektra.event.register`, not `view:register`. Only available when Lektra is
 SyncTeX support.
 
 ```lua
-lektra.event.register("OnSynctexJumpRequested", function(view, source_file, line, col)
-    lektra.ui.message(("Jumping to %s:%d"):format(source_file, line))
+lektra.event.register("OnSynctexJumpRequested", function(event)
+    lektra.ui.message(("Jumping to %s:%d"):format(event.source_file, event.line))
 end)
 ```
-
-### Per-view events (`view:register`)
-
-These use **string names**, not `EventType` constants.
-
-| Name | Fired when |
-|---|---|
-| `"OnPageChanged"` | Page changes in this view. |
-| `"OnZoomChanged"` | Zoom changes in this view. |
-| `"OnFileOpen"` | File opens in this view. |
-| `"OnFileClose"` | File closes in this view. |
-| `"OnTextSelected"` | Text is selected in this view. |
-| `"OnLinkClicked"` | Link clicked in this view. |
-| `"OnSearchStarted"` | Search started in this view. |
-| `"OnSearchFinished"` | Search finished in this view. |
-| `"OnSearchCancelled"` | Search cancelled in this view. |
 
 ---
 
@@ -856,8 +894,8 @@ local function attach(view)
         end)
     end)
 
-    view:register("OnPageChanged", function(v)
-        lektra.ui.message("Page " .. v:pageno() .. " / " .. v:page_count(), 1)
+    view:register("OnPageChanged", function(e)
+        lektra.ui.message("Page " .. e.view:pageno() .. " / " .. e.view:page_count(), 1)
     end)
 end
 
@@ -870,7 +908,7 @@ lektra.event.register(ET.OnTabChanged, function()
     attach(lektra.view.current())
 end)
 
-lektra.event.register(ET.OnFileOpen, function()
-    attach(lektra.view.current())
+lektra.event.register(ET.OnFileOpen, function(event)
+    attach(event.view)
 end)
 ```

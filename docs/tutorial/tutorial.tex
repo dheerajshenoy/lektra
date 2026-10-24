@@ -584,8 +584,8 @@ lektra.cmd.register("copy_page_text", function()
     lektra.ui.message("Copied the text of page " .. v:pageno())
 end, "Copy the text of the current page")
 
-lektra.event.register("OnBookmarkAdded", function(b)
-    lektra.ui.message("Bookmarked page " .. b.pageno)
+lektra.event.register("OnBookmarkAdded", function(event)
+    lektra.ui.message("Bookmarked page " .. event.bookmark.pageno)
 end)
 \end{minted}
 \end{tcolorbox}
