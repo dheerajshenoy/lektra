@@ -543,16 +543,18 @@ lektra.view.list = function(tabindex) end
 ---@field x1 number
 ---@field y1 number
 
----A link on a page, as returned by `View:links()`.
+---A link on a page, as returned by `View:links()` or given to the `View:link_hints("pick", ...)` callback. A link carries everything needed to follow it, so it can be stored and passed to `View:follow_link()`, `View:preview()` or `View:open_portal()` later.
 ---@class PageLink
 ---@field page integer Page the link is on.
----@field index integer Position in the page's link list.
----@field rect PageRect Where the link is on its page.
+---@field index integer? Position in the page's link list (`View:links()` only).
+---@field rect PageRect? Where the link is on its page (`View:links()` only).
 ---@field uri string The link's address.
 ---@field type "page"|"section"|"fit_v"|"fit_h"|"location"|"external"
 ---@field target_page integer? Page an internal link goes to.
 ---@field target_x number? Position on the target page.
 ---@field target_y number? Position on the target page.
+---@field source_x number? Position of the link on its page.
+---@field source_y number? Position of the link on its page.
 
 ---A position in the document.
 ---@class PagePosition
@@ -568,8 +570,8 @@ function View:links(pageno) end
 
 ---Follows a link, as if it had been clicked (jumps, or opens an external address).
 ---@overload fun(self: View, pageno: integer, index: integer): boolean
----@param link PageLink A link from `View:links()`.
----@return boolean ok False if the link doesn't exist.
+---@param link PageLink A link from `View:links()` or `View:link_hints("pick", ...)`.
+---@return boolean ok False if the link is malformed or doesn't exist.
 function View:follow_link(link) end
 
 ---Starts link hint mode in the current tab, like the `link_hint_visit` and
@@ -579,7 +581,7 @@ function View:follow_link(link) end
 ---`lektra.async` it can be waited for:
 ---`local link = lektra.await(function(resume) view:link_hints("pick", resume) end)`
 ---@param mode? "visit"|"copy"|"pick" "visit" follows the chosen link (default); "copy" copies its address; "pick" gives the link to `callback`.
----@param callback? fun(link: PageLink?) Required for "pick". The link has the fields of `View:links()` except `index` and `rect`.
+---@param callback? fun(link: PageLink?) Required for "pick". The link is a `PageLink` without `index` and `rect`.
 ---@return boolean started False if hint mode didn't start (not the current tab, or no visible links); the callback is then not called.
 function View:link_hints(mode, callback) end
 

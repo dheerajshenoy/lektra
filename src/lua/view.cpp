@@ -17,6 +17,7 @@
 #include <QMenu>
 #include <QUrl>
 #include <cstring>
+#include <limits>
 
 namespace
 {
@@ -82,6 +83,25 @@ linkTypeName(BrowseLinkItem::LinkType t)
     return "external";
 }
 
+static bool
+linkTypeFromName(const char *name, BrowseLinkItem::LinkType *out)
+{
+    using T = BrowseLinkItem::LinkType;
+    static const std::pair<const char *, T> types[]
+        = {{"page", T::Page},         {"section", T::Section},
+           {"fit_v", T::FitV},        {"fit_h", T::FitH},
+           {"location", T::Location}, {"external", T::External}};
+    for (const auto &[n, t] : types)
+    {
+        if (strcmp(name, n) == 0)
+        {
+            *out = t;
+            return true;
+        }
+    }
+    return false;
+}
+
 // Reads a page location (1-based page, page-space x/y in points) from the
 // table at `idx`: {page=, x=, y=} or {page, x, y}.
 static bool
@@ -131,6 +151,57 @@ pushLinkInfo(lua_State *L, const Model::LinkInfo &info)
             lua_setfield(L, -2, "target_y");
         }
     }
+
+    if (!std::isnan(info.source_loc.x))
+    {
+        lua_pushnumber(L, info.source_loc.x);
+        lua_setfield(L, -2, "source_x");
+    }
+    if (!std::isnan(info.source_loc.y))
+    {
+        lua_pushnumber(L, info.source_loc.y);
+        lua_setfield(L, -2, "source_y");
+    }
+}
+
+// The inverse of pushLinkInfo plus "page": rebuilds a link from the table at
+// `idx`, so a link needs nothing but its own fields to be followed.
+static bool
+readLinkInfo(lua_State *L, int idx, Model::LinkInfo *info)
+{
+    if (!lua_istable(L, idx))
+        return false;
+    idx = lua_absindex(L, idx);
+
+    auto num = [&](const char *name, double fallback) -> double
+    {
+        lua_getfield(L, idx, name);
+        const double v = lua_isnumber(L, -1) ? lua_tonumber(L, -1) : fallback;
+        lua_pop(L, 1);
+        return v;
+    };
+    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
+
+    lua_getfield(L, idx, "type");
+    const char *type = lua_isstring(L, -1) ? lua_tostring(L, -1) : nullptr;
+    const bool known = type && linkTypeFromName(type, &info->type);
+    lua_pop(L, 1);
+    if (!known)
+        return false;
+
+    lua_getfield(L, idx, "uri");
+    info->uri = lua_isstring(L, -1) ? QString::fromUtf8(lua_tostring(L, -1))
+                                    : QString();
+    lua_pop(L, 1);
+
+    info->dest        = fz_make_link_dest_none();
+    info->source_page = static_cast<int>(num("page", 0)) - 1;
+    info->target_page = static_cast<int>(num("target_page", 0)) - 1;
+    info->target_loc  = {static_cast<float>(num("target_x", nan)),
+                         static_cast<float>(num("target_y", nan)), 0.0f};
+    info->source_loc  = {static_cast<float>(num("source_x", nan)),
+                         static_cast<float>(num("source_y", nan)), 0.0f};
+    return info->source_page >= 0;
 }
 
 static void
@@ -1525,22 +1596,24 @@ static const luaL_Reg DocumentViewMethods[] = {
                 {
                     if (!*view)
                         return 0;
-                    // A link table from view:links(), or (page, index).
-                    int pageno = 0;
-                    int index  = 0;
+                    // A link table (from view:links() or a picked link), or
+                    // (page, index).
                     if (lua_istable(L, 2))
                     {
-                        lua_getfield(L, 2, "page");
-                        pageno = static_cast<int>(lua_tointeger(L, -1)) - 1;
-                        lua_getfield(L, 2, "index");
-                        index = static_cast<int>(lua_tointeger(L, -1)) - 1;
-                        lua_pop(L, 2);
+                        Model::LinkInfo info;
+                        if (!readLinkInfo(L, 2, &info))
+                        {
+                            lua_pushboolean(L, 0);
+                            return 1;
+                        }
+                        (*view)->FollowLink(info);
+                        lua_pushboolean(L, 1);
+                        return 1;
                     }
-                    else
-                    {
-                        pageno = static_cast<int>(luaL_checkinteger(L, 2)) - 1;
-                        index  = static_cast<int>(luaL_checkinteger(L, 3)) - 1;
-                    }
+                    const int pageno
+                        = static_cast<int>(luaL_checkinteger(L, 2)) - 1;
+                    const int index
+                        = static_cast<int>(luaL_checkinteger(L, 3)) - 1;
                     const auto links = (*view)->model()->pageLinks(pageno);
                     if (index < 0 || index >= static_cast<int>(links.size()))
                     {
