@@ -660,6 +660,7 @@ Lektra::dropEvent(QDropEvent *e) noexcept
         const auto urls = mime->urls();
         const auto mods = e->modifiers();
 
+        QStringList tabFiles;
         for (const QUrl &url : urls)
         {
             if (!url.isLocalFile())
@@ -668,8 +669,13 @@ Lektra::dropEvent(QDropEvent *e) noexcept
             if (mods & Qt::ShiftModifier)
                 OpenFileInNewWindow(url.toLocalFile());
             else
-                OpenFileInNewTab(url.toLocalFile());
+                tabFiles.append(url.toLocalFile());
         }
+
+        // Goes through OpenFiles so tabs.lazy_load is honoured: only the
+        // first file is opened (and activated), the rest get lazy tabs.
+        if (!tabFiles.isEmpty())
+            OpenFiles(tabFiles);
 
         e->acceptProposedAction();
         return;
