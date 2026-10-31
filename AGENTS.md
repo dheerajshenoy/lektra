@@ -25,6 +25,10 @@ editing the `---` comments in `stubs/lua/*.lua`: re-run `gen_docs_md.py`.
 - Wait for user confirmation before executing multi-step tasks or altering core logic.
 - Explain the impact of each step on existing functionality or data.
 
+## Man Page
+
+If there are any settings that are not documented in the man page, please add them to `docs/man/lektra.1.md`
+
 ## AI
 
 - Do NOT add any info mentioning the particular model or the AI service.
