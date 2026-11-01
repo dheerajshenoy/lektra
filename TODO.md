@@ -4,6 +4,7 @@
 
 ## HIGH PRIORITY
 
+- [ ] Clickable DOI
 - [ ] Implement an MCP for lektra
 - [ ] LaTeX math rendering in comment blocks
 - [ ] Picker style choose, `minibuffer` or `floating`
