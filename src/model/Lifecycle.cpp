@@ -1252,6 +1252,8 @@ Model::_continueOpen(fz_context *ctx, fz_document *doc) noexcept
     }
     fz_catch(ctx)
     {
+        fz_drop_document(ctx, doc);
+        fz_drop_context(ctx);
         QMetaObject::invokeMethod(this, &Model::openFileFailed,
                                   Qt::QueuedConnection);
         return;
