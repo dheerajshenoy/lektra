@@ -1400,37 +1400,48 @@ Model::reloadDocument() noexcept
     // Open the fresh document BEFORE cleanup() drops the old one.
     // cleanup() calls fz_drop_document(m_ctx, m_doc) and nulls m_doc,
     // so we must have the new handle ready before that happens.
-    fz_document *new_doc = nullptr;
-    fz_try(m_ctx)
+    //
+    // Nothing with a destructor lives inside fz_try and it is never left with
+    // a return: a MuPDF error jumps straight to fz_catch, skipping destructors
+    // (a lock_guard would stay locked) and an early return would leave the
+    // try frame on MuPDF's stack.
+    fz_document *volatile new_doc = nullptr;
+    bool needsPassword            = false;
     {
-        std::lock_guard<std::mutex> lock(m_doc_mutex);
         const QByteArray filePathBytes = m_filepath.toUtf8();
         const std::string filePathStr(filePathBytes.constData(),
                                       filePathBytes.size());
-        new_doc = open_document_any(m_ctx, filePathStr.c_str());
-        if (!new_doc)
-            return false;
+        const bool canAuth = m_config.behavior.cache_password
+                             && !m_cached_password.isEmpty();
+        const std::string cachedPassword = m_cached_password.toStdString();
 
-        if (fz_needs_password(m_ctx, new_doc))
+        std::lock_guard<std::mutex> lock(m_doc_mutex);
+        fz_try(m_ctx)
         {
-            const bool canAuth = m_config.behavior.cache_password
-                                 && !m_cached_password.isEmpty();
-            const bool authed
-                = canAuth
-                  && fz_authenticate_password(
-                      m_ctx, new_doc, m_cached_password.toStdString().c_str());
-            if (!authed)
-            {
+            new_doc = open_document_any(m_ctx, filePathStr.c_str());
+            if (new_doc && fz_needs_password(m_ctx, new_doc)
+                && !(canAuth
+                     && fz_authenticate_password(m_ctx, new_doc,
+                                                 cachedPassword.c_str())))
+                needsPassword = true;
+        }
+        fz_catch(m_ctx)
+        {
+            qWarning() << "reloadDocument: failed to open:"
+                       << fz_caught_message(m_ctx);
+            if (new_doc)
                 fz_drop_document(m_ctx, new_doc);
-                emit reloadPasswordRequired();
-                return false;
-            }
+            return false;
         }
     }
-    fz_catch(m_ctx)
+
+    if (!new_doc)
+        return false;
+
+    if (needsPassword)
     {
-        qWarning() << "reloadDocument: failed to open:"
-                   << fz_caught_message(m_ctx);
+        fz_drop_document(m_ctx, new_doc);
+        emit reloadPasswordRequired();
         return false;
     }
 

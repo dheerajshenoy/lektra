@@ -296,6 +296,9 @@ Model::~Model() noexcept
     m_render_cancelled.store(true);
     waitForPendingRenders();
 
+    // A document still waiting for its password
+    clearPending();
+
     if (m_filetype == FileType::DJVU)
     {
         cleanup_djvu();
