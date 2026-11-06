@@ -91,7 +91,7 @@ DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
     updateSceneRect();
 
     // Ensure we are in valid page number
-    m_pageno = std::clamp(m_pageno, 0, m_model->numPages() - 1);
+    m_pageno = std::clamp(m_pageno, 0, std::max(0, m_model->numPages() - 1));
 
     GotoPage(m_pageno);
 }
@@ -113,7 +113,7 @@ DocumentView::setGridColumns(int columns) noexcept
     invalidateVisiblePagesCache();
     cachePageStride();
     updateSceneRect();
-    GotoPage(std::clamp(m_pageno, 0, m_model->numPages() - 1));
+    GotoPage(std::clamp(m_pageno, 0, std::max(0, m_model->numPages() - 1)));
 }
 
 // Rotate page clockwise

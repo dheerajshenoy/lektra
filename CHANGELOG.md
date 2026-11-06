@@ -17,6 +17,7 @@
 
 - Fix a long delay before the first window when a recent file is on an unreachable network mount.
 - Dropping several files onto the window now respects `tabs.lazy_load` instead of opening them all.
+- Fix a crash with a document that has no pages, such as a PDF that is still being written. It is no longer opened, and a reload keeps the current document.
 
 ## 0.8.0
 

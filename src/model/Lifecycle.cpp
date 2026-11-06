@@ -1257,6 +1257,18 @@ Model::_continueOpen(fz_context *ctx, fz_document *doc) noexcept
         return;
     }
 
+    // A document without pages (e.g. a PDF that is still being written)
+    // cannot be shown; the rest of the view assumes at least one page.
+    if (page_count <= 0)
+    {
+        fz_warn(ctx, "Document has no pages");
+        fz_drop_document(ctx, doc);
+        fz_drop_context(ctx);
+        QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                  Qt::QueuedConnection);
+        return;
+    }
+
     QMetaObject::invokeMethod(this, [this, ctx, doc, page_count, w, h]
     {
         waitForPendingRenders();
@@ -1439,6 +1451,14 @@ Model::reloadDocument() noexcept
         fz_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
+    {
+        fz_drop_document(m_ctx, new_doc);
+        return false;
+    }
+
+    // Keep the current document if the new file has no pages yet (e.g. it is
+    // still being rewritten); the next change of the file reloads it again.
+    if (page_count <= 0)
     {
         fz_drop_document(m_ctx, new_doc);
         return false;

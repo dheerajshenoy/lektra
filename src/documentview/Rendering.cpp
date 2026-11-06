@@ -139,8 +139,12 @@ DocumentView::getVisiblePages() noexcept
 
     if (m_layout_mode == LayoutMode::SINGLE)
     {
-        m_visible_pages_cache.insert(
-            std::clamp(m_pageno, 0, m_model->numPages() - 1));
+        auto numPages = m_model->numPages();
+        if (numPages <= 0)
+            return m_visible_pages_cache;
+
+        m_visible_pages_cache.insert(std::clamp(m_pageno, 0, numPages - 1));
+
         m_visible_pages_dirty = false;
         return m_visible_pages_cache;
     }
@@ -209,7 +213,10 @@ DocumentView::getVisiblePages() noexcept
         // starts below its bottom.
         const int C    = m_grid_columns;
         const int rows = (N + C - 1) / C;
-        auto rowEnd    = [&](int r) { return m_page_offsets[std::min((r + 1) * C, N)]; };
+        auto rowEnd    = [&](int r)
+        {
+            return m_page_offsets[std::min((r + 1) * C, N)];
+        };
 
         int lo = 0, hi = rows;
         while (lo < hi)
@@ -671,15 +678,14 @@ DocumentView::startNextRenderJob() noexcept
         const PageRenderKey dispatchKey = currentPageRenderKey();
 
         QPointer<DocumentView> self(this);
-        m_model->requestPageRender(
-            job,
-            [self, pageno, dispatchZoom, dispatchKey,
-             cancelToken](Model::PageRenderResult result)
+        m_model->requestPageRender(job,
+                                   [self, pageno, dispatchZoom, dispatchKey,
+                                    cancelToken](Model::PageRenderResult result)
         {
             if (!self)
                 return;
 
-            DocumentView *view = self.data();
+            DocumentView *view   = self.data();
             const double cbStart = rtrace::enabled() ? rtrace::nowMs() : 0.0;
 
             --view->m_render_slots_used;
@@ -819,7 +825,7 @@ DocumentView::startNextRenderJob() noexcept
             view->traceRenderResult(pageno, "applied", cbStart, result);
             view->startNextRenderJob();
         },
-            cancelToken);
+                                   cancelToken);
     }
 }
 
@@ -856,8 +862,7 @@ void
 DocumentView::prunePendingRenders(const PageList &visiblePages) noexcept
 {
     for (auto it = m_pending_renders.begin(); it != m_pending_renders.end();)
-        it = inPageList(visiblePages, *it) ? ++it
-                                           : m_pending_renders.erase(it);
+        it = inPageList(visiblePages, *it) ? ++it : m_pending_renders.erase(it);
 
     for (auto it = m_inflight_renders.begin(); it != m_inflight_renders.end();)
     {
@@ -1063,7 +1068,10 @@ DocumentView::getPreloadPages(const std::set<int> &visiblePages) noexcept
     if (visiblePages.empty())
         return {};
 
-    const int numPages     = m_model->numPages();
+    const int numPages = m_model->numPages();
+    if (numPages <= 0)
+        return {};
+
     const int firstVisible = *visiblePages.begin();
     const int lastVisible  = *visiblePages.rbegin();
 
@@ -1375,11 +1383,18 @@ DocumentView::clearVisibleAnnotations() noexcept
 int
 DocumentView::pageAtAxisCoord(double coord) const noexcept
 {
+
     const auto it = std::upper_bound(m_page_offsets.cbegin(),
                                      m_page_offsets.cend(), coord);
     const int candidate
         = static_cast<int>(std::distance(m_page_offsets.cbegin(), it) - 1);
-    const int page = std::clamp(candidate, 0, m_model->numPages() - 1);
+
+    const int numPages = m_model->numPages();
+    if (numPages <= 0)
+        return 0;
+
+    const int page = std::clamp(candidate, 0, numPages - 1);
+
     // The pages of a row share an offset, so the search lands on the last
     // one; the row is represented by its first.
     return m_layout_mode == LayoutMode::GRID ? gridRowStart(page) : page;
@@ -1515,7 +1530,8 @@ DocumentView::requestPageRender(int pageno, bool force, bool visible) noexcept
     // backdrop) until the button is released.
     if (m_minimap_dragging && !force)
     {
-        const GraphicsImageItem *item = m_page_items_hash.value(pageno, nullptr);
+        const GraphicsImageItem *item
+            = m_page_items_hash.value(pageno, nullptr);
         if (item && !item->isNull() && !m_placeholder_pages.contains(pageno))
             return;
     }
@@ -1679,8 +1695,7 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
 
 // Puts a page item where the current layout wants it.
 void
-DocumentView::positionPageItem(GraphicsImageItem *pageItem,
-                               int pageno) noexcept
+DocumentView::positionPageItem(GraphicsImageItem *pageItem, int pageno) noexcept
 {
     // Logical scene size of the rendered image.
     const QSizeF logicalSize = pageSceneSize(pageno);
@@ -1913,8 +1928,7 @@ DocumentView::gridRowStart(int pageno) const noexcept
 int
 DocumentView::gridRowEnd(int pageno) const noexcept
 {
-    return std::min(gridRowStart(pageno) + m_grid_columns,
-                    m_model->numPages());
+    return std::min(gridRowStart(pageno) + m_grid_columns, m_model->numPages());
 }
 
 // Helper: stride (extent + spacing) of a specific page
@@ -1936,8 +1950,8 @@ DocumentView::pageStride(int pageno) const noexcept
     if (m_layout_mode == LayoutMode::GRID)
     {
         // The next row starts after the last page of this one.
-        const int nextIdx = std::min(gridRowEnd(pageno),
-                                     static_cast<int>(m_page_offsets.size()) - 1);
+        const int nextIdx = std::min(
+            gridRowEnd(pageno), static_cast<int>(m_page_offsets.size()) - 1);
         return m_page_offsets[nextIdx] - m_page_offsets[pageno];
     }
 
