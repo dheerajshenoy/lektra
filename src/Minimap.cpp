@@ -17,13 +17,17 @@ Minimap::Minimap(const Config &config, QWidget *parent)
 }
 
 void
-Minimap::rebuildThumbnail(const GraphicsImageItem *page,
-                          const QImage &whole) noexcept
+Minimap::rebuildThumbnail(const GraphicsImageItem *page, const QImage &whole,
+                          const QSizeF &pageSize) noexcept
 {
     const bool use_whole = !whole.isNull();
     const QImage &src    = use_whole ? whole : page->image();
     const bool partial   = !use_whole && page->isPartial();
-    const QRectF page_rect = page->boundingRect();
+    // A partial page is drawn by its own coordinates; any other takes the
+    // proportions of the real page.
+    const QRectF page_rect = !page->isPartial() && !pageSize.isEmpty()
+                                 ? QRectF(QPointF(0, 0), pageSize)
+                                 : page->boundingRect();
     const int longest      = qMax(32, m_config.minimap.size);
     const qreal scale
         = longest / qMax(page_rect.width(), page_rect.height());
@@ -85,7 +89,7 @@ Minimap::optionsKey() const noexcept
 void
 Minimap::setPage(const GraphicsImageItem *page, int pageno,
                  const QRectF &visible, const QImage &whole,
-                 qint64 refreshKey) noexcept
+                 qint64 refreshKey, const QSizeF &pageSize) noexcept
 {
     const qint64 image_key = whole.isNull() ? refreshKey : whole.cacheKey();
     if (pageno != m_page_key || image_key != m_image_key
@@ -94,7 +98,7 @@ Minimap::setPage(const GraphicsImageItem *page, int pageno,
         m_page_key  = pageno;
         m_image_key = image_key;
         m_size_key  = optionsKey();
-        rebuildThumbnail(page, whole);
+        rebuildThumbnail(page, whole, pageSize);
         reposition();
     }
     m_visible = visible;

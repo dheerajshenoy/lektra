@@ -25,9 +25,12 @@ public:
     // The thumbnail is built once per (`pageno`, `whole`, `refreshKey`, size)
     // and otherwise left alone; `refreshKey` changes when `page`'s pixels
     // should be taken again (an animation frame).
+    // `pageSize` (optional) is the size of the page on the scene, for its
+    // proportions: a page that is not rendered yet is a 1x1 placeholder whose
+    // own bounds would make the thumbnail square.
     void setPage(const GraphicsImageItem *page, int pageno,
                  const QRectF &visible, const QImage &whole = {},
-                 qint64 refreshKey = 0) noexcept;
+                 qint64 refreshKey = 0, const QSizeF &pageSize = {}) noexcept;
 
     // Move the marker only; the thumbnail is left as it is.
     void setVisibleRect(const QRectF &visible) noexcept;
@@ -50,8 +53,8 @@ protected:
 
 private:
     int optionsKey() const noexcept;
-    void rebuildThumbnail(const GraphicsImageItem *page,
-                          const QImage &whole) noexcept;
+    void rebuildThumbnail(const GraphicsImageItem *page, const QImage &whole,
+                          const QSizeF &pageSize) noexcept;
     void requestMove(const QPoint &pos) noexcept;
 
     const Config &m_config;

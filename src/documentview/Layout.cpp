@@ -1464,7 +1464,8 @@ DocumentView::updateMinimap() noexcept
                        whole,
                        m_config.minimap.animated && m_model->isAnimated()
                            ? pageItem->image().cacheKey()
-                           : 0);
+                           : 0,
+                       pageSceneSize(pageIndex));
     m_minimap->reposition();
     m_minimap->show();
     m_minimap->raise();
