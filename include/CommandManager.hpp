@@ -21,12 +21,12 @@ public:
     using Commands = std::unordered_map<
         QString, std::pair<QString, std::function<void(const QStringList &)>>>;
 
-    inline void unreg(const QString &name) noexcept
+    void unreg(const QString &name) noexcept
     {
         m_commands.erase(name);
     }
 
-    inline void
+    void
     reg(const QString &name, const QString &description,
         std::function<void(const QStringList &args)> action) noexcept
     {
@@ -49,7 +49,7 @@ public:
 
     // Runs the command that was run most recently again, with the same
     // arguments. Returns false if nothing has been run yet.
-    inline bool runLast() const noexcept
+    bool runLast() const noexcept
     {
         if (m_last_name.isEmpty())
             return false;
@@ -59,7 +59,7 @@ public:
         return execute(name, args);
     }
 
-    inline bool execute(const QString &name,
+    bool execute(const QString &name,
                         const QStringList &args = {}) const noexcept
     {
         auto it = m_commands.find(name);
@@ -72,7 +72,7 @@ public:
         return false;
     }
 
-    inline const std::vector<Command> &const_commands() const noexcept
+    const std::vector<Command> &const_commands() const noexcept
     {
         static std::vector<Command> cmds;
         cmds.clear();
@@ -81,7 +81,7 @@ public:
         return cmds;
     }
 
-    inline const std::vector<Command> commands() const noexcept
+    const std::vector<Command> commands() const noexcept
     {
         std::vector<Command> cmds;
         for (const auto &[name, pair] : m_commands)
@@ -89,7 +89,7 @@ public:
         return cmds;
     }
 
-    inline const QStringList commandNames() const noexcept
+    const QStringList commandNames() const noexcept
     {
         QStringList names;
         for (const auto &[name, _] : m_commands)
@@ -97,12 +97,12 @@ public:
         return names;
     }
 
-    inline bool hasCommand(const QString &name) const noexcept
+    bool hasCommand(const QString &name) const noexcept
     {
         return m_commands.find(name) != m_commands.end();
     }
 
-    inline const Command find(const QString &name) const noexcept
+    const Command find(const QString &name) const noexcept
     {
         auto it = m_commands.find(name);
         if (it != m_commands.end())
@@ -110,7 +110,7 @@ public:
         return Command{};
     }
 
-    inline void alias(const QString &existingName,
+    void alias(const QString &existingName,
                       const QString &aliasName) noexcept
     {
         auto it = m_commands.find(existingName);
@@ -124,12 +124,12 @@ public:
     // (CommandPicker::onItemAccepted) — not every invocation regardless of
     // source — so the ranking reflects what you look up via the palette,
     // not commands you already have a keybinding for.
-    inline void recordUsage(const QString &name) noexcept
+    void recordUsage(const QString &name) noexcept
     {
         ++m_usage_counts[name];
     }
 
-    inline int usageCount(const QString &name) const noexcept
+    int usageCount(const QString &name) const noexcept
     {
         auto it = m_usage_counts.find(name);
         return it != m_usage_counts.end() ? it->second : 0;
@@ -139,7 +139,7 @@ public:
     // Load failures (missing file, bad JSON) are silently treated as "no
     // history yet" — there is nothing to recover, every count just starts
     // at 0.
-    inline void loadUsageCounts(const QString &path) noexcept
+    void loadUsageCounts(const QString &path) noexcept
     {
         QFile file(path);
         if (!file.open(QIODevice::ReadOnly))
@@ -152,7 +152,7 @@ public:
             m_usage_counts[it.key()] = it.value().toInt();
     }
 
-    inline void saveUsageCounts(const QString &path) const noexcept
+    void saveUsageCounts(const QString &path) const noexcept
     {
         QJsonObject obj;
         for (const auto &[name, count] : m_usage_counts)

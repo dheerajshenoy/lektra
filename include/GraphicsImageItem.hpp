@@ -80,7 +80,7 @@ public:
             update();
     }
 
-    [[nodiscard]] inline bool isPartial() const noexcept
+    [[nodiscard]] bool isPartial() const noexcept
     {
         return m_full_px.isValid();
     }
@@ -115,24 +115,24 @@ public:
     }
 
     // API compatibility with QGraphicsPixmapItem
-    [[nodiscard]] inline const QImage &image() const noexcept
+    [[nodiscard]] const QImage &image() const noexcept
     {
         return m_image;
     }
 
-    [[nodiscard]] inline bool isNull() const noexcept
+    [[nodiscard]] bool isNull() const noexcept
     {
         return m_image.isNull();
     }
 
-    [[nodiscard]] inline qreal devicePixelRatio() const noexcept
+    [[nodiscard]] qreal devicePixelRatio() const noexcept
     {
         return m_image.isNull() ? 1.0 : m_image.devicePixelRatioF();
     }
 
     // Returns pixel width (not logical width) of the whole page, even if only
     // part of it is resident.
-    [[nodiscard]] inline int width() const noexcept
+    [[nodiscard]] int width() const noexcept
     {
         return m_image.isNull()
                    ? 0
@@ -140,7 +140,7 @@ public:
     }
 
     // Returns pixel height (not logical height) of the whole page.
-    [[nodiscard]] inline int height() const noexcept
+    [[nodiscard]] int height() const noexcept
     {
         return m_image.isNull()
                    ? 0

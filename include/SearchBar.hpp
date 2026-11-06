@@ -19,23 +19,23 @@ public:
     void clearSearch() noexcept;
     void search(const QString &term) noexcept;
 
-    inline void setRegexMode(bool state) noexcept
+    void setRegexMode(bool state) noexcept
     {
         m_regexButton->setChecked(state);
     }
 
-    inline bool regexMode() const noexcept
+    bool regexMode() const noexcept
     {
         return m_regexButton->isChecked();
     }
 
-    inline void focusSearchInput() noexcept
+    void focusSearchInput() noexcept
     {
         m_searchInput->setFocus();
         m_searchInput->selectAll();
     }
 
-    inline void showSpinner(bool state) noexcept
+    void showSpinner(bool state) noexcept
     {
         if (state)
         {
@@ -49,12 +49,12 @@ public:
         }
     }
 
-    inline void setHistory(const std::vector<QString> &history) noexcept
+    void setHistory(const std::vector<QString> &history) noexcept
     {
         m_history = history;
     }
 
-    inline const std::vector<QString> &history() const noexcept
+    const std::vector<QString> &history() const noexcept
     {
         return m_history;
     }

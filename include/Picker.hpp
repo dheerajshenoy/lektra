@@ -263,32 +263,32 @@ public:
         Hierarchical,
     };
 
-    inline StructureMode structureMode() const noexcept
+    StructureMode structureMode() const noexcept
     {
         return m_structureMode;
     }
 
-    inline void setSearchModes(PickerFilterProxy::SearchModes modes) noexcept
+    void setSearchModes(PickerFilterProxy::SearchModes modes) noexcept
     {
         m_proxy->setSearchModes(modes);
     }
 
-    inline PickerFilterProxy::SearchModes searchModes() const noexcept
+    PickerFilterProxy::SearchModes searchModes() const noexcept
     {
         return m_proxy->searchModes();
     }
 
-    inline void setKeybindings(const Keybindings &keys) noexcept
+    void setKeybindings(const Keybindings &keys) noexcept
     {
         m_keys = keys;
     }
 
-    inline const Keybindings &keybindings() const noexcept
+    const Keybindings &keybindings() const noexcept
     {
         return m_keys;
     }
 
-    inline void setColumns(const QList<Column> &columns) noexcept
+    void setColumns(const QList<Column> &columns) noexcept
     {
         m_columns = columns;
     }
@@ -301,18 +301,18 @@ public:
         return Qt::CaseInsensitive;
     }
 
-    inline void setScrollbarEnabled(bool enabled) noexcept
+    void setScrollbarEnabled(bool enabled) noexcept
     {
         m_listView->setVerticalScrollBarPolicy(
             enabled ? Qt::ScrollBarAsNeeded : Qt::ScrollBarAlwaysOff);
     }
 
-    inline void setAlternatingRowColors(bool enabled) noexcept
+    void setAlternatingRowColors(bool enabled) noexcept
     {
         m_listView->setAlternatingRowColors(enabled);
     }
 
-    inline QVector<QString> history() const noexcept
+    QVector<QString> history() const noexcept
     {
         return m_history;
     }

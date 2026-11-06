@@ -11,12 +11,12 @@ public:
 
     LRUCache() {}
 
-    inline void setCapacity(const size_t capacity)
+    void setCapacity(const size_t capacity)
     {
         m_capacity = capacity;
     }
 
-    inline void setCallback(EvictCallback onEvict)
+    void setCallback(EvictCallback onEvict)
     {
         m_onEvict = onEvict;
     }
@@ -39,7 +39,7 @@ public:
         return &(it->second.first);
     }
 
-    inline bool has(const K &key) const
+    bool has(const K &key) const
     {
         return m_map.find(key) != m_map.end();
     }
@@ -62,7 +62,7 @@ public:
         m_map[key] = {std::move(value), m_list.begin()};
     }
 
-    inline size_t size() const
+    size_t size() const
     {
         return m_list.size();
     }

@@ -11,12 +11,12 @@ public:
     void removeBookmark(Bookmark::BookmarkId id);
     QString getBookmark(Bookmark::BookmarkId id) const;
 
-    inline std::vector<Bookmark> bookmarks() const
+    std::vector<Bookmark> bookmarks() const
     {
         return m_bookmarks;
     }
 
-    inline void setBookmarks(const std::vector<Bookmark> &bookmarks)
+    void setBookmarks(const std::vector<Bookmark> &bookmarks)
     {
         m_bookmarks = bookmarks;
     }

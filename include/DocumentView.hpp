@@ -104,7 +104,7 @@ public:
 
     ~DocumentView() noexcept;
 
-    inline Id id() const noexcept
+    Id id() const noexcept
     {
         return m_id;
     }
@@ -136,17 +136,17 @@ public:
     // This view's local options: a copy of the global config taken when the
     // view is created, so changing it only affects this view. Model,
     // GraphicsView and the annotation items read from it too.
-    inline const Config &config() const noexcept
+    const Config &config() const noexcept
     {
         return m_config;
     }
 
-    inline Config &localConfig() noexcept
+    Config &localConfig() noexcept
     {
         return m_config;
     }
 
-    inline const Config &globalConfig() const noexcept
+    const Config &globalConfig() const noexcept
     {
         return m_global;
     }
@@ -164,149 +164,149 @@ public:
 
     // Pages per row of the grid layout; re-lays the pages out if it is shown.
     void setGridColumns(int columns) noexcept;
-    inline int gridColumns() const noexcept
+    int gridColumns() const noexcept
     {
         return m_grid_columns;
     }
 
-    inline void setSpacing(int spacing) noexcept
+    void setSpacing(int spacing) noexcept
     {
         m_spacing = spacing;
     }
 
-    inline int spacing() const noexcept
+    int spacing() const noexcept
     {
         return m_spacing;
     }
 
-    inline Model *model() const noexcept
+    Model *model() const noexcept
     {
         return m_model;
     }
 
-    inline GraphicsView *graphicsView() const noexcept
+    GraphicsView *graphicsView() const noexcept
     {
         return m_gview;
     }
 
-    inline GraphicsScene *graphicsScene() const noexcept
+    GraphicsScene *graphicsScene() const noexcept
     {
         return m_gscene;
     }
 
-    inline float rotation() const noexcept
+    float rotation() const noexcept
     {
         return m_model->rotation();
     }
-    inline FitMode fitMode() const noexcept
+    FitMode fitMode() const noexcept
     {
         return m_fit_mode;
     }
 
-    inline GraphicsView::Mode selectionMode() const noexcept
+    GraphicsView::Mode selectionMode() const noexcept
     {
         return m_gview->mode();
     }
 
-    inline int pageNo() const noexcept
+    int pageNo() const noexcept
     {
         return m_pageno;
     }
 
-    inline int numPages() const noexcept
+    int numPages() const noexcept
     {
         return m_model->numPages();
     }
 
-    inline Model::FileType fileType() const noexcept
+    Model::FileType fileType() const noexcept
     {
         return m_model->m_filetype;
     }
 
-    inline QString fileName() const noexcept
+    QString fileName() const noexcept
     {
         return QFileInfo(m_model->filePath()).fileName();
     }
 
-    inline const QString &filePath() const noexcept
+    const QString &filePath() const noexcept
     {
         return m_model->filePath();
     }
 
-    inline float dpr() const noexcept
+    float dpr() const noexcept
     {
         return m_model->DPR();
     }
 
-    inline bool invertColor() const noexcept
+    bool invertColor() const noexcept
     {
         return m_model->invertColor();
     }
 
-    inline bool fileOpenedSuccessfully() const noexcept
+    bool fileOpenedSuccessfully() const noexcept
     {
         return m_model->success();
     }
 
-    inline bool autoReload() const noexcept
+    bool autoReload() const noexcept
     {
         return m_auto_reload;
     }
 
-    inline void setAutoResize(bool state) noexcept
+    void setAutoResize(bool state) noexcept
     {
         m_auto_resize = state;
     }
 
-    inline bool autoResize() const noexcept
+    bool autoResize() const noexcept
     {
         return m_auto_resize;
     }
 
-    inline void Undo() noexcept
+    void Undo() noexcept
     {
         if (m_model && m_model->undoStack()->canUndo())
             m_model->undoStack()->undo();
     }
 
-    inline void Redo() noexcept
+    void Redo() noexcept
     {
         if (m_model && m_model->undoStack()->canRedo())
             m_model->undoStack()->redo();
     }
 
-    inline double zoom() noexcept
+    double zoom() noexcept
     {
         return m_current_zoom;
     }
 
-    inline bool isModified() const noexcept
+    bool isModified() const noexcept
     {
         return m_is_modified;
     }
 
-    inline bool canGoBack() const noexcept
+    bool canGoBack() const noexcept
     {
         return m_loc_history_index > 0;
     }
 
-    inline bool canGoForward() const noexcept
+    bool canGoForward() const noexcept
     {
         return m_loc_history_index >= 0
                && m_loc_history_index + 1 < (int)m_loc_history.size();
     }
 
-    inline LayoutMode layoutMode() const noexcept
+    LayoutMode layoutMode() const noexcept
     {
         return m_layout_mode;
     }
 
-    inline void setContainer(DocumentContainer *container) noexcept
+    void setContainer(DocumentContainer *container) noexcept
     {
         m_container = container;
     }
 
-    inline DocumentContainer *container() const noexcept
+    DocumentContainer *container() const noexcept
     {
         return m_container;
     }
@@ -317,22 +317,22 @@ public:
     bool detachToWindow() noexcept;
     bool detachToTab() noexcept;
 
-    inline void set_source(DocumentView *source) noexcept
+    void set_source(DocumentView *source) noexcept
     {
         m_source_view = source;
     }
 
-    inline DocumentView *source() const noexcept
+    DocumentView *source() const noexcept
     {
         return m_source_view;
     }
 
-    inline void clear_source() noexcept
+    void clear_source() noexcept
     {
         m_source_view = nullptr;
     }
 
-    inline bool is_portal() const noexcept
+    bool is_portal() const noexcept
     {
         return m_source_view != nullptr;
     }
@@ -340,77 +340,77 @@ public:
     // When set, this view is never recorded in the recent-files history
     // (checked alongside is_portal() everywhere a tab close/window close
     // would otherwise call insertFileToDB()).
-    inline void setNoHistory(bool state) noexcept
+    void setNoHistory(bool state) noexcept
     {
         m_no_history = state;
     }
 
-    inline bool noHistory() const noexcept
+    bool noHistory() const noexcept
     {
         return m_no_history;
     }
 
-    inline DocumentView *portal() const noexcept
+    DocumentView *portal() const noexcept
     {
         return m_portal_view;
     }
 
-    inline void setActive(bool state) noexcept
+    void setActive(bool state) noexcept
     {
         m_gview->setActive(state);
         m_gview->update();
         updateMinimap();
     }
 
-    inline bool isActive() const noexcept
+    bool isActive() const noexcept
     {
         return m_gview->isActive();
     }
 
-    inline void setSplitMaximized(bool state) noexcept
+    void setSplitMaximized(bool state) noexcept
     {
         m_gview->setSplitMaximized(state);
         m_gview->update();
     }
 
-    inline bool isSplitMaximized() const noexcept
+    bool isSplitMaximized() const noexcept
     {
         return m_gview->isSplitMaximized();
     }
 
-    inline bool visual_line_mode() const noexcept
+    bool visual_line_mode() const noexcept
     {
         return m_visual_line_mode;
     }
 
-    inline bool caretMode() const noexcept
+    bool caretMode() const noexcept
     {
         return m_caret_mode;
     }
 
-    inline bool isThumbnailView() const noexcept
+    bool isThumbnailView() const noexcept
     {
         return m_thumbnail_mode;
     }
 
-    inline void reloadFile() noexcept
+    void reloadFile() noexcept
     {
         tryReloadLater(0);
     }
 
-    inline bool hasTextSelection() const noexcept
+    bool hasTextSelection() const noexcept
     {
         return (!m_selection_start.isNull() && m_selection_start_page >= 0
                 && m_selection_end_page >= 0);
     }
 
-    inline QString extractText(bool formatted) const noexcept
+    QString extractText(bool formatted) const noexcept
     {
         return pageText(m_pageno, formatted);
     }
 
     // The text of any page (0-based), "" if it has none.
-    inline QString pageText(int pageno, bool formatted) const noexcept
+    QString pageText(int pageno, bool formatted) const noexcept
     {
         return QString::fromStdString(
             m_model->getTextInPage(pageno, formatted));
@@ -424,14 +424,14 @@ public:
         bool is_once = false;
     };
 
-    inline void addEventListener(DispatchType type, int handle, bool is_once,
+    void addEventListener(DispatchType type, int handle, bool is_once,
                                  CallbackFn callback) noexcept
     {
         m_lua_event_dispatcher[type].push_back(
             {.ref = handle, .invoker = callback, .is_once = is_once});
     }
 
-    inline void clearEventListeners(DispatchType type) noexcept
+    void clearEventListeners(DispatchType type) noexcept
     {
         m_lua_event_dispatcher[type].clear();
     }
@@ -451,7 +451,7 @@ public:
         bool is_once = false;
     };
 
-    inline void addContextMenuListener(ContextMenuType type, int handle,
+    void addContextMenuListener(ContextMenuType type, int handle,
                                        bool is_once,
                                        MenuCallbackFn callback) noexcept
     {
@@ -459,7 +459,7 @@ public:
             {.ref = handle, .invoker = callback, .is_once = is_once});
     }
 
-    inline void clearContextMenuListeners(ContextMenuType type) noexcept
+    void clearContextMenuListeners(ContextMenuType type) noexcept
     {
         m_lua_context_menu_dispatcher[type].clear();
     }
@@ -484,11 +484,11 @@ public:
 
     // The jump locations of this view (what GoBackHistory and GoForwardHistory
     // walk through), and the index of the current one (-1: none).
-    inline const std::vector<PageLocation> &locationHistory() const noexcept
+    const std::vector<PageLocation> &locationHistory() const noexcept
     {
         return m_loc_history;
     }
-    inline int locationHistoryIndex() const noexcept
+    int locationHistoryIndex() const noexcept
     {
         return m_loc_history_index;
     }
@@ -505,7 +505,7 @@ public:
     void setPortal(DocumentView *portal) noexcept;
     void clearPortal() noexcept;
     // Drops the portal pointer without touching the portal (it is gone).
-    inline void forgetPortal() noexcept
+    void forgetPortal() noexcept
     {
         m_portal_view = nullptr;
     }
@@ -548,7 +548,7 @@ public:
     // Linewise (vim V): the selection is always whole lines.
     void caretToggleVisualLine() noexcept;
     void caretExitVisual() noexcept;
-    inline bool caretVisual() const noexcept
+    bool caretVisual() const noexcept
     {
         return m_caret_visual;
     }
@@ -560,7 +560,7 @@ public:
     // Page to jump to once the file's first layout and render are done (see
     // handleOpenFileFinished()). GotoPage() can't be used earlier: on large
     // documents the page offsets it depends on are not cached yet.
-    inline void setPendingPage(int pageno) noexcept
+    void setPendingPage(int pageno) noexcept
     {
         m_pending_page = pageno;
     }
@@ -612,7 +612,7 @@ public:
     void Search(const QString &term, bool useRegex) noexcept;
     void SearchInPage(int pageno, const QString &term) noexcept;
     void SearchCancel() noexcept;
-    inline void setSearchScope(SearchScope scope) noexcept
+    void setSearchScope(SearchScope scope) noexcept
     {
         m_search_scope = scope;
     }
@@ -705,7 +705,7 @@ public:
     // Model::contentBBox), hiding blank margins entirely rather than just
     // fitting zoom to the content region like the *Smart fit modes do.
     void ToggleTrimMargins() noexcept;
-    inline bool isTrimMargins() const noexcept
+    bool isTrimMargins() const noexcept
     {
         return m_trim_margins;
     }
@@ -739,7 +739,7 @@ public:
     // Starts region selection; once the user drags out a rect, zooms to it
     // via ZoomToRegion().
     void ZoomToSelection() noexcept;
-    inline bool isNarrowed() const noexcept
+    bool isNarrowed() const noexcept
     {
         return m_is_narrow;
     }
@@ -872,7 +872,7 @@ private:
     };
 
     // Total scene-axis extent across all pages
-    inline double totalPageExtent() const noexcept
+    double totalPageExtent() const noexcept
     {
         return m_page_offsets.empty() ? 0.0 : m_page_offsets.back();
     }

@@ -87,7 +87,7 @@ public:
     // Refreshes a tab's split count after its splits changed.
     void syncTabSplits(DocumentContainer *container) noexcept;
 
-    inline DocumentView *currentDocument() const noexcept
+    DocumentView *currentDocument() const noexcept
     {
         return m_doc;
     }
@@ -99,12 +99,12 @@ public:
     bool setMarkFor(DocumentView *view, const QString &key) noexcept;
     bool gotoMarkIn(DocumentView *view, const QString &key) noexcept;
 
-    inline Statusbar *statusbar() const noexcept
+    Statusbar *statusbar() const noexcept
     {
         return m_statusbar;
     }
 
-    inline CommandManager *commandManager() noexcept
+    CommandManager *commandManager() noexcept
     {
         return m_command_manager.get();
     }
@@ -114,7 +114,7 @@ public:
     // m_doc — mirrors the DocumentView::dispatchLuaEvent per-view path.
     void dispatchLuaEvent(DispatchType type, void *arg = nullptr) noexcept;
 
-    inline void showMessage(const QString &message,
+    void showMessage(const QString &message,
                             float duration = 2.0f) noexcept
     {
         m_message_bar->showMessage(message, duration);
@@ -366,7 +366,7 @@ public:
     void SplitsToWindows() noexcept;
     void SplitsToTabs() noexcept;
     void ToggleLaserPointerCursor() noexcept;
-    inline Picker::Keybindings &pickerKeybindings() noexcept
+    Picker::Keybindings &pickerKeybindings() noexcept
     {
         return m_picker_keybinds;
     }
@@ -392,12 +392,12 @@ private:
         Pick
     };
 
-    inline bool validTabIndex(int index) const noexcept
+    bool validTabIndex(int index) const noexcept
     {
         return m_tab_widget && index >= 0 && index < m_tab_widget->count();
     }
 
-    inline void ToggleSearchBar() noexcept
+    void ToggleSearchBar() noexcept
     {
         m_search_bar->setVisible(!m_search_bar->isVisible());
         if (m_search_bar->isVisible())
@@ -799,14 +799,14 @@ private:
         m_lua_event_dispatcher;
 
     #ifdef WITH_LUA
-    inline void addEventListener(DispatchType type, int handle, bool is_once,
+    void addEventListener(DispatchType type, int handle, bool is_once,
                                  CallbackFn callback) noexcept
     {
         m_lua_event_dispatcher[type].push_back(
             {.ref = handle, .invoker = callback, .is_once = is_once});
     }
 
-    inline void removeEventListeners(DispatchType type) noexcept
+    void removeEventListeners(DispatchType type) noexcept
     {
         m_lua_event_dispatcher[type].clear();
     }

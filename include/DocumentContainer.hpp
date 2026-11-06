@@ -46,29 +46,29 @@ public:
         Right
     };
 
-    inline DocumentView *view() const noexcept
+    DocumentView *view() const noexcept
     {
         return m_current_view;
     }
 
-    inline void toggleThumbnailView() noexcept
+    void toggleThumbnailView() noexcept
     {
         if (m_thumbnail_view)
             m_thumbnail_view->setVisible(!m_thumbnail_view->isVisible());
     }
 
-    inline ThumbnailView *thumbnailView() const noexcept
+    ThumbnailView *thumbnailView() const noexcept
     {
         return m_thumbnail_view;
     }
 
-    inline void focusThumbnailView() noexcept
+    void focusThumbnailView() noexcept
     {
         if (m_thumbnail_view)
             m_thumbnail_view->setFocus();
     }
 
-    inline bool isMaximized() const noexcept
+    bool isMaximized() const noexcept
     {
         return m_maximized;
     }

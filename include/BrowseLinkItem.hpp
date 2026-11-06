@@ -48,61 +48,61 @@ public:
         setCursor(Qt::PointingHandCursor);
     }
 
-    inline void setGotoPageNo(int pageno) noexcept
+    void setGotoPageNo(int pageno) noexcept
     {
         _pageno = pageno;
     }
 
-    inline const int &gotoPageNo() const noexcept
+    const int &gotoPageNo() const noexcept
     {
         return _pageno;
     }
 
-    inline void setTargetLocation(const PageLocation &loc) noexcept
+    void setTargetLocation(const PageLocation &loc) noexcept
     {
         _loc = loc;
     }
 
-    inline const PageLocation &location() const noexcept
+    const PageLocation &location() const noexcept
     {
         return _loc;
     }
 
-    inline void setSourceLocation(const PageLocation &loc) noexcept
+    void setSourceLocation(const PageLocation &loc) noexcept
     {
         _source_loc = loc;
     }
 
-    inline const PageLocation &sourceLocation() const noexcept
+    const PageLocation &sourceLocation() const noexcept
     {
         return _source_loc;
     }
 
-    inline void setURI(const QString &uri) noexcept
+    void setURI(const QString &uri) noexcept
     {
         _uri = uri;
     }
 
-    inline const QString &URI() const noexcept
+    const QString &URI() const noexcept
     {
         return _uri;
     }
 
-    inline void setLinkType(LinkType type) noexcept
+    void setLinkType(LinkType type) noexcept
     {
         _type = type;
     }
 
-    inline bool isInternal() const noexcept
+    bool isInternal() const noexcept
     {
         return _type != LinkType::External;
     }
 
-    inline const LinkType &linkType() const noexcept
+    const LinkType &linkType() const noexcept
     {
         return _type;
     }
-    inline const QString &link() const noexcept
+    const QString &link() const noexcept
     {
         return _link;
     }

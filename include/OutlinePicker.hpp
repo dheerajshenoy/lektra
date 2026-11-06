@@ -35,7 +35,7 @@ public:
         return !m_entries.empty();
     }
 
-    inline void setCurrentPage(int page) noexcept
+    void setCurrentPage(int page) noexcept
     {
         m_current_page = page;
     }

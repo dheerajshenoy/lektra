@@ -14,7 +14,7 @@ public:
                          const QColor &initial_color = QColor(),
                          QWidget *parent             = nullptr);
 
-    inline const QColor &selectedColor() const
+    const QColor &selectedColor() const
     {
         return m_selected_color;
     }

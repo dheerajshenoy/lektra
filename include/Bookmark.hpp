@@ -13,22 +13,22 @@ public:
     Bookmark(const QString &file_path, const PageLocation &location,
              const QDateTime &created_at, BookmarkId id = "") noexcept;
 
-    inline QString filePath() const noexcept
+    QString filePath() const noexcept
     {
         return m_file_path;
     }
 
-    inline PageLocation location() const noexcept
+    PageLocation location() const noexcept
     {
         return m_location;
     }
 
-    inline QDateTime createdAt() const noexcept
+    QDateTime createdAt() const noexcept
     {
         return m_created_at;
     }
 
-    inline BookmarkId id() const noexcept
+    BookmarkId id() const noexcept
     {
         return m_id;
     }

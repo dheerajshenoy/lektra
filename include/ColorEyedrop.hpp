@@ -15,7 +15,7 @@ public:
     explicit ColorEyedrop(QWidget *parent);
 
     void setActive(bool active);
-    inline bool isActive() const noexcept
+    bool isActive() const noexcept
     {
         return m_active;
     }

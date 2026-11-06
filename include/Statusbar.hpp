@@ -21,19 +21,19 @@ class Statusbar : public QWidget
 public:
     Statusbar(const Config::Statusbar &config, QWidget *parent = nullptr);
 
-    inline void setHighlightColor(const QColor &color) noexcept
+    void setHighlightColor(const QColor &color) noexcept
     {
         m_mode_color_label->setColor(color);
     }
 
-    inline void setTotalPageCount(int total) noexcept
+    void setTotalPageCount(int total) noexcept
     {
         m_totalpage_label->setText(QString::number(total));
     }
 
     // Called when narrowed to a page range: shows "from–to (of total)".
     // Pass from1 == -1 to revert to the plain total count.
-    inline void setPageRangeInfo(int from1, int to1, int total) noexcept
+    void setPageRangeInfo(int from1, int to1, int total) noexcept
     {
         if (from1 < 0)
             m_totalpage_label->setText(QString::number(total));

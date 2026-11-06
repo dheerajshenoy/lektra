@@ -53,13 +53,13 @@ public:
 
     explicit GraphicsView(const Config &config, QWidget *parent = nullptr);
 
-    inline void set_visual_line_rect(const QRectF &sceneRect)
+    void set_visual_line_rect(const QRectF &sceneRect)
     {
         m_visual_line_rect = sceneRect;
         viewport()->update();
     }
 
-    inline void setAnnotManipulator(
+    void setAnnotManipulator(
         std::function<bool(QPointF)> grab,
         std::function<Qt::CursorShape(QPointF)> cursor) noexcept
     {
@@ -67,51 +67,51 @@ public:
         m_annotCursor = std::move(cursor);
     }
 
-    inline void setNarrowRect(const QRectF &sceneRect) noexcept
+    void setNarrowRect(const QRectF &sceneRect) noexcept
     {
         m_narrow_scene_rect = sceneRect;
         m_is_narrow_clip    = true;
         viewport()->update();
     }
 
-    inline void clearNarrowRect() noexcept
+    void clearNarrowRect() noexcept
     {
         m_narrow_scene_rect = {};
         m_is_narrow_clip    = false;
         viewport()->update();
     }
 
-    inline bool isNarrowClip() const noexcept
+    bool isNarrowClip() const noexcept
     {
         return m_is_narrow_clip;
     }
 
-    inline void setPortal(bool state) noexcept
+    void setPortal(bool state) noexcept
     {
         m_is_portal = state;
     }
 
-    inline bool isPortal() const noexcept
+    bool isPortal() const noexcept
     {
         return m_is_portal;
     }
 
-    inline const Config &config() const noexcept
+    const Config &config() const noexcept
     {
         return m_config;
     }
 
-    inline QPointF selectionStart() const noexcept
+    QPointF selectionStart() const noexcept
     {
         return m_selection_start;
     }
 
-    inline Mode mode() const noexcept
+    Mode mode() const noexcept
     {
         return m_mode;
     }
 
-    inline void setSelectionDragThreshold(int value) noexcept
+    void setSelectionDragThreshold(int value) noexcept
     {
         m_drag_threshold = value;
     }
@@ -121,44 +121,44 @@ public:
     // Model::imageAt()) so pressing and dragging on an image in the document
     // starts an OS-level drag carrying that image out (e.g. onto a file
     // manager or another app), instead of starting a text selection.
-    inline void
+    void
     setImageDragProvider(std::function<QImage(QPointF)> provider) noexcept
     {
         m_imageDragProvider = std::move(provider);
     }
 
-    inline QPointF getCursorPos() const noexcept
+    QPointF getCursorPos() const noexcept
     {
         return mapToScene(mapFromGlobal(QCursor::pos()));
     }
 
-    inline Mode getNextMode() noexcept
+    Mode getNextMode() noexcept
     {
         return static_cast<Mode>((static_cast<int>(m_mode) + 1)
                                  % static_cast<int>(Mode::COUNT));
     }
 
-    inline void setDefaultMode(Mode mode) noexcept
+    void setDefaultMode(Mode mode) noexcept
     {
         m_default_mode = mode;
     }
 
-    inline Mode getDefaultMode() const noexcept
+    Mode getDefaultMode() const noexcept
     {
         return m_default_mode;
     }
 
-    inline void setScrollbarIdleTimeout(int ms)
+    void setScrollbarIdleTimeout(int ms)
     {
         m_scrollbar_hide_timer.setInterval(ms);
     }
 
-    inline void setScrollbarSize(int size) noexcept
+    void setScrollbarSize(int size) noexcept
     {
         m_scrollbarSize = size;
     }
 
-    inline void flashScrollbars()
+    void flashScrollbars()
     {
         // Both are turned off in the config: there is nothing to flash, but
         // make sure they are hidden (Qt may have shown them, see
@@ -181,7 +181,7 @@ public:
         });
     }
 
-    inline void setVerticalScrollbarEnabled(bool enabled) noexcept
+    void setVerticalScrollbarEnabled(bool enabled) noexcept
     {
         if (m_vbarEnabled != enabled)
         {
@@ -190,7 +190,7 @@ public:
         }
     }
 
-    inline void setHorizontalScrollbarEnabled(bool enabled) noexcept
+    void setHorizontalScrollbarEnabled(bool enabled) noexcept
     {
         if (m_hbarEnabled != enabled)
         {
@@ -266,17 +266,17 @@ private slots:
     bool handleTouchpadGesture(QNativeGestureEvent *event);
 
 private:
-    inline void setActive(bool state) noexcept
+    void setActive(bool state) noexcept
     {
         m_is_active = state;
     }
 
-    inline bool isActive() const noexcept
+    bool isActive() const noexcept
     {
         return m_is_active;
     }
 
-    inline void setSplitMaximized(bool state) noexcept
+    void setSplitMaximized(bool state) noexcept
     {
         m_is_split_maximized = state;
     }
@@ -287,18 +287,18 @@ private:
     // badge below) rather than via a separate overlay widget, since a
     // sibling QLabel child ends up painted under the viewport in this
     // environment regardless of raise()/lower() calls.
-    inline void setOpenFailedMessage(const QString &message) noexcept
+    void setOpenFailedMessage(const QString &message) noexcept
     {
         m_open_failed_message = message;
         viewport()->update();
     }
 
-    inline bool isSplitMaximized() const noexcept
+    bool isSplitMaximized() const noexcept
     {
         return m_is_split_maximized;
     }
 
-    inline void showScrollbars()
+    void showScrollbars()
     {
         // The config can turn the scrollbars off (scrollbars.vertical and
         // scrollbars.horizontal): none of the events that ask for them (zoom,
@@ -316,7 +316,7 @@ private:
         }
     }
 
-    inline void hideScrollbars()
+    void hideScrollbars()
     {
         if (m_scrollbarsVisible && !m_scrollbarsPinned)
         {
@@ -325,7 +325,7 @@ private:
         }
     }
 
-    inline void setScrollbarsPinned(bool pinned)
+    void setScrollbarsPinned(bool pinned)
     {
         m_scrollbarsPinned = pinned;
         if (pinned)
@@ -337,7 +337,7 @@ public:
     // state — used when a document fails to open so a leftover/transient
     // scrollbar doesn't linger over an empty view until the idle auto-hide
     // timer eventually kicks it away.
-    inline void forceHideScrollbars() noexcept
+    void forceHideScrollbars() noexcept
     {
         m_scrollbarsPinned  = false;
         m_scrollbarsVisible = false;
@@ -345,14 +345,14 @@ public:
     }
 
 private:
-    inline void restartHideTimer()
+    void restartHideTimer()
     {
         if (m_autoHide && !m_activeScrollbar)
             m_scrollbar_hide_timer.start();
     }
 
     // Utility
-    inline QPointF scenePosFromEvent(QMouseEvent *event) const
+    QPointF scenePosFromEvent(QMouseEvent *event) const
     {
         return mapToScene(event->pos());
     }

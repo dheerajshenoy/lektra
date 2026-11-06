@@ -18,7 +18,7 @@ public:
     explicit CommentSearchPicker(const Config::Picker &config,
                                  QWidget *parent) noexcept;
 
-    inline void setModel(Model *model) noexcept
+    void setModel(Model *model) noexcept
     {
         m_model = model;
     }
@@ -37,7 +37,7 @@ protected:
     // Override so we can apply smart-case and refresh on launch
     void onSearchChanged(const QString &text); // see note below
 
-    inline void onFilterChanged(int visibleCount) override
+    void onFilterChanged(int visibleCount) override
     {
         m_countLabel->setText(QString("%1 results").arg(visibleCount));
     }

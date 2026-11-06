@@ -23,54 +23,54 @@ public:
     int insertTab(const int index, QWidget *page,
                   const QString &title) noexcept;
 
-    inline int id(int index) const noexcept
+    int id(int index) const noexcept
     {
         return m_tab_bar->tabData(index).toUInt();
     }
 
-    inline int count() const noexcept
+    int count() const noexcept
     {
         return m_tab_bar->count();
     }
 
-    inline bool tabBarAutoHide() const noexcept
+    bool tabBarAutoHide() const noexcept
     {
         return m_tab_bar->autoHide();
     }
 
-    inline int indexOf(QWidget *page) const noexcept
+    int indexOf(QWidget *page) const noexcept
     {
         return m_stacked_widget->indexOf(page);
     }
 
-    inline QWidget *widget(int index) const noexcept
+    QWidget *widget(int index) const noexcept
     {
         if (index < 0 || index >= count())
             return nullptr;
         return m_stacked_widget->widget(index);
     }
 
-    inline QWidget *currentWidget() const noexcept
+    QWidget *currentWidget() const noexcept
     {
         return m_stacked_widget->currentWidget();
     }
 
-    inline int currentIndex() const noexcept
+    int currentIndex() const noexcept
     {
         return m_tab_bar->currentIndex();
     }
 
-    inline void setMovable(bool movable) noexcept
+    void setMovable(bool movable) noexcept
     {
         m_tab_bar->setMovable(movable);
     }
 
-    inline void setCloseButtonMode(TabBar::CloseButtonMode mode) noexcept
+    void setCloseButtonMode(TabBar::CloseButtonMode mode) noexcept
     {
         m_tab_bar->setCloseButtonMode(mode);
     }
 
-    inline void setCurrentIndex(int index) noexcept
+    void setCurrentIndex(int index) noexcept
     {
         if (index < 0 || index >= count())
             return;
@@ -78,28 +78,28 @@ public:
         m_tab_bar->setCurrentIndex(index);
     }
 
-    inline void setTabBarAutoHide(bool hide) noexcept
+    void setTabBarAutoHide(bool hide) noexcept
     {
         m_tab_bar->setAutoHide(hide);
     }
 
-    inline const QString tabText(const int index) const noexcept
+    const QString tabText(const int index) const noexcept
     {
         return m_tab_bar->tabText(index);
     }
 
-    inline DocumentContainer *currentContainer() const noexcept
+    DocumentContainer *currentContainer() const noexcept
     {
         return qobject_cast<DocumentContainer *>(
             m_stacked_widget->currentWidget());
     }
 
-    inline QString tabTitle(const int index) const noexcept
+    QString tabTitle(const int index) const noexcept
     {
         return m_tab_bar->tabText(index);
     }
 
-    inline void setTabTitle(const int index, const QString &title) noexcept
+    void setTabTitle(const int index, const QString &title) noexcept
     {
         m_tab_bar->setTabText(index, title);
     }

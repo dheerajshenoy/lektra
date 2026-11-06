@@ -32,7 +32,7 @@ public:
         updateCommentMarker();
     }
 
-    inline Type atype() const noexcept override
+    Type atype() const noexcept override
     {
         return Type::Rect;
     }

@@ -123,8 +123,8 @@ public:
     // Page size in points (before rotation and zoom). `known` is false when
     // the page was never loaded and the size is the document default;
     // `exact` loads the page first so the size is always real.
-    [[nodiscard]] inline QSizeF pageSizePts(int pageno, bool exact = false,
-                                            bool *known = nullptr) noexcept
+    [[nodiscard]] QSizeF pageSizePts(int pageno, bool exact = false,
+                                     bool *known = nullptr) noexcept
     {
         if (exact)
             ensurePageCached(pageno);
@@ -252,7 +252,7 @@ public:
     // Capability queries
 
     // This is useful for `dont_invert_images` config option.
-    [[nodiscard]] inline bool supports_image_blocks() const noexcept
+    [[nodiscard]] bool supports_image_blocks() const noexcept
     {
         switch (m_filetype)
         {
@@ -272,7 +272,7 @@ public:
         }
     }
 
-    [[nodiscard]] inline bool supports_links() const noexcept
+    [[nodiscard]] bool supports_links() const noexcept
     {
         switch (m_filetype)
         {
@@ -291,7 +291,7 @@ public:
         }
     }
 
-    [[nodiscard]] inline bool supports_text_selection() const noexcept
+    [[nodiscard]] bool supports_text_selection() const noexcept
     {
         switch (m_filetype)
         {
@@ -312,7 +312,7 @@ public:
         }
     }
 
-    [[nodiscard]] inline bool supports_text_search() const noexcept
+    [[nodiscard]] bool supports_text_search() const noexcept
     {
         return supports_text_selection();
     }
@@ -321,7 +321,7 @@ public:
     // is found; the answer is cached until the document changes.
     [[nodiscard]] bool hasTextLayer() noexcept;
 
-    [[nodiscard]] inline bool supports_outline() const noexcept
+    [[nodiscard]] bool supports_outline() const noexcept
     {
         return m_filetype == FileType::PDF || m_filetype == FileType::EPUB
                || m_filetype == FileType::XPS || m_filetype == FileType::FB2
@@ -339,7 +339,7 @@ public:
     // via the same shared HTML-document backend as EPUB (MuPDF converts
     // Markdown/text to HTML internally before laying it out), so they
     // reflow the same way.
-    [[nodiscard]] inline bool supports_reflow() const noexcept
+    [[nodiscard]] bool supports_reflow() const noexcept
     {
         return m_filetype == FileType::EPUB || m_filetype == FileType::FB2
                || m_filetype == FileType::MOBI || m_filetype == FileType::HTML
@@ -348,14 +348,14 @@ public:
                || m_filetype == FileType::PPTX;
     }
 
-    [[nodiscard]] inline bool supports_annotations() const noexcept
+    [[nodiscard]] bool supports_annotations() const noexcept
     {
         return m_filetype == FileType::PDF;
     }
 
     // Whether pages can be written with MuPDF's document writers (not for
     // DjVu or image documents).
-    [[nodiscard]] inline bool supportsWriterExport() const noexcept
+    [[nodiscard]] bool supportsWriterExport() const noexcept
     {
         return m_doc != nullptr && !m_is_image && m_filetype != FileType::DJVU;
     }
@@ -367,94 +367,94 @@ public:
                           const QStringList &paths, const QString &format,
                           QString *error = nullptr) noexcept;
 
-    [[nodiscard]] inline bool supports_save() const noexcept
+    [[nodiscard]] bool supports_save() const noexcept
     {
         return supports_annotations();
     }
 
-    [[nodiscard]] inline bool supports_encryption() const noexcept
+    [[nodiscard]] bool supports_encryption() const noexcept
     {
         return supports_annotations();
     }
 
-    [[nodiscard]] inline bool supports_decryption() const noexcept
+    [[nodiscard]] bool supports_decryption() const noexcept
     {
         return supports_annotations();
     }
 
-    [[nodiscard]] inline fz_context *cloneContext() const noexcept
+    [[nodiscard]] fz_context *cloneContext() const noexcept
     {
         return fz_clone_context(m_ctx);
     }
 
-    inline void setRotation(float angle) noexcept
+    void setRotation(float angle) noexcept
     {
         m_rotation = angle;
     }
 
-    [[nodiscard]] inline bool isFlippedH() const noexcept
+    [[nodiscard]] bool isFlippedH() const noexcept
     {
         return m_flip_h;
     }
-    [[nodiscard]] inline bool isFlippedV() const noexcept
+    [[nodiscard]] bool isFlippedV() const noexcept
     {
         return m_flip_v;
     }
 
-    inline void setFlipH(bool v) noexcept
+    void setFlipH(bool v) noexcept
     {
         m_flip_h = v;
     }
-    inline void setFlipV(bool v) noexcept
+    void setFlipV(bool v) noexcept
     {
         m_flip_v = v;
     }
-    inline void toggleFlipH() noexcept
+    void toggleFlipH() noexcept
     {
         m_flip_h = !m_flip_h;
     }
-    inline void toggleFlipV() noexcept
+    void toggleFlipV() noexcept
     {
         m_flip_v = !m_flip_v;
     }
 
-    [[nodiscard]] inline bool isAnimated() const noexcept
+    [[nodiscard]] bool isAnimated() const noexcept
     {
         return m_is_animated;
     }
 
-    [[nodiscard]] inline bool isImage() const noexcept
+    [[nodiscard]] bool isImage() const noexcept
     {
         return m_is_image;
     }
 
-    [[nodiscard]] inline float rotation() const noexcept
+    [[nodiscard]] float rotation() const noexcept
     {
         return m_rotation;
     }
 
-    [[nodiscard]] inline float zoom() const noexcept
+    [[nodiscard]] float zoom() const noexcept
     {
         return m_zoom;
     }
 
-    [[nodiscard]] inline int searchMatchesCount() const noexcept
+    [[nodiscard]] int searchMatchesCount() const noexcept
     {
         return m_search_match_count;
     }
 
-    [[nodiscard]] inline const QString &filePath() const noexcept
+    [[nodiscard]] const QString &filePath() const noexcept
     {
         return m_filepath;
     }
     // Makes `path` the file of this document (call reloadDocument after, to
     // read it)
-    inline void setFilePath(const QString &path) noexcept
+    void setFilePath(const QString &path) noexcept
     {
         m_filepath = path;
     }
     // Redactions were applied and not saved yet
-    [[nodiscard]] inline bool isRedacted() const noexcept
+    [[nodiscard]] bool isRedacted() const noexcept
     {
         return m_redacted;
     }
@@ -465,58 +465,58 @@ public:
         return QString::fromStdString(getTextInPage(pageno, false));
     }
 
-    [[nodiscard]] inline int numPages() const noexcept
+    [[nodiscard]] int numPages() const noexcept
     {
         return m_page_count;
     }
 
-    [[nodiscard]] inline QUndoStack *undoStack() const noexcept
+    [[nodiscard]] QUndoStack *undoStack() const noexcept
     {
         return m_undo_stack;
     }
 
-    inline void setInvertColor(bool invert) noexcept
+    void setInvertColor(bool invert) noexcept
     {
         m_invert_color = invert;
     }
 
-    [[nodiscard]] inline bool invertColor() const noexcept
+    [[nodiscard]] bool invertColor() const noexcept
     {
         return m_invert_color;
     }
 
-    [[nodiscard]] inline float DPI() const noexcept
+    [[nodiscard]] float DPI() const noexcept
     {
         return m_dpi;
     }
 
-    inline void setDPR(float dpr) noexcept
+    void setDPR(float dpr) noexcept
     {
         m_dpr     = dpr;
         m_inv_dpr = 1.0f / dpr;
     }
 
-    [[nodiscard]] inline float DPR() const noexcept
+    [[nodiscard]] float DPR() const noexcept
     {
         return m_dpr;
     }
 
-    inline void setDPI(float dpi) noexcept
+    void setDPI(float dpi) noexcept
     {
         m_dpi = dpi;
     }
 
-    [[nodiscard]] inline float invDPR() const noexcept
+    [[nodiscard]] float invDPR() const noexcept
     {
         return m_inv_dpr;
     }
 
-    [[nodiscard]] inline bool success() const noexcept
+    [[nodiscard]] bool success() const noexcept
     {
         return m_success;
     }
 
-    [[nodiscard]] inline QColor highlightAnnotColor() const noexcept
+    [[nodiscard]] QColor highlightAnnotColor() const noexcept
     {
         return QColor(qRound(m_highlight_color[0] * 255),
                       qRound(m_highlight_color[1] * 255),
@@ -524,7 +524,7 @@ public:
                       qRound(m_highlight_color[3] * 255));
     }
 
-    [[nodiscard]] inline bool hasUnsavedChanges() const noexcept
+    [[nodiscard]] bool hasUnsavedChanges() const noexcept
     {
         if (m_filetype == FileType::DJVU)
             return false;
@@ -532,65 +532,65 @@ public:
     }
 
     // This is the "Logical" scale for the UI
-    [[nodiscard]] inline float logicalScale() const noexcept
+    [[nodiscard]] float logicalScale() const noexcept
     {
         return m_zoom * (m_dpi / 72.0f);
     }
 
     // This is the "Physical" scale for the actual pixels
-    [[nodiscard]] inline float physicalScale() const noexcept
+    [[nodiscard]] float physicalScale() const noexcept
     {
         return logicalScale() * m_dpr;
     }
 
-    inline void setLinkBoundary(bool state) noexcept
+    void setLinkBoundary(bool state) noexcept
     {
         m_link_show_boundary = state;
     }
 
-    inline void setDetectUrlLinks(bool state) noexcept
+    void setDetectUrlLinks(bool state) noexcept
     {
         m_detect_url_links = state;
     }
 
     // Cache management
-    [[nodiscard]] inline size_t pageCacheSize() const noexcept
+    [[nodiscard]] size_t pageCacheSize() const noexcept
     {
         std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
         return m_page_lru_cache.size();
     }
 
-    inline void setCacheCapacity(const size_t n) noexcept
+    void setCacheCapacity(const size_t n) noexcept
     {
         m_page_lru_cache.setCapacity(n);
     }
 
-    inline void setBackgroundColor(const uint32_t bg) noexcept
+    void setBackgroundColor(const uint32_t bg) noexcept
     {
         m_bg_color = bg;
     }
 
-    inline void setForegroundColor(const uint32_t fg) noexcept
+    void setForegroundColor(const uint32_t fg) noexcept
     {
         m_fg_color = fg;
     }
 
-    [[nodiscard]] inline uint32_t backgroundColor() const noexcept
+    [[nodiscard]] uint32_t backgroundColor() const noexcept
     {
         return m_bg_color;
     }
 
-    [[nodiscard]] inline uint32_t foregroundColor() const noexcept
+    [[nodiscard]] uint32_t foregroundColor() const noexcept
     {
         return m_fg_color;
     }
 
-    [[nodiscard]] inline const float *annotRectColor() const noexcept
+    [[nodiscard]] const float *annotRectColor() const noexcept
     {
         return m_annot_rect_color;
     }
 
-    [[nodiscard]] inline FileType fileType() const noexcept
+    [[nodiscard]] FileType fileType() const noexcept
     {
         return m_filetype;
     }
@@ -670,8 +670,7 @@ public:
     // unresolved when m_doc is null (DjVu, which has no fz_document /
     // chapter concept), matching how generated/loaded synthetic outline
     // entries already encode a plain global index in that case.
-    [[nodiscard]] inline int
-    pageNumberFromLocation(fz_location loc) const noexcept
+    [[nodiscard]] int pageNumberFromLocation(fz_location loc) const noexcept
     {
         if (!m_ctx || !m_doc)
             return loc.page;
@@ -688,9 +687,8 @@ public:
     // viewers, e.g. platform/gl, do it). This method handles both cases
     // uniformly so every consumer gets a correct global page index
     // regardless of format.
-    [[nodiscard]] inline int
-    resolveOutlineNode(fz_outline *node, float *x = nullptr,
-                       float *y = nullptr) const noexcept
+    [[nodiscard]] int resolveOutlineNode(fz_outline *node, float *x = nullptr,
+                                         float *y = nullptr) const noexcept
     {
         if (!m_ctx || !node)
             return -1;
@@ -732,11 +730,11 @@ public:
     // 420x595) when the document hasn't been laid out yet. Font-size
     // commands should reuse these rather than deriving a size from the
     // viewport, so changing text size does not also change the page size.
-    [[nodiscard]] inline float layoutWidthPts() const noexcept
+    [[nodiscard]] float layoutWidthPts() const noexcept
     {
         return m_layout_w > 0.0f ? m_layout_w : float(FZ_DEFAULT_LAYOUT_W);
     }
-    [[nodiscard]] inline float layoutHeightPts() const noexcept
+    [[nodiscard]] float layoutHeightPts() const noexcept
     {
         return m_layout_h > 0.0f ? m_layout_h : float(FZ_DEFAULT_LAYOUT_H);
     }
@@ -784,7 +782,7 @@ public:
     int applyRedactions() noexcept;
     // True once after SaveChanges rewrote the file on disk, which the open
     // document no longer matches: reload it
-    [[nodiscard]] inline bool takeReloadAfterSave() noexcept
+    [[nodiscard]] bool takeReloadAfterSave() noexcept
     {
         return std::exchange(m_reload_after_save, false);
     }
@@ -912,7 +910,7 @@ private:
             known.assign(page_count, false);
         }
 
-        [[nodiscard]] inline bool isKnown(int pageno) const noexcept
+        [[nodiscard]] bool isKnown(int pageno) const noexcept
         {
             return pageno >= 0 && pageno < static_cast<int>(known.size())
                    && known[pageno] != false;
@@ -946,14 +944,13 @@ private:
         }
     };
 
-    [[nodiscard]] inline PageDimension
-    page_dimension_pts(int pageno) const noexcept
+    [[nodiscard]] PageDimension page_dimension_pts(int pageno) const noexcept
     {
         std::lock_guard<std::mutex> lock(m_page_dim_mutex);
         return m_page_dim_cache.getOrDefault(pageno, m_default_page_dim);
     }
 
-    [[nodiscard]] inline bool page_dimension_known(int pageno) const noexcept
+    [[nodiscard]] bool page_dimension_known(int pageno) const noexcept
     {
         std::lock_guard<std::mutex> lock(m_page_dim_mutex);
         return m_page_dim_cache.isKnown(pageno);
@@ -968,15 +965,15 @@ private:
     struct ContentBBox
     {
         float x0 = 0.0f, y0 = 0.0f, x1 = 0.0f, y1 = 0.0f;
-        [[nodiscard]] inline bool isEmpty() const noexcept
+        [[nodiscard]] bool isEmpty() const noexcept
         {
             return x1 <= x0 || y1 <= y0;
         }
-        [[nodiscard]] inline float width() const noexcept
+        [[nodiscard]] float width() const noexcept
         {
             return x1 - x0;
         }
-        [[nodiscard]] inline float height() const noexcept
+        [[nodiscard]] float height() const noexcept
         {
             return y1 - y0;
         }
@@ -1114,7 +1111,7 @@ private:
                           const AnnotGeometry &geometry) noexcept;
 
     // An ellipse (CIRCLE, from `rect`), a polygon (from `vertices`) or an
-    // inline note (FREE_TEXT, `content` is its text, in `rect`).
+    // note (FREE_TEXT, `content` is its text, in `rect`).
     [[nodiscard]] int addShapeAnnotation(const int pageno,
                                          const enum pdf_annot_type type,
                                          const fz_rect &rect,
@@ -1283,7 +1280,7 @@ private:
     bool m_is_animated      = false;
     ImageAnimation *m_movie = nullptr;
 
-    [[nodiscard]] inline ImageAnimation *movie() const noexcept
+    [[nodiscard]] ImageAnimation *movie() const noexcept
     {
         return m_movie;
     }

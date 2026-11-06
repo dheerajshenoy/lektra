@@ -39,7 +39,7 @@ public:
 
     ~Annotation() override;
 
-    inline int index() const noexcept
+    int index() const noexcept
     {
         return m_index;
     }
@@ -129,47 +129,47 @@ public:
     /** Enable or disable the hover glow outline. */
     void setGlowEnabled(bool enable) noexcept;
 
-    inline bool isGlowEnabled() const noexcept
+    bool isGlowEnabled() const noexcept
     {
         return m_glow_enabled;
     }
 
-    inline QColor color() const noexcept
+    QColor color() const noexcept
     {
         return m_brush.color();
     }
 
     void setGlowWidth(int width) noexcept;
 
-    inline int glowWidth() const noexcept
+    int glowWidth() const noexcept
     {
         return m_glow_width;
     }
 
     void setGlowColor(uint32_t color) noexcept;
 
-    inline const QColor &glowColor() const noexcept
+    const QColor &glowColor() const noexcept
     {
         return m_glow_color;
     }
 
-    inline const QString &comment() const noexcept
+    const QString &comment() const noexcept
     {
         return m_comment;
     }
 
-    inline bool hasComment() const noexcept
+    bool hasComment() const noexcept
     {
         return !m_comment.isEmpty();
     }
 
     void setCommentMarkerVisible(bool visible) noexcept;
-    inline bool isCommentMarkerVisible() const noexcept
+    bool isCommentMarkerVisible() const noexcept
     {
         return m_comment_marker_visible;
     }
 
-    inline void updateCommentMarker() noexcept
+    void updateCommentMarker() noexcept
     {
         if (m_comment_marker)
         {

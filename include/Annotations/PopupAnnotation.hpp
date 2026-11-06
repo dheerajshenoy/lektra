@@ -31,7 +31,7 @@ public:
             setTooltipFontSize(m_config.comment_font_size);
     }
 
-    inline Type atype() const noexcept override
+    Type atype() const noexcept override
     {
         return Type::Popup;
     }

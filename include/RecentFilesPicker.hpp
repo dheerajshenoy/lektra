@@ -12,7 +12,7 @@ public:
 
     QList<Item> collectItems() override;
     void onItemAccepted(const Item &item) override;
-    inline void setRecentFiles(const QStringList &files) noexcept
+    void setRecentFiles(const QStringList &files) noexcept
     {
         m_recentFiles = files;
     }

@@ -18,7 +18,7 @@ public:
     explicit HighlightSearchPicker(const Config::HighlightSearch &config,
                                    QWidget *parent) noexcept;
 
-    inline void setModel(Model *model) noexcept
+    void setModel(Model *model) noexcept
     {
         m_model = model;
     }

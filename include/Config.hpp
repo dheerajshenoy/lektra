@@ -21,7 +21,7 @@ struct Config
         Qt::KeyboardModifiers modifiers  = Qt::NoModifier;
         GraphicsView::MouseAction action = GraphicsView::MouseAction::None;
 
-        inline bool isValid() const noexcept
+        bool isValid() const noexcept
         {
             return button != Qt::NoButton;
         }
