@@ -644,6 +644,14 @@ public:
     renderPageForPrint(int pageno, float dpi, bool grayscale = false,
                        const std::shared_ptr<RenderCancel> &cancel
                        = nullptr) noexcept;
+    // renderPageForPrint on the render pool. The model waits for it when it
+    // closes, so the caller need not keep the document alive; a cancelled or
+    // refused render gives a null image.
+    [[nodiscard]] QFuture<QImage> renderPageForPrintAsync(
+        int pageno, float dpi, bool grayscale,
+        std::shared_ptr<RenderCancel> cancel) noexcept;
+    // False if the document forbids printing (a PDF's permissions).
+    [[nodiscard]] bool canPrint() const noexcept;
 
     Properties properties() noexcept;
     // False if the document is not an image.

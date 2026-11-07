@@ -2292,6 +2292,111 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 1;
                 }),
 
+    VIEW_METHOD(
+        "print",
+        {
+            // print([opts], [callback]) -> true once printing has started
+            if (!*view)
+            {
+                lua_pushnil(L);
+                lua_pushstring(L, "no active view");
+                return 2;
+            }
+            auto *lektra = qobject_cast<Lektra *>((*view)->window());
+            if (!lektra)
+            {
+                lua_pushnil(L);
+                lua_pushstring(L, "no window");
+                return 2;
+            }
+
+            PrintRequest request;
+            int callbackIndex = 0;
+            if (lua_istable(L, 2))
+            {
+                const auto text = [&](const char *name)
+                {
+                    lua_getfield(L, 2, name);
+                    const QString value = lua_isstring(L, -1)
+                                              ? QString::fromUtf8(
+                                                    lua_tostring(L, -1))
+                                              : QString();
+                    lua_pop(L, 1);
+                    return value;
+                };
+                request.printer = text("printer");
+                request.file    = text("file");
+                request.pages   = text("pages");
+
+                lua_getfield(L, 2, "copies");
+                if (lua_isnumber(L, -1))
+                    request.copies = static_cast<int>(lua_tointeger(L, -1));
+                lua_pop(L, 1);
+
+                lua_getfield(L, 2, "dpi");
+                if (lua_isnumber(L, -1))
+                    request.dpi = lua_tonumber(L, -1);
+                lua_pop(L, 1);
+
+                lua_getfield(L, 2, "grayscale");
+                request.grayscale = lua_toboolean(L, -1);
+                lua_pop(L, 1);
+
+                lua_getfield(L, 2, "dialog");
+                request.dialog = lua_toboolean(L, -1);
+                lua_pop(L, 1);
+
+                if (!lua_isnoneornil(L, 3))
+                {
+                    luaL_checktype(L, 3, LUA_TFUNCTION);
+                    callbackIndex = 3;
+                }
+            }
+            else if (lua_isfunction(L, 2))
+                callbackIndex = 2;
+            else if (!lua_isnoneornil(L, 2))
+                return luaL_argerror(L, 2, "table or function expected");
+
+            int callbackRef = LUA_NOREF;
+            if (callbackIndex)
+            {
+                lua_pushvalue(L, callbackIndex);
+                callbackRef = luaL_ref(L, LUA_REGISTRYINDEX);
+            }
+
+            lektra->printDocument(
+                *view, request,
+                [L = luaMainState(), callbackRef](bool ok,
+                                                  const QString &message)
+            {
+                if (callbackRef == LUA_NOREF)
+                {
+                    if (!ok && !message.isEmpty())
+                        fprintf(stderr, "print: %s\n", qPrintable(message));
+                    return;
+                }
+
+                lua_rawgeti(L, LUA_REGISTRYINDEX, callbackRef);
+                luaL_unref(L, LUA_REGISTRYINDEX, callbackRef);
+                lua_pushboolean(L, ok);
+                if (ok)
+                    lua_pushnil(L);
+                else
+                    lua_pushstring(L, message.isEmpty()
+                                          ? "cancelled"
+                                          : message.toUtf8().constData());
+                if (lua_pcall(L, 2, 0, 0) != LUA_OK)
+                {
+                    fprintf(stderr, "Lua error in print callback: %s\n",
+                            lua_tostring(L, -1));
+                    lua_pop(L, 1);
+                }
+            });
+
+            lua_pushboolean(L, 1);
+            return 1;
+        }),
+
     VIEW_METHOD("export_highlights",
                 {
                     if (!*view)

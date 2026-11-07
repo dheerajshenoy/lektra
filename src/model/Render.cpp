@@ -1605,6 +1605,43 @@ Model::renderPageForPrint(int pageno, float dpi, bool grayscale,
     return image;
 }
 
+QFuture<QImage>
+Model::renderPageForPrintAsync(int pageno, float dpi, bool grayscale,
+                               std::shared_ptr<RenderCancel> cancel) noexcept
+{
+    return QtConcurrent::run(&m_render_pool,
+                             [this, pageno, dpi, grayscale,
+                              cancel]() -> QImage
+    {
+        // Counted like a page render, so closing the document waits for it.
+        m_active_renders.fetch_add(1, std::memory_order_relaxed);
+
+        struct Guard
+        {
+            Model *m;
+            ~Guard()
+            {
+                if (m->m_active_renders.fetch_sub(1, std::memory_order_acq_rel)
+                    == 1)
+                    m->m_renders_cv.notify_all();
+            }
+        } guard{this};
+
+        if (m_render_cancelled.load(std::memory_order_acquire)
+            || (cancel && cancel->cancelled()))
+            return {};
+        return renderPageForPrint(pageno, dpi, grayscale, cancel);
+    });
+}
+
+bool
+Model::canPrint() const noexcept
+{
+    if (!m_doc || !m_ctx)
+        return true; // not a MuPDF document: nothing restricts it
+    return fz_has_permission(m_ctx, m_doc, FZ_PERMISSION_PRINT) != 0;
+}
+
 Model::ImageHit
 Model::imageAt(int pageno, QPointF logicalPt) noexcept
 {

@@ -79,6 +79,10 @@ Lektra::initMenubar() noexcept
             .arg(m_config.keybinds["file_save_as"].join(", ")),
         this, [this]() { Lektra::SaveAsFile(); });
 
+    m_actionPrint = fileMenu->addAction(
+        tr("Print…\t%1").arg(m_config.keybinds["print"].join(", ")), this,
+        [this]() { Lektra::Print(); });
+
     QMenu *sessionMenu = fileMenu->addMenu(tr("Session"));
 
     m_actionSessionSave = sessionMenu->addAction(
@@ -580,6 +584,7 @@ Lektra::initMenubar() noexcept
     m_actionSaveFile->setIcon(th("document-save", QStyle::SP_DialogSaveButton));
     m_actionSaveAsFile->setIcon(
         th("document-save-as", QStyle::SP_DialogSaveButton));
+    m_actionPrint->setIcon(th("document-print", QStyle::SP_FileIcon));
     sessionMenu->setIcon(
         th("preferences-system-session", QStyle::SP_ComputerIcon));
     m_actionSessionSave->setIcon(th("document-save", QStyle::SP_DriveHDIcon));
@@ -821,6 +826,7 @@ Lektra::updateUiEnabledState() noexcept
     // PDF-only
     m_actionSaveFile->setEnabled(isPDF && m_doc->isModified());
     m_actionSaveAsFile->setEnabled(isPDF);
+    m_actionPrint->setEnabled(hasFile && filetype != Model::FileType::DJVU);
     m_actionEncrypt->setEnabled(isPDF);
     m_actionDecrypt->setEnabled(isPDF);
     m_actionAnnotRect->setEnabled(isPDF);

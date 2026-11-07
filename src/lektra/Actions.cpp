@@ -31,6 +31,8 @@
 #include <QLocalSocket>
 #include <QMimeData>
 #include <QObject>
+#include <QPrintDialog>
+#include <QPrinterInfo>
 #include <QProcess>
 #include <QSplitter>
 #include <QStyleHints>
@@ -541,6 +543,145 @@ Lektra::ExportOutline() noexcept
     if (!m_doc->model()->exportOutlineToFile(path, outline))
         QMessageBox::warning(this, tr("Export Outline"),
                              tr("Failed to write outline to:\n%1").arg(path));
+}
+
+void
+Lektra::Print() noexcept
+{
+    if (!m_doc)
+        return;
+
+    PrintRequest request;
+    request.dialog = true;
+    printDocument(m_doc, request);
+}
+
+void
+Lektra::printDocument(
+    DocumentView *view, const PrintRequest &request,
+    std::function<void(bool, const QString &)> done) noexcept
+{
+    // Say how it went: to the caller, or in a message box if nobody asked.
+    // The caller hears of it later, never from inside this call: a script
+    // that asked may not be able to take an answer yet.
+    const auto report = [this, done](bool ok, const QString &message)
+    {
+        if (done)
+            QTimer::singleShot(0, this, [done, ok, message]
+            { done(ok, message); });
+        else if (!ok && !message.isEmpty())
+            QMessageBox::warning(this, tr("Print"), message);
+    };
+
+    if (!view || !view->model())
+    {
+        report(false, tr("There is no document to print."));
+        return;
+    }
+    if (view->fileType() == Model::FileType::DJVU)
+    {
+        report(false, tr("Printing DjVu documents is not supported yet."));
+        return;
+    }
+    if (!view->model()->canPrint())
+    {
+        report(false, tr("This document does not allow printing."));
+        return;
+    }
+
+    // The printer: a PDF file, a named printer, or the default one.
+    std::unique_ptr<QPrinter> printer;
+    if (!request.file.isEmpty())
+    {
+        printer = std::make_unique<QPrinter>(QPrinter::HighResolution);
+        printer->setOutputFormat(QPrinter::PdfFormat);
+        printer->setOutputFileName(request.file);
+    }
+    else if (!request.printer.isEmpty())
+    {
+        const QPrinterInfo info = QPrinterInfo::printerInfo(request.printer);
+        if (info.isNull())
+        {
+            report(false,
+                   tr("There is no printer called \"%1\".").arg(request.printer));
+            return;
+        }
+        printer = std::make_unique<QPrinter>(info, QPrinter::HighResolution);
+    }
+    else
+    {
+        const QPrinterInfo info = QPrinterInfo::defaultPrinter();
+        if (info.isNull() && !request.dialog)
+        {
+            report(false, tr("No printer is available."));
+            return;
+        }
+        printer = info.isNull()
+                      ? std::make_unique<QPrinter>(QPrinter::HighResolution)
+                      : std::make_unique<QPrinter>(info,
+                                                   QPrinter::HighResolution);
+    }
+
+    const int pageCount = view->numPages();
+    printer->setDocName(view->fileName());
+    printer->setCopyCount(std::max(1, request.copies));
+    if (request.grayscale)
+        printer->setColorMode(QPrinter::GrayScale);
+
+    PrintJob::Options options;
+    options.dpi = request.dpi > 0.0 ? static_cast<float>(request.dpi)
+                                    : PrintJob::DEFAULT_DPI;
+
+    if (request.dialog)
+    {
+        printer->setFromTo(1, pageCount);
+        QPrintDialog dialog(printer.get(), this);
+        dialog.setOption(QAbstractPrintDialog::PrintPageRange);
+        dialog.setOption(QAbstractPrintDialog::PrintCurrentPage);
+        dialog.setMinMax(1, pageCount);
+        if (dialog.exec() != QDialog::Accepted)
+        {
+            report(false, {});
+            return;
+        }
+
+        switch (printer->printRange())
+        {
+            case QPrinter::PageRange:
+                for (int p = printer->fromPage(); p <= printer->toPage(); ++p)
+                    options.pages.push_back(p - 1);
+                break;
+            case QPrinter::CurrentPage:
+                options.pages.push_back(view->pageNo());
+                break;
+            default:
+                for (int p = 0; p < pageCount; ++p)
+                    options.pages.push_back(p);
+                break;
+        }
+        if (printer->pageOrder() == QPrinter::LastPageFirst)
+            std::reverse(options.pages.begin(), options.pages.end());
+        options.grayscale    = printer->colorMode() == QPrinter::GrayScale;
+        options.showProgress = true;
+    }
+    else
+    {
+        QString error;
+        options.pages = page_range::parse(
+            request.pages.isEmpty() ? QStringLiteral("all") : request.pages,
+            pageCount, view->pageNo(), &error);
+        if (options.pages.empty())
+        {
+            report(false, tr("Cannot print: %1.").arg(error));
+            return;
+        }
+        options.grayscale = request.grayscale;
+    }
+
+    auto *job = new PrintJob(view, std::move(printer), std::move(options), this);
+    connect(job, &PrintJob::finished, this,
+            [report](bool ok, const QString &message) { report(ok, message); });
+    job->start();
 }
 
 void

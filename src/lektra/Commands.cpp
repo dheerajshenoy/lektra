@@ -821,6 +821,8 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("file_save_as",
                            tr("Save current file as a new name"),
                            [this](const QStringList &) { SaveAsFile(); });
+    m_command_manager->reg("print", tr("Print the document"),
+                           [this](const QStringList &) { Print(); });
     m_command_manager->reg("file_encrypt", tr("Encrypt current document"),
                            [this](const QStringList &) { EncryptDocument(); });
     m_command_manager->reg("file_decrypt", tr("Decrypt current document"),

@@ -17,6 +17,7 @@
 #include "CommandManager.hpp"
 #include "FilePicker.hpp"
 #include "OutlinePicker.hpp"
+#include "PrintJob.hpp"
 #include "RecentFilesPicker.hpp"
 #include "RecentFilesStore.hpp"
 #include "SearchBar.hpp"
@@ -224,6 +225,14 @@ public:
     void ShowOutline() noexcept;
     void GenerateOutline() noexcept;
     void ExportOutline() noexcept;
+    // Print the current document, asking for the printer and the pages.
+    void Print() noexcept;
+    // Print `view` as `request` says. `done` gets the outcome once it is over
+    // (an empty message if it was cancelled); without it a failure is shown
+    // in a message box.
+    void printDocument(DocumentView *view, const PrintRequest &request,
+                       std::function<void(bool, const QString &)> done
+                       = nullptr) noexcept;
     void LoadOutline() noexcept;
     void InvertColor() noexcept;
     void ToggleHighContrast() noexcept;
@@ -593,6 +602,7 @@ private:
     QAction *m_actionOpenContainingFolder       = nullptr;
     QAction *m_actionSaveFile                   = nullptr;
     QAction *m_actionSaveAsFile                 = nullptr;
+    QAction *m_actionPrint                      = nullptr;
     QAction *m_actionCloseFile                  = nullptr;
     QAction *m_actionZoomOut                    = nullptr;
     QAction *m_actionFitWidth                   = nullptr;

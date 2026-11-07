@@ -545,6 +545,7 @@ file_open_tab   = "o"
 file_picker     = "Ctrl+Shift+O"
 files_recent    = "Alt+Shift+O"
 file_save       = "Ctrl+S"
+print           = "Ctrl+P"
 
 # Editing / view
 undo             = "u"

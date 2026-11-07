@@ -1358,6 +1358,7 @@ Lektra::initDefaultKeybinds() noexcept
         {"file_open_tab", "o"},
         {"file_picker", "Ctrl+Shift+o"},
         {"file_save", "Ctrl+s"},
+        {"print", "Ctrl+p"},
         {"visual_line_mode", "v"},
         {"undo", "u"},
         {"redo", "Ctrl+r"},

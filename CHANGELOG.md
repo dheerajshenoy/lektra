@@ -12,6 +12,7 @@
 - Lua: `view:link_hints("pick", callback)` gives the chosen link to a script, and `view:follow_link()` accepts it.
 - Lua: `OnLinkClicked` gives the followed link as `event.link`.
 - Lua: `view:preview(target)`, `view:open_portal(target)` and `view:close_portal()`.
+- Printing: the new `print` command (`Ctrl+P`, File ▸ Print…) prints the document, or a range of its pages, to a printer or a PDF file. Lua: `view:print(opts, callback)`. Not available for DjVu yet.
 
 ### Bug Fixes
 

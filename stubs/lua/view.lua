@@ -395,6 +395,29 @@ function View:outline() end
 ---@return true | nil result `true` on success, `nil` on failure.
 function View:export_highlights(path) end
 
+---@class PrintOptions
+---@field printer string? Name of the printer. The default printer if left out.
+---@field file string? Write a PDF to this path instead of printing.
+---@field pages string? The pages to print, like `"1-5,8,10-"`, `"odd"`, `"current"` or `"all"` (the default).
+---@field copies integer? Number of copies. Default 1.
+---@field grayscale boolean? Print in grayscale. Default false.
+---@field dpi number? Resolution the pages are rendered at. Default 300.
+---@field dialog boolean? Show the print dialog to pick the printer and the pages (`printer`, `file` and `pages` are then used only as a start). Default false.
+
+---Prints the document. Each page is fitted to the paper, and the paper is turned to match the page.
+---Returns `true` once printing has started; the result comes later, to `callback`.
+---Not supported for DjVu, and refused for a PDF that does not allow printing.
+---```lua
+---view:print({ file = "/tmp/out.pdf", pages = "1-3" }, function(ok, err)
+---    if not ok then print("could not print:", err) end
+---end)
+---```
+---@param opts PrintOptions? What to print and where.
+---@param callback fun(ok: boolean, err: string?)? Called when printing is over. `err` is `"cancelled"` if the user cancelled the dialog or the job.
+---@return true | nil started `true` if printing has started, `nil` if there is no view.
+---@return string? err Why, if `nil`.
+function View:print(opts, callback) end
+
 ---@class Annotation
 ---@field id integer Identifies the annotation on its page. It changes when an undo brings the annotation back.
 ---@field page integer 1-based page number.

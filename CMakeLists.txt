@@ -216,7 +216,8 @@ endif()
 # Qt6 + optional system libraries
 # ---------------------------------------------------------------------------
 find_package(Qt6 6.2 REQUIRED COMPONENTS
-    Core Gui Widgets Concurrent LinguistTools OpenGLWidgets Network Svg)
+    Core Gui Widgets Concurrent LinguistTools OpenGLWidgets Network Svg
+    PrintSupport)
 
 
 # ---------------------------------------------------------------------------
@@ -399,6 +400,7 @@ qt_add_executable(${PROJECT_NAME}
     src/dialog/CrashReporterDialog.cpp
     src/HighlightDelegate.cpp
     src/Lektra.cpp
+    src/PrintJob.cpp
     src/lektra/Config.cpp
     src/lektra/Commands.cpp
     src/lektra/Bibtex.cpp
@@ -584,7 +586,7 @@ add_dependencies(${PROJECT_NAME} mupdf_external)
 # --- Qt ---
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Core Qt6::Gui Qt6::Widgets
-    Qt6::Concurrent Qt6::OpenGLWidgets Qt6::Network Qt6::Svg
+    Qt6::Concurrent Qt6::OpenGLWidgets Qt6::Network Qt6::Svg Qt6::PrintSupport
 )
 
 if(NOT MSVC)
