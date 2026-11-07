@@ -1435,6 +1435,176 @@ Model::renderPtsRegion(int pageno, QRectF ptsRect, float targetDPI) noexcept
     return result;
 }
 
+// The largest image renderPageForPrint makes. A bogus dpi or a huge page
+// must not ask for an enormous buffer (or overflow an int on the way).
+static constexpr int MAX_PRINT_EDGE     = 32768;
+static constexpr qint64 MAX_PRINT_BYTES = 512LL * 1024 * 1024;
+
+static bool
+printSizeAllowed(qint64 width, qint64 height, int components) noexcept
+{
+    return width > 0 && height > 0 && width <= MAX_PRINT_EDGE
+           && height <= MAX_PRINT_EDGE
+           && width * height * components <= MAX_PRINT_BYTES;
+}
+
+// An image file as it is printed: flattened on white, in RGB or gray, and
+// reduced (never enlarged) to what `dpi` needs over `pagePts`.
+static QImage
+printImage(const QImage &source, const QSizeF &pagePts, float dpi,
+           bool grayscale) noexcept
+{
+    if (source.isNull() || pagePts.isEmpty())
+        return {};
+
+    const int wantW = qMax(1, qRound(pagePts.width() * dpi / 72.0));
+    const int wantH = qMax(1, qRound(pagePts.height() * dpi / 72.0));
+
+    QImage img = source;
+    if (img.width() > wantW || img.height() > wantH)
+        img = img.scaled(QSize(wantW, wantH), Qt::IgnoreAspectRatio,
+                         Qt::SmoothTransformation);
+
+    if (!printSizeAllowed(img.width(), img.height(), grayscale ? 1 : 3))
+        return {};
+
+    QImage out;
+    if (img.hasAlphaChannel())
+    {
+        out = QImage(img.size(), QImage::Format_RGB32);
+        out.fill(Qt::white);
+        QPainter p(&out);
+        p.drawImage(0, 0, img);
+        p.end();
+        if (grayscale)
+            out = out.convertToFormat(QImage::Format_Grayscale8);
+    }
+    else
+        out = img.convertToFormat(grayscale ? QImage::Format_Grayscale8
+                                            : QImage::Format_RGB32);
+
+    // Its real resolution over the page, which may be less than `dpi`.
+    const double realDpi = out.width() / (pagePts.width() / 72.0);
+    out.setDotsPerMeterX(static_cast<int>(realDpi * 1000.0 / 25.4));
+    out.setDotsPerMeterY(static_cast<int>(realDpi * 1000.0 / 25.4));
+    return out;
+}
+
+QImage
+Model::renderPageForPrint(int pageno, float dpi, bool grayscale,
+                          const std::shared_ptr<RenderCancel> &cancel) noexcept
+{
+    if (dpi <= 0.0f || pageno < 0 || pageno >= m_page_count
+        || m_filetype == FileType::DJVU)
+        return {};
+
+    if (m_is_image)
+    {
+        const auto [w, h] = getPageDimensions(pageno);
+        const QImage source = (m_is_animated && m_movie)
+                                  ? m_movie->currentImage()
+                                  : m_image_cache;
+        return printImage(source, QSizeF(w, h), dpi, grayscale);
+    }
+
+    ensurePageCached(pageno);
+
+    const auto [w, h] = getPageDimensions(pageno);
+    if (w <= 0 || h <= 0)
+        return {};
+
+    // The page as it is, not as the view shows it: no rotation, no flips.
+    const fz_rect bounds = {0, 0, w, h};
+    const fz_matrix ctm  = buildRenderTransform(bounds, dpi, 0.0f, false, false);
+    const fz_irect bbox  = fz_round_rect(fz_transform_rect(bounds, ctm));
+    const int pw         = bbox.x1 - bbox.x0;
+    const int ph         = bbox.y1 - bbox.y0;
+    const int n          = grayscale ? 1 : 3;
+    if (!printSizeAllowed(pw, ph, n))
+        return {};
+
+    // The pixels are drawn straight into memory that the QImage then owns.
+    // Scanlines padded to 4 bytes, as Qt allocates them itself.
+    const size_t stride = (static_cast<size_t>(pw) * n + 3) & ~size_t{3};
+    unsigned char *pixels = new (std::nothrow) unsigned char[stride * ph];
+    if (!pixels)
+        return {};
+
+    fz_context *ctx = cloneContext();
+    if (!ctx)
+    {
+        delete[] pixels;
+        return {};
+    }
+
+    fz_display_list *dlist = nullptr;
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+        const PageCacheEntry *entry = m_page_lru_cache.get(pageno);
+        if (entry && entry->display_list)
+            dlist = fz_keep_display_list(ctx, entry->display_list);
+    }
+    if (!dlist)
+    {
+        fz_drop_context(ctx);
+        delete[] pixels;
+        return {};
+    }
+
+    // Nothing with a destructor lives inside fz_try (a MuPDF error jumps
+    // straight to fz_catch).
+    fz_pixmap *volatile pix = nullptr;
+    fz_device *volatile dev = nullptr;
+    bool ok                 = false;
+    fz_try(ctx)
+    {
+        pix = fz_new_pixmap_with_data(
+            ctx, grayscale ? fz_device_gray(ctx) : fz_device_rgb(ctx), pw, ph,
+            nullptr, 0, static_cast<int>(stride), pixels);
+        pix->x = bbox.x0; // the pixmap covers bbox, not (0, 0)
+        pix->y = bbox.y0;
+        fz_clear_pixmap_with_value(ctx, pix, 255);
+
+        dev = fz_new_draw_device(ctx, fz_identity, pix);
+        fz_run_display_list(ctx, dlist, dev, ctm, fz_rect_from_irect(bbox),
+                            cancel ? &cancel->cookie : nullptr);
+        fz_close_device(ctx, dev);
+
+        // An aborted replay returns normally with a half-drawn pixmap.
+        if (cancel && cancel->cancelled())
+            fz_throw(ctx, FZ_ERROR_ABORT, "print render cancelled");
+        ok = true;
+    }
+    fz_always(ctx)
+    {
+        fz_drop_device(ctx, dev);
+        fz_drop_pixmap(ctx, pix);
+    }
+    fz_catch(ctx)
+    {
+        if (!(cancel && cancel->cancelled()))
+            qWarning() << "renderPageForPrint failed:"
+                       << fz_caught_message(ctx);
+    }
+
+    fz_drop_display_list(ctx, dlist);
+    fz_drop_context(ctx);
+
+    if (!ok)
+    {
+        delete[] pixels;
+        return {};
+    }
+
+    QImage image(
+        pixels, pw, ph, static_cast<int>(stride),
+        grayscale ? QImage::Format_Grayscale8 : QImage::Format_RGB888,
+        [](void *p) { delete[] static_cast<unsigned char *>(p); }, pixels);
+    image.setDotsPerMeterX(static_cast<int>(dpi * 1000.0f / 25.4f));
+    image.setDotsPerMeterY(static_cast<int>(dpi * 1000.0f / 25.4f));
+    return image;
+}
+
 Model::ImageHit
 Model::imageAt(int pageno, QPointF logicalPt) noexcept
 {

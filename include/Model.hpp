@@ -629,6 +629,21 @@ public:
     // GUI thread. Null for image/DjVu documents.
     [[nodiscard]] QImage renderPtsRegion(int pageno, QRectF ptsRect,
                                          float targetDPI) noexcept;
+    // Renders the whole page for a printer at `dpi`: the page as the document
+    // defines it, on white, whatever the view shows. Unlike renderPtsRegion it
+    // leaves out the view's colours (tint, invert, high contrast), rotation and
+    // flips, and it can be asked to stop (`cancel`) between and during pages.
+    // The image covers the page (getPageDimensions() points) so it can be
+    // drawn into a rectangle of that size; its dots per meter give its real
+    // resolution. Image files are returned at most at `dpi` (never enlarged;
+    // the current frame of an animated one) and the transparency is flattened
+    // on white. Null for DjVu, or when the image would be too big (about
+    // 512 MB). Loads the page if needed and uses its own MuPDF context, so it
+    // may run off the GUI thread.
+    [[nodiscard]] QImage
+    renderPageForPrint(int pageno, float dpi, bool grayscale = false,
+                       const std::shared_ptr<RenderCancel> &cancel
+                       = nullptr) noexcept;
 
     Properties properties() noexcept;
     // False if the document is not an image.
