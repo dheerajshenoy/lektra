@@ -90,7 +90,7 @@ commands below use GitHub; for Codeberg use `https://codeberg.org/lektra/lektra.
 Requirements:
 
 - git
-- Qt 6
+- Qt 6.2 or newer
 - CMake 3.22 or newer
 - C++20 compiler.
 

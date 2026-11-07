@@ -215,7 +215,7 @@ endif()
 # ---------------------------------------------------------------------------
 # Qt6 + optional system libraries
 # ---------------------------------------------------------------------------
-find_package(Qt6 REQUIRED COMPONENTS
+find_package(Qt6 6.2 REQUIRED COMPONENTS
     Core Gui Widgets Concurrent LinguistTools OpenGLWidgets Network Svg)
 
 
