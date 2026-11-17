@@ -74,6 +74,12 @@ FilePicker::onItemAccepted(const Item &item)
         emit fileRequested(path);
 }
 
+bool
+FilePicker::keepOpenOnAccept(const Item &item) const
+{
+    return QFileInfo(item.data.toString()).isDir();
+}
+
 void
 FilePicker::onFilterChanged(int)
 {

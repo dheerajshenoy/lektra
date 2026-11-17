@@ -319,6 +319,11 @@ public:
 
     virtual QList<Item> collectItems()            = 0;
     virtual void onItemAccepted(const Item &item) = 0;
+    // Return true to keep the picker open after `item` is accepted.
+    virtual bool keepOpenOnAccept(const Item &) const
+    {
+        return false;
+    }
     virtual void launch() noexcept;
 
     void historyPrev() noexcept;

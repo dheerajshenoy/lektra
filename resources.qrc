@@ -1,5 +1,3 @@
-<!-- -*- mode: nxml; -*- -->
-
 <RCC>
     <qresource prefix="/">
         <file>resources/png/banner.png</file>
@@ -13,4 +11,4 @@
     </qresource>
 </RCC>
 
-<!-- vim: ft=xml -->
+<!-- vim: set filetype=xml :-->

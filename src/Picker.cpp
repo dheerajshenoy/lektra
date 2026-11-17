@@ -381,10 +381,13 @@ Picker::onItemActivated(const QModelIndex &index)
 {
     auto item = itemAtProxyIndex(index);
 
-    releaseInputGrab();
+    const bool keepOpen = keepOpenOnAccept(item);
+    if (!keepOpen)
+        releaseInputGrab();
     emit itemSelected(item);
     onItemAccepted(item);
-    hide();
+    if (!keepOpen)
+        hide();
 }
 
 void

@@ -11,6 +11,7 @@ public:
 
     QList<Item> collectItems() override;
     void onItemAccepted(const Item &item) override;
+    bool keepOpenOnAccept(const Item &item) const override;
     void launch() noexcept override;
 
 signals:
