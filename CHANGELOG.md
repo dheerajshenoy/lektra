@@ -8,6 +8,7 @@
 
 ### New Features
 
+- `--no-config` starts lektra with the default configuration, ignoring `config.toml` and `init.lua`.
 - Link hints can use letters: set `link_hints.charset` (e.g. `"asdfghjkl"`).
 - Lua: `view:link_hints("pick", callback)` gives the chosen link to a script, and `view:follow_link()` accepts it.
 - Lua: `OnLinkClicked` gives the followed link as `event.link`.

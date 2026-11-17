@@ -80,7 +80,12 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
         return;
     }
 
-    if (argparser.is_used("config"))
+    if (argparser.is_used("no-config"))
+    {
+        m_skip_toml_config = true;
+        m_skip_lua_config  = true;
+    }
+    else if (argparser.is_used("config"))
     {
         const QString config_arg
             = QString::fromStdString(argparser.get<std::string>("--config"));
@@ -109,7 +114,8 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 #endif
     const bool newWindow      = argparser.is_used("new-window");
     const bool singleInstance = argparser.is_used("single-instance")
-                                || readSingleInstanceFromConfig();
+                                || (!argparser.is_used("no-config")
+                                    && readSingleInstanceFromConfig());
     // A new window must not hand its files to the running instance, nor take
     // over the socket it is listening on.
     bool socketInUse          = false;

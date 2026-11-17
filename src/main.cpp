@@ -182,7 +182,9 @@ init_args(argparse::ArgumentParser &program)
         .default_value(false)
         .implicit_value(true);
 
-    program.add_argument("-c", "--config")
+    auto &config_group = program.add_mutually_exclusive_group();
+
+    config_group.add_argument("-c", "--config")
         .help("Path to a config.toml or init.lua file, selected by "
               "extension. Only that file is loaded — a .toml path loads "
               "just that config (compiled-in defaults otherwise, no "
@@ -190,6 +192,11 @@ init_args(argparse::ArgumentParser &program)
               "config.toml)")
         .nargs(1)
         .metavar("CONFIG_PATH");
+
+    config_group.add_argument("--no-config")
+        .help("Start with the default configuration: load neither "
+              "config.toml nor init.lua")
+        .flag();
 
     program.add_argument("--command")
         .help(

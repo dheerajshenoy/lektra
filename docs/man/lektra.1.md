@@ -70,6 +70,10 @@ Command line options are described below:
   path loads just that script (no `config.toml`).
   See **lektra-config(5)** for the full configuration reference.
 
+`--no-config`
+: Start with the default configuration, loading neither `config.toml` nor
+  `init.lua`. Cannot be combined with `-c`.
+
 `--about`
 : Show the *About Lektra* dialog and exit.
 
