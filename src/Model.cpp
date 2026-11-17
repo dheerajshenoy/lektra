@@ -288,6 +288,9 @@ Model::~Model() noexcept
 #ifndef NDEBUG
     PPRINT("Model destructor called");
 #endif
+    // The open task holds a raw `this` and posts back to it; it must be done
+    // before any member goes away.
+    m_open_future.waitForFinished();
     m_outline_future.waitForFinished();
     m_search_cancelled.store(true);
     m_search_future.cancel();

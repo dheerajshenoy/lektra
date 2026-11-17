@@ -22,6 +22,7 @@
 #include <cctype>
 #include <limits>
 #include <map>
+#include <memory>
 #include <qbytearrayview.h>
 #include <qregularexpression.h>
 #include <qstyle.h>
@@ -789,13 +790,15 @@ Model::openAsync(const QString &filePath) noexcept
         return QtConcurrent::run([] {});
     }
 
+    // Kept so ~Model() can wait for it: the task captures `this`.
     if (m_filetype == FileType::DJVU)
-        return openAsync_djvu(canonPath);
+        m_open_future = openAsync_djvu(canonPath);
+    else if (m_is_image)
+        m_open_future = openAsync_image(canonPath);
+    else
+        m_open_future = openAsync_mupdf(canonPath);
 
-    if (m_is_image)
-        return openAsync_image(canonPath);
-
-    return openAsync_mupdf(canonPath);
+    return m_open_future;
 }
 
 QFuture<void>
@@ -1102,6 +1105,34 @@ Model::openAsync_djvu(const QString &canonPath) noexcept
     });
 }
 
+namespace
+{
+// Owns an opened document and its context while they travel to the GUI thread
+// inside a queued call. If that call is dropped (the Model was destroyed
+// first) the lambda is destroyed unrun, and this releases them; the call
+// takes ownership with `taken` once it runs.
+struct OpenedDoc
+{
+    fz_context *ctx;
+    fz_document *doc;
+    bool taken = false;
+
+    OpenedDoc(fz_context *c, fz_document *d) : ctx(c), doc(d) {}
+    OpenedDoc(const OpenedDoc &)            = delete;
+    OpenedDoc &operator=(const OpenedDoc &) = delete;
+
+    ~OpenedDoc()
+    {
+        if (taken)
+            return;
+        if (doc)
+            fz_drop_document(ctx, doc);
+        if (ctx)
+            fz_drop_context(ctx);
+    }
+};
+} // namespace
+
 QFuture<void>
 Model::openAsync_mupdf(const QString &canonPath) noexcept
 {
@@ -1134,7 +1165,20 @@ Model::openAsync_mupdf(const QString &canonPath) noexcept
         cleanup_djvu();
         cleanup_mupdf();
 
-        fz_document *doc           = nullptr;
+        // Nothing with a destructor lives inside fz_try and it is never left
+        // with a return: a MuPDF error jumps straight to fz_catch, skipping
+        // destructors, and an early return would leave the try frame on
+        // MuPDF's stack. `doc` is volatile because it is set inside the try
+        // and read after a possible jump.
+        fz_document *volatile doc = nullptr;
+        enum class Outcome
+        {
+            Ok,
+            NoDocument,
+            Error,
+        };
+        Outcome outcome = Outcome::Ok;
+
         const QByteArray pathBytes = canonPath.toUtf8();
         const std::string pathStr(pathBytes.constData(), pathBytes.size());
         fz_try(bg_ctx)
@@ -1143,40 +1187,68 @@ Model::openAsync_mupdf(const QString &canonPath) noexcept
             if (!doc)
             {
                 fz_warn(bg_ctx, "Failed to open document: Unknown error");
-                QMetaObject::invokeMethod(this, &Model::openFileFailed,
-                                          Qt::QueuedConnection);
-                return;
+                outcome = Outcome::NoDocument;
             }
-            g.doc = doc;
-
-            // The font and line spacing for reflowable documents (EPUB, ...),
-            // before anything lays the document out. Documents that cannot
-            // be styled ignore it.
-            fz_style_document(bg_ctx, doc, 1, css.constData());
-
-            // --- encrypted? park and stop ---
-            if (m_filetype == FileType::PDF && fz_needs_password(bg_ctx, doc))
+            else
             {
-                g.committed = true;
-                QMetaObject::invokeMethod(this, [this, bg_ctx, doc]
-                {
-                    clearPending();
-                    m_pending = {bg_ctx, doc};
-                    emit passwordRequired();
-                }, Qt::QueuedConnection);
-                return;
+                // The font and line spacing for reflowable documents (EPUB,
+                // ...), before anything lays the document out. Documents that
+                // cannot be styled ignore it.
+                fz_style_document(bg_ctx, doc, 1, css.constData());
             }
-
-            // --- normal path ---
-            g.committed = true;
-            _continueOpen(bg_ctx, doc);
         }
         fz_catch(bg_ctx)
         {
             fz_warn(bg_ctx, "Failed to open document: %s",
                     fz_caught_message(bg_ctx));
+            outcome = Outcome::Error;
+        }
+
+        // Whatever was opened is released by the guard unless handed on.
+        g.doc = doc;
+
+        if (outcome == Outcome::NoDocument)
+        {
+            QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                      Qt::QueuedConnection);
             return;
         }
+        if (outcome == Outcome::Error)
+            return;
+
+        // --- encrypted? park and stop ---
+        bool needs_password = false;
+        if (m_filetype == FileType::PDF)
+        {
+            fz_try(bg_ctx)
+            {
+                needs_password = fz_needs_password(bg_ctx, doc);
+            }
+            fz_catch(bg_ctx)
+            {
+                fz_warn(bg_ctx, "Failed to open document: %s",
+                        fz_caught_message(bg_ctx));
+                return;
+            }
+        }
+
+        if (needs_password)
+        {
+            g.committed = true;
+            auto owned  = std::make_shared<OpenedDoc>(bg_ctx, doc);
+            QMetaObject::invokeMethod(this, [this, owned]
+            {
+                owned->taken = true;
+                clearPending();
+                m_pending = {owned->ctx, owned->doc};
+                emit passwordRequired();
+            }, Qt::QueuedConnection);
+            return;
+        }
+
+        // --- normal path ---
+        g.committed = true;
+        _continueOpen(bg_ctx, doc);
     });
 }
 
@@ -1271,8 +1343,12 @@ Model::_continueOpen(fz_context *ctx, fz_document *doc) noexcept
         return;
     }
 
-    QMetaObject::invokeMethod(this, [this, ctx, doc, page_count, w, h]
+    auto owned = std::make_shared<OpenedDoc>(ctx, doc);
+    QMetaObject::invokeMethod(this, [this, owned, page_count, w, h]
     {
+        owned->taken    = true;
+        fz_context *ctx = owned->ctx;
+        fz_document *doc = owned->doc;
         waitForPendingRenders();
         m_render_cancelled.store(false, std::memory_order_release);
         cleanup_mupdf();

@@ -1218,6 +1218,8 @@ private:
 
     mutable std::mutex m_doc_mutex;
     QFuture<void> m_search_future;
+    // The running open task. It captures `this`, so ~Model() must wait for it.
+    QFuture<void> m_open_future;
     QRegularExpression m_url_link_re;
     PendingOpen m_pending;
 

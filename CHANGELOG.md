@@ -18,6 +18,7 @@
 
 ### Bug Fixes
 
+- Fix a possible crash when a document is closed while it is still opening (slow EPUBs in particular).
 - Pressing Enter on a directory in the file picker now opens it instead of closing the picker.
 - Fix a long delay before the first window when a recent file is on an unreachable network mount.
 - Dropping several files onto the window now respects `tabs.lazy_load` instead of opening them all.
