@@ -127,7 +127,7 @@ need macdeployqt
 
 mkdir -p "$DIST_DIR"
 
-cmake -S "$ROOT_DIR" -B "$BUILD_DIR" -G Ninja \
+cmake -S "$ROOT_DIR" -B "$BUILD_DIR" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_PREFIX_PATH="$QT_PREFIX"
 

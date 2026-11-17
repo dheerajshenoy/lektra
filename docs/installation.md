@@ -53,7 +53,7 @@
     and build the DMG:
 
     ```sh
-    brew install cmake ninja pkg-config qt
+    brew install cmake pkg-config qt
     git clone --recurse-submodules https://github.com/dheerajshenoy/lektra.git
     cd lektra
     ./build_dmg.sh

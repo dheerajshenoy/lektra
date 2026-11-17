@@ -8,12 +8,6 @@ if [ ! -d "build" ] || [ -z "$(ls -A build/*.cmake 2>/dev/null)" ]; then
     exit 1
 fi
 
-# If there's ninja files, use ninja to install
-if [ -n "$(ls -A build/build.ninja 2>/dev/null)" ]; then
-    ninja -C build install
-else
-    # Install the project using CMake
-    cmake --install build
-fi
+cmake --install build
 
 # vim:ft=bash
