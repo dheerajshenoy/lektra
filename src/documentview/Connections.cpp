@@ -483,7 +483,8 @@ DocumentView::initConnections() noexcept
     }
 
     /* Graphics View Signals */
-    if (m_model->supports_text_selection())
+    // Markup is written as PDF annotations, so only PDFs can take it.
+    if (m_model->supports_text_selection() && m_model->supports_annotations())
     {
         connect(m_gview, &GraphicsView::textHighlightRequested, this,
                 &DocumentView::handleTextHighlightRequested);

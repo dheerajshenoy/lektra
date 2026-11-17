@@ -412,7 +412,7 @@ DocumentView::handleTextStrikeOutRequested() noexcept
 void
 DocumentView::markSelectedText(Model::TextMarkup kind) noexcept
 {
-    if (!hasTextSelection())
+    if (!m_model->supports_annotations() || !hasTextSelection())
         return;
 
     const QPointF start = m_selection_start;
