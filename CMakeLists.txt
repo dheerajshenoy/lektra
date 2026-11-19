@@ -103,17 +103,20 @@ set(CMAKE_AUTOUIC ON)
 if(MSVC)
     add_compile_options(/Zc:__cplusplus /Zc:preprocessor)
     set(DEBUG_FLAGS          /Od;/Zi;/RTC1;/W2)
-    set(RELEASE_FLAGS        /O2;/DNDEBUG;/GR-;/W2)
+    set(RELEASE_FLAGS        /O2;/DNDEBUG;/GR-;/W3)
     set(REL_WITH_DEB_INFO_FLAGS /O2;/Zi;/DNDEBUG;/W2)
 else()
-    set(DEBUG_FLAGS          -fno-omit-frame-pointer;-ggdb3;-O0;-Wall;-Wextra)
+    set(DEBUG_FLAGS          -fno-omit-frame-pointer;-ggdb3;-O0;-Wall;-Wextra;-Wno-clobbered)
     # -g/-fno-omit-frame-pointer are kept in Release too (not just
     # RelWithDebInfo): without them, CrashHandler's backtrace() has nothing
     # reliable to unwind and no line info to resolve against, so a crash from
     # a Release build produces a useless report. The extra debug info can be
     # split out with `objcopy --only-keep-debug` + `--add-gnu-debuglink` at
     # packaging time if a slimmer shipped binary is wanted later.
-    set(RELEASE_FLAGS        -O3;-g;-fno-omit-frame-pointer;-DNDEBUG;-fno-rtti)
+    set(RELEASE_FLAGS        -O3;-g;-fno-omit-frame-pointer;-DNDEBUG;-fno-rtti;-Wall;-Wextra;-Wno-clobbered)
+    # -Wclobbered fires on locals inside MuPDF's setjmp-based fz_try/fz_catch
+    # blocks (about 90 hits, all in src/model). It is too noisy to be useful,
+    # so it is off; -Wall/-Wextra stay on for everything else.
     set(REL_WITH_DEB_INFO_FLAGS -O2;-g;-fno-omit-frame-pointer;-DNDEBUG)
 endif()
 
@@ -710,7 +713,7 @@ if (WITH_LLM_SUPPORT)
         "${MICROTEX_DIR}/src/latex.cpp" "${MICROTEX_DIR}/src/render.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/llm/MicroTeXQt.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.cpp")
-    target_include_directories(microtex PUBLIC "${MICROTEX_DIR}/src")
+    target_include_directories(microtex SYSTEM PUBLIC "${MICROTEX_DIR}/src")
     target_include_directories(microtex PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/tinyxml2"
                                               "${CMAKE_CURRENT_SOURCE_DIR}/include/llm")
     target_compile_definitions(microtex PUBLIC BUILD_QT)

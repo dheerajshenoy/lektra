@@ -932,7 +932,6 @@ DocumentView::GotoHit(int index) noexcept
     m_cached_hit_page_item = nullptr;
     m_pageno               = ref.page;
     const auto &hit        = m_search_hits[ref.page][ref.indexInPage];
-    const float scale      = m_model->logicalScale();
 
     emit searchIndexChanged(index);
     emit currentPageChanged(ref.page + 1);

@@ -433,81 +433,40 @@ Lektra::eventFilter(QObject *object, QEvent *event)
         return handleCaretFindEvent(event);
     }
 
-    // TODO: Do this cleanly, looks like spaghetti code.
-    // Close preview window on Escape
-    if (type == QEvent::KeyRelease)
+    // Escape dismisses the topmost thing: presentation mode, then the link
+    // preview, then the first visible picker, then caret visual mode.
+    if (type == QEvent::KeyRelease
+        && static_cast<QKeyEvent *>(event)->key() == Qt::Key_Escape)
     {
-        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-        if (keyEvent->key() == Qt::Key_Escape)
+        if (m_presentation.active)
         {
-            if (m_presentation.active)
-            {
-                TogglePresentationMode();
-                return true;
-            }
-
-            if (m_preview_view && m_preview_view->isVisible())
-            {
-                // if (QWidget *overlay = m_preview_view->parentWidget())
-                //     overlay->deleteLater();
-                // m_preview_view = nullptr;
-                // TODO: maybe add config option ?
-                m_preview_overlay->hide();
-                return true;
-            }
-
-            if (m_command_picker)
-            {
-                if (m_command_picker->isVisible())
-                {
-                    m_command_picker->hide();
-                    return true;
-                }
-            }
-
-            if (m_outline_picker)
-            {
-                if (m_outline_picker->isVisible())
-                {
-                    m_outline_picker->hide();
-                    return true;
-                }
-            }
-
-            if (m_highlight_search_picker)
-            {
-                if (m_highlight_search_picker->isVisible())
-                {
-                    m_highlight_search_picker->hide();
-                    return true;
-                }
-            }
-
-            if (m_comment_search_picker)
-            {
-                if (m_comment_search_picker->isVisible())
-                {
-                    m_comment_search_picker->hide();
-                    return true;
-                }
-            }
-
-            if (m_recent_file_picker)
-            {
-                if (m_recent_file_picker->isVisible())
-                {
-                    m_recent_file_picker->hide();
-
-                    return true;
-                }
-            }
-
-            // Esc leaves caret visual mode, like vim
-            if (m_doc && m_doc->caretVisual())
-                m_doc->caretExitVisual();
-
+            TogglePresentationMode();
             return true;
         }
+
+        if (m_preview_view && m_preview_view->isVisible())
+        {
+            m_preview_overlay->hide();
+            return true;
+        }
+
+        QWidget *const pickers[]
+            = {m_command_picker, m_outline_picker, m_highlight_search_picker,
+               m_comment_search_picker, m_recent_file_picker};
+        for (QWidget *picker : pickers)
+        {
+            if (picker && picker->isVisible())
+            {
+                picker->hide();
+                return true;
+            }
+        }
+
+        // Esc leaves caret visual mode, like vim
+        if (m_doc && m_doc->caretVisual())
+            m_doc->caretExitVisual();
+
+        return true;
     }
 
     // Close preview when clicking outside the inner container
@@ -976,8 +935,9 @@ Lektra::readSingleInstanceFromConfig() noexcept
         if (auto v = tbl["behavior"]["single_instance"].value<bool>())
             return *v;
     }
-    catch (...)
+    catch (const toml::parse_error &)
     {
+        // Missing or unparseable config: single instance stays off.
     }
     return false; // default off if config missing/unparseable
 }

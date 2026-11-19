@@ -1349,7 +1349,8 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect,
                      "Failed to get annotation object");
 
         objNum = pdf_to_num(m_ctx, obj);
-        // TODO: pdf_drop_obj(m_ctx, obj); (CHECK)
+        // `obj` is borrowed from `annot` (released by pdf_drop_annot below),
+        // so it must not be dropped here.
     }
     fz_always(m_ctx)
     {

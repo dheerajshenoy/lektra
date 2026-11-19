@@ -288,7 +288,7 @@ readTarget(lua_State *L, int idx, PageLocation *loc, QString *uri)
 #define VIEW_METHOD(name, ...)                                                 \
     {name, [](lua_State *L) -> int                                             \
     {                                                                          \
-        auto **view = static_cast<DocumentView **>(                            \
+        [[maybe_unused]] auto **view = static_cast<DocumentView **>(           \
             luaL_checkudata(L, 1, "DocumentViewMetaTable"));                   \
         __VA_ARGS__                                                            \
     }}

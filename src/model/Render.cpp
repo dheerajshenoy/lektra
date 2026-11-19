@@ -648,8 +648,9 @@ Model::requestPageRender(const RenderJob &job,
     connect(watcher, &QFutureWatcher<PageRenderResult>::finished, this,
             [this, watcher, callback, job, cancel]()
     {
-        // TODO: This is a hack, this shouldn't actually happen, check why
-        // it happens, but for now, just guard against invalid futures.
+        // The future can be invalid here (e.g. the job was cancelled before
+        // producing a result), so report it as cancelled instead of reading
+        // a result that does not exist.
         if (!watcher->future().isValid())
         {
             watcher->deleteLater();

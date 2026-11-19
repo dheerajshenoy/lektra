@@ -35,7 +35,7 @@
 #include <QWindow>
 #include <variant>
 
-// TODO: Fix DWIM version
+// "Do what I mean": reuse an empty or split pane, otherwise open a new tab.
 bool
 Lektra::OpenFileDWIM(const QString &filename,
                      const CallbackFn &callback) noexcept
@@ -269,11 +269,12 @@ Lektra::OpenFilesInNewTab(const QStringList &files,
     }
 
     bool isFirst = true;
-    for (int i = 0; i < qfiles.size(); ++i)
+    for (qsizetype i = 0; i < qfiles.size(); ++i)
     {
         const QString &file = qfiles.at(i);
         const CallbackFn callback
-            = i < callbacks.size() ? callbacks.at(i) : CallbackFn{};
+            = i < static_cast<qsizetype>(callbacks.size()) ? callbacks.at(i)
+                                                           : CallbackFn{};
 
         if (!m_config.tabs.lazy_load || isFirst)
         {

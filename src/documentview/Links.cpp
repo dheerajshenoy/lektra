@@ -1672,7 +1672,7 @@ DocumentView::debugSelfTest() noexcept
     DBG() << "SELFTEST adding note"; add("note", c3, 0); st->back().obj = c3->objNum();
     auto *c4 = new RectAnnotationCommand(m_model, 0, fz_rect{300, 300, 400, 400});
     DBG() << "SELFTEST adding rect"; add("rect", c4, 0); st->back().obj = c4->objNum();
-    auto dump = [=](const char *tag, const T &t)
+    auto dump = [=, this](const char *tag, const T &t)
     {
         Model::AnnotGeometry g;
         DBG() << "SELFTEST dumping" << t.name << t.obj;
@@ -1680,7 +1680,7 @@ DocumentView::debugSelfTest() noexcept
         DBG() << "SELFTEST" << tag << t.name << t.obj << ok << g.rect.x0 << g.rect.y0 << g.rect.x1 << g.rect.y1 << "verts" << (int)g.vertices.size() << (g.vertices.empty() ? 0.f : g.vertices[0].x) << (g.vertices.empty() ? 0.f : g.vertices[0].y);
     };
     for (auto &t : *st) dump("added", t);
-    QTimer::singleShot(1500, this, [=]
+    QTimer::singleShot(1500, this, [=, this]
     {
         m_gview->setMode(GraphicsView::Mode::AnnotSelect);
         for (auto &t : *st)
@@ -1704,7 +1704,7 @@ DocumentView::debugSelfTest() noexcept
             dump("moved", t);
         }
         DBG() << "SELFTEST stack index" << m_model->undoStack()->index() << m_model->undoStack()->count();
-        QTimer::singleShot(1500, this, [=]
+        QTimer::singleShot(1500, this, [=, this]
         {
             for (int k = 0; k < st->size(); ++k)
             {

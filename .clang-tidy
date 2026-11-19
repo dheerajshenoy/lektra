@@ -1,0 +1,26 @@
+# Conservative set: real bugs and cheap performance wins, not style.
+# Run:  run-clang-tidy -p build -quiet 'src/.*\.cpp'
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  clang-analyzer-*,
+  modernize-use-nullptr,
+  modernize-use-override,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-exception-escape,
+  -bugprone-narrowing-conversions,
+  -bugprone-implicit-widening-of-multiplication-result,
+  -bugprone-branch-clone,
+  -bugprone-derived-method-shadowing-base-method,
+  -bugprone-unhandled-exception-at-new,
+  -bugprone-signed-bitwise,
+  -bugprone-throwing-static-initialization,
+  -bugprone-reserved-identifier,
+  -bugprone-macro-parentheses,
+  -performance-enum-size,
+  -performance-no-int-to-ptr,
+  -clang-analyzer-optin.performance.Padding
+# Only report on our own headers, never thirdparty or generated moc code.
+HeaderFilterRegex: '.*/lektra/(src|include)/.*'
+ExcludeHeaderFilterRegex: '.*/thirdparty/.*'

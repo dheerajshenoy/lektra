@@ -12,7 +12,7 @@ namespace AppPaths
 {
 
 #if defined(__APPLE__) && defined(__MACH__)
-static QString
+inline QString
 bundleResourcesPath() noexcept
 {
     const QDir appDir(QCoreApplication::applicationDirPath());
@@ -25,7 +25,7 @@ bundleResourcesPath() noexcept
 }
 #endif
 
-static QString
+inline QString
 appTranslationsPath() noexcept
 {
 #if defined(__APPLE__) && defined(__MACH__)
@@ -47,7 +47,7 @@ appTranslationsPath() noexcept
     return QStringLiteral(TRANSLATIONS_DIR);
 }
 
-static QString
+inline QString
 appTutorialPath() noexcept
 {
 #if defined(__APPLE__) && defined(__MACH__)
