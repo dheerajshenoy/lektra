@@ -31,6 +31,7 @@
           python3
           unzip
           qt6.wrapQtAppsHook
+          wrapGAppsHook3
         ];
 
         buildInputs = with pkgs; [
@@ -39,7 +40,18 @@
           zlib
           djvulibre
           texlive.bin.core
+          # Qt's gtk3 platform theme opens GTK's file chooser, which aborts
+          # if its GSettings schemas are not on XDG_DATA_DIRS.
+          gtk3
+          gsettings-desktop-schemas
         ];
+
+        # Merge the GApps environment into the single Qt wrapper instead of
+        # double-wrapping the binary.
+        dontWrapGApps = true;
+        preFixup = ''
+          qtWrapperArgs+=("''${gappsWrapperArgs[@]}")
+        '';
 
         cmakeFlags = [
           "-DCMAKE_BUILD_TYPE=Release"
