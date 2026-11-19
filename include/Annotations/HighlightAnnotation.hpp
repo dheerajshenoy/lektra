@@ -99,15 +99,6 @@ public:
     }
 
 protected:
-    void mousePressEvent(QGraphicsSceneMouseEvent *e) override
-    {
-        if (e->button() == Qt::LeftButton)
-        {
-            setSelected(true);
-            emit annotSelectRequested();
-        }
-        QGraphicsItem::mousePressEvent(e);
-    }
 
     void contextMenuEvent(QGraphicsSceneContextMenuEvent *e) override
     {

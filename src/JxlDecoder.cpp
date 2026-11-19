@@ -3,6 +3,7 @@
 #include "DynLib.hpp"
 
 #include <QDebug>
+#include <cmath>
 #include <QFile>
 #include <QLibrary>
 #include <algorithm>
@@ -362,7 +363,7 @@ JxlAnimation::nextFrame(int *delayMs, bool *wrapped)
                 {
                     // ticks -> ms; browsers treat a tiny delay as ~10 ms
                     const double ms = 1000.0 * duration * m_tps_den / m_tps_num;
-                    *delayMs        = std::max(10, static_cast<int>(ms + 0.5));
+                    *delayMs        = std::max(10, static_cast<int>(std::lround(ms)));
                 }
                 if (wrapped)
                     *wrapped = restarted;

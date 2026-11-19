@@ -21,6 +21,6 @@ Checks: >
   -performance-enum-size,
   -performance-no-int-to-ptr,
   -clang-analyzer-optin.performance.Padding
-# Only report on our own headers, never thirdparty or generated moc code.
+  # Only report on our own headers, never thirdparty or generated moc code.
 HeaderFilterRegex: '.*/lektra/(src|include)/.*'
 ExcludeHeaderFilterRegex: '.*/thirdparty/.*'

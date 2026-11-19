@@ -1710,7 +1710,7 @@ Model::properties() noexcept
                 if (key && val)
                     props.emplace_back(key, val);
             }
-            free(keys);
+            free(static_cast<void *>(keys));
         }
 
         /* XMP metadata blob (if present) */

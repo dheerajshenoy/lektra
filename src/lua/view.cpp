@@ -1992,6 +1992,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                 return annotFail(L, "no rectangle given");
 
             std::vector<fz_quad> quads;
+            quads.reserve(rects.size());
             for (const fz_rect &r : rects)
                 quads.push_back(
                     {{r.x0, r.y0}, {r.x1, r.y0}, {r.x0, r.y1}, {r.x1, r.y1}});

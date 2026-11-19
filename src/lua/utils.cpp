@@ -65,7 +65,11 @@ inspect(lua_State *L, int index, int depth = 0) noexcept
                 lua_pop(L, 1);
 
                 std::string val = inspect(L, -1, depth + 1);
-                result += inner + key + " = " + val + ",\n";
+                result += inner;
+                result += key;
+                result += " = ";
+                result += val;
+                result += ",\n";
                 lua_pop(L, 1);
             }
             lua_pop(L, 1);
@@ -97,7 +101,7 @@ l_print(lua_State *L)
         std::string s = inspect(L, i);
         std::cout << s << (i < n ? "\t" : "");
     }
-    std::cout << std::endl;
+    std::cout << '\n' << std::flush;
     return 0;
 }
 

@@ -768,7 +768,7 @@ Model::search(const QString &term, bool caseSensitive, int pageFrom,
                 if (!hits.empty())
                 {
                     total += static_cast<int>(hits.size());
-                    batchResults.insert(batchList[i], std::move(hits));
+                    batchResults[batchList[i]] = std::move(hits);
                 }
             }
 
@@ -813,7 +813,7 @@ Model::searchInPage(const int pageno, const QString &term,
         if (!hits.empty())
         {
             m_search_match_count += hits.size();
-            results.insert(pageno, std::move(hits));
+            results[pageno] = std::move(hits);
         }
         emit searchResultsReady(results);
     });

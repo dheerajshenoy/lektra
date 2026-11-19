@@ -4,6 +4,7 @@
 #include "latex.h"
 
 #include <QCache>
+#include <QDebug>
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
@@ -71,6 +72,7 @@ ensureInitialised()
     }
     catch (...)
     {
+        qWarning() << "MicroTeX: failed to initialise LaTeX resources";
     }
     return ok;
 }

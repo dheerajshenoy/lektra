@@ -160,7 +160,7 @@ Lektra::handleCurrentTabChanged(int index) noexcept
         // tabs.open_position other than "end", and left the tab bar's
         // per-tab state (split badges, selection) behind.)
         m_tab_insert_index = index;
-        DocumentView *_    = OpenFileInNewTab(filePath, lazy);
+        OpenFileInNewTab(filePath, lazy);
         m_tab_insert_index = -1;
 
         m_tab_widget->setCurrentIndex(index);

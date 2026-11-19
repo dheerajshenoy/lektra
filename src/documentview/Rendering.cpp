@@ -131,7 +131,7 @@ DocumentView::getVisiblePages() noexcept
     m_visible_pages_cache.clear();
 
     if (m_model->numPages() == 0
-        || m_page_offsets.size() < static_cast<size_t>(m_model->numPages() + 1))
+        || m_page_offsets.size() < static_cast<size_t>(m_model->numPages()) + 1)
     {
         m_visible_pages_dirty = false;
         return m_visible_pages_cache;
@@ -1213,7 +1213,7 @@ DocumentView::nearestPageToScenePos(QPointF scenePos) const noexcept
         return -1;
     if (m_layout_mode == LayoutMode::SINGLE)
         return m_pageno;
-    if (m_page_offsets.size() < static_cast<size_t>(N + 1))
+    if (m_page_offsets.size() < static_cast<size_t>(N) + 1)
         return -1;
 
     const double coord = (m_layout_mode == LayoutMode::HORIZONTAL)
@@ -1234,7 +1234,7 @@ DocumentView::pageAtScenePos(QPointF scenePos, int &outPageIndex,
     outPageItem  = nullptr;
 
     const int N = m_model->numPages();
-    if (N <= 0 || m_page_offsets.size() < static_cast<size_t>(N + 1))
+    if (N <= 0 || m_page_offsets.size() < static_cast<size_t>(N) + 1)
         return false;
 
     if (m_layout_mode == LayoutMode::SINGLE)

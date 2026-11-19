@@ -91,7 +91,7 @@ spawn_detached_child(int argc, char *argv[])
         exe = argv[0];
 
     std::vector<char *> new_argv;
-    new_argv.reserve(static_cast<size_t>(argc + 2));
+    new_argv.reserve(static_cast<size_t>(argc) + 2);
 
     new_argv.push_back(const_cast<char *>(exe.c_str()));
     new_argv.push_back(const_cast<char *>("--foreground"));

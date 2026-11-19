@@ -209,6 +209,7 @@ std::vector<fz_quad>
 quads_from_rects(const std::vector<fz_rect> &rects) noexcept
 {
     std::vector<fz_quad> res;
+    res.reserve(rects.size());
     for (auto rect : rects)
     {
         res.push_back(quad_from_rect(rect));

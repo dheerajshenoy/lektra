@@ -32,7 +32,7 @@ class WaitingSpinnerWidget : public QWidget
 public:
     /*! Constructor for "standard" widget behaviour - use this
      * constructor if you wish to, e.g. embed your widget in another. */
-    WaitingSpinnerWidget(QWidget *parent = 0, bool centerOnParent = true,
+    WaitingSpinnerWidget(QWidget *parent = nullptr, bool centerOnParent = true,
                          bool disableParentWhenSpinning = true);
 
     /*! Constructor - use this constructor to automatically create a modal
@@ -40,7 +40,7 @@ public:
      * parent widget is provided, "centreOnParent" will ensure that
      * QtWaitingSpinner automatically centres itself on it, if not,
      * "centreOnParent" is ignored. */
-    WaitingSpinnerWidget(Qt::WindowModality modality, QWidget *parent = 0,
+    WaitingSpinnerWidget(Qt::WindowModality modality, QWidget *parent = nullptr,
                          bool centerOnParent            = true,
                          bool disableParentWhenSpinning = true);
 

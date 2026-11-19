@@ -962,7 +962,7 @@ Model::highlight_text_selection(int pageno, QPointF start, QPointF end,
     // // Create and push the command onto the undo stack for undo/redo
     // support
     m_undo_stack->push(new TextHighlightAnnotationCommand(
-        this, pageno, std::move(quads), comment, nullptr, QColor(), kind));
+        this, pageno, quads, comment, nullptr, QColor(), kind));
 }
 
 void
@@ -2307,11 +2307,11 @@ Model::collectHighlightTexts(bool groupByLine) noexcept
 
             stext_page = fz_new_stext_page_from_page(m_ctx, (fz_page *)pdfPage,
                                                      nullptr);
-            if (!stext_page)
-                continue;
-
-            for (pdf_annot *annot = pdf_first_annot(m_ctx, pdfPage); annot;
-                 annot            = pdf_next_annot(m_ctx, annot))
+            // No text on this page: the loop below is skipped. (No `continue`
+            // here: fz_try is a do/while(0), so it would only leave the try.)
+            for (pdf_annot *annot
+                 = stext_page ? pdf_first_annot(m_ctx, pdfPage) : nullptr;
+                 annot; annot = pdf_next_annot(m_ctx, annot))
             {
                 if (pdf_annot_type(m_ctx, annot) != PDF_ANNOT_HIGHLIGHT)
                     continue;

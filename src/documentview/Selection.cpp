@@ -722,7 +722,7 @@ DocumentView::filterHitsToNarrow(
                 kept.push_back(hit);
         }
         if (!kept.empty())
-            out.insert(p, std::move(kept));
+            out[p] = std::move(kept);
     }
     results = std::move(out);
 }
