@@ -143,7 +143,6 @@ DocumentView::rotateHelper() noexcept
 
     if (m_model->isImage())
     {
-        // stopGifPlayback();
         renderImage();
         return;
     }
@@ -157,7 +156,6 @@ DocumentView::rotateHelper() noexcept
 
     for (int pageno : trackedPages)
     {
-        // m_model->invalidatePageCache(pageno);
         clearLinksForPage(pageno);
         clearAnnotationsForPage(pageno);
         clearSearchItemsForPage(pageno);
@@ -1235,7 +1233,6 @@ DocumentView::resizeEvent(QResizeEvent *event)
 void
 DocumentView::handleDeferredResize() noexcept
 {
-    // clearDocumentItems();
     cachePageStride();
     updateSceneRect();
 

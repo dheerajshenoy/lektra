@@ -168,7 +168,6 @@ image_tracker_fill_image(fz_context *ctx, fz_device *dev_, fz_image *image,
     // Calculate the bounding box of this image in pixel coordinates
     // Images are rendered into unit rect [0,0,1,1] transformed by ctm
     fz_rect img_rect = fz_transform_rect(fz_unit_rect, ctm);
-    // fz_rect transformed = fz_transform_rect(img_rect, dev->page_transform);
     fz_irect bbox    = fz_round_rect(img_rect);
 
     // Grow array if needed
@@ -1031,8 +1030,6 @@ Model::renderPageWithExtrasAsync(
                 dlist, transform, m_colorspace);
         }
 
-        // fz_gamma_pixmap(ctx, pix, 1.0f);
-
         const int width  = fz_pixmap_width(ctx, pix);
         const int height = fz_pixmap_height(ctx, pix);
         const int n      = fz_pixmap_components(ctx, pix);
@@ -1120,106 +1117,6 @@ Model::renderPageWithExtrasAsync(
             result.links.push_back(std::move(renderLink));
         }
 
-        // fz_stext_page *stext_page = nullptr;
-        // if (m_detect_url_links)
-        // {
-        //     text_page = fz_load_page(ctx, m_doc, job.pageno);
-        //     if (text_page)
-        //         stext_page
-        //             = fz_new_stext_page_from_page(ctx, text_page,
-        //             nullptr);
-        //
-        //     if (stext_page)
-        //     {
-        //         const QRegularExpression &urlRe = m_url_link_re;
-        //
-        //         auto hasIntersectingLink = [&](const fz_rect &r) -> bool
-        //         {
-        //             for (const auto &link : links)
-        //             {
-        //                 const fz_rect lr = link.rect;
-        //                 if (r.x1 < lr.x0 || r.x0 > lr.x1 || r.y1 < lr.y0
-        //                     || r.y0 > lr.y1)
-        //                     continue;
-        //                 return true;
-        //             }
-        //             return false;
-        //         };
-        //
-        //         for (fz_stext_block *b = stext_page->first_block; b;
-        //              b                 = b->next)
-        //         {
-        //             if (b->type != FZ_STEXT_BLOCK_TEXT)
-        //                 continue;
-        //
-        //             for (fz_stext_line *line = b->u.t.first_line; line;
-        //                  line                = line->next)
-        //             {
-        //                 QString lineText;
-        //                 lineText.reserve(256);
-        //                 for (fz_stext_char *ch = line->first_char; ch;
-        //                      ch                = ch->next)
-        //                 {
-        //                     lineText.append(QChar::fromUcs4(ch->c));
-        //                 }
-        //
-        //                 if (lineText.isEmpty())
-        //                     continue;
-        //
-        //                 QRegularExpressionMatchIterator it
-        //                     = urlRe.globalMatch(lineText);
-        //                 while (it.hasNext())
-        //                 {
-        //                     QRegularExpressionMatch match = it.next();
-        //                     int start = match.capturedStart();
-        //                     int len   = match.capturedLength();
-        //                     if (start < 0 || len <= 0)
-        //                         continue;
-        //
-        //                     QString raw = match.captured();
-        //                     while (
-        //                         !raw.isEmpty()
-        //                         &&
-        //                         QString(".,;:!?)\"'").contains(raw.back()))
-        //                     {
-        //                         raw.chop(1);
-        //                         --len;
-        //                     }
-        //
-        //                     if (raw.isEmpty() || len <= 0)
-        //                         continue;
-        //
-        //                     fz_quad q = getQuadForSubstring(line, start,
-        //                     len); fz_rect r = fz_rect_from_quad(q); if
-        //                     (fz_is_empty_rect(r))
-        //                         continue;
-        //
-        //                     if (hasIntersectingLink(r))
-        //                         continue;
-        //
-        //                     QString uri = raw;
-        //                     if (uri.startsWith("www."))
-        //                         uri.prepend("https://");
-        //
-        //                     fz_rect tr        = fz_transform_rect(r,
-        //                     transform); const float scale = m_inv_dpr;
-        //                     QRectF qtRect(tr.x0 * scale, tr.y0 * scale,
-        //                                   (tr.x1 - tr.x0) * scale,
-        //                                   (tr.y1 - tr.y0) * scale);
-        //
-        //                     RenderLink renderLink;
-        //                     renderLink.rect = qtRect;
-        //                     renderLink.uri  = uri;
-        //                     renderLink.type
-        //                         = BrowseLinkItem::LinkType::External;
-        //                     renderLink.boundary = m_link_show_boundary;
-        //                     result.links.push_back(std::move(renderLink));
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-
         static const std::vector<CachedAnnotation> noAnnotations;
         const std::vector<CachedAnnotation> &annotationList
             = annotations ? *annotations : noAnnotations;
@@ -1269,8 +1166,6 @@ Model::renderPageWithExtrasAsync(
         fz_drop_pixmap(ctx, pix);
         delete[] pixels; // null once a QImage owns it
         fz_drop_display_list(ctx, dlist);
-
-        // fz_drop_page(ctx, text_page);
     }
     fz_catch(ctx)
     {

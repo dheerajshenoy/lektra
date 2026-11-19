@@ -38,7 +38,6 @@ public:
     {
         if (!boundary)
             setPen(Qt::NoPen);
-        // setBrush(Qt::transparent);
         setAcceptHoverEvents(true);
         setToolTip(link);
         setAcceptedMouseButtons(Qt::AllButtons);
@@ -165,7 +164,6 @@ protected:
                     break;
             }
 
-            // setBrush(Qt::transparent);
         }
     }
 

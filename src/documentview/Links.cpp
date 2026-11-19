@@ -740,8 +740,6 @@ DocumentView::renderAnnotations(
         return;
 
     clearAnnotationsForPage(pageno);
-    // if (m_page_annotations_hash.contains(pageno))
-    //     return;
 
     const GraphicsImageItem *pageItem
         = m_page_items_hash.value(pageno, nullptr);
@@ -1379,7 +1377,6 @@ DocumentView::handleAnnotRectRequested(QRectF area) noexcept
 
     m_model->undoStack()->push(
         new RectAnnotationCommand(m_model, pageno, rect));
-    // setModified(true);
 }
 
 // Handle redaction mark requested
@@ -1609,7 +1606,6 @@ DocumentView::handleAnnotPopupRequested(QPointF scenePos) noexcept
 
     m_model->undoStack()->push(
         new TextAnnotationCommand(m_model, pageno, rect, text));
-    // setModified(true);
 }
 
 void

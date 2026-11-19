@@ -787,7 +787,6 @@ DocumentView::startNextRenderJob() noexcept
                 }
                 view->setUpdatesEnabled(true);
                 view->m_gscene->blockSignals(false);
-                // m_gview->viewport()->update();
 
                 // The view may have moved while this was rendering.
                 if (view->regionNeedsRefresh(pageno))
@@ -1855,7 +1854,6 @@ DocumentView::repositionPages()
                          pageOffset(i));
         }
 
-        // m_model->invalidatePageCache(i);
         clearLinksForPage(i);
         clearAnnotationsForPage(i);
         clearSearchItemsForPage(i);

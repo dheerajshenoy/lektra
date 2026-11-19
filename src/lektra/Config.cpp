@@ -403,8 +403,6 @@ applyViewToml(toml::table &toml, Config &cfg)
 
     if (auto search = toml["search"])
     {
-        // set(search["case_sensitive"], cfg.search.case_sensitive);
-        // set(search["whole_words"], cfg.search.whole_words);
         set(search["highlight_matches"], cfg.search.highlight_matches);
         set(search["progressive"], cfg.search.progressive);
         set(search["absolute_jump"], cfg.search.absolute_jump);
@@ -979,7 +977,6 @@ Lektra::initConfig() noexcept
         set(command_palette["description"],
             m_config.command_palette.description);
         set(command_palette["vscrollbar"], m_config.command_palette.vscrollbar);
-        // set(command_palette["show_grid"], m_config.command_palette.grid);
         // TODO: Implement grid in command palette
         set(command_palette["shortcuts"],
             m_config.command_palette.shortcuts);

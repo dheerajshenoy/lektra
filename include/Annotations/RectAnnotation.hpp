@@ -80,9 +80,6 @@ public:
         painter->setBrush(Qt::NoBrush);
         painter->drawRect(m_rect);
 
-        // if (m_comment_marker && hasComment())
-        //     m_comment_marker->setAnnotationRect(m_rect);
-
         // Selection indicator.
         if (option->state & QStyle::State_Selected)
         {

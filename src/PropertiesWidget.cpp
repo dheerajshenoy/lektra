@@ -4,10 +4,8 @@ PropertiesWidget::PropertiesWidget(QWidget *parent) : QDialog(parent)
 {
     setWindowTitle("Document Properties");
     setModal(true);
-    // setMinimumSize(400, 300);
     m_formLayout = new QFormLayout(this);
     setLayout(m_formLayout);
-    // adjustSize();
 }
 
 void

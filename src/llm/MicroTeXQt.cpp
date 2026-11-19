@@ -77,9 +77,6 @@ wstring_to_QString(const std::wstring &ws)
 Font_qt::Font_qt(const string &family, int style, float size)
 {
 
-    //  qInfo() << "new font" << QString::fromStdString(family) << style <<
-    //  size;
-
     _font.setFamily(QString::fromStdString(family));
     _font.setPointSizeF(size);
 
@@ -89,7 +86,6 @@ Font_qt::Font_qt(const string &family, int style, float size)
 
 Font_qt::Font_qt(const string &file, float size)
 {
-    //  qInfo() << "new font" << QString::fromStdString(file) << size;
 
     // set size for newly loaded and previously loaded font
     _font.setPointSizeF(size);
@@ -98,7 +94,6 @@ Font_qt::Font_qt(const string &file, float size)
     if (!QFile::exists(filename))
     {
         filename.prepend(":/");
-        //      qInfo() << "new filename" << filename;
     }
 
     if (_loaded_families.contains(filename))
@@ -235,8 +230,6 @@ TextLayout::create(const std::wstring &src, const sptr<Font> &font)
 
 /**************************************************************************************************/
 
-// Font_qt Graphics2D_qt::_default_font("SansSerif", PLAIN, 20.f);
-
 Graphics2D_qt::Graphics2D_qt(QPainter *painter) : _painter(painter)
 {
     _sx = _sy = 1.f;
@@ -347,14 +340,12 @@ Graphics2D_qt::setFont(const Font *font)
 void
 Graphics2D_qt::translate(float dx, float dy)
 {
-    // qInfo() << "translate" << dx << dy;
     _painter->translate(dx, dy);
 }
 
 void
 Graphics2D_qt::scale(float sx, float sy)
 {
-    // qInfo() << "scale" << sx << sy;
     _sx *= sx;
     _sy *= sy;
     _painter->scale(sx, sy);
@@ -363,7 +354,6 @@ Graphics2D_qt::scale(float sx, float sy)
 void
 Graphics2D_qt::rotate(float angle)
 {
-    // qInfo() << "rotate" << angle;
     _painter->rotate(qRadiansToDegrees(angle));
 }
 
@@ -371,7 +361,6 @@ void
 Graphics2D_qt::rotate(float angle, float px, float py)
 {
 
-    // qInfo() << "translate" << px << py << "rotate" << angle;
     _painter->translate(px, py);
     _painter->rotate(qRadiansToDegrees(angle));
     _painter->translate(-px, -py);

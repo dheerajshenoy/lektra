@@ -100,10 +100,6 @@ Lektra::~Lektra() noexcept
     // is still alive when those destructors run.
     m_command_manager.reset();
 
-    // #ifdef WITH_LUA
-    //     if (m_L)
-    //         lua_close(m_L);
-    // #endif
 }
 
 // On-demand construction of `Lektra` (for use with argparse)
@@ -122,7 +118,6 @@ Lektra::construct() noexcept
     initLua();
 #endif
     initGui();
-    // warnShortcutConflicts();
     initDB();
     trimRecentFilesDatabase();
     populateRecentFiles();
@@ -956,11 +951,6 @@ Lektra::getKeybindings(const QString &cmdname) const noexcept
 }
 #ifdef WITH_LUA
 
-// QStringList
-// Lektra::getMousebindings(const QString &action) const noexcept
-// {
-// }
-//
 void
 Lektra::loadLuaConfig() noexcept
 {

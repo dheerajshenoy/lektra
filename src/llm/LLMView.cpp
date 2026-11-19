@@ -326,8 +326,6 @@ LLMView::initUI()
     m_scroll_area->setWidgetResizable(true);
     m_scroll_area->setWidget(m_messages_widget);
 
-    // m_scroll_area->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::);
-
     // The input is one rounded frame holding a borderless text field and a
     // round send button, like a chat app's composer.
     m_input_frame = new QFrame(m_container);

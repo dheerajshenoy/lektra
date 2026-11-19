@@ -36,21 +36,6 @@ public:
         m_model->addAnnotComment(m_pageno, m_objNum, m_newComment);
     }
 
-    // Merge consecutive edits to the same annotation into one undo step
-    // so rapidly re-editing a comment doesn't flood the undo stack.
-    // int id() const override
-    // {
-    //     return m_objNum;
-    // }
-    // bool mergeWith(const QUndoCommand *other) override
-    // {
-    //     if (other->id() != id())
-    //         return false;
-    //     m_newComment
-    //         = static_cast<const AnnotCommentCommand *>(other)->m_newComment;
-    //     return true;
-    // }
-
 private:
     Model *m_model;
     int m_pageno;

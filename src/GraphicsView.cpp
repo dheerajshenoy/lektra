@@ -299,11 +299,6 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
 
     // Necessary to check mode before button, otherwise right-click context menu
     // won’t work
-    // if (event->button() != Qt::LeftButton)
-    // {
-    //     QGraphicsView::mousePressEvent(event);
-    //     return;
-    // }
 
     if (m_mode == Mode::None)
     {

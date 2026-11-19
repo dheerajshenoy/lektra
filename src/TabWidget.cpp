@@ -23,7 +23,6 @@ TabWidget::TabWidget(QWidget *parent) : QWidget(parent)
     setAcceptDrops(true);
     setStyleSheet("border: 0");
     // Movable handling is done manually in TabBar
-    // m_tab_bar->setElideMode(Qt::TextElideMode::ElideLeft);
 
     // Forward signals from the draggable tab bar
     connect(m_tab_bar, &TabBar::tabDataRequested, this,

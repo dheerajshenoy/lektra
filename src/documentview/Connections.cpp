@@ -204,7 +204,6 @@ DocumentView::handleOpenFileFinished() noexcept
         {
             startGifPlayback();
         }
-        // QTimer::singleShot(0, this, [this]() { renderImage(); });
 
         // Image rendering above happens synchronously, so content is
         // already showing by this point.
@@ -746,9 +745,6 @@ DocumentView::SaveFile() noexcept
     if (m_model->SaveChanges())
     {
         {
-            // clearDocumentItems();
-            // cachePageStride();
-            // updateSceneRect();
             invalidateVisiblePagesCache();
             renderPages();
         }
@@ -971,7 +967,6 @@ DocumentView::CloseFile() noexcept
 
     // Disconnect watcher before cancelling to prevent handleOpenFileFinished
     // firing for the old future
-    // m_open_future_watcher.disconnect();
     m_open_future_watcher.cancel();
 
     stopPendingRenders();

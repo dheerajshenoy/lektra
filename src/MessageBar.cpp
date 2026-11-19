@@ -32,11 +32,9 @@ MessageBar::showNext() noexcept
     const auto [msg, sec] = m_queue.dequeue();
 
     m_label->setText(msg);
-    // show();
     setFixedHeight(30);
     QTimer::singleShot(sec * 1000, this, [this]()
     {
-        // hide();
         setFixedHeight(0);
         m_label->clear();
         showNext(); // Show the next message after the current one

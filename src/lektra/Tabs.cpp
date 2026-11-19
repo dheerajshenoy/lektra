@@ -284,7 +284,6 @@ Lektra::handleTabDropReceived(const TabBar::TabData &data) noexcept
 
         // Restore fit mode
         m_doc->setFitMode(static_cast<DocumentView::FitMode>(data.fitMode));
-        // updateStatusbar();
     });
 }
 
@@ -718,9 +717,6 @@ Lektra::initTabConnections(DocumentView *docwidget) noexcept
 
     connect(docwidget, &DocumentView::searchClearRequested, m_search_bar,
             &SearchBar::clearSearch);
-
-    // connect(docwidget, &DocumentView::searchModeChanged, m_statusbar,
-    //         &SearchBar::setSearchMode);
 
     connect(docwidget, &DocumentView::searchIndexChanged, m_search_bar,
             &SearchBar::setSearchIndex);

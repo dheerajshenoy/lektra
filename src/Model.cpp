@@ -263,7 +263,6 @@ Model::Model(const Config &config, QObject *parent) noexcept
         {
             fz_drop_display_list(m_ctx, entry.display_list);
             entry.display_list = nullptr;
-            // fz_drop_context(ctx);
         }
 
         m_text_cache.remove(pageno);

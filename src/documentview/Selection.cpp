@@ -595,11 +595,6 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
             quads = m_model->computeTextSelectionQuad(p, docStart, docEnd);
         }
 
-        // const QTransform toScene = item->sceneTransform();
-        // for (const QPolygonF &poly : quads)
-        // {
-        //     totalPath.addPolygon(toScene.map(poly));
-        // }
         QTransform toPrimary = item->sceneTransform()
                                * startPageItem->sceneTransform().inverted();
         for (const QPolygonF &poly : quads)
@@ -838,7 +833,6 @@ DocumentView::SearchInPage(const int pageno, const QString &term) noexcept
     bool caseSensitive = std::any_of(term.cbegin(), term.cend(),
                                      [](QChar c) { return c.isUpper(); });
 
-    // m_search_hits = m_model->search(term);
     m_search_dispatched_gen = m_search_gen;
     m_model->searchInPage(pageno, term, caseSensitive);
 #ifdef WITH_LUA
@@ -1257,10 +1251,6 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
     const bool hasAnnots = !selectedAnnots.empty();
     bool hasActions      = false;
 
-    // if (selectionActive &&
-    // m_selection_path_item->path().contains(scenePos))
-    //     emit textSelectionRightClickRequested(globalPos, scenePos);
-
     if (selectionActive)
     {
         addAction(tr("Copy Text"), [this]() { YankSelection(true); });
@@ -1307,7 +1297,6 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
                 m_model->undoStack()->push(new DeleteAnnotationsCommand(
                     m_model, it.key(), it.value()));
             }
-            // setModified(true);
         });
 
         // Change color of the selected annotations

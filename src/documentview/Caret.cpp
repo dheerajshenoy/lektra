@@ -153,8 +153,6 @@ DocumentView::snapVisualLine(bool centerView) noexcept
             itemBbox.width() / pageItem->scale(),
             itemBbox.height() / pageItem->scale()));
 
-        // QRectF sceneBbox = pageItem->mapRectToScene(scaledBbox);
-
         QPainterPath path;
         path.addRect(sceneBbox);
 

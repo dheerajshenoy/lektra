@@ -382,8 +382,6 @@ void
 Model::clearPageCache() noexcept
 {
     std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-    // for (auto &[_, entry] : m_page_cache)
-    //     fz_drop_display_list(m_ctx, entry.display_list);
 
     m_page_lru_cache.clear();
 }

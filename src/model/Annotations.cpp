@@ -2002,7 +2002,6 @@ Model::addTextAnnotation(const int pageno, const fz_rect &rect,
         pdf_set_annot_contents(m_ctx, annot, text.toUtf8().constData());
 
         // Set the annotation to be open by default (optional)
-        // pdf_set_annot_is_open(m_ctx, annot, 0);
 
         pdf_update_annot(m_ctx, annot);
         pdf_update_page(m_ctx, page);

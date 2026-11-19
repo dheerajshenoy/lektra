@@ -371,7 +371,6 @@ public:
                            const QString &trigger) noexcept;
     void unsetMousebinding(const QString &action) noexcept;
     QStringList getKeybindings(const QString &cmdname) const noexcept;
-    // QStringList getMousebindings(const QString &action) const noexcept;
 
     void SplitsToWindows() noexcept;
     void SplitsToTabs() noexcept;

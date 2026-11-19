@@ -6,7 +6,6 @@ ScrollBar::ScrollBar(Qt::Orientation o, QWidget *parent) noexcept
     setAttribute(Qt::WA_OpaquePaintEvent, false);
     setAttribute(Qt::WA_TranslucentBackground, true);
     setContextMenuPolicy(Qt::NoContextMenu);
-    // applyStyle();
 }
 
 void
@@ -15,7 +14,6 @@ ScrollBar::setSize(int size) noexcept
     if (m_size != size)
     {
         m_size = size;
-        // applyStyle();
     }
 }
 

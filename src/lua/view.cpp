@@ -692,12 +692,6 @@ static const luaL_Reg DocumentViewMethods[] = {
                     return 1;
                 }),
 
-    // auto **ud = static_cast<DocumentView **>(
-    //     lua_newuserdata(L, sizeof(DocumentView *)));
-    // *ud = lektra->currentDocument();
-    // luaL_getmetatable(L, "DocumentViewMetaTable");
-    // lua_setmetatable(L, -2);
-
     VIEW_METHOD("mode",
                 {
                     if (!*view)

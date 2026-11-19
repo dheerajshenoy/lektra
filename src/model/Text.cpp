@@ -596,7 +596,6 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
         auto [w, h] = getPageDimensions(pageno);
         if (w < 0 || h < 0)
         {
-            // std::lock_guard<std::mutex> lock(m_doc_mutex);
             fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
             bounds        = fz_bound_page(m_ctx, page);
             fz_drop_page(m_ctx, page);
@@ -646,8 +645,6 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
                     out.push_back(std::move(poly));
                 }
 
-                // m_selection_start = blockStart;
-                // m_selection_end   = blockEnd;
                 break;
             }
         }
@@ -1057,159 +1054,6 @@ Model::getTextInArea(const int pageno, QPointF start, QPointF end) noexcept
 
     return result;
 }
-
-// std::optional<std::wstring>
-// Model::get_paper_name_at_position(const int pageno, const fz_point pos)
-// noexcept
-// {
-//     fz_stext_page *stext_page{nullptr};
-//     fz_page *page{nullptr};
-
-//     fz_try(m_ctx)
-//     {
-//         page       = fz_load_page(m_ctx, m_doc, pageno);
-//         stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-//     }
-//     fz_always(m_ctx)
-//     {
-//         fz_drop_page(m_ctx, page);
-//         fz_drop_stext_page(m_ctx, stext_page);
-//     }
-//     fz_catch(m_ctx)
-//     {
-//         return {};
-//     }
-
-//     if (!stext_page)
-//         return {};
-
-//     // 2) Flatten all characters
-//     std::vector<fz_stext_char *> flat_chars;
-//     flat_chars.reserve(4096);
-
-//     for (fz_stext_block *b = stext_page->first_block; b; b = b->next)
-//     {
-//         if (b->type != FZ_STEXT_BLOCK_TEXT)
-//             continue;
-
-//         for (fz_stext_line *ln = b->u.t.first_line; ln; ln = ln->next)
-//         {
-//             for (fz_stext_char *ch = ln->first_char; ch; ch = ch->next)
-//                 flat_chars.push_back(ch);
-
-//             // Add a sentinel "line break" marker by pushing nullptr
-//             (optional),
-//             // but we can also just treat end-of-line later via
-//             // ch->next==nullptr. (We won't push nullptr here to keep it
-//             // simple.)
-//         }
-//     }
-
-//     if (flat_chars.empty())
-//         return {};
-
-//     // 3) Find index of the clicked character (point-in-rect with
-//     epsilon) auto contains_point_eps = [&](fz_rect r) -> bool
-//     {
-//         // expand rect a bit so clicks don't have to be perfect
-//         const float eps = 0.75f; // page units; tweak if needed
-//         r.x0 -= eps;
-//         r.y0 -= eps;
-//         r.x1 += eps;
-//         r.y1 += eps;
-//         return (pos.x >= r.x0 && pos.x <= r.x1 && pos.y >= r.y0
-//                 && pos.y <= r.y1);
-//     };
-
-//     int hit = -1;
-//     for (int i = 0; i < (int)flat_chars.size(); ++i)
-//     {
-//         fz_stext_char *ch = flat_chars[i];
-//         if (!ch)
-//             continue;
-
-//         const fz_rect r = fz_rect_from_quad(ch->quad);
-//         if (contains_point_eps(r))
-//         {
-//             hit = i;
-//             break;
-//         }
-//     }
-
-//     if (hit < 0)
-//         return {};
-
-//     // 4) Expand to sentence-like chunk delimited by '.' (your original
-//     intent) int left  = hit; int right = hit;
-
-//     // Move left to char after previous '.'
-//     while (left > 0)
-//     {
-//         fz_stext_char *ch = flat_chars[left - 1];
-//         if (!ch)
-//         {
-//             --left;
-//             continue;
-//         }
-
-//         if (ch->c == L'.')
-//             break;
-
-//         --left;
-//     }
-
-//     // Move right to next '.'
-//     while (right < (int)flat_chars.size())
-//     {
-//         fz_stext_char *ch = flat_chars[right];
-//         if (!ch)
-//         {
-//             ++right;
-//             continue;
-//         }
-
-//         if (ch->c == L'.')
-//             break;
-
-//         ++right;
-//     }
-
-//     if (right <= left)
-//         return {};
-
-//     // 5) Build the string from [left, right) (excluding the '.')
-//     std::wstring out;
-//     out.reserve((size_t)(right - left) + 16);
-
-//     for (int i = left; i < right; ++i)
-//     {
-//         fz_stext_char *ch = flat_chars[i];
-//         if (!ch)
-//             continue;
-
-//         // Skip end-of-line hyphenation: hyphen at end of a line
-//         if (ch->c == L'-' && ch->next == nullptr)
-//             continue;
-
-//         // Normal character
-//         out.push_back((wchar_t)ch->c);
-
-//         // If end of line, add a space (but avoid double spaces)
-//         if (ch->next == nullptr)
-//         {
-//             if (!out.empty() && out.back() != L' ')
-//                 out.push_back(L' ');
-//         }
-//     }
-
-//     fz_drop_stext_page(m_ctx, stext_page);
-//     trim_ws(out);
-
-//     if (out.empty())
-//         return {};
-
-//     return out;
-// }
 
 // Logic for Model.cpp to get the first character's position
 fz_point

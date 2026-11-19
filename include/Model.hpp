@@ -1191,8 +1191,6 @@ private:
     QColor m_underline_color; // invalid: use annotations.underline.color
     QColor m_squiggly_color;  // invalid: red
     QColor m_strikeout_color; // invalid: red
-    // std::optional<std::wstring>
-    // get_paper_name_at_position(const int pageno, const fz_point) noexcept;
 
     float m_popup_color[4]      = {1.0f, 1.0f, 0.8f, 0.8f},
           m_highlight_color[4]  = {1.0f, 1.0f, 0.0f, 0.5f},

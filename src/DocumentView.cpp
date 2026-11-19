@@ -102,11 +102,6 @@ DocumentView::~DocumentView() noexcept
     synctex_scanner_free(m_synctex_scanner);
 #endif
 
-    // m_gscene->removeItem(m_jump_marker);
-    // m_gscene->removeItem(m_selection_path_item);
-    // m_gscene->removeItem(m_current_search_hit_item);
-    // m_gscene->removeItem(m_visual_line_item);
-
     clearDocumentItems();
 
     if (m_visual_line_item)
@@ -187,14 +182,11 @@ DocumentView::initGui() noexcept
     m_model->setSelectionColor(rgbaToQColor(m_config.selection.color));
     m_model->setHighlightColor(
         rgbaToQColor(m_config.annotations.highlight.color));
-    // m_model->setAntialiasingBits(m_config.rendering.antialiasing_bits);
     m_model->undoStack()->setUndoLimit(m_config.behavior.undo_limit);
 
     m_model->setInvertColor(m_config.behavior.invert_mode);
     m_model->setDetectUrlLinks(m_config.links.detect_urls);
     m_model->setUrlLinkRegex(m_config.links.url_regex);
-    // if (m_config.rendering.icc_color_profile)
-    //     m_model->enableICC();
     m_model->setCacheCapacity(m_config.behavior.cache_pages);
     m_model->setBackgroundColor(m_config.page.bg);
     m_model->setForegroundColor(m_config.page.fg);

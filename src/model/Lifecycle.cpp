@@ -1444,7 +1444,6 @@ Model::encrypt(const EncryptInfo &info) noexcept
                 sizeof(opts.upwd_utf8) - 1);
 
         // Set owner password (required for full access/editing)
-        // QByteArray ownerPwdBytes = password.toUtf8();
         strncpy(opts.opwd_utf8, userPwdBytes.constData(),
                 sizeof(opts.opwd_utf8) - 1);
 

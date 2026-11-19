@@ -27,7 +27,6 @@ Statusbar::initGui() noexcept
 {
     const auto &padding = m_config.padding;
     setContentsMargins(padding[0], padding[1], padding[2], padding[3]);
-    // setContentsMargins(padding[0], padding[1], padding[2], padding[3]);
     m_layout->setContentsMargins(0, 0, 0, 0);
 
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);

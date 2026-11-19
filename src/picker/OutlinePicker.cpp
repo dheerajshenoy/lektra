@@ -9,7 +9,6 @@ OutlinePicker::OutlinePicker(const Config::Outline &config,
 
     setStructureMode(config.flat_menu ? StructureMode::Flat
                                       : StructureMode::Hierarchical);
-    // setStructureMode(StructureMode::Hierarchical);
 
     // Configure the columns for the new populate() logic
     if (config.page_numbers)
