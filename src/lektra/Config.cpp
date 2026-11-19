@@ -73,9 +73,12 @@ tomlToVariant(const toml::node &node)
         return QString::fromStdString(*v);
     if (auto v = node.value<bool>())
         return *v;
+    // The type was checked by is_integer() / is_floating_point() just above.
     if (node.is_integer())
+        // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
         return static_cast<qlonglong>(*node.value<int64_t>());
     if (node.is_floating_point())
+        // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
         return *node.value<double>();
     if (auto *array = node.as_array())
     {
@@ -1449,7 +1452,7 @@ Lektra::warnShortcutConflicts() noexcept
     for (auto it = m_config.keybinds.constBegin();
          it != m_config.keybinds.constEnd(); ++it)
     {
-        const QStringList keys = it.value();
+        const QStringList &keys = it.value();
         for (const QString &key : keys)
         {
             const QString trimmed = key.trimmed();

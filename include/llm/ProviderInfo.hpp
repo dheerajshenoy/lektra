@@ -8,7 +8,7 @@
 inline QString
 providerName(const QUrl &url)
 {
-    const QString host = url.host().toLower();
+    QString host = url.host().toLower();
     if (host.isEmpty())
         return QStringLiteral("unknown");
 

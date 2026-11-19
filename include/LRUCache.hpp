@@ -3,6 +3,7 @@
 #include <functional>
 #include <list>
 #include <unordered_map>
+#include <utility>
 
 template <typename K, typename V> class LRUCache
 {
@@ -18,7 +19,7 @@ public:
 
     void setCallback(EvictCallback onEvict)
     {
-        m_onEvict = onEvict;
+        m_onEvict = std::move(onEvict);
     }
 
     V *get(const K &key)

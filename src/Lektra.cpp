@@ -935,6 +935,7 @@ Lektra::readSingleInstanceFromConfig() noexcept
         if (auto v = tbl["behavior"]["single_instance"].value<bool>())
             return *v;
     }
+    // NOLINTNEXTLINE(bugprone-empty-catch)
     catch (const toml::parse_error &)
     {
         // Missing or unparseable config: single instance stays off.

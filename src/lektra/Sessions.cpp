@@ -427,7 +427,7 @@ Lektra::setSessionName(const QString &name) noexcept
 void
 Lektra::openSessionFromArray(const QJsonArray &sessionArray) noexcept
 {
-    for (const QJsonValue &val : sessionArray)
+    for (const auto &val : sessionArray)
     {
         const QJsonObject tabObj     = val.toObject();
         const QJsonObject splitsNode = tabObj["splits"].toObject();
@@ -473,7 +473,7 @@ Lektra::openSessionFromArray(const QJsonArray &sessionArray) noexcept
             if (node["type"].toString() == "view")
                 return node["file_path"].toString();
             const QJsonArray children = node["children"].toArray();
-            for (const QJsonValue &child : children)
+            for (const auto &child : children)
             {
                 const QString path = firstFilePath(child.toObject());
                 if (!path.isEmpty())
@@ -607,7 +607,7 @@ Lektra::BookmarkImport(const QString &file_path) noexcept
         existing_ids.insert(b.id());
 
     int added = 0, skipped = 0;
-    for (const QJsonValue &v : doc.array())
+    for (const auto &v : doc.array())
     {
         if (!v.isObject())
         {

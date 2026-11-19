@@ -62,7 +62,7 @@ public:
     using FileSize   = uint64_t;
 
     Model(const Config &config, QObject *parent = nullptr) noexcept;
-    ~Model() noexcept;
+    ~Model() noexcept override;
 
     enum class FileType
     {

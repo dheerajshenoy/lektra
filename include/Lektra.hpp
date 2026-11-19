@@ -68,7 +68,7 @@ public:
     Lektra() noexcept;
     Lektra(const QString &sessionName,
            const QJsonArray &sessionArray) noexcept; // load from session
-    ~Lektra() noexcept;
+    ~Lektra() noexcept override;
 
     // Lua option bridge: the config an option table writes to (global for
     // view id -1, else that view's local copy; nullptr if the view is gone),

@@ -81,14 +81,14 @@ PrintJob::requestRender(int index)
     {
         QImage image = watcher->result();
         watcher->deleteLater();
-        onRendered(index, std::move(image));
+        onRendered(index, image);
     });
     watcher->setFuture(model->renderPageForPrintAsync(
         m_options.pages[index], m_options.dpi, m_options.grayscale, m_cancel));
 }
 
 void
-PrintJob::onRendered(int index, QImage image)
+PrintJob::onRendered(int index, const QImage &image)
 {
     if (m_finished)
         return;

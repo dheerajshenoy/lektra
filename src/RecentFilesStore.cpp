@@ -81,7 +81,7 @@ RecentFilesStore::load() noexcept
         entriesArray = doc.array();
     }
 
-    for (const QJsonValue &value : entriesArray)
+    for (const auto &value : entriesArray)
     {
         if (!value.isObject())
             continue;

@@ -1165,6 +1165,9 @@ Lektra::restoreSplitNode(DocumentContainer *container, DocumentView *targetView,
         const int fitMode  = node["fit_mode"].toInt();
         const bool invert  = node["invert_color"].toBool();
 
+        // False positive: the lambda owns nothing; the analyzer loses track of
+        // a DocumentView created on a path it cannot follow.
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
         auto applyState
             = [this, page, zoom, fitMode, invert, callback](DocumentView *doc)
         {
@@ -1236,7 +1239,7 @@ Lektra::restoreSplitNode(DocumentContainer *container, DocumentView *targetView,
         if (splitter)
         {
             QList<int> sizes;
-            for (const QJsonValue &s : sizesArray)
+            for (const auto &s : sizesArray)
                 sizes << s.toInt();
             if (sizes.size() == splitter->count())
                 splitter->setSizes(sizes);

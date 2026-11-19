@@ -21,7 +21,7 @@ BookmarkManager::removeBookmark(Bookmark::BookmarkId id)
 }
 
 QString
-BookmarkManager::getBookmark(Bookmark::BookmarkId id) const
+BookmarkManager::getBookmark(const Bookmark::BookmarkId &id) const
 {
     for (const auto &bookmark : m_bookmarks)
     {

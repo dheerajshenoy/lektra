@@ -269,9 +269,9 @@ DocumentView::LinkKB() noexcept
         BrowseLinkItem *link = visibleLinks[i].first;
         const int pageno     = visibleLinks[i].second;
 
-        const QString hintText = hints.at(static_cast<qsizetype>(i));
-        const QRectF textRect  = metrics.boundingRect(hintText);
-        const qreal padding    = 4.0;
+        const QString &hintText = hints.at(static_cast<qsizetype>(i));
+        const QRectF textRect   = metrics.boundingRect(hintText);
+        const qreal padding     = 4.0;
         const QSizeF hintSize(textRect.width() + padding * 2.0,
                               textRect.height() + padding * 2.0);
 
@@ -1439,7 +1439,8 @@ DocumentView::handleAnnotEllipseRequested(QRectF area) noexcept
 
 // Handle annotation polygon requested (the corners, in scene space)
 void
-DocumentView::handleAnnotPolygonRequested(QVector<QPointF> points) noexcept
+DocumentView::handleAnnotPolygonRequested(
+    const QVector<QPointF> &points) noexcept
 {
     if (!m_model || !m_model->supports_annotations() || points.size() < 3)
         return;

@@ -469,7 +469,7 @@ json_to_outline(fz_context *ctx, fz_document *doc,
 {
     fz_outline *root  = nullptr;
     fz_outline **tail = &root;
-    for (const QJsonValue &val : arr)
+    for (const auto &val : arr)
     {
         if (!val.isObject())
             continue;

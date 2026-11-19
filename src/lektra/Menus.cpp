@@ -952,7 +952,7 @@ Lektra::populateBookmarks() noexcept
     }
 
     QJsonArray jsonArray = jsonDoc.array();
-    for (const QJsonValue &value : jsonArray)
+    for (const auto &value : jsonArray)
     {
         if (!value.isObject())
             continue;

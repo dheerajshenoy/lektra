@@ -102,7 +102,7 @@ public:
     DocumentView &operator=(DocumentView &&)      = delete;
     DocumentView(DocumentView *sourceView)        = delete;
 
-    ~DocumentView() noexcept;
+    ~DocumentView() noexcept override;
 
     Id id() const noexcept
     {
@@ -479,8 +479,9 @@ public:
 
     void setAutoReload(bool state) noexcept;
     void setDPR(float dpr) noexcept;
-    QString selectionText(bool formatted             = false,
-                          std::string page_separator = "\n") const noexcept;
+    QString selectionText(bool formatted = false,
+                          const std::string &page_separator
+                          = "\n") const noexcept;
 
     // The jump locations of this view (what GoBackHistory and GoForwardHistory
     // walk through), and the index of the current one (-1: none).
@@ -828,7 +829,7 @@ private:
     void handleAnnotRectRequested(QRectF area) noexcept;
     void handleAnnotRedactRequested(QRectF area) noexcept;
     void handleAnnotEllipseRequested(QRectF area) noexcept;
-    void handleAnnotPolygonRequested(QVector<QPointF> points) noexcept;
+    void handleAnnotPolygonRequested(const QVector<QPointF> &points) noexcept;
     void handleAnnotNoteRequested(QRectF area) noexcept;
     void handleAnnotPopupRequested(QPointF scenePos) noexcept;
     void handleHScrollValueChanged(int value) noexcept;

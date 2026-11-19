@@ -1832,7 +1832,7 @@ DocumentView::Copy_page_image() noexcept
 
 QString
 DocumentView::selectionText(bool formatted,
-                            std::string separator) const noexcept
+                            const std::string &separator) const noexcept
 {
     // Copy the state so we can normalize it safely
     QPointF start = m_selection_start;

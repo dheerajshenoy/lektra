@@ -1394,6 +1394,9 @@ Lektra::handleLinkHintEvent(QEvent *event) noexcept
             if (it != m_link_hint_map.end())
             {
                 // the callback may start hint mode again, so end this one first
+                // A copy on purpose: the callback below can start hint mode
+                // again, which rebuilds m_link_hint_map under a reference.
+                // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
                 const Model::LinkInfo info = it.value();
                 auto pick_cb               = std::move(m_link_hint_pick_cb);
                 m_link_hint_pick_cb        = nullptr;

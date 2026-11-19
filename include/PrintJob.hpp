@@ -57,7 +57,7 @@ signals:
 
 private:
     void requestRender(int index);
-    void onRendered(int index, QImage image);
+    void onRendered(int index, const QImage &image);
     void paintPage(int index, const QImage &image);
     void finish(bool ok, const QString &error);
 

@@ -46,15 +46,15 @@ public:
 
     QFont getQFont() const;
 
-    virtual float getSize() const override;
+    float getSize() const override;
 
-    virtual sptr<Font> deriveFont(int style) const override;
+    sptr<Font> deriveFont(int style) const override;
 
-    virtual bool operator==(const Font &f) const override;
+    bool operator==(const Font &f) const override;
 
-    virtual bool operator!=(const Font &f) const override;
+    bool operator!=(const Font &f) const override;
 
-    virtual ~Font_qt() {};
+    ~Font_qt() override {};
 };
 
 /**************************************************************************************************/
@@ -68,9 +68,9 @@ private:
 public:
     TextLayout_qt(const std::wstring &src, const sptr<Font_qt> &font);
 
-    virtual void getBounds(Rect &r) override;
+    void getBounds(Rect &r) override;
 
-    virtual void draw(Graphics2D &g2, float x, float y) override;
+    void draw(Graphics2D &g2, float x, float y) override;
 };
 
 /**************************************************************************************************/
@@ -96,48 +96,48 @@ public:
 
     QPainter *getQPainter() const;
 
-    virtual void setColor(color c) override;
+    void setColor(color c) override;
 
-    virtual color getColor() const override;
+    color getColor() const override;
 
-    virtual void setStroke(const Stroke &s) override;
+    void setStroke(const Stroke &s) override;
 
-    virtual const Stroke &getStroke() const override;
+    const Stroke &getStroke() const override;
 
-    virtual void setStrokeWidth(float w) override;
+    void setStrokeWidth(float w) override;
 
-    virtual const Font *getFont() const override;
+    const Font *getFont() const override;
 
-    virtual void setFont(const Font *font) override;
+    void setFont(const Font *font) override;
 
-    virtual void translate(float dx, float dy) override;
+    void translate(float dx, float dy) override;
 
-    virtual void scale(float sx, float sy) override;
+    void scale(float sx, float sy) override;
 
-    virtual void rotate(float angle) override;
+    void rotate(float angle) override;
 
-    virtual void rotate(float angle, float px, float py) override;
+    void rotate(float angle, float px, float py) override;
 
-    virtual void reset() override;
+    void reset() override;
 
-    virtual float sx() const override;
+    float sx() const override;
 
-    virtual float sy() const override;
+    float sy() const override;
 
-    virtual void drawChar(wchar_t c, float x, float y) override;
+    void drawChar(wchar_t c, float x, float y) override;
 
-    virtual void drawText(const std::wstring &t, float x, float y) override;
+    void drawText(const std::wstring &t, float x, float y) override;
 
-    virtual void drawLine(float x, float y1, float x2, float y2) override;
+    void drawLine(float x, float y1, float x2, float y2) override;
 
-    virtual void drawRect(float x, float y, float w, float h) override;
+    void drawRect(float x, float y, float w, float h) override;
 
-    virtual void fillRect(float x, float y, float w, float h) override;
+    void fillRect(float x, float y, float w, float h) override;
 
-    virtual void drawRoundRect(float x, float y, float w, float h, float rx,
+    void drawRoundRect(float x, float y, float w, float h, float rx,
                                float ry) override;
 
-    virtual void fillRoundRect(float x, float y, float w, float h, float rx,
+    void fillRoundRect(float x, float y, float w, float h, float rx,
                                float ry) override;
 };
 

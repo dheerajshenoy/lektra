@@ -424,7 +424,7 @@ DocumentView::initConnections() noexcept
 
     if (m_model->supports_links())
         connect(m_model, &Model::urlLinksReady, this,
-                [this](int pageno, std::vector<Model::RenderLink> links)
+                [this](int pageno, const std::vector<Model::RenderLink> &links)
         { renderLinks(pageno, links, true); });
 
     connect(m_model, &Model::reloadRequested, this,

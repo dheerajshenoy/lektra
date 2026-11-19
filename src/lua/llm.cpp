@@ -160,7 +160,7 @@ Lektra::llmLookupApi(const QString &query) const noexcept
     for (const ApiEntry &entry : entries)
         if (!modules.contains(entry.module))
             modules << entry.module;
-    const QString modulesLine
+    QString modulesLine
         = QStringLiteral("Modules: ") + modules.join(QStringLiteral(", "));
 
     QString q = query.trimmed().toLower();

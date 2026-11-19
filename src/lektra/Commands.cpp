@@ -63,7 +63,8 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
 
         auto commands = m_command_manager->commands();
         std::sort(commands.begin(), commands.end(),
-                  [](Command a, Command b) { return a.name < b.name; });
+                  [](const Command &a, const Command &b)
+        { return a.name < b.name; });
 
         for (const auto &cmd : commands)
             max_width = std::max(max_width, static_cast<int>(cmd.name.size()));
@@ -306,9 +307,9 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
             if (parts.isEmpty())
                 continue;
 
-            const QString cmd_name = parts[0];
-            const QStringList args = parts.mid(1);
-            auto c                 = m_command_manager->find(cmd_name);
+            const QString &cmd_name = parts[0];
+            const QStringList args  = parts.mid(1);
+            auto c                  = m_command_manager->find(cmd_name);
             if (!c.name.isEmpty())
                 c.action(args);
             else

@@ -20,7 +20,15 @@ Checks: >
   -bugprone-macro-parentheses,
   -performance-enum-size,
   -performance-no-int-to-ptr,
-  -clang-analyzer-optin.performance.Padding
+  -clang-analyzer-optin.performance.Padding,
+  -clang-analyzer-core.CallAndMessage,
+  -clang-analyzer-optin.core.EnumCastOutOfRange,
+  -clang-analyzer-optin.cplusplus.VirtualCall
+# Disabled analyzer checks, on purpose:
+#   core.CallAndMessage        false "uninitialized" reports around MuPDF's
+#                              setjmp-based fz_try/fz_catch.
+#   optin.core.EnumCastOutOfRange  Qt::QueuedConnection | Qt::UniqueConnection.
+#   optin.cplusplus.VirtualCall    MicroTeXQt calls its own overrides in its ctor.
   # Only report on our own headers, never thirdparty or generated moc code.
 HeaderFilterRegex: '.*/lektra/(src|include)/.*'
 ExcludeHeaderFilterRegex: '.*/thirdparty/.*'

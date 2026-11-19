@@ -80,7 +80,7 @@ isModuleName(const QString &name)
 inline QString
 canonicalModule(const QString &name)
 {
-    const QString n = name.trimmed().toLower();
+    QString n = name.trimmed().toLower();
     if (n == QLatin1String("pagenumber") || n == QLatin1String("page_number"))
         return QStringLiteral("page");
     return n;
