@@ -565,6 +565,16 @@ public:
         m_page_lru_cache.setCapacity(n);
     }
 
+    void setTextCacheCapacity(const int n) noexcept
+    {
+        m_text_cache.setCapacity(static_cast<size_t>(qMax(1, n)));
+    }
+
+    void setStextPageCacheCapacity(const int n) noexcept
+    {
+        m_stext_page_cache.setCapacity(static_cast<size_t>(qMax(1, n)));
+    }
+
     void setBackgroundColor(const uint32_t bg) noexcept
     {
         m_bg_color = bg;
@@ -1224,6 +1234,13 @@ private:
     PendingOpen m_pending;
 
     // MuPDF core objects
+    //
+    // Threading: a fz_context is not thread-safe. m_ctx belongs to the GUI
+    // thread. Code that runs on a worker thread (m_render_pool, m_aux_pool,
+    // QtConcurrent::run) must take its own context from cloneContext() and
+    // drop it when done. Clones share m_ctx's store and are synchronised
+    // through the m_fz_locks mutexes. m_render_pool does page renders and
+    // m_aux_pool (one thread) does URL link detection.
     fz_locks_context m_fz_locks;
     fz_context *m_ctx               = nullptr;
     fz_document *m_doc              = nullptr;

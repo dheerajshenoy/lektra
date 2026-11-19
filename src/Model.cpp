@@ -254,7 +254,7 @@ Model::Model(const Config &config, QObject *parent) noexcept
     setUrlLinkRegex(m_config.links.url_regex);
 
     // Eviction for LRU Cache
-    m_text_cache.setCapacity(512); // TODO: make this configurable
+    setTextCacheCapacity(m_config.behavior.text_cache_size);
     m_page_lru_cache.setCapacity(m_config.behavior.cache_pages);
     m_page_lru_cache.setCallback([this](PageCacheEntry &entry)
     {
@@ -269,7 +269,7 @@ Model::Model(const Config &config, QObject *parent) noexcept
         m_text_cache.remove(pageno);
     });
 
-    m_stext_page_cache.setCapacity(10); // TODO: make this configurable
+    setStextPageCacheCapacity(m_config.behavior.stext_page_cache_size);
     m_stext_page_cache.setCallback([this](fz_stext_page *stext_page)
     {
         if (!stext_page)

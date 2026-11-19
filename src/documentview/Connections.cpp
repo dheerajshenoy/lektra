@@ -1411,6 +1411,9 @@ DocumentView::applyLocalConfigChanges() noexcept
     {
         m_model->setInvertColor(m_config.behavior.invert_mode);
         m_model->setCacheCapacity(m_config.behavior.cache_pages);
+        m_model->setTextCacheCapacity(m_config.behavior.text_cache_size);
+        m_model->setStextPageCacheCapacity(
+            m_config.behavior.stext_page_cache_size);
         m_model->undoStack()->setUndoLimit(m_config.behavior.undo_limit);
         rerender = true;
     }

@@ -636,6 +636,16 @@
           "default": 5,
           "description": "Number of pages to cache page (since 0.5.3)"
         },
+        "text_cache_size": {
+          "type": "integer",
+          "default": 512,
+          "description": "Number of pages whose extracted text is kept in memory (used for search and text selection). Increase for faster search on large documents; reduce to save memory. (since 0.8.1)"
+        },
+        "stext_page_cache_size": {
+          "type": "integer",
+          "default": 10,
+          "description": "Number of structured text pages kept in memory for text selection and the caret. Increase if selecting text on many pages is slow; reduce to save memory. (since 0.8.1)"
+        },
         "mupdf_store_size": {
           "type": "integer",
           "default": 64,
@@ -2588,6 +2598,16 @@
                 "type": "integer",
                 "default": 5,
                 "description": "Number of pages to cache page (since 0.5.3)"
+              },
+              "text_cache_size": {
+                "type": "integer",
+                "default": 512,
+                "description": "Number of pages whose extracted text is kept in memory (used for search and text selection). Increase for faster search on large documents; reduce to save memory. (since 0.8.1)"
+              },
+              "stext_page_cache_size": {
+                "type": "integer",
+                "default": 10,
+                "description": "Number of structured text pages kept in memory for text selection and the caret. Increase if selecting text on many pages is slow; reduce to save memory. (since 0.8.1)"
               },
               "mupdf_store_size": {
                 "type": "integer",

@@ -533,10 +533,9 @@ Lektra::addBookmark(const Bookmark &bookmark) noexcept
 void
 Lektra::RemoveBookmark() noexcept
 {
-    if (!m_doc)
-        return;
-
-    // TODO: Fix the implementation
+    ensureBookmarkPicker();
+    m_bookmark_picker->setMode(BookmarkPicker::Mode::Remove);
+    m_bookmark_picker->launch();
 }
 
 void

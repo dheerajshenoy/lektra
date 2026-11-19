@@ -14,13 +14,46 @@ BookmarkPicker::BookmarkPicker(const Config::Picker &config,
     setPrompt("Bookmarks");
 }
 
+void
+BookmarkPicker::setMode(Mode mode) noexcept
+{
+    m_mode = mode;
+    if (mode == Mode::Remove)
+    {
+        setColumns({{.header = "Bookmark", .stretch = 1},
+                    {.header = "Path", .stretch = 2}});
+        setPrompt("Remove bookmark");
+    }
+    else
+    {
+        setColumns({{.header = "ID", .stretch = 1},
+                    {.header = "Bookmarks", .stretch = 1}});
+        setPrompt("Bookmarks");
+    }
+}
+
 QList<Picker::Item>
 BookmarkPicker::collectItems()
 {
     QList<Item> items;
-    items.reserve(m_bookmark_manager->bookmarks().size());
-    for (const auto &bookmark : m_bookmark_manager->bookmarks())
+    const auto bookmarks = m_bookmark_manager->bookmarks();
+    items.reserve(bookmarks.size());
+    for (const auto &bookmark : bookmarks)
     {
+        if (m_mode == Mode::Remove)
+        {
+            // The UUID means nothing to the user, so show file and page.
+            items.push_back({
+                .columns  = {QStringLiteral("%1 (p. %2)")
+                                 .arg(QFileInfo(bookmark.filePath()).fileName())
+                                 .arg(bookmark.location().pageno + 1),
+                             bookmark.filePath()},
+                .data     = bookmark.id(),
+                .children = {},
+            });
+            continue;
+        }
+
         items.push_back({
             .columns  = {bookmark.id(), bookmark.filePath()},
             .data     = bookmark.filePath(),
@@ -34,5 +67,8 @@ BookmarkPicker::collectItems()
 void
 BookmarkPicker::onItemAccepted(const Item &item)
 {
-    emit fileOpenRequested(item.data.toString());
+    if (m_mode == Mode::Remove)
+        emit bookmarkRemoveRequested(item.data.toString());
+    else
+        emit fileOpenRequested(item.data.toString());
 }

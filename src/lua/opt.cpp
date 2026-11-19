@@ -2447,6 +2447,24 @@ static const LuaField behaviorFields[] = {
     return 1;
 }, [](lua_State *L, P p)
 { static_cast<Config::Behavior *>(p)->cache_pages = lua_tointeger(L, 3); }},
+    {"text_cache_size",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L, static_cast<Config::Behavior *>(p)->text_cache_size);
+    return 1;
+}, [](lua_State *L, P p)
+{ static_cast<Config::Behavior *>(p)->text_cache_size = lua_tointeger(L, 3); }},
+    {"stext_page_cache_size",
+     [](lua_State *L, P p)
+{
+    lua_pushinteger(L,
+                    static_cast<Config::Behavior *>(p)->stext_page_cache_size);
+    return 1;
+}, [](lua_State *L, P p)
+{
+    static_cast<Config::Behavior *>(p)->stext_page_cache_size
+        = lua_tointeger(L, 3);
+}},
     {"cache_password",
      [](lua_State *L, P p)
 {

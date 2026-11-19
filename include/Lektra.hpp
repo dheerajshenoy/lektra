@@ -355,6 +355,7 @@ public:
     // Adds a bookmark and tells the OnBookmarkAdded listeners.
     void addBookmark(const Bookmark &bookmark) noexcept;
     void RemoveBookmark() noexcept;
+    void ensureBookmarkPicker() noexcept;
     // Write the current bookmark set to a JSON file. Empty path opens a
     // save-file dialog. Format matches the on-disk bookmarks.json layout so
     // exports can be moved to another machine and dropped into place.

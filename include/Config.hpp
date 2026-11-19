@@ -1601,6 +1601,26 @@ struct Config
         int cache_pages = 5;
 
         // @desc {
+        // Number of pages whose extracted text is kept in memory (used for
+        // search and text selection). Increase for faster search on large
+        // documents; reduce to save memory.
+        // }
+        // @type int
+        // @default 512
+        // @added 0.8.1
+        int text_cache_size = 512;
+
+        // @desc {
+        // Number of structured text pages kept in memory for text selection
+        // and the caret. Increase if selecting text on many pages is slow;
+        // reduce to save memory.
+        // }
+        // @type int
+        // @default 10
+        // @added 0.8.1
+        int stext_page_cache_size = 10;
+
+        // @desc {
         // Maximum size of MuPDF's internal store in megabytes. The store
         // holds decoded embedded images, fonts, and glyph bitmaps. Reduce
         // this if memory usage is too high; increase if you notice slow

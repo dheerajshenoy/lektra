@@ -425,6 +425,9 @@ applyViewToml(toml::table &toml, Config &cfg)
         set(behavior["recent_files"], cfg.behavior.recent_files);
         set(behavior["num_recent_files"], cfg.behavior.num_recent_files);
         set(behavior["cache_pages"], cfg.behavior.cache_pages);
+        set(behavior["text_cache_size"], cfg.behavior.text_cache_size);
+        set(behavior["stext_page_cache_size"],
+            cfg.behavior.stext_page_cache_size);
         set(behavior["mupdf_store_size"], cfg.behavior.mupdf_store_size);
         set(behavior["auto_scroll"], cfg.behavior.auto_scroll);
         set(behavior["keep_view"], cfg.behavior.keep_view);

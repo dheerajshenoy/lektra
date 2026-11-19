@@ -483,6 +483,8 @@ lektra.opt.rendering = {}
 ---@field keep_view? boolean Keep the same part of the page in view when going to the next or previous page (off: center the view on the new page).
 ---@field save_mode? "overwrite"|"ask"|"suffix" Where saving writes: into the open file, or to a new file (asked for, or `name_annotated.ext`) that the view then follows.
 ---@field cache_pages? integer Number of rendered pages to keep in the page cache.
+---@field text_cache_size? integer Number of pages whose extracted text is kept in memory (search and text selection).
+---@field stext_page_cache_size? integer Number of structured text pages kept in memory for text selection and the caret.
 ---@field cache_password? boolean Keep the password for encrypted PDFs in memory so auto-reload can re-authenticate.
 ---@field close_on_last_tab? boolean Quit LEKTRA when the last tab is closed (confirm_on_quit still applies).
 ---@field confirm_on_quit? boolean Show a confirmation dialog before quitting.

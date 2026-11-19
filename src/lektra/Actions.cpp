@@ -1601,16 +1601,25 @@ Lektra::Show_command_picker() noexcept
 void
 Lektra::Show_bookmark_picker() noexcept
 {
-    if (!m_bookmark_picker)
-    {
-        m_bookmark_picker
-            = new BookmarkPicker(m_config.picker, &m_bookmark_manager, this);
-        m_bookmark_picker->setKeybindings(m_picker_keybinds);
-        connect(m_bookmark_picker, &BookmarkPicker::fileOpenRequested, this,
-                [this](const QString &file_path) { OpenFileDWIM(file_path); });
-    }
-
+    ensureBookmarkPicker();
+    m_bookmark_picker->setMode(BookmarkPicker::Mode::Open);
     m_bookmark_picker->launch();
+}
+
+void
+Lektra::ensureBookmarkPicker() noexcept
+{
+    if (m_bookmark_picker)
+        return;
+
+    m_bookmark_picker
+        = new BookmarkPicker(m_config.picker, &m_bookmark_manager, this);
+    m_bookmark_picker->setKeybindings(m_picker_keybinds);
+    connect(m_bookmark_picker, &BookmarkPicker::fileOpenRequested, this,
+            [this](const QString &file_path) { OpenFileDWIM(file_path); });
+    connect(m_bookmark_picker, &BookmarkPicker::bookmarkRemoveRequested, this,
+            [this](const QString &id)
+    { m_bookmark_manager.removeBookmark(id); });
 }
 
 // If a jump marker was shown for the current document view, re-show it
