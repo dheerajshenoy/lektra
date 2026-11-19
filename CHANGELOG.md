@@ -25,6 +25,7 @@
 - Fix the minimap becoming wider and fatter right after changing page.
 - Fix a crash with a document that has no pages, such as a PDF that is still being written. It is no longer opened, and a reload keeps the current document.
 - Fix lektra freezing when selecting text in highlight mode on an EPUB. Text markup is only available for PDFs.
+- Fix the Nix flake failing with "MuPDF source not found". Use `git+https://github.com/dheerajshenoy/lektra?submodules=1` as the flake URL.
 
 ## 0.8.0
 

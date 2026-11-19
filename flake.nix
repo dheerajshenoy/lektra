@@ -1,14 +1,10 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    mupdf-src = {
-      url = "git+https://github.com/ArtifexSoftware/mupdf?ref=refs/tags/1.27.0&submodules=1";
-      flake = false;
-    };
   };
 
   outputs =
-    { self, nixpkgs, mupdf-src }:
+    { self, nixpkgs }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
@@ -19,10 +15,13 @@
 
         src = self;
 
-        postUnpack = ''
-          mkdir -p $sourceRoot/thirdparty
-          cp -r ${mupdf-src} $sourceRoot/thirdparty/mupdf
-          chmod -R u+w $sourceRoot/thirdparty/mupdf
+        # The submodules are only present with `?submodules=1` in the flake URL.
+        preConfigure = ''
+          if [ -z "$(ls -A thirdparty/mupdf 2>/dev/null)" ]; then
+            echo "lektra: submodules are missing. Use a flake URL with ?submodules=1:" >&2
+            echo "  git+https://github.com/dheerajshenoy/lektra?submodules=1" >&2
+            exit 1
+          fi
         '';
 
         nativeBuildInputs = with pkgs; [

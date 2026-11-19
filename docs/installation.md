@@ -47,6 +47,16 @@
         not by the upstream project. Please report Gentoo-specific issues to the
         [gentoo-zh](https://github.com/microcai/gentoo-zh) repository.
 
+=== "Nix"
+
+    The flake needs the git submodules, so the URL must include `?submodules=1`:
+
+    ```sh
+    nix run 'git+https://github.com/dheerajshenoy/lektra?submodules=1'
+    ```
+
+    The same applies when using it as a flake input.
+
 === "macOS"
 
     Requires Xcode or the Xcode Command Line Tools. Install the dependencies
