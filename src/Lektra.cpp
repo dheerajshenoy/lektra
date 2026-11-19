@@ -583,7 +583,6 @@ Lektra::updateActionsAndStuffForSystemTabs() noexcept
     m_statusbar->setFilePath(tr("Start Page"));
 }
 
-// Undo operation
 void
 Lektra::Undo() noexcept
 {
@@ -595,7 +594,6 @@ Lektra::Undo() noexcept
     }
 }
 
-// Redo operation
 void
 Lektra::Redo() noexcept
 {

@@ -893,7 +893,6 @@ DocumentView::gotoPageKeepingView(int pageno) noexcept
                           : QPointF(center.x(), center.y() + d));
 }
 
-// Go to next page
 void
 DocumentView::GotoNextPage() noexcept
 {
@@ -1140,7 +1139,6 @@ DocumentView::ToggleAutoResize() noexcept
     m_auto_resize = !m_auto_resize;
 }
 
-// Toggle thumbnail panel
 void
 DocumentView::ToggleThumbnailPanel() noexcept
 {
@@ -1168,7 +1166,6 @@ DocumentView::GotoLastPage() noexcept
     m_vscroll->setValue(m_vscroll->maximum());
 }
 
-// Go back in history
 void
 DocumentView::GoBackHistory() noexcept
 {
@@ -1186,7 +1183,6 @@ DocumentView::GoBackHistory() noexcept
     GotoLocation(target);
 }
 
-// Go forward in history
 void
 DocumentView::GoForwardHistory() noexcept
 {

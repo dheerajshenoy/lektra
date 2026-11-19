@@ -1280,7 +1280,6 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos,
         if (hasActions)
             menu->addSeparator();
 
-        // Delete selected annotations
         addAction(tr("Delete Annotations"), [this, selectedAnnots]()
         {
             QHash<int, QSet<int>> objNumsByPage;

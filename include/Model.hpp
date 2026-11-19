@@ -46,7 +46,6 @@ struct RenderCancel
     }
 };
 
-// Forward declaration
 class ImageAnimation;
 class TextHighlightAnnotationCommand;
 class TextAnnotationCommand;

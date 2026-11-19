@@ -20,14 +20,11 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-// Own includes
 #include "WaitingSpinnerWidget.hpp"
 
-// Standard includes
 #include <algorithm>
 #include <cmath>
 
-// Qt includes
 #include <QPainter>
 #include <QTimer>
 
