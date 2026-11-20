@@ -6,8 +6,10 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QListWidget>
+#include <QMenu>
 #include <QPushButton>
 #include <QScrollBar>
+#include <QShortcut>
 #include <QVBoxLayout>
 
 static QString
@@ -42,7 +44,15 @@ MessagesWidget::MessagesWidget(QWidget *parent) : QWidget(parent)
     m_list->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_list->setWordWrap(true);
     m_list->setUniformItemSizes(false);
+    m_list->setContextMenuPolicy(Qt::CustomContextMenu);
     layout->addWidget(m_list, 1);
+
+    connect(m_list, &QListWidget::customContextMenuRequested, this,
+            &MessagesWidget::showContextMenu);
+    auto *copyShortcut = new QShortcut(QKeySequence::Copy, m_list);
+    copyShortcut->setContext(Qt::WidgetShortcut);
+    connect(copyShortcut, &QShortcut::activated, this,
+            [this] { copySelected(false); });
 
     connect(copy, &QPushButton::clicked, this, &MessagesWidget::copyAll);
     connect(clear, &QPushButton::clicked, this,
@@ -71,6 +81,7 @@ MessagesWidget::append(const MessageLog::Entry &entry) noexcept
     const bool atEnd   = scroll->value() == scroll->maximum();
 
     auto *item = new QListWidgetItem(entryText(entry), m_list);
+    item->setData(Qt::UserRole, entry.text); // the message alone, for copying
     if (entry.level == MessageLog::Level::Warning)
         item->setForeground(QColor(0xD1, 0x9A, 0x00));
     else if (entry.level == MessageLog::Level::Error)
@@ -100,4 +111,39 @@ MessagesWidget::copyAll() const noexcept
     for (const MessageLog::Entry &entry : MessageLog::instance().entries())
         lines << entryText(entry);
     QApplication::clipboard()->setText(lines.join('\n'));
+}
+
+void
+MessagesWidget::showContextMenu(const QPoint &pos) noexcept
+{
+    QListWidgetItem *item = m_list->itemAt(pos);
+    if (!item)
+        return;
+    // Right-clicking a row outside the selection copies just that row.
+    if (!item->isSelected())
+        m_list->setCurrentItem(item);
+
+    QMenu menu(this);
+    menu.addAction(tr("Copy Message"), QKeySequence::Copy, this,
+                   [this] { copySelected(false); });
+    menu.addAction(tr("Copy with Time and Level"), this,
+                   [this] { copySelected(true); });
+    menu.exec(m_list->viewport()->mapToGlobal(pos));
+}
+
+// Copies the selected rows, top to bottom: the message text alone, or the
+// whole row as shown.
+void
+MessagesWidget::copySelected(bool withTimeAndLevel) const noexcept
+{
+    QStringList lines;
+    for (int i = 0; i < m_list->count(); ++i)
+    {
+        const QListWidgetItem *item = m_list->item(i);
+        if (item->isSelected())
+            lines << (withTimeAndLevel ? item->text()
+                                       : item->data(Qt::UserRole).toString());
+    }
+    if (!lines.isEmpty())
+        QApplication::clipboard()->setText(lines.join('\n'));
 }
