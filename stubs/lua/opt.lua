@@ -319,6 +319,7 @@ lektra.opt.jump_marker = {}
 ---@field delay? integer Milliseconds to hover before the preview shows.
 ---@field enabled? boolean Hovering an internal link shows a preview of its target, instead of the tooltip.
 ---@field height? integer Height of the preview in pixels.
+---@field highlight? "block"|"line"|"marker"|"none" How the preview shows what the link points at: shade the paragraph there, a line, a square like the jump marker, or nothing (uses jump_marker.color).
 ---@field width? integer Width of the preview in pixels.
 
 ---@class OptLinks

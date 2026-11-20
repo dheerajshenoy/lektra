@@ -47,6 +47,7 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPointer>
 #include <QProcess>
 #include <QTextCursor>
@@ -497,24 +498,39 @@ DocumentView::startHoverRender() noexcept
                      std::clamp(m_config.links.hover_preview.height, 60, 1200));
     const qreal dpr = devicePixelRatioF();
     Model *model    = m_model;
+    const auto mode = m_config.links.hover_preview.highlight;
+    const QColor markColor = rgbaToQColor(m_config.jump_marker.color);
+    // The overlay is placed in unrotated page space.
+    const bool canMark = model->rotation() == 0.0f && !model->isFlippedH()
+                         && !model->isFlippedV();
 
     m_hover_watcher.setFuture(QtConcurrent::run([=]() -> QImage
     {
-        // The part of the target page to show: as wide as is readable, with
-        // the preview's proportions, starting just above the destination.
+        // The part of the target page to show: the width of the column the
+        // target is in (the whole page width if there is no text there), with
+        // the preview's proportions and the destination a quarter of the way
+        // down.
         const QSizeF page = model->pageSizePts(req.page, true);
         if (page.isEmpty())
             return {};
-        const double regionW = std::min<double>(page.width(), 420.0);
+        const Model::LinkTarget found
+            = model->linkTarget(req.page, QPointF(req.x, req.y));
+
+        double regionW = page.width();
+        double x0      = 0.0;
+        if (!found.column.isNull())
+        {
+            constexpr double kPad = 10.0;
+            regionW = std::clamp(found.column.width() + 2 * kPad,
+                                 std::min(160.0, page.width()), page.width());
+            x0      = std::clamp(found.column.center().x() - regionW / 2, 0.0,
+                                 page.width() - regionW);
+        }
         const double regionH = std::min<double>(
             page.height(), regionW * size.height() / size.width());
-        const double x0 = std::isnan(req.x)
-                              ? 0.0
-                              : std::clamp<double>(req.x - 12.0, 0.0,
-                                                   page.width() - regionW);
         const double y0 = std::isnan(req.y)
                               ? 0.0
-                              : std::clamp<double>(req.y - 24.0, 0.0,
+                              : std::clamp<double>(req.y - regionH * 0.25, 0.0,
                                                    page.height() - regionH);
 
         // Pixels needed: the region's width at the preview's device size.
@@ -522,8 +538,73 @@ DocumentView::startHoverRender() noexcept
             = static_cast<float>(size.width() * dpr / regionW * 72.0);
         QImage image = model->renderPtsRegion(
             req.page, QRectF(x0, y0, regionW, regionH), dpi);
-        if (!image.isNull())
+        if (image.isNull())
+            return image;
+        image.setDevicePixelRatio(dpr);
+
+        using Highlight = Config::Links::HoverPreview::Highlight;
+        if (!canMark || mode == Highlight::None || std::isnan(req.y))
+            return image;
+
+        // Page points to the image's logical pixels.
+        const double scale = image.width() / dpr / regionW;
+        auto toImage       = [&](QPointF p)
+        { return QPointF((p.x() - x0) * scale, (p.y() - y0) * scale); };
+        const double markX = std::isnan(req.x) ? x0 + 4.0 : req.x;
+        const QPointF dest = toImage({markX, req.y});
+
+        if (image.format() != QImage::Format_ARGB32_Premultiplied
+            && image.format() != QImage::Format_RGB32)
+        {
+            image = image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
             image.setDevicePixelRatio(dpr);
+        }
+        QPainter p(&image);
+        p.setRenderHint(QPainter::Antialiasing);
+        const QRectF all(QPointF(0, 0), image.deviceIndependentSize());
+
+        QRectF target;
+        if (mode == Highlight::Block)
+        {
+            // Only the first line when the rest of its block would fill
+            // most of the preview.
+            const QRectF pts = found.block.height() <= regionH * 0.6
+                                   ? found.block
+                                   : found.line;
+            if (!pts.isNull())
+                target = QRectF(toImage(pts.topLeft()),
+                                toImage(pts.bottomRight()))
+                             .adjusted(-3, -2, 3, 2);
+        }
+
+        if (!target.isNull())
+        {
+            // Dim the rest towards the page colour, then shade the target.
+            QColor paper = image.pixelColor(0, 0);
+            paper.setAlpha(110);
+            QPainterPath rest;
+            rest.addRect(all);
+            QPainterPath hole;
+            hole.addRect(target);
+            p.fillPath(rest.subtracted(hole), paper);
+
+            QColor shade = markColor;
+            shade.setAlpha(40);
+            p.fillRect(target, shade);
+        }
+        else if (mode == Highlight::Marker)
+        {
+            // The square the jump marker draws, at the destination.
+            p.fillRect(QRectF(dest - QPointF(6, 6), QSizeF(12, 12)),
+                       markColor);
+        }
+        else // Line, or Block with no text at the target
+        {
+            QColor line = markColor;
+            line.setAlpha(200);
+            p.fillRect(QRectF(0, dest.y() - 1, all.width(), 2), line);
+            p.fillRect(QRectF(dest - QPointF(4, 4), QSizeF(8, 8)), markColor);
+        }
         return image;
     }));
 }

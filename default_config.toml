@@ -357,6 +357,7 @@ enabled = false  # hovering an internal link shows a preview of its target
 delay   = 350    # ms to hover before the preview shows
 width   = 480    # preview size in pixels
 height  = 240
+highlight = "block"  # what marks the target: block | line | marker | none
 
 
 # -----------------------------------------------------------------------------

@@ -638,6 +638,17 @@ public:
     // GUI thread. Null for image/DjVu documents.
     [[nodiscard]] QImage renderPtsRegion(int pageno, QRectF ptsRect,
                                          float targetDPI) noexcept;
+    // What a link destination at `pt` (page-space points; x may be NaN) most
+    // likely points at. All rects are in page-space points and null if there
+    // is no text there. Uses its own MuPDF context, so it may run off the GUI
+    // thread.
+    struct LinkTarget
+    {
+        QRectF line;   // the first line at or just below the destination
+        QRectF block;  // from that line to the end of its block
+        QRectF column; // the text around it in the same column
+    };
+    [[nodiscard]] LinkTarget linkTarget(int pageno, QPointF pt) noexcept;
     // Renders the whole page for a printer at `dpi`: the page as the document
     // defines it, on white, whatever the view shows. Unlike renderPtsRegion it
     // leaves out the view's colours (tint, invert, high contrast), rotation and

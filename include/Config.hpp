@@ -1091,6 +1091,25 @@ struct Config
             // @default 240
             // @added 0.8.1
             int height = 240;
+
+            // @desc {
+            // How the preview shows what the link points at: block shades
+            // the paragraph or entry there (a line where there is no text),
+            // line draws a line at the target, marker draws a square like the
+            // jump marker, none shows nothing. Uses jump_marker.color.
+            // }
+            // @type str
+            // @choice block, line, marker, none
+            // @default block
+            // @added 0.8.1
+            enum class Highlight
+            {
+                Block = 0,
+                Line,
+                Marker,
+                None
+            };
+            Highlight highlight = Highlight::Block;
         } hover_preview;
     } links;
     // @endsection

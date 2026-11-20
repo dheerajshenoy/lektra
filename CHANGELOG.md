@@ -26,6 +26,7 @@
 - Unknown keys in config.toml are now reported, as are enum values that are not one of the choices (they used to fall back to the default silently).
 - Lua: writing an option a value of the wrong type, or an option that does not exist, now shows a warning and leaves the option unchanged (it used to be turned into `false` or `0`). Enum options such as `layout.mode` also accept their name, e.g. `"book"`.
 - New `messages` command opens a Messages tab listing every message shown so far, including config.toml problems and Lua errors, so you can read them after they disappear. `behavior.message_log_size` (default 1000) sets how many are kept. Lua: `lektra.ui.messages()`.
+- The link hover preview now marks what the link points at: it shades the paragraph or reference entry there and dims the rest, and shows the full width of the column the target is in (lines used to be cut off on the right). `links.hover_preview.highlight` picks `block` (default), `line`, `marker` (a square like the jump marker) or `none`; the color is `jump_marker.color`.
 
 ### Bug Fixes
 

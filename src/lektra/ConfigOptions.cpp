@@ -180,6 +180,13 @@ constexpr Choice kUnderlineStyle[] = {
     {"dotted", (int)Config::Annotations::Underline::Style::Dotted},
 };
 
+constexpr Choice kHoverHighlight[] = {
+    {"block", (int)Config::Links::HoverPreview::Highlight::Block},
+    {"line", (int)Config::Links::HoverPreview::Highlight::Line},
+    {"marker", (int)Config::Links::HoverPreview::Highlight::Marker},
+    {"none", (int)Config::Links::HoverPreview::Highlight::None},
+};
+
 constexpr Choice kLayoutMode[] = {
     {"vertical", (int)LM::VERTICAL}, {"single", (int)LM::SINGLE},
     {"horizontal", (int)LM::HORIZONTAL}, {"book", (int)LM::BOOK},
@@ -453,6 +460,7 @@ build()
     r.integer("hover_preview.delay", F(links.hover_preview.delay));
     r.integer("hover_preview.width", F(links.hover_preview.width));
     r.integer("hover_preview.height", F(links.hover_preview.height));
+    r.choice("hover_preview.highlight", F(links.hover_preview.highlight), kHoverHighlight);
 
     r.section("link_hints", PerView);
     r.number("size", F(link_hints.size));

@@ -1332,6 +1332,130 @@ Model::renderPtsRegion(int pageno, QRectF ptsRect, float targetDPI) noexcept
     return result;
 }
 
+// How far below a link destination its target may start, in points. LaTeX
+// (hyperref) puts the anchor about a line above what it names.
+static constexpr float kTargetBelow = 36.0f;
+
+// The line of `page` a destination at (x, y) points at: the first one whose
+// middle is not above y (the line before the anchor often reaches just below
+// it), starts within kTargetBelow of it and, when x is known, lies in the
+// same column.
+static const fz_stext_line *
+targetLine(fz_stext_page *page, float x, float y) noexcept
+{
+    const fz_stext_line *best = nullptr;
+    for (fz_stext_block *b = page->first_block; b; b = b->next)
+    {
+        if (b->type != FZ_STEXT_BLOCK_TEXT)
+            continue;
+        for (fz_stext_line *l = b->u.t.first_line; l; l = l->next)
+        {
+            const fz_rect r = l->bbox;
+            if ((r.y0 + r.y1) / 2 < y - 1.0f || r.y0 > y + kTargetBelow)
+                continue;
+            if (!std::isnan(x) && (r.x1 <= x || r.x0 > x + 150.0f))
+                continue;
+            if (!best || r.y0 < best->bbox.y0
+                || (r.y0 == best->bbox.y0 && r.x0 < best->bbox.x0))
+                best = l;
+        }
+    }
+    return best;
+}
+
+static QRectF
+toQRect(const fz_rect &r) noexcept
+{
+    if (fz_is_empty_rect(r))
+        return {};
+    return QRectF(QPointF(r.x0, r.y0), QPointF(r.x1, r.y1));
+}
+
+// The column `line` sits in: every text line within `reach` points above or
+// below it that overlaps it horizontally. In a two-column layout that is the
+// target's column; on a single-column page, the whole text width.
+static fz_rect
+columnAround(fz_stext_page *page, const fz_stext_line *line,
+             float reach) noexcept
+{
+    const fz_rect t = line->bbox;
+    fz_rect col     = t;
+    for (fz_stext_block *b = page->first_block; b; b = b->next)
+    {
+        if (b->type != FZ_STEXT_BLOCK_TEXT)
+            continue;
+        for (fz_stext_line *l = b->u.t.first_line; l; l = l->next)
+        {
+            const fz_rect r = l->bbox;
+            if (r.y1 < t.y0 - reach || r.y0 > t.y1 + reach)
+                continue;
+            if (r.x1 <= t.x0 || r.x0 >= t.x1)
+                continue;
+            col = fz_union_rect(col, r);
+        }
+    }
+    return col;
+}
+
+Model::LinkTarget
+Model::linkTarget(int pageno, QPointF pt) noexcept
+{
+    if (m_is_image || m_filetype == FileType::DJVU || std::isnan(pt.y()))
+        return {};
+
+    ensurePageCached(pageno);
+
+    fz_context *ctx = cloneContext();
+    if (!ctx)
+        return {};
+
+    fz_display_list *dlist = nullptr;
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+        const PageCacheEntry *entry = m_page_lru_cache.get(pageno);
+        if (!entry || !entry->display_list)
+        {
+            fz_drop_context(ctx);
+            return {};
+        }
+        dlist = fz_keep_display_list(ctx, entry->display_list);
+    }
+
+    fz_stext_page *stext = nullptr;
+    fz_rect lineRect     = fz_empty_rect;
+    fz_rect blockRect    = fz_empty_rect;
+    fz_rect columnRect   = fz_empty_rect;
+
+    fz_try(ctx)
+    {
+        stext = fz_new_stext_page_from_display_list(ctx, dlist, nullptr);
+        if (const fz_stext_line *line
+            = targetLine(stext, static_cast<float>(pt.x()),
+                         static_cast<float>(pt.y())))
+        {
+            lineRect = line->bbox;
+            // From that line to the end of its block: the block may begin
+            // with text above the target.
+            blockRect = line->bbox;
+            for (const fz_stext_line *l = line->next; l; l = l->next)
+                blockRect = fz_union_rect(blockRect, l->bbox);
+            columnRect = columnAround(stext, line, 150.0f);
+        }
+    }
+    fz_always(ctx)
+    {
+        fz_drop_stext_page(ctx, stext);
+        fz_drop_display_list(ctx, dlist);
+    }
+    fz_catch(ctx)
+    {
+        lineRect = blockRect = columnRect = fz_empty_rect;
+    }
+
+    fz_drop_context(ctx);
+    return {toQRect(lineRect), toQRect(blockRect), toQRect(columnRect)};
+}
+
 // The largest image renderPageForPrint makes. A bogus dpi or a huge page
 // must not ask for an enormous buffer (or overflow an int on the way).
 static constexpr int MAX_PRINT_EDGE     = 32768;
