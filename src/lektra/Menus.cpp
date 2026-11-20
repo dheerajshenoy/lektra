@@ -294,7 +294,7 @@ Lektra::initMenubar() noexcept
             .arg(m_config.keybinds["high_contrast"].join(", ")),
         this, &Lektra::ToggleHighContrast);
     m_actionHighContrast->setCheckable(true);
-    m_actionHighContrast->setChecked(m_config.behavior.high_contrast);
+    m_actionHighContrast->setChecked(m_config.behavior.high_contrast.enabled);
 
     // --- Tools Menu ---
 
@@ -791,8 +791,8 @@ Lektra::updateUiEnabledState() noexcept
     m_actionInvertColor->setEnabled(hasFile);
     m_actionInvertColor->setChecked(hasFile && m_doc->invertColor());
     m_actionHighContrast->setChecked(
-        m_doc ? m_doc->config().behavior.high_contrast
-              : m_config.behavior.high_contrast);
+        m_doc ? m_doc->config().behavior.high_contrast.enabled
+              : m_config.behavior.high_contrast.enabled);
     m_actionSessionSave->setEnabled(hasFile);
     updateHistoryNavigationActions();
     m_actionSessionSaveAs->setEnabled(!m_session_name.isEmpty());

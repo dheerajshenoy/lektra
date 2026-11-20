@@ -29,16 +29,22 @@ open_position = "after_current"   # end | start | after_current
 
 [split]
 focus_follows_mouse = true
-dim_inactive        = true  # dim the splits that do not have the focus
-focus_border        = true
+
+[split.dim_inactive]
+enabled = true              # dim the splits that do not have the focus
+
+[split.focus_border]
+enabled = true
 
 [statusbar]
 # the file name on the left, page and zoom in the middle, the mode on the right
 layout = [ "filename", "|", "page", "zoom", "|", "mode" ]
 
 [links]
-hover_preview = true        # hover an internal link to see what it points at
 detect_urls   = true        # make bare URLs in the text clickable
+
+[links.hover_preview]
+enabled = true              # hover an internal link to see what it points at
 
 [annotations.highlight]
 color = "#FFD54F88"         # RRGGBBAA
@@ -65,4 +71,4 @@ reflow.font_size   = 12.0
 reflow.line_spacing = 1.4
 
 [filetype.djvu]
-behavior.high_contrast = true
+behavior.high_contrast.enabled = true

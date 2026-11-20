@@ -28,12 +28,12 @@ public:
           m_angle(angle)
     {
         m_comment = comment;
-        setGlowEnabled(config.hover_glow);
-        setGlowWidth(config.glow_width);
-        setGlowColor(config.glow_color);
+        setGlowEnabled(config.glow.enabled);
+        setGlowWidth(config.glow.width);
+        setGlowColor(config.glow.color);
         setFlags(flags() | QGraphicsItem::ItemIsFocusable);
-        setTooltipFontSize(config.comment_font_size);
-        setCommentMarkerVisible(config.comment_marker);
+        setTooltipFontSize(config.comment.font_size);
+        setCommentMarkerVisible(config.comment.marker);
         updateCommentMarker();
     }
 

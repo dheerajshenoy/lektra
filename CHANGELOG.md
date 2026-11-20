@@ -4,6 +4,12 @@
 
 ### Breaking Changes
 
+- Hover preview options moved into their own table: `links.hover_preview` is now `links.hover_preview.enabled`, and `hover_preview_delay`, `hover_preview_width` and `hover_preview_height` are now `delay`, `width` and `height` inside it (Lua: `lektra.opt.links.hover_preview.enabled`, ...). The old names are ignored.
+- More options moved into sub-tables, with `enabled` for the on/off switch (the old names are ignored; in Lua it is the same path, e.g. `lektra.opt.split.focus_border.width`):
+    - `split.dim_inactive`, `split.focus_border` and `split.maximize_indicator` (was `dim_inactive`, `dim_inactive_opacity`, `focus_border_color`, ...)
+    - `annotations.<type>.glow` (was `hover_glow`, `glow_width`, `glow_color`) and `annotations.<type>.comment` (was `comment`, `comment_marker`, `comment_font_size`; now `tooltip`, `marker`, `font_size`)
+    - `behavior.high_contrast`, `laser_pointer.trail` and `rendering.antialiasing` (was `high_contrast_black_point`, `trail_fade_ms`, `antialiasing_bits`, ...)
+    - `highlight_matches` of `picker`, `outline`, `command_palette` and `highlight_search` (was `highlight_matches` and `highlight_matches_color`)
 - Lua: event callbacks now receive one table, `event`, instead of separate arguments: use `event.view` (was the view argument), `event.index`, `event.name`, `event.bookmark`, `event.screen`, `event.link`, and so on.
 
 ### New Features
@@ -16,6 +22,9 @@
 - Lua: `view:preview(target)`, `view:open_portal(target)` and `view:close_portal()`.
 - New options `behavior.text_cache_size` and `behavior.stext_page_cache_size` set how many pages of text are kept in memory for search and text selection.
 - Printing: the new `print` command (`Ctrl+P`, File ▸ Print…) prints the document, or a range of its pages, to a printer or a PDF file. Lua: `view:print(opts, callback)`. Not available for DjVu yet.
+- config.toml and Lua now accept the same options. New in config.toml: `prompt` for every picker, `outline.generate_heading_ratio`, `outline.generate_max_levels` and `behavior.open_last_visited`. New in Lua: `width`, `height`, `border`, `alternating_row_color` and `shadow` of `outline`, `highlight_search` and `command_palette`.
+- Unknown keys in config.toml are now reported, as are enum values that are not one of the choices (they used to fall back to the default silently).
+- Lua: writing an option a value of the wrong type, or an option that does not exist, now shows a warning and leaves the option unchanged (it used to be turned into `false` or `0`). Enum options such as `layout.mode` also accept their name, e.g. `"book"`.
 
 ### Bug Fixes
 
@@ -28,6 +37,8 @@
 - Fix lektra freezing when selecting text in highlight mode on an EPUB. Text markup is only available for PDFs.
 - The `bookmark_remove` command now lists your bookmarks and deletes the one you pick (it did nothing before).
 - Fix the Nix flake failing with "MuPDF source not found". Use `git+https://github.com/dheerajshenoy/lektra?submodules=1` as the flake URL.
+- `preview.size_ratio` now accepts fractions such as `0.6` (only whole numbers were read).
+- Fix `lektra.opt.picker.keys.<action> = ...` writing to the wrong memory while a document was open.
 
 ## 0.8.0
 

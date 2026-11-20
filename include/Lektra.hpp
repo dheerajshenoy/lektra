@@ -118,7 +118,12 @@ public:
     void showMessage(const QString &message,
                             float duration = 2.0f) noexcept
     {
-        m_message_bar->showMessage(message, duration);
+        // init.lua runs before the message bar exists; show its messages
+        // once the bar is created.
+        if (m_message_bar)
+            m_message_bar->showMessage(message, duration);
+        else
+            m_pending_messages.append({message, duration});
     }
 
     DocumentView *VSplit(DocumentView::Id id = -1) noexcept;
@@ -705,6 +710,7 @@ private:
     RecentFilesStore m_recent_files_store;
     QString m_session_name;
     MessageBar *m_message_bar = nullptr;
+    QList<QPair<QString, float>> m_pending_messages;
     // What the export dialog was last set to.
     QString m_export_format   = QStringLiteral("png");
     bool m_export_split       = false;

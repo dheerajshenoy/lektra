@@ -1,5 +1,6 @@
 #include "AboutDialog.hpp"
 #include "AppPaths.hpp"
+#include "ConfigOptions.hpp"
 #include "DispatchType.hpp"
 #include "DocumentContainer.hpp"
 #include "DocumentView.hpp"
@@ -35,6 +36,8 @@
 #include <QStyleHints>
 #include <QWheelEvent>
 #include <QWindow>
+#include <algorithm>
+#include <initializer_list>
 #include <variant>
 
 namespace
@@ -56,7 +59,7 @@ set_title_format_if_present(toml::node_view<toml::node> n,
 // been read. Values of the wrong type used to be skipped without a word.
 static QStringList g_config_issues;
 
-static void
+void
 configIssue(const toml::node *node, const QString &message)
 {
     const int line = node ? static_cast<int>(node->source().begin.line) : 0;
@@ -150,27 +153,6 @@ set_color(toml::node_view<toml::node> n, uint32_t &dst)
         configIssue(n.node(), QObject::tr("expected a color like \"#RRGGBB\""));
 }
 
-static inline void
-set_picker_shared(toml::node_view<toml::node> picker, Config::Picker &target)
-{
-    set(picker["width"], target.width);
-    set(picker["height"], target.height);
-    set(picker["border"], target.border);
-    set(picker["alternating_row_color"], target.alternating_row_color);
-    set(picker["highlight_matches"], target.highlight_matches);
-    set_color(picker["highlight_matches_color"],
-              target.highlight_matches_color);
-
-    if (auto picker_shadow = picker["shadow"])
-    {
-        set(picker_shadow["enabled"], target.shadow.enabled);
-        set(picker_shadow["blur_radius"], target.shadow.blur_radius);
-        set(picker_shadow["offset_x"], target.shadow.offset_x);
-        set(picker_shadow["offset_y"], target.shadow.offset_y);
-        set(picker_shadow["opacity"], target.shadow.opacity);
-    }
-}
-
 template <typename T>
 static inline void
 inherit_picker_defaults(const Config::Picker &base, T &target)
@@ -181,275 +163,130 @@ inherit_picker_defaults(const Config::Picker &base, T &target)
 }
 } // namespace
 
-// Initialize the config related stuff
-// The settings a view keeps its own copy of. Used for the global [section]
-// tables and again for [filetype.<type>.section] overrides, so both accept
-// exactly the same keys.
+namespace co = config_options;
+
+// One option from config.toml into its Config field.
 static void
-applyViewToml(toml::table &toml, Config &cfg)
+readOption(const co::Option &o, toml::node_view<toml::node> n, Config &cfg)
 {
-    if (auto page = toml["page"])
+    switch (o.kind)
     {
-        set_color(page["bg"], cfg.page.bg);
-        set_color(page["fg"], cfg.page.fg);
-    }
-
-    if (auto annots = toml["annotations"])
-    {
-
-        if (auto highlight = annots["highlight"])
+        case co::Kind::Bool:
+            set(n, o.ref<bool>(cfg));
+            break;
+        case co::Kind::Int:
         {
-            set_color(highlight["color"], cfg.annotations.highlight.color);
-            set(highlight["hover_glow"], cfg.annotations.highlight.hover_glow);
-            set(highlight["comment"], cfg.annotations.highlight.comment);
-            set(highlight["comment_marker"],
-                cfg.annotations.highlight.comment_marker);
-            set(highlight["glow_width"], cfg.annotations.highlight.glow_width);
-            set_color(highlight["glow_color"],
-                      cfg.annotations.highlight.glow_color);
-            set(highlight["comment_font_size"],
-                cfg.annotations.highlight.comment_font_size);
+            int &v = o.ref<int>(cfg);
+            set(n, v);
+            v = std::clamp(v, o.rangeMin, o.rangeMax);
+            break;
         }
-
-        if (auto underline = annots["underline"])
+        case co::Kind::Float:
+            set(n, o.ref<float>(cfg));
+            break;
+        case co::Kind::Text:
+            set(n, o.ref<QString>(cfg));
+            break;
+        case co::Kind::Color:
+            set_color(n, o.ref<uint32_t>(cfg));
+            break;
+        case co::Kind::Choice:
         {
-            set_color(underline["color"], cfg.annotations.underline.color);
-            set(underline["hover_glow"], cfg.annotations.underline.hover_glow);
-            set(underline["comment"], cfg.annotations.underline.comment);
-            set(underline["comment_marker"],
-                cfg.annotations.underline.comment_marker);
-            set(underline["glow_width"], cfg.annotations.underline.glow_width);
-            set_color(underline["glow_color"],
-                      cfg.annotations.underline.glow_color);
-            set(underline["comment_font_size"],
-                cfg.annotations.underline.comment_font_size);
-            set(underline["thickness"], cfg.annotations.underline.thickness);
-            set(underline["offset"], cfg.annotations.underline.offset);
-            if (auto str = underline["style"])
+            int value = 0;
+            if (auto s = n.value<std::string>())
             {
-                using US = Config::Annotations::Underline::Style;
-                if (str == "dashed")
-                    cfg.annotations.underline.style = US::Dashed;
-                else if (str == "dotted")
-                    cfg.annotations.underline.style = US::Dotted;
+                if (o.choiceValue(*s, value))
+                    o.setChoice(cfg, value);
                 else
-                    cfg.annotations.underline.style = US::Solid;
-            }
-        }
-
-        if (auto rect = annots["rect"])
-        {
-            set_color(rect["color"], cfg.annotations.rect.color);
-            set(rect["hover_glow"], cfg.annotations.rect.hover_glow);
-            set(rect["comment"], cfg.annotations.rect.comment);
-            set(rect["comment_marker"], cfg.annotations.rect.comment_marker);
-            set(rect["glow_width"], cfg.annotations.rect.glow_width);
-            set_color(rect["glow_color"], cfg.annotations.rect.glow_color);
-            set(rect["comment_font_size"],
-                cfg.annotations.rect.comment_font_size);
-        }
-
-        if (auto redact = annots["redact"])
-            set(redact["save_to_new_file"],
-                cfg.annotations.redact.save_to_new_file);
-
-        if (auto popup = annots["popup"])
-        {
-            set(popup["hover_glow"], cfg.annotations.popup.hover_glow);
-            set(popup["comment"], cfg.annotations.popup.comment);
-            set(popup["glow_width"], cfg.annotations.popup.glow_width);
-            set_color(popup["glow_color"], cfg.annotations.popup.glow_color);
-            set(popup["comment_font_size"],
-                cfg.annotations.popup.comment_font_size);
-        }
-    }
-
-    if (auto layout = toml["layout"])
-    {
-        if (auto str = layout["mode"])
-        {
-            DocumentView::LayoutMode mode;
-
-            if (str == "vertical")
-                mode = DocumentView::LayoutMode::VERTICAL;
-            else if (str == "single")
-                mode = DocumentView::LayoutMode::SINGLE;
-            else if (str == "horizontal")
-                mode = DocumentView::LayoutMode::HORIZONTAL;
-            else if (str == "book")
-                mode = DocumentView::LayoutMode::BOOK;
-            else if (str == "grid")
-                mode = DocumentView::LayoutMode::GRID;
-            else
-                mode = DocumentView::LayoutMode::VERTICAL;
-
-            cfg.layout.mode = mode;
-        }
-        set(layout["grid_columns"], cfg.layout.grid_columns);
-        if (auto str = layout["initial_fit"])
-        {
-            DocumentView::FitMode initial_fit;
-
-            if (str == "width")
-            {
-                initial_fit = DocumentView::FitMode::Width;
-            }
-            else if (str == "height")
-            {
-                initial_fit = DocumentView::FitMode::Height;
-            }
-            else if (str == "window")
-            {
-                initial_fit = DocumentView::FitMode::Window;
+                    configIssue(n.node(),
+                                QObject::tr("'%1' is not one of %2")
+                                    .arg(QString::fromStdString(*s),
+                                         o.choiceList()));
             }
             else
-            {
-                initial_fit = DocumentView::FitMode::Width;
-            }
-
-            cfg.layout.initial_fit = initial_fit;
+                configIssue(n.node(), QObject::tr("expected one of %1")
+                                          .arg(o.choiceList()));
+            break;
         }
-        set(layout["auto_resize"], cfg.layout.auto_resize);
-        set(layout["spacing"], cfg.layout.spacing);
+        case co::Kind::Custom:
+            break; // read by hand in initConfig()
     }
+}
 
-    if (auto zoom = toml["zoom"])
+// Reads every option in `toml` that `want` accepts. Custom options are read
+// by hand in initConfig().
+static void
+applyOptions(toml::table &toml, Config &cfg,
+             bool (*want)(const co::Option &))
+{
+    for (const co::Option &o : co::all())
     {
-        set(zoom["level"], cfg.zoom.level);
-        set(zoom["factor"], cfg.zoom.factor);
-        set(zoom["anchor_to_mouse"], cfg.zoom.anchor_to_mouse);
+        if (o.kind == co::Kind::Custom || !want(o))
+            continue;
+        if (auto n = toml.at_path(o.path))
+            readOption(o, n, cfg);
+        else if (!o.alias.empty())
+            if (auto a = toml.at_path(o.alias))
+                readOption(o, a, cfg);
     }
+}
 
-    // Reflowable documents
-    if (auto reflow = toml["reflow"])
+// Reports the keys under `table` (at `prefix`) that are not options.
+// `scope` limits the options that count, e.g. to the per file type ones.
+static void
+checkUnknownKeys(const toml::table &table, const std::string &prefix,
+                 unsigned scope, const QString &where,
+                 std::initializer_list<std::string_view> skip = {})
+{
+    for (auto &&[key, value] : table)
     {
-        set(reflow["font_family"], cfg.reflow.font_family);
-        set(reflow["font_size"], cfg.reflow.font_size);
-        set(reflow["line_spacing"], cfg.reflow.line_spacing);
+        if (std::find(skip.begin(), skip.end(), key.str()) != skip.end())
+            continue;
+        const std::string path = prefix.empty()
+                                     ? std::string(key.str())
+                                     : prefix + "." + std::string(key.str());
+        if (const co::Option *o = co::find(path);
+            o && (o->scope & scope) == scope)
+            continue;
+        if (co::hasChildren(path, scope))
+        {
+            if (const toml::table *sub = value.as_table())
+                checkUnknownKeys(*sub, path, scope, where);
+            else
+                configIssue(&value,
+                            QObject::tr("%1'%2' is a section; set an option "
+                                        "inside it, e.g. %2.<option> = ...")
+                                .arg(where, QString::fromStdString(path)));
+            continue;
+        }
+        configIssue(&value, QObject::tr("%1unknown option '%2'")
+                                .arg(where, QString::fromStdString(path)));
     }
+}
 
+static bool
+isFiletypeOption(const co::Option &o)
+{
+    return o.scope & co::PerFiletype;
+}
+
+// [outline], [highlight_search] and [command_palette] are read after the
+// [picker] values have been copied into them.
+static bool
+isPickerVariant(const co::Option &o)
+{
+    return o.path.starts_with("outline.")
+           || o.path.starts_with("highlight_search.")
+           || o.path.starts_with("command_palette.");
+}
+
+// The options a [filetype.<type>] table can set, applied to `cfg`.
+static void
+applyFiletypeToml(toml::table &toml, Config &cfg)
+{
+    applyOptions(toml, cfg, isFiletypeOption);
     if (!cfg.reflow.font_family.isEmpty())
         Model::prewarmFontIndex();
-
-    if (auto selection = toml["selection"])
-    {
-        set(selection["drag_threshold"], cfg.selection.drag_threshold);
-        set(selection["copy_on_select"], cfg.selection.copy_on_select);
-        set_color(selection["color"], cfg.selection.color);
-    }
-
-    if (auto scrollbars = toml["scrollbars"])
-    {
-        set(scrollbars["vertical"], cfg.scrollbars.vertical);
-        set(scrollbars["horizontal"], cfg.scrollbars.horizontal);
-        set(scrollbars["search_hits"], cfg.scrollbars.search_hits);
-        set(scrollbars["auto_hide"], cfg.scrollbars.auto_hide);
-        set(scrollbars["size"], cfg.scrollbars.size);
-        set(scrollbars["hide_timeout"], cfg.scrollbars.hide_timeout);
-    }
-
-    if (auto minimap = toml["minimap"])
-    {
-        set(minimap["enabled"], cfg.minimap.enabled);
-        set(minimap["only_focused"], cfg.minimap.only_focused);
-        set(minimap["size"], cfg.minimap.size);
-        set(minimap["margin"], cfg.minimap.margin);
-        set(minimap["opacity"], cfg.minimap.opacity);
-        set(minimap["animated"], cfg.minimap.animated);
-        set(minimap["render_page"], cfg.minimap.render_page);
-
-        if (auto viewport = minimap["viewport"])
-        {
-            set(viewport["width"], cfg.minimap.viewport.width);
-            set_color(viewport["color"], cfg.minimap.viewport.color);
-            set_color(viewport["fill"], cfg.minimap.viewport.fill);
-            set_color(viewport["dim_color"], cfg.minimap.viewport.dim_color);
-        }
-        set(minimap["border_width"], cfg.minimap.border_width);
-        set_color(minimap["border_color"], cfg.minimap.border_color);
-
-        if (auto str = minimap["position"])
-        {
-            using MP = Config::Minimap::Position;
-            if (str == "top_left")
-                cfg.minimap.position = MP::TopLeft;
-            else if (str == "top_right")
-                cfg.minimap.position = MP::TopRight;
-            else if (str == "bottom_left")
-                cfg.minimap.position = MP::BottomLeft;
-            else
-                cfg.minimap.position = MP::BottomRight;
-        }
-    }
-
-    if (auto jump_marker = toml["jump_marker"])
-    {
-        set(jump_marker["enabled"], cfg.jump_marker.enabled);
-        set_color(jump_marker["jump_marker"], cfg.jump_marker.color);
-        set(jump_marker["fade_duration"], cfg.jump_marker.fade_duration);
-    }
-
-    if (auto links = toml["links"])
-    {
-        set(links["enabled"], cfg.links.enabled);
-        set(links["boundary"], cfg.links.boundary);
-        set(links["detect_urls"], cfg.links.detect_urls);
-        set(links["url_regex"], cfg.links.url_regex);
-        set(links["hover_preview"], cfg.links.hover_preview);
-        set(links["hover_preview_delay"], cfg.links.hover_preview_delay);
-        set(links["hover_preview_width"], cfg.links.hover_preview_width);
-        set(links["hover_preview_height"], cfg.links.hover_preview_height);
-    }
-
-    if (auto search = toml["search"])
-    {
-        set(search["highlight_matches"], cfg.search.highlight_matches);
-        set(search["progressive"], cfg.search.progressive);
-        set(search["absolute_jump"], cfg.search.absolute_jump);
-        set_color(search["match_color"], cfg.search.match_color);
-        set_color(search["index_color"], cfg.search.index_color);
-    }
-
-    if (auto behavior = toml["behavior"])
-    {
-        set(behavior["preload_pages"], cfg.behavior.preload_pages);
-        set(behavior["confirm_on_quit"], cfg.behavior.confirm_on_quit);
-        set(behavior["undo_limit"], cfg.behavior.undo_limit);
-        set(behavior["remember_last_visited"],
-            cfg.behavior.remember_last_visited);
-        set(behavior["single_instance"], cfg.behavior.single_instance);
-        set(behavior["page_history"], cfg.behavior.page_history_limit);
-        set(behavior["invert_mode"], cfg.behavior.invert_mode);
-        set(behavior["dont_invert_images"], cfg.behavior.dont_invert_images);
-        set(behavior["auto_reload"], cfg.behavior.auto_reload);
-        set(behavior["cache_password"], cfg.behavior.cache_password);
-        set(behavior["recent_files"], cfg.behavior.recent_files);
-        set(behavior["num_recent_files"], cfg.behavior.num_recent_files);
-        set(behavior["cache_pages"], cfg.behavior.cache_pages);
-        set(behavior["text_cache_size"], cfg.behavior.text_cache_size);
-        set(behavior["stext_page_cache_size"],
-            cfg.behavior.stext_page_cache_size);
-        set(behavior["mupdf_store_size"], cfg.behavior.mupdf_store_size);
-        set(behavior["auto_scroll"], cfg.behavior.auto_scroll);
-        set(behavior["keep_view"], cfg.behavior.keep_view);
-        set(behavior["drag_image_out"], cfg.behavior.drag_image_out);
-        if (auto str = behavior["save_mode"])
-        {
-            using SM = Config::Behavior::SaveMode;
-            if (str == "ask")
-                cfg.behavior.save_mode = SM::Ask;
-            else if (str == "suffix")
-                cfg.behavior.save_mode = SM::Suffix;
-            else
-                cfg.behavior.save_mode = SM::Overwrite;
-        }
-        set(behavior["close_on_last_tab"], cfg.behavior.close_on_last_tab);
-        set(behavior["high_contrast"], cfg.behavior.high_contrast);
-        set(behavior["high_contrast_black_point"],
-            cfg.behavior.high_contrast_black_point);
-        set(behavior["high_contrast_white_point"],
-            cfg.behavior.high_contrast_white_point);
-    }
 }
 
 // Convert a mouse binding string from the config file into a MouseBindKey
@@ -606,7 +443,21 @@ Lektra::initConfig() noexcept
         }
     }
 
-    applyViewToml(toml, m_config);
+    // Every plain option (see ConfigOptions.cpp). The picker variants come
+    // after [picker] has been copied into them, further down.
+    applyOptions(toml, m_config,
+                 [](const co::Option &o) { return !isPickerVariant(o); });
+    if (!m_config.reflow.font_family.isEmpty())
+        Model::prewarmFontIndex();
+
+    // Keys that are not options. [filetype] is checked below; key and mouse
+    // bindings take any command name.
+    checkUnknownKeys(toml, {}, co::Global, {},
+                     {"filetype", "keybindings", "mousebindings",
+#ifndef WITH_SYNCTEX
+                      "synctex", // valid, but this build has no SyncTeX
+#endif
+                     });
 
     // Per-file-type overrides: [filetype.pdf.behavior], [filetype.epub.layout]
     // ... Each is applied on top of a view's options when a document of that
@@ -623,163 +474,44 @@ Lektra::initConfig() noexcept
             const std::string name = QString::fromUtf8(key.data(), key.length())
                                          .toLower()
                                          .toStdString();
-            static const QSet<QString> kSections
-                = {"page",       "layout",   "zoom",        "selection",
-                   "scrollbars", "search",   "jump_marker", "annotations", "minimap",
-                   "links",      "behavior", "reflow"};
-            for (const auto &[sec, value] : *section)
-            {
-                const QString secName
-                    = QString::fromUtf8(sec.data(), sec.length());
-                if (!kSections.contains(secName))
-                    configIssue(
-                        &value,
-                        QString("[filetype.%1]: unknown section '%2'")
-                            .arg(QString::fromStdString(name), secName));
-                else if (!value.is_table())
-                    configIssue(
-                        &value,
-                        QString("[filetype.%1]: '%2' is a section; set "
-                                "an option inside it, e.g. "
-                                "%2.<option> = ...")
-                            .arg(QString::fromStdString(name), secName));
-            }
+            checkUnknownKeys(
+                *section, {}, co::PerFiletype,
+                QString("[filetype.%1]: ").arg(QString::fromStdString(name)));
             auto table = std::make_shared<toml::table>(*section);
             // Read it once now so wrong values are reported at startup, not
             // silently the first time a document of this type is opened.
             {
                 Config scratch = m_config;
-                applyViewToml(*section, scratch); // the copy has no line info
+                applyFiletypeToml(*section, scratch); // the copy has no line info
             }
             (*overrides)[name] = [table](Config &cfg)
             {
-                applyViewToml(*table, cfg);
+                applyFiletypeToml(*table, cfg);
                 g_config_issues.clear(); // already reported at startup
             };
         }
         m_config.filetype_overrides = std::move(overrides);
     }
 
-    // Portals
-    if (auto portal = toml["portal"])
+    // Options with a shape of their own (Kind::Custom in ConfigOptions.cpp)
+
+    if (auto preview = toml["preview"]; preview["size_ratio"].is_table())
     {
-        set_color(portal["border_color"], m_config.portal.border_color);
-        set(portal["enabled"], m_config.portal.enabled);
-        set(portal["border_width"], m_config.portal.border_width);
-        set(portal["respect_parent"], m_config.portal.respect_parent);
-        set(portal["dim_inactive"], m_config.portal.dim_inactive);
-        set(portal["split"], m_config.portal.split);
+        float width{0.6f}, height{0.7f};
+
+        const auto &size_table = *preview["size_ratio"].as_table();
+
+        if (auto toml_width = size_table["width"].value<float>())
+            width = *toml_width;
+        if (auto toml_height = size_table["height"].value<float>())
+            height = *toml_height;
+
+        if (width > 0 && height > 0)
+            m_config.preview.size_ratio = {width, height};
     }
 
-    // Preview
-    if (auto preview = toml["preview"])
-    {
-        set(preview["border_radius"], m_config.preview.border_radius);
-        set(preview["close_on_click_outside"],
-            m_config.preview.close_on_click_outside);
-        if (preview["size_ratio"].is_table())
-        {
-            float width{0.6f}, height{0.7f};
-
-            const auto &size_table = *preview["size_ratio"].as_table();
-
-            if (auto toml_width = size_table["width"].value<int>())
-                width = *toml_width;
-            if (auto toml_height = size_table["height"].value<int>())
-                height = *toml_height;
-
-            if (width > 0 && height > 0)
-            {
-                m_config.preview.size_ratio = {width, height};
-            }
-        }
-        set(preview["opacity"], m_config.preview.opacity);
-    }
-
-    if (auto thumbnail_panel = toml["thumbnail_panel"])
-    {
-        set(thumbnail_panel["page_numbers"],
-            m_config.thumbnail.page_numbers);
-        set(thumbnail_panel["panel_width"], m_config.thumbnail.panel_width);
-        set(thumbnail_panel["font_size"], m_config.thumbnail.font_size);
-        set(thumbnail_panel["highlight_current_page"],
-            m_config.thumbnail.highlight_current_page);
-        set(thumbnail_panel["sync_scroll"], m_config.thumbnail.sync_scroll);
-    }
-
-    // Tabs
-    if (auto tabs = toml["tabs"])
-    {
-        set(tabs["show"], m_config.tabs.show);
-        set(tabs["auto_hide"], m_config.tabs.auto_hide);
-        set(tabs["movable"], m_config.tabs.movable);
-
-        if (auto str = tabs["close_button_mode"])
-        {
-            using CBM = Config::Tabs::CloseButtonMode;
-            if (str == "current")
-                m_config.tabs.close_button_mode = CBM::Current;
-            else if (str == "hidden")
-                m_config.tabs.close_button_mode = CBM::Hidden;
-            else
-                m_config.tabs.close_button_mode = CBM::All;
-        }
-        set(tabs["scroll_text_on_hover"], m_config.tabs.scroll_text_on_hover);
-        set(tabs["min_width"], m_config.tabs.min_width);
-        set(tabs["max_width"], m_config.tabs.max_width);
-
-        if (auto str = tabs["elide_mode"])
-        {
-            Qt::TextElideMode mode;
-            if (str == "left")
-                mode = Qt::ElideLeft;
-            else if (str == "right")
-                mode = Qt::ElideRight;
-            else if (str == "middle")
-                mode = Qt::ElideMiddle;
-            else
-                mode = Qt::ElideNone;
-            m_config.tabs.elide_mode = mode;
-        }
-
-        if (auto str = tabs["location"])
-        {
-            QTabWidget::TabPosition location;
-
-            if (str == "left")
-                location = QTabWidget::West;
-            else if (str == "right")
-                location = QTabWidget::East;
-            else if (str == "bottom")
-                location = QTabWidget::South;
-            else
-                location = QTabWidget::North;
-
-            m_config.tabs.location = location;
-        }
-        set(tabs["full_path"], m_config.tabs.full_path);
-        set(tabs["lazy_load"], m_config.tabs.lazy_load);
-
-        if (auto str = tabs["open_position"])
-        {
-            using OP = Config::Tabs::OpenPosition;
-            if (str == "start")
-                m_config.tabs.open_position = OP::Start;
-            else if (str == "after_current")
-                m_config.tabs.open_position = OP::AfterCurrent;
-            else
-                m_config.tabs.open_position = OP::End;
-        }
-    }
-
-    // Window
     if (auto window = toml["window"])
     {
-        set(window["startup_tab"], m_config.window.startup_tab);
-        set(window["fullscreen"], m_config.window.fullscreen);
-        set_color(window["accent"], m_config.window.accent);
-        set_color(window["bg"], m_config.window.bg);
-
         if (window["initial_size"].is_table())
         {
             int width{600}, height{400};
@@ -802,13 +534,8 @@ Lektra::initConfig() noexcept
                                     m_config.window.title_format);
     }
 
-    // Annotations
-
-    // Statusbar
     if (auto statusbar = toml["statusbar"])
     {
-        set(statusbar["show"], m_config.statusbar.show);
-
         // A list of four numbers (left, top, right, bottom), or one number
         // for all four sides.
         if (auto padding_array = statusbar["padding"].as_array();
@@ -841,267 +568,99 @@ Lektra::initConfig() noexcept
         else if (statusbar["layout"])
             configIssue(statusbar["layout"].node(),
                         QObject::tr("expected a list or a table of sections for the layout"));
-
-        if (auto components = statusbar["components"])
-        {
-            if (auto mode = components["mode"])
-            {
-                set(mode["show"], m_config.statusbar.component.mode.show);
-                set(mode["text"], m_config.statusbar.component.mode.text);
-                set(mode["icon"], m_config.statusbar.component.mode.icon);
-            }
-
-            if (auto pagenumber = components["pagenumber"])
-            {
-                set(pagenumber["show"],
-                    m_config.statusbar.component.pagenumber.show);
-            }
-
-            if (auto session = components["session"])
-            {
-                set(session["show"], m_config.statusbar.component.session.show);
-            }
-
-            if (auto zoom = components["zoom"])
-            {
-                set(zoom["show"], m_config.statusbar.component.zoom.show);
-            }
-
-            if (auto filename = components["filename"])
-            {
-                set(filename["show"],
-                    m_config.statusbar.component.filename.show);
-                set(filename["full_path"],
-                    m_config.statusbar.component.filename.full_path);
-            }
-
-            if (auto progress = components["progress"])
-            {
-                set(progress["show"],
-                    m_config.statusbar.component.progress.show);
-            }
-        }
     }
 
-    // Layout
-
-    // Zoom
-
-    // Selection
-
-    /* scrollbars */
-
-    // Picker
-    if (auto picker = toml["picker"])
+    // [picker.keys]
+    if (auto picker_keys = toml["picker"]["keys"]; picker_keys.is_table())
     {
-        set_picker_shared(picker, m_config.picker);
+        const auto &keys = *picker_keys.as_table();
+        const Picker::Keybindings defaults{};
 
-        // Picker.Keys
-        if (auto picker_keys = picker["keys"])
+        const auto parse
+            = [](const std::string &s) -> std::optional<QKeyCombination>
         {
-            if (picker_keys.is_table())
+            const auto seq = QKeySequence::fromString(
+                QString::fromStdString(s), QKeySequence::PortableText);
+            if (seq.isEmpty())
+                return std::nullopt;
+            return seq[0];
+        };
+
+        const auto get = [&](std::string_view field,
+                             const QList<QKeyCombination> &fallback)
+            -> QList<QKeyCombination>
+        {
+            const auto *node = keys.get(field);
+            if (!node)
+                return fallback;
+
+            if (node->is_string())
             {
-                const auto &keys = *picker_keys.as_table();
-                const Picker::Keybindings defaults{};
-
-                const auto parse
-                    = [](const std::string &s) -> std::optional<QKeyCombination>
-                {
-                    const auto seq = QKeySequence::fromString(
-                        QString::fromStdString(s), QKeySequence::PortableText);
-                    if (seq.isEmpty())
-                        return std::nullopt;
-                    return seq[0];
-                };
-
-                const auto get = [&](std::string_view field,
-                                     const QList<QKeyCombination> &fallback)
-                    -> QList<QKeyCombination>
-                {
-                    const auto *node = keys.get(field);
-                    if (!node)
-                        return fallback;
-
-                    if (node->is_string())
-                    {
-                        if (auto kc
-                            = parse(std::string(node->as_string()->get())))
-                            return {*kc};
-                        return fallback;
-                    }
-                    else if (node->is_array())
-                    {
-                        QList<QKeyCombination> result;
-                        for (const auto &elem : *node->as_array())
-                            if (auto s = elem.value<std::string>())
-                                if (auto kc = parse(*s))
-                                    result << *kc;
-                        return result.isEmpty() ? fallback : result;
-                    }
-
-                    return fallback;
-                };
-
-                m_picker_keybinds = Picker::Keybindings{
-                    .moveUp      = get("up", defaults.moveUp),
-                    .moveDown    = get("down", defaults.moveDown),
-                    .pageUp      = get("page_up", defaults.pageUp),
-                    .pageDown    = get("page_down", defaults.pageDown),
-                    .sectionPrev = get("section_prev", defaults.sectionPrev),
-                    .sectionNext = get("section_next", defaults.sectionNext),
-                    .accept      = get("accept", defaults.accept),
-                    .expand      = get("expand", defaults.expand),
-                    .collapse    = get("collapse", defaults.collapse),
-                    .dismiss     = get("dismiss", defaults.dismiss),
-                    .toggleStructureMode = get("toggle_structure_mode",
-                                               defaults.toggleStructureMode),
-                    .historyPrev = get("history_prev", defaults.historyPrev),
-                    .historyNext = get("history_next", defaults.historyNext),
-                };
+                if (auto kc = parse(std::string(node->as_string()->get())))
+                    return {*kc};
+                return fallback;
             }
-        }
+            else if (node->is_array())
+            {
+                QList<QKeyCombination> result;
+                for (const auto &elem : *node->as_array())
+                    if (auto s = elem.value<std::string>())
+                        if (auto kc = parse(*s))
+                            result << *kc;
+                return result.isEmpty() ? fallback : result;
+            }
+
+            return fallback;
+        };
+
+        m_picker_keybinds = Picker::Keybindings{
+            .moveUp      = get("up", defaults.moveUp),
+            .moveDown    = get("down", defaults.moveDown),
+            .pageUp      = get("page_up", defaults.pageUp),
+            .pageDown    = get("page_down", defaults.pageDown),
+            .sectionPrev = get("section_prev", defaults.sectionPrev),
+            .sectionNext = get("section_next", defaults.sectionNext),
+            .accept      = get("accept", defaults.accept),
+            .expand      = get("expand", defaults.expand),
+            .collapse    = get("collapse", defaults.collapse),
+            .dismiss     = get("dismiss", defaults.dismiss),
+            .toggleStructureMode
+            = get("toggle_structure_mode", defaults.toggleStructureMode),
+            .historyPrev = get("history_prev", defaults.historyPrev),
+            .historyNext = get("history_next", defaults.historyNext),
+        };
     }
 
-    // Apply picker defaults to all picker-like sections.
-    // Individual sections parsed below can still override these values.
+    // Apply picker defaults to all picker-like sections, then their own
+    // values on top.
     inherit_picker_defaults(m_config.picker, m_config.outline);
     inherit_picker_defaults(m_config.picker, m_config.highlight_search);
     inherit_picker_defaults(m_config.picker, m_config.command_palette);
-
-    // Command Palette
-    if (auto command_palette = toml["command_palette"])
-    {
-        set_picker_shared(command_palette, static_cast<Config::Picker &>(
-                                               m_config.command_palette));
-
-        set(command_palette["description"],
-            m_config.command_palette.description);
-        set(command_palette["vscrollbar"], m_config.command_palette.vscrollbar);
-        // TODO: Implement grid in command palette
-        set(command_palette["shortcuts"],
-            m_config.command_palette.shortcuts);
-        set(command_palette["prompt"], m_config.command_palette.prompt);
-        set(command_palette["sort_by_frequency"],
-            m_config.command_palette.sort_by_frequency);
-        set(command_palette["persist_frequency"],
-            m_config.command_palette.persist_frequency);
-    }
-
-    // Markers
-
-    // Links
-
-    // Link Hints
-    if (auto link_hints = toml["link_hints"])
-    {
-        set(link_hints["size"], m_config.link_hints.size);
-        set_color(link_hints["bg"], m_config.link_hints.bg);
-        set_color(link_hints["fg"], m_config.link_hints.fg);
-        set(link_hints["charset"], m_config.link_hints.charset);
-    }
-
-    // Outline
-    if (auto outline = toml["outline"])
-    {
-        set_picker_shared(outline,
-                          static_cast<Config::Picker &>(m_config.outline));
-
-        set(outline["indent_width"], m_config.outline.indent_width);
-        set(outline["page_numbers"], m_config.outline.page_numbers);
-        set(outline["flat_menu"], m_config.outline.flat_menu);
-        set(outline["preload"], m_config.outline.preload);
-    }
-
-    // Highlight Search
-    if (auto highlight_search = toml["highlight_search"])
-    {
-        set_picker_shared(highlight_search, static_cast<Config::Picker &>(
-                                                m_config.highlight_search));
-        set(highlight_search["flat_menu"], m_config.highlight_search.flat_menu);
-    }
-
-    // Search
-
-#ifdef WITH_SYNCTEX
-    if (auto synctex = toml["synctex"])
-    {
-        set(synctex["enabled"], m_config.synctex.enabled);
-        set(synctex["editor_command"], m_config.synctex.editor_command);
-    }
-#endif
-
-    if (auto updates = toml["updates"])
-    {
-        set(updates["check"], m_config.updates.check);
-        set(updates["whats_new"], m_config.updates.whats_new);
-    }
-
-    if (auto donate = toml["donate"])
-        set(donate["reminders"], m_config.donate.reminders);
+    applyOptions(toml, m_config, isPickerVariant);
 
 #ifdef WITH_LLM_SUPPORT
-    if (auto llm_view = toml["llm_view"])
+    if (auto *extra_body = toml["llm_view"]["extra_body"].as_table())
     {
-        set(llm_view["at_startup"], m_config.llm_view.at_startup);
-        set(llm_view["auto_run"], m_config.llm_view.auto_run);
-        set(llm_view["tools"], m_config.llm_view.tools);
-        set(llm_view["save_history"], m_config.llm_view.save_history);
-        set(llm_view["font_size"], m_config.llm_view.font_size);
-        set(llm_view["separate_window"], m_config.llm_view.separate_window);
-        set(llm_view["dock_area"], m_config.llm_view.dock_area);
-        set(llm_view["model"], m_config.llm_view.model);
-        set(llm_view["api_key"], m_config.llm_view.api_key);
-        set(llm_view["api_url"], m_config.llm_view.api_url);
-
-        if (auto extra_body = llm_view["extra_body"])
+        m_config.llm_view.extra_body.clear();
+        for (auto &[key, value] : *extra_body)
         {
-            m_config.llm_view.extra_body.clear();
-            for (auto &[key, value] : *extra_body.as_table())
-            {
-                const QString qkey
-                    = QString::fromStdString(std::string(key.str()));
-                if (auto v = value.value<bool>())
-                    m_config.llm_view.extra_body.insert(qkey, *v);
-                else if (auto v = value.value<int64_t>())
-                    m_config.llm_view.extra_body.insert(
-                        qkey, static_cast<qlonglong>(*v));
-                else if (auto v = value.value<double>())
-                    m_config.llm_view.extra_body.insert(qkey, *v);
-                else if (auto v = value.value<std::string>())
-                    m_config.llm_view.extra_body.insert(
-                        qkey, QString::fromStdString(*v));
-            }
+            const QString qkey = QString::fromStdString(std::string(key.str()));
+            if (auto v = value.value<bool>())
+                m_config.llm_view.extra_body.insert(qkey, *v);
+            else if (auto v = value.value<int64_t>())
+                m_config.llm_view.extra_body.insert(qkey,
+                                                    static_cast<qlonglong>(*v));
+            else if (auto v = value.value<double>())
+                m_config.llm_view.extra_body.insert(qkey, *v);
+            else if (auto v = value.value<std::string>())
+                m_config.llm_view.extra_body.insert(qkey,
+                                                    QString::fromStdString(*v));
         }
     }
 #endif
-
-    // Menubar
-    if (auto menubar = toml["menubar"])
-    {
-        set(menubar["show"], m_config.menubar.show);
-        set(menubar["icons"], m_config.menubar.icons);
-    }
 
     if (auto presentation = toml["presentation"])
     {
-        set(presentation["hide_cursor_ms"],
-            m_config.presentation.hide_cursor_ms);
-        set(presentation["fullscreen"], m_config.presentation.fullscreen);
-        set(presentation["show_statusbar"],
-            m_config.presentation.show_statusbar);
-        set(presentation["laser_on_start"],
-            m_config.presentation.laser_on_start);
-
-        if (auto v = presentation["fit_mode"].value<std::string>())
-        {
-            if (*v == "width")
-                m_config.presentation.fit_mode = DocumentView::FitMode::Width;
-            else if (*v == "height")
-                m_config.presentation.fit_mode = DocumentView::FitMode::Height;
-            else
-                m_config.presentation.fit_mode = DocumentView::FitMode::Window;
-        }
-
         if (auto v = presentation["layout"].value<std::string>())
         {
             auto &layout = m_config.presentation.layout;
@@ -1129,37 +688,8 @@ Lektra::initConfig() noexcept
         }
     }
 
-    // Laser Pointer
-    if (auto laser_pointer = toml["laser_pointer"])
-    {
-        set_color(laser_pointer["color"], m_config.laser_pointer.color);
-        set(laser_pointer["size"], m_config.laser_pointer.size);
-        set(laser_pointer["trail"], m_config.laser_pointer.trail);
-        set(laser_pointer["trail_fade_ms"],
-            m_config.laser_pointer.trail_fade_ms);
-    }
-
-    // Rendering
     if (auto rendering = toml["rendering"])
     {
-        set(rendering["antialiasing"], m_config.rendering.antialiasing);
-        set(rendering["text_antialiasing"],
-            m_config.rendering.text_antialiasing);
-        set(rendering["smooth_pixmap_transform"],
-            m_config.rendering.smooth_pixmap_transform);
-        set(rendering["antialiasing_bits"],
-            m_config.rendering.antialiasing_bits);
-
-        if (auto v = rendering["backend"].value<std::string>())
-        {
-            if (*v == "opengl")
-                m_config.rendering.backend = Config::Rendering::Backend::OpenGL;
-            else if (*v == "raster")
-                m_config.rendering.backend = Config::Rendering::Backend::Raster;
-            else
-                m_config.rendering.backend = Config::Rendering::Backend::Auto;
-        }
-
         // If DPR is specified in config, use that (can be scalar or map)
         if (rendering["dpr"])
         {
@@ -1172,37 +702,29 @@ Lektra::initConfig() noexcept
                         = *v;
                 }
             }
-            else if (rendering["dpr"].is_table())
+            else if (auto *t = rendering["dpr"].as_table())
             {
-                // Only build a map if table exists; else leave default
-                auto dpr_table = rendering["dpr"];
-                if (auto t = dpr_table.as_table())
+                // A table replaces the whole per-screen map.
+                m_screen_dpr_map.clear();
+                for (auto &[screen_name, value] : *t)
                 {
-                    // Start from current map (if you want table to
-                    // "add/override") or clear it (if you want table to
-                    // "replace"). Here: replace, because that's what your
-                    // old code effectively did.
-                    m_screen_dpr_map.clear();
-                    for (auto &[screen_name, value] : *t)
+                    if (auto v = value.value<float>())
                     {
-                        if (auto v = value.value<float>())
-                        {
-                            const QString screen_str = QString::fromStdString(
-                                std::string(screen_name.str()));
+                        const QString screen_str = QString::fromStdString(
+                            std::string(screen_name.str()));
 
-                            for (QScreen *screen : QApplication::screens())
+                        for (QScreen *screen : QApplication::screens())
+                        {
+                            if (screen->name() == screen_str)
                             {
-                                if (screen->name() == screen_str)
-                                {
-                                    m_screen_dpr_map[screen->name()] = *v;
-                                    break;
-                                }
+                                m_screen_dpr_map[screen->name()] = *v;
+                                break;
                             }
                         }
                     }
-
-                    m_config.rendering.dpr = m_screen_dpr_map;
                 }
+
+                m_config.rendering.dpr = m_screen_dpr_map;
             }
         }
         else
@@ -1210,25 +732,6 @@ Lektra::initConfig() noexcept
             m_screen_dpr_map[QGuiApplication::primaryScreen()->name()] = 1.0f;
         }
     }
-
-    // Split
-    if (auto split = toml["split"])
-    {
-        set(split["mouse_follows_focus"], m_config.split.mouse_follows_focus);
-        set(split["focus_follows_mouse"], m_config.split.focus_follows_mouse);
-        set(split["dim_inactive"], m_config.split.dim_inactive);
-        set(split["dim_inactive_opacity"], m_config.split.dim_inactive_opacity);
-        set(split["focus_border"], m_config.split.focus_border);
-        set_color(split["focus_border_color"],
-                  m_config.split.focus_border_color);
-        set(split["focus_border_width"], m_config.split.focus_border_width);
-        set(split["maximize_indicator"], m_config.split.maximize_indicator);
-        set_color(split["maximize_indicator_color"],
-                  m_config.split.maximize_indicator_color);
-        set(split["gap"], m_config.split.gap);
-    }
-
-    // Behavior
 
     // Defaults are loaded here (exactly once) rather than in construct(),
     // so `load_defaults = false` in the user's [keybindings] block can

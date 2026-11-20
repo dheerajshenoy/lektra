@@ -22,13 +22,13 @@ public:
         : Annotation(index, color, parent), m_rect(rect), m_config(config)
     {
         m_comment = text;
-        setGlowColor(m_config.glow_color);
-        setGlowEnabled(m_config.hover_glow);
-        setGlowWidth(m_config.glow_width);
+        setGlowColor(m_config.glow.color);
+        setGlowEnabled(m_config.glow.enabled);
+        setGlowWidth(m_config.glow.width);
         setFlags(flags() | QGraphicsItem::ItemIsFocusable);
-        setTooltipFontSize(m_config.comment_font_size);
+        setTooltipFontSize(m_config.comment.font_size);
         if (!m_comment.isEmpty())
-            setTooltipFontSize(m_config.comment_font_size);
+            setTooltipFontSize(m_config.comment.font_size);
     }
 
     Type atype() const noexcept override

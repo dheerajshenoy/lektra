@@ -367,7 +367,7 @@ DocumentView::currentPageRenderKey() const noexcept
     key.flip_v          = m_model->isFlippedV();
     key.invert          = m_model->invertColor();
     key.trim            = m_trim_margins;
-    key.high_contrast   = m_config.behavior.high_contrast;
+    key.high_contrast   = m_config.behavior.high_contrast.enabled;
     key.dont_invert_img = m_config.behavior.dont_invert_images;
     return key;
 }

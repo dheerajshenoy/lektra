@@ -145,36 +145,61 @@ struct Config
         // @section_added 0.6.5
         struct Base
         {
-            // @desc Enable hover effect (e.g., glow on highlight)
-            // @type bool
-            // @default true
-            // @added 0.6.5
-            bool hover_glow = true;
+            // @section Annotations.[Type].glow
+            // @section_desc The glow shown around an annotation on hover
+            // @section_type struct
+            // @section_added 0.8.1
+            struct Glow
+            {
+                // @desc Enable hover effect (e.g., glow on highlight)
+                // @type bool
+                // @default true
+                // @added 0.8.1
+                bool enabled = true;
 
-            // @desc Annotation glow color (on hover)
-            // @type str
-            // @default "#FF5000AA"
-            // @added 0.6.5
-            uint32_t glow_color = 0xFF5000AA;
+                // @desc Glow color (on hover)
+                // @type str
+                // @default "#FF5000AA"
+                // @added 0.8.1
+                uint32_t color = 0xFF5000AA;
 
-            // @desc Glow width in pixels
-            // @type int
-            // @default 5
-            // @added 0.6.5
-            int glow_width = 5;
+                // @desc Glow width in pixels
+                // @type int
+                // @default 5
+                // @added 0.8.1
+                int width = 5;
+            } glow;
 
-            // @desc { Show comment text in tooltip on hover (if comment
-            // exists) }
-            // @type bool
-            // @default true
-            // @added 0.6.5
-            bool comment = true;
+            // @section Annotations.[Type].comment
+            // @section_desc {
+            // The comment of an annotation: its tooltip and its marker
+            // }
+            // @section_type struct
+            // @section_added 0.8.1
+            struct Comment
+            {
+                // @desc { Show comment text in tooltip on hover (if comment
+                // exists) }
+                // @type bool
+                // @default true
+                // @added 0.8.1
+                bool tooltip = true;
 
-            // @desc Font size for the comment tooltip (in points)
-            // @type int
-            // @default 12
-            // @added 0.6.5
-            int comment_font_size = 12;
+                // @desc {
+                // Show marker in the corner of the annotation (if comment
+                // exists). Popup annotations have no marker
+                // }
+                // @type bool
+                // @default true
+                // @added 0.8.1
+                bool marker = true;
+
+                // @desc Font size for the comment tooltip (in points)
+                // @type int
+                // @default 12
+                // @added 0.8.1
+                int font_size = 12;
+            } comment;
         };
         // @endsection
 
@@ -193,12 +218,6 @@ struct Config
         // @section_added 0.6.5
         struct Rect : public Base
         {
-            // @desc Show marker in the corner of the rect (if comment exists)
-            // @type bool
-            // @default true
-            // @added 0.6.5
-            bool comment_marker = true;
-
             // @desc Fill color for rect annotations
             // @type str
             // @default "#55FF5588"
@@ -213,12 +232,6 @@ struct Config
         // @section_added 0.6.5
         struct Highlight : public Base
         {
-            // @desc Show marker in the corner of the rect (if comment exists)
-            // @type bool
-            // @default true
-            // @added 0.6.5
-            bool comment_marker = true;
-
             // @desc Fill color for rect annotations
             // @type str
             // @default "#55FF5588"
@@ -237,12 +250,6 @@ struct Config
         // @section_added 0.8.0
         struct Underline : public Base
         {
-            // @desc Show marker in the corner of the underline (if comment exists)
-            // @type bool
-            // @default true
-            // @added 0.8.0
-            bool comment_marker = true;
-
             // @desc Color of new underlines
             // @type str
             // @default "#E53935FF"
@@ -762,53 +769,75 @@ struct Config
         // @added 0.6.2
         bool mouse_follows_focus = true;
 
-        // @desc Dims splits that are not currently focused
-        // @type bool
-        // @default false
-        // @added 0.6.2
-        bool dim_inactive = false;
-
-        // @desc Set the inactive split dim opacity [0-1]
-        // @type float
-        // @default 0.5f
-        // @added 0.6.2
-        float dim_inactive_opacity = 0.5f; // 0.0 (no dim) to 1.0 (fully dimmed)
-
-        // @desc Show a border around the focused split
-        // @type bool
-        // @default false
-        // @added 0.6.3
-        bool focus_border = false;
-
-        // @desc Color of the focus border (ARGB hex)
-        // @type uint32_t
-        // @default 0xFF4FC3F7
-        // @added 0.6.3
-        uint32_t focus_border_color = 0xFF4FC3F7;
-
-        // @desc Width of the focus border in pixels
-        // @type int
-        // @default 2
-        // @added 0.6.3
-        int focus_border_width = 2;
-
-        // @desc Show a badge in the corner of a maximized split
-        // @type bool
-        // @default true
-        // @added 0.6.3
-        bool maximize_indicator = true;
-
-        // @desc Color of the maximize badge (ARGB hex)
-        // @type uint32_t
-        // @default 0xCC2979FF
-        // @added 0.6.3
-        uint32_t maximize_indicator_color = 0xCC2979FF;
-
         // @desc Gap between splits in pixels
         // @type int
         // @default 4
         // @added 0.7.9.1
         int gap = 4; // gap between splits in pixels
+
+        // @section split.dim_inactive
+        // @section_desc Dimming of the splits that are not focused
+        // @section_type struct
+        // @section_added 0.8.1
+        struct DimInactive
+        {
+            // @desc Dims splits that are not currently focused
+            // @type bool
+            // @default false
+            // @added 0.8.1
+            bool enabled = false;
+
+            // @desc Opacity of the dimming [0-1] (0 is no dim, 1 is fully
+            // dimmed)
+            // @type float
+            // @default 0.5f
+            // @added 0.8.1
+            float opacity = 0.5f;
+        } dim_inactive;
+
+        // @section split.focus_border
+        // @section_desc The border around the focused split
+        // @section_type struct
+        // @section_added 0.8.1
+        struct FocusBorder
+        {
+            // @desc Show a border around the focused split
+            // @type bool
+            // @default false
+            // @added 0.8.1
+            bool enabled = false;
+
+            // @desc Color of the border (ARGB hex)
+            // @type uint32_t
+            // @default 0xFF4FC3F7
+            // @added 0.8.1
+            uint32_t color = 0xFF4FC3F7;
+
+            // @desc Width of the border in pixels
+            // @type int
+            // @default 2
+            // @added 0.8.1
+            int width = 2;
+        } focus_border;
+
+        // @section split.maximize_indicator
+        // @section_desc The badge shown on a maximized split
+        // @section_type struct
+        // @section_added 0.8.1
+        struct MaximizeIndicator
+        {
+            // @desc Show a badge in the corner of a maximized split
+            // @type bool
+            // @default true
+            // @added 0.8.1
+            bool enabled = true;
+
+            // @desc Color of the badge (ARGB hex)
+            // @type uint32_t
+            // @default 0xCC2979FF
+            // @added 0.8.1
+            uint32_t color = 0xCC2979FF;
+        } maximize_indicator;
     } split;
     // @endsection
 
@@ -1030,32 +1059,39 @@ struct Config
         // @added 0.5.3
         QString url_regex = R"((https?://|www\.)[^\s<>()\"']+)";
 
-        // @desc {
-        // Show a small preview of where an internal link goes when
-        // hovering over it, instead of the plain tooltip
-        // }
-        // @type bool
-        // @default false
-        // @added 0.7.9
-        bool hover_preview = false;
+        // @section links.hover_preview
+        // @section_desc Preview shown when hovering over an internal link
+        // @section_type struct
+        // @section_added 0.8.1
+        struct HoverPreview
+        {
+            // @desc {
+            // Show a small preview of where an internal link goes when
+            // hovering over it, instead of the plain tooltip
+            // }
+            // @type bool
+            // @default false
+            // @added 0.8.1
+            bool enabled = false;
 
-        // @desc Milliseconds to hover over a link before its preview shows
-        // @type int
-        // @default 350
-        // @added 0.7.9
-        int hover_preview_delay = 350;
+            // @desc Milliseconds to hover over a link before its preview shows
+            // @type int
+            // @default 350
+            // @added 0.8.1
+            int delay = 350;
 
-        // @desc Width of the hover preview in pixels
-        // @type int
-        // @default 480
-        // @added 0.7.9
-        int hover_preview_width = 480;
+            // @desc Width of the preview in pixels
+            // @type int
+            // @default 480
+            // @added 0.8.1
+            int width = 480;
 
-        // @desc Height of the hover preview in pixels
-        // @type int
-        // @default 240
-        // @added 0.7.9
-        int hover_preview_height = 240;
+            // @desc Height of the preview in pixels
+            // @type int
+            // @default 240
+            // @added 0.8.1
+            int height = 240;
+        } hover_preview;
     } links;
     // @endsection
 
@@ -1244,17 +1280,24 @@ struct Config
         // search box will take the full width of the picker
         QString prompt = QString();
 
-        // @desc Highlight matches in the picker list
-        // @type bool
-        // @default true
-        // @added 0.8.0
-        bool highlight_matches = true; // highlight matches in the list
+        // @section picker.highlight_matches
+        // @section_desc Highlighting of the typed text in the picker list
+        // @section_type struct
+        // @section_added 0.8.1
+        struct HighlightMatches
+        {
+            // @desc Highlight matches in the picker list
+            // @type bool
+            // @default true
+            // @added 0.8.1
+            bool enabled = true; // highlight matches in the list
 
-        // @desc Color for highlighted matches in the picker list
-        // @type str
-        // @default "#4FC3F7FF"
-        // @added 0.8.0
-        uint32_t highlight_matches_color = 0x4FC3F7FF; // 0xRRGGBBAA
+            // @desc Color for highlighted matches in the picker list
+            // @type str
+            // @default "#4FC3F7FF"
+            // @added 0.8.1
+            uint32_t color = 0x4FC3F7FF; // 0xRRGGBBAA
+        } highlight_matches;
 
         // clang-format off
         // @section Picker.Keys
@@ -1494,18 +1537,6 @@ struct Config
         // @added 0.3.0
         DPR dpr   = 1.0f;
 
-        // @desc Enable Antialiasing
-        // @type bool
-        // @default true
-        // @added 0.6.3
-        bool antialiasing = true;
-
-        // @desc Antialiasing bits
-        // @type int
-        // @default 8
-        // @added 0.3.0
-        int antialiasing_bits = 8;
-
         // @desc Enable text antialiasing
         // @type bool
         // @default true
@@ -1518,6 +1549,24 @@ struct Config
         // @added 0.6.3
         bool smooth_pixmap_transform = true;
 
+        // @section rendering.antialiasing
+        // @section_desc Antialiasing of the rendered pages
+        // @section_type struct
+        // @section_added 0.8.1
+        struct Antialiasing
+        {
+            // @desc Enable Antialiasing
+            // @type bool
+            // @default true
+            // @added 0.8.1
+            bool enabled = true;
+
+            // @desc Antialiasing bits
+            // @type int
+            // @default 8
+            // @added 0.8.1
+            int bits = 8;
+        } antialiasing;
     } rendering;
     // @endsection
 
@@ -1660,37 +1709,6 @@ struct Config
         bool invert_mode = false;
 
         // @desc {
-        // High-contrast tone stretch applied after tint / invert. Pixels
-        // darker than black_point become pure black, lighter than
-        // white_point become pure white, midtones stretched linearly. On
-        // scanned or grayish pages this cleans up the paper background
-        // and sharpens text; on already-black-on-white PDFs it is a near
-        // no-op. Toggle at runtime with :toggle_high_contrast.
-        // }
-        // @type bool
-        // @default false
-        // @added 0.7.8
-        bool high_contrast = false;
-
-        // @desc {
-        // Pixel value (0-255) below which high-contrast pushes to pure
-        // black.
-        // }
-        // @type int
-        // @default 40
-        // @added 0.7.8
-        int high_contrast_black_point = 40;
-
-        // @desc {
-        // Pixel value (0-255) above which high-contrast pushes to pure
-        // white.
-        // }
-        // @type int
-        // @default 220
-        // @added 0.7.8
-        int high_contrast_white_point = 220;
-
-        // @desc {
         // Preserve images when in invert color mode. When enabled, images in
         // the PDF will retain their original colors even when invert mode is
         // active. This prevents photos and diagrams from appearing inverted.
@@ -1751,6 +1769,44 @@ struct Config
         // @default text_selection
         // @added 0.3.0
         GraphicsView::Mode initial_mode = GraphicsView::Mode::TextSelection;
+
+        // @section behavior.high_contrast
+        // @section_desc High-contrast tone stretch of the rendered pages
+        // @section_type struct
+        // @section_added 0.8.1
+        struct HighContrast
+        {
+            // @desc {
+            // High-contrast tone stretch applied after tint / invert. Pixels
+            // darker than black_point become pure black, lighter than
+            // white_point become pure white, midtones stretched linearly. On
+            // scanned or grayish pages this cleans up the paper background
+            // and sharpens text; on already-black-on-white PDFs it is a near
+            // no-op. Toggle at runtime with :high_contrast.
+            // }
+            // @type bool
+            // @default false
+            // @added 0.8.1
+            bool enabled = false;
+
+            // @desc {
+            // Pixel value (0-255) below which high-contrast pushes to pure
+            // black.
+            // }
+            // @type int
+            // @default 40
+            // @added 0.8.1
+            int black_point = 40;
+
+            // @desc {
+            // Pixel value (0-255) above which high-contrast pushes to pure
+            // white.
+            // }
+            // @type int
+            // @default 220
+            // @added 0.8.1
+            int white_point = 220;
+        } high_contrast;
     } behavior;
     // @endsection
 
@@ -1952,17 +2008,25 @@ struct Config
         // @added 0.8.0
         int size = 20; // @desc Laser pointer size in pixels
 
-        // @desc Draw a trail while the left mouse button is held, fading from its oldest end like Excalidraw's laser pointer
-        // @type bool
-        // @default false
-        // @added 0.8.0
-        bool trail = false;
+        // @section laser_pointer.trail
+        // @section_desc The fading trail of the laser pointer
+        // @section_type struct
+        // @section_added 0.8.1
+        struct Trail
+        {
+            // @desc Draw a trail while the left mouse button is held, fading
+            // from its oldest end like Excalidraw's laser pointer
+            // @type bool
+            // @default false
+            // @added 0.8.1
+            bool enabled = false;
 
-        // @desc How long the trail takes to fade away, in milliseconds
-        // @type int
-        // @default 1000
-        // @added 0.8.0
-        int trail_fade_ms = 1000;
+            // @desc How long the trail takes to fade away, in milliseconds
+            // @type int
+            // @default 1000
+            // @added 0.8.1
+            int fade_ms = 1000;
+        } trail;
     } laser_pointer;
     // @endsection
 

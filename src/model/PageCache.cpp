@@ -550,11 +550,11 @@ Model::buildPageCache_djvu(int pageno) noexcept
 
     // DjVu is overwhelmingly used for scanned documents, where the
     // high-contrast stretch does its best work — apply it here too.
-    if (m_config.behavior.high_contrast)
+    if (m_config.behavior.high_contrast.enabled)
     {
         applyHighContrastQImage(image,
-                                m_config.behavior.high_contrast_black_point,
-                                m_config.behavior.high_contrast_white_point);
+                                m_config.behavior.high_contrast.black_point,
+                                m_config.behavior.high_contrast.white_point);
     }
 
     image.setDotsPerMeterX(static_cast<int>(render_dpi * 1000.0 / 25.4));

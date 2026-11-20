@@ -451,7 +451,7 @@ DocumentView::showLinkHoverPreview(const BrowseLinkItem *link,
 {
     hideLinkHoverPreview();
 
-    if (!m_config.links.hover_preview || !link || !link->isInternal()
+    if (!m_config.links.hover_preview.enabled || !link || !link->isInternal()
         || m_thumbnail_mode)
         return;
 
@@ -469,7 +469,7 @@ DocumentView::showLinkHoverPreview(const BrowseLinkItem *link,
     m_has_hover_pending        = true;
 
     ensureHoverSetup();
-    m_hover_timer->start(std::max(0, m_config.links.hover_preview_delay));
+    m_hover_timer->start(std::max(0, m_config.links.hover_preview.delay));
 }
 
 void
@@ -493,8 +493,8 @@ DocumentView::startHoverRender() noexcept
     m_has_hover_pending = false;
 
     const HoverRequest req = m_hover_inflight;
-    const QSize size(std::clamp(m_config.links.hover_preview_width, 120, 1600),
-                     std::clamp(m_config.links.hover_preview_height, 60, 1200));
+    const QSize size(std::clamp(m_config.links.hover_preview.width, 120, 1600),
+                     std::clamp(m_config.links.hover_preview.height, 60, 1200));
     const qreal dpr = devicePixelRatioF();
     Model *model    = m_model;
 
@@ -569,7 +569,7 @@ DocumentView::renderLinks(int pageno,
             case BrowseLinkItem::LinkType::Location:
             case BrowseLinkItem::LinkType::FitV:
             case BrowseLinkItem::LinkType::FitH:
-                if (m_config.links.hover_preview)
+                if (m_config.links.hover_preview.enabled)
                     // The preview replaces the tooltip.
                     item->setToolTip(QString());
                 else if (link.target_page >= 0)
@@ -673,7 +673,7 @@ DocumentView::renderLinks(int pageno,
                 break;
         }
 
-        if (m_config.links.hover_preview && item->isInternal())
+        if (m_config.links.hover_preview.enabled && item->isInternal())
         {
             connect(item, &BrowseLinkItem::hoverPreviewRequested, this,
                     [this](const BrowseLinkItem *l, const QPoint &pos)
@@ -769,8 +769,6 @@ DocumentView::renderAnnotations(
                 Config::Annotations::Highlight options;
                 static_cast<Config::Annotations::Base &>(options)
                     = m_config.annotations.underline;
-                options.comment_marker
-                    = m_config.annotations.underline.comment_marker;
                 annot_item
                     = new HighlightAnnotation(options, annot.rect, annot.index,
                                               annot.text, annot.rects);
@@ -1631,7 +1629,7 @@ DocumentView::ToggleCommentMarkers() noexcept
                 case Annotation::Type::Highlight:
                 {
                     annot->setCommentMarkerVisible(
-                        m_config.annotations.highlight.comment_marker);
+                        m_config.annotations.highlight.comment.marker);
                 }
                 break;
                 case Annotation::Type::Rect:
@@ -1639,7 +1637,7 @@ DocumentView::ToggleCommentMarkers() noexcept
                 case Annotation::Type::Polygon:
                 {
                     annot->setCommentMarkerVisible(
-                        m_config.annotations.rect.comment_marker);
+                        m_config.annotations.rect.comment.marker);
                 }
                 break;
 

@@ -147,13 +147,19 @@ max_width  = 0              # widest a tab may be, in pixels (0: no limit)
 [split]
 focus_follows_mouse      = true
 mouse_follows_focus      = true
-dim_inactive             = false
-dim_inactive_opacity     = 0.5     # 0.0 (no dim) - 1.0 (full dim)
-focus_border             = false
-focus_border_color       = "#FF4FC3F7"
-focus_border_width       = 2
-maximize_indicator       = true
-maximize_indicator_color = "#CC2979FF"
+
+[split.dim_inactive]
+enabled = false
+opacity = 0.5     # 0.0 (no dim) - 1.0 (full dim)
+
+[split.focus_border]
+enabled = false
+color   = "#FF4FC3F7"
+width   = 2
+
+[split.maximize_indicator]
+enabled = true
+color   = "#CC2979FF"
 
 
 # -----------------------------------------------------------------------------
@@ -256,12 +262,16 @@ flat_menu = true
 # -----------------------------------------------------------------------------
 [annotations.highlight]
 color             = "#55FF5588"
-hover_glow        = true
-glow_color        = "#FF5000AA"
-glow_width        = 5
-comment           = true
-comment_marker    = true
-comment_font_size = 12
+
+[annotations.highlight.glow]
+enabled = true
+color   = "#FF5000AA"
+width   = 5
+
+[annotations.highlight.comment]
+tooltip   = true
+marker    = true
+font_size = 12
 
 [annotations.underline]
 color      = "#E53935FF"   # color of new underlines
@@ -271,19 +281,27 @@ style      = "solid"       # solid | dashed | dotted
 
 [annotations.rect]
 color             = "#55FF5588"
-hover_glow        = true
-glow_color        = "#FF5000AA"
-glow_width        = 5
-comment           = true
-comment_marker    = true
-comment_font_size = 12
+
+[annotations.rect.glow]
+enabled = true
+color   = "#FF5000AA"
+width   = 5
+
+[annotations.rect.comment]
+tooltip   = true
+marker    = true
+font_size = 12
 
 [annotations.popup]
-hover_glow        = true
-glow_color        = "#FF5000AA"
-glow_width        = 5
-comment           = true
-comment_font_size = 12
+
+[annotations.popup.glow]
+enabled = true
+color   = "#FF5000AA"
+width   = 5
+
+[annotations.popup.comment]
+tooltip   = true
+font_size = 12
 
 
 # -----------------------------------------------------------------------------
@@ -333,10 +351,12 @@ enabled     = true                               # master switch for PDF links +
 boundary    = false                              # show the clickable rect boundary
 detect_urls = false                              # find bare URLs in the page text
 url_regex = '''(https?://|www\.)[^\s<>()"']+''' # used when detect_urls = true
-hover_preview        = false  # hovering an internal link shows a preview of its target
-hover_preview_delay  = 350    # ms to hover before the preview shows
-hover_preview_width  = 480    # preview size in pixels
-hover_preview_height = 240
+
+[links.hover_preview]
+enabled = false  # hovering an internal link shows a preview of its target
+delay   = 350    # ms to hover before the preview shows
+width   = 480    # preview size in pixels
+height  = 240
 
 
 # -----------------------------------------------------------------------------
@@ -377,16 +397,18 @@ reminders = true   # after a few weeks of use, at most twice a year
 # -----------------------------------------------------------------------------
 [rendering]
 backend                 = "raster"   # auto | raster | opengl
-antialiasing            = true
 text_antialiasing       = true
 smooth_pixmap_transform = true
-antialiasing_bits       = 8
 dpr                     = 1.0        # scalar, OR table keyed by screen name (see below)
 
 # Per-screen DPR override (uncomment and adapt the keys to `xrandr --listactivemonitors`):
 # [rendering.dpr]
 # "eDP-1"  = 1.5
 # "HDMI-A-1" = 1.0
+
+[rendering.antialiasing]
+enabled = true
+bits    = 8
 
 
 # -----------------------------------------------------------------------------
@@ -409,9 +431,11 @@ num_recent_files      = 10
 page_history          = 5         # location history depth per view (parser key: page_history)
 auto_scroll           = true      # scroll to keep out-of-view selection visible
 close_on_last_tab     = false     # quit LEKTRA when the last tab is closed (confirm_on_quit still applies)
-high_contrast              = false   # tone-stretch pass: dark ≤ black_point → 0, light ≥ white_point → 255
-high_contrast_black_point  = 40      # 0-255
-high_contrast_white_point  = 220     # 0-255
+
+[behavior.high_contrast]
+enabled     = false   # tone-stretch pass: dark ≤ black_point → 0, light ≥ white_point → 255
+black_point = 40      # 0-255
+white_point = 220     # 0-255
 
 
 # -----------------------------------------------------------------------------
@@ -615,8 +639,6 @@ history_next          = "Ctrl+Down"
 [laser_pointer]
 color = "#FF0000FF"
 size = 20
-trail = false
-trail_fade_ms = 1000
 
 # Per-file-type overrides. Any of the view settings ([page], [layout], [zoom],
 # [selection], [reflow], [scrollbars], [search], [jump_marker], [annotations], [links],
@@ -629,4 +651,9 @@ trail_fade_ms = 1000
 # behavior.invert_mode = true
 #
 # [filetype.djvu]
-# behavior.high_contrast = true
+# behavior.high_contrast.enabled = true
+
+[laser_pointer.trail]
+enabled = false
+fade_ms = 1000
+

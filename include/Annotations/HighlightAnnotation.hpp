@@ -28,12 +28,12 @@ public:
           m_rects(rects), m_config(config)
     {
         m_comment = comment;
-        setGlowEnabled(m_config.hover_glow);
-        setGlowWidth(m_config.glow_width);
-        setGlowColor(m_config.glow_color);
+        setGlowEnabled(m_config.glow.enabled);
+        setGlowWidth(m_config.glow.width);
+        setGlowColor(m_config.glow.color);
         setFlags(flags() | QGraphicsItem::ItemIsFocusable);
-        setTooltipFontSize(m_config.comment_font_size);
-        setCommentMarkerVisible(m_config.comment_marker);
+        setTooltipFontSize(m_config.comment.font_size);
+        setCommentMarkerVisible(m_config.comment.marker);
         updateCommentMarker();
     }
 

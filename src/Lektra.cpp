@@ -233,6 +233,9 @@ Lektra::initGui() noexcept
     m_search_bar = new SearchBar(this);
     m_search_bar->setVisible(false);
     m_message_bar = new MessageBar(this);
+    for (const auto &[message, duration] : std::as_const(m_pending_messages))
+        m_message_bar->showMessage(message, duration);
+    m_pending_messages.clear();
     m_notice_bar  = new NoticeBar(this);
     m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
@@ -967,15 +970,16 @@ Lektra::loadLuaConfig() noexcept
                                          + "/?/init.lua;\" .. package.path";
         luaL_dostring(m_L, path_snippet.c_str());
 
-        const bool hl_before       = m_config.picker.highlight_matches;
-        const uint32_t hl_color_before = m_config.picker.highlight_matches_color;
+        const bool hl_before = m_config.picker.highlight_matches.enabled;
+        const uint32_t hl_color_before
+            = m_config.picker.highlight_matches.color;
         const auto derived_before = std::array{
-            std::pair{m_config.outline.highlight_matches,
-                      m_config.outline.highlight_matches_color},
-            std::pair{m_config.highlight_search.highlight_matches,
-                      m_config.highlight_search.highlight_matches_color},
-            std::pair{m_config.command_palette.highlight_matches,
-                      m_config.command_palette.highlight_matches_color},
+            std::pair{m_config.outline.highlight_matches.enabled,
+                      m_config.outline.highlight_matches.color},
+            std::pair{m_config.highlight_search.highlight_matches.enabled,
+                      m_config.highlight_search.highlight_matches.color},
+            std::pair{m_config.command_palette.highlight_matches.enabled,
+                      m_config.command_palette.highlight_matches.color},
         };
 
         if (luaL_dofile(m_L, init_file.toStdString().c_str()) != LUA_OK)
@@ -996,15 +1000,16 @@ Lektra::loadLuaConfig() noexcept
                                      &m_config.command_palette};
         for (size_t i = 0; i < std::size(derived); ++i)
         {
-            if (m_config.picker.highlight_matches != hl_before
-                && derived[i]->highlight_matches == derived_before[i].first)
-                derived[i]->highlight_matches
-                    = m_config.picker.highlight_matches;
-            if (m_config.picker.highlight_matches_color != hl_color_before
-                && derived[i]->highlight_matches_color
+            if (m_config.picker.highlight_matches.enabled != hl_before
+                && derived[i]->highlight_matches.enabled
+                       == derived_before[i].first)
+                derived[i]->highlight_matches.enabled
+                    = m_config.picker.highlight_matches.enabled;
+            if (m_config.picker.highlight_matches.color != hl_color_before
+                && derived[i]->highlight_matches.color
                        == derived_before[i].second)
-                derived[i]->highlight_matches_color
-                    = m_config.picker.highlight_matches_color;
+                derived[i]->highlight_matches.color
+                    = m_config.picker.highlight_matches.color;
         }
     }
 }

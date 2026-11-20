@@ -17,7 +17,7 @@
 if os.getenv("LEKTRA_BENCH_DARK") then
     lektra.opt.page.bg = "#1e1e2e"
     lektra.opt.page.fg = "#cdd6f4"
-    lektra.opt.behavior.high_contrast = true
+    lektra.opt.behavior.high_contrast.enabled = true
 end
 
 local function mark(text)

@@ -95,14 +95,14 @@ Picker::Picker(const Config::Picker &config, QWidget *parent) noexcept
     m_proxy->setFilterRole(Qt::UserRole + 1);
     m_listView->setModel(m_proxy);
 
-    if (m_config.highlight_matches)
+    if (m_config.highlight_matches.enabled)
     {
         m_highlight_delegate = new HighlightDelegate(this);
         m_highlight_delegate->setHighlighter(m_proxy);
         m_listView->setItemDelegate(m_highlight_delegate);
 
         m_highlight_delegate->setHighlightColor(
-            rgbaToQColor(m_config.highlight_matches_color));
+            rgbaToQColor(m_config.highlight_matches.color));
     }
 
     connect(m_searchBox, &QLineEdit::textChanged, this,

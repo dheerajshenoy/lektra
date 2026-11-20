@@ -25,11 +25,11 @@ public:
         : Annotation(index, color, parent), m_type(type), m_rect(rect)
     {
         m_comment = comment;
-        setGlowEnabled(config.hover_glow);
-        setGlowWidth(config.glow_width);
-        setGlowColor(config.glow_color);
+        setGlowEnabled(config.glow.enabled);
+        setGlowWidth(config.glow.width);
+        setGlowColor(config.glow.color);
         setFlags(flags() | QGraphicsItem::ItemIsFocusable);
-        setTooltipFontSize(config.comment_font_size);
+        setTooltipFontSize(config.comment.font_size);
 
         // An inline note's text is already on the page.
         if (m_type == Type::Note)
@@ -39,7 +39,7 @@ public:
         }
         else
         {
-            setCommentMarkerVisible(config.comment_marker);
+            setCommentMarkerVisible(config.comment.marker);
         }
         updateCommentMarker();
     }

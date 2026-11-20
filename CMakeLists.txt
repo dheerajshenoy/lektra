@@ -405,6 +405,7 @@ qt_add_executable(${PROJECT_NAME}
     src/Lektra.cpp
     src/PrintJob.cpp
     src/lektra/Config.cpp
+    src/lektra/ConfigOptions.cpp
     src/lektra/Commands.cpp
     src/lektra/Bibtex.cpp
     src/lektra/Menus.cpp

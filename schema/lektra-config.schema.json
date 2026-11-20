@@ -24,6 +24,57 @@
       "additionalProperties": false,
       "description": "Page options struct (since 0.6.4)"
     },
+    "synctex": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable synctex support (since 0.6.9)"
+        },
+        "editor_command": {
+          "type": "string",
+          "description": "Synctex editor command (since 0.3.0)",
+          "default": ""
+        }
+      },
+      "additionalProperties": false,
+      "description": "Synctex options struct (since 0.6.9)"
+    },
+    "search": {
+      "type": "object",
+      "properties": {
+        "match_color": {
+          "type": "string",
+          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+          "default": "#55500033"
+        },
+        "index_color": {
+          "type": "string",
+          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+          "default": "#55FF0055"
+        },
+        "progressive": {
+          "type": "boolean",
+          "default": true,
+          "description": "Progressive search (renders results progressively when enabled, which can speed up search on large documents) (since 0.6.8)"
+        },
+        "highlight_matches": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight all search matches (if false, only the current match is highlighted) (since 0.6.8)"
+        },
+        "absolute_jump": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, the \"next\" match is always the next index in the results list. When false, like in vim, \"next\" and \"previous\" are relative to where you are: once you have scrolled away from the current match, they go to the first match after the top of the view, or the last one before it. (since 0.6.9)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Search options struct (since 0.6.0)"
+    },
     "annotations": {
       "type": "object",
       "properties": {
@@ -36,36 +87,50 @@
               "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
               "default": "#55FF5588"
             },
-            "hover_glow": {
-              "type": "boolean",
-              "default": true,
-              "description": "Enable hover effect (e.g., glow on highlight) (since 0.6.5)"
+            "glow": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Enable hover effect (e.g., glow on highlight) (since 0.8.1)"
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                  "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                  "default": "#FF5000AA"
+                },
+                "width": {
+                  "type": "integer",
+                  "default": 5,
+                  "description": "Glow width in pixels (since 0.8.1)"
+                }
+              },
+              "additionalProperties": false,
+              "description": "The glow shown around an annotation on hover (since 0.8.1)"
             },
             "comment": {
-              "type": "boolean",
-              "default": true,
-              "description": "Show comment text in tooltip on hover (if comment exists) (since 0.6.5)"
-            },
-            "comment_marker": {
-              "type": "boolean",
-              "default": true,
-              "description": "Show marker in the corner of the rect (if comment exists) (since 0.6.5)"
-            },
-            "glow_width": {
-              "type": "integer",
-              "default": 5,
-              "description": "Glow width in pixels (since 0.6.5)"
-            },
-            "glow_color": {
-              "type": "string",
-              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-              "default": "#FF5000AA"
-            },
-            "comment_font_size": {
-              "type": "integer",
-              "default": 12,
-              "description": "Font size for the comment tooltip (in points) (since 0.6.5)"
+              "type": "object",
+              "properties": {
+                "tooltip": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
+                },
+                "marker": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show marker in the corner of the annotation (if comment exists). Popup annotations have no marker (since 0.8.1)"
+                },
+                "font_size": {
+                  "type": "integer",
+                  "default": 12,
+                  "description": "Font size for the comment tooltip (in points) (since 0.8.1)"
+                }
+              },
+              "additionalProperties": false,
+              "description": "The comment of an annotation: its tooltip and its marker (since 0.8.1)"
             }
           },
           "additionalProperties": false,
@@ -80,37 +145,6 @@
               "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
               "default": "#E53935FF"
             },
-            "hover_glow": {
-              "type": "boolean",
-              "default": true,
-              "description": "Enable hover effect (e.g., glow on highlight) (since 0.6.5)"
-            },
-            "comment": {
-              "type": "boolean",
-              "default": true,
-              "description": "Show comment text in tooltip on hover (if comment exists) (since 0.6.5)"
-            },
-            "comment_marker": {
-              "type": "boolean",
-              "default": true,
-              "description": "Show marker in the corner of the underline (if comment exists) (since 0.8.0)"
-            },
-            "glow_width": {
-              "type": "integer",
-              "default": 5,
-              "description": "Glow width in pixels (since 0.6.5)"
-            },
-            "glow_color": {
-              "type": "string",
-              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-              "default": "#FF5000AA"
-            },
-            "comment_font_size": {
-              "type": "integer",
-              "default": 12,
-              "description": "Font size for the comment tooltip (in points) (since 0.6.5)"
-            },
             "thickness": {
               "type": "number",
               "default": 0.0625,
@@ -124,11 +158,56 @@
             "style": {
               "type": "string",
               "enum": [
+                "solid",
                 "dashed",
-                "dotted",
-                "solid"
+                "dotted"
               ],
               "description": "Line style (since 0.8.0)"
+            },
+            "glow": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Enable hover effect (e.g., glow on highlight) (since 0.8.1)"
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                  "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                  "default": "#FF5000AA"
+                },
+                "width": {
+                  "type": "integer",
+                  "default": 5,
+                  "description": "Glow width in pixels (since 0.8.1)"
+                }
+              },
+              "additionalProperties": false,
+              "description": "The glow shown around an annotation on hover (since 0.8.1)"
+            },
+            "comment": {
+              "type": "object",
+              "properties": {
+                "tooltip": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
+                },
+                "marker": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show marker in the corner of the annotation (if comment exists). Popup annotations have no marker (since 0.8.1)"
+                },
+                "font_size": {
+                  "type": "integer",
+                  "default": 12,
+                  "description": "Font size for the comment tooltip (in points) (since 0.8.1)"
+                }
+              },
+              "additionalProperties": false,
+              "description": "The comment of an annotation: its tooltip and its marker (since 0.8.1)"
             }
           },
           "additionalProperties": false,
@@ -143,36 +222,50 @@
               "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
               "default": "#55FF5588"
             },
-            "hover_glow": {
-              "type": "boolean",
-              "default": true,
-              "description": "Enable hover effect (e.g., glow on highlight) (since 0.6.5)"
+            "glow": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Enable hover effect (e.g., glow on highlight) (since 0.8.1)"
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                  "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                  "default": "#FF5000AA"
+                },
+                "width": {
+                  "type": "integer",
+                  "default": 5,
+                  "description": "Glow width in pixels (since 0.8.1)"
+                }
+              },
+              "additionalProperties": false,
+              "description": "The glow shown around an annotation on hover (since 0.8.1)"
             },
             "comment": {
-              "type": "boolean",
-              "default": true,
-              "description": "Show comment text in tooltip on hover (if comment exists) (since 0.6.5)"
-            },
-            "comment_marker": {
-              "type": "boolean",
-              "default": true,
-              "description": "Show marker in the corner of the rect (if comment exists) (since 0.6.5)"
-            },
-            "glow_width": {
-              "type": "integer",
-              "default": 5,
-              "description": "Glow width in pixels (since 0.6.5)"
-            },
-            "glow_color": {
-              "type": "string",
-              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-              "default": "#FF5000AA"
-            },
-            "comment_font_size": {
-              "type": "integer",
-              "default": 12,
-              "description": "Font size for the comment tooltip (in points) (since 0.6.5)"
+              "type": "object",
+              "properties": {
+                "tooltip": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
+                },
+                "marker": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show marker in the corner of the annotation (if comment exists). Popup annotations have no marker (since 0.8.1)"
+                },
+                "font_size": {
+                  "type": "integer",
+                  "default": 12,
+                  "description": "Font size for the comment tooltip (in points) (since 0.8.1)"
+                }
+              },
+              "additionalProperties": false,
+              "description": "The comment of an annotation: its tooltip and its marker (since 0.8.1)"
             }
           },
           "additionalProperties": false,
@@ -193,31 +286,45 @@
         "popup": {
           "type": "object",
           "properties": {
-            "hover_glow": {
-              "type": "boolean",
-              "default": true,
-              "description": "Enable hover effect (e.g., glow on highlight) (since 0.6.5)"
+            "glow": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Enable hover effect (e.g., glow on highlight) (since 0.8.1)"
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                  "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                  "default": "#FF5000AA"
+                },
+                "width": {
+                  "type": "integer",
+                  "default": 5,
+                  "description": "Glow width in pixels (since 0.8.1)"
+                }
+              },
+              "additionalProperties": false,
+              "description": "The glow shown around an annotation on hover (since 0.8.1)"
             },
             "comment": {
-              "type": "boolean",
-              "default": true,
-              "description": "Show comment text in tooltip on hover (if comment exists) (since 0.6.5)"
-            },
-            "glow_width": {
-              "type": "integer",
-              "default": 5,
-              "description": "Glow width in pixels (since 0.6.5)"
-            },
-            "glow_color": {
-              "type": "string",
-              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-              "default": "#FF5000AA"
-            },
-            "comment_font_size": {
-              "type": "integer",
-              "default": 12,
-              "description": "Font size for the comment tooltip (in points) (since 0.6.5)"
+              "type": "object",
+              "properties": {
+                "tooltip": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
+                },
+                "font_size": {
+                  "type": "integer",
+                  "default": 12,
+                  "description": "Font size for the comment tooltip (in points) (since 0.8.1)"
+                }
+              },
+              "additionalProperties": false,
+              "description": "The comment of an annotation: its tooltip and its marker (since 0.8.1)"
             }
           },
           "additionalProperties": false,
@@ -225,569 +332,6 @@
         }
       },
       "additionalProperties": false
-    },
-    "layout": {
-      "type": "object",
-      "properties": {
-        "mode": {
-          "type": "string",
-          "enum": [
-            "vertical",
-            "single",
-            "horizontal",
-            "book",
-            "grid"
-          ],
-          "description": "Initial page layout mode (since 0.5.1)"
-        },
-        "grid_columns": {
-          "type": "integer",
-          "default": 3,
-          "description": "Pages per row in the grid layout (layout.mode = \"grid\"), from 1 to 32 (since 0.8.0)"
-        },
-        "initial_fit": {
-          "type": "string",
-          "enum": [
-            "width",
-            "height",
-            "window"
-          ],
-          "description": "Initial page fit mode (since 0.5.1)"
-        },
-        "auto_resize": {
-          "type": "boolean",
-          "default": false,
-          "description": "Apply auto fit when resizing window (since 0.5.1)"
-        },
-        "spacing": {
-          "type": "integer",
-          "default": 10,
-          "description": "Page spacing in pixels (since 0.5.1)"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Layout options struct (since 0.5.1)"
-    },
-    "zoom": {
-      "type": "object",
-      "properties": {
-        "level": {
-          "type": "number",
-          "default": 0.5,
-          "description": "Default zoom level (since 0.3.0)"
-        },
-        "factor": {
-          "type": "number",
-          "default": 1.25,
-          "description": "Zoom factor (since 0.3.0)"
-        },
-        "anchor_to_mouse": {
-          "type": "boolean",
-          "default": true,
-          "description": "Anchor zoom to mouse position (instead of center of the view) (since 0.6.7)"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Zoom options struct (since 0.3.0)"
-    },
-    "reflow": {
-      "type": "object",
-      "properties": {
-        "font_family": {
-          "type": "string",
-          "description": "Font family for the text (any installed font, or serif, sans-serif, monospace). Empty uses the document's own fonts (since 0.7.9)",
-          "default": ""
-        },
-        "font_size": {
-          "type": "number",
-          "default": 11.0,
-          "description": "Font size in points (since 0.7.9)"
-        },
-        "line_spacing": {
-          "type": "number",
-          "default": 0.0,
-          "description": "Line spacing as a multiple of the font size (e.g. 1.4). 0 uses the document's own spacing (since 0.7.9)"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Text style for reflowable documents (EPUB, FB2, MOBI) (since 0.7.9)"
-    },
-    "selection": {
-      "type": "object",
-      "properties": {
-        "drag_threshold": {
-          "type": "integer",
-          "default": 50,
-          "description": "Threshold in pixels before actually starting the selection (since 0.5.1)"
-        },
-        "copy_on_select": {
-          "type": "boolean",
-          "default": false,
-          "description": "Copy on text selection (since 0.6.3)"
-        },
-        "color": {
-          "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-          "default": "#0000FF55"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Selection options struct (since 0.5.1)"
-    },
-    "scrollbars": {
-      "type": "object",
-      "properties": {
-        "vertical": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show the vertical scrollbar (since 0.5.4)"
-        },
-        "horizontal": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show the horizontal scrollbar (since 0.5.4)"
-        },
-        "search_hits": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show the search hits in scrollbar (since 0.5.1)"
-        },
-        "auto_hide": {
-          "type": "boolean",
-          "default": true,
-          "description": "Auto hide after timeout (since 0.5.4)"
-        },
-        "size": {
-          "type": "integer",
-          "default": 12,
-          "description": "Size of the scrollbar in pixels (since 0.5.4)"
-        },
-        "hide_timeout": {
-          "type": "number",
-          "default": 1.5,
-          "description": "Inactive timeout after which to hide the scrollbar (since 0.5.4)"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Scrollbars options struct (since 0.5.1)"
-    },
-    "minimap": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show the minimap while zoomed in (since 0.8.0)"
-        },
-        "only_focused": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show the minimap only on the focused view, not on the other (since 0.8.0)"
-        },
-        "size": {
-          "type": "integer",
-          "default": 240,
-          "description": "Length of the longer side of the minimap in pixels (since 0.8.0)"
-        },
-        "margin": {
-          "type": "integer",
-          "default": 12,
-          "description": "Distance from the edges of the view in pixels (since 0.8.0)"
-        },
-        "opacity": {
-          "type": "number",
-          "default": 0.85,
-          "description": "Opacity of the minimap (0.0 to 1.0) (since 0.8.0)"
-        },
-        "animated": {
-          "type": "boolean",
-          "default": true,
-          "description": "Keep the minimap up to date while an animated image plays. It is redrawn up to 30 times a second, which costs some CPU; turn it off to freeze the minimap during an animation (since 0.8.0)"
-        },
-        "render_page": {
-          "type": "boolean",
-          "default": true,
-          "description": "Draw the page in the minimap. Off: a plain panel with only the (since 0.8.0)"
-        },
-        "border_width": {
-          "type": "integer",
-          "default": 1,
-          "description": "Border width of the minimap in pixels (0: no border) (since 0.8.0)"
-        },
-        "border_color": {
-          "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-          "default": "#000000A0"
-        },
-        "position": {
-          "type": "string",
-          "enum": [
-            "top_left",
-            "top_right",
-            "bottom_left",
-            "bottom_right"
-          ],
-          "description": "Corner of the view the minimap is placed in (since 0.8.0)"
-        },
-        "viewport": {
-          "type": "object",
-          "properties": {
-            "width": {
-              "type": "number",
-              "default": 1.5,
-              "description": "Outline width in pixels (0: no outline) (since 0.8.0)"
-            },
-            "color": {
-              "type": "string",
-              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-              "default": "#3DAEE9FF"
-            },
-            "fill": {
-              "type": "string",
-              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-              "default": "#3DAEE928"
-            },
-            "dim_color": {
-              "type": "string",
-              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-              "default": "#0000005A"
-            }
-          },
-          "additionalProperties": false,
-          "description": "The box marking the visible area in the minimap (since 0.8.0)"
-        }
-      },
-      "additionalProperties": false,
-      "description": "A small overview of the current page in a corner of the view, shown while zoomed in so that the page does not fit. It marks the visible area; click or drag in it to move there. Works for documents and images (since 0.8.0)"
-    },
-    "jump_marker": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show the jump marker (since 0.3.1)"
-        },
-        "jump_marker": {
-          "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-          "default": "#FF0000FF"
-        },
-        "fade_duration": {
-          "type": "number",
-          "default": 1.0,
-          "description": "Jump marker fade duration in seconds (since 0.6.7)"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Jump marker options struct (since 0.3.1)"
-    },
-    "links": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable link support (both pdf links and detected URLs) (since 0.6.5)"
-        },
-        "boundary": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show the rect boundary for links (since 0.3.1)"
-        },
-        "detect_urls": {
-          "type": "boolean",
-          "default": false,
-          "description": "Detect non-pdf link objects that are valid links (since 0.5.3)"
-        },
-        "url_regex": {
-          "type": "string",
-          "description": "Valid regular expression that detects URLs (since 0.5.3)"
-        },
-        "hover_preview": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show a small preview of where an internal link goes when hovering over it, instead of the plain tooltip (since 0.7.9)"
-        },
-        "hover_preview_delay": {
-          "type": "integer",
-          "default": 350,
-          "description": "Milliseconds to hover over a link before its preview shows (since 0.7.9)"
-        },
-        "hover_preview_width": {
-          "type": "integer",
-          "default": 480,
-          "description": "Width of the hover preview in pixels (since 0.7.9)"
-        },
-        "hover_preview_height": {
-          "type": "integer",
-          "default": 240,
-          "description": "Height of the hover preview in pixels (since 0.7.9)"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Links options struct (since 0.3.1)"
-    },
-    "search": {
-      "type": "object",
-      "properties": {
-        "highlight_matches": {
-          "type": "boolean",
-          "default": true,
-          "description": "Highlight all search matches (if false, only the current match is highlighted) (since 0.6.8)"
-        },
-        "progressive": {
-          "type": "boolean",
-          "default": true,
-          "description": "Progressive search (renders results progressively when enabled, which can speed up search on large documents) (since 0.6.8)"
-        },
-        "absolute_jump": {
-          "type": "boolean",
-          "default": false,
-          "description": "When true, the \"next\" match is always the next index in the results list. When false, like in vim, \"next\" and \"previous\" are relative to where you are: once you have scrolled away from the current match, they go to the first match after the top of the view, or the last one before it. (since 0.6.9)"
-        },
-        "match_color": {
-          "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-          "default": "#55500033"
-        },
-        "index_color": {
-          "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-          "default": "#55FF0055"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Search options struct (since 0.6.0)"
-    },
-    "behavior": {
-      "type": "object",
-      "properties": {
-        "preload_pages": {
-          "type": "integer",
-          "default": 1,
-          "description": "Preload pages (since 0.6.3)"
-        },
-        "confirm_on_quit": {
-          "type": "boolean",
-          "default": false,
-          "description": "Confirm before quitting (since 0.3.0)"
-        },
-        "undo_limit": {
-          "type": "integer",
-          "default": 25,
-          "description": "Undo limit (since 0.3.1)"
-        },
-        "remember_last_visited": {
-          "type": "boolean",
-          "default": true,
-          "description": "Remembers last visited page number (since 0.3.0)"
-        },
-        "single_instance": {
-          "type": "boolean",
-          "default": false,
-          "description": "Allow only a single instance of the application (opening a new file will open in the same instance) (since 0.7.1)"
-        },
-        "page_history": {
-          "type": "integer",
-          "default": 5,
-          "description": "Page history location limit to keep track (since 0.3.0)"
-        },
-        "invert_mode": {
-          "type": "boolean",
-          "default": false,
-          "description": "Invert color mode (aka dark mode) (since 0.3.0)"
-        },
-        "dont_invert_images": {
-          "type": "boolean",
-          "default": true,
-          "description": "Preserve images when in invert color mode. When enabled, images in the PDF will retain their original colors even when invert mode is active. This prevents photos and diagrams from appearing inverted. (since 0.6.6)"
-        },
-        "auto_reload": {
-          "type": "boolean",
-          "default": true,
-          "description": "Auto-reload file upon detecting file change (since 0.3.0)"
-        },
-        "cache_password": {
-          "type": "boolean",
-          "default": true,
-          "description": "Cache the password for password-protected files so that auto-reload can re-authenticate without prompting. Disable if you prefer the password not to persist in memory beyond initial unlock. (since 0.7.4)"
-        },
-        "recent_files": {
-          "type": "boolean",
-          "default": true,
-          "description": "Keep track of recent files (since 0.3.0)"
-        },
-        "num_recent_files": {
-          "type": "integer",
-          "default": 10,
-          "description": "Max number of recent files to keep track (since 0.3.0)"
-        },
-        "cache_pages": {
-          "type": "integer",
-          "default": 5,
-          "description": "Number of pages to cache page (since 0.5.3)"
-        },
-        "text_cache_size": {
-          "type": "integer",
-          "default": 512,
-          "description": "Number of pages whose extracted text is kept in memory (used for search and text selection). Increase for faster search on large documents; reduce to save memory. (since 0.8.1)"
-        },
-        "stext_page_cache_size": {
-          "type": "integer",
-          "default": 10,
-          "description": "Number of structured text pages kept in memory for text selection and the caret. Increase if selecting text on many pages is slow; reduce to save memory. (since 0.8.1)"
-        },
-        "mupdf_store_size": {
-          "type": "integer",
-          "default": 64,
-          "description": "Maximum size of MuPDF's internal store in megabytes. The store holds decoded embedded images, fonts, and glyph bitmaps. Reduce this if memory usage is too high; increase if you notice slow re-renders after scrolling through image-heavy documents. (since 0.8.0)"
-        },
-        "auto_scroll": {
-          "type": "boolean",
-          "default": true,
-          "description": "Auto scroll when selecting text that is out of view (since 0.7.1)"
-        },
-        "keep_view": {
-          "type": "boolean",
-          "default": true,
-          "description": "Keep the same part of the page in view when going to the next or previous page, e.g. when zoomed into a region. Off: the view is centered on the new page (since 0.8.0)"
-        },
-        "drag_image_out": {
-          "type": "boolean",
-          "default": true,
-          "description": "Drag an image of the page out of the window by pressing on it and moving the mouse (to drop it into another program). Turn it off if that gets in the way of selecting text. (since 0.8.0)"
-        },
-        "save_mode": {
-          "type": "string",
-          "enum": [
-            "ask",
-            "suffix",
-            "overwrite"
-          ],
-          "description": "Where saving writes. `overwrite` saves into the open file. `ask` asks for a new file on the first save of a file and `suffix` saves to `name_annotated.ext` next to it (asking if that exists); either way the original is left alone, the view follows the new file and later saves go there. (since 0.8.0)"
-        },
-        "close_on_last_tab": {
-          "type": "boolean",
-          "default": false,
-          "description": "Quit LEKTRA when the last open tab is closed. When false (the default), an empty window remains — the startup widget may be shown if that path is taken. `confirm_on_quit` still applies. (since 0.7.8)"
-        },
-        "high_contrast": {
-          "type": "boolean",
-          "default": false,
-          "description": "High-contrast tone stretch applied after tint / invert. Pixels darker than black_point become pure black, lighter than white_point become pure white, midtones stretched linearly. On scanned or grayish pages this cleans up the paper background and sharpens text; on already-black-on-white PDFs it is a near no-op. Toggle at runtime with :toggle_high_contrast. (since 0.7.8)"
-        },
-        "high_contrast_black_point": {
-          "type": "integer",
-          "default": 40,
-          "description": "Pixel value (0-255) below which high-contrast pushes to pure black. (since 0.7.8)"
-        },
-        "high_contrast_white_point": {
-          "type": "integer",
-          "default": 220,
-          "description": "Pixel value (0-255) above which high-contrast pushes to pure white. (since 0.7.8)"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Behavior options struct (since 0.3.0)"
-    },
-    "misc": {
-      "type": "object",
-      "properties": {
-        "color_dialog_colors": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$"
-          },
-          "description": "Colours offered in the colour dialog."
-        }
-      },
-      "additionalProperties": false,
-      "description": "Misc options struct (for options that don't fit in other (since 0.7.0)"
-    },
-    "portal": {
-      "type": "object",
-      "properties": {
-        "border_color": {
-          "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-          "default": "#FFFFFFAA"
-        },
-        "enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable portal ability (since 0.6.4)"
-        },
-        "border_width": {
-          "type": "integer",
-          "default": 5,
-          "description": "Portal border width (since 0.6.4)"
-        },
-        "respect_parent": {
-          "type": "boolean",
-          "default": true,
-          "description": "Respect parent's destruction (if parent closes, close the portal too) (since 0.6.4)"
-        },
-        "dim_inactive": {
-          "type": "boolean",
-          "default": false,
-          "description": "Dim inactive for portal views too (since 0.6.5)"
-        },
-        "split": {
-          "type": "string",
-          "default": "vertical",
-          "description": "Split direction for the portal view (\"vertical\", \"horizontal\", or \"smart\" — picks vertical when the view is wider than tall, horizontal otherwise) (since 0.7.4)"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Portal options struct (since 0.6.4)"
-    },
-    "preview": {
-      "type": "object",
-      "properties": {
-        "border_radius": {
-          "type": "integer",
-          "default": 8,
-          "description": "Border radius of the preview window in pixels (since 0.6.6)"
-        },
-        "close_on_click_outside": {
-          "type": "boolean",
-          "default": true,
-          "description": "Close the preview window when clicking outside of it (since 0.6.6)"
-        },
-        "size_ratio": {
-          "type": "object",
-          "properties": {
-            "width": {
-              "type": "number",
-              "description": "Width as a fraction of the main window (default 0.6)."
-            },
-            "height": {
-              "type": "number",
-              "description": "Height as a fraction of the main window (default 0.7)."
-            }
-          },
-          "additionalProperties": false,
-          "description": "Size of the preview window as a ratio of the main window."
-        },
-        "opacity": {
-          "type": "number",
-          "default": 0.95,
-          "description": "Opacity of the preview window (0.0 to 1.0) (since 0.6.6)"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Preview options struct (since 0.6.6)"
     },
     "thumbnail_panel": {
       "type": "object",
@@ -821,90 +365,43 @@
       "additionalProperties": false,
       "description": "Thumbnail panel options struct (since 0.6.9)"
     },
-    "tabs": {
+    "portal": {
       "type": "object",
       "properties": {
-        "show": {
+        "enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Show tabs (since 0.3.0)"
+          "description": "Enable portal ability (since 0.6.4)"
         },
-        "auto_hide": {
-          "type": "boolean",
-          "default": false,
-          "description": "Auto hide tabs when tab count equals 1 (since 0.3.0)"
-        },
-        "movable": {
-          "type": "boolean",
-          "default": true,
-          "description": "Tabs can be rearranged (since 0.3.0)"
-        },
-        "close_button_mode": {
+        "border_color": {
           "type": "string",
-          "enum": [
-            "current",
-            "hidden",
-            "all"
-          ],
-          "description": "When to show the tab close (x) button (since 0.3.0)"
+          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+          "default": "#FFFFFFAA"
         },
-        "scroll_text_on_hover": {
-          "type": "boolean",
-          "default": false,
-          "description": "Scroll the title of a tab whose text does not fit while the mouse is over it, so the whole title can be read. Only for tabs at the top or bottom (since 0.8.0)"
-        },
-        "min_width": {
+        "border_width": {
           "type": "integer",
-          "default": 0,
-          "description": "Narrowest a tab may be, in pixels (along the tab bar, so the height of a tab in a tab bar on the left or right). 0 means no limit (since 0.8.0)"
+          "default": 5,
+          "description": "Portal border width (since 0.6.4)"
         },
-        "max_width": {
-          "type": "integer",
-          "default": 0,
-          "description": "Widest a tab may be, in pixels (along the tab bar). A longer title is shortened to fit. 0 means no limit (since 0.8.0)"
-        },
-        "elide_mode": {
-          "type": "string",
-          "enum": [
-            "left",
-            "right",
-            "middle",
-            "none"
-          ],
-          "description": "Text elide mode when text can't fit in the tab fully (since 0.3.0)"
-        },
-        "location": {
-          "type": "string",
-          "enum": [
-            "left",
-            "right",
-            "bottom",
-            "top"
-          ],
-          "description": "Location of the tabs in the window (since 0.3.0)"
-        },
-        "full_path": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show full file path (since 0.3.0)"
-        },
-        "lazy_load": {
+        "respect_parent": {
           "type": "boolean",
           "default": true,
-          "description": "Lazy load tabs (since 0.6.0)"
+          "description": "Respect parent's destruction (if parent closes, close the portal too) (since 0.6.4)"
         },
-        "open_position": {
+        "dim_inactive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Dim inactive for portal views too (since 0.6.5)"
+        },
+        "split": {
           "type": "string",
-          "enum": [
-            "start",
-            "after_current",
-            "end"
-          ],
-          "description": "Where a newly opened tab is placed in the tab bar (since 0.7.8)"
+          "default": "vertical",
+          "description": "Split direction for the portal view (\"vertical\", \"horizontal\", or \"smart\" — picks vertical when the view is wider than tall, horizontal otherwise) (since 0.7.4)"
         }
       },
       "additionalProperties": false,
-      "description": "Tab options struct (since 0.3.0)"
+      "description": "Portal options struct (since 0.6.4)"
     },
     "window": {
       "type": "object",
@@ -954,6 +451,48 @@
       },
       "additionalProperties": false,
       "description": "Window options struct (since 0.3.0)"
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "vertical",
+            "single",
+            "horizontal",
+            "book",
+            "grid"
+          ],
+          "description": "Initial page layout mode (since 0.5.1)"
+        },
+        "grid_columns": {
+          "type": "integer",
+          "default": 3,
+          "description": "Pages per row in the grid layout (layout.mode = \"grid\"), from 1 to 32 (since 0.8.0)"
+        },
+        "initial_fit": {
+          "type": "string",
+          "enum": [
+            "width",
+            "height",
+            "window"
+          ],
+          "description": "Initial page fit mode (since 0.5.1)"
+        },
+        "auto_resize": {
+          "type": "boolean",
+          "default": false,
+          "description": "Apply auto fit when resizing window (since 0.5.1)"
+        },
+        "spacing": {
+          "type": "integer",
+          "default": 10,
+          "description": "Page spacing in pixels (since 0.5.1)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Layout options struct (since 0.5.1)"
     },
     "statusbar": {
       "type": "object",
@@ -1080,6 +619,471 @@
       "additionalProperties": false,
       "description": "Statusbar options struct (since 0.5.5)"
     },
+    "zoom": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "type": "number",
+          "default": 0.5,
+          "description": "Default zoom level (since 0.3.0)"
+        },
+        "factor": {
+          "type": "number",
+          "default": 1.25,
+          "description": "Zoom factor (since 0.3.0)"
+        },
+        "anchor_to_mouse": {
+          "type": "boolean",
+          "default": true,
+          "description": "Anchor zoom to mouse position (instead of center of the view) (since 0.6.7)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Zoom options struct (since 0.3.0)"
+    },
+    "reflow": {
+      "type": "object",
+      "properties": {
+        "font_family": {
+          "type": "string",
+          "description": "Font family for the text (any installed font, or serif, sans-serif, monospace). Empty uses the document's own fonts (since 0.7.9)",
+          "default": ""
+        },
+        "font_size": {
+          "type": "number",
+          "default": 11.0,
+          "description": "Font size in points (since 0.7.9)"
+        },
+        "line_spacing": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Line spacing as a multiple of the font size (e.g. 1.4). 0 uses the document's own spacing (since 0.7.9)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Text style for reflowable documents (EPUB, FB2, MOBI) (since 0.7.9)"
+    },
+    "selection": {
+      "type": "object",
+      "properties": {
+        "drag_threshold": {
+          "type": "integer",
+          "default": 50,
+          "description": "Threshold in pixels before actually starting the selection (since 0.5.1)"
+        },
+        "copy_on_select": {
+          "type": "boolean",
+          "default": false,
+          "description": "Copy on text selection (since 0.6.3)"
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+          "default": "#0000FF55"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Selection options struct (since 0.5.1)"
+    },
+    "split": {
+      "type": "object",
+      "properties": {
+        "mouse_follows_focus": {
+          "type": "boolean",
+          "default": true,
+          "description": "Moving mouse changes the focus (since 0.6.2)"
+        },
+        "focus_follows_mouse": {
+          "type": "boolean",
+          "default": true,
+          "description": "Focus of split follows the mouse (since 0.6.2)"
+        },
+        "gap": {
+          "type": "integer",
+          "default": 4,
+          "description": "Gap between splits in pixels (since 0.7.9.1)"
+        },
+        "dim_inactive": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Dims splits that are not currently focused (since 0.8.1)"
+            },
+            "opacity": {
+              "type": "number",
+              "default": 0.5,
+              "description": "Opacity of the dimming [0-1] (0 is no dim, 1 is fully (since 0.8.1)"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Dimming of the splits that are not focused (since 0.8.1)"
+        },
+        "focus_border": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Show a border around the focused split (since 0.8.1)"
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
+            },
+            "width": {
+              "type": "integer",
+              "default": 2,
+              "description": "Width of the border in pixels (since 0.8.1)"
+            }
+          },
+          "additionalProperties": false,
+          "description": "The border around the focused split (since 0.8.1)"
+        },
+        "maximize_indicator": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show a badge in the corner of a maximized split (since 0.8.1)"
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
+            }
+          },
+          "additionalProperties": false,
+          "description": "The badge shown on a maximized split (since 0.8.1)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Split options struct (since 0.6.2)"
+    },
+    "scrollbars": {
+      "type": "object",
+      "properties": {
+        "vertical": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the vertical scrollbar (since 0.5.4)"
+        },
+        "horizontal": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the horizontal scrollbar (since 0.5.4)"
+        },
+        "search_hits": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the search hits in scrollbar (since 0.5.1)"
+        },
+        "auto_hide": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto hide after timeout (since 0.5.4)"
+        },
+        "size": {
+          "type": "integer",
+          "default": 12,
+          "description": "Size of the scrollbar in pixels (since 0.5.4)"
+        },
+        "hide_timeout": {
+          "type": "number",
+          "default": 1.5,
+          "description": "Inactive timeout after which to hide the scrollbar (since 0.5.4)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Scrollbars options struct (since 0.5.1)"
+    },
+    "minimap": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the minimap while zoomed in (since 0.8.0)"
+        },
+        "only_focused": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show the minimap only on the focused view, not on the other (since 0.8.0)"
+        },
+        "size": {
+          "type": "integer",
+          "default": 240,
+          "description": "Length of the longer side of the minimap in pixels (since 0.8.0)"
+        },
+        "margin": {
+          "type": "integer",
+          "default": 12,
+          "description": "Distance from the edges of the view in pixels (since 0.8.0)"
+        },
+        "opacity": {
+          "type": "number",
+          "default": 0.85,
+          "description": "Opacity of the minimap (0.0 to 1.0) (since 0.8.0)"
+        },
+        "animated": {
+          "type": "boolean",
+          "default": true,
+          "description": "Keep the minimap up to date while an animated image plays. It is redrawn up to 30 times a second, which costs some CPU; turn it off to freeze the minimap during an animation (since 0.8.0)"
+        },
+        "render_page": {
+          "type": "boolean",
+          "default": true,
+          "description": "Draw the page in the minimap. Off: a plain panel with only the (since 0.8.0)"
+        },
+        "position": {
+          "type": "string",
+          "enum": [
+            "top_left",
+            "top_right",
+            "bottom_left",
+            "bottom_right"
+          ],
+          "description": "Corner of the view the minimap is placed in (since 0.8.0)"
+        },
+        "border_width": {
+          "type": "integer",
+          "default": 1,
+          "description": "Border width of the minimap in pixels (0: no border) (since 0.8.0)"
+        },
+        "border_color": {
+          "type": "string",
+          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+          "default": "#000000A0"
+        },
+        "viewport": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "number",
+              "default": 1.5,
+              "description": "Outline width in pixels (0: no outline) (since 0.8.0)"
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#3DAEE9FF"
+            },
+            "fill": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#3DAEE928"
+            },
+            "dim_color": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#0000005A"
+            }
+          },
+          "additionalProperties": false,
+          "description": "The box marking the visible area in the minimap (since 0.8.0)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "A small overview of the current page in a corner of the view, shown while zoomed in so that the page does not fit. It marks the visible area; click or drag in it to move there. Works for documents and images (since 0.8.0)"
+    },
+    "jump_marker": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the jump marker (since 0.3.1)"
+        },
+        "jump_marker": {
+          "type": "string",
+          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+          "default": "#FF0000FF"
+        },
+        "fade_duration": {
+          "type": "number",
+          "default": 1.0,
+          "description": "Jump marker fade duration in seconds (since 0.6.7)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Jump marker options struct (since 0.3.1)"
+    },
+    "links": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable link support (both pdf links and detected URLs) (since 0.6.5)"
+        },
+        "boundary": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show the rect boundary for links (since 0.3.1)"
+        },
+        "detect_urls": {
+          "type": "boolean",
+          "default": false,
+          "description": "Detect non-pdf link objects that are valid links (since 0.5.3)"
+        },
+        "url_regex": {
+          "type": "string",
+          "description": "Valid regular expression that detects URLs (since 0.5.3)"
+        },
+        "hover_preview": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Show a small preview of where an internal link goes when hovering over it, instead of the plain tooltip (since 0.8.1)"
+            },
+            "delay": {
+              "type": "integer",
+              "default": 350,
+              "description": "Milliseconds to hover over a link before its preview shows (since 0.8.1)"
+            },
+            "width": {
+              "type": "integer",
+              "default": 480,
+              "description": "Width of the preview in pixels (since 0.8.1)"
+            },
+            "height": {
+              "type": "integer",
+              "default": 240,
+              "description": "Height of the preview in pixels (since 0.8.1)"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Preview shown when hovering over an internal link (since 0.8.1)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Links options struct (since 0.3.1)"
+    },
+    "link_hints": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "number",
+          "default": 0.5,
+          "description": "Size of the link hint rects (since 0.3.0)"
+        },
+        "bg": {
+          "type": "string",
+          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+          "default": "#000000FF"
+        },
+        "fg": {
+          "type": "string",
+          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+          "default": "#ea3ee9FF"
+        },
+        "charset": {
+          "type": "string",
+          "default": "0123456789",
+          "description": "Characters used to build link hints, e.g. \"asdfghjkl\" for letters. At least two distinct characters are needed, otherwise digits are used. (since 0.8.1)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Link hint options struct (since 0.3.0)"
+    },
+    "tabs": {
+      "type": "object",
+      "properties": {
+        "show": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show tabs (since 0.3.0)"
+        },
+        "auto_hide": {
+          "type": "boolean",
+          "default": false,
+          "description": "Auto hide tabs when tab count equals 1 (since 0.3.0)"
+        },
+        "movable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Tabs can be rearranged (since 0.3.0)"
+        },
+        "close_button_mode": {
+          "type": "string",
+          "enum": [
+            "all",
+            "current",
+            "hidden"
+          ],
+          "description": "When to show the tab close (x) button (since 0.3.0)"
+        },
+        "scroll_text_on_hover": {
+          "type": "boolean",
+          "default": false,
+          "description": "Scroll the title of a tab whose text does not fit while the mouse is over it, so the whole title can be read. Only for tabs at the top or bottom (since 0.8.0)"
+        },
+        "min_width": {
+          "type": "integer",
+          "default": 0,
+          "description": "Narrowest a tab may be, in pixels (along the tab bar, so the height of a tab in a tab bar on the left or right). 0 means no limit (since 0.8.0)"
+        },
+        "max_width": {
+          "type": "integer",
+          "default": 0,
+          "description": "Widest a tab may be, in pixels (along the tab bar). A longer title is shortened to fit. 0 means no limit (since 0.8.0)"
+        },
+        "elide_mode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "left",
+            "right",
+            "middle"
+          ],
+          "description": "Text elide mode when text can't fit in the tab fully (since 0.3.0)"
+        },
+        "location": {
+          "type": "string",
+          "enum": [
+            "top",
+            "bottom",
+            "left",
+            "right"
+          ],
+          "description": "Location of the tabs in the window (since 0.3.0)"
+        },
+        "full_path": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show full file path (since 0.3.0)"
+        },
+        "lazy_load": {
+          "type": "boolean",
+          "default": true,
+          "description": "Lazy load tabs (since 0.6.0)"
+        },
+        "open_position": {
+          "type": "string",
+          "enum": [
+            "end",
+            "start",
+            "after_current"
+          ],
+          "description": "Where a newly opened tab is placed in the tab bar (since 0.7.8)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Tab options struct (since 0.3.0)"
+    },
     "picker": {
       "type": "object",
       "properties": {
@@ -1103,16 +1107,60 @@
           "default": true,
           "description": "Enable alternating row colors in the picker list (since 0.6.8)"
         },
-        "highlight_matches": {
-          "type": "boolean",
-          "default": true,
-          "description": "Highlight matches in the picker list (since 0.8.0)"
-        },
-        "highlight_matches_color": {
+        "prompt": {
           "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-          "default": "#4FC3F7FF"
+          "description": "Prompt text for the picker (since 0.7.1)",
+          "default": ""
+        },
+        "highlight_matches": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Highlight matches in the picker list (since 0.8.1)"
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#4FC3F7FF"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Highlighting of the typed text in the picker list (since 0.8.1)"
+        },
+        "shadow": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable shadow (since 0.6.0)"
+            },
+            "blur_radius": {
+              "type": "integer",
+              "default": 18,
+              "description": "Blur radius of shadow in pixels (since 0.6.0)"
+            },
+            "offset_x": {
+              "type": "integer",
+              "default": 0,
+              "description": "X-offset of the shadow (since 0.6.0)"
+            },
+            "offset_y": {
+              "type": "integer",
+              "default": 6,
+              "description": "Y-offset of the shadow (since 0.6.0)"
+            },
+            "opacity": {
+              "type": "integer",
+              "default": 120,
+              "description": "Opacity of the shadow (since 0.6.0)"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Picker shadow struct (since 0.6.0)"
         },
         "keys": {
           "type": "object",
@@ -1302,76 +1350,14 @@
           },
           "additionalProperties": false,
           "description": "Key bindings inside pickers (a key, or a list of keys)."
-        },
-        "shadow": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "default": true,
-              "description": "Enable shadow (since 0.6.0)"
-            },
-            "blur_radius": {
-              "type": "integer",
-              "default": 18,
-              "description": "Blur radius of shadow in pixels (since 0.6.0)"
-            },
-            "offset_x": {
-              "type": "integer",
-              "default": 0,
-              "description": "X-offset of the shadow (since 0.6.0)"
-            },
-            "offset_y": {
-              "type": "integer",
-              "default": 6,
-              "description": "Y-offset of the shadow (since 0.6.0)"
-            },
-            "opacity": {
-              "type": "integer",
-              "default": 120,
-              "description": "Opacity of the shadow (since 0.6.0)"
-            }
-          },
-          "additionalProperties": false,
-          "description": "Picker shadow struct (since 0.6.0)"
         }
       },
       "additionalProperties": false,
       "description": "Picker options struct (since 0.6.0)"
     },
-    "command_palette": {
+    "outline": {
       "type": "object",
       "properties": {
-        "description": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show command description (since 0.6.5)"
-        },
-        "vscrollbar": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show the vertical scrollbar in the picker (since 0.5.4)"
-        },
-        "shortcuts": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show shortcuts (since 0.5.4)"
-        },
-        "prompt": {
-          "type": "string",
-          "default": "Command",
-          "description": "prompt text for the command palette (since 0.7.1)"
-        },
-        "sort_by_frequency": {
-          "type": "boolean",
-          "default": true,
-          "description": "Sort commands by how often you've picked them from the command palette (most-used first), smex-style. Usage counts persist across sessions when persist_frequency is on. (since 0.7.8)"
-        },
-        "persist_frequency": {
-          "type": "boolean",
-          "default": true,
-          "description": "Persist command-palette usage counts to disk (command_usage.json in the app data directory) so sort_by_frequency ranking survives across restarts. When off, usage is still tracked in-memory for the current session (so sort_by_frequency still works within one run) but nothing is loaded or saved to disk, and any previously saved history file is left untouched. (since 0.7.8)"
-        },
         "width": {
           "type": "number",
           "default": 600,
@@ -1392,85 +1378,11 @@
           "default": true,
           "description": "Enable alternating row colors in the picker list (since 0.6.8)"
         },
-        "highlight_matches": {
-          "type": "boolean",
-          "default": true,
-          "description": "Highlight matches in the picker list (since 0.8.0)"
-        },
-        "highlight_matches_color": {
+        "prompt": {
           "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-          "default": "#4FC3F7FF"
+          "default": "Outline",
+          "description": "prompt text for the outline picker (since 0.7.1)"
         },
-        "shadow": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "default": true,
-              "description": "Enable shadow (since 0.6.0)"
-            },
-            "blur_radius": {
-              "type": "integer",
-              "default": 18,
-              "description": "Blur radius of shadow in pixels (since 0.6.0)"
-            },
-            "offset_x": {
-              "type": "integer",
-              "default": 0,
-              "description": "X-offset of the shadow (since 0.6.0)"
-            },
-            "offset_y": {
-              "type": "integer",
-              "default": 6,
-              "description": "Y-offset of the shadow (since 0.6.0)"
-            },
-            "opacity": {
-              "type": "integer",
-              "default": 120,
-              "description": "Opacity of the shadow (since 0.6.0)"
-            }
-          },
-          "additionalProperties": false,
-          "description": "Picker shadow struct (since 0.6.0)"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Command Palette options struct (since 0.5.4)"
-    },
-    "link_hints": {
-      "type": "object",
-      "properties": {
-        "size": {
-          "type": "number",
-          "default": 0.5,
-          "description": "Size of the link hint rects (since 0.3.0)"
-        },
-        "bg": {
-          "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-          "default": "#000000FF"
-        },
-        "fg": {
-          "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-          "default": "#ea3ee9FF"
-        },
-        "charset": {
-          "type": "string",
-          "default": "0123456789",
-          "description": "Characters used to build link hints, e.g. \"asdfghjkl\" for letters. At least two distinct characters are needed, otherwise digits are used. (since 0.8.1)"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Link hint options struct (since 0.3.0)"
-    },
-    "outline": {
-      "type": "object",
-      "properties": {
         "indent_width": {
           "type": "integer",
           "default": 10,
@@ -1491,36 +1403,33 @@
           "default": false,
           "description": "When to load the outline. If true it is loaded in the background right after a document opens, so the outline picker opens instantly. If false it is loaded the first time the outline picker is opened, which saves work for documents whose outline you never use (since 0.8.0)"
         },
-        "width": {
+        "generate_heading_ratio": {
           "type": "number",
-          "default": 600,
-          "description": "Width of picker in pixels (if greater than 1) or relative to the window width (0.0 - 1.0, if float) (since 0.6.9)"
+          "default": 1.2,
+          "description": "Minimum font size ratio relative to the body text size for a line to be considered a heading when generating an outline. E.g. 1.2 means the line must be at least 20%% larger than the modal body font size. (since 0.7.7)"
         },
-        "height": {
-          "type": "number",
-          "default": 400,
-          "description": "Height of picker in pixels (if greater than 1) or relative to the window height (0.0 - 1.0, if float) (since 0.6.9)"
-        },
-        "border": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show stylish border around picker (since 0.6.0)"
-        },
-        "alternating_row_color": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable alternating row colors in the picker list (since 0.6.8)"
+        "generate_max_levels": {
+          "type": "integer",
+          "default": 3,
+          "description": "Maximum number of distinct heading levels to generate (since 0.7.7)"
         },
         "highlight_matches": {
-          "type": "boolean",
-          "default": true,
-          "description": "Highlight matches in the picker list (since 0.8.0)"
-        },
-        "highlight_matches_color": {
-          "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-          "default": "#4FC3F7FF"
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Highlight matches in the picker list (since 0.8.1)"
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#4FC3F7FF"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Highlighting of the typed text in the picker list (since 0.8.1)"
         },
         "shadow": {
           "type": "object",
@@ -1561,11 +1470,6 @@
     "highlight_search": {
       "type": "object",
       "properties": {
-        "flat_menu": {
-          "type": "boolean",
-          "default": true,
-          "description": "if true, show the outline in a flat menu instead of a hierarchical one (since 0.6.9)"
-        },
         "width": {
           "type": "number",
           "default": 600,
@@ -1586,16 +1490,33 @@
           "default": true,
           "description": "Enable alternating row colors in the picker list (since 0.6.8)"
         },
-        "highlight_matches": {
+        "prompt": {
+          "type": "string",
+          "default": "Search Highlights",
+          "description": "prompt text for the highlight search picker (since 0.7.1)"
+        },
+        "flat_menu": {
           "type": "boolean",
           "default": true,
-          "description": "Highlight matches in the picker list (since 0.8.0)"
+          "description": "if true, show the outline in a flat menu instead of a hierarchical one (since 0.6.9)"
         },
-        "highlight_matches_color": {
-          "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-          "default": "#4FC3F7FF"
+        "highlight_matches": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Highlight matches in the picker list (since 0.8.1)"
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#4FC3F7FF"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Highlighting of the typed text in the picker list (since 0.8.1)"
         },
         "shadow": {
           "type": "object",
@@ -1633,22 +1554,352 @@
       "additionalProperties": false,
       "description": "Highlight Search options struct (since 0.5.3)"
     },
-    "synctex": {
+    "command_palette": {
       "type": "object",
       "properties": {
-        "enabled": {
+        "width": {
+          "type": "number",
+          "default": 600,
+          "description": "Width of picker in pixels (if greater than 1) or relative to the window width (0.0 - 1.0, if float) (since 0.6.9)"
+        },
+        "height": {
+          "type": "number",
+          "default": 400,
+          "description": "Height of picker in pixels (if greater than 1) or relative to the window height (0.0 - 1.0, if float) (since 0.6.9)"
+        },
+        "border": {
           "type": "boolean",
           "default": true,
-          "description": "Enable synctex support (since 0.6.9)"
+          "description": "Show stylish border around picker (since 0.6.0)"
         },
-        "editor_command": {
+        "alternating_row_color": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable alternating row colors in the picker list (since 0.6.8)"
+        },
+        "prompt": {
           "type": "string",
-          "description": "Synctex editor command (since 0.3.0)",
-          "default": ""
+          "default": "Command",
+          "description": "prompt text for the command palette (since 0.7.1)"
+        },
+        "description": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show command description (since 0.6.5)"
+        },
+        "vscrollbar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the vertical scrollbar in the picker (since 0.5.4)"
+        },
+        "shortcuts": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show shortcuts (since 0.5.4)"
+        },
+        "sort_by_frequency": {
+          "type": "boolean",
+          "default": true,
+          "description": "Sort commands by how often you've picked them from the command palette (most-used first), smex-style. Usage counts persist across sessions when persist_frequency is on. (since 0.7.8)"
+        },
+        "persist_frequency": {
+          "type": "boolean",
+          "default": true,
+          "description": "Persist command-palette usage counts to disk (command_usage.json in the app data directory) so sort_by_frequency ranking survives across restarts. When off, usage is still tracked in-memory for the current session (so sort_by_frequency still works within one run) but nothing is loaded or saved to disk, and any previously saved history file is left untouched. (since 0.7.8)"
+        },
+        "highlight_matches": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Highlight matches in the picker list (since 0.8.1)"
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#4FC3F7FF"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Highlighting of the typed text in the picker list (since 0.8.1)"
+        },
+        "shadow": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable shadow (since 0.6.0)"
+            },
+            "blur_radius": {
+              "type": "integer",
+              "default": 18,
+              "description": "Blur radius of shadow in pixels (since 0.6.0)"
+            },
+            "offset_x": {
+              "type": "integer",
+              "default": 0,
+              "description": "X-offset of the shadow (since 0.6.0)"
+            },
+            "offset_y": {
+              "type": "integer",
+              "default": 6,
+              "description": "Y-offset of the shadow (since 0.6.0)"
+            },
+            "opacity": {
+              "type": "integer",
+              "default": 120,
+              "description": "Opacity of the shadow (since 0.6.0)"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Picker shadow struct (since 0.6.0)"
         }
       },
       "additionalProperties": false,
-      "description": "Synctex options struct (since 0.6.9)"
+      "description": "Command Palette options struct (since 0.5.4)"
+    },
+    "rendering": {
+      "type": "object",
+      "properties": {
+        "text_antialiasing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable text antialiasing (since 0.6.3)"
+        },
+        "smooth_pixmap_transform": {
+          "type": "boolean",
+          "default": true,
+          "description": "Smooth pixmap transform (since 0.6.3)"
+        },
+        "backend": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "raster",
+            "opengl"
+          ],
+          "description": "Rendering backend (since 0.7.3)",
+          "default": "auto"
+        },
+        "dpr": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number"
+              },
+              "description": "Device pixel ratio per screen name."
+            }
+          ],
+          "description": "Device pixel ratio: one number for every screen, or a table keyed by screen name.",
+          "default": 1.0
+        },
+        "antialiasing": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable Antialiasing (since 0.8.1)"
+            },
+            "bits": {
+              "type": "integer",
+              "default": 8,
+              "description": "Antialiasing bits (since 0.8.1)"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Antialiasing of the rendered pages (since 0.8.1)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Rendering options struct (since 0.3.0)"
+    },
+    "behavior": {
+      "type": "object",
+      "properties": {
+        "preload_pages": {
+          "type": "integer",
+          "default": 1,
+          "description": "Preload pages (since 0.6.3)"
+        },
+        "confirm_on_quit": {
+          "type": "boolean",
+          "default": false,
+          "description": "Confirm before quitting (since 0.3.0)"
+        },
+        "undo_limit": {
+          "type": "integer",
+          "default": 25,
+          "description": "Undo limit (since 0.3.1)"
+        },
+        "remember_last_visited": {
+          "type": "boolean",
+          "default": true,
+          "description": "Remembers last visited page number (since 0.3.0)"
+        },
+        "open_last_visited": {
+          "type": "boolean",
+          "default": false,
+          "description": "Open last visited file when launching new instance (since 0.3.0)"
+        },
+        "single_instance": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow only a single instance of the application (opening a new file will open in the same instance) (since 0.7.1)"
+        },
+        "page_history": {
+          "type": "integer",
+          "default": 5,
+          "description": "Page history location limit to keep track (since 0.3.0)"
+        },
+        "invert_mode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Invert color mode (aka dark mode) (since 0.3.0)"
+        },
+        "dont_invert_images": {
+          "type": "boolean",
+          "default": true,
+          "description": "Preserve images when in invert color mode. When enabled, images in the PDF will retain their original colors even when invert mode is active. This prevents photos and diagrams from appearing inverted. (since 0.6.6)"
+        },
+        "auto_reload": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-reload file upon detecting file change (since 0.3.0)"
+        },
+        "cache_password": {
+          "type": "boolean",
+          "default": true,
+          "description": "Cache the password for password-protected files so that auto-reload can re-authenticate without prompting. Disable if you prefer the password not to persist in memory beyond initial unlock. (since 0.7.4)"
+        },
+        "recent_files": {
+          "type": "boolean",
+          "default": true,
+          "description": "Keep track of recent files (since 0.3.0)"
+        },
+        "num_recent_files": {
+          "type": "integer",
+          "default": 10,
+          "description": "Max number of recent files to keep track (since 0.3.0)"
+        },
+        "cache_pages": {
+          "type": "integer",
+          "default": 5,
+          "description": "Number of pages to cache page (since 0.5.3)"
+        },
+        "text_cache_size": {
+          "type": "integer",
+          "default": 512,
+          "description": "Number of pages whose extracted text is kept in memory (used for search and text selection). Increase for faster search on large documents; reduce to save memory. (since 0.8.1)"
+        },
+        "stext_page_cache_size": {
+          "type": "integer",
+          "default": 10,
+          "description": "Number of structured text pages kept in memory for text selection and the caret. Increase if selecting text on many pages is slow; reduce to save memory. (since 0.8.1)"
+        },
+        "mupdf_store_size": {
+          "type": "integer",
+          "default": 64,
+          "description": "Maximum size of MuPDF's internal store in megabytes. The store holds decoded embedded images, fonts, and glyph bitmaps. Reduce this if memory usage is too high; increase if you notice slow re-renders after scrolling through image-heavy documents. (since 0.8.0)"
+        },
+        "auto_scroll": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto scroll when selecting text that is out of view (since 0.7.1)"
+        },
+        "keep_view": {
+          "type": "boolean",
+          "default": true,
+          "description": "Keep the same part of the page in view when going to the next or previous page, e.g. when zoomed into a region. Off: the view is centered on the new page (since 0.8.0)"
+        },
+        "drag_image_out": {
+          "type": "boolean",
+          "default": true,
+          "description": "Drag an image of the page out of the window by pressing on it and moving the mouse (to drop it into another program). Turn it off if that gets in the way of selecting text. (since 0.8.0)"
+        },
+        "save_mode": {
+          "type": "string",
+          "enum": [
+            "overwrite",
+            "ask",
+            "suffix"
+          ],
+          "description": "Where saving writes. `overwrite` saves into the open file. `ask` asks for a new file on the first save of a file and `suffix` saves to `name_annotated.ext` next to it (asking if that exists); either way the original is left alone, the view follows the new file and later saves go there. (since 0.8.0)"
+        },
+        "close_on_last_tab": {
+          "type": "boolean",
+          "default": false,
+          "description": "Quit LEKTRA when the last open tab is closed. When false (the default), an empty window remains — the startup widget may be shown if that path is taken. `confirm_on_quit` still applies. (since 0.7.8)"
+        },
+        "high_contrast": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "High-contrast tone stretch applied after tint / invert. Pixels darker than black_point become pure black, lighter than white_point become pure white, midtones stretched linearly. On scanned or grayish pages this cleans up the paper background and sharpens text; on already-black-on-white PDFs it is a near no-op. Toggle at runtime with :high_contrast. (since 0.8.1)"
+            },
+            "black_point": {
+              "type": "integer",
+              "default": 40,
+              "description": "Pixel value (0-255) below which high-contrast pushes to pure black. (since 0.8.1)"
+            },
+            "white_point": {
+              "type": "integer",
+              "default": 220,
+              "description": "Pixel value (0-255) above which high-contrast pushes to pure white. (since 0.8.1)"
+            }
+          },
+          "additionalProperties": false,
+          "description": "High-contrast tone stretch of the rendered pages (since 0.8.1)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Behavior options struct (since 0.3.0)"
+    },
+    "preview": {
+      "type": "object",
+      "properties": {
+        "border_radius": {
+          "type": "integer",
+          "default": 8,
+          "description": "Border radius of the preview window in pixels (since 0.6.6)"
+        },
+        "close_on_click_outside": {
+          "type": "boolean",
+          "default": true,
+          "description": "Close the preview window when clicking outside of it (since 0.6.6)"
+        },
+        "opacity": {
+          "type": "number",
+          "default": 0.95,
+          "description": "Opacity of the preview window (0.0 to 1.0) (since 0.6.6)"
+        },
+        "size_ratio": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "number",
+              "description": "Width as a fraction of the main window (default 0.6)."
+            },
+            "height": {
+              "type": "number",
+              "description": "Height as a fraction of the main window (default 0.7)."
+            }
+          },
+          "additionalProperties": false,
+          "description": "Size of the preview window as a ratio of the main window."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Preview options struct (since 0.6.6)"
     },
     "updates": {
       "type": "object",
@@ -1789,12 +2040,12 @@
         },
         "fit_mode": {
           "type": "string",
-          "description": "Page fit mode used in presentation mode (since 0.8.0)",
           "enum": [
             "width",
             "height",
             "window"
-          ]
+          ],
+          "description": "Page fit mode used in presentation mode (since 0.8.0)"
         },
         "layout": {
           "type": "string",
@@ -1835,130 +2086,40 @@
           "description": "Laser pointer size in pixels (since 0.8.0)"
         },
         "trail": {
-          "type": "boolean",
-          "default": false,
-          "description": "Draw a trail while the left mouse button is held, fading from its oldest end like Excalidraw's laser pointer (since 0.8.0)"
-        },
-        "trail_fade_ms": {
-          "type": "integer",
-          "default": 1000,
-          "description": "How long the trail takes to fade away, in milliseconds (since 0.8.0)"
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Draw a trail while the left mouse button is held, fading (since 0.8.1)"
+            },
+            "fade_ms": {
+              "type": "integer",
+              "default": 1000,
+              "description": "How long the trail takes to fade away, in milliseconds (since 0.8.1)"
+            }
+          },
+          "additionalProperties": false,
+          "description": "The fading trail of the laser pointer (since 0.8.1)"
         }
       },
       "additionalProperties": false,
       "description": "Laser pointer options struct (since 0.8.0)"
     },
-    "rendering": {
+    "misc": {
       "type": "object",
       "properties": {
-        "antialiasing": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable Antialiasing (since 0.6.3)"
-        },
-        "text_antialiasing": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable text antialiasing (since 0.6.3)"
-        },
-        "smooth_pixmap_transform": {
-          "type": "boolean",
-          "default": true,
-          "description": "Smooth pixmap transform (since 0.6.3)"
-        },
-        "antialiasing_bits": {
-          "type": "integer",
-          "default": 8,
-          "description": "Antialiasing bits (since 0.3.0)"
-        },
-        "backend": {
-          "type": "string",
-          "description": "Rendering backend (since 0.7.3)",
-          "default": "auto"
-        },
-        "dpr": {
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "object",
-              "additionalProperties": {
-                "type": "number"
-              },
-              "description": "Device pixel ratio per screen name."
-            }
-          ],
-          "description": "Device pixel ratio: one number for every screen, or a table keyed by screen name.",
-          "default": 1.0
+        "color_dialog_colors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$"
+          },
+          "description": "Colours offered in the colour dialog."
         }
       },
       "additionalProperties": false,
-      "description": "Rendering options struct (since 0.3.0)"
-    },
-    "split": {
-      "type": "object",
-      "properties": {
-        "mouse_follows_focus": {
-          "type": "boolean",
-          "default": true,
-          "description": "Moving mouse changes the focus (since 0.6.2)"
-        },
-        "focus_follows_mouse": {
-          "type": "boolean",
-          "default": true,
-          "description": "Focus of split follows the mouse (since 0.6.2)"
-        },
-        "dim_inactive": {
-          "type": "boolean",
-          "default": false,
-          "description": "Dims splits that are not currently focused (since 0.6.2)"
-        },
-        "dim_inactive_opacity": {
-          "type": "number",
-          "default": 0.5,
-          "description": "Set the inactive split dim opacity [0-1] (since 0.6.2)"
-        },
-        "focus_border": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show a border around the focused split (since 0.6.3)"
-        },
-        "focus_border_color": {
-          "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
-        },
-        "focus_border_width": {
-          "type": "integer",
-          "default": 2,
-          "description": "Width of the focus border in pixels (since 0.6.3)"
-        },
-        "maximize_indicator": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show a badge in the corner of a maximized split (since 0.6.3)"
-        },
-        "maximize_indicator_color": {
-          "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
-        },
-        "gap": {
-          "type": "integer",
-          "default": 4,
-          "description": "Gap between splits in pixels (since 0.7.9.1)"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Split options struct (since 0.6.2)"
-    },
-    "mousebindings": {
-      "type": "object",
-      "description": "Mouse bindings: action = \"Modifier+Button\", e.g. pan = \"Alt+LeftButton\".",
-      "additionalProperties": {
-        "type": "string"
-      }
+      "description": "Misc options struct (for options that don't fit in other (since 0.7.0)"
     },
     "keybindings": {
       "type": "object",
@@ -1982,6 +2143,13 @@
             }
           }
         ]
+      }
+    },
+    "mousebindings": {
+      "type": "object",
+      "description": "Mouse bindings: action = \"Modifier+Button\", e.g. pan = \"Alt+LeftButton\".",
+      "additionalProperties": {
+        "type": "string"
       }
     },
     "filetype": {
@@ -2008,6 +2176,298 @@
             },
             "additionalProperties": false,
             "description": "Page options struct (since 0.6.4)"
+          },
+          "search": {
+            "type": "object",
+            "properties": {
+              "match_color": {
+                "type": "string",
+                "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                "default": "#55500033"
+              },
+              "index_color": {
+                "type": "string",
+                "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                "default": "#55FF0055"
+              },
+              "progressive": {
+                "type": "boolean",
+                "default": true,
+                "description": "Progressive search (renders results progressively when enabled, which can speed up search on large documents) (since 0.6.8)"
+              },
+              "highlight_matches": {
+                "type": "boolean",
+                "default": true,
+                "description": "Highlight all search matches (if false, only the current match is highlighted) (since 0.6.8)"
+              },
+              "absolute_jump": {
+                "type": "boolean",
+                "default": false,
+                "description": "When true, the \"next\" match is always the next index in the results list. When false, like in vim, \"next\" and \"previous\" are relative to where you are: once you have scrolled away from the current match, they go to the first match after the top of the view, or the last one before it. (since 0.6.9)"
+              }
+            },
+            "additionalProperties": false,
+            "description": "Search options struct (since 0.6.0)"
+          },
+          "annotations": {
+            "type": "object",
+            "properties": {
+              "highlight": {
+                "type": "object",
+                "properties": {
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                    "default": "#55FF5588"
+                  },
+                  "glow": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Enable hover effect (e.g., glow on highlight) (since 0.8.1)"
+                      },
+                      "color": {
+                        "type": "string",
+                        "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                        "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                        "default": "#FF5000AA"
+                      },
+                      "width": {
+                        "type": "integer",
+                        "default": 5,
+                        "description": "Glow width in pixels (since 0.8.1)"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "description": "The glow shown around an annotation on hover (since 0.8.1)"
+                  },
+                  "comment": {
+                    "type": "object",
+                    "properties": {
+                      "tooltip": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
+                      },
+                      "marker": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Show marker in the corner of the annotation (if comment exists). Popup annotations have no marker (since 0.8.1)"
+                      },
+                      "font_size": {
+                        "type": "integer",
+                        "default": 12,
+                        "description": "Font size for the comment tooltip (in points) (since 0.8.1)"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "description": "The comment of an annotation: its tooltip and its marker (since 0.8.1)"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Highlight annotation options struct (since 0.6.5)"
+              },
+              "underline": {
+                "type": "object",
+                "properties": {
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                    "default": "#E53935FF"
+                  },
+                  "thickness": {
+                    "type": "number",
+                    "default": 0.0625,
+                    "description": "Thickness of the line, as a fraction of the height of the underlined text (0.0625 is what Acrobat and MuPDF draw) (since 0.8.0)"
+                  },
+                  "offset": {
+                    "type": "number",
+                    "default": 0.05,
+                    "description": "How far above the bottom of the underlined text the line is, as a fraction of its height (Acrobat and MuPDF use 0.14, which sits close to the text) (since 0.8.0)"
+                  },
+                  "style": {
+                    "type": "string",
+                    "enum": [
+                      "solid",
+                      "dashed",
+                      "dotted"
+                    ],
+                    "description": "Line style (since 0.8.0)"
+                  },
+                  "glow": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Enable hover effect (e.g., glow on highlight) (since 0.8.1)"
+                      },
+                      "color": {
+                        "type": "string",
+                        "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                        "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                        "default": "#FF5000AA"
+                      },
+                      "width": {
+                        "type": "integer",
+                        "default": 5,
+                        "description": "Glow width in pixels (since 0.8.1)"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "description": "The glow shown around an annotation on hover (since 0.8.1)"
+                  },
+                  "comment": {
+                    "type": "object",
+                    "properties": {
+                      "tooltip": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
+                      },
+                      "marker": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Show marker in the corner of the annotation (if comment exists). Popup annotations have no marker (since 0.8.1)"
+                      },
+                      "font_size": {
+                        "type": "integer",
+                        "default": 12,
+                        "description": "Font size for the comment tooltip (in points) (since 0.8.1)"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "description": "The comment of an annotation: its tooltip and its marker (since 0.8.1)"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Underline annotation options struct. PDF has no setting for how an underline looks, so Lektra draws the ones it creates itself, as set here (since 0.8.0)"
+              },
+              "rect": {
+                "type": "object",
+                "properties": {
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                    "default": "#55FF5588"
+                  },
+                  "glow": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Enable hover effect (e.g., glow on highlight) (since 0.8.1)"
+                      },
+                      "color": {
+                        "type": "string",
+                        "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                        "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                        "default": "#FF5000AA"
+                      },
+                      "width": {
+                        "type": "integer",
+                        "default": 5,
+                        "description": "Glow width in pixels (since 0.8.1)"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "description": "The glow shown around an annotation on hover (since 0.8.1)"
+                  },
+                  "comment": {
+                    "type": "object",
+                    "properties": {
+                      "tooltip": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
+                      },
+                      "marker": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Show marker in the corner of the annotation (if comment exists). Popup annotations have no marker (since 0.8.1)"
+                      },
+                      "font_size": {
+                        "type": "integer",
+                        "default": 12,
+                        "description": "Font size for the comment tooltip (in points) (since 0.8.1)"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "description": "The comment of an annotation: its tooltip and its marker (since 0.8.1)"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Rect annotation options struct (since 0.6.5)"
+              },
+              "redact": {
+                "type": "object",
+                "properties": {
+                  "save_to_new_file": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "After applying redactions, ask where to save the redacted copy (offering `name_redacted.pdf`) instead of leaving the changes unsaved in the open file, so the original is never overwritten by mistake (since 0.8.0)"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Redaction options struct (since 0.8.0)"
+              },
+              "popup": {
+                "type": "object",
+                "properties": {
+                  "glow": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Enable hover effect (e.g., glow on highlight) (since 0.8.1)"
+                      },
+                      "color": {
+                        "type": "string",
+                        "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                        "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                        "default": "#FF5000AA"
+                      },
+                      "width": {
+                        "type": "integer",
+                        "default": 5,
+                        "description": "Glow width in pixels (since 0.8.1)"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "description": "The glow shown around an annotation on hover (since 0.8.1)"
+                  },
+                  "comment": {
+                    "type": "object",
+                    "properties": {
+                      "tooltip": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
+                      },
+                      "font_size": {
+                        "type": "integer",
+                        "default": 12,
+                        "description": "Font size for the comment tooltip (in points) (since 0.8.1)"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "description": "The comment of an annotation: its tooltip and its marker (since 0.8.1)"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Popup annotation options struct (since 0.6.5)"
+              }
+            },
+            "additionalProperties": false
           },
           "layout": {
             "type": "object",
@@ -2073,6 +2533,28 @@
             "additionalProperties": false,
             "description": "Zoom options struct (since 0.3.0)"
           },
+          "reflow": {
+            "type": "object",
+            "properties": {
+              "font_family": {
+                "type": "string",
+                "description": "Font family for the text (any installed font, or serif, sans-serif, monospace). Empty uses the document's own fonts (since 0.7.9)",
+                "default": ""
+              },
+              "font_size": {
+                "type": "number",
+                "default": 11.0,
+                "description": "Font size in points (since 0.7.9)"
+              },
+              "line_spacing": {
+                "type": "number",
+                "default": 0.0,
+                "description": "Line spacing as a multiple of the font size (e.g. 1.4). 0 uses the document's own spacing (since 0.7.9)"
+              }
+            },
+            "additionalProperties": false,
+            "description": "Text style for reflowable documents (EPUB, FB2, MOBI) (since 0.7.9)"
+          },
           "selection": {
             "type": "object",
             "properties": {
@@ -2133,265 +2615,6 @@
             "additionalProperties": false,
             "description": "Scrollbars options struct (since 0.5.1)"
           },
-          "search": {
-            "type": "object",
-            "properties": {
-              "highlight_matches": {
-                "type": "boolean",
-                "default": true,
-                "description": "Highlight all search matches (if false, only the current match is highlighted) (since 0.6.8)"
-              },
-              "progressive": {
-                "type": "boolean",
-                "default": true,
-                "description": "Progressive search (renders results progressively when enabled, which can speed up search on large documents) (since 0.6.8)"
-              },
-              "absolute_jump": {
-                "type": "boolean",
-                "default": false,
-                "description": "When true, the \"next\" match is always the next index in the results list. When false, like in vim, \"next\" and \"previous\" are relative to where you are: once you have scrolled away from the current match, they go to the first match after the top of the view, or the last one before it. (since 0.6.9)"
-              },
-              "match_color": {
-                "type": "string",
-                "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-                "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-                "default": "#55500033"
-              },
-              "index_color": {
-                "type": "string",
-                "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-                "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-                "default": "#55FF0055"
-              }
-            },
-            "additionalProperties": false,
-            "description": "Search options struct (since 0.6.0)"
-          },
-          "jump_marker": {
-            "type": "object",
-            "properties": {
-              "enabled": {
-                "type": "boolean",
-                "default": true,
-                "description": "Show the jump marker (since 0.3.1)"
-              },
-              "jump_marker": {
-                "type": "string",
-                "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-                "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-                "default": "#FF0000FF"
-              },
-              "fade_duration": {
-                "type": "number",
-                "default": 1.0,
-                "description": "Jump marker fade duration in seconds (since 0.6.7)"
-              }
-            },
-            "additionalProperties": false,
-            "description": "Jump marker options struct (since 0.3.1)"
-          },
-          "annotations": {
-            "type": "object",
-            "properties": {
-              "highlight": {
-                "type": "object",
-                "properties": {
-                  "color": {
-                    "type": "string",
-                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-                    "default": "#55FF5588"
-                  },
-                  "hover_glow": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Enable hover effect (e.g., glow on highlight) (since 0.6.5)"
-                  },
-                  "comment": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Show comment text in tooltip on hover (if comment exists) (since 0.6.5)"
-                  },
-                  "comment_marker": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Show marker in the corner of the rect (if comment exists) (since 0.6.5)"
-                  },
-                  "glow_width": {
-                    "type": "integer",
-                    "default": 5,
-                    "description": "Glow width in pixels (since 0.6.5)"
-                  },
-                  "glow_color": {
-                    "type": "string",
-                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-                    "default": "#FF5000AA"
-                  },
-                  "comment_font_size": {
-                    "type": "integer",
-                    "default": 12,
-                    "description": "Font size for the comment tooltip (in points) (since 0.6.5)"
-                  }
-                },
-                "additionalProperties": false,
-                "description": "Highlight annotation options struct (since 0.6.5)"
-              },
-              "underline": {
-                "type": "object",
-                "properties": {
-                  "color": {
-                    "type": "string",
-                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-                    "default": "#E53935FF"
-                  },
-                  "hover_glow": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Enable hover effect (e.g., glow on highlight) (since 0.6.5)"
-                  },
-                  "comment": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Show comment text in tooltip on hover (if comment exists) (since 0.6.5)"
-                  },
-                  "comment_marker": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Show marker in the corner of the underline (if comment exists) (since 0.8.0)"
-                  },
-                  "glow_width": {
-                    "type": "integer",
-                    "default": 5,
-                    "description": "Glow width in pixels (since 0.6.5)"
-                  },
-                  "glow_color": {
-                    "type": "string",
-                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-                    "default": "#FF5000AA"
-                  },
-                  "comment_font_size": {
-                    "type": "integer",
-                    "default": 12,
-                    "description": "Font size for the comment tooltip (in points) (since 0.6.5)"
-                  },
-                  "thickness": {
-                    "type": "number",
-                    "default": 0.0625,
-                    "description": "Thickness of the line, as a fraction of the height of the underlined text (0.0625 is what Acrobat and MuPDF draw) (since 0.8.0)"
-                  },
-                  "offset": {
-                    "type": "number",
-                    "default": 0.05,
-                    "description": "How far above the bottom of the underlined text the line is, as a fraction of its height (Acrobat and MuPDF use 0.14, which sits close to the text) (since 0.8.0)"
-                  },
-                  "style": {
-                    "type": "string",
-                    "enum": [
-                      "dashed",
-                      "dotted",
-                      "solid"
-                    ],
-                    "description": "Line style (since 0.8.0)"
-                  }
-                },
-                "additionalProperties": false,
-                "description": "Underline annotation options struct. PDF has no setting for how an underline looks, so Lektra draws the ones it creates itself, as set here (since 0.8.0)"
-              },
-              "rect": {
-                "type": "object",
-                "properties": {
-                  "color": {
-                    "type": "string",
-                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-                    "default": "#55FF5588"
-                  },
-                  "hover_glow": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Enable hover effect (e.g., glow on highlight) (since 0.6.5)"
-                  },
-                  "comment": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Show comment text in tooltip on hover (if comment exists) (since 0.6.5)"
-                  },
-                  "comment_marker": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Show marker in the corner of the rect (if comment exists) (since 0.6.5)"
-                  },
-                  "glow_width": {
-                    "type": "integer",
-                    "default": 5,
-                    "description": "Glow width in pixels (since 0.6.5)"
-                  },
-                  "glow_color": {
-                    "type": "string",
-                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-                    "default": "#FF5000AA"
-                  },
-                  "comment_font_size": {
-                    "type": "integer",
-                    "default": 12,
-                    "description": "Font size for the comment tooltip (in points) (since 0.6.5)"
-                  }
-                },
-                "additionalProperties": false,
-                "description": "Rect annotation options struct (since 0.6.5)"
-              },
-              "redact": {
-                "type": "object",
-                "properties": {
-                  "save_to_new_file": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "After applying redactions, ask where to save the redacted copy (offering `name_redacted.pdf`) instead of leaving the changes unsaved in the open file, so the original is never overwritten by mistake (since 0.8.0)"
-                  }
-                },
-                "additionalProperties": false,
-                "description": "Redaction options struct (since 0.8.0)"
-              },
-              "popup": {
-                "type": "object",
-                "properties": {
-                  "hover_glow": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Enable hover effect (e.g., glow on highlight) (since 0.6.5)"
-                  },
-                  "comment": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Show comment text in tooltip on hover (if comment exists) (since 0.6.5)"
-                  },
-                  "glow_width": {
-                    "type": "integer",
-                    "default": 5,
-                    "description": "Glow width in pixels (since 0.6.5)"
-                  },
-                  "glow_color": {
-                    "type": "string",
-                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-                    "default": "#FF5000AA"
-                  },
-                  "comment_font_size": {
-                    "type": "integer",
-                    "default": 12,
-                    "description": "Font size for the comment tooltip (in points) (since 0.6.5)"
-                  }
-                },
-                "additionalProperties": false,
-                "description": "Popup annotation options struct (since 0.6.5)"
-              }
-            },
-            "additionalProperties": false
-          },
           "minimap": {
             "type": "object",
             "properties": {
@@ -2430,6 +2653,16 @@
                 "default": true,
                 "description": "Draw the page in the minimap. Off: a plain panel with only the (since 0.8.0)"
               },
+              "position": {
+                "type": "string",
+                "enum": [
+                  "top_left",
+                  "top_right",
+                  "bottom_left",
+                  "bottom_right"
+                ],
+                "description": "Corner of the view the minimap is placed in (since 0.8.0)"
+              },
               "border_width": {
                 "type": "integer",
                 "default": 1,
@@ -2440,16 +2673,6 @@
                 "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
                 "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
                 "default": "#000000A0"
-              },
-              "position": {
-                "type": "string",
-                "enum": [
-                  "top_left",
-                  "top_right",
-                  "bottom_left",
-                  "bottom_right"
-                ],
-                "description": "Corner of the view the minimap is placed in (since 0.8.0)"
               },
               "viewport": {
                 "type": "object",
@@ -2485,6 +2708,29 @@
             "additionalProperties": false,
             "description": "A small overview of the current page in a corner of the view, shown while zoomed in so that the page does not fit. It marks the visible area; click or drag in it to move there. Works for documents and images (since 0.8.0)"
           },
+          "jump_marker": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "default": true,
+                "description": "Show the jump marker (since 0.3.1)"
+              },
+              "jump_marker": {
+                "type": "string",
+                "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                "default": "#FF0000FF"
+              },
+              "fade_duration": {
+                "type": "number",
+                "default": 1.0,
+                "description": "Jump marker fade duration in seconds (since 0.6.7)"
+              }
+            },
+            "additionalProperties": false,
+            "description": "Jump marker options struct (since 0.3.1)"
+          },
           "links": {
             "type": "object",
             "properties": {
@@ -2508,24 +2754,31 @@
                 "description": "Valid regular expression that detects URLs (since 0.5.3)"
               },
               "hover_preview": {
-                "type": "boolean",
-                "default": false,
-                "description": "Show a small preview of where an internal link goes when hovering over it, instead of the plain tooltip (since 0.7.9)"
-              },
-              "hover_preview_delay": {
-                "type": "integer",
-                "default": 350,
-                "description": "Milliseconds to hover over a link before its preview shows (since 0.7.9)"
-              },
-              "hover_preview_width": {
-                "type": "integer",
-                "default": 480,
-                "description": "Width of the hover preview in pixels (since 0.7.9)"
-              },
-              "hover_preview_height": {
-                "type": "integer",
-                "default": 240,
-                "description": "Height of the hover preview in pixels (since 0.7.9)"
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Show a small preview of where an internal link goes when hovering over it, instead of the plain tooltip (since 0.8.1)"
+                  },
+                  "delay": {
+                    "type": "integer",
+                    "default": 350,
+                    "description": "Milliseconds to hover over a link before its preview shows (since 0.8.1)"
+                  },
+                  "width": {
+                    "type": "integer",
+                    "default": 480,
+                    "description": "Width of the preview in pixels (since 0.8.1)"
+                  },
+                  "height": {
+                    "type": "integer",
+                    "default": 240,
+                    "description": "Height of the preview in pixels (since 0.8.1)"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Preview shown when hovering over an internal link (since 0.8.1)"
               }
             },
             "additionalProperties": false,
@@ -2553,6 +2806,11 @@
                 "type": "boolean",
                 "default": true,
                 "description": "Remembers last visited page number (since 0.3.0)"
+              },
+              "open_last_visited": {
+                "type": "boolean",
+                "default": false,
+                "description": "Open last visited file when launching new instance (since 0.3.0)"
               },
               "single_instance": {
                 "type": "boolean",
@@ -2632,9 +2890,9 @@
               "save_mode": {
                 "type": "string",
                 "enum": [
+                  "overwrite",
                   "ask",
-                  "suffix",
-                  "overwrite"
+                  "suffix"
                 ],
                 "description": "Where saving writes. `overwrite` saves into the open file. `ask` asks for a new file on the first save of a file and `suffix` saves to `name_annotated.ext` next to it (asking if that exists); either way the original is left alone, the view follows the new file and later saves go there. (since 0.8.0)"
               },
@@ -2644,45 +2902,30 @@
                 "description": "Quit LEKTRA when the last open tab is closed. When false (the default), an empty window remains — the startup widget may be shown if that path is taken. `confirm_on_quit` still applies. (since 0.7.8)"
               },
               "high_contrast": {
-                "type": "boolean",
-                "default": false,
-                "description": "High-contrast tone stretch applied after tint / invert. Pixels darker than black_point become pure black, lighter than white_point become pure white, midtones stretched linearly. On scanned or grayish pages this cleans up the paper background and sharpens text; on already-black-on-white PDFs it is a near no-op. Toggle at runtime with :toggle_high_contrast. (since 0.7.8)"
-              },
-              "high_contrast_black_point": {
-                "type": "integer",
-                "default": 40,
-                "description": "Pixel value (0-255) below which high-contrast pushes to pure black. (since 0.7.8)"
-              },
-              "high_contrast_white_point": {
-                "type": "integer",
-                "default": 220,
-                "description": "Pixel value (0-255) above which high-contrast pushes to pure white. (since 0.7.8)"
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "High-contrast tone stretch applied after tint / invert. Pixels darker than black_point become pure black, lighter than white_point become pure white, midtones stretched linearly. On scanned or grayish pages this cleans up the paper background and sharpens text; on already-black-on-white PDFs it is a near no-op. Toggle at runtime with :high_contrast. (since 0.8.1)"
+                  },
+                  "black_point": {
+                    "type": "integer",
+                    "default": 40,
+                    "description": "Pixel value (0-255) below which high-contrast pushes to pure black. (since 0.8.1)"
+                  },
+                  "white_point": {
+                    "type": "integer",
+                    "default": 220,
+                    "description": "Pixel value (0-255) above which high-contrast pushes to pure white. (since 0.8.1)"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "High-contrast tone stretch of the rendered pages (since 0.8.1)"
               }
             },
             "additionalProperties": false,
             "description": "Behavior options struct (since 0.3.0)"
-          },
-          "reflow": {
-            "type": "object",
-            "properties": {
-              "font_family": {
-                "type": "string",
-                "description": "Font family for the text (any installed font, or serif, sans-serif, monospace). Empty uses the document's own fonts (since 0.7.9)",
-                "default": ""
-              },
-              "font_size": {
-                "type": "number",
-                "default": 11.0,
-                "description": "Font size in points (since 0.7.9)"
-              },
-              "line_spacing": {
-                "type": "number",
-                "default": 0.0,
-                "description": "Line spacing as a multiple of the font size (e.g. 1.4). 0 uses the document's own spacing (since 0.7.9)"
-              }
-            },
-            "additionalProperties": false,
-            "description": "Text style for reflowable documents (EPUB, FB2, MOBI) (since 0.7.9)"
           }
         },
         "additionalProperties": false

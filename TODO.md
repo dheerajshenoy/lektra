@@ -21,6 +21,13 @@
 - [ ] Annotation save as temp file and auto-save on exit
 - [ ] Macros
 - [ ] Multi-Document / Workspace Search
+- [ ] Count prefixes and repeat: `5j`, `3<C-d>`, and `.` to repeat the last action
+- [ ] Which-key style popup listing what can follow a pending key prefix
+- [ ] Text hints: label words or lines like link hints, to select, yank or start caret mode there
+- [ ] CLI / headless control: run commands or Lua in a running instance (e.g. `lektra --eval '...'`), for shell, window manager and editor integration
+- [ ] Per-document persistent state: zoom, fit mode, narrowed region, layout and marks saved per file
+- [ ] More Lua events: `OnSelectionChanged`, `OnAnnotationChanged` (edits, not just add/remove), `OnFileReloaded`, `OnKeyPressed`
+- [ ] Command pipelines: chain commands in one binding or at the command prompt (e.g. `zoom_set 150; page_goto 1`)
 - [ ] Telescope / FZF-style Fuzzy Text Search Across Document
 - [ ] Zotero Integration & Reference Inspection
 - LLM View
@@ -40,6 +47,7 @@
 
 ## LOW PRIORITY
 
+- [ ] Reading statistics (time per document, pages read) exposed to Lua, e.g. for status bar widgets
 - [ ] Your reading position is saved as a chapter bookmark, so it survives font-size changes. (For reflowable documents, the bookmark is anchored to the chapter and a y-fraction of the chapter's height, so it survives font-size changes. For fixed-layout documents, the bookmark is anchored to the page number.)
 - [ ] Clickable Plain text DOIs in PDF text
 - [ ] Smoother find-as-you-type

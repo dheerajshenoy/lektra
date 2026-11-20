@@ -70,46 +70,45 @@ lektra.opt.synctex = {}
 ---@field progressive? boolean Enable progressive (incremental) search.
 lektra.opt.search = {}
 
+---@class OptAnnotationsGlow
+---@field color? Color Glow color (`Color`).
+---@field enabled? boolean Show the glow on hover.
+---@field width? integer Width of the glow effect in pixels.
+
+---@class OptAnnotationsComment
+---@field font_size? integer Font size of the comment tooltip.
+---@field marker? boolean Show the comment marker icon.
+---@field tooltip? boolean Show the comment text in a tooltip on hover.
+
+---@class OptAnnotationsPopupComment
+---@field font_size? integer Font size of the comment tooltip.
+---@field tooltip? boolean Show the comment text in a tooltip on hover.
+
 ---@class OptAnnotationsHighlight
 ---@field color? Color Highlight annotation color (`Color`).
----@field comment? boolean Show comment text for highlights.
----@field comment_font_size? integer Font size of the comment text.
----@field comment_marker? boolean Show the comment marker icon.
----@field glow_color? Color Glow color around the highlight (`Color`).
----@field glow_width? integer Width of the glow effect in pixels.
----@field hover_glow? boolean Show glow only on hover.
+---@field comment? OptAnnotationsComment The comment tooltip and marker.
+---@field glow? OptAnnotationsGlow The glow shown around a highlight on hover.
 
 ---@alias UnderlineStyle "solid"|"dashed"|"dotted"
 
 ---@class OptAnnotationsUnderline
 ---@field color? Color Color of new underlines (`Color`).
----@field comment? boolean Show comment text for underlines.
----@field comment_font_size? integer Font size of the comment text.
----@field comment_marker? boolean Show the comment marker icon.
----@field glow_color? Color Glow color around the underline (`Color`).
----@field glow_width? integer Width of the glow effect in pixels.
----@field hover_glow? boolean Show glow only on hover.
+---@field comment? OptAnnotationsComment The comment tooltip and marker.
+---@field glow? OptAnnotationsGlow The glow shown around an underline on hover.
 ---@field offset? number How far above the bottom of the text the line is, as a fraction of the text height (default 0.14).
 ---@field style? UnderlineStyle Line style.
 ---@field thickness? number Thickness of the line, as a fraction of the text height (default 0.0625).
 
 ---@class OptAnnotationsRect
 ---@field color? Color Rectangle annotation color (`Color`).
----@field comment? boolean Show comment text for rectangles.
----@field comment_font_size? integer Font size of the comment text.
----@field comment_marker? boolean Show the comment marker icon.
----@field glow_color? Color Glow color around the rectangle (`Color`).
----@field glow_width? integer Width of the glow effect in pixels.
----@field hover_glow? boolean Show glow only on hover.
+---@field comment? OptAnnotationsComment The comment tooltip and marker.
+---@field glow? OptAnnotationsGlow The glow shown around a rectangle on hover.
 
 ---@class OptAnnotationsPopup
 -- Popup annotations inherit only from Base — they do NOT have a `color`
 -- field (unlike Highlight and Rect).
----@field comment? boolean Show comment text for popups.
----@field comment_font_size? integer Font size of the comment text.
----@field glow_color? Color Glow color around the popup (`Color`).
----@field glow_width? integer Width of the glow effect in pixels.
----@field hover_glow? boolean Show glow only on hover.
+---@field comment? OptAnnotationsPopupComment The comment tooltip.
+---@field glow? OptAnnotationsGlow The glow shown around a popup on hover.
 
 ---@class OptAnnotationsRedact
 ---@field save_to_new_file? boolean After applying redactions, ask where to save the redacted copy instead of leaving the changes unsaved in the open file.
@@ -250,17 +249,33 @@ lektra.opt.zoom = {}
 ---@field drag_threshold? integer Pixel distance before a drag is recognized.
 lektra.opt.selection = {}
 
+---@class OptSplitDimInactive
+---@field enabled? boolean Dim the inactive split pane.
+---@field opacity? number Opacity of the dimming (0.0–1.0).
+
+---@class OptSplitFocusBorder
+---@field color? Color Border color as an RRGGBBAA hex integer (e.g. 0xFF4FC3F7).
+---@field enabled? boolean Draw a border around the currently focused split.
+---@field width? integer Border thickness in pixels.
+
+---@class OptSplitMaximizeIndicator
+---@field color? Color Badge color as an RRGGBBAA hex integer (e.g. 0xCC2979FF).
+---@field enabled? boolean Show a badge in the corner of the maximized split.
+
 ---@class OptSplit
----@field dim_inactive? boolean Dim the inactive split pane.
----@field dim_inactive_opacity? number Opacity of the inactive pane when dimmed (0.0–1.0).
----@field focus_border? boolean Draw a border around the currently focused split.
----@field focus_border_color? Color Border color as an RRGGBBAA hex integer (e.g. 0xFF4FC3F7).
----@field focus_border_width? integer Border thickness in pixels.
+---@field dim_inactive? OptSplitDimInactive Dimming of the splits that are not focused.
+---@field focus_border? OptSplitFocusBorder The border around the focused split.
 ---@field focus_follows_mouse? boolean Focus a split pane when the mouse enters it.
----@field maximize_indicator? boolean Show a badge in the corner of the maximized split.
----@field maximize_indicator_color? Color Badge color as an RRGGBBAA hex integer (e.g. 0xCC2979FF).
+---@field maximize_indicator? OptSplitMaximizeIndicator The badge shown on a maximized split.
 ---@field mouse_follows_focus? boolean Warp the mouse to the focused pane.
-lektra.opt.split = {}
+lektra.opt.split = {
+    ---@type OptSplitDimInactive
+    dim_inactive = {},
+    ---@type OptSplitFocusBorder
+    focus_border = {},
+    ---@type OptSplitMaximizeIndicator
+    maximize_indicator = {},
+}
 
 ---@class OptScrollbars
 ---@field auto_hide? boolean Automatically hide scrollbars when idle.
@@ -300,16 +315,22 @@ lektra.opt.minimap = {
 ---@field fade_duration? number Duration in seconds for the fade-out animation.
 lektra.opt.jump_marker = {}
 
+---@class OptLinksHoverPreview
+---@field delay? integer Milliseconds to hover before the preview shows.
+---@field enabled? boolean Hovering an internal link shows a preview of its target, instead of the tooltip.
+---@field height? integer Height of the preview in pixels.
+---@field width? integer Width of the preview in pixels.
+
 ---@class OptLinks
 ---@field boundary? boolean Draw a boundary box around detected links.
 ---@field detect_urls? boolean Detect plain-text URLs as clickable links.
 ---@field enabled? boolean Whether link detection and navigation is active.
----@field hover_preview? boolean Hovering an internal link shows a preview of its target, instead of the tooltip.
----@field hover_preview_delay? integer Milliseconds to hover before the preview shows.
----@field hover_preview_height? integer Height of the hover preview in pixels.
----@field hover_preview_width? integer Width of the hover preview in pixels.
+---@field hover_preview? OptLinksHoverPreview Preview shown when hovering over an internal link.
 ---@field url_regex? string Regular expression used to detect URLs.
-lektra.opt.links = {}
+lektra.opt.links = {
+    ---@type OptLinksHoverPreview
+    hover_preview = {},
+}
 
 ---@class OptLinkHints
 ---@field charset? string Characters used to build link hints, e.g. `"asdfghjkl"` for letters (default `"0123456789"`).
@@ -355,6 +376,10 @@ lektra.opt.link_hints = {}
 ---@field show? boolean Whether the tab bar is shown.
 lektra.opt.tabs = {}
 
+---@class OptPickerHighlightMatches
+---@field color? string|integer Color of the match highlight (0xRRGGBBAA or "#RRGGBBAA").
+---@field enabled? boolean Highlight the typed text in matching rows.
+
 ---@class OptPickerShadow
 ---@field blur_radius? integer Shadow blur radius in pixels.
 ---@field enabled? boolean Draw a drop shadow behind the picker.
@@ -387,8 +412,7 @@ lektra.opt.tabs = {}
 ---@field prompt? string Placeholder text shown in the picker's search box.
 ---@field shadow? OptPickerShadow Drop-shadow sub-table.
 ---@field keys? OptPickerKeys Keys used in every picker (same actions as `[picker.keys]` in config.toml).
----@field highlight_matches? boolean Highlight the typed text in matching picker rows.
----@field highlight_matches_color? string|integer Color of the match highlight (0xRRGGBBAA or "#RRGGBBAA").
+---@field highlight_matches? OptPickerHighlightMatches Highlighting of the typed text in matching picker rows.
 lektra.opt.picker = {
     ---@type OptPickerShadow
     shadow = {},
@@ -397,8 +421,12 @@ lektra.opt.picker = {
 }
 
 ---@class OptOutline
----@field highlight_matches? boolean Highlight the typed text in matching rows.
----@field highlight_matches_color? string|integer Color of the match highlight (0xRRGGBBAA or "#RRGGBBAA").
+---@field highlight_matches? OptPickerHighlightMatches Highlighting of the typed text in matching rows.
+---@field width? number Picker widget width (as a fraction of the window or in pixels). Starts from `lektra.opt.picker`'s value.
+---@field height? number Picker widget height. Starts from `lektra.opt.picker`'s value.
+---@field border? boolean Draw a border around the picker. Starts from `lektra.opt.picker`'s value.
+---@field alternating_row_color? boolean Alternate row background colors. Starts from `lektra.opt.picker`'s value.
+---@field shadow? OptPickerShadow Drop-shadow sub-table. Starts from `lektra.opt.picker`'s value.
 ---@field flat_menu? boolean Display the outline as a flat list instead of a tree.
 ---@field generate_heading_ratio? number Minimum font-size ratio (vs body text) for a line to be treated as a heading by `generate_outline`.
 ---@field generate_max_levels? integer Maximum number of heading tiers `generate_outline` will produce.
@@ -409,15 +437,23 @@ lektra.opt.picker = {
 lektra.opt.outline = {}
 
 ---@class OptHighlightSearch
----@field highlight_matches? boolean Highlight the typed text in matching rows.
----@field highlight_matches_color? string|integer Color of the match highlight (0xRRGGBBAA or "#RRGGBBAA").
+---@field highlight_matches? OptPickerHighlightMatches Highlighting of the typed text in matching rows.
+---@field width? number Picker widget width (as a fraction of the window or in pixels). Starts from `lektra.opt.picker`'s value.
+---@field height? number Picker widget height. Starts from `lektra.opt.picker`'s value.
+---@field border? boolean Draw a border around the picker. Starts from `lektra.opt.picker`'s value.
+---@field alternating_row_color? boolean Alternate row background colors. Starts from `lektra.opt.picker`'s value.
+---@field shadow? OptPickerShadow Drop-shadow sub-table. Starts from `lektra.opt.picker`'s value.
 ---@field flat_menu? boolean Display search results as a flat list.
 ---@field prompt? string Placeholder text shown in the highlight-search picker's search box.
 lektra.opt.highlight_search = {}
 
 ---@class OptCommandPalette
----@field highlight_matches? boolean Highlight the typed text in matching rows.
----@field highlight_matches_color? string|integer Color of the match highlight (0xRRGGBBAA or "#RRGGBBAA").
+---@field highlight_matches? OptPickerHighlightMatches Highlighting of the typed text in matching rows.
+---@field width? number Picker widget width (as a fraction of the window or in pixels). Starts from `lektra.opt.picker`'s value.
+---@field height? number Picker widget height. Starts from `lektra.opt.picker`'s value.
+---@field border? boolean Draw a border around the picker. Starts from `lektra.opt.picker`'s value.
+---@field alternating_row_color? boolean Alternate row background colors. Starts from `lektra.opt.picker`'s value.
+---@field shadow? OptPickerShadow Drop-shadow sub-table. Starts from `lektra.opt.picker`'s value.
 ---@field prompt? string Placeholder text shown in the command palette input.
 ---@field vscrollbar? boolean Show a vertical scrollbar in the command palette.
 ---@field shortcuts? boolean Show keyboard shortcuts next to commands.
@@ -445,12 +481,18 @@ lektra.opt.llm_view = {}
 ---@field icons? boolean Show standard icons next to menubar items (toggles Qt::AA_DontShowIconsInMenus).
 lektra.opt.menubar = {}
 
+---@class OptLaserPointerTrail
+---@field enabled? boolean Draw a fading trail while the left mouse button is held.
+---@field fade_ms? integer How long the trail takes to fade, in milliseconds.
+
 ---@class OptLaserPointer
 ---@field color? string|integer Laser pointer color (0xRRGGBBAA or "#RRGGBBAA").
 ---@field size? integer Laser pointer size in pixels.
----@field trail? boolean Draw a fading trail while the left mouse button is held.
----@field trail_fade_ms? integer How long the trail takes to fade, in milliseconds.
-lektra.opt.laser_pointer = {}
+---@field trail? OptLaserPointerTrail The fading trail of the laser pointer.
+lektra.opt.laser_pointer = {
+    ---@type OptLaserPointerTrail
+    trail = {},
+}
 
 ---@class OptPresentation
 ---@field hide_cursor_ms? integer Hide the mouse cursor after it has been idle for this many milliseconds (0 to never hide it).
@@ -468,14 +510,25 @@ lektra.opt.presentation = {}
 ---@field line_spacing? number Line spacing as a multiple of the font size; 0 keeps the document's own.
 lektra.opt.reflow = {}
 
+---@class OptRenderingAntialiasing
+---@field bits? integer Number of multisampling bits for antialiasing (e.g. 4, 8).
+---@field enabled? boolean Enable antialiasing for page rendering.
+
 ---@class OptRendering
----@field antialiasing? boolean Enable antialiasing for page rendering.
----@field antialiasing_bits? integer Number of multisampling bits for antialiasing (e.g. 4, 8).
+---@field antialiasing? OptRenderingAntialiasing Antialiasing of the rendered pages.
 ---@field text_antialiasing? boolean Enable text-specific antialiasing.
 ---@field smooth_pixmap_transform? boolean Use smooth (bilinear) scaling for pixmaps.
 ---@field backend? Backend Rendering backend
 ---@field dpr? number|table<string, number> Device pixel ratio: a single number for every screen, or a table keyed by screen name (e.g. `{ ["eDP-1"] = 1.5, ["HDMI-A-1"] = 1.0 }`).
-lektra.opt.rendering = {}
+lektra.opt.rendering = {
+    ---@type OptRenderingAntialiasing
+    antialiasing = {},
+}
+
+---@class OptBehaviorHighContrast
+---@field black_point? integer Pixel value ≤ this becomes pure black (0-255).
+---@field enabled? boolean High-contrast tone stretch applied after tint / invert (accessibility).
+---@field white_point? integer Pixel value ≥ this becomes pure white (0-255).
 
 ---@class OptBehavior
 ---@field auto_reload? boolean Automatically reload the document when the file changes on disk.
@@ -489,9 +542,7 @@ lektra.opt.rendering = {}
 ---@field close_on_last_tab? boolean Quit LEKTRA when the last tab is closed (confirm_on_quit still applies).
 ---@field confirm_on_quit? boolean Show a confirmation dialog before quitting.
 ---@field dont_invert_images? boolean Exclude images from colour inversion and high-contrast stretch.
----@field high_contrast? boolean High-contrast tone stretch applied after tint / invert (accessibility).
----@field high_contrast_black_point? integer Pixel value ≤ this becomes pure black (0-255).
----@field high_contrast_white_point? integer Pixel value ≥ this becomes pure white (0-255).
+---@field high_contrast? OptBehaviorHighContrast High-contrast tone stretch applied after tint / invert (accessibility).
 ---@field invert_mode? boolean Start with colour inversion enabled.
 ---@field mupdf_store_size? integer Maximum size of MuPDF's internal decoded-image / glyph store, in MB.
 ---@field num_recent_files? integer Maximum number of recent files to remember.
@@ -502,7 +553,10 @@ lektra.opt.rendering = {}
 ---@field remember_last_visited? boolean Remember and restore the last visited page.
 ---@field single_instance? boolean Enforce a single application instance.
 ---@field undo_limit? integer Maximum number of undo steps.
-lektra.opt.behavior = {}
+lektra.opt.behavior = {
+    ---@type OptBehaviorHighContrast
+    high_contrast = {},
+}
 
 ---@class OptPreviewSizeRatio
 ---@field width? number Width of the preview as a fraction of the window width.

@@ -30,7 +30,8 @@ GraphicsView::GraphicsView(const Config &config, QWidget *parent)
     setAcceptDrops(false);
     setContentsMargins(0, 0, 0, 0);
 
-    setRenderHint(QPainter::Antialiasing, m_config.rendering.antialiasing);
+    setRenderHint(QPainter::Antialiasing,
+                  m_config.rendering.antialiasing.enabled);
     setRenderHint(QPainter::SmoothPixmapTransform,
                   m_config.rendering.smooth_pixmap_transform);
     setRenderHint(QPainter::TextAntialiasing,
@@ -1175,7 +1176,7 @@ GraphicsView::paintEvent(QPaintEvent *event)
     }
 
     // --- Dimming Logic ---
-    bool shouldDim = m_config.split.dim_inactive && !m_is_active;
+    bool shouldDim = m_config.split.dim_inactive.enabled && !m_is_active;
 
     // If it's a portal, we override the dimming based on the new config
     if (m_is_portal && !m_config.portal.dim_inactive)
@@ -1183,11 +1184,11 @@ GraphicsView::paintEvent(QPaintEvent *event)
         shouldDim = false;
     }
 
-    if (shouldDim && m_config.split.dim_inactive_opacity > 0)
+    if (shouldDim && m_config.split.dim_inactive.opacity > 0)
     {
         QColor dimColor(
             0, 0, 0,
-            static_cast<int>(m_config.split.dim_inactive_opacity * 255));
+            static_cast<int>(m_config.split.dim_inactive.opacity * 255));
         painter.fillRect(event->rect(), dimColor);
     }
 
@@ -1224,17 +1225,17 @@ GraphicsView::paintEvent(QPaintEvent *event)
         }
     }
 
-    if (m_config.split.focus_border && m_config.split.focus_border_width > 0
-        && m_is_active && !m_is_portal)
+    if (m_config.split.focus_border.enabled
+        && m_config.split.focus_border.width > 0 && m_is_active && !m_is_portal)
     {
         painter.setRenderHint(QPainter::Antialiasing, false);
-        QPen pen(QColor(m_config.split.focus_border_color),
-                 m_config.split.focus_border_width);
+        QPen pen(QColor(m_config.split.focus_border.color),
+                 m_config.split.focus_border.width);
         painter.setPen(pen);
         painter.drawRect(viewport()->rect().adjusted(1, 1, -1, -1));
     }
 
-    if (m_is_split_maximized && m_config.split.maximize_indicator)
+    if (m_is_split_maximized && m_config.split.maximize_indicator.enabled)
     {
         painter.setRenderHint(QPainter::Antialiasing, true);
         painter.setRenderHint(QPainter::TextAntialiasing, true);
@@ -1252,7 +1253,7 @@ GraphicsView::paintEvent(QPaintEvent *event)
         const QRect badge(viewport()->rect().right() - bw - 6,
                           viewport()->rect().top() + 6, bw, bh);
 
-        QColor bg(m_config.split.maximize_indicator_color);
+        QColor bg(m_config.split.maximize_indicator.color);
         painter.setBrush(bg);
         painter.setPen(Qt::NoPen);
         painter.drawRoundedRect(badge, 4, 4);

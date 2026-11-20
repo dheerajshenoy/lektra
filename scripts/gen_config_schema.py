@@ -6,15 +6,15 @@ documentation and validation while editing the config file.
 
 Where the information comes from, so it cannot drift from the code:
 
-  * src/lektra/Config.cpp   what the loader accepts: sections, keys, nesting,
-                            string choices (from `x == "value"` comparisons)
-                            and value kinds (set(), set_color(), value<T>())
+  * src/lektra/ConfigOptions.cpp
+                            the option list: sections, keys, value kinds,
+                            string choices and per file type scope
   * include/Config.hpp      C++ member types and defaults, plus the
                             `// @desc / @type / @default / @choice`
                             annotations (read with scripts/doc_config.py)
 
-A few shapes cannot be derived from the loader (free-form tables such as
-[keybindings]); those are described in SPECIAL below.
+Options of Kind::Custom (free-form shapes such as [rendering].dpr) and
+[keybindings] are described in SPECIAL / CUSTOM_KIND below.
 
 Usage:
     scripts/gen_config_schema.py                    write schema/lektra-config.schema.json
@@ -38,7 +38,7 @@ sys.path.insert(0, str(HERE))
 from doc_config import Parser  # noqa: E402  (reads the @desc/@type annotations)
 
 CONFIG_HPP = ROOT / "include" / "Config.hpp"
-CONFIG_CPP = ROOT / "src" / "lektra" / "Config.cpp"
+OPTIONS_CPP = ROOT / "src" / "lektra" / "ConfigOptions.cpp"
 DEFAULT_TOML = ROOT / "default_config.toml"
 OUT_DEFAULT = ROOT / "schema" / "lektra-config.schema.json"
 
@@ -225,13 +225,14 @@ def cpp_default_to_json(text):
 
 
 # ---------------------------------------------------------------------------
-# Config.cpp: what the loader accepts
+# ConfigOptions.cpp: the option list
 # ---------------------------------------------------------------------------
 
 class Node:
     def __init__(self):
         self.keys: "collections.OrderedDict[str, dict[str, Any]]" = collections.OrderedDict()  # key -> info
         self.children = collections.OrderedDict()  # sub-table -> Node
+        self.scope = set()                          # scope names of its options
 
     def child(self, name):
         if name not in self.children:
@@ -244,138 +245,66 @@ class Node:
         return self.keys[name]
 
 
-def block_choices(code, start, var):
-    """String values compared with `var` in the block that follows `start`."""
-    choices = []
-    depth = 0
-    seen_open = False
-    for j in range(start, min(start + 80, len(code))):
-        depth += code[j].count("{") - code[j].count("}")
-        if "{" in code[j]:
-            seen_open = True
-        choices += re.findall(r'\*?\b%s\s*==\s*"([^"]*)"' % re.escape(var), code[j])
-        if seen_open and depth <= 0:
-            break
-    return list(dict.fromkeys(choices))
+# Kind::Custom options that are plain values in config.toml (the others are in SPECIAL)
+CUSTOM_KIND = {
+    "window.title_format": "string",
+    "presentation.layout": "value:std::string",
+}
+
+ENTRY = re.compile(r'r\.(boolean|integer|number|text|color|choice|custom)\(\s*"([\w.]+)"'
+                   r'(?:\s*,\s*[FS]\(([\w.]+)\))?(?:\s*,\s*(\w+))?')
+SECTION = re.compile(r'r\.section\(\s*"([\w.]+)"\s*,\s*([\w|\s]+?)\s*[,)]')
+HELPER_CALL = re.compile(r'^\s*(\w+)\(r,\s*F\(([\w.]+)\)\)')
 
 
-def extract_loader(path):
-    lines = path.read_text().splitlines()
-    code = [strip_comments(l) for l in lines]
+def extract_registry(path):
+    text = path.read_text()
+    code = [strip_comments(l) for l in text.splitlines()]
+
+    choices = {m.group(1): re.findall(r'\{"(\w+)"', m.group(2))
+               for m in re.finditer(r"constexpr Choice (\w+)\[\] = \{(.*?)\};", text, re.S)}
+
+    # template <typename Base> void name(Registry &r, Base) { r.xxx("key", S(member)); ... }
+    helpers = {}
+    for m in re.finditer(r"template <typename Base>\s*void\s*(\w+)\(Registry &r, Base\)\s*\{(.*?)\n\}", text, re.S):
+        helpers[m.group(1)] = [e.groups() for e in ENTRY.finditer(m.group(2))]
 
     root = Node()
-    shared_picker = Node()          # keys written by set_picker_shared()
-    picker_calls = []               # (node, source line)
+    prefix, scope = None, ""
+    entries = []                       # (dotted path, method, member, choices, scope)
+    body = text[text.index("std::vector<Option>\nbuild()"):]
+    for line in [strip_comments(l) for l in body.splitlines()]:
+        m = SECTION.search(line)
+        if m:
+            prefix, scope = m.group(1), m.group(2)
+            continue
+        m = HELPER_CALL.match(line)
+        if m and m.group(1) in helpers:
+            for method, key, member, arr in helpers[m.group(1)]:
+                entries.append((f"{prefix}.{key}", method, f"{m.group(2)}.{member}", arr, scope))
+            continue
+        m = ENTRY.search(line)
+        if m:
+            method, key, member, arr = m.groups()
+            entries.append((f"{prefix}.{key}", method, member, arr, scope))
 
-    scopes = []                     # (var, node, depth_before_block)
-    depth = 0
-    in_shared = False
-
-    def lookup(var):
-        for v, node, _ in reversed(scopes):
-            if v == var:
-                return node
-        return None
-
-    OPEN = re.compile(r'if\s*\(\s*auto\s+(\w+)\s*=\s*(\w+)\["(\w+)"\]\s*\)')
-    KEY = re.compile(r'(\w+)\["(\w+)"\]')
-
-    for i, line in enumerate(code):
-        # set_picker_shared(): parsed once, applied wherever it is called
-        if re.search(r"static inline void\s*$", code[i - 1] if i else "") and \
-                line.startswith("set_picker_shared"):
-            in_shared = True
-            scopes.append(("picker", shared_picker, depth))
-        m_call = re.search(r"\bset_picker_shared\(\s*(\w+)\s*,", line)
-        if m_call and not line.startswith("set_picker_shared"):
-            node = lookup(m_call.group(1))
-            if node is not None:
-                picker_calls.append(node)
-
-        opener = OPEN.search(line)
-        consumed = None
-        if opener:
-            var, parent, name = opener.groups()
-            parent_node = root if parent == "toml" else lookup(parent)
-            if parent_node is not None:
-                choices = block_choices(code, i, var)
-                if choices:
-                    # `if (auto s = sec["key"]) { s == "a" ... }`: a string
-                    # option with fixed choices, not a sub-table
-                    info = parent_node.key(name)
-                    info["kind"] = "enum"
-                    info["choices"] = choices
-                else:
-                    scopes.append((var, parent_node.child(name), depth))
-            consumed = opener.span()
-
-        # keys referenced on this line
-        for m in KEY.finditer(line):
-            if consumed and consumed[0] <= m.start() < consumed[1]:
-                continue
-            var, key = m.groups()
-            node = lookup(var)
-            if node is None or var == "toml":
-                continue
-            info = node.key(key)
-            tail = line[m.end():]
-            head = line[:m.start()]
-            nxt = " ".join(code[i:i + 4])
-            if re.search(r"set_color\(\s*$", head) or re.search(r"set_color\(\s*$", head.rstrip()):
-                info["kind"] = "color"
-            elif re.search(r"set_title_format_if_present\(\s*$", head):
-                info["kind"] = "string"
-            elif re.search(r"\bset\(\s*$", head.rstrip()) or re.search(r"\bset\(\s*$", head):
-                tgt = re.search(r"(?:m_config|cfg|target)\.([\w.]+)", nxt[nxt.index(key):])
-                if tgt:
-                    info["target"] = ("target" if "target." in nxt[nxt.index(key):nxt.index(key) + 160]
-                                      and not re.search(r"(?:m_config|cfg)\.", nxt[nxt.index(key):nxt.index(key) + 160])
-                                      else "config", tgt.group(1))
-                if info["kind"] is None:
-                    info["kind"] = "set"
-            elif ".as_array()" in tail[:40]:
-                info["kind"] = "array"
-            elif re.match(r"\s*\.(is_table|as_table)\(\)", tail):
-                info["kind"] = "table"
-            else:
-                mv = re.match(r"\s*\.value<([\w:]+)>", tail)
-                if mv:
-                    info["kind"] = "value:" + mv.group(1)
-                elif re.search(r"if\s*\(\s*auto\s+(\w+)\s*=\s*$", head):
-                    # `if (auto s = block["key"])` followed by s == "choice"
-                    bind = re.search(r"if\s*\(\s*auto\s+(\w+)\s*=\s*$", head).group(1)
-                    choices = []
-                    d = 0
-                    for j in range(i, min(i + 60, len(code))):
-                        d += code[j].count("{") - code[j].count("}")
-                        choices += re.findall(r'\*?\b%s\s*==\s*"([^"]*)"' % re.escape(bind), code[j])
-                        if j > i and d <= 0:
-                            break
-                    if choices:
-                        info["kind"] = "enum"
-                        info["choices"] = list(dict.fromkeys(choices))
-                    elif info["kind"] is None:
-                        info["kind"] = "string"
-                elif info["kind"] is None:
-                    info["kind"] = "unknown"
-
-        # scope bookkeeping
-        depth += line.count("{") - line.count("}")
-        if "}" in line:
-            while scopes and depth <= scopes[-1][2] and not (opener and scopes[-1][0] == opener.group(1) and "{" not in line and depth == scopes[-1][2]):
-                scopes.pop()
-        if in_shared and depth == 0 and "}" in line:
-            in_shared = False
-
-    # apply the shared picker keys to every section that calls it
-    def merge(dst, src):
-        for k, v in src.keys.items():
-            dst.keys.setdefault(k, dict(v))
-        for c, n in src.children.items():
-            merge(dst.child(c), n)
-
-    for node in picker_calls:
-        merge(node, shared_picker)
+    for dotted, method, member, arr, sc in entries:
+        parts = dotted.split(".")
+        node = root
+        for p in parts[:-1]:
+            node = node.child(p)
+            node.scope.add(sc)
+        info = node.key(parts[-1])
+        if method == "color":
+            info["kind"] = "color"
+        elif method == "choice":
+            info["kind"] = "enum"
+            info["choices"] = choices.get(arr, [])
+        elif method == "custom":
+            info["kind"] = CUSTOM_KIND.get(dotted)
+        else:
+            info["kind"] = "set"
+            info["target"] = ("config", member)
     return root
 
 
@@ -409,11 +338,14 @@ def annotation_for(ann, path, key=None):
     # annotations.<kind> share the `annotations.[type]` template
     if len(path) == 2 and path[0] == "annotations":
         candidates += ["annotations.[type]", f"annotations.{path[1]}"]
+    if len(path) == 3 and path[0] == "annotations":
+        candidates += [f"annotations.[type].{path[2]}", f"annotations.{path[1]}.{path[2]}"]
     # pickers share one set of keys
     if key and path and path[-1] != "picker" and key in (
-            "width", "height", "border", "alternating_row_color",
-            "highlight_matches", "highlight_matches_color"):
+            "width", "height", "border", "alternating_row_color"):
         candidates.append("picker")
+    if len(path) >= 2 and path[-1] == "highlight_matches":
+        candidates.append("picker.highlight_matches")
     if len(path) >= 2 and path[-1] == "shadow":
         candidates.append("picker.shadow")
     # the session component's option is filed under statusbar.component
@@ -512,19 +444,17 @@ SPECIAL = {
     },
 }
 
-def view_sections(cpp_text):
-    """Sections that can be overridden per file type (kSections in Config.cpp)."""
-    m = re.search(r"kSections\s*=\s*\{(.*?)\};", cpp_text, re.S)
-    return re.findall(r'"(\w+)"', m.group(1)) if m else []
+def view_sections(registry):
+    """Sections that can be overridden per file type (scope View / PerFiletype)."""
+    def per_filetype(scope):
+        return "PerFiletype" in scope or re.search(r"\bView\b", scope)
+    return [name for name, node in registry.children.items()
+            if any(per_filetype(sc) for sc in node.scope)]
 
 
-def picker_key_names(cpp_text):
-    start = cpp_text.find("// Picker.Keys")
-    if start < 0:
-        return []
-    block = cpp_text[start:start + 4500]
-    return list(dict.fromkeys(re.findall(r'\bget\(\s*"(\w+)"', block))) or \
-        list(dict.fromkeys(re.findall(r'keys\.get\(\s*"(\w+)"', block)))
+def picker_key_names(registry):
+    keys = registry.children.get("picker", Node()).children.get("keys")
+    return list(keys.keys) if keys else []
 
 
 # ---------------------------------------------------------------------------
@@ -535,9 +465,8 @@ class Builder:
     def __init__(self):
         self.root_structs, self.structs = parse_structs(CONFIG_HPP)
         self.enums = parse_enums(CONFIG_HPP)
-        self.loader = extract_loader(CONFIG_CPP)
+        self.loader = extract_registry(OPTIONS_CPP)
         self.ann = load_annotations()
-        self.cpp_text = CONFIG_CPP.read_text()
         self.problems = []
 
     # -- a single key -------------------------------------------------------
@@ -563,8 +492,9 @@ class Builder:
             if ann and ann.get("choice"):
                 vals += re.findall(r'"([^"]+)"', ann["choice"]) or \
                     [c.strip() for c in ann["choice"].split(",") if c.strip()]
+            # the option list names the choices; fall back to the C++ enum
             member = resolve_member(self.root_structs, ".".join(full))
-            if member:
+            if member and not info.get("choices"):
                 vals += self.enums.get(member[0].split("::")[-1], [])
             d = parse_default(ann.get("default")) if ann else None
             if isinstance(d, str):
@@ -633,9 +563,11 @@ class Builder:
         return schema
 
     def build(self):
-        names = picker_key_names(self.cpp_text)
+        names = picker_key_names(self.loader)
         sections = collections.OrderedDict()
         for name, node in self.loader.children.items():
+            if name == "picker":
+                node.children.pop("keys", None)    # added below
             sections[name] = self.table_schema((name,), node)
 
         # [picker.keys]: read with get("name"), values are a key or a list of keys
@@ -662,7 +594,7 @@ class Builder:
         }
 
         # [filetype.<type>.<section>]: per file type overrides of the view settings
-        view = [s for s in view_sections(self.cpp_text) if s in sections]
+        view = [s for s in view_sections(self.loader) if s in sections]
         sections["filetype"] = {
             "type": "object",
             "description": "Per-file-type overrides of the view settings, e.g. [filetype.epub.layout] or "

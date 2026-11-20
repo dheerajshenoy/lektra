@@ -789,13 +789,13 @@ Lektra::InvertColor() noexcept
 void
 Lektra::ToggleHighContrast() noexcept
 {
-    const bool on = m_doc ? !m_doc->config().behavior.high_contrast
-                          : !m_config.behavior.high_contrast;
-    m_config.behavior.high_contrast = on;
+    const bool on = m_doc ? !m_doc->config().behavior.high_contrast.enabled
+                          : !m_config.behavior.high_contrast.enabled;
+    m_config.behavior.high_contrast.enabled = on;
 
     if (m_doc)
     {
-        m_doc->localConfig().behavior.high_contrast = on;
+        m_doc->localConfig().behavior.high_contrast.enabled = on;
         m_doc->localConfigChanged("behavior");
     }
 
@@ -1972,11 +1972,11 @@ Lektra::ToggleCommentMarkers() noexcept
 
     // Global default (for views created later) and the current view.
     Config::Annotations &local     = m_doc->localConfig().annotations;
-    local.highlight.comment_marker = !local.highlight.comment_marker;
-    local.rect.comment_marker      = !local.rect.comment_marker;
-    m_config.annotations.highlight.comment_marker
-        = local.highlight.comment_marker;
-    m_config.annotations.rect.comment_marker = local.rect.comment_marker;
+    local.highlight.comment.marker = !local.highlight.comment.marker;
+    local.rect.comment.marker      = !local.rect.comment.marker;
+    m_config.annotations.highlight.comment.marker
+        = local.highlight.comment.marker;
+    m_config.annotations.rect.comment.marker = local.rect.comment.marker;
 
     m_doc->ToggleCommentMarkers();
 }
@@ -2423,7 +2423,7 @@ Lektra::setLaserPointerCursor(bool state) noexcept
         if (!m_laser_trail)
             m_laser_trail = new LaserTrail(this);
         m_laser_trail->setStyle(rgbaToQColor(lp.color), qMax(2, lp.size / 3),
-                                lp.trail_fade_ms, lp.trail);
+                                lp.trail.fade_ms, lp.trail.enabled);
         m_laser_trail->setActive(true);
     }
     else

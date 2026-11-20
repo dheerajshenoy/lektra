@@ -983,14 +983,15 @@ Model::renderPageWithExtrasAsync(
         // independent of invert, for reading grayish scans) are all per-byte
         // mappings. They are done together in one pass over the pixels.
         const bool tint_active          = needsTint(fg, bg);
-        const bool high_contrast_active = m_config.behavior.high_contrast;
+        const bool high_contrast_active
+            = m_config.behavior.high_contrast.enabled;
         if (tint_active || job.invert_color || high_contrast_active)
         {
             unsigned char hc[256];
             if (high_contrast_active)
                 buildHighContrastLUT(
-                    hc, m_config.behavior.high_contrast_black_point,
-                    m_config.behavior.high_contrast_white_point);
+                    hc, m_config.behavior.high_contrast.black_point,
+                    m_config.behavior.high_contrast.white_point);
 
             unsigned char post[3][256];
             if (pixmap_post::buildLuts(ctx, pix, tint_active, fg, bg,
@@ -1638,12 +1639,12 @@ Model::imageAt(int pageno, QPointF logicalPt) noexcept
                     fz_tint_pixmap(ctx, pix, fg, bg);
                 if (m_invert_color)
                     fz_invert_pixmap(ctx, pix);
-                if (m_config.behavior.high_contrast)
+                if (m_config.behavior.high_contrast.enabled)
                 {
                     unsigned char lut[256];
                     buildHighContrastLUT(
-                        lut, m_config.behavior.high_contrast_black_point,
-                        m_config.behavior.high_contrast_white_point);
+                        lut, m_config.behavior.high_contrast.black_point,
+                        m_config.behavior.high_contrast.white_point);
                     const size_t nbytes
                         = static_cast<size_t>(fz_pixmap_stride(ctx, pix))
                           * static_cast<size_t>(fz_pixmap_height(ctx, pix));
