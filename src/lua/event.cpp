@@ -1,3 +1,4 @@
+#include "MessageLog.hpp"
 #include "DispatchType.hpp"
 #include "DocumentView.hpp"
 #include "Lektra.hpp"
@@ -214,6 +215,7 @@ Lektra::initLuaEventDispatcher() noexcept
             {
                 const char *errorMsg = lua_tostring(L, -1);
                 fprintf(stderr, "Lua error in event callback: %s\n", errorMsg);
+                logError(QStringLiteral("Lua error in event callback: %1").arg(QString::fromUtf8(errorMsg)));
                 lua_pop(L, 1);
             }
         });
@@ -262,6 +264,7 @@ Lektra::initLuaEventDispatcher() noexcept
             {
                 const char *errorMsg = lua_tostring(L, -1);
                 fprintf(stderr, "Lua error in event callback: %s\n", errorMsg);
+                logError(QStringLiteral("Lua error in event callback: %1").arg(QString::fromUtf8(errorMsg)));
                 lua_pop(L, 1);
             }
             // Ref is freed by dispatchLuaEvent after all once-callbacks fire

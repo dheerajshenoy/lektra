@@ -71,6 +71,16 @@ Lektra::handleTabCloseRequested(int index) noexcept
         }
     }
 
+    else if (tabRole == "messages")
+    {
+        // The log itself stays; reopening the tab shows it all again.
+        if (m_messages_widget)
+        {
+            m_messages_widget->deleteLater();
+            m_messages_widget = nullptr;
+        }
+    }
+
     // Save page numbers for all views in this tab before closing
     if (m_config.behavior.remember_last_visited)
     {

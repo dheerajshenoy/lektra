@@ -538,6 +538,7 @@ lektra.opt.rendering = {
 ---@field cache_pages? integer Number of rendered pages to keep in the page cache.
 ---@field text_cache_size? integer Number of pages whose extracted text is kept in memory (search and text selection).
 ---@field stext_page_cache_size? integer Number of structured text pages kept in memory for text selection and the caret.
+---@field message_log_size? integer Number of messages kept for the messages tab (the `messages` command); the oldest are dropped first.
 ---@field cache_password? boolean Keep the password for encrypted PDFs in memory so auto-reload can re-authenticate.
 ---@field close_on_last_tab? boolean Quit LEKTRA when the last tab is closed (confirm_on_quit still applies).
 ---@field confirm_on_quit? boolean Show a confirmation dialog before quitting.

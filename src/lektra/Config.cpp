@@ -406,6 +406,8 @@ Lektra::initConfig() noexcept
             }
         }
 
+        logError(tr("config: %1: %2").arg(m_config_file_path,
+                                          QString(text).replace('\n', ' ')));
         QMessageBox::critical(this, tr("Error in configuration file"),
                               tr("%1\n\n%2\n\nLoading default config.")
                                   .arg(m_config_file_path, text));
@@ -414,6 +416,8 @@ Lektra::initConfig() noexcept
     }
     catch (std::exception &e)
     {
+        logError(tr("config: %1: %2").arg(m_config_file_path,
+                                          QString::fromUtf8(e.what())));
         QMessageBox::critical(
             this, tr("Error in configuration file"),
             tr("There are one or more error(s) in your config "
@@ -786,6 +790,8 @@ Lektra::initConfig() noexcept
         }
     }
 
+    applyMessageLogSize();
+
     if (!g_config_issues.isEmpty())
     {
         constexpr int kMaxShown = 15;
@@ -794,7 +800,10 @@ Lektra::initConfig() noexcept
             shown << tr("... and %1 more")
                          .arg(g_config_issues.size() - kMaxShown);
         for (const QString &issue : std::as_const(g_config_issues))
+        {
             qWarning().noquote() << "config:" << issue;
+            logWarning(QStringLiteral("config: ") + issue);
+        }
         QMessageBox::warning(this, tr("Problems in configuration file"),
                              tr("%1\n\nThese settings were ignored:\n\n%2")
                                  .arg(m_config_file_path, shown.join('\n')));

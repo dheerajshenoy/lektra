@@ -22,6 +22,8 @@ Lektra::executeLuaCode(const QString &code) noexcept
     if (luaL_loadstring(m_L, codeUtf8.constData()) != LUA_OK)
     {
         qWarning() << "Failed to load Lua code:" << lua_tostring(m_L, -1);
+        logError(QStringLiteral("Failed to load Lua code: %1")
+                     .arg(QString::fromUtf8(lua_tostring(m_L, -1))));
         lua_settop(m_L, base);
         return;
     }
@@ -29,6 +31,8 @@ Lektra::executeLuaCode(const QString &code) noexcept
     if (lua_pcall(m_L, 0, 0, 0) != LUA_OK)
     {
         qWarning() << "Failed to execute Lua code:" << lua_tostring(m_L, -1);
+        logError(QStringLiteral("Failed to execute Lua code: %1")
+                     .arg(QString::fromUtf8(lua_tostring(m_L, -1))));
         lua_settop(m_L, base);
     }
 }

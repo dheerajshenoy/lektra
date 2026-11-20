@@ -577,6 +577,27 @@ Lektra::showStartupWidget() noexcept
     m_statusbar->setFilePath(tr("Start Page"));
 }
 
+// The messages tab: every message Lektra has shown or reported. There is
+// only ever one; showing it again switches to it.
+void
+Lektra::showMessagesTab() noexcept
+{
+    if (m_messages_widget)
+    {
+        const int index = m_tab_widget->indexOf(m_messages_widget);
+        if (index != -1)
+        {
+            m_tab_widget->setCurrentIndex(index);
+            return;
+        }
+    }
+
+    m_messages_widget = new MessagesWidget(m_tab_widget);
+    const int index   = m_tab_widget->addTab(m_messages_widget, tr("Messages"));
+    m_tab_widget->setCurrentIndex(index);
+    m_statusbar->setFilePath(tr("Messages"));
+}
+
 // Update actions and stuff for system tabs
 void
 Lektra::updateActionsAndStuffForSystemTabs() noexcept
@@ -986,6 +1007,8 @@ Lektra::loadLuaConfig() noexcept
         {
             qWarning() << "Failed to execute init.lua:"
                        << lua_tostring(m_L, -1);
+            logError(QStringLiteral("lua: ")
+                     + QString::fromUtf8(lua_tostring(m_L, -1)));
             QMessageBox::critical(nullptr, "Lua Error",
                                   "Failed to execute init.lua:\n"
                                       + QString(lua_tostring(m_L, -1)));

@@ -1,3 +1,4 @@
+#include "MessageLog.hpp"
 #include "Commands/DeleteAnnotationsCommand.hpp"
 #include "Commands/RectAnnotationCommand.hpp"
 #include "Commands/TextAnnotationCommand.hpp"
@@ -1170,6 +1171,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                         // Handle Lua errors (e.g., print the error message)
                         const char *errorMsg = lua_tostring(L, -1);
                         fprintf(stderr, "Lua callback error: %s\n", errorMsg);
+                        logError(QStringLiteral("Lua callback error: %1").arg(QString::fromUtf8(errorMsg)));
                         lua_pop(L, 1); // Remove error message from stack
                     }
                 });
@@ -1245,6 +1247,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                         const char *errorMsg = lua_tostring(L, -1);
                         fprintf(stderr, "Lua context menu callback error: %s\n",
                                 errorMsg);
+                        logError(QStringLiteral("Lua context menu callback error: %1").arg(QString::fromUtf8(errorMsg)));
                         lua_pop(L, 1);
                     }
                 });
@@ -1311,6 +1314,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                         // Handle Lua errors (e.g., print the error message)
                         const char *errorMsg = lua_tostring(L, -1);
                         fprintf(stderr, "Lua callback error: %s\n", errorMsg);
+                        logError(QStringLiteral("Lua callback error: %1").arg(QString::fromUtf8(errorMsg)));
                         lua_pop(L, 1); // Remove error message from stack
                     }
 
@@ -2367,7 +2371,10 @@ static const luaL_Reg DocumentViewMethods[] = {
                 if (callbackRef == LUA_NOREF)
                 {
                     if (!ok && !message.isEmpty())
+                    {
                         fprintf(stderr, "print: %s\n", qPrintable(message));
+                        logError(QStringLiteral("print: %1").arg(message));
+                    }
                     return;
                 }
 
@@ -2384,6 +2391,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                 {
                     fprintf(stderr, "Lua error in print callback: %s\n",
                             lua_tostring(L, -1));
+                    logError(QStringLiteral("Lua error in print callback: %1").arg(QString::fromUtf8(lua_tostring(L, -1))));
                     lua_pop(L, 1);
                 }
             });
@@ -2442,6 +2450,7 @@ static const luaL_Reg DocumentViewMethods[] = {
                 {
                     fprintf(stderr, "Lua error in region_select callback: %s\n",
                             lua_tostring(L, -1));
+                    logError(QStringLiteral("Lua error in region_select callback: %1").arg(QString::fromUtf8(lua_tostring(L, -1))));
                     lua_pop(L, 1);
                 }
             });

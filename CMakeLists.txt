@@ -443,6 +443,8 @@ qt_add_executable(${PROJECT_NAME}
     src/documentview/Connections.cpp
     src/StartupWidget.cpp
     src/MessageBar.cpp
+    src/MessageLog.cpp
+    src/MessagesWidget.cpp
     src/NoticeBar.cpp
     src/LaserTrail.cpp
     src/ColorEyedrop.cpp

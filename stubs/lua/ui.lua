@@ -45,6 +45,15 @@ lektra.ui.messagebox = function(title , message, type) end
 ---@param duration? number Duration in seconds to show the message, default is 5 seconds
 lektra.ui.message = function(message, duration) end
 
+---@class UiMessage
+---@field time number When the message was shown, in seconds since the epoch (`os.date` accepts it)
+---@field level "info"|"warning"|"error"
+---@field text string
+
+--- Returns the messages shown so far, oldest first: the same list as the messages tab (the `messages` command). It includes config.toml problems and Lua errors; `behavior.message_log_size` sets how many are kept.
+---@return UiMessage[]
+lektra.ui.messages = function() end
+
 --- Shows an input dialog to the user with `QInputDialog` and returns the input as a string
 ---@overload fun(arg: {title: string, prompt: string})
 ---@return string

@@ -538,6 +538,7 @@ build()
     r.integer("cache_pages", F(behavior.cache_pages));
     r.integer("text_cache_size", F(behavior.text_cache_size));
     r.integer("stext_page_cache_size", F(behavior.stext_page_cache_size));
+    r.integer("message_log_size", F(behavior.message_log_size)).range(0, 1000000).onChange([](Lektra *lk) { lk->applyMessageLogSize(); });
     r.integer("mupdf_store_size", F(behavior.mupdf_store_size));
     r.boolean("auto_scroll", F(behavior.auto_scroll));
     r.boolean("keep_view", F(behavior.keep_view));

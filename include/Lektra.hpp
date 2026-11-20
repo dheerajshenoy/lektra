@@ -9,6 +9,8 @@
 #include "LaserTrail.hpp"
 #include "MarkManager.hpp"
 #include "MessageBar.hpp"
+#include "MessageLog.hpp"
+#include "MessagesWidget.hpp"
 #include "NoticeBar.hpp"
 #include "TabBar.hpp"
 // #include "OutlineWidget.hpp"
@@ -115,9 +117,12 @@ public:
     // m_doc — mirrors the DocumentView::dispatchLuaEvent per-view path.
     void dispatchLuaEvent(DispatchType type, void *arg = nullptr) noexcept;
 
-    void showMessage(const QString &message,
-                            float duration = 2.0f) noexcept
+    // Shows a message in the message bar and adds it to the messages tab.
+    void showMessage(const QString &message, float duration = 2.0f,
+                     MessageLog::Level level
+                     = MessageLog::Level::Info) noexcept
     {
+        MessageLog::instance().add(level, message);
         // init.lua runs before the message bar exists; show its messages
         // once the bar is created.
         if (m_message_bar)
@@ -129,6 +134,10 @@ public:
     DocumentView *VSplit(DocumentView::Id id = -1) noexcept;
     DocumentView *HSplit(DocumentView::Id id = -1) noexcept;
     void applyWindowBackground() noexcept;
+    void applyMessageLogSize() noexcept
+    {
+        MessageLog::instance().setLimit(m_config.behavior.message_log_size);
+    }
     // Places the statusbar's modules again after [statusbar].layout changed.
     void applyStatusbarLayout() noexcept;
     void OpenConfigFile() noexcept;
@@ -536,6 +545,7 @@ private:
     void handleFSFileChanged(const QString &filePath) noexcept;
     void onFileReloadTimer() noexcept;
     void showStartupWidget() noexcept;
+    void showMessagesTab() noexcept;
     void updateActionsAndStuffForSystemTabs() noexcept;
     void updatePageNavigationActions() noexcept;
     void updateHistoryNavigationActions() noexcept;
@@ -699,6 +709,7 @@ private:
     LaserTrail *m_laser_trail             = nullptr;
     ColorEyedrop *m_color_eyedrop         = nullptr;
     StartupWidget *m_startup_widget       = nullptr;
+    MessagesWidget *m_messages_widget     = nullptr;
     LinkHintMode m_link_hint_current_mode = LinkHintMode::None;
     QMap<QString, Model::LinkInfo> m_link_hint_map;
     std::function<void(const Model::LinkInfo *)> m_link_hint_pick_cb;

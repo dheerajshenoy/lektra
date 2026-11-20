@@ -1804,6 +1804,11 @@
           "default": 10,
           "description": "Number of structured text pages kept in memory for text selection and the caret. Increase if selecting text on many pages is slow; reduce to save memory. (since 0.8.1)"
         },
+        "message_log_size": {
+          "type": "integer",
+          "default": 1000,
+          "description": "Number of messages kept for the messages tab (the `messages` command). The oldest are dropped first. 0 keeps none. (since 0.8.1)"
+        },
         "mupdf_store_size": {
           "type": "integer",
           "default": 64,
@@ -2866,6 +2871,11 @@
                 "type": "integer",
                 "default": 10,
                 "description": "Number of structured text pages kept in memory for text selection and the caret. Increase if selecting text on many pages is slow; reduce to save memory. (since 0.8.1)"
+              },
+              "message_log_size": {
+                "type": "integer",
+                "default": 1000,
+                "description": "Number of messages kept for the messages tab (the `messages` command). The oldest are dropped first. 0 keeps none. (since 0.8.1)"
               },
               "mupdf_store_size": {
                 "type": "integer",

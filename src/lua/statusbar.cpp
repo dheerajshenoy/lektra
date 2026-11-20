@@ -1,3 +1,4 @@
+#include "MessageLog.hpp"
 #include "Statusbar.hpp"
 
 #include "Lektra.hpp"
@@ -218,6 +219,7 @@ ensureConnected(Bridge *b)
         {
             fprintf(stderr, "Lua error in statusbar click: %s\n",
                     lua_tostring(L, -1));
+            logError(QStringLiteral("Lua error in statusbar click: %1").arg(QString::fromUtf8(lua_tostring(L, -1))));
             lua_pop(L, 1);
         }
     });

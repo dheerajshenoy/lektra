@@ -1214,6 +1214,11 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("show_startup_widget", tr("Show startup screen"),
                            [this](const QStringList &)
     { showStartupWidget(); });
+    m_command_manager->reg(
+        "messages",
+        tr("Show the messages tab: every message shown so far, including "
+           "config and Lua errors"),
+        [this](const QStringList &) { showMessagesTab(); });
     m_command_manager->reg("show_tutorial_file", tr("Open tutorial document"),
                            [this](const QStringList &) { showTutorialFile(); });
     m_command_manager->reg("show_about", tr("Show about dialog"),

@@ -1,3 +1,4 @@
+#include "MessageLog.hpp"
 #include "Lektra.hpp"
 
 // lektra.async / lektra.await / lektra.sleep / lektra.job.await
@@ -103,6 +104,7 @@ Lektra::initLuaAsync() noexcept
     if (luaL_loadstring(m_L, kAsyncChunk) != LUA_OK)
     {
         fprintf(stderr, "lektra.async: %s\n", lua_tostring(m_L, -1));
+        logError(QStringLiteral("lektra.async: %1").arg(QString::fromUtf8(lua_tostring(m_L, -1))));
         lua_pop(m_L, 1);
         return;
     }
@@ -110,6 +112,7 @@ Lektra::initLuaAsync() noexcept
     if (lua_pcall(m_L, 1, 0, 0) != LUA_OK)
     {
         fprintf(stderr, "lektra.async: %s\n", lua_tostring(m_L, -1));
+        logError(QStringLiteral("lektra.async: %1").arg(QString::fromUtf8(lua_tostring(m_L, -1))));
         lua_pop(m_L, 1);
     }
 }

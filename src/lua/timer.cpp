@@ -1,3 +1,4 @@
+#include "MessageLog.hpp"
 #include "Lektra.hpp"
 
 #include <QTimer>
@@ -165,6 +166,7 @@ Lektra::initLuaTimer() noexcept
             {
                 fprintf(stderr, "Lua error in timer callback: %s\n",
                         lua_tostring(L, -1));
+                logError(QStringLiteral("Lua error in timer callback: %1").arg(QString::fromUtf8(lua_tostring(L, -1))));
                 lua_pop(L, 1);
             }
         });

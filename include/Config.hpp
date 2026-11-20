@@ -1670,6 +1670,15 @@ struct Config
         int stext_page_cache_size = 10;
 
         // @desc {
+        // Number of messages kept for the messages tab (the `messages`
+        // command). The oldest are dropped first. 0 keeps none.
+        // }
+        // @type int
+        // @default 1000
+        // @added 0.8.1
+        int message_log_size = 1000;
+
+        // @desc {
         // Maximum size of MuPDF's internal store in megabytes. The store
         // holds decoded embedded images, fonts, and glyph bitmaps. Reduce
         // this if memory usage is too high; increase if you notice slow

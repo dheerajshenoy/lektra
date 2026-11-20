@@ -25,6 +25,7 @@
 - config.toml and Lua now accept the same options. New in config.toml: `prompt` for every picker, `outline.generate_heading_ratio`, `outline.generate_max_levels` and `behavior.open_last_visited`. New in Lua: `width`, `height`, `border`, `alternating_row_color` and `shadow` of `outline`, `highlight_search` and `command_palette`.
 - Unknown keys in config.toml are now reported, as are enum values that are not one of the choices (they used to fall back to the default silently).
 - Lua: writing an option a value of the wrong type, or an option that does not exist, now shows a warning and leaves the option unchanged (it used to be turned into `false` or `0`). Enum options such as `layout.mode` also accept their name, e.g. `"book"`.
+- New `messages` command opens a Messages tab listing every message shown so far, including config.toml problems and Lua errors, so you can read them after they disappear. `behavior.message_log_size` (default 1000) sets how many are kept. Lua: `lektra.ui.messages()`.
 
 ### Bug Fixes
 

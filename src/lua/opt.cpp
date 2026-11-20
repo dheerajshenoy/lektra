@@ -595,7 +595,9 @@ optWarning(lua_State *L, Lektra *lektra, const QString &message)
     lua_pop(L, 1);
     qWarning().noquote() << "lua:" << text;
     if (lektra)
-        lektra->showMessage(text, 5.0f);
+        lektra->showMessage(text, 5.0f, MessageLog::Level::Warning);
+    else
+        logWarning(text);
 }
 
 static void pushProxy(lua_State *L, const std::string &prefix, int viewId,

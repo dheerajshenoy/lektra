@@ -364,13 +364,24 @@ Lektra::initLuaUI() noexcept
         auto *lektra
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
 
+        const QString logged = QStringLiteral("%1: %2").arg(
+            QString::fromUtf8(title), QString::fromUtf8(message));
         // Safe now because 'type' is guaranteed to be non-null
         if (strcmp(type, "info") == 0)
+        {
+            logInfo(logged);
             QMessageBox::information(lektra, title, message);
+        }
         else if (strcmp(type, "warning") == 0)
+        {
+            logWarning(logged);
             QMessageBox::warning(lektra, title, message);
+        }
         else if (strcmp(type, "error") == 0)
+        {
+            logError(logged);
             QMessageBox::critical(lektra, title, message);
+        }
         else
             return luaL_error(L, "Invalid message type: %s", type);
 
@@ -411,6 +422,29 @@ Lektra::initLuaUI() noexcept
         return 0;
     }, 1);
     lua_setfield(m_L, -2, "message");
+
+    // lektra.ui.messages() -> { {time, level, text}, ... }, oldest first
+    lua_pushcfunction(m_L, [](lua_State *L) -> int
+    {
+        const auto &entries = MessageLog::instance().entries();
+        lua_createtable(L, static_cast<int>(entries.size()), 0);
+        int i = 1;
+        for (const MessageLog::Entry &entry : entries)
+        {
+            lua_createtable(L, 0, 3);
+            lua_pushnumber(L, static_cast<lua_Number>(
+                                  entry.time.toMSecsSinceEpoch())
+                                  / 1000.0);
+            lua_setfield(L, -2, "time");
+            lua_pushstring(L, MessageLog::levelName(entry.level));
+            lua_setfield(L, -2, "level");
+            lua_pushstring(L, entry.text.toUtf8().constData());
+            lua_setfield(L, -2, "text");
+            lua_rawseti(L, -2, i++);
+        }
+        return 1;
+    });
+    lua_setfield(m_L, -2, "messages");
 
     // lektra.ui.input(title, prompt)
     lua_pushlightuserdata(m_L, this);

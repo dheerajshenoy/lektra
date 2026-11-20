@@ -92,6 +92,8 @@ Lektra::initLuaCmd() noexcept
             if (lua_pcall(guard->L, 1, 0, 0) != LUA_OK)
             {
                 qWarning() << "register error:" << lua_tostring(guard->L, -1);
+                logError(QStringLiteral("Lua error in command: %1")
+                             .arg(QString::fromUtf8(lua_tostring(guard->L, -1))));
                 lua_pop(guard->L, 1);
             }
         });
