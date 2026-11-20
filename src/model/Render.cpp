@@ -23,6 +23,7 @@
 #include <cctype>
 #include <limits>
 #include <map>
+#include <vector>
 #include <new>
 #include <qbytearrayview.h>
 #include <qregularexpression.h>
@@ -1397,6 +1398,107 @@ columnAround(fz_stext_page *page, const fz_stext_line *line,
     return col;
 }
 
+// Whether `line` starts like a list label: "[12]", "12." or "(12)".
+static bool
+startsWithLabel(const fz_stext_line *line) noexcept
+{
+    const fz_stext_char *c = line ? line->first_char : nullptr;
+    while (c && c->c == ' ')
+        c = c->next;
+    if (!c)
+        return false;
+    if (c->c == '[' || c->c == '(')
+        return c->next && c->next->c >= '0' && c->next->c <= '9';
+    return c->c >= '0' && c->c <= '9';
+}
+
+// The target entry or paragraph, starting at `first`: the rows of text below
+// it in `column`, up to the first sign of a new one (extra space before a
+// row, a new "[n]" label, or the indentation going back to the first row's).
+// Pieces of text on the same row (a font change can split a line) are joined.
+static fz_rect
+entryFrom(fz_stext_page *page, const fz_stext_line *first,
+          const fz_rect &column) noexcept
+{
+    struct Row
+    {
+        fz_rect box;
+        const fz_stext_line *leftmost;
+    };
+
+    std::vector<const fz_stext_line *> lines;
+    for (fz_stext_block *b = page->first_block; b; b = b->next)
+    {
+        if (b->type != FZ_STEXT_BLOCK_TEXT)
+            continue;
+        for (fz_stext_line *l = b->u.t.first_line; l; l = l->next)
+        {
+            const fz_rect r = l->bbox;
+            if (r.y1 <= first->bbox.y0 || r.x0 < column.x0 - 1.0f
+                || r.x1 > column.x1 + 1.0f)
+                continue;
+            lines.push_back(l);
+        }
+    }
+    std::sort(lines.begin(), lines.end(),
+              [](const fz_stext_line *a, const fz_stext_line *b)
+    { return a->bbox.y0 < b->bbox.y0; });
+
+    std::vector<Row> rows;
+    for (const fz_stext_line *l : lines)
+    {
+        const float mid = (l->bbox.y0 + l->bbox.y1) / 2;
+        if (!rows.empty() && mid >= rows.back().box.y0
+            && mid <= rows.back().box.y1)
+        {
+            Row &row = rows.back();
+            row.box  = fz_union_rect(row.box, l->bbox);
+            if (l->bbox.x0 < row.leftmost->bbox.x0)
+                row.leftmost = l;
+        }
+        else
+            rows.push_back({l->bbox, l});
+    }
+
+    // The row holding `first`.
+    size_t start = 0;
+    while (start < rows.size()
+           && !((first->bbox.y0 + first->bbox.y1) / 2 >= rows[start].box.y0
+                && (first->bbox.y0 + first->bbox.y1) / 2
+                       <= rows[start].box.y1))
+        ++start;
+    if (start == rows.size())
+        return first->bbox;
+
+    const Row &head      = rows[start];
+    const float height   = head.box.y1 - head.box.y0;
+    const bool labelled  = startsWithLabel(head.leftmost);
+    fz_rect span         = head.box;
+    float prevBottom     = head.box.y1;
+    bool indentKnown     = false;
+    bool indented        = false; // later rows start away from the first's x
+
+    for (size_t i = start + 1; i < rows.size(); ++i)
+    {
+        const Row &row = rows[i];
+        if (row.box.y0 - prevBottom > 0.5f * height)
+            break;
+        if (labelled && startsWithLabel(row.leftmost))
+            break;
+        const bool atHeadX = std::abs(row.box.x0 - head.box.x0) < 1.5f;
+        if (!indentKnown)
+        {
+            indentKnown = true;
+            indented    = !atHeadX;
+        }
+        else if (indented && atHeadX)
+            break;
+        span       = fz_union_rect(span, row.box);
+        prevBottom = row.box.y1;
+    }
+    return span;
+}
+
 Model::LinkTarget
 Model::linkTarget(int pageno, QPointF pt) noexcept
 {
@@ -1433,13 +1535,9 @@ Model::linkTarget(int pageno, QPointF pt) noexcept
             = targetLine(stext, static_cast<float>(pt.x()),
                          static_cast<float>(pt.y())))
         {
-            lineRect = line->bbox;
-            // From that line to the end of its block: the block may begin
-            // with text above the target.
-            blockRect = line->bbox;
-            for (const fz_stext_line *l = line->next; l; l = l->next)
-                blockRect = fz_union_rect(blockRect, l->bbox);
+            lineRect   = line->bbox;
             columnRect = columnAround(stext, line, 150.0f);
+            blockRect  = entryFrom(stext, line, columnRect);
         }
     }
     fz_always(ctx)

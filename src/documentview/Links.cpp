@@ -566,11 +566,7 @@ DocumentView::startHoverRender() noexcept
         QRectF target;
         if (mode == Highlight::Block)
         {
-            // Only the first line when the rest of its block would fill
-            // most of the preview.
-            const QRectF pts = found.block.height() <= regionH * 0.6
-                                   ? found.block
-                                   : found.line;
+            const QRectF pts = found.block.isNull() ? found.line : found.block;
             if (!pts.isNull())
                 target = QRectF(toImage(pts.topLeft()),
                                 toImage(pts.bottomRight()))

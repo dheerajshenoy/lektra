@@ -645,7 +645,7 @@ public:
     struct LinkTarget
     {
         QRectF line;   // the first line at or just below the destination
-        QRectF block;  // from that line to the end of its block
+        QRectF block;  // the entry or paragraph starting at that line
         QRectF column; // the text around it in the same column
     };
     [[nodiscard]] LinkTarget linkTarget(int pageno, QPointF pt) noexcept;
