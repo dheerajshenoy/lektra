@@ -117,6 +117,10 @@ Lektra::handleTabCloseRequested(int index) noexcept
     if (m_tab_widget->count() == 0)
     {
         setCurrentDocumentView(nullptr);
+        // setCurrentDocumentView returns early if m_doc was already null (the
+        // closed tab was a startup/messages tab), which would leave that
+        // tab's title in the statusbar.
+        updateStatusbar();
         if (m_config.behavior.close_on_last_tab)
         {
             // close() goes through closeEvent, so confirm_on_quit still
