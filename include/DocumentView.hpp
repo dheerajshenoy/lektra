@@ -914,6 +914,10 @@ private:
     // Tells the render job which part of the page is on screen, so a page that
     // is too big to render whole is only rendered where it is looked at.
     void setRenderClip(Model::RenderJob &job) const noexcept;
+    // Keeps a small picture of the whole page under a partially rendered page
+    // (see GraphicsImageItem::setBackdrop), so the part that is not rendered
+    // yet shows a blurry page instead of a blank one while the view moves.
+    void updatePageBackdrop(int pageno) noexcept;
     // True when a partially rendered page no longer covers what is visible.
     bool regionNeedsRefresh(int pageno) const noexcept;
     void renderLinks(int pageno, const std::vector<Model::RenderLink> &links,

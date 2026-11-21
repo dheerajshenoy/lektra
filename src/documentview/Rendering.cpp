@@ -1612,6 +1612,8 @@ DocumentView::renderPageFromImage(int pageno, QImage image, QSize fullSize,
         createAndAddPageItem(pageno, std::move(image), fullSize, region);
     }
 
+    updatePageBackdrop(pageno);
+
     // The item's pixels changed — force one recompute.
     m_cached_hit_page_item = nullptr;
     clearLinksForPage(pageno);
@@ -1641,6 +1643,46 @@ DocumentView::renderPageFromImage(int pageno, QImage image, QSize fullSize,
         if (std::abs(usedStride - trueStride) > 0.5)
             m_page_layout_stale = true;
     }
+}
+
+void
+DocumentView::updatePageBackdrop(int pageno) noexcept
+{
+    GraphicsImageItem *item = m_page_items_hash.value(pageno, nullptr);
+    if (!item)
+        return;
+
+    // Only a partial page has anything to cover; free it otherwise.
+    if (!item->isPartial() || m_model->isImage())
+    {
+        item->setBackdrop({});
+        return;
+    }
+
+    const QSizeF pts = m_model->pageSizePts(pageno);
+    if (pts.width() <= 0 || pts.height() <= 0)
+        return;
+
+    const QString key = QStringLiteral("%1|%2|%3|%4|%5|%6|%7|%8|%9")
+                            .arg(pageno)
+                            .arg(m_model->rotation())
+                            .arg(m_model->invertColor())
+                            .arg(m_model->foregroundColor())
+                            .arg(m_model->backgroundColor())
+                            .arg(m_model->isFlippedH())
+                            .arg(m_model->isFlippedV())
+                            .arg(pts.width())
+                            .arg(pts.height());
+    if (item->backdropKey() == key)
+        return;
+
+    // About 384 pixels along the longest side: enough for a blurry preview,
+    // cheap to draw.
+    constexpr double kBackdropPx = 384.0;
+    const double dpi = 72.0 * kBackdropPx / qMax(pts.width(), pts.height());
+    const QImage backdrop
+        = m_model->renderPtsRegion(pageno, QRectF(QPointF(0, 0), pts), dpi);
+    item->setBackdrop(backdrop, backdrop.isNull() ? QString() : key);
 }
 
 void

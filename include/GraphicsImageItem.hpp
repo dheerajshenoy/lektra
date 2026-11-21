@@ -4,6 +4,7 @@
 #include <QGraphicsItem>
 #include <QImage>
 #include <QPainter>
+#include <QString>
 #include <QStyleOptionGraphicsItem>
 
 // A memory-efficient QGraphicsItem that renders QImage directly,
@@ -70,13 +71,21 @@ public:
 
     // A low-resolution picture of the whole page, drawn under the sharp
     // region of a partial page so the rest is not blank. Kept across renders.
-    void setBackdrop(const QImage &image) noexcept
+    // `key` says what the picture was made from, so the caller can tell
+    // whether it is still current (see backdropKey()).
+    void setBackdrop(const QImage &image, const QString &key = {}) noexcept
     {
+        m_backdrop_key = key;
         if (m_backdrop.cacheKey() == image.cacheKey())
             return;
         m_backdrop = image;
         if (isPartial())
             update();
+    }
+
+    [[nodiscard]] const QString &backdropKey() const noexcept
+    {
+        return m_backdrop_key;
     }
 
     [[nodiscard]] bool isPartial() const noexcept
@@ -248,6 +257,7 @@ private:
     QGraphicsSimpleTextItem *m_label = nullptr;
     QImage m_image;
     QImage m_backdrop;
+    QString m_backdrop_key;
     QSize m_full_px;   // valid only for partial images
     QRect m_region_px; // where m_image sits inside the full page, in pixels
     QColor m_fill = Qt::white;

@@ -1445,7 +1445,6 @@ DocumentView::updateMinimap() noexcept
             }
         }
         whole = m_minimap_whole;
-        pageItem->setBackdrop(whole);
     }
 
     m_minimap_page = pageIndex;
