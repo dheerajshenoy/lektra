@@ -48,6 +48,20 @@ GrepPicker::GrepPicker(const Config::Picker &config, QWidget *parent) noexcept
         }
     });
 
+    connect(m_listView->selectionModel(), &QItemSelectionModel::currentChanged,
+            this, [this](const QModelIndex &current)
+    {
+        if (!current.isValid() || !isVisible())
+            return;
+        const auto list
+            = current.siblingAtColumn(0).data(Qt::UserRole + 2)
+                  .value<Item>().data.toList();
+        if (list.size() < 2)
+            return;
+        const QPointF pt = list[1].toPointF();
+        emit previewRequested(list[0].toInt(), pt.x(), pt.y());
+    });
+
     connect(&m_watcher, &QFutureWatcher<std::vector<Model::GrepHit>>::finished,
             this, [this]()
     {
@@ -59,6 +73,24 @@ GrepPicker::GrepPicker(const Config::Picker &config, QWidget *parent) noexcept
         m_spinner->hide();
         repopulate();
     });
+}
+
+void
+GrepPicker::launch() noexcept
+{
+    m_accepted = false;
+    Picker::launch();
+}
+
+void
+GrepPicker::hideEvent(QHideEvent *event)
+{
+    Picker::hideEvent(event);
+    if (!event->spontaneous() && !m_accepted)
+    {
+        cancel();
+        emit dismissed();
+    }
 }
 
 void
@@ -132,6 +164,7 @@ GrepPicker::onItemAccepted(const Item &item)
     const auto list = item.data.toList();
     if (list.size() < 2)
         return;
+    m_accepted       = true;
     const QPointF pt = list[1].toPointF();
     emit gotoLocationRequested(list[0].toInt(), pt.x(), pt.y());
 }

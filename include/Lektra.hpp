@@ -745,6 +745,8 @@ private:
     HighlightSearchPicker *m_highlight_search_picker = nullptr;
     CommentSearchPicker *m_comment_search_picker     = nullptr;
     GrepPicker *m_grep_picker                        = nullptr;
+    QPointer<DocumentView> m_grep_view;
+    PageLocation m_grep_origin = {-1, 0, 0};
     RecentFilesPicker *m_recent_file_picker          = nullptr;
     FilePicker *m_file_picker                        = nullptr;
     BookmarkPicker *m_bookmark_picker                = nullptr;

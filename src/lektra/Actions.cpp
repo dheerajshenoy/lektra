@@ -786,10 +786,31 @@ Lektra::Grep(const QStringList &args) noexcept
         m_grep_picker = new GrepPicker(m_config.picker, this);
         m_grep_picker->setKeybindings(m_picker_keybinds);
 
+        // The picker shows each selected line while it is open, and puts the
+        // view back if it is closed without picking one.
+        connect(m_grep_picker, &GrepPicker::previewRequested, this,
+                [this](int page, float x, float y)
+        {
+            if (m_grep_view)
+                m_grep_view->GotoLocation({page, x, y});
+        });
         connect(m_grep_picker, &GrepPicker::gotoLocationRequested, this,
                 [this](int page, float x, float y)
-        { GotoLocation(page, x, y); });
+        {
+            if (!m_grep_view)
+                return;
+            m_grep_view->GotoLocation(m_grep_origin);
+            m_grep_view->GotoLocationWithHistory({page, x, y});
+        });
+        connect(m_grep_picker, &GrepPicker::dismissed, this, [this]()
+        {
+            if (m_grep_view)
+                m_grep_view->GotoLocation(m_grep_origin);
+        });
     }
+
+    m_grep_view   = m_doc;
+    m_grep_origin = m_doc->CurrentLocation();
 
     m_grep_picker->setModel(m_doc->model());
     m_grep_picker->launch();

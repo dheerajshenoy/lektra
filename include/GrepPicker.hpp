@@ -27,10 +27,18 @@ public:
     // Start with `pattern` already typed
     void setPattern(const QString &pattern) noexcept;
 
+    void launch() noexcept override;
+
 signals:
+    // A line was accepted
     void gotoLocationRequested(int page, float x, float y);
+    // A line was selected: show it, but only until another one is selected
+    void previewRequested(int page, float x, float y);
+    // The picker was closed without accepting a line
+    void dismissed();
 
 protected:
+    void hideEvent(QHideEvent *event) override;
     QList<Picker::Item> collectItems() override;
     void onItemAccepted(const Picker::Item &item) override;
     void onFilterChanged(int visibleCount) override;
@@ -44,6 +52,7 @@ private:
     std::vector<Model::GrepHit> m_hits;
     std::shared_ptr<std::atomic_bool> m_cancel;
     QTimer m_debounce;
+    bool m_accepted = false;
 
     WaitingSpinnerWidget *m_spinner = nullptr;
     QLabel *m_countLabel            = nullptr;
