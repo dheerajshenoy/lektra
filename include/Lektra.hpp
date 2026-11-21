@@ -126,9 +126,9 @@ public:
         // init.lua runs before the message bar exists; show its messages
         // once the bar is created.
         if (m_message_bar)
-            m_message_bar->showMessage(message, duration);
+            m_message_bar->showMessage(message, duration, level);
         else
-            m_pending_messages.append({message, duration});
+            m_pending_messages.append({message, duration, level});
     }
 
     DocumentView *VSplit(DocumentView::Id id = -1) noexcept;
@@ -721,7 +721,13 @@ private:
     RecentFilesStore m_recent_files_store;
     QString m_session_name;
     MessageBar *m_message_bar = nullptr;
-    QList<QPair<QString, float>> m_pending_messages;
+    struct PendingMessage
+    {
+        QString message;
+        float duration;
+        MessageLog::Level level;
+    };
+    QList<PendingMessage> m_pending_messages;
     // What the export dialog was last set to.
     QString m_export_format   = QStringLiteral("png");
     bool m_export_split       = false;

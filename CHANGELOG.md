@@ -14,6 +14,7 @@
 
 ### New Features
 
+- The message bar is tinted by level: blue for info, amber for warnings, red for errors. `lektra.ui.message` takes an optional `level`.
 - Updated bundled MuPDF to 1.28.6.
 - `--no-config` starts lektra with the default configuration, ignoring `config.toml` and `init.lua`.
 - Link hints can use letters: set `link_hints.charset` (e.g. `"asdfghjkl"`).
@@ -36,8 +37,8 @@
 - Dropping several files onto the window now respects `tabs.lazy_load` instead of opening them all.
 - Fix the minimap becoming wider and fatter right after changing page.
 - Fix a crash with a document that has no pages, such as a PDF that is still being written. It is no longer opened, and a reload keeps the current document.
-- Fix lektra freezing when selecting text in highlight mode on an EPUB. Text markup is only available for PDFs.
 - Closing the last tab no longer leaves "Start Page" or "Messages" in the statusbar.
+- Fix lektra freezing when selecting text in highlight mode on an EPUB. Text markup is only available for PDFs.
 - The `bookmark_remove` command now lists your bookmarks and deletes the one you pick (it did nothing before).
 - Fix the Nix flake failing with "MuPDF source not found". Use `git+https://github.com/dheerajshenoy/lektra?submodules=1` as the flake URL.
 - `preview.size_ratio` now accepts fractions such as `0.6` (only whole numbers were read).

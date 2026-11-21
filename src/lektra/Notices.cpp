@@ -166,7 +166,7 @@ Lektra::checkForUpdates(bool manual) noexcept
             if (manual)
                 m_message_bar->showMessage(tr("Could not check for updates: %1")
                                                .arg(reply->errorString()),
-                                           4.0f);
+                                           4.0f, MessageLog::Level::Warning);
             return;
         }
 
@@ -178,7 +178,8 @@ Lektra::checkForUpdates(bool manual) noexcept
         {
             if (manual)
                 m_message_bar->showMessage(
-                    tr("Could not read the latest release"), 4.0f);
+                    tr("Could not read the latest release"), 4.0f,
+                    MessageLog::Level::Warning);
             return;
         }
 

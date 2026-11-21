@@ -233,8 +233,9 @@ Lektra::initGui() noexcept
     m_search_bar = new SearchBar(this);
     m_search_bar->setVisible(false);
     m_message_bar = new MessageBar(this);
-    for (const auto &[message, duration] : std::as_const(m_pending_messages))
-        m_message_bar->showMessage(message, duration);
+    for (const auto &[message, duration, level] :
+         std::as_const(m_pending_messages))
+        m_message_bar->showMessage(message, duration, level);
     m_pending_messages.clear();
     m_notice_bar  = new NoticeBar(this);
     m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);

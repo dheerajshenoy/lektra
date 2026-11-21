@@ -1013,7 +1013,7 @@ Lektra::warnShortcutConflicts() noexcept
     }
 
     qWarning() << message;
-    m_message_bar->showMessage(message, 6.0f);
+    m_message_bar->showMessage(message, 6.0f, MessageLog::Level::Warning);
 }
 
 void

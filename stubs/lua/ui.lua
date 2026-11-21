@@ -40,10 +40,11 @@ lektra.ui = {}
 lektra.ui.messagebox = function(title , message, type) end
 
 --- Shows a message to the user in the status bar
----@overload fun (arg: {message: string, duration?: number})
+---@overload fun (arg: {message: string, duration?: number, level?: "info"|"warning"|"error"})
 ---@param message string Message to show in the status bar
 ---@param duration? number Duration in seconds to show the message, default is 5 seconds
-lektra.ui.message = function(message, duration) end
+---@param level? "info"|"warning"|"error" Tints the message bar (default "info")
+lektra.ui.message = function(message, duration, level) end
 
 ---@class UiMessage
 ---@field time number When the message was shown, in seconds since the epoch (`os.date` accepts it)

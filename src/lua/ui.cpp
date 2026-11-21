@@ -393,8 +393,9 @@ Lektra::initLuaUI() noexcept
     lua_pushlightuserdata(m_L, this);
     lua_pushcclosure(m_L, [](lua_State *L) -> int
     {
-        const char *message = "Message";
-        float duration      = 2.0;
+        const char *message   = "Message";
+        const char *levelName = "info";
+        float duration        = 2.0;
 
         if (lua_istable(L, 1))
         {
@@ -407,17 +408,31 @@ Lektra::initLuaUI() noexcept
             if (lua_isnumber(L, -1))
                 duration = static_cast<float>(lua_tonumber(L, -1));
             lua_pop(L, 1);
+
+            lua_getfield(L, 1, "level");
+            if (lua_isstring(L, -1))
+                levelName = lua_tostring(L, -1);
+            lua_pop(L, 1);
         }
         else
         {
-            message  = luaL_checkstring(L, 1);
-            duration = static_cast<float>(luaL_optnumber(L, 2, 2.0));
+            message   = luaL_checkstring(L, 1);
+            duration  = static_cast<float>(luaL_optnumber(L, 2, 2.0));
+            levelName = luaL_optstring(L, 3, "info");
         }
+
+        MessageLog::Level level = MessageLog::Level::Info;
+        if (strcmp(levelName, "warning") == 0)
+            level = MessageLog::Level::Warning;
+        else if (strcmp(levelName, "error") == 0)
+            level = MessageLog::Level::Error;
+        else if (strcmp(levelName, "info") != 0)
+            return luaL_error(L, "Invalid message level: %s", levelName);
 
         auto *lektra
             = static_cast<Lektra *>(lua_touserdata(L, lua_upvalueindex(1)));
 
-        lektra->showMessage(QString::fromUtf8(message), duration);
+        lektra->showMessage(QString::fromUtf8(message), duration, level);
 
         return 0;
     }, 1);
