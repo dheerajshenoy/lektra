@@ -40,7 +40,8 @@ and [GitHub](https://github.com/dheerajshenoy/lektra), kept in sync.
 **Documents:** PDF, XPS, OXPS, CBZ (also CBR, CB7 and CBT), FB2, EPUB, Mobi and
 DjVu (if `djvulibre` is installed on the system).
 
-**Images:** JPG, PNG, APNG, BMP, WEBP, GIF, TIFF, ICO, SVG, PPM, PGM and PBM,
+**Images:** JPG, PNG, APNG, BMP, WEBP, GIF, TIFF, ICO, SVG, PPM, PGM, PBM and PAM, plus PSD (the
+flattened image) and JPEG 2000,
 including animated images (GIF, WebP, APNG) and multi-page TIFFs. JPEG XL (JXL,
 also animated) is supported if `libjxl` is installed. Edge cases of SVG are
 handled by `librsvg` if it is installed.

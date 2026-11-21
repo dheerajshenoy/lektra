@@ -38,7 +38,8 @@ Read the [documentation](https://lektra.readthedocs.io/en/latest/) for more info
 - PDF, XPS, OXPS, CBZ, FB2, EPUB, Mobi, DjVu (if `djvulibre` is installed on the system)
 
 ### Images
-- JPG, PNG, APNG, BMP, WEBP, GIF, TIFF, ICO, SVG, PPM, PGM, PBM
+- JPG, PNG, APNG, BMP, WEBP, GIF, TIFF, ICO, SVG, PPM, PGM, PBM, PAM
+- PSD (Photoshop, the flattened image) and JPEG 2000 (JP2, J2K)
 - JPEG XL (JXL) (if `libjxl` is installed)
 - Improved SVG support is provided (if `librsvg` if is installed)
 

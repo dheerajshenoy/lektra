@@ -94,6 +94,10 @@ public:
         PPM,
         PGM,
         PBM,
+        // Read by MuPDF, which Qt has no plugin for
+        PAM,
+        PSD,
+        JP2,
     };
 
     struct LinkInfo
@@ -1198,6 +1202,7 @@ private:
     [[nodiscard]] std::vector<Model::RenderLink>
     detectUrlLinksForPage(const RenderJob &job) noexcept;
     [[nodiscard]] static FileType getFileType(const QString &filepath) noexcept;
+    [[nodiscard]] static FileType sniffMuPdfImage(const QString &path) noexcept;
     [[nodiscard]] bool reloadDocument() noexcept;
     void waitForPendingRenders() noexcept;
     [[nodiscard]] FileSize computeFileSize() noexcept;

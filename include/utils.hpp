@@ -224,6 +224,8 @@ supportedFormats()
            "*.jxl "
            "*.tga "
            "*.ico "
-           "*.ppm *.pgm *.pbm);;"
+           "*.ppm *.pgm *.pbm *.pam "
+           "*.psd "
+           "*.jp2 *.j2k *.jpx *.jpf *.j2c);;"
            "All Files (*.*)";
 }

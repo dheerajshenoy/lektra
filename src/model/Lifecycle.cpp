@@ -499,11 +499,106 @@ isImageFormat(Model::FileType ft) noexcept
         case Model::FileType::PPM:
         case Model::FileType::PGM:
         case Model::FileType::PBM:
+        case Model::FileType::PAM:
+        case Model::FileType::PSD:
+        case Model::FileType::JP2:
         case Model::FileType::SVG:
             return true;
         default:
             return false;
     }
+}
+
+// The image formats Qt has no plugin for, which MuPDF decodes.
+static bool
+isMuPdfImage(Model::FileType ft) noexcept
+{
+    return ft == Model::FileType::PAM || ft == Model::FileType::PSD
+           || ft == Model::FileType::JP2;
+}
+
+static const char *
+muPdfImageFormat(Model::FileType ft) noexcept
+{
+    switch (ft)
+    {
+        case Model::FileType::PAM:
+            return "pam";
+        case Model::FileType::PSD:
+            return "psd";
+        default:
+            return "jp2";
+    }
+}
+
+// Decodes a PSD, JPEG 2000 or PAM file with MuPDF (its own context: this runs
+// on a worker thread). A null image if it cannot be read.
+static QImage
+decodeMuPdfImage(const QString &path) noexcept
+{
+    fz_context *ctx = fz_new_context(nullptr, nullptr, FZ_STORE_DEFAULT);
+    if (!ctx)
+        return {};
+
+    // Nothing with a destructor lives inside fz_try (see reloadDocument).
+    fz_image *volatile image = nullptr;
+    fz_pixmap *volatile pix  = nullptr;
+    fz_pixmap *volatile rgb  = nullptr;
+    int xres = 0, yres = 0;
+    bool ok = false;
+    const QByteArray file = path.toUtf8();
+    fz_try(ctx)
+    {
+        image = fz_new_image_from_file(ctx, file.constData());
+        xres  = image->xres;
+        yres  = image->yres;
+        pix   = fz_get_pixmap_from_image(ctx, image, nullptr, nullptr, nullptr,
+                                         nullptr);
+        // Whatever the color space (CMYK, gray, Lab...): RGB, alpha kept
+        rgb = fz_convert_pixmap(ctx, pix, fz_device_rgb(ctx), nullptr, nullptr,
+                                fz_default_color_params, 1);
+        ok  = true;
+    }
+    fz_always(ctx)
+    {
+        fz_drop_pixmap(ctx, pix);
+        fz_drop_image(ctx, image);
+    }
+    fz_catch(ctx)
+    {
+        qWarning() << "Unable to read" << path << ":" << fz_caught_message(ctx);
+        ok = false;
+    }
+
+    QImage out;
+    if (ok)
+    {
+        const int w      = fz_pixmap_width(ctx, rgb);
+        const int h      = fz_pixmap_height(ctx, rgb);
+        const int n      = fz_pixmap_components(ctx, rgb);
+        const int stride = fz_pixmap_stride(ctx, rgb);
+        const bool alpha = fz_pixmap_alpha(ctx, rgb) != 0;
+        const unsigned char *samples = fz_pixmap_samples(ctx, rgb);
+        // MuPDF's alpha is premultiplied
+        QImage img(w, h,
+                   alpha ? QImage::Format_RGBA8888_Premultiplied
+                         : QImage::Format_RGB888);
+        if (!img.isNull() && n == (alpha ? 4 : 3))
+        {
+            for (int y = 0; y < h; ++y)
+                memcpy(img.scanLine(y), samples + static_cast<size_t>(y) * stride,
+                       static_cast<size_t>(w) * n);
+            if (xres > 0 && yres > 0)
+            {
+                img.setDotsPerMeterX(qRound(xres / 0.0254));
+                img.setDotsPerMeterY(qRound(yres / 0.0254));
+            }
+            out = std::move(img);
+        }
+    }
+    fz_drop_pixmap(ctx, rgb);
+    fz_drop_context(ctx);
+    return out;
 }
 
 static void
@@ -928,6 +1023,35 @@ Model::openAsync_image(const QString &canonPath) noexcept
                 // Not animated, or could not be played: show the first frame
                 if (!m_movie)
                     m_image_cache = std::move(img);
+                emit openFileFinished();
+            }, Qt::QueuedConnection);
+            return;
+        }
+
+        if (isMuPdfImage(m_filetype))
+        {
+            QImage img = decodeMuPdfImage(canonPath);
+            if (img.isNull())
+            {
+                QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                          Qt::QueuedConnection);
+                return;
+            }
+            const float fw = static_cast<float>(img.width());
+            const float fh = static_cast<float>(img.height());
+            QMetaObject::invokeMethod(
+                this, [this, img = std::move(img), fw, fh]() mutable
+            {
+                waitForPendingRenders();
+                cleanup_image();
+                m_is_image         = true;
+                m_is_animated      = false;
+                m_success          = true;
+                m_page_count       = 1;
+                m_default_page_dim = {fw * 72.0f / m_dpi, fh * 72.0f / m_dpi};
+                m_page_dim_cache.dimensions.assign(1, m_default_page_dim);
+                m_page_dim_cache.known.assign(1, true);
+                m_image_cache = std::move(img);
                 emit openFileFinished();
             }, Qt::QueuedConnection);
             return;
@@ -1723,13 +1847,17 @@ Model::properties() noexcept
     else if (m_is_image)
     {
         QImageReader reader(m_filepath);
-        // Qt can't read JPEG XL, so take the decoded image's size instead
+        // Qt can't read JPEG XL, PSD, JPEG 2000 or PAM, so take the decoded
+        // image's size instead
         const bool jxl = m_filetype == FileType::JXL;
-        const QSize isz = jxl ? m_image_cache.size() : reader.size();
+        const bool own = jxl || isMuPdfImage(m_filetype);
+        const QSize isz = own ? m_image_cache.size() : reader.size();
         props.emplace_back("Width", QString::number(isz.width()));
         props.emplace_back("Height", QString::number(isz.height()));
         props.emplace_back("Format",
-                           jxl ? "jxl" : reader.format().constData());
+                           jxl ? "jxl"
+                           : own ? muPdfImageFormat(m_filetype)
+                                 : reader.format().constData());
         props.emplace_back("Animated",
                            reader.supportsAnimation() ? "Yes" : "No");
 
@@ -1781,13 +1909,15 @@ Model::imageMetadata(ImageMetadata &out) noexcept
         return false;
 
     QImageReader reader(m_filepath);
-    QSize size = reader.size();
+    QSize size = isMuPdfImage(m_filetype) ? QSize() : reader.size();
     if (!size.isValid() && !m_image_cache.isNull())
         size = m_image_cache.size();
     out.width    = size.width();
     out.height   = size.height();
     out.format   = m_filetype == FileType::JXL
                        ? QStringLiteral("jxl")
+                   : isMuPdfImage(m_filetype)
+                       ? QString::fromLatin1(muPdfImageFormat(m_filetype))
                        : QString::fromLatin1(reader.format());
     out.animated = reader.supportsAnimation();
     out.frames   = std::max(1, reader.imageCount());

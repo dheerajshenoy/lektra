@@ -17,6 +17,7 @@
 #include <QSvgRenderer>
 #include <QtConcurrent/QtConcurrent>
 #include <algorithm>
+#include <cstring>
 #include <array>
 #include <cctype>
 #include <limits>
@@ -318,6 +319,34 @@ Model::~Model() noexcept
         fz_drop_context(m_ctx);
 }
 
+// PSD, JPEG 2000 and PAM images (read through MuPDF) by their first bytes.
+Model::FileType
+Model::sniffMuPdfImage(const QString &path) noexcept
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly))
+        return FileType::NONE;
+    const QByteArray head = file.read(12);
+    auto at = [&](int i)
+    { return i < head.size() ? static_cast<unsigned char>(head[i]) : 0; };
+
+    // Photoshop: "8BPS" and version 1 (2 is the big format, PSB)
+    if (head.startsWith("8BPS") && at(4) == 0 && at(5) == 1)
+        return FileType::PSD;
+    // JPEG 2000: the JP2 signature box, or a bare codestream (FF4F FF51)
+    static const unsigned char jp2[12]
+        = {0x00, 0x00, 0x00, 0x0C, 'j', 'P', ' ', ' ', 0x0D, 0x0A, 0x87, 0x0A};
+    if (head.size() >= 12 && memcmp(head.constData(), jp2, 12) == 0)
+        return FileType::JP2;
+    if (at(0) == 0xFF && at(1) == 0x4F && at(2) == 0xFF && at(3) == 0x51)
+        return FileType::JP2;
+    // Netpbm "P7": the arbitrary map (Qt only reads P1 to P6)
+    if (head.startsWith("P7") && (at(2) == '\n' || at(2) == ' ' || at(2) == '\r'
+                                  || at(2) == '\t'))
+        return FileType::PAM;
+    return FileType::NONE;
+}
+
 Model::FileType
 Model::getFileType(const QString &path) noexcept
 {
@@ -345,6 +374,10 @@ Model::getFileType(const QString &path) noexcept
     // Not every shared-mime-info database knows image/jxl yet
     if (suffix == "jxl")
         return FileType::JXL;
+    // Formats Qt has no plugin for, which MuPDF reads: told by their magic
+    // number, not the extension or the mime database
+    if (const FileType ft = sniffMuPdfImage(path); ft != FileType::NONE)
+        return ft;
     // Comic archives: MuPDF reads zip (cbz), tar (cbt), and rar/7z (cbr, cb7)
     // via libarchive. Archives have no content marker that says "comic", so
     // go by extension.
@@ -487,6 +520,12 @@ Model::fileTypeName(FileType type, const QString &filepath) noexcept
             return "PGM";
         case FileType::PBM:
             return "PBM";
+        case FileType::PAM:
+            return "PAM";
+        case FileType::PSD:
+            return "PSD";
+        case FileType::JP2:
+            return "JPEG 2000";
         default:
             return "Unknown";
     }
