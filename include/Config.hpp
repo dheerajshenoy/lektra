@@ -2300,6 +2300,17 @@ struct Config
         // @added 0.7.8
         QVariantMap extra_body = {};
 
+        // @desc {
+        // Only send the last N of your messages (and the replies and tool
+        // calls that follow them) to the model; older ones are dropped from
+        // each request. The chat on screen and in the History menu stays
+        // complete. 0 sends the whole conversation
+        // }
+        // @type int
+        // @default 0
+        // @added 0.8.1
+        int max_history_messages = 0;
+
     } llm_view;
     // @endsection
 

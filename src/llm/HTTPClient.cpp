@@ -176,8 +176,24 @@ HTTPClient::dispatch()
             messages.append(
                 QJsonObject{{"role", "system"}, {"content", system}});
     }
-    for (const QJsonValue &m : std::as_const(m_messages))
-        messages.append(m);
+    // Start at the Nth-last user message so a tool call is never separated
+    // from its results.
+    qsizetype first = 0;
+    if (m_maxHistoryTurns > 0)
+    {
+        int seen = 0;
+        for (qsizetype i = m_messages.size() - 1; i >= 0; --i)
+        {
+            if (m_messages.at(i).toObject().value("role").toString() == "user"
+                && ++seen == m_maxHistoryTurns)
+            {
+                first = i;
+                break;
+            }
+        }
+    }
+    for (qsizetype i = first; i < m_messages.size(); ++i)
+        messages.append(m_messages.at(i));
 
     QJsonObject body{{"model", m_model}, {"messages", messages}};
     for (auto it = m_extraBodyFields.constBegin();

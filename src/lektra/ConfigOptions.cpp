@@ -595,6 +595,7 @@ build()
     r.text("model", F(llm_view.model));
     r.text("api_key", F(llm_view.api_key));
     r.text("api_url", F(llm_view.api_url));
+    r.integer("max_history_messages", F(llm_view.max_history_messages)).range(0, 1000);
     r.custom("extra_body");
 
     r.section("menubar", Global);

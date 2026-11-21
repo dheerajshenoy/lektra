@@ -106,6 +106,7 @@ LLMView::LLMView(const Config &config, QWidget *parent)
                              QUrl(m_config.llm_view.api_url));
     m_http_client->setExtraBodyFields(
         QJsonObject::fromVariantMap(m_config.llm_view.extra_body));
+    m_http_client->setMaxHistoryTurns(m_config.llm_view.max_history_messages);
 
     connect(m_http_client, &HTTPClient::replyReceived, this,
             &LLMView::displayResponse);

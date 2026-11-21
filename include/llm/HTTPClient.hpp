@@ -28,6 +28,12 @@ public:
     // Extra fields merged into the JSON request body on every send() (e.g.
     // Ollama's "think"/"stream"), from Config::LLMView::extra_body.
     void setExtraBodyFields(const QJsonObject &fields);
+    // Send only the last `turns` user messages and what followed them (0 =
+    // all). The stored conversation is not changed.
+    void setMaxHistoryTurns(int turns)
+    {
+        m_maxHistoryTurns = turns;
+    }
     // Text for a "system" message sent first with every request. Called on
     // each send(), so it can reflect the current state (e.g. the commands
     // that exist right now). It is not part of the stored conversation.
@@ -109,6 +115,7 @@ private:
     QJsonArray m_messages;
     std::function<QString()> m_systemPrompt;
     QJsonObject m_extraBodyFields;
+    int m_maxHistoryTurns = 0;
     QJsonArray m_tools;
     // Tool calls being assembled from streamed fragments, by their index.
     QMap<int, QJsonObject> m_streamToolCalls;

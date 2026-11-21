@@ -2125,6 +2125,11 @@
           "default": "http://localhost:11434/v1/chat/completions",
           "description": "API URL for the LLM model (since 0.7.8)"
         },
+        "max_history_messages": {
+          "type": "integer",
+          "default": 0,
+          "description": "Only send the last N of your messages (and the replies and tool calls that follow them) to the model; older ones are dropped from each request. The chat on screen and in the History menu stays complete. 0 sends the whole conversation (since 0.8.1)"
+        },
         "extra_body": {
           "type": "object",
           "description": "Extra fields merged into every request body sent to the LLM endpoint.",

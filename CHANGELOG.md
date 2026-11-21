@@ -14,6 +14,7 @@
 
 ### New Features
 
+- `llm_view.max_history_messages` sends only the last N of your messages (with the replies after them) to the model; the chat itself stays complete.
 - Markdown files show the images next to them (`![](pic.png)`).
 - `picker.style = "emacs"` shows pickers as a full-width strip along the bottom of the window, like the Emacs minibuffer, `picker.max_lines` rows high. The default, `"floating"`, is the card in the middle. `picker.scrolloff` keeps some rows between the selection and the edge of the list.
 - `grep` command: lists the lines of the document that match a regular expression (smart-case) and jumps to the one you pick. `grep PATTERN` starts with the pattern typed.

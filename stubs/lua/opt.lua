@@ -484,6 +484,7 @@ lektra.opt.command_palette = {}
 ---@field dock_area? "left"|"right"|"top"|"bottom" Where the panel is docked.
 ---@field extra_body? table Extra fields merged into every request body.
 ---@field font_size? number Font size in points of the text in the panel; 0 uses the application's font size.
+---@field max_history_messages? integer Only send the last N of your messages (with the replies after them) to the model; 0 sends the whole chat.
 ---@field model? string Model name sent with each request.
 ---@field save_history? boolean Save chats to disk so they can be reopened from the History menu.
 ---@field separate_window? boolean Show the panel in a separate window.
