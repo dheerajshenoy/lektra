@@ -1,3 +1,5 @@
+#include <string_view>
+#include <vector>
 #include "Config.hpp"
 #include "ConfigOptions.hpp"
 #include "DocumentView.hpp"
@@ -781,6 +783,50 @@ optIndex(lua_State *L)
 //
 // Assigning a table to a sub-table (`opt.search = {...}`) sets each of its
 // keys in turn, so the real options are reached.
+// Whether option `a` and option `b` hold the same value in `c`.
+static bool
+sameValue(const co::Option &a, const co::Option &b, Config &c)
+{
+    if (a.kind != b.kind)
+        return false;
+    switch (a.kind)
+    {
+        case co::Kind::Bool:
+            return a.ref<bool>(c) == b.ref<bool>(c);
+        case co::Kind::Int:
+            return a.ref<int>(c) == b.ref<int>(c);
+        case co::Kind::Float:
+            return a.ref<float>(c) == b.ref<float>(c);
+        case co::Kind::Text:
+            return a.ref<QString>(c) == b.ref<QString>(c);
+        case co::Kind::Color:
+            return a.ref<uint32_t>(c) == b.ref<uint32_t>(c);
+        case co::Kind::Choice:
+            return a.getChoice(c) == b.getChoice(c);
+        default:
+            return false;
+    }
+}
+
+// The [outline], [highlight_search] and [command_palette] pickers start from
+// the values of [picker]. config.toml copies them before reading those
+// tables; a script sets them afterwards, so the copies that were never set
+// on their own have to follow.
+static std::vector<const co::Option *>
+pickerFollowers(const co::Option &o, Config &c)
+{
+    std::vector<const co::Option *> out;
+    constexpr std::string_view prefix = "picker.";
+    if (o.path.rfind(prefix, 0) != 0 || o.path.rfind("picker.keys.", 0) == 0)
+        return out;
+    for (const char *section : {"outline", "highlight_search", "command_palette"})
+        if (const co::Option *f
+            = co::find(std::string(section) + "." + o.path.substr(prefix.size()));
+            f && sameValue(o, *f, c))
+            out.push_back(f);
+    return out;
+}
+
 static int
 optNewIndex(lua_State *L)
 {
@@ -793,8 +839,13 @@ optNewIndex(lua_State *L)
     if (const co::Option *o = co::find(path);
         o && (o->scope & p.scope()) == p.scope())
     {
+        const auto followers = p.view_id < 0
+                                   ? pickerFollowers(*o, proxyConfig(L, p))
+                                   : std::vector<const co::Option *>{};
         if (!writeOption(L, 3, *o, proxyConfig(L, p), p.lektra))
             return 0;
+        for (const co::Option *f : followers)
+            writeOption(L, 3, *f, proxyConfig(L, p), p.lektra, true);
 
         const QString section = QString::fromStdString(o->section);
         if (p.view_id < 0)

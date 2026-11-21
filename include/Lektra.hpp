@@ -391,6 +391,11 @@ public:
     void SplitsToWindows() noexcept;
     void SplitsToTabs() noexcept;
     void ToggleLaserPointerCursor() noexcept;
+    // Settings shared by every picker
+    const Config::Picker &pickerConfig() const noexcept
+    {
+        return m_config.picker;
+    }
     Picker::Keybindings &pickerKeybindings() noexcept
     {
         return m_picker_keybinds;
