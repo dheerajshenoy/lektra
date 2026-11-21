@@ -487,7 +487,7 @@ struct Config
 
         // @desc Page spacing in pixels
         // @type int
-        // @default 10
+        // @default 12
         // @added 0.5.1
         int spacing = 10;
 
@@ -1590,6 +1590,37 @@ struct Config
             // @added 0.8.1
             int bits = 8;
         } antialiasing;
+
+        // @section rendering.page_shadow
+        // @section_desc The soft shadow under each page
+        // @section_type struct
+        // @section_added 0.8.1
+        struct PageShadow
+        {
+            // @desc Draw a shadow under each page
+            // @type bool
+            // @default true
+            // @added 0.8.1
+            bool enabled = true;
+
+            // @desc How far the shadow reaches around the page, in pixels
+            // @type int
+            // @default 12
+            // @added 0.8.1
+            int radius = 12;
+
+            // @desc How far the shadow is dropped below the page, in pixels
+            // @type int
+            // @default 3
+            // @added 0.8.1
+            int offset_y = 3;
+
+            // @desc Color of the shadow (RGBA hex); the alpha is how strong it is at the edge of the page
+            // @type uint32_t
+            // @default 0x00000059
+            // @added 0.8.1
+            uint32_t color = 0x00000059;
+        } page_shadow;
     } rendering;
     // @endsection
 

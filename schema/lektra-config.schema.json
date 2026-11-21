@@ -1726,6 +1726,33 @@
           },
           "additionalProperties": false,
           "description": "Antialiasing of the rendered pages (since 0.8.1)"
+        },
+        "page_shadow": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Draw a shadow under each page (since 0.8.1)"
+            },
+            "radius": {
+              "type": "integer",
+              "default": 12,
+              "description": "How far the shadow reaches around the page, in pixels (since 0.8.1)"
+            },
+            "offset_y": {
+              "type": "integer",
+              "default": 3,
+              "description": "How far the shadow is dropped below the page, in pixels (since 0.8.1)"
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
+            }
+          },
+          "additionalProperties": false,
+          "description": "The soft shadow under each page (since 0.8.1)"
         }
       },
       "additionalProperties": false,

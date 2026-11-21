@@ -515,8 +515,15 @@ lektra.opt.reflow = {}
 ---@field bits? integer How many bits of antialiasing MuPDF uses when drawing pages (0, 2, 4, 6 or 8; 0 turns it off, other values are rounded).
 ---@field enabled? boolean Enable antialiasing for page rendering.
 
+---@class OptRenderingPageShadow
+---@field color? integer Color of the shadow (RGBA hex); the alpha is how strong it is at the edge of the page.
+---@field enabled? boolean Draw a shadow under each page.
+---@field offset_y? integer How far the shadow is dropped below the page, in pixels.
+---@field radius? integer How far the shadow reaches around the page, in pixels.
+
 ---@class OptRendering
 ---@field antialiasing? OptRenderingAntialiasing Antialiasing of the rendered pages.
+---@field page_shadow? OptRenderingPageShadow The soft shadow under each page.
 ---@field text_antialiasing? boolean Enable text-specific antialiasing.
 ---@field smooth_pixmap_transform? boolean Use smooth (bilinear) scaling for pixmaps.
 ---@field backend? Backend Rendering backend
@@ -524,6 +531,8 @@ lektra.opt.reflow = {}
 lektra.opt.rendering = {
     ---@type OptRenderingAntialiasing
     antialiasing = {},
+    ---@type OptRenderingPageShadow
+    page_shadow = {},
 }
 
 ---@class OptBehaviorHighContrast

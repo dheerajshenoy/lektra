@@ -526,6 +526,10 @@ build()
     r.boolean("smooth_pixmap_transform", F(rendering.smooth_pixmap_transform));
     r.boolean("antialiasing.enabled", F(rendering.antialiasing.enabled));
     r.integer("antialiasing.bits", F(rendering.antialiasing.bits));
+    r.boolean("page_shadow.enabled", F(rendering.page_shadow.enabled));
+    r.integer("page_shadow.radius", F(rendering.page_shadow.radius));
+    r.integer("page_shadow.offset_y", F(rendering.page_shadow.offset_y));
+    r.color("page_shadow.color", F(rendering.page_shadow.color));
     r.choice("backend", F(rendering.backend), kBackend).luaNumber();
     r.custom("dpr");
 

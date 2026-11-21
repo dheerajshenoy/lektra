@@ -2,6 +2,8 @@
 
 #include "Annotation.hpp"
 #include "Config.hpp"
+#include "GraphicsImageItem.hpp"
+#include "PageShadow.hpp"
 #include "utils.hpp"
 
 #include <QApplication>
@@ -1133,6 +1135,33 @@ GraphicsView::drawBackground(QPainter *painter, const QRectF & /*rect*/)
     painter->fillRect(mapToScene(viewport()->rect()).boundingRect(),
                       bg.alpha() > 0 ? bg
                                      : viewport()->palette().window().color());
+
+    const auto &shadow = m_config.rendering.page_shadow;
+    if (!shadow.enabled || !scene())
+        return;
+
+    // Shadows go under every page, in viewport pixels so that their size does
+    // not change with the zoom. They reach past the page, so look a little
+    // beyond the viewport for the pages that cast one.
+    const int reach = shadow.radius + std::abs(shadow.offset_y);
+    const QRectF visible(viewport()->rect());
+    const QRectF around
+        = mapToScene(viewport()->rect().adjusted(-reach, -reach, reach, reach))
+              .boundingRect();
+    const QTransform toViewport = viewportTransform();
+    const QColor color          = rgbaToQColor(shadow.color);
+    const qreal dpr             = viewport()->devicePixelRatioF();
+
+    painter->save();
+    painter->resetTransform();
+    for (QGraphicsItem *item : scene()->items(around))
+    {
+        if (item->type() != GraphicsImageItem::Type || !item->isVisible())
+            continue;
+        pageshadow::draw(painter, toViewport.mapRect(item->sceneBoundingRect()),
+                         visible, shadow.radius, shadow.offset_y, color, dpr);
+    }
+    painter->restore();
 }
 
 void

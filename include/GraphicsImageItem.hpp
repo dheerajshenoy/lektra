@@ -21,6 +21,15 @@
 class GraphicsImageItem : public QGraphicsItem
 {
 public:
+    enum
+    {
+        Type = UserType + 2
+    };
+    [[nodiscard]] int type() const override
+    {
+        return Type;
+    }
+
     GraphicsImageItem(QGraphicsItem *parent = nullptr) : QGraphicsItem(parent)
     {
         // Note: When using QOpenGLWidget viewport, DeviceCoordinateCache can
