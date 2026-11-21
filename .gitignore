@@ -10,6 +10,7 @@ _deb_pkg/
 _deb_stage/
 dist/
 scripts/*.pdf
+scripts/*.gif
 TAGS
 command_usage.json
 .envrc
