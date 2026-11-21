@@ -1,5 +1,7 @@
 #include "CommandPicker.hpp"
 
+#include <QTimer>
+
 #include "CommandManager.hpp"
 #include "Picker.hpp"
 
@@ -79,6 +81,9 @@ CommandPicker::onItemAccepted(const Item &item)
     const Command &cmd = m_commands[i];
     if (m_command_manager)
         m_command_manager->recordUsage(cmd.name);
+    // The picker closes right after this returns. Run the command once it
+    // has: one that takes a while or opens a dialog (print, say) would
+    // otherwise leave the picker on screen until it is done.
     if (cmd.action)
-        cmd.action({});
+        QTimer::singleShot(0, this, [action = cmd.action] { action({}); });
 }
