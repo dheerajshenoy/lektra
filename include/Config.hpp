@@ -489,7 +489,7 @@ struct Config
         // @type int
         // @default 12
         // @added 0.5.1
-        int spacing = 10;
+        int spacing = 12;
 
         // @desc {
         // Pages per row in the grid layout (layout.mode = "grid"), from 1 to

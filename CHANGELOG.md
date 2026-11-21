@@ -14,6 +14,7 @@
 
 ### New Features
 
+- The default `layout.spacing` (gap between pages) is now 12 pixels instead of 10, to leave room for the page shadow.
 - Pages have a soft shadow. Tune or turn it off with `rendering.page_shadow` (`enabled`, `radius`, `offset_y`, `color`).
 - Lua: `view:search_hits()` now returns the location of each search hit (it returned nothing before).
 - `rendering.antialiasing.bits` now takes effect: it sets how smooth MuPDF draws pages (0 turns antialiasing off).
