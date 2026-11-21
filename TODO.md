@@ -29,13 +29,12 @@
     + `search_all` command and a Lua `lektra.search.all(query, opts)`. Start with open tabs; a folder scope can follow.
     + Skip password-protected files and say so; skip reflow views at first.
 - [ ] Count prefixes and repeat: `5j`, `3<C-d>`, and `.` to repeat the last action
-- [ ] Which-key style popup listing what can follow a pending key prefix
 - [ ] Text hints: label words or lines like link hints, to select, yank or start caret mode there
 - [ ] CLI / headless control: run commands or Lua in a running instance (e.g. `lektra --eval '...'`), for shell, window manager and editor integration
 - [ ] Per-document persistent state: zoom, fit mode, narrowed region, layout and marks saved per file
-- [ ] More Lua events: `OnAnnotationChanged` (edits, not just add/remove), `OnKeyPressed` (`OnSelectionChanged` and `OnFileReloaded` are done)
+- [ ] More Lua events: `OnAnnotationChanged` (edits, not just add/remove), `OnKeyPressed`
 - [ ] Command pipelines: chain commands in one binding or at the command prompt (e.g. `zoom_set 150; page_goto 1`)
-- [ ] Telescope / FZF-style Fuzzy Text Search Across Document
+- [x] Telescope / FZF-style Fuzzy Text Search Across Document
 - [ ] Zotero Integration & Reference Inspection
 - LLM View
     - [x] Chat History
