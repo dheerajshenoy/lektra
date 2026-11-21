@@ -346,6 +346,8 @@ lektra.event.EventType.OnFileSaved
 lektra.event.EventType.OnSynctexJumpRequested
 lektra.event.EventType.OnPresentationStarted
 lektra.event.EventType.OnPresentationEnded
+lektra.event.EventType.OnSelectionChanged
+lektra.event.EventType.OnFileReloaded
 ```
 
 ### Functions
@@ -826,11 +828,13 @@ end)
 | `OnFileOpen` | A file is opened in a view. | `view` | yes |
 | `OnFileClose` | A file is closed. | `view` | yes |
 | `OnFileSaved` | A file is saved. | `view` | yes |
+| `OnFileReloaded` | The file was reloaded from disk (by the `file_reload` command, auto-reload when it changed on disk, or after a save). | `view` | yes |
 | `OnPageChanged` | Current page changes. | `view` | yes |
 | `OnZoomChanged` | Zoom level changes. | `view` | yes |
 | `OnModeChanged` | The interaction mode changes. | `view` | yes |
 | `OnLinkClicked` | A link in the document is followed. | `view`, `link` (a `PageLink`) | yes |
-| `OnTextSelected` | Text selection changes. | `view` | yes |
+| `OnTextSelected` | Text is selected (fires again while the selection is dragged). | `view` | yes |
+| `OnSelectionChanged` | The text selection changes: a new selection, a changed one, or cleared. Use `view:has_selection()` to tell which. | `view` | yes |
 | `OnSearchStarted` | A search is started. | `view` | yes |
 | `OnSearchFinished` | A search completes. | `view` | yes |
 | `OnSearchCancelled` | A search is cancelled. | `view` | yes |

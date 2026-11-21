@@ -78,6 +78,7 @@ The `window.accent` option was removed; it did nothing.
 - New `OnSynctexJumpRequested` Lua event: called with the view, the source file, the line and the column when a SyncTeX jump from the PDF to its LaTeX source is requested.
 - New `OnPresentationStarted` and `OnPresentationEnded` Lua events, called when presentation mode is entered or left.
 - The Lua type stubs are now installed on Windows too (`share\lektra\lua` in the install folder), for completion when editing `init.lua`.
+- New `OnSelectionChanged` and `OnFileReloaded` Lua events: the first is called when the text selection changes or is cleared (`OnTextSelected` only when text is selected), the second after a view reloads its file from disk.
 
 #### Options
 

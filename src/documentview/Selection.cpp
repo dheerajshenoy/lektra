@@ -639,6 +639,7 @@ DocumentView::handleTextSelection(QPointF start, QPointF end) noexcept
 
 #ifdef WITH_LUA
     dispatchLuaEvent(DispatchType::OnTextSelected);
+    dispatchLuaEvent(DispatchType::OnSelectionChanged);
 #endif
 }
 
@@ -1179,6 +1180,10 @@ DocumentView::ClearTextSelection() noexcept
 
     m_selection_start_page = -1;
     m_selection_end_page   = -1;
+
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnSelectionChanged);
+#endif
 }
 
 // Yank the current text selection to clipboard

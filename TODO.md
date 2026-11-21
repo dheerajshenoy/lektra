@@ -33,7 +33,7 @@
 - [ ] Text hints: label words or lines like link hints, to select, yank or start caret mode there
 - [ ] CLI / headless control: run commands or Lua in a running instance (e.g. `lektra --eval '...'`), for shell, window manager and editor integration
 - [ ] Per-document persistent state: zoom, fit mode, narrowed region, layout and marks saved per file
-- [ ] More Lua events: `OnSelectionChanged`, `OnAnnotationChanged` (edits, not just add/remove), `OnFileReloaded`, `OnKeyPressed`
+- [ ] More Lua events: `OnAnnotationChanged` (edits, not just add/remove), `OnKeyPressed` (`OnSelectionChanged` and `OnFileReloaded` are done)
 - [ ] Command pipelines: chain commands in one binding or at the command prompt (e.g. `zoom_set 150; page_goto 1`)
 - [ ] Telescope / FZF-style Fuzzy Text Search Across Document
 - [ ] Zotero Integration & Reference Inspection

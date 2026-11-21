@@ -177,6 +177,8 @@ pushLuaEvent(lua_State *L, DispatchType type, void *data)
         case DispatchType::OnViewChanged:
         case DispatchType::OnModeChanged:
         case DispatchType::OnFileSaved:
+        case DispatchType::OnSelectionChanged:
+        case DispatchType::OnFileReloaded:
             if (data)
             {
                 push_view(L, static_cast<DocumentView *>(data));

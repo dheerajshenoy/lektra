@@ -1317,6 +1317,10 @@ DocumentView::tryReloadLater(int attempt) noexcept
         renderPages();
         emit totalPageCountChanged(m_model->m_page_count);
     }
+
+#ifdef WITH_LUA
+    dispatchLuaEvent(DispatchType::OnFileReloaded);
+#endif
 }
 
 // Handle password for password-protected files

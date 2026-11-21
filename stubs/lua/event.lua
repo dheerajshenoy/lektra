@@ -32,6 +32,8 @@ lektra.event.EventType = {
     OnSynctexJumpRequested = 25,
     OnPresentationStarted = 26,
     OnPresentationEnded = 27,
+    OnSelectionChanged = 28,
+    OnFileReloaded = 29,
 }
 
 -- Event payloads ----------------------------------------------------
@@ -79,6 +81,8 @@ lektra.event.EventType = {
 ---@field OnModeChanged ViewEvent
 ---@field OnViewChanged ViewEvent
 ---@field OnTextSelected ViewEvent
+---@field OnSelectionChanged ViewEvent
+---@field OnFileReloaded ViewEvent
 ---@field OnSearchStarted ViewEvent
 ---@field OnSearchFinished ViewEvent
 ---@field OnSearchCancelled ViewEvent
