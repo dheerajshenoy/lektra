@@ -1872,7 +1872,15 @@ DocumentView::repositionPages()
                 continue; // avoid division by zero
             }
 
-            item->setScale(targetPixelHeight / currentImageHeight);
+            // An image already rendered for this zoom is whole pixels (e.g.
+            // 476 for a 475.7 target); stretching it to the exact target on
+            // a same-zoom layout pass (a repeated fit) would only resample
+            // it and make it soft, and no new render would follow.
+            if (m_page_render_keys.value(i) == currentPageRenderKey()
+                && !m_pending_renders.contains(i))
+                item->setScale(1.0);
+            else
+                item->setScale(targetPixelHeight / currentImageHeight);
 
             pageWidthScene  = item->boundingRect().width() * item->scale();
             pageHeightScene = item->boundingRect().height() * item->scale();
