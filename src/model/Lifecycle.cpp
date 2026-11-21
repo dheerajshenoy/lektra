@@ -697,6 +697,32 @@ open_document_any(fz_context *ctx, const char *path)
 {
     const QString suffix
         = QFileInfo(QString::fromUtf8(path)).suffix().toLower();
+    if (suffix == "md")
+    {
+        // MuPDF's Markdown handler does not ask for the folder of the file, so
+        // images the document names (![](pic.png)) would not be found. Give it
+        // the folder.
+        const QByteArray dirPath
+            = QFileInfo(QString::fromUtf8(path)).absolutePath().toUtf8();
+        fz_archive *dir  = nullptr;
+        fz_stream *stm   = nullptr;
+        fz_document *doc = nullptr;
+        fz_var(dir);
+        fz_var(stm);
+        fz_try(ctx)
+        {
+            dir = fz_open_directory(ctx, dirPath.constData());
+            stm = fz_open_file(ctx, path);
+            doc = fz_open_document_with_stream_and_dir(ctx, path, stm, dir);
+        }
+        fz_always(ctx)
+        {
+            fz_drop_stream(ctx, stm);
+            fz_drop_archive(ctx, dir);
+        }
+        fz_catch(ctx) fz_rethrow(ctx);
+        return doc;
+    }
     if (suffix != "cbr" && suffix != "cb7")
         return fz_open_document(ctx, path);
 
