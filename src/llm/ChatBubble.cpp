@@ -373,7 +373,11 @@ ChatBubble::proseWithMath(const QString &markdown) const
     }
     marked += t.mid(last);
 
+    // toHtml() writes the document's font into the HTML, which then wins over
+    // the label's own font: without this a message with formulas is in the
+    // application font and the others in the chat font.
     QTextDocument doc;
+    doc.setDefaultFont(contentFont());
     doc.setMarkdown(marked);
     QString html = doc.toHtml();
     for (int n = 0; n < found.size(); ++n)

@@ -157,6 +157,7 @@ The `window.accent` option was removed; it did nothing.
 - Options that were accepted but ignored now work: `behavior.page_history_limit`, `selection.drag_threshold`, `jump_marker.enabled`, `links.boundary`, `annotations.popup.comment.tooltip`, `tabs.elide_mode`, `zoom.level` (set before `layout.initial_fit`) and `llm_view.dock_area` / `llm_view.separate_window`.
 - Fix a page going soft after fitting it a second time (e.g. `fit_height_smart` twice), until the zoom changed.
 - The LLM panel no longer sends the list of all commands with every message (about 14 KB, slow to read for a small or local model, even for "Hi"). The model finds commands with a new `list_commands` tool when it needs one. With `llm_view.tools` off, the list is still sent.
+- Fix the LLM panel showing a reply with formulas in a different (smaller) font than the other messages, ignoring `llm_view.font_size`.
 
 ## 0.7.9.1 (2026-10-05)
 
