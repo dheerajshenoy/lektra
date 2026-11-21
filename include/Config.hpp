@@ -807,11 +807,11 @@ struct Config
             // @added 0.8.1
             bool enabled = false;
 
-            // @desc Color of the border (ARGB hex)
-            // @type uint32_t
-            // @default 0xFF4FC3F7
+            // @desc Color of the border
+            // @type str
+            // @default "#4FC3F7FF"
             // @added 0.8.1
-            uint32_t color = 0xFF4FC3F7;
+            uint32_t color = 0x4FC3F7FF;
 
             // @desc Width of the border in pixels
             // @type int
@@ -832,11 +832,11 @@ struct Config
             // @added 0.8.1
             bool enabled = true;
 
-            // @desc Color of the badge (ARGB hex)
-            // @type uint32_t
-            // @default 0xCC2979FF
+            // @desc Color of the badge
+            // @type str
+            // @default "#2979FFCC"
             // @added 0.8.1
-            uint32_t color = 0xCC2979FF;
+            uint32_t color = 0x2979FFCC;
         } maximize_indicator;
     } split;
     // @endsection
@@ -1615,9 +1615,9 @@ struct Config
             // @added 0.8.1
             int offset_y = 3;
 
-            // @desc Color of the shadow (RGBA hex); the alpha is how strong it is at the edge of the page
-            // @type uint32_t
-            // @default 0x00000059
+            // @desc Color of the shadow; the alpha is how strong it is at the edge of the page
+            // @type str
+            // @default "#00000059"
             // @added 0.8.1
             uint32_t color = 0x00000059;
         } page_shadow;

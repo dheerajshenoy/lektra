@@ -35,6 +35,7 @@
 
 ### Bug Fixes
 
+- Fix the colors of `split.focus_border`, `split.maximize_indicator` and `portal.border_color` being read in the wrong order: they now take `#RRGGBB` or `#RRGGBBAA` like every other color. The default portal border is now the translucent white it was meant to be.
 - Fix a zoomed-in page staying blank after panning sideways in the vertical layouts (or up/down in the horizontal one).
 - A zoomed-in page now shows a blurry preview of the part that is still rendering instead of a blank area.
 - Pressing Enter on a directory in the file picker now opens it instead of closing the picker.

@@ -732,7 +732,8 @@
             "color": {
               "type": "string",
               "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#4FC3F7FF"
             },
             "width": {
               "type": "integer",
@@ -754,7 +755,8 @@
             "color": {
               "type": "string",
               "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#2979FFCC"
             }
           },
           "additionalProperties": false,
@@ -1748,7 +1750,8 @@
             "color": {
               "type": "string",
               "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\"."
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#00000059"
             }
           },
           "additionalProperties": false,

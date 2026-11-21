@@ -1258,7 +1258,7 @@ GraphicsView::paintEvent(QPaintEvent *event)
         && m_config.split.focus_border.width > 0 && m_is_active && !m_is_portal)
     {
         painter.setRenderHint(QPainter::Antialiasing, false);
-        QPen pen(QColor(m_config.split.focus_border.color),
+        QPen pen(rgbaToQColor(m_config.split.focus_border.color),
                  m_config.split.focus_border.width);
         painter.setPen(pen);
         painter.drawRect(viewport()->rect().adjusted(1, 1, -1, -1));
@@ -1282,7 +1282,7 @@ GraphicsView::paintEvent(QPaintEvent *event)
         const QRect badge(viewport()->rect().right() - bw - 6,
                           viewport()->rect().top() + 6, bw, bh);
 
-        QColor bg(m_config.split.maximize_indicator.color);
+        const QColor bg = rgbaToQColor(m_config.split.maximize_indicator.color);
         painter.setBrush(bg);
         painter.setPen(Qt::NoPen);
         painter.drawRoundedRect(badge, 4, 4);
@@ -1310,7 +1310,7 @@ GraphicsView::paintEvent(QPaintEvent *event)
         && m_is_portal)
     {
         painter.setRenderHint(QPainter::Antialiasing, true);
-        QPen pen(QColor(m_config.portal.border_color),
+        QPen pen(rgbaToQColor(m_config.portal.border_color),
                  m_config.portal.border_width);
         painter.setPen(pen);
         painter.drawRect(viewport()->rect().adjusted(1, 1, -1, -1));

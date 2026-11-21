@@ -254,12 +254,12 @@ lektra.opt.selection = {}
 ---@field opacity? number Opacity of the dimming (0.0–1.0).
 
 ---@class OptSplitFocusBorder
----@field color? Color Border color as an RRGGBBAA hex integer (e.g. 0xFF4FC3F7).
+---@field color? Color Border color as an RRGGBBAA hex integer (e.g. 0x4FC3F7FF).
 ---@field enabled? boolean Draw a border around the currently focused split.
 ---@field width? integer Border thickness in pixels.
 
 ---@class OptSplitMaximizeIndicator
----@field color? Color Badge color as an RRGGBBAA hex integer (e.g. 0xCC2979FF).
+---@field color? Color Badge color as an RRGGBBAA hex integer (e.g. 0x2979FFCC).
 ---@field enabled? boolean Show a badge in the corner of the maximized split.
 
 ---@class OptSplit
@@ -516,7 +516,7 @@ lektra.opt.reflow = {}
 ---@field enabled? boolean Enable antialiasing for page rendering.
 
 ---@class OptRenderingPageShadow
----@field color? integer Color of the shadow (RGBA hex); the alpha is how strong it is at the edge of the page.
+---@field color? Color Color of the shadow as an RRGGBBAA hex integer (e.g. 0x00000059); the alpha is how strong it is at the edge of the page.
 ---@field enabled? boolean Draw a shadow under each page.
 ---@field offset_y? integer How far the shadow is dropped below the page, in pixels.
 ---@field radius? integer How far the shadow reaches around the page, in pixels.
