@@ -4,7 +4,7 @@
 
 # NAME
 
-**lektra** — a high-performance, keyboard-driven document viewer that prioritizes screen space and control.
+**lektra** — a high-performance, keyboard-driven document and image viewer that prioritizes screen space and control.
 
 # SYNOPSIS
 
@@ -14,12 +14,26 @@ lektra [OPTIONS] [FILE_PATH(s)...]
 
 # DESCRIPTION
 
-**lektra** is a fast, keyboard-driven document viewer. By default, it detaches from
+**lektra** is a fast, keyboard-driven document and image viewer. By default, it detaches from
 the terminal immediately after, so your shell prompt returns right away.
 Use `--foreground` to suppress this and keep lektra attached to the terminal
 — useful for debugging or capturing log output.
 
-Supported file formats: PDF, XPS, OpenXPS, CBZ (Comic Book Zip), FictionBook 2.0 (FBZ), EPUB, MOBI, PNG, JPEG, TIFF, SVG, DjVu (only if compiled with djvu support)
+Supported file formats:
+
+Documents
+: PDF (and Adobe Illustrator `.ai`), XPS and OpenXPS, EPUB, FictionBook 2
+  (`.fb2`, `.fbz`), MOBI, DjVu (only if compiled with djvu support), and the
+  comic book archives CBZ, CBR, CB7 and CBT (CBR and CB7 need libarchive).
+  HTML, Markdown, plain text (`.txt`, `.log`), and Microsoft Office
+  DOCX, XLSX and PPTX files are laid out like an e-book.
+
+Images
+: JPEG, PNG, APNG, BMP, GIF, WebP, TIFF, ICO, TGA, SVG, PPM, PGM, PBM, PAM,
+  PSD (Photoshop, the flattened image) and JPEG 2000 (`.jp2`, `.j2k`, `.jpx`).
+  JPEG XL (`.jxl`) needs libjxl. Which of the formats Qt reads (all but PAM,
+  PSD and JPEG 2000, which MuPDF reads) depends on the installed Qt image
+  plugins.
 
 Multiple files may be opened at once, optionally arranged in a split-view
 layout.

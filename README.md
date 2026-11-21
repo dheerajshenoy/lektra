@@ -35,10 +35,12 @@ Read the [documentation](https://lektra.readthedocs.io/en/latest/) for more info
 # Supported file types
 
 ### Documents
-- PDF, XPS, OXPS, CBZ, FB2, EPUB, Mobi, DjVu (if `djvulibre` is installed on the system)
+- PDF, XPS, OXPS, EPUB, FB2, Mobi, DjVu (if `djvulibre` is installed on the system)
+- Comic books: CBZ, CBT, and CBR/CB7 (if `libarchive` is installed)
+- HTML, Markdown, plain text, DOCX, XLSX, PPTX
 
 ### Images
-- JPG, PNG, APNG, BMP, WEBP, GIF, TIFF, ICO, SVG, PPM, PGM, PBM, PAM
+- JPG, PNG, APNG, BMP, WEBP, GIF, TIFF, ICO, TGA, SVG, PPM, PGM, PBM, PAM
 - PSD (Photoshop, the flattened image) and JPEG 2000 (JP2, J2K)
 - JPEG XL (JXL) (if `libjxl` is installed)
 - Improved SVG support is provided (if `librsvg` if is installed)
