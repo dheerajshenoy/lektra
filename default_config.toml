@@ -41,7 +41,6 @@ fullscreen       = false
 startup_tab      = false
 title_format     = "%1 - lektra"
 initial_size     = { width = 600, height = 400 }
-accent           = "#3daee9FF"
 bg               = "#00000000"
 
 

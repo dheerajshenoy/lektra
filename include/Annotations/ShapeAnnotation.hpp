@@ -30,6 +30,7 @@ public:
         setGlowColor(config.glow.color);
         setFlags(flags() | QGraphicsItem::ItemIsFocusable);
         setTooltipFontSize(config.comment.font_size);
+        m_tooltip_enabled = config.comment.tooltip;
 
         // An inline note's text is already on the page.
         if (m_type == Type::Note)

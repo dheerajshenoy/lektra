@@ -33,6 +33,7 @@ public:
         setGlowColor(m_config.glow.color);
         setFlags(flags() | QGraphicsItem::ItemIsFocusable);
         setTooltipFontSize(m_config.comment.font_size);
+        m_tooltip_enabled = m_config.comment.tooltip;
         setCommentMarkerVisible(m_config.comment.marker);
         updateCommentMarker();
     }

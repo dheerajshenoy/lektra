@@ -386,7 +386,7 @@ Run \keys{:open\_config} to open whichever config file(s) exist — a chooser ap
     itemsep=0.3em,
     parsep=0pt
 ]
-    \item[{[window]}] Window size, fullscreen, menubar visibility, title format, accent color.
+    \item[{[window]}] Window size, fullscreen, menubar visibility, title format.
     \item[{[page]}] Page foreground and background colors.
     \item[{[statusbar]}] Visibility, padding, which modules to show and where (\texttt{layout}), and per-module options in \texttt{[statusbar.\allowbreak{}components.\allowbreak{}*]}.
     \item[{[split]}] Split behaviour — focus follows mouse, dim inactive panes, etc.
@@ -409,7 +409,6 @@ Run \keys{:open\_config} to open whichever config file(s) exist — a chooser ap
 \begin{minted}{toml}
 [window]
 menubar = false
-accent = "#3daee9FF"
 
 [statusbar]
 show = true

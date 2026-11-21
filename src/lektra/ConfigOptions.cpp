@@ -369,7 +369,6 @@ build()
     r.section("window", Global);
     r.boolean("startup_tab", F(window.startup_tab));
     r.boolean("fullscreen", F(window.fullscreen));
-    r.color("accent", F(window.accent));
     r.color("bg", F(window.bg)).onChange([](Lektra *lk) { lk->applyWindowBackground(); });
     r.custom("initial_size");
     r.custom("title_format");

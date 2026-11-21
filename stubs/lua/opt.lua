@@ -147,7 +147,6 @@ lektra.opt.portal = {}
 
 ---@class OptWindow
 ---@field bg? Color Window background color (`Color`).
----@field accent? Color Accent color (`Color`).
 ---@field fullscreen? boolean Start in fullscreen mode.
 ---@field startup_tab? boolean Open a new tab on startup.
 ---@field title_format? string Printf-style format string for the window title.

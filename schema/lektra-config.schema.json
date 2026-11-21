@@ -416,12 +416,6 @@
           "default": false,
           "description": "Set the window fullscreen (since 0.3.0)"
         },
-        "accent": {
-          "type": "string",
-          "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
-          "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-          "default": "#3daee9FF"
-        },
         "bg": {
           "type": "string",
           "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
@@ -625,7 +619,7 @@
         "level": {
           "type": "number",
           "default": 0.5,
-          "description": "Default zoom level (since 0.3.0)"
+          "description": "Zoom level a document starts at, set before `layout.initial_fit` is applied (since 0.3.0)"
         },
         "factor": {
           "type": "number",
@@ -2562,7 +2556,7 @@
               "level": {
                 "type": "number",
                 "default": 0.5,
-                "description": "Default zoom level (since 0.3.0)"
+                "description": "Zoom level a document starts at, set before `layout.initial_fit` is applied (since 0.3.0)"
               },
               "factor": {
                 "type": "number",

@@ -776,7 +776,7 @@ DocumentView::GotoLocation(const PageLocation &targetLocation) noexcept
 
     m_gview->centerOn(scenePos);
 
-    if (m_jump_marker)
+    if (m_jump_marker && m_config.jump_marker.enabled)
         m_jump_marker->showAt(scenePos.x(), scenePos.y());
 
     m_old_jump_marker_loc = sanitized;
@@ -1281,6 +1281,10 @@ DocumentView::addToHistory(const PageLocation &location) noexcept
     }
 
     m_loc_history.push_back(location);
+    const int limit = std::max(1, m_config.behavior.page_history_limit);
+    if (static_cast<int>(m_loc_history.size()) > limit)
+        m_loc_history.erase(m_loc_history.begin(),
+                            m_loc_history.end() - limit);
     m_loc_history_index = static_cast<int>(m_loc_history.size() - 1);
     emit historyChanged();
 }
@@ -1840,7 +1844,8 @@ DocumentView::Reshow_jump_marker() noexcept
         {m_old_jump_marker_loc.x, m_old_jump_marker_loc.y});
     const QPointF scenePos = pageItem->mapToScene(targetPixelPos);
 
-    m_jump_marker->showAt(scenePos.x(), scenePos.y());
+    if (m_jump_marker && m_config.jump_marker.enabled)
+        m_jump_marker->showAt(scenePos.x(), scenePos.y());
 }
 
 void

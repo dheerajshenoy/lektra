@@ -202,7 +202,17 @@ Lektra::initLLMView() noexcept
         });
     };
     m_llm_view->setImageSources(std::move(sources));
-    this->addDockWidget(Qt::RightDockWidgetArea, m_llm_view);
+    Qt::DockWidgetArea area = Qt::RightDockWidgetArea;
+    const QString where     = m_config.llm_view.dock_area.toLower();
+    if (where == "left")
+        area = Qt::LeftDockWidgetArea;
+    else if (where == "top")
+        area = Qt::TopDockWidgetArea;
+    else if (where == "bottom")
+        area = Qt::BottomDockWidgetArea;
+    this->addDockWidget(area, m_llm_view);
+    if (m_config.llm_view.separate_window)
+        m_llm_view->setFloating(true);
 }
 #endif
 
@@ -250,6 +260,7 @@ Lektra::initGui() noexcept
     m_tab_widget->tabBar()->setScrollTextOnHover(
         m_config.tabs.scroll_text_on_hover);
     m_tab_widget->setTabPosition(m_config.tabs.location);
+    m_tab_widget->tabBar()->setElideMode(m_config.tabs.elide_mode);
 
     m_layout->addWidget(m_search_bar);
     m_layout->addWidget(m_message_bar);

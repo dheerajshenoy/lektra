@@ -424,12 +424,6 @@ struct Config
         // @added 0.3.0
         uint32_t bg = 0x00000000;
 
-        // @desc Accent color
-        // @type str
-        // @default "#3daee9FF"
-        // @added 0.3.0
-        uint32_t accent = 0x3daee9FF;
-
         // @desc Set the window fullscreen
         // @type bool
         // @default false
@@ -670,7 +664,8 @@ struct Config
     struct Zoom
     {
 
-        // @desc Default zoom level
+        // @desc { Zoom level a document starts at, set before
+        // `layout.initial_fit` is applied }
         // @type float
         // @default 0.5f
         // @added 0.3.0

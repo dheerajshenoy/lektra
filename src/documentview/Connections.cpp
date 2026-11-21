@@ -197,6 +197,9 @@ DocumentView::handleOpenFileFinished() noexcept
         setLayoutMode(LayoutMode::SINGLE);
         initConnections();
 
+        // Start from the configured zoom; the fit mode is applied on top of it
+        setZoom(m_config.zoom.level, false);
+
         // Always defer fitmode to next event loop tick so geometry is settled
         setFitMode(m_config.layout.initial_fit);
 
@@ -237,6 +240,7 @@ DocumentView::handleOpenFileFinished() noexcept
         // Always defer fitmode to next event loop tick so geometry is settled
         QTimer::singleShot(0, this, [this]()
         {
+            setZoom(m_config.zoom.level, false);
             setFitMode(m_config.layout.initial_fit);
             renderPages();
             if (m_pending_page >= 0)
@@ -1463,6 +1467,7 @@ DocumentView::applyLocalConfigChanges() noexcept
 
     if (sections.contains("selection"))
     {
+        m_gview->setSelectionDragThreshold(m_config.selection.drag_threshold);
         m_model->setSelectionColor(rgbaToQColor(m_config.selection.color));
         if (m_selection_path_item)
             m_selection_path_item->setBrush(
@@ -1489,6 +1494,7 @@ DocumentView::applyLocalConfigChanges() noexcept
 
     if (sections.contains("links"))
     {
+        m_model->setLinkBoundary(m_config.links.boundary);
         m_model->setDetectUrlLinks(m_config.links.detect_urls);
         m_model->setUrlLinkRegex(m_config.links.url_regex);
         rerender = true;

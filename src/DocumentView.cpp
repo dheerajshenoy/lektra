@@ -185,6 +185,7 @@ DocumentView::initGui() noexcept
     m_model->undoStack()->setUndoLimit(m_config.behavior.undo_limit);
 
     m_model->setInvertColor(m_config.behavior.invert_mode);
+    m_model->setLinkBoundary(m_config.links.boundary);
     m_model->setDetectUrlLinks(m_config.links.detect_urls);
     m_model->setUrlLinkRegex(m_config.links.url_regex);
     m_model->setCacheCapacity(m_config.behavior.cache_pages);
@@ -268,6 +269,7 @@ DocumentView::initGui() noexcept
     m_gview->setHorizontalScrollbarEnabled(m_config.scrollbars.horizontal);
     m_gview->setAutoHideScrollbars(m_config.scrollbars.auto_hide);
 
+    m_gview->setSelectionDragThreshold(m_config.selection.drag_threshold);
     m_gview->setImageDragProvider([this](QPointF scenePos)
     { return imageAt(scenePos); });
 

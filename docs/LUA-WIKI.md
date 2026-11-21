@@ -557,7 +557,7 @@ the global options, with the `[filetype.<type>]` overrides on top.
 
 A **color** option takes a string, `"#RRGGBBAA"` or `"#RRGGBB"` (opaque), as in
 `config.toml`, or an integer `0xRRGGBBAA`. Reading one returns the integer.
-For example `lektra.opt.page.bg = "#1e1e2e"` or `lektra.opt.window.accent = 0x3DAEE9FF`.
+For example `lektra.opt.page.bg = "#1e1e2e"` or `lektra.opt.window.bg = 0x1E1E2EFF`.
 
 ### Example
 

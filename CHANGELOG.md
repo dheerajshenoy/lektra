@@ -68,6 +68,8 @@ Some options were renamed to be consistent. The old names are ignored, so update
 | `command_palette.show_shortcuts` | `command_palette.shortcuts` |
 | `llm_view.show_at_startup` | `llm_view.at_startup` |
 
+The `window.accent` option was removed; it did nothing.
+
 ### New Features
 
 #### Lua scripting
@@ -149,6 +151,7 @@ Some options were renamed to be consistent. The old names are ignored, so update
 - Fix the layout not updating after rotating or flipping a page, or toggling trimmed margins.
 - Auto-reload now says when the file was moved, renamed or deleted, instead of a generic "Could not reload the document".
 - Next/previous search match (with `search.absolute_jump` off) now works like vim: after scrolling, it jumps to the first match below the top of the view, or the last one above it, instead of skipping matches on the current page.
+- Options that were accepted but ignored now work: `behavior.page_history_limit`, `selection.drag_threshold`, `jump_marker.enabled`, `links.boundary`, `annotations.popup.comment.tooltip`, `tabs.elide_mode`, `zoom.level` (set before `layout.initial_fit`) and `llm_view.dock_area` / `llm_view.separate_window`.
 
 ## 0.7.9.1 (2026-10-05)
 
