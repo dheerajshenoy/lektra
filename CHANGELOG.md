@@ -14,6 +14,7 @@
 
 ### New Features
 
+- Lua: `view:search_hits()` now returns the location of each search hit (it returned nothing before).
 - `rendering.antialiasing.bits` now takes effect: it sets how smooth MuPDF draws pages (0 turns antialiasing off).
 - The message bar is tinted by level: blue for info, amber for warnings, red for errors. `lektra.ui.message` takes an optional `level`.
 - Updated bundled MuPDF to 1.28.6.

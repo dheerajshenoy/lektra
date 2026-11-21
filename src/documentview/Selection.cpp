@@ -169,6 +169,23 @@ DocumentView::handlePartialSearchResults(
     }
 }
 
+std::vector<PageLocation>
+DocumentView::searchHitLocations() const noexcept
+{
+    std::vector<PageLocation> locations;
+    locations.reserve(m_search_hit_flat_refs.size());
+    for (const HitRef &ref : m_search_hit_flat_refs)
+    {
+        const auto it = m_search_hits.constFind(ref.page);
+        if (it == m_search_hits.constEnd()
+            || ref.indexInPage >= static_cast<int>(it->size()))
+            continue;
+        const fz_quad &quad = (*it)[ref.indexInPage].quad;
+        locations.push_back({ref.page, quad.ul.x, quad.ul.y});
+    }
+    return locations;
+}
+
 int
 DocumentView::getClosestHitIndex(bool above) noexcept
 {

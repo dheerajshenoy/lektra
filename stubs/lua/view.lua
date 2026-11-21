@@ -188,7 +188,7 @@ function View:search_hit_previous() end
 ---Cancels the current search and clears any search highlights.
 function View:search_cancel() end
 
----Returns a table of search hits for the last search query. Each hit is represented as a Location object.
+---Returns the hits of the last search, in the order `search_hit_next` visits them: a list of Location objects (`page`, `x`, `y` of the top-left corner of the match), usable with `View:goto_location`. The search runs in the background, so call this from the `OnSearchFinished` event; before that the list is empty.
 ---@return Location[] hits
 function View:search_hits() end
 

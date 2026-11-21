@@ -631,6 +631,9 @@ public:
     void NextHit() noexcept;
     void PrevHit() noexcept;
     void GotoHit(int index) noexcept;
+    // Where each hit of the last search is (top-left corner of the match, in
+    // the order of NextHit()). Empty until the search has finished.
+    [[nodiscard]] std::vector<PageLocation> searchHitLocations() const noexcept;
     void ScrollLeft() noexcept;
     void ScrollRight() noexcept;
     void ScrollUp() noexcept;

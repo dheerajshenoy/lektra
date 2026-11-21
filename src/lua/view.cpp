@@ -1080,11 +1080,23 @@ static const luaL_Reg DocumentViewMethods[] = {
 
     VIEW_METHOD("search_hits",
                 {
-                    if (*view)
+                    lua_newtable(L);
+                    if (!*view)
+                        return 1;
+                    int i = 1;
+                    for (const PageLocation &loc :
+                         (*view)->searchHitLocations())
                     {
+                        lua_newtable(L);
+                        lua_pushinteger(L, loc.pageno + 1);
+                        lua_setfield(L, -2, "page");
+                        lua_pushnumber(L, loc.x);
+                        lua_setfield(L, -2, "x");
+                        lua_pushnumber(L, loc.y);
+                        lua_setfield(L, -2, "y");
+                        lua_rawseti(L, -2, i++);
                     }
-
-                    return 0;
+                    return 1;
                 }),
 
     VIEW_METHOD("search_hit_count",
