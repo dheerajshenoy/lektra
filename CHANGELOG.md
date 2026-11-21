@@ -87,6 +87,7 @@ The `window.accent` option was removed; it did nothing.
 - The picker keys can now be set from Lua: `lektra.opt.picker.keys.down = {"Down", "Ctrl+N"}` (the same actions as `[picker.keys]`).
 - Options of a view now work as in Vim: `lektra.opt.<section>.<key>` is `:set` (the default and the current view), the new `lektra.opt_global` is `:setglobal` (only the default), `view:opt()` is `:setlocal` (only that view), and the new `view:opt_reset([section])` is `:setlocal opt<` (back to what a new view would have). A new split still starts with a copy of the options of the view it was made from.
 - New `scrollbars.only_with_hits` option: show the scrollbars only while there are search hits.
+- LaTeX in annotation comments: formulas such as `$x^2$` (inline) and `$$...$$` or `\[...\]` (on their own line) are drawn in the comment tooltip; the comment itself stays plain text. Turn it off with `annotations.<type>.comment.latex`. New `WITH_MICROTEX` build option (on by default); the LLM panel needs it too.
 
 #### Presentation mode
 

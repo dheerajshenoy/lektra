@@ -31,6 +31,7 @@ public:
         setFlags(flags() | QGraphicsItem::ItemIsFocusable);
         setTooltipFontSize(config.comment.font_size);
         m_tooltip_enabled = config.comment.tooltip;
+        m_tooltip_latex   = config.comment.latex;
 
         // An inline note's text is already on the page.
         if (m_type == Type::Note)

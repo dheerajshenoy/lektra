@@ -1,6 +1,9 @@
 #include "Annotation.hpp"
 
 #include "utils.hpp"
+#ifdef WITH_MICROTEX
+    #include "MathText.hpp"
+#endif
 
 #include <cmath>
 
@@ -63,8 +66,34 @@ void
 Annotation::setComment(const QString &comment)
 {
     m_comment = comment;
-    if (m_tooltip)
-        m_tooltip->setText(comment);
+    updateTooltipText();
+}
+
+void
+Annotation::updateTooltipText()
+{
+    if (!m_tooltip)
+        return;
+#ifdef WITH_MICROTEX
+    if (m_tooltip_latex)
+    {
+        // The formulas are as large as the text and wrap with it.
+        const QString html = mathtext::commentToHtml(
+            m_comment, QFontInfo(m_tooltip->font()).pixelSize() * 115 / 100,
+            m_tooltip->palette().color(QPalette::WindowText), 480,
+            m_tooltip->devicePixelRatioF());
+        if (!html.isEmpty())
+        {
+            m_tooltip->setTextFormat(Qt::RichText);
+            m_tooltip->setText(html);
+            m_tooltip->adjustSize();
+            return;
+        }
+    }
+#endif
+    m_tooltip->setTextFormat(Qt::AutoText);
+    m_tooltip->setText(m_comment);
+    m_tooltip->adjustSize();
 }
 
 QRectF
@@ -347,8 +376,8 @@ Annotation::showTooltip(const QPoint &screenPos)
             QFont font = m_tooltip->font();
             font.setPointSize(m_tooltip_font_size);
             m_tooltip->setFont(font);
-            m_tooltip->adjustSize();
         }
+        updateTooltipText();
     }
 
     QPoint pos          = screenPos + QPoint(12, 12);
@@ -386,7 +415,7 @@ Annotation::setTooltipFontSize(int pointSize)
         QFont font = m_tooltip->font();
         font.setPointSize(pointSize);
         m_tooltip->setFont(font);
-        m_tooltip->adjustSize();
+        updateTooltipText();
     }
 }
 

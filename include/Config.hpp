@@ -194,6 +194,16 @@ struct Config
                 // @added 0.8.1
                 bool marker = true;
 
+                // @desc {
+                // Draw LaTeX formulas of the comment in the tooltip: `$x^2$`
+                // inline, `$$...$$` or `\[...\]` on a line of their own.
+                // Needs a build with MicroTeX (`WITH_MICROTEX`)
+                // }
+                // @type bool
+                // @default true
+                // @added 0.8.1
+                bool latex = true;
+
                 // @desc Font size for the comment tooltip (in points)
                 // @type int
                 // @default 12

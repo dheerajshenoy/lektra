@@ -2,6 +2,7 @@
 
 #include "LuaHighlight.hpp"
 #include "MathRender.hpp"
+#include "MathText.hpp"
 
 #include <QApplication>
 #include <QBuffer>
@@ -69,36 +70,6 @@ sameKind(const ChatBubble::Segment &a, const ChatBubble::Segment &b)
     return a.code == b.code && a.math == b.math;
 }
 
-// Length of the backtick run at `i`.
-qsizetype
-backtickRun(const QString &text, qsizetype i)
-{
-    qsizetype n = 0;
-    while (i + n < text.size() && text[i + n] == QLatin1Char('`'))
-        ++n;
-    return n;
-}
-
-// The end of an inline code span that starts at `i` (a backtick), so math
-// signs inside code are left alone; `i` itself if the span is not closed.
-qsizetype
-skipCodeSpan(const QString &text, qsizetype i)
-{
-    const qsizetype run = backtickRun(text, i);
-    for (qsizetype j = i + run; j < text.size(); ++j)
-        if (text[j] == QLatin1Char('`') && backtickRun(text, j) == run)
-            return j + run;
-        else if (text[j] == QLatin1Char('`'))
-            j += backtickRun(text, j) - 1;
-    return i;
-}
-
-bool
-escaped(const QString &text, qsizetype i)
-{
-    return i > 0 && text[i - 1] == QLatin1Char('\\');
-}
-
 // Splits prose at its display math ($$...$$ and \[...\]).
 QList<ChatBubble::Segment>
 splitDisplayMath(const QString &prose)
@@ -112,35 +83,11 @@ splitDisplayMath(const QString &prose)
     };
 
     qsizetype start = 0;
-    for (qsizetype i = 0; i < prose.size(); ++i)
+    for (const mathtext::Span &span : mathtext::findDisplay(prose, true))
     {
-        if (prose[i] == QLatin1Char('`'))
-        {
-            const qsizetype end = skipCodeSpan(prose, i);
-            i = end > i ? end - 1 : i + backtickRun(prose, i) - 1;
-            continue;
-        }
-        if (escaped(prose, i))
-            continue;
-
-        QString close;
-        qsizetype open = 0;
-        if (prose.mid(i, 2) == QLatin1String("$$"))
-            close = QStringLiteral("$$"), open = 2;
-        else if (prose.mid(i, 2) == QLatin1String("\\["))
-            close = QStringLiteral("\\]"), open = 2;
-        else
-            continue;
-        const qsizetype end = prose.indexOf(close, i + open);
-        if (end < 0)
-            continue; // not closed (yet): stays text
-        const QString body = prose.mid(i + open, end - i - open).trimmed();
-        if (body.isEmpty())
-            continue;
-        addProse(prose.mid(start, i - start));
-        out.append(ChatBubble::Segment{false, true, QString(), body});
-        i     = end + close.size() - 1;
-        start = end + close.size();
+        addProse(prose.mid(start, span.start - start));
+        out.append(ChatBubble::Segment{false, true, QString(), span.latex});
+        start = span.end;
     }
     addProse(prose.mid(start));
     return out;
@@ -402,76 +349,13 @@ ChatBubble::refreshHeader(const Piece &piece, const Segment &segment)
         + title);
 }
 
-// An image of a formula as an inline <img>, centred on the text line.
-static QString
-inlineMathImage(const QImage &image)
-{
-    QByteArray png;
-    QBuffer buffer(&png);
-    buffer.open(QIODevice::WriteOnly);
-    image.save(&buffer, "PNG");
-    return QStringLiteral("<img src=\"data:image/png;base64,%1\" width=\"%2\" "
-                          "height=\"%3\" style=\"vertical-align: middle;\"/>")
-        .arg(QString::fromLatin1(png.toBase64()))
-        .arg(qRound(image.width() / image.devicePixelRatio()))
-        .arg(qRound(image.height() / image.devicePixelRatio()));
-}
-
 QString
 ChatBubble::proseWithMath(const QString &markdown) const
 {
     // Find the inline formulas ($...$ and \(...\)), leaving code spans and
-    // escaped signs alone. Like Pandoc, an opening $ must be followed by
-    // something other than a space and a closing $ must not follow a space or
-    // come before a digit, so "costs $5 or $6" is not math.
-    struct Formula
-    {
-        qsizetype start, end; // the whole thing, signs included
-        QString latex;
-    };
-    QList<Formula> found;
-    const QString &t = markdown;
-    for (qsizetype i = 0; i < t.size(); ++i)
-    {
-        if (t[i] == QLatin1Char('`'))
-        {
-            const qsizetype end = skipCodeSpan(t, i);
-            i                   = end > i ? end - 1 : i + backtickRun(t, i) - 1;
-            continue;
-        }
-        if (escaped(t, i))
-            continue;
-
-        if (t.mid(i, 2) == QLatin1String("\\("))
-        {
-            const qsizetype end = t.indexOf(QLatin1String("\\)"), i + 2);
-            if (end > i + 2 && end - i < 400)
-            {
-                found.append({i, end + 2, t.mid(i + 2, end - i - 2).trimmed()});
-                i = end + 1;
-            }
-        }
-        else if (t[i] == QLatin1Char('$') && i + 1 < t.size()
-                 && t[i + 1] != QLatin1Char('$') && !t[i + 1].isSpace())
-        {
-            for (qsizetype j = i + 1; j < t.size() && j - i < 400; ++j)
-            {
-                if (t[j] == QLatin1Char('\n'))
-                    break;
-                if (t[j] != QLatin1Char('$') || escaped(t, j))
-                    continue;
-                const bool valid
-                    = !t[j - 1].isSpace()
-                      && (j + 1 >= t.size() || !t[j + 1].isDigit());
-                if (valid)
-                {
-                    found.append({i, j + 1, t.mid(i + 1, j - i - 1)});
-                    i = j;
-                }
-                break;
-            }
-        }
-    }
+    // escaped signs alone.
+    const QList<mathtext::Span> found = mathtext::findInline(markdown, true);
+    const QString &t                  = markdown;
     if (found.isEmpty())
         return {};
 
@@ -500,7 +384,7 @@ ChatBubble::proseWithMath(const QString &markdown) const
             = t.mid(found[n].start, found[n].end - found[n].start);
         html.replace(QChar(0xE000) + QString::number(n) + QChar(0xE001),
                      image.isNull() ? source.toHtmlEscaped()
-                                    : inlineMathImage(image));
+                                    : mathtext::imageHtml(image));
     }
     return html;
 }

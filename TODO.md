@@ -6,7 +6,7 @@
 
 - [ ] Clickable DOI
 - [ ] Implement an MCP for lektra
-- [ ] LaTeX math rendering in comment blocks
+- [x] LaTeX math rendering in comment blocks (tooltip; not yet in the comment picker or editor preview)
 - [ ] Picker style choose, `minibuffer` or `floating`
 - [ ] Version diffing
 

@@ -270,6 +270,7 @@ width   = 5
 [annotations.highlight.comment]
 tooltip   = true
 marker    = true
+latex     = true
 font_size = 12
 
 [annotations.underline]
@@ -289,6 +290,7 @@ width   = 5
 [annotations.rect.comment]
 tooltip   = true
 marker    = true
+latex     = true
 font_size = 12
 
 [annotations.popup]
@@ -300,6 +302,7 @@ width   = 5
 
 [annotations.popup.comment]
 tooltip   = true
+latex     = true
 font_size = 12
 
 

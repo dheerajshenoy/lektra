@@ -16,6 +16,8 @@ option(WITH_CCACHE "Use ccache to cache compilations when it is installed" ON)
 option(WITH_LLD "Link with lld when it is installed (faster linking)" ON)
 option(WITH_LUA "Enable lua scripting support (bundled LuaJIT)" ON)
 option(WITH_LLM_SUPPORT "Enable LLM support" OFF)
+# LaTeX math in comments (and in the LLM panel), rendered with MicroTeX.
+option(WITH_MICROTEX "Render LaTeX math in annotation comments with MicroTeX" ON)
 
 # Internal option to build as AppImage (Linux only)
 option(IS_APPIMAGE "Build as AppImage (Linux only)" OFF)
@@ -696,18 +698,32 @@ if (WITH_LLM_SUPPORT)
         src/llm/LuaHighlight.cpp
         src/llm/ChatStore.cpp
         src/llm/ImageEncode.cpp
-        src/llm/MathRender.cpp
         ${LEKTRA_LLM_HEADERS})
     target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_LLM_SUPPORT=1)
+endif()
 
-    # Math in chat replies: MicroTeX (LaTeX renderer, Qt backend) and the
-    # tinyxml2 it reads its font tables with, built from the submodules. Its
-    # fonts and tables are embedded in the binary and unpacked on first use.
-    if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/microtex/src/latex.cpp"
-        OR NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.cpp")
-        message(FATAL_ERROR "MicroTeX is missing. Initialise the submodules: "
-                            "git submodule update --init thirdparty/microtex thirdparty/tinyxml2")
-    endif()
+# Math in comments and in chat replies: MicroTeX (LaTeX renderer, Qt backend)
+# and the tinyxml2 it reads its font tables with, built from the submodules.
+# Its fonts and tables are embedded in the binary and unpacked on first use.
+# The LLM panel needs it, so it is always built with that.
+set(LEKTRA_MICROTEX_FOUND OFF)
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/microtex/src/latex.cpp"
+    AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.cpp")
+    set(LEKTRA_MICROTEX_FOUND ON)
+endif()
+if (WITH_LLM_SUPPORT AND NOT LEKTRA_MICROTEX_FOUND)
+    message(FATAL_ERROR "MicroTeX is missing. Initialise the submodules: "
+                        "git submodule update --init thirdparty/microtex thirdparty/tinyxml2")
+endif()
+if (WITH_MICROTEX AND NOT LEKTRA_MICROTEX_FOUND)
+    message(WARNING "MicroTeX is missing, LaTeX in comments is disabled. "
+                    "git submodule update --init thirdparty/microtex thirdparty/tinyxml2")
+endif()
+
+if ((WITH_MICROTEX OR WITH_LLM_SUPPORT) AND LEKTRA_MICROTEX_FOUND)
+    message(STATUS "LaTeX math: enabled")
+    target_sources(${PROJECT_NAME} PRIVATE src/MathRender.cpp src/MathText.cpp)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_MICROTEX=1)
     set(MICROTEX_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/microtex")
     file(GLOB_RECURSE MICROTEX_SOURCES CONFIGURE_DEPENDS
         "${MICROTEX_DIR}/src/atom/*.cpp" "${MICROTEX_DIR}/src/box/*.cpp"
@@ -715,11 +731,11 @@ if (WITH_LLM_SUPPORT)
         "${MICROTEX_DIR}/src/utils/*.cpp" "${MICROTEX_DIR}/src/res/*.cpp")
     add_library(microtex STATIC ${MICROTEX_SOURCES}
         "${MICROTEX_DIR}/src/latex.cpp" "${MICROTEX_DIR}/src/render.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/llm/MicroTeXQt.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/MicroTeXQt.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.cpp")
     target_include_directories(microtex SYSTEM PUBLIC "${MICROTEX_DIR}/src")
     target_include_directories(microtex PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/tinyxml2"
-                                              "${CMAKE_CURRENT_SOURCE_DIR}/include/llm")
+                                              "${CMAKE_CURRENT_SOURCE_DIR}/include")
     target_compile_definitions(microtex PUBLIC BUILD_QT)
     target_compile_features(microtex PUBLIC cxx_std_17)
     set_target_properties(microtex PROPERTIES POSITION_INDEPENDENT_CODE ON)

@@ -221,6 +221,8 @@ protected:
     void showTooltip(const QPoint &screenPos);
     void moveTooltip(const QPoint &screenPos);
     void setTooltipFontSize(int pointSize);
+    // Puts the comment into the tooltip (with its formulas drawn).
+    void updateTooltipText();
     void hideTooltip();
 
     CommentPopupButton *m_comment_marker{nullptr};
@@ -249,6 +251,9 @@ protected:
 
     // Off for annotations whose comment is already shown on the page.
     bool m_tooltip_enabled{true};
+
+    // Draw LaTeX formulas ($...$, $$...$$) of the comment in the tooltip.
+    bool m_tooltip_latex{true};
 
 private:
     QColor m_glow_color{QColor::fromRgba(0xFFFFFF00)};

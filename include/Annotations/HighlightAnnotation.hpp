@@ -34,6 +34,7 @@ public:
         setFlags(flags() | QGraphicsItem::ItemIsFocusable);
         setTooltipFontSize(m_config.comment.font_size);
         m_tooltip_enabled = m_config.comment.tooltip;
+        m_tooltip_latex   = m_config.comment.latex;
         setCommentMarkerVisible(m_config.comment.marker);
         updateCommentMarker();
     }

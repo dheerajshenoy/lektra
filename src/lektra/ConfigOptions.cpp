@@ -286,6 +286,7 @@ void
 annotationComment(Registry &r, Base)
 {
     r.boolean("comment.tooltip", S(comment.tooltip));
+    r.boolean("comment.latex", S(comment.latex));
     r.boolean("comment.marker", S(comment.marker));
     r.integer("comment.font_size", S(comment.font_size));
 }
@@ -349,6 +350,7 @@ build()
     r.section("annotations.popup", View);
     annotationGlow(r, F(annotations.popup));
     r.boolean("comment.tooltip", F(annotations.popup.comment.tooltip));
+    r.boolean("comment.latex", F(annotations.popup.comment.latex));
     r.integer("comment.font_size", F(annotations.popup.comment.font_size));
 
     r.section("thumbnail_panel", Global, "thumbnail");

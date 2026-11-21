@@ -118,6 +118,11 @@
                   "default": true,
                   "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
                 },
+                "latex": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Draw LaTeX formulas of the comment in the tooltip: `$x^2$` inline, `$$...$$` or `\\[...\\]` on a line of their own. Needs a build with MicroTeX (`WITH_MICROTEX`) (since 0.8.1)"
+                },
                 "marker": {
                   "type": "boolean",
                   "default": true,
@@ -195,6 +200,11 @@
                   "default": true,
                   "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
                 },
+                "latex": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Draw LaTeX formulas of the comment in the tooltip: `$x^2$` inline, `$$...$$` or `\\[...\\]` on a line of their own. Needs a build with MicroTeX (`WITH_MICROTEX`) (since 0.8.1)"
+                },
                 "marker": {
                   "type": "boolean",
                   "default": true,
@@ -252,6 +262,11 @@
                   "type": "boolean",
                   "default": true,
                   "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
+                },
+                "latex": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Draw LaTeX formulas of the comment in the tooltip: `$x^2$` inline, `$$...$$` or `\\[...\\]` on a line of their own. Needs a build with MicroTeX (`WITH_MICROTEX`) (since 0.8.1)"
                 },
                 "marker": {
                   "type": "boolean",
@@ -316,6 +331,11 @@
                   "type": "boolean",
                   "default": true,
                   "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
+                },
+                "latex": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Draw LaTeX formulas of the comment in the tooltip: `$x^2$` inline, `$$...$$` or `\\[...\\]` on a line of their own. Needs a build with MicroTeX (`WITH_MICROTEX`) (since 0.8.1)"
                 },
                 "font_size": {
                   "type": "integer",
@@ -2298,6 +2318,11 @@
                         "default": true,
                         "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
                       },
+                      "latex": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Draw LaTeX formulas of the comment in the tooltip: `$x^2$` inline, `$$...$$` or `\\[...\\]` on a line of their own. Needs a build with MicroTeX (`WITH_MICROTEX`) (since 0.8.1)"
+                      },
                       "marker": {
                         "type": "boolean",
                         "default": true,
@@ -2375,6 +2400,11 @@
                         "default": true,
                         "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
                       },
+                      "latex": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Draw LaTeX formulas of the comment in the tooltip: `$x^2$` inline, `$$...$$` or `\\[...\\]` on a line of their own. Needs a build with MicroTeX (`WITH_MICROTEX`) (since 0.8.1)"
+                      },
                       "marker": {
                         "type": "boolean",
                         "default": true,
@@ -2432,6 +2462,11 @@
                         "type": "boolean",
                         "default": true,
                         "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
+                      },
+                      "latex": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Draw LaTeX formulas of the comment in the tooltip: `$x^2$` inline, `$$...$$` or `\\[...\\]` on a line of their own. Needs a build with MicroTeX (`WITH_MICROTEX`) (since 0.8.1)"
                       },
                       "marker": {
                         "type": "boolean",
@@ -2496,6 +2531,11 @@
                         "type": "boolean",
                         "default": true,
                         "description": "Show comment text in tooltip on hover (if comment exists) (since 0.8.1)"
+                      },
+                      "latex": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Draw LaTeX formulas of the comment in the tooltip: `$x^2$` inline, `$$...$$` or `\\[...\\]` on a line of their own. Needs a build with MicroTeX (`WITH_MICROTEX`) (since 0.8.1)"
                       },
                       "font_size": {
                         "type": "integer",

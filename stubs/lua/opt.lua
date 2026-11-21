@@ -77,11 +77,13 @@ lektra.opt.search = {}
 
 ---@class OptAnnotationsComment
 ---@field font_size? integer Font size of the comment tooltip.
+---@field latex? boolean Draw LaTeX formulas of the comment in the tooltip.
 ---@field marker? boolean Show the comment marker icon.
 ---@field tooltip? boolean Show the comment text in a tooltip on hover.
 
 ---@class OptAnnotationsPopupComment
 ---@field font_size? integer Font size of the comment tooltip.
+---@field latex? boolean Draw LaTeX formulas of the comment in the tooltip.
 ---@field tooltip? boolean Show the comment text in a tooltip on hover.
 
 ---@class OptAnnotationsHighlight
