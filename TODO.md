@@ -21,6 +21,13 @@
 - [ ] Annotation save as temp file and auto-save on exit
 - [ ] Macros
 - [ ] Multi-Document / Workspace Search
+    + Search every open document at once and show the hits in a picker (file, page, snippet).
+    + Walk each tab's `DocumentContainer::getAllViews()`: a tab can hold several splits, each its own `DocumentView` and `Model`. Search each distinct `filePath()` once, so two splits of the same file don't give duplicate hits.
+    + Search through the models directly (`Model::search`) so no tab's own search highlights are touched. A tab that was never loaded (`tabs.lazy_load`) needs a temporary headless `Model`.
+    + `Model::SearchHit` has no text; add a snippet around each match.
+    + New `GlobalSearchPicker` (like `HighlightSearchPicker`), results streaming in per document, cancelled on a new query. Accepting a row goes to the focused split if it shows that file, else the first split with it, else loads the tab.
+    + `search_all` command and a Lua `lektra.search.all(query, opts)`. Start with open tabs; a folder scope can follow.
+    + Skip password-protected files and say so; skip reflow views at first.
 - [ ] Count prefixes and repeat: `5j`, `3<C-d>`, and `.` to repeat the last action
 - [ ] Which-key style popup listing what can follow a pending key prefix
 - [ ] Text hints: label words or lines like link hints, to select, yank or start caret mode there
