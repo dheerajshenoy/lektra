@@ -472,6 +472,7 @@ qt_add_executable(${PROJECT_NAME}
     src/picker/FilePicker.cpp
     src/picker/OutlinePicker.cpp
     src/picker/CommentSearchPicker.cpp
+    src/picker/GrepPicker.cpp
     src/ScrollBar.cpp
     src/dialog/ColorDialog.cpp
     src/Bookmark.cpp

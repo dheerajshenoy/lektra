@@ -772,6 +772,31 @@ Lektra::Show_annot_comment_search() noexcept
     m_comment_search_picker->launch();
 }
 
+void
+Lektra::Grep(const QStringList &args) noexcept
+{
+    if (!m_doc || !m_doc->model()->supports_text_search())
+    {
+        m_message_bar->showMessage(tr("This document has no text to search"));
+        return;
+    }
+
+    if (!m_grep_picker)
+    {
+        m_grep_picker = new GrepPicker(m_config.picker, this);
+        m_grep_picker->setKeybindings(m_picker_keybinds);
+
+        connect(m_grep_picker, &GrepPicker::gotoLocationRequested, this,
+                [this](int page, float x, float y)
+        { GotoLocation(page, x, y); });
+    }
+
+    m_grep_picker->setModel(m_doc->model());
+    m_grep_picker->launch();
+    if (!args.isEmpty())
+        m_grep_picker->setPattern(args.join(' '));
+}
+
 // Invert colors of the document
 void
 Lektra::InvertColor() noexcept

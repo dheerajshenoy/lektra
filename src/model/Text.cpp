@@ -942,6 +942,81 @@ Model::searchHelperRegex(int pageno, const QRegularExpression &re) noexcept
     return results;
 }
 
+std::vector<Model::GrepHit>
+Model::grep(const QString &pattern, bool caseSensitive,
+            const std::atomic_bool *cancel) noexcept
+{
+    std::vector<GrepHit> hits;
+    if (pattern.isEmpty() || !supports_text_search())
+        return hits;
+
+    QRegularExpression::PatternOptions opts
+        = QRegularExpression::UseUnicodePropertiesOption;
+    if (!caseSensitive)
+        opts |= QRegularExpression::CaseInsensitiveOption;
+    QRegularExpression re(pattern, opts);
+    if (!re.isValid())
+        return hits;
+    re.optimize();
+
+    const int pages = numPages();
+    for (int pageno = 0; pageno < pages; ++pageno)
+    {
+        if (cancel && cancel->load())
+            return hits;
+
+        buildTextCacheForPages({pageno});
+
+        std::vector<CachedTextChar> text;
+        {
+            std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+            const auto *chars = m_text_cache.find(pageno);
+            if (!chars)
+                continue;
+            text = chars->chars;
+        }
+
+        // The cache puts a '\n' after every line of the page
+        QString line;
+        std::vector<int> lineChars; // index in `text` of each QChar of `line`
+        for (int i = 0; i <= static_cast<int>(text.size()); ++i)
+        {
+            const bool end = i == static_cast<int>(text.size())
+                             || text[i].rune == U'\n';
+            if (!end)
+            {
+                const char32_t r = text[i].rune;
+                for (QChar qc : QString::fromUcs4(&r, 1))
+                {
+                    line.append(qc);
+                    lineChars.push_back(i);
+                }
+                continue;
+            }
+
+            const QRegularExpressionMatch m = re.match(line);
+            if (m.hasMatch())
+            {
+                // Mark the matched part, or the whole line for an empty match
+                int from = m.capturedLength() > 0 ? m.capturedStart() : 0;
+                int to   = m.capturedLength() > 0 ? m.capturedEnd() - 1
+                                                  : int(line.size()) - 1;
+                fz_rect bbox = fz_empty_rect;
+                for (int k = from; k <= to && k < int(lineChars.size()); ++k)
+                    if (!fz_is_empty_quad(text[lineChars[k]].quad))
+                        bbox = fz_union_rect(
+                            bbox, fz_rect_from_quad(text[lineChars[k]].quad));
+                if (!fz_is_empty_rect(bbox))
+                    hits.push_back(
+                        {pageno, fz_quad_from_rect(bbox), line.trimmed()});
+            }
+            line.clear();
+            lineChars.clear();
+        }
+    }
+    return hits;
+}
+
 void
 Model::buildTextCacheForPages(const std::set<int> &pagenos) noexcept
 {

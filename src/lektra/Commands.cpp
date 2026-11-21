@@ -1071,6 +1071,11 @@ Lektra::initCommands() noexcept
         [this](const QStringList &) { Show_highlight_search(); });
 
     m_command_manager->reg(
+        "grep",
+        tr("List the lines of the document that match a regular expression"),
+        [this](const QStringList &args) { Grep(args); });
+
+    m_command_manager->reg(
         "picker_annot_comment_search", tr("Search annotation comments"),
         [this](const QStringList &) { Show_annot_comment_search(); });
 

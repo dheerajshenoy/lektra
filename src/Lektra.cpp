@@ -464,7 +464,7 @@ Lektra::eventFilter(QObject *object, QEvent *event)
 
         QWidget *const pickers[]
             = {m_command_picker, m_outline_picker, m_highlight_search_picker,
-               m_comment_search_picker, m_recent_file_picker};
+               m_comment_search_picker, m_grep_picker, m_recent_file_picker};
         for (QWidget *picker : pickers)
         {
             if (picker && picker->isVisible())

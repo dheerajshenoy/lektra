@@ -13,6 +13,7 @@
 #include <QRegularExpression>
 #include <QString>
 #include <QUndoStack>
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -140,8 +141,16 @@ public:
     struct SearchHit
     {
         int page;
-        fz_quad quad; // Coordinate of the hit in logical page space
-        int index;    // Index of the hit in the page
+        fz_quad quad;
+        int index;
+    };
+
+    // One line of text that matches a grep
+    struct GrepHit
+    {
+        int page;
+        fz_quad quad; // the matched part of the line
+        QString line;
     };
 
     struct HighlightText
@@ -671,9 +680,9 @@ public:
     // renderPageForPrint on the render pool. The model waits for it when it
     // closes, so the caller need not keep the document alive; a cancelled or
     // refused render gives a null image.
-    [[nodiscard]] QFuture<QImage> renderPageForPrintAsync(
-        int pageno, float dpi, bool grayscale,
-        std::shared_ptr<RenderCancel> cancel) noexcept;
+    [[nodiscard]] QFuture<QImage>
+    renderPageForPrintAsync(int pageno, float dpi, bool grayscale,
+                            std::shared_ptr<RenderCancel> cancel) noexcept;
     // False if the document forbids printing (a PDF's permissions).
     [[nodiscard]] bool canPrint() const noexcept;
 
@@ -862,6 +871,12 @@ public:
                 int pageFrom = -1, bool useRegex = false,
                 int pageTo = -1) noexcept;
     void searchCancel() noexcept;
+    // Lines of the document that match `pattern` (a regular expression), page
+    // by page. Safe to call from a worker thread; stops early once `cancel`
+    // is set.
+    [[nodiscard]] std::vector<GrepHit>
+    grep(const QString &pattern, bool caseSensitive,
+         const std::atomic_bool *cancel = nullptr) noexcept;
     void searchInPage(const int pageno, const QString &term,
                       bool caseSensitive = false) noexcept;
     std::vector<Model::SearchHit> searchHelper(int pageno, const QString &term,
@@ -1088,12 +1103,13 @@ private:
         }
     };
     void initMuPDF() noexcept;
+
 public:
     // Applies rendering.antialiasing.bits to MuPDF's rasteriser. Contexts
     // cloned afterwards (every render) pick it up.
     void applyAntialiasing() noexcept;
-private:
 
+private:
     [[nodiscard]] std::string getTextInPage(const int pageno,
                                             bool formatted) noexcept;
     [[nodiscard]] std::string getTextInArea(const int pageno, QPointF start,

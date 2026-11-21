@@ -4,6 +4,7 @@
 #include "CommentSearchPicker.hpp"
 #include "Config.hpp"
 #include "DocumentView.hpp"
+#include "GrepPicker.hpp"
 #include "HighlightSearchPicker.hpp"
 #include "ColorEyedrop.hpp"
 #include "LaserTrail.hpp"
@@ -157,6 +158,7 @@ public:
     void SearchInPage(const QStringList &args = {}) noexcept;
     void Show_highlight_search() noexcept;
     void Show_annot_comment_search() noexcept;
+    void Grep(const QStringList &args = {}) noexcept;
     void Show_command_picker() noexcept;
     void Show_bookmark_picker() noexcept;
     void ToggleCommentMarkers() noexcept;
@@ -742,6 +744,7 @@ private:
     CommandPicker *m_command_picker                  = nullptr;
     HighlightSearchPicker *m_highlight_search_picker = nullptr;
     CommentSearchPicker *m_comment_search_picker     = nullptr;
+    GrepPicker *m_grep_picker                        = nullptr;
     RecentFilesPicker *m_recent_file_picker          = nullptr;
     FilePicker *m_file_picker                        = nullptr;
     BookmarkPicker *m_bookmark_picker                = nullptr;
