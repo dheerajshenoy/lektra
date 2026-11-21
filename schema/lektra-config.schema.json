@@ -1721,7 +1721,7 @@
             "bits": {
               "type": "integer",
               "default": 8,
-              "description": "Antialiasing bits (since 0.8.1)"
+              "description": "How many bits of antialiasing MuPDF uses when drawing pages (0, 2, 4, 6 or 8; 0 turns it off, other values are rounded). Higher is smoother but slower. (since 0.8.1)"
             }
           },
           "additionalProperties": false,

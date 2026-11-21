@@ -354,6 +354,15 @@ Model::initMuPDF() noexcept
     fz_install_load_system_font_funcs(m_ctx, load_system_font, nullptr,
                                       nullptr);
     m_colorspace = fz_device_rgb(m_ctx);
+    applyAntialiasing();
+}
+
+void
+Model::applyAntialiasing() noexcept
+{
+    if (m_ctx)
+        fz_set_aa_level(m_ctx, std::clamp(m_config.rendering.antialiasing.bits,
+                                          0, 8));
 }
 
 QFuture<void>

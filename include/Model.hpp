@@ -1084,6 +1084,11 @@ private:
         }
     };
     void initMuPDF() noexcept;
+public:
+    // Applies rendering.antialiasing.bits to MuPDF's rasteriser. Contexts
+    // cloned afterwards (every render) pick it up.
+    void applyAntialiasing() noexcept;
+private:
 
     [[nodiscard]] std::string getTextInPage(const int pageno,
                                             bool formatted) noexcept;

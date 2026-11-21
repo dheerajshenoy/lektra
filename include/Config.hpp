@@ -1580,7 +1580,11 @@ struct Config
             // @added 0.8.1
             bool enabled = true;
 
-            // @desc Antialiasing bits
+            // @desc {
+            // How many bits of antialiasing MuPDF uses when drawing pages (0,
+            // 2, 4, 6 or 8; 0 turns it off, other values are rounded). Higher
+            // is smoother but slower.
+            // }
             // @type int
             // @default 8
             // @added 0.8.1

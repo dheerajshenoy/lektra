@@ -1418,6 +1418,8 @@ DocumentView::applyLocalConfigChanges() noexcept
 
     if (sections.contains("rendering"))
     {
+        if (m_model)
+            m_model->applyAntialiasing();
         m_gview->setRenderHint(QPainter::Antialiasing,
                                m_config.rendering.antialiasing.enabled);
         m_gview->setRenderHint(QPainter::SmoothPixmapTransform,

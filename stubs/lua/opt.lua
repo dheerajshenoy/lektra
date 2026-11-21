@@ -512,7 +512,7 @@ lektra.opt.presentation = {}
 lektra.opt.reflow = {}
 
 ---@class OptRenderingAntialiasing
----@field bits? integer Number of multisampling bits for antialiasing (e.g. 4, 8).
+---@field bits? integer How many bits of antialiasing MuPDF uses when drawing pages (0, 2, 4, 6 or 8; 0 turns it off, other values are rounded).
 ---@field enabled? boolean Enable antialiasing for page rendering.
 
 ---@class OptRendering
