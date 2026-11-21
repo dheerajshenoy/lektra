@@ -362,7 +362,12 @@ ChatBubble::proseWithMath(const QString &markdown) const
     // Markdown cannot hold the images, so they replace markers that go
     // through it unchanged, and are put back in the HTML it produces.
     const int pixelSize = QFontInfo(contentFont()).pixelSize() * 115 / 100;
-    const QColor color  = palette().color(QPalette::WindowText);
+    // The Active color, not palette().color(): that one is the Inactive
+    // color while the window has no focus (a reply is often written while
+    // you are in another window), and many themes make that one gray, which
+    // would leave the formulas washed out after the window gets focus again.
+    const QColor color
+        = palette().color(QPalette::Active, QPalette::WindowText);
     QString marked;
     qsizetype last = 0;
     for (int n = 0; n < found.size(); ++n)
@@ -400,7 +405,8 @@ ChatBubble::updatePiece(Piece &piece, const Segment &segment)
     {
         const QImage image = renderMath(
             segment.text, QFontInfo(contentFont()).pixelSize() * 115 / 100,
-            palette().color(QPalette::WindowText), mathWidth() - 20,
+            palette().color(QPalette::Active, QPalette::WindowText),
+            mathWidth() - 20,
             devicePixelRatioF());
         if (image.isNull())
         {

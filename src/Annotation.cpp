@@ -80,7 +80,8 @@ Annotation::updateTooltipText()
         // The formulas are as large as the text and wrap with it.
         const QString html = mathtext::commentToHtml(
             m_comment, QFontInfo(m_tooltip->font()).pixelSize() * 115 / 100,
-            m_tooltip->palette().color(QPalette::WindowText), 480,
+            m_tooltip->palette().color(QPalette::Active, QPalette::WindowText),
+            480,
             m_tooltip->devicePixelRatioF());
         if (!html.isEmpty())
         {
