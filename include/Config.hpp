@@ -1617,9 +1617,9 @@ struct Config
 
             // @desc Color of the shadow; the alpha is how strong it is at the edge of the page
             // @type str
-            // @default "#00000059"
+            // @default "#00000030"
             // @added 0.8.1
-            uint32_t color = 0x00000059;
+            uint32_t color = 0x00000030;
         } page_shadow;
     } rendering;
     // @endsection

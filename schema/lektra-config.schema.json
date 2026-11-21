@@ -1751,7 +1751,7 @@
               "type": "string",
               "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
               "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
-              "default": "#00000059"
+              "default": "#00000030"
             }
           },
           "additionalProperties": false,

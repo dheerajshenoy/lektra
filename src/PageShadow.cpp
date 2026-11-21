@@ -6,12 +6,14 @@
 
 namespace
 {
-// How much of the shadow is left at `d` pixels from the page edge (negative
-// outside the page): a blurred straight edge, 0.5 at the edge itself.
+// How strong the shadow is `k` pixels in from its outer edge, for a fall-off
+// `r` pixels wide: a blurred edge that is 0 at the outer edge and 1 at the
+// page. The whole fall-off is kept, so the corner pieces are exact.
 float
-edgeProfile(float d, float sigma) noexcept
+fallOff(float k, int r) noexcept
 {
-    return 0.5f * (1.0f + std::erf(d / (sigma * 1.41421356f)));
+    const float sigma = std::max(0.75f, r / 4.0f);
+    return 0.5f * (1.0f + std::erf((k - r / 2.0f) / (sigma * 1.41421356f)));
 }
 
 // The shadow of a page corner: `r` pixels of fall-off on each side of a 2 pixel
@@ -19,20 +21,19 @@ edgeProfile(float d, float sigma) noexcept
 QPixmap
 makeTexture(int r, const QColor &color)
 {
-    const int size    = 2 * r + 2;
-    const float sigma = std::max(1.0f, r / 3.0f);
+    const int size = 2 * r + 2;
 
-    // Along one axis: the profile of each pixel. The strip in the middle is
-    // inside the page on both sides, so it is fully shadowed.
+    // Along one axis: the strength at each pixel. The strip in the middle is
+    // fully shadowed.
     std::vector<float> profile(size);
     for (int i = 0; i < size; ++i)
     {
         if (i < r)
-            profile[i] = edgeProfile(i + 0.5f - r, sigma);
+            profile[i] = fallOff(i + 0.5f, r);
         else if (i < r + 2)
             profile[i] = 1.0f;
         else
-            profile[i] = edgeProfile(r + 2 - (i + 0.5f), sigma);
+            profile[i] = fallOff(size - i - 0.5f, r);
     }
 
     QImage image(size, size, QImage::Format_ARGB32_Premultiplied);
@@ -94,11 +95,20 @@ pageshadow::draw(QPainter *painter, const QRectF &page, const QRectF &visible,
     {
         for (int i = 0; i < 3; ++i)
         {
-            if (i == 1 && j == 1)
-                continue; // the page covers it
-
             const QRectF src(us[i], us[j], uw[i], uw[j]);
             QRectF dst(xs[i], ys[j], ws[i], hs[j]);
+
+            // The middle is behind the page, except the strip that sticks out
+            // above or below it when the shadow is dropped.
+            if (i == 1 && j == 1)
+            {
+                if (offsetY > 0)
+                    dst = QRectF(x, page.y() + h, w, offsetY);
+                else if (offsetY < 0)
+                    dst = QRectF(x, y, w, -offsetY);
+                else
+                    continue;
+            }
 
             // The stretched pieces are the same all along, so cutting them to
             // what is visible changes nothing.

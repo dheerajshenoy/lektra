@@ -516,7 +516,7 @@ lektra.opt.reflow = {}
 ---@field enabled? boolean Enable antialiasing for page rendering.
 
 ---@class OptRenderingPageShadow
----@field color? Color Color of the shadow as an RRGGBBAA hex integer (e.g. 0x00000059); the alpha is how strong it is at the edge of the page.
+---@field color? Color Color of the shadow as an RRGGBBAA hex integer (e.g. 0x00000030); the alpha is how strong it is at the edge of the page.
 ---@field enabled? boolean Draw a shadow under each page.
 ---@field offset_y? integer How far the shadow is dropped below the page, in pixels.
 ---@field radius? integer How far the shadow reaches around the page, in pixels.
