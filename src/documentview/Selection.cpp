@@ -686,6 +686,7 @@ DocumentView::clearSearchHits() noexcept
     m_hscroll->setSearchMarkers({});
     m_vscroll->setSearchMarkers({});
     m_gview->setScrollbarsPinned(false);
+    m_gview->setHasSearchHits(false);
 }
 
 // When a narrow region is active, discard all hits that don't fall inside
@@ -1489,6 +1490,7 @@ DocumentView::renderSearchHitsInScrollbar() noexcept
 
     m_vscroll->setSearchMarkers({});
     m_hscroll->setSearchMarkers({});
+    m_gview->setHasSearchHits(!m_search_hit_flat_refs.empty());
 
     if (m_search_hit_flat_refs.empty())
         return;

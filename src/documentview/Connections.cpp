@@ -1462,6 +1462,7 @@ DocumentView::applyLocalConfigChanges() noexcept
                                          * 1000);
         m_gview->setVerticalScrollbarEnabled(m_config.scrollbars.vertical);
         m_gview->setHorizontalScrollbarEnabled(m_config.scrollbars.horizontal);
+        m_gview->setScrollbarsOnlyWithHits(m_config.scrollbars.only_with_hits);
         m_gview->setAutoHideScrollbars(m_config.scrollbars.auto_hide);
     }
 

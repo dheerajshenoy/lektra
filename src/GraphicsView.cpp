@@ -901,9 +901,11 @@ GraphicsView::updateScrollbars()
     const bool vNeeded = vbar && vbar->maximum() > vbar->minimum();
     const bool hNeeded = hbar && hbar->maximum() > hbar->minimum();
     const bool showV
-        = validViewport && m_scrollbarsVisible && m_vbarEnabled && vNeeded;
+        = validViewport && m_scrollbarsVisible && m_vbarEnabled && vNeeded
+          && barsAllowed();
     const bool showH
-        = validViewport && m_scrollbarsVisible && m_hbarEnabled && hNeeded;
+        = validViewport && m_scrollbarsVisible && m_hbarEnabled && hNeeded
+          && barsAllowed();
 
     if (vbar)
         vbar->setVisible(showV);

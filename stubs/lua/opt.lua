@@ -281,6 +281,7 @@ lektra.opt.split = {
 ---@field hide_timeout? number Seconds of inactivity before scrollbars hide.
 ---@field horizontal? boolean Show the horizontal scrollbar.
 ---@field search_hits? boolean Show search hit markers on the scrollbar track.
+---@field only_with_hits? boolean Show the scrollbars only while there are search hits.
 ---@field size? integer Scrollbar track width in pixels.
 ---@field vertical? boolean Show the vertical scrollbar.
 lektra.opt.scrollbars = {}

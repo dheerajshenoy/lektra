@@ -425,6 +425,7 @@ build()
     r.boolean("vertical", F(scrollbars.vertical));
     r.boolean("horizontal", F(scrollbars.horizontal));
     r.boolean("search_hits", F(scrollbars.search_hits));
+    r.boolean("only_with_hits", F(scrollbars.only_with_hits));
     r.boolean("auto_hide", F(scrollbars.auto_hide));
     r.integer("size", F(scrollbars.size));
     r.number("hide_timeout", F(scrollbars.hide_timeout));

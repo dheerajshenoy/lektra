@@ -860,6 +860,13 @@ struct Config
         // @added 0.5.1
         bool search_hits = true;
 
+        // @desc { Show the scrollbars only while there are search hits
+        // (`vertical` and `horizontal` still apply) }
+        // @type bool
+        // @default false
+        // @added 0.8.1
+        bool only_with_hits = false;
+
         // @desc Auto hide after timeout
         // @type bool
         // @default true

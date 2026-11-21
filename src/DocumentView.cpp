@@ -267,6 +267,7 @@ DocumentView::initGui() noexcept
     // auto_hide controls whether they fade after inactivity
     m_gview->setVerticalScrollbarEnabled(m_config.scrollbars.vertical);
     m_gview->setHorizontalScrollbarEnabled(m_config.scrollbars.horizontal);
+    m_gview->setScrollbarsOnlyWithHits(m_config.scrollbars.only_with_hits);
     m_gview->setAutoHideScrollbars(m_config.scrollbars.auto_hide);
 
     m_gview->setSelectionDragThreshold(m_config.selection.drag_threshold);

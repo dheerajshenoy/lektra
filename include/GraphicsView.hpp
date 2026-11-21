@@ -163,7 +163,7 @@ public:
         // Both are turned off in the config: there is nothing to flash, but
         // make sure they are hidden (Qt may have shown them, see
         // bindScrollbarActivity()).
-        if (!m_vbarEnabled && !m_hbarEnabled)
+        if ((!m_vbarEnabled && !m_hbarEnabled) || !barsAllowed())
         {
             updateScrollbars();
             return;
@@ -195,6 +195,26 @@ public:
         if (m_hbarEnabled != enabled)
         {
             m_hbarEnabled = enabled;
+            updateScrollbars();
+        }
+    }
+
+    // scrollbars.only_with_hits: the scrollbars may only show while the
+    // view has search hits.
+    void setScrollbarsOnlyWithHits(bool enabled) noexcept
+    {
+        if (m_barsOnlyWithHits != enabled)
+        {
+            m_barsOnlyWithHits = enabled;
+            updateScrollbars();
+        }
+    }
+
+    void setHasSearchHits(bool has) noexcept
+    {
+        if (m_hasSearchHits != has)
+        {
+            m_hasSearchHits = has;
             updateScrollbars();
         }
     }
@@ -303,7 +323,7 @@ private:
         // The config can turn the scrollbars off (scrollbars.vertical and
         // scrollbars.horizontal): none of the events that ask for them (zoom,
         // scroll, mouse movement...) may bring them back then.
-        if (!m_vbarEnabled && !m_hbarEnabled)
+        if ((!m_vbarEnabled && !m_hbarEnabled) || !barsAllowed())
         {
             updateScrollbars();
             return;
@@ -435,6 +455,12 @@ private:
     bool m_autoHide                                  = false;
     bool m_scrollbarsVisible                         = false;
     bool m_scrollbarsPinned                          = false;
+    bool m_barsOnlyWithHits                          = false;
+    bool m_hasSearchHits                             = false;
+    bool barsAllowed() const noexcept
+    {
+        return !m_barsOnlyWithHits || m_hasSearchHits;
+    }
     bool m_vbarEnabled                               = true;
     bool m_hbarEnabled                               = true;
     bool m_is_active                                 = false;

@@ -778,6 +778,11 @@
           "default": true,
           "description": "Show the search hits in scrollbar (since 0.5.1)"
         },
+        "only_with_hits": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show the scrollbars only while there are search hits (`vertical` and `horizontal` still apply) (since 0.8.1)"
+        },
         "auto_hide": {
           "type": "boolean",
           "default": true,
@@ -2634,6 +2639,11 @@
                 "type": "boolean",
                 "default": true,
                 "description": "Show the search hits in scrollbar (since 0.5.1)"
+              },
+              "only_with_hits": {
+                "type": "boolean",
+                "default": false,
+                "description": "Show the scrollbars only while there are search hits (`vertical` and `horizontal` still apply) (since 0.8.1)"
               },
               "auto_hide": {
                 "type": "boolean",
