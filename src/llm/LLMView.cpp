@@ -169,6 +169,13 @@ LLMView::setApiLookup(LLMApiLookup lookup)
 }
 
 void
+LLMView::setCommandLookup(LLMCommandLookup lookup)
+{
+    m_command_lookup = std::move(lookup);
+    updateTools();
+}
+
+void
 LLMView::updateTools()
 {
     QJsonArray tools;
@@ -194,9 +201,9 @@ LLMView::updateTools()
             tools.append(tool(
                 QStringLiteral("run_command"),
                 QStringLiteral(
-                    "Run one Lektra command from the command list, for "
-                    "simple actions such as zooming, going to a page or "
-                    "opening a file."),
+                    "Run one Lektra command (find its name with "
+                    "list_commands), for simple actions such as zooming, "
+                    "going to a page or opening a file."),
                 QJsonObject{
                     {"name", QJsonObject{{"type", "string"},
                                          {"description", "Command name"}}},
@@ -217,6 +224,18 @@ LLMView::updateTools()
                 QJsonObject{{"code", QJsonObject{{"type", "string"},
                                                  {"description", "Lua code"}}}},
                 QJsonArray{"code"}));
+        if (m_command_lookup)
+            tools.append(tool(
+                QStringLiteral("list_commands"),
+                QStringLiteral(
+                    "Find Lektra commands by search words (e.g. \"zoom\" or "
+                    "\"split\"). Returns the matching command names with "
+                    "their descriptions. Use it before run_command so you "
+                    "do not guess a name."),
+                QJsonObject{
+                    {"query", QJsonObject{{"type", "string"},
+                                          {"description", "Search words"}}}},
+                QJsonArray{"query"}));
         if (m_api_lookup)
             tools.append(tool(
                 QStringLiteral("lookup_api"),
@@ -987,6 +1006,16 @@ LLMView::handleToolCalls(const QList<LLMToolCall> &calls)
             addNote(note);
             record(QStringLiteral("note"), note, /*save=*/false);
             completeTool(i, m_api_lookup(query), QString());
+        }
+        else if (call.name == QLatin1String("list_commands")
+                 && m_command_lookup)
+        {
+            // Only reads the command names, so it needs no confirmation.
+            const QString query = args.value("query").toString();
+            const QString note  = tr("Looked up commands: %1").arg(query);
+            addNote(note);
+            record(QStringLiteral("note"), note, /*save=*/false);
+            completeTool(i, m_command_lookup(query), QString());
         }
         else if (call.name == QLatin1String("run_command") && m_command_runner
                  && !args.value("name").toString().isEmpty())

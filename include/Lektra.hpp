@@ -471,6 +471,7 @@ private:
     // The documentation of the Lua API that matches a query (the lookup_api
     // tool).
     QString llmLookupApi(const QString &query) const noexcept;
+    QString llmListCommands(const QString &query) const noexcept;
     #endif
 #endif
     void initMenubar() noexcept;

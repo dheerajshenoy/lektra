@@ -107,11 +107,11 @@ apiEntries()
 }
 } // namespace
 
-// Everything the model needs to know about Lektra: how to answer and how
-// scripts run (system_prompt.md) and the commands that exist right now,
-// including any registered from Lua. With llm_view.tools the Lua API is not
-// included (the model reads it through lookup_api); without, it is the LuaLS
-// stubs, which are exactly the documentation of every function.
+// What the model needs to know about Lektra: how to answer and how
+// scripts run (system_prompt.md). With llm_view.tools the commands are found
+// with list_commands and the Lua API with lookup_api; without tools both are
+// in the prompt (the commands, and the LuaLS stubs, which are exactly the
+// documentation of every function).
 QString
 Lektra::llmSystemPrompt() const noexcept
 {
@@ -134,19 +134,81 @@ Lektra::llmSystemPrompt() const noexcept
         }
     }
 
+    // With tools the commands are not listed here: that is about 14 KB sent
+    // with every message, which a small or local model takes a long time to
+    // read even for "Hi". The model finds them with list_commands.
+    if (tools)
+        return prompt;
+
     auto commands = m_command_manager->commands();
     std::sort(commands.begin(), commands.end(),
               [](const Command &a, const Command &b)
     { return a.name < b.name; });
-    prompt
-        += QStringLiteral("\n# Commands (for %1)\n\n")
-               .arg(tools ? QStringLiteral("run_command and lektra.cmd.execute")
-                          : QStringLiteral("lektra.cmd.execute"));
+    prompt += QStringLiteral("\n# Commands (for lektra.cmd.execute)\n\n");
     for (const Command &command : commands)
         prompt += QStringLiteral("- `%1`: %2\n")
                       .arg(command.name, command.description);
 
     return prompt;
+}
+
+// The commands that match some words, for the list_commands tool.
+QString
+Lektra::llmListCommands(const QString &query) const noexcept
+{
+    constexpr int kMaxCommands = 20;
+
+    const QStringList words
+        = query.toLower().split(QRegularExpression(QStringLiteral("[^a-z0-9_]+")),
+                                Qt::SkipEmptyParts);
+    if (words.isEmpty())
+        return QStringLiteral(
+            "Give search words (e.g. \"zoom\", \"split\", \"annotation\") to "
+            "list the matching commands.");
+
+    struct Hit
+    {
+        int score;
+        Command command;
+    };
+    QList<Hit> hits;
+    for (const Command &command : m_command_manager->commands())
+    {
+        const QString name  = command.name.toLower();
+        const QString plain = QString(name).remove(QLatin1Char('_'));
+        const QString desc  = command.description.toLower();
+        int score           = 0;
+        for (const QString &word : words)
+        {
+            if (name.contains(word) || plain.contains(word))
+                score += 2;
+            if (desc.contains(word))
+                score += 1;
+        }
+        if (score > 0)
+            hits.append({score, command});
+    }
+    if (hits.isEmpty())
+        return QStringLiteral("No command matches \"%1\". Try other words.")
+            .arg(query);
+
+    std::stable_sort(hits.begin(), hits.end(),
+                     [](const Hit &a, const Hit &b)
+    {
+        return a.score != b.score ? a.score > b.score
+                                  : a.command.name < b.command.name;
+    });
+
+    QString out;
+    const int shown = std::min<int>(hits.size(), kMaxCommands);
+    for (int i = 0; i < shown; ++i)
+        out += QStringLiteral("- `%1`: %2\n")
+                   .arg(hits.at(i).command.name, hits.at(i).command.description);
+    if (shown < hits.size())
+        out += QStringLiteral("(%1 more matches; use more specific words to "
+                              "narrow it down.)")
+                   .arg(hits.size() - shown);
+    return out;
 }
 
 QString

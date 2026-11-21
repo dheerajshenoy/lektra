@@ -35,6 +35,7 @@ using LLMCommandRunner = std::function<LLMScriptResult(
     const QString &name, const QStringList &args)>;
 // Returns the documentation of the Lua API that matches a query.
 using LLMApiLookup     = std::function<QString(const QString &query)>;
+using LLMCommandLookup = std::function<QString(const QString &query)>;
 
 class LLMView : public QDockWidget
 {
@@ -54,9 +55,11 @@ public:
     void setScriptRunner(LLMScriptRunner runner);
     // With llm_view.tools on, the model gets the tools run_command (needs a
     // command runner), run_lua (needs a script runner) and lookup_api (needs
-    // an API lookup), for each handler that is set.
+    // an API lookup) and list_commands (needs a command lookup), for each
+    // handler that is set.
     void setCommandRunner(LLMCommandRunner runner);
     void setApiLookup(LLMApiLookup lookup);
+    void setCommandLookup(LLMCommandLookup lookup);
     // Folder where chats are saved (and listed in the History menu). Without
     // one, or with llm_view.save_history off, nothing is saved.
     void setHistoryFolder(const QString &folder);
@@ -223,6 +226,7 @@ private:
     LLMScriptRunner m_script_runner;
     LLMCommandRunner m_command_runner;
     LLMApiLookup m_api_lookup;
+    LLMCommandLookup m_command_lookup;
 
     struct PendingTool
     {
