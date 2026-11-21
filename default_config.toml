@@ -215,7 +215,7 @@ page_numbers = true
 flat_menu         = true
 preload           = false  # true: load the outline after the document opens; false: on first use
 # Picker.shared knobs also apply here — width, height, border,
-# alternating_row_color, prompt, shadow.*  (see [picker] below).
+# alternating_row_color, style, prompt, shadow.*  (see [picker] below).
 
 
 # -----------------------------------------------------------------------------
@@ -228,6 +228,9 @@ width                 = 600       # pixels if > 1, fraction of window width othe
 height                = 400
 border                = true
 alternating_row_color = true
+style                 = "floating"  # "floating": a card in the middle; "emacs": a full-width strip along the bottom
+scrolloff             = 0         # rows kept between the selection and the edge of the list
+max_lines             = 10        # rows an "emacs" style picker is high
 
 [picker.shadow]
 enabled     = true

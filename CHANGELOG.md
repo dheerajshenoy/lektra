@@ -14,6 +14,7 @@
 
 ### New Features
 
+- `picker.style = "emacs"` shows pickers as a full-width strip along the bottom of the window, like the Emacs minibuffer, `picker.max_lines` rows high. The default, `"floating"`, is the card in the middle. `picker.scrolloff` keeps some rows between the selection and the edge of the list.
 - `grep` command: lists the lines of the document that match a regular expression (smart-case) and jumps to the one you pick. `grep PATTERN` starts with the pattern typed.
 - The default `layout.spacing` (gap between pages) is now 12 pixels instead of 10, to leave room for the page shadow.
 - Pages have a soft shadow. Tune or turn it off with `rendering.page_shadow` (`enabled`, `radius`, `offset_y`, `color`).

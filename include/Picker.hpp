@@ -340,7 +340,13 @@ protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
     void populate(const QList<Item> &items);
-    void reposition();
+    virtual void reposition();
+    void showEvent(QShowEvent *event) override;
+    void hideEvent(QHideEvent *event) override;
+    bool emacs() const noexcept
+    {
+        return m_config.style == Config::Picker::Style::Emacs;
+    }
 
 protected:
     PickerFilterProxy *m_proxy = nullptr;
@@ -358,6 +364,8 @@ private slots:
     }
 
 private:
+    void reserveBottom(int px) noexcept;
+    void keepScrolloff(const QModelIndex &current) noexcept;
     void applyFrameStyle() noexcept;
     Item itemAtProxyIndex(const QModelIndex &index) const;
 

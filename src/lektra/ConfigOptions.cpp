@@ -206,6 +206,11 @@ constexpr Choice kMinimapPosition[] = {
     {"bottom_right", (int)Config::Minimap::Position::BottomRight},
 };
 
+constexpr Choice kPickerStyle[] = {
+    {"floating", (int)Config::Picker::Style::Floating},
+    {"emacs", (int)Config::Picker::Style::Emacs},
+};
+
 constexpr Choice kCloseButtonMode[] = {
     {"all", (int)Config::Tabs::CloseButtonMode::All},
     {"current", (int)Config::Tabs::CloseButtonMode::Current},
@@ -261,6 +266,9 @@ pickerOptions(Registry &r, Base)
     r.boolean("border", S(border));
     r.boolean("alternating_row_color", S(alternating_row_color));
     r.text("prompt", S(prompt));
+    r.choice("style", S(style), kPickerStyle);
+    r.integer("scrolloff", S(scrolloff)).range(0, 50);
+    r.integer("max_lines", S(max_lines)).range(1, 100);
     r.boolean("highlight_matches.enabled", S(highlight_matches.enabled));
     r.color("highlight_matches.color", S(highlight_matches.color));
     r.boolean("shadow.enabled", S(shadow.enabled));

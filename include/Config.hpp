@@ -1303,6 +1303,39 @@ struct Config
         // @added 0.6.8
         bool alternating_row_color = true;
 
+        // @desc {
+        // How pickers are placed: `floating` is a card in the middle of the
+        // window, `emacs` is a full-width strip along the bottom, like the
+        // Emacs minibuffer (its height is `max_lines` rows)
+        // }
+        // @type str
+        // @choice floating, emacs
+        // @default floating
+        // @added 0.8.1
+        enum class Style
+        {
+            Floating = 0,
+            Emacs
+        };
+        Style style = Style::Floating;
+
+        // @desc {
+        // Rows the selection keeps between itself and the top or bottom edge
+        // of the list while it moves (like vim's scrolloff)
+        // }
+        // @type int
+        // @default 0
+        // @added 0.8.1
+        int scrolloff = 0;
+
+        // @desc {
+        // Rows an `emacs` style picker is high, whatever it lists
+        // }
+        // @type int
+        // @default 10
+        // @added 0.8.1
+        int max_lines = 10;
+
         // @desc Prompt text for the picker
         // @type str
         // @default ""

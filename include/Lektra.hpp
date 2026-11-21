@@ -391,6 +391,9 @@ public:
     void SplitsToWindows() noexcept;
     void SplitsToTabs() noexcept;
     void ToggleLaserPointerCursor() noexcept;
+    // Keeps `px` free at the bottom of the window, for a picker shown as a
+    // strip there (0: gives the space back)
+    Q_INVOKABLE void setBottomInset(int px) noexcept;
     // Settings shared by every picker
     const Config::Picker &pickerConfig() const noexcept
     {
@@ -725,6 +728,7 @@ private:
     DocumentView *m_doc     = nullptr;
     TabWidget *m_tab_widget = nullptr;
     QVBoxLayout *m_layout   = nullptr;
+    int m_layout_bottom_margin = -1;
     QClipboard *m_clipboard = QGuiApplication::clipboard();
     RecentFilesStore m_recent_files_store;
     QString m_session_name;

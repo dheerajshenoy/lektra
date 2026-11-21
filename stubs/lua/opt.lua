@@ -413,6 +413,9 @@ lektra.opt.tabs = {}
 ---@field border? boolean Draw a border around the picker.
 ---@field alternating_row_color? boolean Alternate row background colors in the picker list.
 ---@field prompt? string Placeholder text shown in the picker's search box.
+---@field scrolloff? integer Rows the selection keeps between itself and the top or bottom of the list while it moves.
+---@field max_lines? integer Rows an `emacs` style picker is high, whatever it lists.
+---@field style? "floating"|"emacs" Where pickers appear: a card in the middle of the window, or a full-width strip along the bottom (like the Emacs minibuffer; its height is `max_lines` rows).
 ---@field shadow? OptPickerShadow Drop-shadow sub-table.
 ---@field keys? OptPickerKeys Keys used in every picker (same actions as `[picker.keys]` in config.toml).
 ---@field highlight_matches? OptPickerHighlightMatches Highlighting of the typed text in matching picker rows.
@@ -430,6 +433,9 @@ lektra.opt.picker = {
 ---@field border? boolean Draw a border around the picker. Starts from `lektra.opt.picker`'s value.
 ---@field alternating_row_color? boolean Alternate row background colors. Starts from `lektra.opt.picker`'s value.
 ---@field shadow? OptPickerShadow Drop-shadow sub-table. Starts from `lektra.opt.picker`'s value.
+---@field style? "floating"|"emacs" Where this picker appears: a card in the middle of the window, or a full-width strip along the bottom (like the Emacs minibuffer; its height follows `max_lines`). Starts from `lektra.opt.picker`'s value.
+---@field scrolloff? integer Rows the selection keeps between itself and the top or bottom of the list. Starts from `lektra.opt.picker`'s value.
+---@field max_lines? integer Rows an `emacs` style picker is high. Starts from `lektra.opt.picker`'s value.
 ---@field flat_menu? boolean Display the outline as a flat list instead of a tree.
 ---@field generate_heading_ratio? number Minimum font-size ratio (vs body text) for a line to be treated as a heading by `generate_outline`.
 ---@field generate_max_levels? integer Maximum number of heading tiers `generate_outline` will produce.
@@ -446,6 +452,9 @@ lektra.opt.outline = {}
 ---@field border? boolean Draw a border around the picker. Starts from `lektra.opt.picker`'s value.
 ---@field alternating_row_color? boolean Alternate row background colors. Starts from `lektra.opt.picker`'s value.
 ---@field shadow? OptPickerShadow Drop-shadow sub-table. Starts from `lektra.opt.picker`'s value.
+---@field style? "floating"|"emacs" Where this picker appears: a card in the middle of the window, or a full-width strip along the bottom (like the Emacs minibuffer; its height follows `max_lines`). Starts from `lektra.opt.picker`'s value.
+---@field scrolloff? integer Rows the selection keeps between itself and the top or bottom of the list. Starts from `lektra.opt.picker`'s value.
+---@field max_lines? integer Rows an `emacs` style picker is high. Starts from `lektra.opt.picker`'s value.
 ---@field flat_menu? boolean Display search results as a flat list.
 ---@field prompt? string Placeholder text shown in the highlight-search picker's search box.
 lektra.opt.highlight_search = {}
@@ -457,6 +466,9 @@ lektra.opt.highlight_search = {}
 ---@field border? boolean Draw a border around the picker. Starts from `lektra.opt.picker`'s value.
 ---@field alternating_row_color? boolean Alternate row background colors. Starts from `lektra.opt.picker`'s value.
 ---@field shadow? OptPickerShadow Drop-shadow sub-table. Starts from `lektra.opt.picker`'s value.
+---@field style? "floating"|"emacs" Where this picker appears: a card in the middle of the window, or a full-width strip along the bottom (like the Emacs minibuffer; its height follows `max_lines`). Starts from `lektra.opt.picker`'s value.
+---@field scrolloff? integer Rows the selection keeps between itself and the top or bottom of the list. Starts from `lektra.opt.picker`'s value.
+---@field max_lines? integer Rows an `emacs` style picker is high. Starts from `lektra.opt.picker`'s value.
 ---@field prompt? string Placeholder text shown in the command palette input.
 ---@field vscrollbar? boolean Show a vertical scrollbar in the command palette.
 ---@field shortcuts? boolean Show keyboard shortcuts next to commands.

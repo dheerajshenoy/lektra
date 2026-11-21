@@ -41,7 +41,9 @@ Picker::Picker(const Config::Picker &config, QWidget *parent) noexcept
     setFocusPolicy(Qt::StrongFocus);
 
     auto *outerLayout = new QVBoxLayout(this);
-    outerLayout->setContentsMargins(12, 12, 12, 12); // room for shadow bleed
+    // Room for the shadow to bleed, which a strip along the bottom has none of
+    const int margin = emacs() ? 0 : 12;
+    outerLayout->setContentsMargins(margin, margin, margin, margin);
     outerLayout->setSpacing(0);
 
     // Frame is the visible card — shadow is applied to this
@@ -105,6 +107,8 @@ Picker::Picker(const Config::Picker &config, QWidget *parent) noexcept
             rgbaToQColor(m_config.highlight_matches.color));
     }
 
+    connect(m_listView->selectionModel(), &QItemSelectionModel::currentChanged,
+            this, [this](const QModelIndex &current) { keepScrolloff(current); });
     connect(m_searchBox, &QLineEdit::textChanged, this,
             &Picker::onSearchChanged);
     connect(m_listView, &QTreeView::clicked, this, &Picker::onItemClicked);
@@ -140,6 +144,27 @@ Picker::reposition()
 {
     QWidget *p = parentWidget();
 
+    if (emacs())
+    {
+        // Full width along the bottom, `max_lines` rows high whatever it
+        // lists, so it does not change size while the list is filtered. The
+        // window leaves this space free, so the statusbar stays above the
+        // picker.
+        resize(p->width(), 200);
+        layout()->activate();
+        const int chrome = 200 - m_listView->viewport()->height();
+        const int rowH   = std::max(
+            m_proxy->rowCount() > 0 ? m_listView->sizeHintForRow(0) : 0,
+            fontMetrics().height() + 6);
+        const int ph
+            = std::min(chrome + m_config.max_lines * rowH, p->height());
+        resize(p->width(), ph);
+        move(0, p->height() - ph);
+        if (isVisible())
+            reserveBottom(ph);
+        return;
+    }
+
     float w = m_config.width, h = m_config.height;
 
     if (w > 0.0f && w <= 1.0f)
@@ -149,6 +174,50 @@ Picker::reposition()
 
     resize(static_cast<int>(w), static_cast<int>(h));
     move((p->width() - width()) / 2, (p->height() - height()) / 2);
+}
+
+// Scrolls the list so `scrolloff` rows show on each side of the selection.
+void
+Picker::keepScrolloff(const QModelIndex &current) noexcept
+{
+    if (!current.isValid() || m_config.scrolloff <= 0)
+        return;
+
+    QModelIndex above = current, below = current;
+    for (int i = 0; i < m_config.scrolloff; ++i)
+    {
+        if (const QModelIndex a = m_listView->indexAbove(above); a.isValid())
+            above = a;
+        if (const QModelIndex b = m_listView->indexBelow(below); b.isValid())
+            below = b;
+    }
+    m_listView->scrollTo(above, QAbstractItemView::EnsureVisible);
+    m_listView->scrollTo(below, QAbstractItemView::EnsureVisible);
+    m_listView->scrollTo(current, QAbstractItemView::EnsureVisible);
+}
+
+// Asks the window to keep `px` free at its bottom (0: gives it back).
+void
+Picker::reserveBottom(int px) noexcept
+{
+    if (QWidget *p = parentWidget())
+        QMetaObject::invokeMethod(p, "setBottomInset", Q_ARG(int, px));
+}
+
+void
+Picker::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    if (emacs())
+        reserveBottom(height());
+}
+
+void
+Picker::hideEvent(QHideEvent *event)
+{
+    QWidget::hideEvent(event);
+    if (emacs())
+        reserveBottom(0);
 }
 
 bool
@@ -472,6 +541,22 @@ Picker::applyFrameStyle() noexcept
 {
     if (!m_frame)
         return;
+
+    if (emacs())
+    {
+        // Part of the window, so no card: a line along the top edge only
+        m_frame->setObjectName("overlayFrameBorder");
+        m_frame->setStyleSheet(
+            m_config.border
+                ? "QFrame#overlayFrameBorder {"
+                  " background-color: palette(base);"
+                  " border-top: 1px solid palette(highlight); }"
+                : "QFrame#overlayFrameBorder {"
+                  " background-color: palette(base); }");
+        if (m_shadow_effect)
+            m_shadow_effect->setEnabled(false);
+        return;
+    }
 
     if (m_config.border)
     {

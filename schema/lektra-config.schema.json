@@ -1143,6 +1143,24 @@
           "description": "Prompt text for the picker (since 0.7.1)",
           "default": ""
         },
+        "style": {
+          "type": "string",
+          "enum": [
+            "floating",
+            "emacs"
+          ],
+          "description": "How pickers are placed: `floating` is a card in the middle of the window, `emacs` is a full-width strip along the bottom, like the Emacs minibuffer (its height is `max_lines` rows) (since 0.8.1)"
+        },
+        "scrolloff": {
+          "type": "integer",
+          "default": 0,
+          "description": "Rows the selection keeps between itself and the top or bottom edge of the list while it moves (like vim's scrolloff) (since 0.8.1)"
+        },
+        "max_lines": {
+          "type": "integer",
+          "default": 10,
+          "description": "Rows an `emacs` style picker is high, whatever it lists (since 0.8.1)"
+        },
         "highlight_matches": {
           "type": "object",
           "properties": {
@@ -1414,6 +1432,24 @@
           "default": "Outline",
           "description": "prompt text for the outline picker (since 0.7.1)"
         },
+        "style": {
+          "type": "string",
+          "enum": [
+            "floating",
+            "emacs"
+          ],
+          "description": "How pickers are placed: `floating` is a card in the middle of the window, `emacs` is a full-width strip along the bottom, like the Emacs minibuffer (its height is `max_lines` rows) (since 0.8.1)"
+        },
+        "scrolloff": {
+          "type": "integer",
+          "default": 0,
+          "description": "Rows the selection keeps between itself and the top or bottom edge of the list while it moves (like vim's scrolloff) (since 0.8.1)"
+        },
+        "max_lines": {
+          "type": "integer",
+          "default": 10,
+          "description": "Rows an `emacs` style picker is high, whatever it lists (since 0.8.1)"
+        },
         "indent_width": {
           "type": "integer",
           "default": 10,
@@ -1526,6 +1562,24 @@
           "default": "Search Highlights",
           "description": "prompt text for the highlight search picker (since 0.7.1)"
         },
+        "style": {
+          "type": "string",
+          "enum": [
+            "floating",
+            "emacs"
+          ],
+          "description": "How pickers are placed: `floating` is a card in the middle of the window, `emacs` is a full-width strip along the bottom, like the Emacs minibuffer (its height is `max_lines` rows) (since 0.8.1)"
+        },
+        "scrolloff": {
+          "type": "integer",
+          "default": 0,
+          "description": "Rows the selection keeps between itself and the top or bottom edge of the list while it moves (like vim's scrolloff) (since 0.8.1)"
+        },
+        "max_lines": {
+          "type": "integer",
+          "default": 10,
+          "description": "Rows an `emacs` style picker is high, whatever it lists (since 0.8.1)"
+        },
         "flat_menu": {
           "type": "boolean",
           "default": true,
@@ -1612,6 +1666,24 @@
           "type": "string",
           "default": "Command",
           "description": "prompt text for the command palette (since 0.7.1)"
+        },
+        "style": {
+          "type": "string",
+          "enum": [
+            "floating",
+            "emacs"
+          ],
+          "description": "How pickers are placed: `floating` is a card in the middle of the window, `emacs` is a full-width strip along the bottom, like the Emacs minibuffer (its height is `max_lines` rows) (since 0.8.1)"
+        },
+        "scrolloff": {
+          "type": "integer",
+          "default": 0,
+          "description": "Rows the selection keeps between itself and the top or bottom edge of the list while it moves (like vim's scrolloff) (since 0.8.1)"
+        },
+        "max_lines": {
+          "type": "integer",
+          "default": 10,
+          "description": "Rows an `emacs` style picker is high, whatever it lists (since 0.8.1)"
         },
         "description": {
           "type": "boolean",

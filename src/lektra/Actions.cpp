@@ -161,6 +161,18 @@ Lektra::gotoPage(int pageno) noexcept
 }
 
 void
+Lektra::setBottomInset(int px) noexcept
+{
+    if (!m_layout)
+        return;
+    if (m_layout_bottom_margin < 0)
+        m_layout_bottom_margin = m_layout->contentsMargins().bottom();
+    QMargins m = m_layout->contentsMargins();
+    m.setBottom(m_layout_bottom_margin + px);
+    m_layout->setContentsMargins(m);
+}
+
+void
 Lektra::GotoLocation(int pageno, float x, float y) noexcept
 {
     if (m_doc)
