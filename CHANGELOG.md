@@ -32,11 +32,12 @@
 
 ### Bug Fixes
 
-- Fix a possible crash when a document is closed while it is still opening (slow EPUBs in particular).
+- Fix a zoomed-in page staying blank after panning sideways in the vertical layouts (or up/down in the horizontal one).
 - A zoomed-in page now shows a blurry preview of the part that is still rendering instead of a blank area.
 - Pressing Enter on a directory in the file picker now opens it instead of closing the picker.
 - Fix a long delay before the first window when a recent file is on an unreachable network mount.
 - Dropping several files onto the window now respects `tabs.lazy_load` instead of opening them all.
+- Fix a possible crash when a document is closed while it is still opening (slow EPUBs in particular).
 - Fix the minimap becoming wider and fatter right after changing page.
 - Fix a crash with a document that has no pages, such as a PDF that is still being written. It is no longer opened, and a reload keeps the current document.
 - Closing the last tab no longer leaves "Start Page" or "Messages" in the statusbar.

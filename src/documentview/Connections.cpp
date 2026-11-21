@@ -435,8 +435,26 @@ DocumentView::initConnections() noexcept
     connect(m_model, &Model::documentRelayouted, this,
             &DocumentView::handleDocumentRelayouted, Qt::UniqueConnection);
 
+    // A deeply zoomed page is only rendered around the visible part, so
+    // panning along the axis the layout does not scroll in (sideways in a
+    // vertical layout, up/down in a horizontal one) can leave that part and
+    // needs a fresh render too; otherwise the new part stays blank.
+    auto refreshRegions = [this]
+    {
+        invalidateVisiblePagesCache();
+        for (int pageno : getVisiblePages())
+        {
+            if (regionNeedsRefresh(pageno))
+            {
+                m_scroll_page_update_timer->start();
+                return;
+            }
+        }
+    };
+
     if (m_layout_mode == LayoutMode::HORIZONTAL)
     {
+        connect(m_vscroll, &QScrollBar::valueChanged, this, refreshRegions);
         connect(m_hscroll, &QScrollBar::valueChanged, this,
                 &DocumentView::handleHScrollValueChanged, Qt::UniqueConnection);
 
@@ -450,6 +468,7 @@ DocumentView::initConnections() noexcept
              || m_layout_mode == LayoutMode::BOOK
              || m_layout_mode == LayoutMode::GRID)
     {
+        connect(m_hscroll, &QScrollBar::valueChanged, this, refreshRegions);
         connect(m_vscroll, &QScrollBar::valueChanged, this,
                 &DocumentView::handleVScrollValueChanged, Qt::UniqueConnection);
 
