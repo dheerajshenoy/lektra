@@ -173,6 +173,13 @@ Lektra::setBottomInset(int px) noexcept
 }
 
 void
+Lektra::focusDocument() noexcept
+{
+    if (m_doc)
+        m_doc->setFocus();
+}
+
+void
 Lektra::GotoLocation(int pageno, float x, float y) noexcept
 {
     if (m_doc)

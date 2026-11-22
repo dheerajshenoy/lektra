@@ -125,6 +125,10 @@ void
 Picker::launch() noexcept
 {
     m_searchBox->clear();
+    // Re-launching while open must not remember the picker's own search box
+    if (QWidget *fw = QApplication::focusWidget();
+        fw && fw != this && !isAncestorOf(fw))
+        m_prev_focus = fw;
     populate(collectItems());
     // Show first: a hidden widget defers its children's resize events, so the
     // list's viewport height reposition() measures would be stale and the
@@ -210,6 +214,26 @@ Picker::reserveBottom(int px) noexcept
 }
 
 void
+Picker::closeAndRestoreFocus() noexcept
+{
+    // An accepted item may have moved the focus on purpose (a new tab, another
+    // picker); only take it back when it is still in this picker
+    QWidget *fw             = QApplication::focusWidget();
+    const bool holdsFocus = !fw || fw == this || isAncestorOf(fw);
+
+    hide();
+
+    if (holdsFocus)
+    {
+        if (m_prev_focus && m_prev_focus->isVisible())
+            m_prev_focus->setFocus();
+        else if (QWidget *p = parentWidget())
+            QMetaObject::invokeMethod(p, "focusDocument");
+    }
+    m_prev_focus.clear();
+}
+
+void
 Picker::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
@@ -273,9 +297,7 @@ Picker::eventFilter(QObject *watched, QEvent *event)
             if (m_keys.dismiss.contains(normalizedKey(keyEvent)))
             {
                 releaseInputGrab();
-                hide();
-                if (parentWidget())
-                    parentWidget()->setFocus();
+                closeAndRestoreFocus();
                 return true;
             }
         }
@@ -461,7 +483,7 @@ Picker::onItemActivated(const QModelIndex &index)
     emit itemSelected(item);
     onItemAccepted(item);
     if (!keepOpen)
-        hide();
+        closeAndRestoreFocus();
 }
 
 void

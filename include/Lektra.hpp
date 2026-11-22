@@ -394,6 +394,9 @@ public:
     // Keeps `px` free at the bottom of the window, for a picker shown as a
     // strip there (0: gives the space back)
     Q_INVOKABLE void setBottomInset(int px) noexcept;
+    // Gives the keyboard focus to the current document view (a picker that
+    // closes has nothing else to hand it back to)
+    Q_INVOKABLE void focusDocument() noexcept;
     // Settings shared by every picker
     const Config::Picker &pickerConfig() const noexcept
     {

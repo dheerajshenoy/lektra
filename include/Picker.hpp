@@ -3,6 +3,7 @@
 #include "HighlightDelegate.hpp"
 
 #include <QLineEdit>
+#include <QPointer>
 #include <QShortcut>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
@@ -365,12 +366,16 @@ private slots:
 
 private:
     void reserveBottom(int px) noexcept;
+    // Hides the picker; if it held the focus, hands it back to the widget that
+    // had it before the picker opened (else the document view)
+    void closeAndRestoreFocus() noexcept;
     void keepScrolloff(const QModelIndex &current) noexcept;
     void applyFrameStyle() noexcept;
     Item itemAtProxyIndex(const QModelIndex &index) const;
 
 private:
     QVector<QString> m_history;
+    QPointer<QWidget> m_prev_focus;
     QLabel *m_promptLabel                      = nullptr;
     QFrame *m_frame                            = nullptr;
     QStandardItemModel *m_model                = nullptr;
