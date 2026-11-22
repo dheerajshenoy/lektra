@@ -73,8 +73,10 @@ Picker::Picker(const Config::Picker &config, QWidget *parent) noexcept
 
     // Inner layout lives on the frame, widgets parented to frame
     auto *innerLayout = new QVBoxLayout(m_frame);
-    innerLayout->setContentsMargins(8, 8, 8, 8);
-    innerLayout->setSpacing(4);
+    // The emacs strip is part of the window, so it has no card padding: the
+    // search box and the list run edge to edge
+    innerLayout->setContentsMargins(emacs() ? QMargins() : QMargins(8, 8, 8, 8));
+    innerLayout->setSpacing(emacs() ? 0 : 4);
 
     auto *hboxLayout = new QHBoxLayout();
     hboxLayout->setContentsMargins(0, 0, 0, 0);
