@@ -606,8 +606,8 @@
                 },
                 "full_path": {
                   "type": "boolean",
-                  "default": true,
-                  "description": "Show full path (since 0.7.0)"
+                  "default": false,
+                  "description": "Show the full path instead of just the file name (since 0.7.0)"
                 }
               },
               "additionalProperties": false,

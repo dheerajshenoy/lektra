@@ -584,11 +584,11 @@ struct Config
                 // @added 0.7.0
                 bool show = true;
 
-                // @desc Show full path
+                // @desc Show the full path instead of just the file name
                 // @type bool
-                // @default true
+                // @default false
                 // @added 0.7.0
-                bool full_path = true;
+                bool full_path = false;
             } filename;
             // @endsection
 

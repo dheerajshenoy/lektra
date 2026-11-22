@@ -10,6 +10,7 @@
     - `annotations.<type>.glow` (was `hover_glow`, `glow_width`, `glow_color`) and `annotations.<type>.comment` (was `comment`, `comment_marker`, `comment_font_size`; now `tooltip`, `marker`, `font_size`)
     - `behavior.high_contrast`, `laser_pointer.trail` and `rendering.antialiasing` (was `high_contrast_black_point`, `trail_fade_ms`, `antialiasing_bits`, ...)
     - `highlight_matches` of `picker`, `outline`, `command_palette` and `highlight_search` (was `highlight_matches` and `highlight_matches_color`)
+- The statusbar's `filename` module now shows only the file name, not the whole path. Set `statusbar.components.filename.full_path = true` to get the path back.
 - Lua: event callbacks now receive one table, `event`, instead of separate arguments: use `event.view` (was the view argument), `event.index`, `event.name`, `event.bookmark`, `event.screen`, `event.link`, and so on.
 
 ### New Features
