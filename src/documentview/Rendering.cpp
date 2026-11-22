@@ -1501,6 +1501,13 @@ DocumentView::clearDocumentItems() noexcept
         if (item != m_selection_path_item && item != m_current_search_hit_item
             && item != m_jump_marker && item != m_visual_line_item)
         {
+            // The caret items are deleted here too, and the blink timer and
+            // the locate animation keep using them: forget them (renderCaret()
+            // makes them again) instead of leaving dangling pointers
+            if (item == m_caret_item)
+                m_caret_item = nullptr;
+            if (item == m_caret_locate_item)
+                m_caret_locate_item = nullptr;
             m_gscene->removeItem(item);
             delete item;
         }
