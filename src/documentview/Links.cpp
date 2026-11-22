@@ -435,9 +435,12 @@ DocumentView::ensureHoverSetup() noexcept
                     m_hover_preview = new LinkHoverPreview(this);
                 m_hover_preview->applyStyle(m_global.preview.border_radius,
                                             m_global.preview.opacity);
-                m_hover_preview->showPreview(QPixmap::fromImage(image),
-                                             tr("Page %1").arg(done.page + 1),
-                                             done.globalPos);
+                m_hover_preview->showPreview(
+                    QPixmap::fromImage(image),
+                    m_config.links.hover_preview.page_number
+                        ? tr("Page %1").arg(done.page + 1)
+                        : QString(),
+                    done.globalPos);
             }
             // A newer hover may have been waiting for the worker.
             if (m_has_hover_pending && !m_hover_timer->isActive())

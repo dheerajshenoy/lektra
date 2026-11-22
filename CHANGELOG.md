@@ -18,6 +18,7 @@
 - `llm_view.max_history_messages` sends only the last N of your messages (with the replies after them) to the model; the chat itself stays complete.
 - Markdown files show the images next to them (`![](pic.png)`).
 - `picker.style = "emacs"` shows pickers as a full-width strip along the bottom of the window, like the Emacs minibuffer, `picker.max_lines` rows high. The default, `"floating"`, is the card in the middle. `picker.scrolloff` keeps some rows between the selection and the edge of the list.
+- `links.hover_preview.page_number = false` hides the page number under the link hover preview, and its frame is tighter around the picture.
 - The link hover preview now shows just the entry or paragraph the link points at (a reference, say), not the text around it; `links.hover_preview.height` is the most it shows and `links.hover_preview.context` (default 12 points) keeps a little above and below, and a short entry is centred in at least 40% of the height.
 - `show_header = false` hides the column headers of pickers. Set it in `picker` for all of them, or in `outline`, `highlight_search` or `command_palette` for just that one.
 - `count_format` shows how many rows match next to the picker's search box: the first `%s` is the number of matches, the second the total, so `"%s/%s"` shows `12/340`. Same places as `show_header`; empty (the default) shows nothing.

@@ -22,8 +22,8 @@ public:
         setFocusPolicy(Qt::NoFocus);
 
         auto *layout = new QVBoxLayout(this);
-        layout->setContentsMargins(6, 6, 6, 6);
-        layout->setSpacing(4);
+        layout->setContentsMargins(2, 2, 2, 2);
+        layout->setSpacing(2);
 
         m_image = new QLabel(this);
         m_image->setAlignment(Qt::AlignCenter);
@@ -55,20 +55,23 @@ public:
         m_caption->setVisible(!caption.isEmpty());
         adjustSize();
 
-        // Beside the cursor, kept inside the screen it is on.
+        // The screen the pointer is on.
         QRect area;
         if (QScreen *screen = QGuiApplication::screenAt(globalPos))
             area = screen->availableGeometry();
         else if (QScreen *primary = QGuiApplication::primaryScreen())
             area = primary->availableGeometry();
 
-        QPoint pos = globalPos + QPoint(16, 18);
+        // Centred under the pointer, clear of it (the hand cursor reaches
+        // about 24 px below its hot spot) and of the link text: a gap below,
+        // or above when there is no room below. It only moves sideways as far
+        // as the screen needs.
+        constexpr int kGap = 34;
+        QPoint pos(globalPos.x() - width() / 2, globalPos.y() + kGap);
         if (!area.isNull())
         {
-            if (pos.x() + width() > area.right())
-                pos.setX(globalPos.x() - width() - 16);
             if (pos.y() + height() > area.bottom())
-                pos.setY(globalPos.y() - height() - 16);
+                pos.setY(globalPos.y() - height() - kGap);
             pos.setX(qBound(area.left(), pos.x(),
                             qMax(area.left(), area.right() - width())));
             pos.setY(qBound(area.top(), pos.y(),

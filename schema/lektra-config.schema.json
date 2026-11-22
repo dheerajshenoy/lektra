@@ -988,6 +988,11 @@
               "default": 350,
               "description": "Milliseconds to hover over a link before its preview shows (since 0.8.1)"
             },
+            "page_number": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show the page number of the target under the preview (since 0.8.1)"
+            },
             "width": {
               "type": "integer",
               "default": 480,
@@ -3006,6 +3011,11 @@
                     "type": "integer",
                     "default": 350,
                     "description": "Milliseconds to hover over a link before its preview shows (since 0.8.1)"
+                  },
+                  "page_number": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show the page number of the target under the preview (since 0.8.1)"
                   },
                   "width": {
                     "type": "integer",

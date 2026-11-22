@@ -478,6 +478,7 @@ build()
     r.text("url_regex", F(links.url_regex));
     r.boolean("hover_preview.enabled", F(links.hover_preview.enabled));
     r.integer("hover_preview.delay", F(links.hover_preview.delay));
+    r.boolean("hover_preview.page_number", F(links.hover_preview.page_number));
     r.integer("hover_preview.width", F(links.hover_preview.width));
     r.integer("hover_preview.height", F(links.hover_preview.height));
     r.integer("hover_preview.context", F(links.hover_preview.context)).range(0, 200);

@@ -1115,6 +1115,12 @@ struct Config
             // @added 0.8.1
             int delay = 350;
 
+            // @desc Show the page number of the target under the preview
+            // @type bool
+            // @default true
+            // @added 0.8.1
+            bool page_number = true;
+
             // @desc Width of the preview in pixels
             // @type int
             // @default 480
