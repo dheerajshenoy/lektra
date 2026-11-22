@@ -125,8 +125,12 @@ Picker::launch() noexcept
 {
     m_searchBox->clear();
     populate(collectItems());
-    reposition();
+    // Show first: a hidden widget defers its children's resize events, so the
+    // list's viewport height reposition() measures would be stale and the
+    // emacs strip came out too short on the first call. Nothing paints before
+    // control returns to the event loop, so there is no flicker.
     show();
+    reposition();
     raise();
     m_listView->setCurrentIndex(m_proxy->index(0, 0));
     m_searchBox->setFocus();
