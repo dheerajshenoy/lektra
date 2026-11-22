@@ -1138,6 +1138,11 @@
           "default": true,
           "description": "Enable alternating row colors in the picker list (since 0.6.8)"
         },
+        "show_header": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the column headers above the picker list (since 0.8.1)"
+        },
         "prompt": {
           "type": "string",
           "description": "Prompt text for the picker (since 0.7.1)",
@@ -1427,6 +1432,11 @@
           "default": true,
           "description": "Enable alternating row colors in the picker list (since 0.6.8)"
         },
+        "show_header": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the column headers above the picker list (since 0.8.1)"
+        },
         "prompt": {
           "type": "string",
           "default": "Outline",
@@ -1557,6 +1567,11 @@
           "default": true,
           "description": "Enable alternating row colors in the picker list (since 0.6.8)"
         },
+        "show_header": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the column headers above the picker list (since 0.8.1)"
+        },
         "prompt": {
           "type": "string",
           "default": "Search Highlights",
@@ -1661,6 +1676,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable alternating row colors in the picker list (since 0.6.8)"
+        },
+        "show_header": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the column headers above the picker list (since 0.8.1)"
         },
         "prompt": {
           "type": "string",

@@ -83,6 +83,7 @@ Picker::Picker(const Config::Picker &config, QWidget *parent) noexcept
     m_listView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_listView->setFrameShape(QFrame::NoFrame);
     m_listView->header()->setStretchLastSection(true);
+    m_listView->setHeaderHidden(!m_config.show_header);
     m_listView->setAlternatingRowColors(m_config.alternating_row_color);
     m_listView->setSelectionMode(QAbstractItemView::SingleSelection);
     m_listView->setSelectionBehavior(QAbstractItemView::SelectRows);

@@ -1303,6 +1303,12 @@ struct Config
         // @added 0.6.8
         bool alternating_row_color = true;
 
+        // @desc Show the column headers above the picker list
+        // @type bool
+        // @default true
+        // @added 0.8.1
+        bool show_header = true;
+
         // @desc {
         // How pickers are placed: `floating` is a card in the middle of the
         // window, `emacs` is a full-width strip along the bottom, like the
