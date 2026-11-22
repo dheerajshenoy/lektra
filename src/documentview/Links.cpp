@@ -499,6 +499,8 @@ DocumentView::startHoverRender() noexcept
     const qreal dpr = devicePixelRatioF();
     Model *model    = m_model;
     const auto mode = m_config.links.hover_preview.highlight;
+    const double context
+        = std::clamp(m_config.links.hover_preview.context, 0, 200);
     const QColor markColor = rgbaToQColor(m_config.jump_marker.color);
     // The overlay is placed in unrotated page space.
     const bool canMark = model->rotation() == 0.0f && !model->isFlippedH()
@@ -526,12 +528,54 @@ DocumentView::startHoverRender() noexcept
             x0      = std::clamp(found.column.center().x() - regionW / 2, 0.0,
                                  page.width() - regionW);
         }
-        const double regionH = std::min<double>(
+        // The most that is shown: the preview's proportions.
+        const double maxH = std::min<double>(
             page.height(), regionW * size.height() / size.width());
-        const double y0 = std::isnan(req.y)
-                              ? 0.0
-                              : std::clamp<double>(req.y - regionH * 0.25, 0.0,
-                                                   page.height() - regionH);
+
+        double regionH = maxH;
+        double y0      = std::isnan(req.y)
+                             ? 0.0
+                             : std::clamp<double>(req.y - maxH * 0.25, 0.0,
+                                                  page.height() - maxH);
+
+        // Just the entry or paragraph the link points at, with `context`
+        // points around it, cut off at the most: neighbours above and below
+        // are not what the link is about. The line and marker styles also
+        // keep the destination in view (it is often a line above the text).
+        if (!found.block.isNull() && !std::isnan(req.y))
+        {
+            double top = found.block.top();
+            if (mode == Config::Links::HoverPreview::Highlight::Line
+                || mode == Config::Links::HoverPreview::Highlight::Marker)
+                top = std::min<double>(top, req.y);
+            top = std::max(0.0, top - context);
+
+            // Never past the last text of the column (a footnote is at the
+            // foot of the page: below it is only margin)
+            const double limit
+                = found.column.isNull()
+                      ? page.height()
+                      : std::min<double>(page.height(),
+                                         found.column.bottom() + context);
+            double bottom = std::min<double>(found.block.bottom() + context,
+                                             std::max(limit, top));
+
+            // Not a thin strip: a short entry gets at least 40% of the most
+            // that is shown, from the text around it (above first when there
+            // is none below)
+            const double minH = 0.4 * maxH;
+            if (bottom - top < minH)
+            {
+                const double need  = minH - (bottom - top);
+                const double below = std::min(need / 2, std::max(0.0, limit - bottom));
+                bottom += below;
+                top = std::max(0.0, top - (need - below));
+                if (bottom - top < minH) // at the top of the page
+                    bottom = std::min<double>(page.height(), top + minH);
+            }
+            regionH = std::min(bottom - top, maxH);
+            y0      = std::clamp(top, 0.0, page.height() - regionH);
+        }
 
         // Pixels needed: the region's width at the preview's device size.
         const float dpi

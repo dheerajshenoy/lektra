@@ -50,6 +50,10 @@
 - [ ] Make tab sizes fixed while closing tabs rapidly (like Chrome) instead of shrinking them to fit
 - [ ] Pin Tabs
 - [ ] Duplicating a tab keeps the page, zoom and scroll position of the original tab.
+- [ ] Slow render of pages that draw one huge image many times (e.g. `Single Frequency CMB Foreground Removal with Inter-scale Machine Learning.pdf`, page 18: a grid of 30 panels cut from one 10437x4584 image takes ~1.7 s to render, and again on every zoom change)
+    + Cause: MuPDF decodes only the clipped part of the image for each draw and caches each tile under its own key, so the 30 draws share nothing and the 3.5 MB stream is inflated about 30 times (~90% of the time is zlib inflate; ICC, store size and the zlib version make no difference).
+    + Plan: before each `fz_run_display_list` that draws a page (`Model::render*` in `src/model/Render.cpp`), run the display list through a small device that handles only `fill_image`; for each image of 4 Mpx or more call `fz_get_pixmap_from_image(ctx, image, NULL, &ctm, ...)` once and drop the pixmap, so MuPDF has a whole-image tile in its store that every draw of that image then uses. Only when the image is shown at half its size or smaller (otherwise it would decode the whole 143 MB image).
+    + In a standalone MuPDF test this took the page from ~1.7 s to 0.76 s the first time and 0.16-0.38 s on later zoom changes. Still to check in the app: the real pipeline (display lists, viewport-clipped tiles at high zoom), memory use, and why the first render is still ~0.8 s (probably panels with slightly different transforms getting different cache keys).
 
 ## LOW PRIORITY
 

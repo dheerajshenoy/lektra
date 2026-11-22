@@ -322,9 +322,10 @@ lektra.opt.minimap = {
 lektra.opt.jump_marker = {}
 
 ---@class OptLinksHoverPreview
+---@field context? integer Points of the page kept above and below the entry or paragraph the link points at; 0 shows only the entry.
 ---@field delay? integer Milliseconds to hover before the preview shows.
 ---@field enabled? boolean Hovering an internal link shows a preview of its target, instead of the tooltip.
----@field height? integer Height of the preview in pixels.
+---@field height? integer Most height of the preview in pixels (a link to an entry shows just that, so it is often shorter).
 ---@field highlight? "block"|"line"|"marker"|"none" How the preview shows what the link points at: shade the paragraph there, a line, a square like the jump marker, or nothing (uses jump_marker.color).
 ---@field width? integer Width of the preview in pixels.
 

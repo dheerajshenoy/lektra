@@ -996,7 +996,12 @@
             "height": {
               "type": "integer",
               "default": 240,
-              "description": "Height of the preview in pixels (since 0.8.1)"
+              "description": "Height of the preview in pixels. A link to an entry or paragraph shows just that, so the preview is often shorter; this is the most it shows (since 0.8.1)"
+            },
+            "context": {
+              "type": "integer",
+              "default": 12,
+              "description": "Points of the page kept above and below the entry or paragraph a link points at, for a little context. A short entry is shown with more than this, centred, so the preview is not a thin strip. 0 shows only the entry (and the least height) (since 0.8.1)"
             },
             "highlight": {
               "type": "string",
@@ -3010,7 +3015,12 @@
                   "height": {
                     "type": "integer",
                     "default": 240,
-                    "description": "Height of the preview in pixels (since 0.8.1)"
+                    "description": "Height of the preview in pixels. A link to an entry or paragraph shows just that, so the preview is often shorter; this is the most it shows (since 0.8.1)"
+                  },
+                  "context": {
+                    "type": "integer",
+                    "default": 12,
+                    "description": "Points of the page kept above and below the entry or paragraph a link points at, for a little context. A short entry is shown with more than this, centred, so the preview is not a thin strip. 0 shows only the entry (and the least height) (since 0.8.1)"
                   },
                   "highlight": {
                     "type": "string",

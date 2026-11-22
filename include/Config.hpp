@@ -1121,11 +1121,26 @@ struct Config
             // @added 0.8.1
             int width = 480;
 
-            // @desc Height of the preview in pixels
+            // @desc {
+            // Height of the preview in pixels. A link to an entry or
+            // paragraph shows just that, so the preview is often shorter;
+            // this is the most it shows
+            // }
             // @type int
             // @default 240
             // @added 0.8.1
             int height = 240;
+
+            // @desc {
+            // Points of the page kept above and below the entry or paragraph
+            // a link points at, for a little context. A short entry is
+            // shown with more than this, centred, so the preview is not a thin
+            // strip. 0 shows only the entry (and the least height)
+            // }
+            // @type int
+            // @default 12
+            // @added 0.8.1
+            int context = 12;
 
             // @desc {
             // How the preview shows what the link points at: block shades

@@ -480,6 +480,7 @@ build()
     r.integer("hover_preview.delay", F(links.hover_preview.delay));
     r.integer("hover_preview.width", F(links.hover_preview.width));
     r.integer("hover_preview.height", F(links.hover_preview.height));
+    r.integer("hover_preview.context", F(links.hover_preview.context)).range(0, 200);
     r.choice("hover_preview.highlight", F(links.hover_preview.highlight), kHoverHighlight);
 
     r.section("link_hints", PerView);
