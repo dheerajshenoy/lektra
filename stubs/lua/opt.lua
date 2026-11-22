@@ -250,6 +250,10 @@ lektra.opt.zoom = {}
 ---@field drag_threshold? integer Pixel distance before a drag is recognized.
 lektra.opt.selection = {}
 
+---@class OptCaret
+---@field shape? "beam"|"block" Caret shape in caret mode: a thin line before the character, or a block over it.
+lektra.opt.caret = {}
+
 ---@class OptSplitDimInactive
 ---@field enabled? boolean Dim the inactive split pane.
 ---@field opacity? number Opacity of the dimming (0.0–1.0).

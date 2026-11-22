@@ -1029,6 +1029,10 @@ private:
     // it can't be resolved (no page item, empty page, etc).
     QRectF caretSceneRect(const std::vector<Model::CachedTextChar> &chars,
                           int pageno, int index) const noexcept;
+    // The rect the caret is drawn in: caretSceneRect() for a beam, the
+    // character's box for a block
+    QRectF caretDrawRect(const std::vector<Model::CachedTextChar> &chars,
+                         int pageno, int index) const noexcept;
     // Page-point rect -> scene rect on the page's item.
     QRectF pagePointsToScene(GraphicsImageItem *pageItem,
                              const QRectF &pagePts) const noexcept;

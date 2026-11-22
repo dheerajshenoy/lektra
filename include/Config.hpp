@@ -756,6 +756,29 @@ struct Config
     } selection;
     // @endsection
 
+    // @section caret
+    // @section_desc Caret mode options struct
+    // @section_type struct
+    // @section_added 0.8.1
+    struct Caret
+    {
+        // @desc {
+        // Shape of the caret: `beam` is a thin line before the character,
+        // `block` covers the character it is on
+        // }
+        // @type str
+        // @choice beam, block
+        // @default block
+        // @added 0.8.1
+        enum class Shape
+        {
+            Beam = 0,
+            Block
+        };
+        Shape shape = Shape::Block;
+    } caret;
+    // @endsection
+
     // @section split
     // @section_desc Split options struct
     // @section_type struct

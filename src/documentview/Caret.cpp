@@ -386,6 +386,51 @@ DocumentView::caretSceneRect(const std::vector<Model::CachedTextChar> &chars,
         pageItem, QRectF(x - 0.6, top, 1.2, std::max(1.0, bottom - top)));
 }
 
+QRectF
+DocumentView::caretDrawRect(const std::vector<Model::CachedTextChar> &chars,
+                            int pageno, int index) const noexcept
+{
+    if (m_config.caret.shape != Config::Caret::Shape::Block)
+        return caretSceneRect(chars, pageno, index);
+
+    GraphicsImageItem *pageItem = m_page_items_hash.value(pageno, nullptr);
+    const int n                 = static_cast<int>(chars.size());
+    if (!pageItem || n == 0)
+        return {};
+
+    const auto box = [](const fz_quad &q, double &left, double &right,
+                        double &top, double &bottom)
+    {
+        left   = std::min(q.ul.x, q.ll.x);
+        right  = std::max(q.ur.x, q.lr.x);
+        top    = std::min({q.ul.y, q.ur.y, q.ll.y, q.lr.y});
+        bottom = std::max({q.ul.y, q.ur.y, q.ll.y, q.lr.y});
+    };
+
+    double left, right, top, bottom;
+    if (index < n && chars[index].rune != '\n')
+    {
+        box(chars[index].quad, left, right, top, bottom);
+    }
+    else
+    {
+        // At the end of a line or the page: a block after the last character
+        int j = std::min(index, n) - 1;
+        while (j >= 0 && chars[j].rune == '\n')
+            j--;
+        if (j < 0)
+            return {};
+        box(chars[j].quad, left, right, top, bottom);
+        const double width = std::max(right - left, 0.5 * (bottom - top));
+        left               = right;
+        right              = left + width;
+    }
+
+    return pagePointsToScene(pageItem,
+                             QRectF(left, top, std::max(1.0, right - left),
+                                    std::max(1.0, bottom - top)));
+}
+
 bool
 DocumentView::caretSelectionPoint(
     const std::vector<Model::CachedTextChar> &chars, int pageno, int index,
@@ -790,7 +835,7 @@ DocumentView::renderCaret() noexcept
         return;
 
     const QRectF rect
-        = caretSceneRect(m_caret_chars, m_caret_pageno, m_caret_index);
+        = caretDrawRect(m_caret_chars, m_caret_pageno, m_caret_index);
     m_caret_render_pending = rect.isEmpty();
     if (rect.isEmpty())
     {
@@ -804,7 +849,6 @@ DocumentView::renderCaret() noexcept
     if (!m_caret_item)
     {
         m_caret_item = m_gscene->addPath(path);
-        m_caret_item->setBrush(QBrush(Qt::red));
         m_caret_item->setPen(Qt::NoPen);
         m_caret_item->setZValue(ZVALUE_TEXT_SELECTION + 1);
     }
@@ -812,6 +856,10 @@ DocumentView::renderCaret() noexcept
     {
         m_caret_item->setPath(path);
     }
+    // A block must leave the character under it readable
+    m_caret_item->setBrush(m_config.caret.shape == Config::Caret::Shape::Block
+                               ? QBrush(QColor(255, 0, 0, 110))
+                               : QBrush(Qt::red));
     m_caret_item->setVisible(true);
 
     if (m_caret_blink_timer)

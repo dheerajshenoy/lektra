@@ -224,6 +224,11 @@ constexpr Choice kElideMode[] = {
     {"middle", (int)Qt::ElideMiddle},
 };
 
+constexpr Choice kCaretShape[] = {
+    {"beam", (int)Config::Caret::Shape::Beam},
+    {"block", (int)Config::Caret::Shape::Block},
+};
+
 constexpr Choice kTabLocation[] = {
     {"top", (int)QTabWidget::North},
     {"bottom", (int)QTabWidget::South},
@@ -420,6 +425,9 @@ build()
     r.integer("drag_threshold", F(selection.drag_threshold));
     r.boolean("copy_on_select", F(selection.copy_on_select));
     r.color("color", F(selection.color));
+
+    r.section("caret", View);
+    r.choice("shape", F(caret.shape), kCaretShape);
 
     r.section("split", PerView);
     r.boolean("mouse_follows_focus", F(split.mouse_follows_focus));

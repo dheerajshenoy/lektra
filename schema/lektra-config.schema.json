@@ -700,6 +700,21 @@
       "additionalProperties": false,
       "description": "Selection options struct (since 0.5.1)"
     },
+    "caret": {
+      "type": "object",
+      "properties": {
+        "shape": {
+          "type": "string",
+          "enum": [
+            "beam",
+            "block"
+          ],
+          "description": "Shape of the caret: `beam` is a thin line before the character, `block` covers the character it is on (since 0.8.1)"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Caret mode options struct (since 0.8.1)"
+    },
     "split": {
       "type": "object",
       "properties": {
@@ -2778,6 +2793,21 @@
             },
             "additionalProperties": false,
             "description": "Selection options struct (since 0.5.1)"
+          },
+          "caret": {
+            "type": "object",
+            "properties": {
+              "shape": {
+                "type": "string",
+                "enum": [
+                  "beam",
+                  "block"
+                ],
+                "description": "Shape of the caret: `beam` is a thin line before the character, `block` covers the character it is on (since 0.8.1)"
+              }
+            },
+            "additionalProperties": false,
+            "description": "Caret mode options struct (since 0.8.1)"
           },
           "scrollbars": {
             "type": "object",
