@@ -1310,6 +1310,17 @@ struct Config
         bool show_header = true;
 
         // @desc {
+        // Text shown at the right of the search box with the number of rows
+        // that match the typed text. The first `%s` becomes that number, the
+        // second the number of rows in all, e.g. `"%s/%s"` shows "12/340". An
+        // empty string shows nothing
+        // }
+        // @type str
+        // @default ""
+        // @added 0.8.1
+        QString count_format = QString();
+
+        // @desc {
         // How pickers are placed: `floating` is a card in the middle of the
         // window, `emacs` is a full-width strip along the bottom, like the
         // Emacs minibuffer (its height is `max_lines` rows)

@@ -1007,6 +1007,11 @@ Lektra::loadLuaConfig() noexcept
 
         const bool hl_before = m_config.picker.highlight_matches.enabled;
         const bool header_before = m_config.picker.show_header;
+        const QString count_before = m_config.picker.count_format;
+        const QString derived_count_before[]
+            = {m_config.outline.count_format,
+               m_config.highlight_search.count_format,
+               m_config.command_palette.count_format};
         const bool derived_header_before[]
             = {m_config.outline.show_header,
                m_config.highlight_search.show_header,
@@ -1042,6 +1047,9 @@ Lektra::loadLuaConfig() noexcept
                                      &m_config.command_palette};
         for (size_t i = 0; i < std::size(derived); ++i)
         {
+            if (m_config.picker.count_format != count_before
+                && derived[i]->count_format == derived_count_before[i])
+                derived[i]->count_format = m_config.picker.count_format;
             if (m_config.picker.show_header != header_before
                 && derived[i]->show_header == derived_header_before[i])
                 derived[i]->show_header = m_config.picker.show_header;

@@ -413,6 +413,7 @@ lektra.opt.tabs = {}
 ---@field border? boolean Draw a border around the picker.
 ---@field alternating_row_color? boolean Alternate row background colors in the picker list.
 ---@field show_header? boolean Show the column headers above the picker list.
+---@field count_format? string Text shown at the right of the search box with the match count: the first `%s` is the number of matches, the second the total, e.g. `"%s/%s"`. Empty shows nothing.
 ---@field prompt? string Placeholder text shown in the picker's search box.
 ---@field scrolloff? integer Rows the selection keeps between itself and the top or bottom of the list while it moves.
 ---@field max_lines? integer Rows an `emacs` style picker is high, whatever it lists.
@@ -434,6 +435,7 @@ lektra.opt.picker = {
 ---@field border? boolean Draw a border around the picker. Starts from `lektra.opt.picker`'s value.
 ---@field alternating_row_color? boolean Alternate row background colors. Starts from `lektra.opt.picker`'s value.
 ---@field show_header? boolean Show the column headers above the list. Starts from `lektra.opt.picker`'s value.
+---@field count_format? string Text with the match count next to the search box (`%s` = matches, then total). Starts from `lektra.opt.picker`'s value.
 ---@field shadow? OptPickerShadow Drop-shadow sub-table. Starts from `lektra.opt.picker`'s value.
 ---@field style? "floating"|"emacs" Where this picker appears: a card in the middle of the window, or a full-width strip along the bottom (like the Emacs minibuffer; its height follows `max_lines`). Starts from `lektra.opt.picker`'s value.
 ---@field scrolloff? integer Rows the selection keeps between itself and the top or bottom of the list. Starts from `lektra.opt.picker`'s value.
@@ -454,6 +456,7 @@ lektra.opt.outline = {}
 ---@field border? boolean Draw a border around the picker. Starts from `lektra.opt.picker`'s value.
 ---@field alternating_row_color? boolean Alternate row background colors. Starts from `lektra.opt.picker`'s value.
 ---@field show_header? boolean Show the column headers above the list. Starts from `lektra.opt.picker`'s value.
+---@field count_format? string Text with the match count next to the search box (`%s` = matches, then total). Starts from `lektra.opt.picker`'s value.
 ---@field shadow? OptPickerShadow Drop-shadow sub-table. Starts from `lektra.opt.picker`'s value.
 ---@field style? "floating"|"emacs" Where this picker appears: a card in the middle of the window, or a full-width strip along the bottom (like the Emacs minibuffer; its height follows `max_lines`). Starts from `lektra.opt.picker`'s value.
 ---@field scrolloff? integer Rows the selection keeps between itself and the top or bottom of the list. Starts from `lektra.opt.picker`'s value.
@@ -469,6 +472,7 @@ lektra.opt.highlight_search = {}
 ---@field border? boolean Draw a border around the picker. Starts from `lektra.opt.picker`'s value.
 ---@field alternating_row_color? boolean Alternate row background colors. Starts from `lektra.opt.picker`'s value.
 ---@field show_header? boolean Show the column headers above the list. Starts from `lektra.opt.picker`'s value.
+---@field count_format? string Text with the match count next to the search box (`%s` = matches, then total). Starts from `lektra.opt.picker`'s value.
 ---@field shadow? OptPickerShadow Drop-shadow sub-table. Starts from `lektra.opt.picker`'s value.
 ---@field style? "floating"|"emacs" Where this picker appears: a card in the middle of the window, or a full-width strip along the bottom (like the Emacs minibuffer; its height follows `max_lines`). Starts from `lektra.opt.picker`'s value.
 ---@field scrolloff? integer Rows the selection keeps between itself and the top or bottom of the list. Starts from `lektra.opt.picker`'s value.

@@ -369,6 +369,8 @@ private:
     // Hides the picker; if it held the focus, hands it back to the widget that
     // had it before the picker opened (else the document view)
     void closeAndRestoreFocus() noexcept;
+    void scheduleFilterCountUpdate() noexcept;
+    void updateFilterCount() noexcept;
     void keepScrolloff(const QModelIndex &current) noexcept;
     void applyFrameStyle() noexcept;
     Item itemAtProxyIndex(const QModelIndex &index) const;
@@ -376,6 +378,9 @@ private:
 private:
     QVector<QString> m_history;
     QPointer<QWidget> m_prev_focus;
+    QLabel *m_filter_count_label = nullptr;
+    int m_total_rows             = -1; // -1: count again
+    bool m_count_pending         = false;
     QLabel *m_promptLabel                      = nullptr;
     QFrame *m_frame                            = nullptr;
     QStandardItemModel *m_model                = nullptr;

@@ -8,6 +8,7 @@
 #include <QKeyEvent>
 #include <QShortcutEvent>
 #include <QStandardItem>
+#include <QTimer>
 #include <QVBoxLayout>
 
 namespace
@@ -21,6 +22,19 @@ normalizedKey(const QKeyEvent *e) noexcept
     return QKeyCombination(e->modifiers() & ~Qt::KeypadModifier
                                & ~Qt::GroupSwitchModifier,
                            static_cast<Qt::Key>(e->key()));
+}
+
+// Rows that have no children: what the user sees as one entry
+int
+leafCount(const QAbstractItemModel *model, const QModelIndex &parent = {})
+{
+    int n = 0;
+    for (int r = 0; r < model->rowCount(parent); ++r)
+    {
+        const QModelIndex idx = model->index(r, 0, parent);
+        n += model->rowCount(idx) > 0 ? leafCount(model, idx) : 1;
+    }
+    return n;
 }
 } // namespace
 
@@ -76,6 +90,13 @@ Picker::Picker(const Config::Picker &config, QWidget *parent) noexcept
     hboxLayout->addWidget(m_promptLabel);
     hboxLayout->addWidget(m_searchBox);
 
+    m_filter_count_label = new QLabel(m_frame);
+    m_filter_count_label->setForegroundRole(QPalette::PlaceholderText);
+    m_filter_count_label->setSizePolicy(QSizePolicy::Minimum,
+                                        QSizePolicy::Preferred);
+    m_filter_count_label->setVisible(false);
+    hboxLayout->addWidget(m_filter_count_label);
+
     innerLayout->addLayout(hboxLayout);
     m_searchBox->installEventFilter(this);
 
@@ -115,6 +136,22 @@ Picker::Picker(const Config::Picker &config, QWidget *parent) noexcept
     connect(m_listView, &QTreeView::clicked, this, &Picker::onItemClicked);
     connect(m_listView, &QTreeView::activated, this, &Picker::onItemActivated);
 
+    // Any change to what is listed (typing, populate, streamed rows) updates
+    // the count; the update is deferred so a burst of row changes counts once
+    for (auto signal : {&QAbstractItemModel::rowsInserted,
+                        &QAbstractItemModel::rowsRemoved})
+    {
+        connect(m_proxy, signal, this,
+                [this] { scheduleFilterCountUpdate(); });
+        connect(m_model, signal, this, [this] { m_total_rows = -1; });
+    }
+    connect(m_proxy, &QAbstractItemModel::modelReset, this,
+            [this] { scheduleFilterCountUpdate(); });
+    connect(m_proxy, &QAbstractItemModel::layoutChanged, this,
+            [this] { scheduleFilterCountUpdate(); });
+    connect(m_model, &QAbstractItemModel::modelReset, this,
+            [this] { m_total_rows = -1; });
+
     applyFrameStyle();
 
     parent->installEventFilter(this);
@@ -139,6 +176,7 @@ Picker::launch() noexcept
     raise();
     m_listView->setCurrentIndex(m_proxy->index(0, 0));
     m_searchBox->setFocus();
+    updateFilterCount();
     QApplication::instance()->installEventFilter(this);
 }
 
@@ -211,6 +249,44 @@ Picker::reserveBottom(int px) noexcept
 {
     if (QWidget *p = parentWidget())
         QMetaObject::invokeMethod(p, "setBottomInset", Q_ARG(int, px));
+}
+
+void
+Picker::scheduleFilterCountUpdate() noexcept
+{
+    if (m_count_pending
+        || m_config.count_format.isEmpty())
+        return;
+    m_count_pending = true;
+    QTimer::singleShot(0, this, [this] { updateFilterCount(); });
+}
+
+void
+Picker::updateFilterCount() noexcept
+{
+    m_count_pending = false;
+    const QString &format = m_config.count_format;
+    m_filter_count_label->setVisible(!format.isEmpty());
+    if (format.isEmpty())
+        return;
+
+    // Each `%s` takes the next value: the matching rows, then all rows
+    const int firstSpec = format.indexOf(QStringLiteral("%s"));
+    const bool needTotal
+        = firstSpec >= 0
+          && format.indexOf(QStringLiteral("%s"), firstSpec + 2) >= 0;
+    if (needTotal && m_total_rows < 0)
+        m_total_rows = leafCount(m_model);
+
+    QString text = format;
+    for (const int value : {leafCount(m_proxy), m_total_rows})
+    {
+        const int at = text.indexOf(QStringLiteral("%s"));
+        if (at < 0)
+            break;
+        text.replace(at, 2, QString::number(value));
+    }
+    m_filter_count_label->setText(text);
 }
 
 void

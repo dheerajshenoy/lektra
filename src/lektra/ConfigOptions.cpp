@@ -266,6 +266,7 @@ pickerOptions(Registry &r, Base)
     r.boolean("border", S(border));
     r.boolean("alternating_row_color", S(alternating_row_color));
     r.boolean("show_header", S(show_header));
+    r.text("count_format", S(count_format));
     r.text("prompt", S(prompt));
     r.choice("style", S(style), kPickerStyle);
     r.integer("scrolloff", S(scrolloff)).range(0, 50);
