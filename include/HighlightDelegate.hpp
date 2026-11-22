@@ -30,6 +30,11 @@ public:
     {
         m_color = c;
     }
+    // Space kept free at the left and right of the text of every row
+    void setHorizontalPadding(int px)
+    {
+        m_padding = px;
+    }
 
     void paint(QPainter *painter, const QStyleOptionViewItem &option,
                const QModelIndex &index) const override;
@@ -37,4 +42,5 @@ public:
 private:
     const MatchHighlighter *m_highlighter = nullptr;
     QColor m_color                        = QColor(255, 235, 59); // yellow
+    int m_padding                         = 0;
 };

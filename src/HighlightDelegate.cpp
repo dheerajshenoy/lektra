@@ -21,9 +21,11 @@ HighlightDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
     if (m_highlighter && m_highlighter->isActive())
         ranges = m_highlighter->ranges(text);
 
+    const QRect textRect = opt.rect.adjusted(m_padding, 0, -m_padding, 0);
+
     if (ranges.isEmpty())
     {
-        style->drawItemText(painter, opt.rect, opt.displayAlignment,
+        style->drawItemText(painter, textRect, opt.displayAlignment,
                             opt.palette, true, text, QPalette::Text);
         return;
     }
@@ -31,7 +33,7 @@ HighlightDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
     // --- same per-piece drawing as before ---
     painter->save();
     QFontMetrics fm(opt.font);
-    int x = opt.rect.left() + 4;
+    int x = textRect.left() + 4;
     int y = opt.rect.top() + (opt.rect.height() - fm.height()) / 2;
 
     int pos = 0;

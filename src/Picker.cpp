@@ -121,12 +121,18 @@ Picker::Picker(const Config::Picker &config, QWidget *parent) noexcept
     m_proxy->setFilterRole(Qt::UserRole + 1);
     m_listView->setModel(m_proxy);
 
-    if (m_config.highlight_matches.enabled)
+    // The emacs strip has no padding of its own, so its rows keep the text
+    // off the edges themselves
+    if (m_config.highlight_matches.enabled || emacs())
     {
         m_highlight_delegate = new HighlightDelegate(this);
-        m_highlight_delegate->setHighlighter(m_proxy);
+        if (emacs())
+            m_highlight_delegate->setHorizontalPadding(6);
         m_listView->setItemDelegate(m_highlight_delegate);
-
+    }
+    if (m_config.highlight_matches.enabled)
+    {
+        m_highlight_delegate->setHighlighter(m_proxy);
         m_highlight_delegate->setHighlightColor(
             rgbaToQColor(m_config.highlight_matches.color));
     }
