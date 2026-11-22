@@ -70,6 +70,18 @@ private:
     static bool isEmpty(const Entry &e);
     static int naturalWidth(const Entry &e);
     static int minimumWidth(const Entry &e);
+    // An item of a row as it is being laid out: its width now, and the least
+    // it can shrink to
+    struct Slot
+    {
+        const Entry *entry;
+        int width;
+        int minimum;
+    };
+    // Shares the room of `width` px between the items of a row: free space
+    // goes to the stretching ones, a lack of it is taken from the ones that
+    // can shrink
+    static void distribute(QList<Slot> &row_items, int width);
     QList<int> rowNumbers() const;
     int rowHeight(int row) const;
     void layoutRow(int row, const QRect &rect);

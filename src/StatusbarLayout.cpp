@@ -184,50 +184,30 @@ StatusbarLayout::setGeometry(const QRect &rect)
 }
 
 void
-StatusbarLayout::layoutRow(int row, const QRect &rect)
+StatusbarLayout::distribute(QList<Slot> &row_items, int width)
 {
-    struct Slot
-    {
-        const Entry *entry;
-        int width;
-        int minimum;
-    };
-    QList<Slot> flow;
-    QList<const Entry *> absolute;
     int total = 0;
-    for (const Entry &e : std::as_const(m_entries))
-    {
-        if (e.row != row || isEmpty(e))
-            continue;
-        if (e.spec.absolute)
-        {
-            absolute.append(&e);
-            continue;
-        }
-        flow.append({&e, naturalWidth(e), minimumWidth(e)});
-        total += flow.last().width;
-    }
-
-    // Share out the free space, or take back what is missing.
-    int extra = rect.width() - total;
+    for (const Slot &s : row_items)
+        total += s.width;
+    int extra = width - total;
     if (extra > 0)
     {
         // Items with a maximum width stop growing; the rest share what is left.
         QList<int> growing;
-        for (int i = 0; i < flow.size(); ++i)
-            if (flow[i].entry->spec.stretch > 0)
+        for (int i = 0; i < row_items.size(); ++i)
+            if (row_items[i].entry->spec.stretch > 0)
                 growing.append(i);
         while (extra > 0 && !growing.isEmpty())
         {
             double weight = 0;
             for (int i : growing)
-                weight += flow[i].entry->spec.stretch;
+                weight += row_items[i].entry->spec.stretch;
 
             QList<int> still;
             int used = 0;
             for (int i : growing)
             {
-                Slot &s          = flow[i];
+                Slot &s          = row_items[i];
                 const Spec &spec = s.entry->spec;
                 const int give
                     = static_cast<int>(extra * spec.stretch / weight);
@@ -250,7 +230,7 @@ StatusbarLayout::layoutRow(int row, const QRect &rect)
                 // is still growing, so the row is always filled exactly.
                 if (extra > 0 && !growing.isEmpty())
                 {
-                    Slot &last = flow[growing.last()];
+                    Slot &last = row_items[growing.last()];
                     const Spec &spec = last.entry->spec;
                     int room         = extra;
                     if (!spec.gap && spec.maxWidth > 0)
@@ -266,15 +246,15 @@ StatusbarLayout::layoutRow(int row, const QRect &rect)
     else if (extra < 0)
     {
         int shrinkable = 0;
-        for (const Slot &s : flow)
+        for (const Slot &s : row_items)
             shrinkable += std::max(0, s.width - s.minimum);
         if (shrinkable > 0)
         {
             const int deficit = std::min(-extra, shrinkable);
             int taken         = 0;
-            for (int i = 0; i < flow.size(); ++i)
+            for (int i = 0; i < row_items.size(); ++i)
             {
-                Slot &s        = flow[i];
+                Slot &s        = row_items[i];
                 const int room = std::max(0, s.width - s.minimum);
                 int cut = static_cast<int>(static_cast<double>(deficit) * room
                                            / shrinkable);
@@ -282,15 +262,82 @@ StatusbarLayout::layoutRow(int row, const QRect &rect)
                 taken += cut;
             }
             // Rounding: take the last pixels from whoever can still give them.
-            for (int i = 0; taken < deficit && i < flow.size(); ++i)
-                if (flow[i].width > flow[i].minimum)
+            for (int i = 0; taken < deficit && i < row_items.size(); ++i)
+                if (row_items[i].width > row_items[i].minimum)
                 {
-                    --flow[i].width;
+                    --row_items[i].width;
                     ++taken;
                     --i; // same item again until it cannot
                 }
         }
     }
+}
+
+void
+StatusbarLayout::layoutRow(int row, const QRect &rect)
+{
+    QList<Slot> flow;
+    QList<const Entry *> absolute;
+    for (const Entry &e : std::as_const(m_entries))
+    {
+        if (e.row != row || isEmpty(e))
+            continue;
+        if (e.spec.absolute)
+        {
+            absolute.append(&e);
+            continue;
+        }
+        flow.append({&e, naturalWidth(e), minimumWidth(e)});
+    }
+
+    // A block between two equal stretching gaps (left | centre | right, however
+    // it was written) is the centre of the row: it stays at the middle of the
+    // row, and each side gets half of what is left, so a long item on one
+    // side shortens itself instead of pushing the centre along.
+    int firstGap = -1, lastGap = -1, stretching = 0;
+    for (int i = 0; i < flow.size(); ++i)
+        if (flow[i].entry->spec.stretch > 0)
+        {
+            ++stretching;
+            if (firstGap < 0)
+                firstGap = i;
+            lastGap = i;
+        }
+    int leftWidth = 0, midWidth = 0;
+    bool pinned   = stretching == 2 && flow[firstGap].entry->spec.gap
+                  && flow[lastGap].entry->spec.gap && lastGap - firstGap > 1
+                  && flow[firstGap].entry->spec.stretch
+                         == flow[lastGap].entry->spec.stretch;
+    if (pinned)
+    {
+        int leftMin = 0, rightMin = 0;
+        for (int i = 0; i < flow.size(); ++i)
+        {
+            if (i <= firstGap)
+                leftMin += flow[i].minimum;
+            else if (i < lastGap)
+                midWidth += flow[i].width;
+            else
+                rightMin += flow[i].minimum;
+        }
+        leftWidth = (rect.width() - midWidth) / 2;
+        // Not enough room for either side: keep the plain flow
+        pinned = midWidth <= rect.width() && leftMin <= leftWidth
+                 && rightMin <= rect.width() - midWidth - leftWidth;
+    }
+    if (pinned)
+    {
+        QList<Slot> left  = flow.mid(0, firstGap + 1);
+        QList<Slot> right = flow.mid(lastGap);
+        distribute(left, leftWidth);
+        distribute(right, rect.width() - midWidth - leftWidth);
+        for (int i = 0; i < left.size(); ++i)
+            flow[i] = left[i];
+        for (int i = 0; i < right.size(); ++i)
+            flow[lastGap + i] = right[i];
+    }
+    else
+        distribute(flow, rect.width());
 
     auto place = [&](const Entry &e, int x, int slotWidth)
     {
@@ -320,8 +367,15 @@ StatusbarLayout::layoutRow(int row, const QRect &rect)
     };
 
     int x = rect.x();
-    for (const Slot &s : std::as_const(flow))
+    for (int i = 0; i < flow.size(); ++i)
     {
+        // The pinned centre and the right side start where they were made room
+        // for, whatever the left side ended up using
+        if (pinned && i == firstGap + 1)
+            x = rect.x() + leftWidth;
+        else if (pinned && i == lastGap)
+            x = rect.x() + leftWidth + midWidth;
+        const Slot &s = flow[i];
         if (!s.entry->spec.gap)
             place(*s.entry, x, s.width);
         x += s.width;
