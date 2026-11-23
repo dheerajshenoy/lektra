@@ -78,6 +78,29 @@
     "annotations": {
       "type": "object",
       "properties": {
+        "glow": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable hover effect (e.g., glow on highlight) (since 0.8.1)"
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+              "default": "#FF5000AA"
+            },
+            "width": {
+              "type": "integer",
+              "default": 5,
+              "description": "Glow width in pixels (since 0.8.1)"
+            }
+          },
+          "additionalProperties": false,
+          "description": "The glow shown around an annotation on hover (since 0.8.1)"
+        },
         "highlight": {
           "type": "object",
           "properties": {
@@ -2420,6 +2443,29 @@
           "annotations": {
             "type": "object",
             "properties": {
+              "glow": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable hover effect (e.g., glow on highlight) (since 0.8.1)"
+                  },
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+                    "description": "Colour as \"#RRGGBB\" or \"#RRGGBBAA\".",
+                    "default": "#FF5000AA"
+                  },
+                  "width": {
+                    "type": "integer",
+                    "default": 5,
+                    "description": "Glow width in pixels (since 0.8.1)"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "The glow shown around an annotation on hover (since 0.8.1)"
+              },
               "highlight": {
                 "type": "object",
                 "properties": {

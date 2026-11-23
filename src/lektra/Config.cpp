@@ -280,11 +280,43 @@ isPickerVariant(const co::Option &o)
            || o.path.starts_with("command_palette.");
 }
 
+// annotations.<type>.glow.*, as opposed to the shared annotations.glow.*
+static bool
+isAnnotationTypeGlow(const co::Option &o)
+{
+    return o.path.starts_with("annotations.")
+           && o.path.find(".glow.") != std::string::npos
+           && !o.path.starts_with("annotations.glow.");
+}
+
+// annotations.glow.* is the glow of every annotation type. Each type takes
+// the values `toml` sets there, then its own annotations.<type>.glow.* on top.
+static void
+applyAnnotationGlow(toml::table &toml, Config &cfg)
+{
+    auto &a = cfg.annotations;
+    Config::Annotations::Base::Glow *types[]
+        = {&a.highlight.glow, &a.underline.glow, &a.rect.glow, &a.popup.glow};
+    for (auto *t : types)
+    {
+        if (toml.at_path("annotations.glow.enabled"))
+            t->enabled = a.glow.enabled;
+        if (toml.at_path("annotations.glow.color"))
+            t->color = a.glow.color;
+        if (toml.at_path("annotations.glow.width"))
+            t->width = a.glow.width;
+    }
+    applyOptions(toml, cfg, isAnnotationTypeGlow);
+}
+
 // The options a [filetype.<type>] table can set, applied to `cfg`.
 static void
 applyFiletypeToml(toml::table &toml, Config &cfg)
 {
-    applyOptions(toml, cfg, isFiletypeOption);
+    applyOptions(toml, cfg,
+                 [](const co::Option &o)
+                 { return isFiletypeOption(o) && !isAnnotationTypeGlow(o); });
+    applyAnnotationGlow(toml, cfg);
     if (!cfg.reflow.font_family.isEmpty())
         Model::prewarmFontIndex();
 }
@@ -450,7 +482,9 @@ Lektra::initConfig() noexcept
     // Every plain option (see ConfigOptions.cpp). The picker variants come
     // after [picker] has been copied into them, further down.
     applyOptions(toml, m_config,
-                 [](const co::Option &o) { return !isPickerVariant(o); });
+                 [](const co::Option &o)
+                 { return !isPickerVariant(o) && !isAnnotationTypeGlow(o); });
+    applyAnnotationGlow(toml, m_config);
     if (!m_config.reflow.font_family.isEmpty())
         Model::prewarmFontIndex();
 

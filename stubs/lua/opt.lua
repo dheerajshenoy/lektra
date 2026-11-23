@@ -116,12 +116,15 @@ lektra.opt.search = {}
 ---@field save_to_new_file? boolean After applying redactions, ask where to save the redacted copy instead of leaving the changes unsaved in the open file.
 
 ---@class OptAnnotations
+---@field glow? OptAnnotationsGlow The glow of every annotation type that has not set its own.
 ---@field highlight? OptAnnotationsHighlight
 ---@field underline? OptAnnotationsUnderline
 ---@field rect? OptAnnotationsRect
 ---@field popup? OptAnnotationsPopup
 ---@field redact? OptAnnotationsRedact
 lektra.opt.annotations = {
+    ---@type OptAnnotationsGlow
+    glow = {},
     ---@type OptAnnotationsHighlight
     highlight = {},
     ---@type OptAnnotationsUnderline

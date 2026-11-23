@@ -15,6 +15,7 @@
 
 ### New Features
 
+- `annotations.glow` (`enabled`, `color`, `width`) sets the hover glow of every annotation type at once; `annotations.<type>.glow` still overrides it for one type.
 - `llm_view.max_history_messages` sends only the last N of your messages (with the replies after them) to the model; the chat itself stays complete.
 - Markdown files show the images next to them (`![](pic.png)`).
 - `picker.style = "emacs"` shows pickers as a full-width strip along the bottom of the window, like the Emacs minibuffer, `picker.max_lines` rows high. The default, `"floating"`, is the card in the middle. `picker.scrolloff` keeps some rows between the selection and the edge of the list.

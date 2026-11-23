@@ -338,6 +338,8 @@ def annotation_for(ann, path, key=None):
     # annotations.<kind> share the `annotations.[type]` template
     if len(path) == 2 and path[0] == "annotations":
         candidates += ["annotations.[type]", f"annotations.{path[1]}"]
+    if path == ("annotations", "glow"):
+        candidates.append("annotations.[type].glow")
     if len(path) == 3 and path[0] == "annotations":
         candidates += [f"annotations.[type].{path[2]}", f"annotations.{path[1]}.{path[2]}"]
     # pickers share one set of keys
@@ -524,6 +526,10 @@ class Builder:
             origin, dotted = info["target"]
             member = resolve_member(self.root_structs,
                                     ("picker." if origin == "target" and path and False else "") + dotted)
+            if member is None and dotted.startswith("annotations.glow."):
+                # the shared glow has the type of the one of each annotation
+                member = resolve_member(self.root_structs,
+                                        "annotations.highlight." + dotted[len("annotations."):])
             if member is None and origin == "target":
                 member = resolve_member(self.root_structs, "picker." + dotted)
             if member:

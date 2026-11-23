@@ -340,6 +340,11 @@ build()
     r.boolean("highlight_matches", F(search.highlight_matches));
     r.boolean("absolute_jump", F(search.absolute_jump));
 
+    // The glow of every annotation type that has not set its own (see
+    // Config.cpp).
+    r.section("annotations", View);
+    annotationGlow(r, F(annotations));
+
     r.section("annotations.highlight", View);
     r.color("color", F(annotations.highlight.color));
     annotationGlow(r, F(annotations.highlight));

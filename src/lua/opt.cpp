@@ -809,13 +809,25 @@ sameValue(const co::Option &a, const co::Option &b, Config &c)
 }
 
 // The [outline], [highlight_search] and [command_palette] pickers start from
-// the values of [picker]. config.toml copies them before reading those
+// the values of [picker], and the annotation types from annotations.glow. config.toml copies them before reading those
 // tables; a script sets them afterwards, so the copies that were never set
 // on their own have to follow.
 static std::vector<const co::Option *>
 pickerFollowers(const co::Option &o, Config &c)
 {
     std::vector<const co::Option *> out;
+    // annotations.glow.* is the glow of every annotation type
+    constexpr std::string_view glowPrefix = "annotations.glow.";
+    if (o.path.rfind(glowPrefix, 0) == 0)
+    {
+        for (const char *type : {"highlight", "underline", "rect", "popup"})
+            if (const co::Option *f
+                = co::find(std::string("annotations.") + type + ".glow."
+                           + o.path.substr(glowPrefix.size()));
+                f && sameValue(o, *f, c))
+                out.push_back(f);
+        return out;
+    }
     constexpr std::string_view prefix = "picker.";
     if (o.path.rfind(prefix, 0) != 0 || o.path.rfind("picker.keys.", 0) == 0)
         return out;

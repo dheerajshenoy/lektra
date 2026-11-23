@@ -213,6 +213,10 @@ struct Config
         };
         // @endsection
 
+        // The glow every annotation type starts from; annotations.<type>.glow
+        // overrides it (see Config.cpp)
+        Base::Glow glow;
+
         // @section annotations.popup
         // @section_desc Popup annotation options struct
         // @section_type struct
