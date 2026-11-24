@@ -243,6 +243,11 @@ init_args(argparse::ArgumentParser &program)
         .metavar("SYNCTEX_FORMAT");
 #endif
 
+    program.add_argument("--sync-views")
+        .help("Sync zoom and scroll of all views of the tab once the files "
+              "are open (for use with --vsplit or --hsplit)")
+        .flag();
+
     program.add_argument("--tutorial")
         .help("Start with the tutorial file open")
         .flag();

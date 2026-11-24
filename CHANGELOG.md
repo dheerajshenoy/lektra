@@ -15,6 +15,7 @@
 
 ### New Features
 
+- `--sync-views` syncs zoom and scroll of the opened splits, e.g. `lektra --vsplit --sync-views a.pdf a.pdf`. `--command` now also runs with `--vsplit` and `--hsplit` (it was skipped before).
 - `annotations.glow` (`enabled`, `color`, `width`) sets the hover glow of every annotation type at once; `annotations.<type>.glow` still overrides it for one type.
 - `llm_view.max_history_messages` sends only the last N of your messages (with the replies after them) to the model; the chat itself stays complete.
 - Markdown files show the images next to them (`![](pic.png)`).

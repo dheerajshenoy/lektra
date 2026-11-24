@@ -156,6 +156,7 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
                                     : -1;
                 msg["vsplit"] = argparser.is_used("vsplit");
                 msg["hsplit"] = argparser.is_used("hsplit");
+                msg["sync_views"] = argparser.is_used("sync-views");
                 if (argparser.is_used("command"))
                     msg["command"] = QString::fromStdString(
                         argparser.get<std::string>("--command"));
@@ -294,6 +295,9 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
     // Build the list of CLI commands to run after a file loads
     auto runCliCommands = [&]()
     {
+        if (argparser.is_used("sync-views"))
+            SyncViews();
+
         if (!argparser.is_used("command"))
             return;
 
@@ -331,9 +335,9 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
         if (!qtFiles.isEmpty())
         {
             if (hsplit)
-                OpenFilesInHSplit(qtFiles);
+                OpenFilesInHSplit(qtFiles, runCliCommands);
             else if (vsplit)
-                OpenFilesInVSplit(qtFiles);
+                OpenFilesInVSplit(qtFiles, runCliCommands);
             else
             {
                 // Open the first file with a callback so runCliCommands

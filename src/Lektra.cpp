@@ -827,17 +827,43 @@ Lektra::onIPCDataReady()
     const bool vsplit      = msg["vsplit"].toBool();
     const bool hsplit      = msg["hsplit"].toBool();
     const QString cmd      = msg["command"].toString();
+    const bool syncViews   = msg["sync_views"].toBool();
 
     QStringList filePaths;
     for (const auto &v : files)
         filePaths.push_back(v.toString());
 
+    // Commands (and --sync-views) run after the files are open; for splits
+    // that is once the last one has loaded.
+    const auto runCommands = [this, cmd, syncViews]()
+    {
+        if (syncViews)
+            SyncViews();
+        const QStringList cmdList = cmd.split(';', Qt::SkipEmptyParts);
+        for (const QString &c : cmdList)
+        {
+            QStringList parts = c.split(' ', Qt::SkipEmptyParts);
+            if (parts.isEmpty())
+                continue;
+            auto command = m_command_manager->find(parts[0]);
+            if (!command.name.isEmpty())
+                command.action(parts.mid(1));
+        }
+    };
+    bool commandsDeferred = false;
+
     if (!filePaths.isEmpty())
     {
         if (vsplit)
-            OpenFilesInVSplit(filePaths);
+        {
+            OpenFilesInVSplit(filePaths, runCommands);
+            commandsDeferred = true;
+        }
         else if (hsplit)
-            OpenFilesInHSplit(filePaths);
+        {
+            OpenFilesInHSplit(filePaths, runCommands);
+            commandsDeferred = true;
+        }
         else if (filePaths.size() == 1)
         {
             OpenFileInNewTab(filePaths[0], [page, this](void *)
@@ -904,19 +930,8 @@ Lektra::onIPCDataReady()
     }
 #endif
 
-    if (!cmd.isEmpty())
-    {
-        const QStringList cmdList = cmd.split(';', Qt::SkipEmptyParts);
-        for (const QString &c : cmdList)
-        {
-            QStringList parts = c.split(' ', Qt::SkipEmptyParts);
-            if (parts.isEmpty())
-                continue;
-            auto command = m_command_manager->find(parts[0]);
-            if (!command.name.isEmpty())
-                command.action(parts.mid(1));
-        }
-    }
+    if (!commandsDeferred && (syncViews || !cmd.isEmpty()))
+        runCommands();
 
     this->raise();
     this->activateWindow();

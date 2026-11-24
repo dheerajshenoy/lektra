@@ -172,7 +172,8 @@ Lektra::OpenFiles(const QStringList &files) noexcept
 }
 
 void
-Lektra::OpenFilesInVSplit(const QStringList &files) noexcept
+Lektra::OpenFilesInVSplit(const QStringList &files,
+                         const std::function<void()> &onDone) noexcept
 {
 #ifndef NDEBUG
     qDebug() << "Lektra::OpenFilesInVSplit(): Opening files in vertical split:"
@@ -199,15 +200,23 @@ Lektra::OpenFilesInVSplit(const QStringList &files) noexcept
     // unspecified, so reading qfiles[0] in the same expression as
     // `qfiles = std::move(qfiles)` can index a moved-from list.
     const QString first = qfiles[0];
-    OpenFileVSplit(first, [this, qfiles = std::move(qfiles)](void *)
+    // onDone fires once the last file has loaded, so commands run against
+    // the finished set of splits.
+    OpenFileVSplit(first, [this, qfiles = std::move(qfiles), onDone](void *)
     {
         for (int i = 1; i < qfiles.size(); ++i)
-            OpenFileVSplit(qfiles[i]);
+            OpenFileVSplit(qfiles[i], i == qfiles.size() - 1 && onDone
+                                           ? CallbackFn([onDone](void *)
+                                                        { onDone(); })
+                                           : CallbackFn{});
+        if (qfiles.size() == 1 && onDone)
+            onDone();
     });
 }
 
 void
-Lektra::OpenFilesInHSplit(const QStringList &files) noexcept
+Lektra::OpenFilesInHSplit(const QStringList &files,
+                         const std::function<void()> &onDone) noexcept
 {
 #ifndef NDEBUG
     qDebug()
@@ -232,10 +241,17 @@ Lektra::OpenFilesInHSplit(const QStringList &files) noexcept
     // See OpenFilesInVSplit for the split-vs-new-tab rationale and why
     // qfiles[0] must be read before the move.
     const QString first = qfiles[0];
-    OpenFileHSplit(first, [this, qfiles = std::move(qfiles)](void *)
+    // onDone fires once the last file has loaded, so commands run against
+    // the finished set of splits.
+    OpenFileHSplit(first, [this, qfiles = std::move(qfiles), onDone](void *)
     {
         for (int i = 1; i < qfiles.size(); ++i)
-            OpenFileHSplit(qfiles[i]);
+            OpenFileHSplit(qfiles[i], i == qfiles.size() - 1 && onDone
+                                           ? CallbackFn([onDone](void *)
+                                                        { onDone(); })
+                                           : CallbackFn{});
+        if (qfiles.size() == 1 && onDone)
+            onDone();
     });
 }
 

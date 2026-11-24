@@ -73,6 +73,10 @@ Command line options are described below:
 `--hsplit`
 : Open the supplied file(s) in a **horizontal** split view.
 
+`--sync-views`
+: Sync zoom and scroll of all views of the tab once the files are open.
+  Meant for `--vsplit` or `--hsplit` with the same file twice.
+
 `-s SESSION_NAME`, `--session SESSION_NAME`
 : Load a named session on startup.
   See **lektra-config(5)** for how sessions are stored.
