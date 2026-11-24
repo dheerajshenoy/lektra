@@ -124,10 +124,13 @@ MessagesWidget::showContextMenu(const QPoint &pos) noexcept
         m_list->setCurrentItem(item);
 
     QMenu menu(this);
-    menu.addAction(tr("Copy Message"), QKeySequence::Copy, this,
-                   [this] { copySelected(false); });
-    menu.addAction(tr("Copy with Time and Level"), this,
-                   [this] { copySelected(true); });
+    QAction *copyAct = menu.addAction(tr("Copy Message"));
+    copyAct->setShortcut(QKeySequence::Copy);
+    connect(copyAct, &QAction::triggered, this,
+            [this] { copySelected(false); });
+    QAction *copyAllAct = menu.addAction(tr("Copy with Time and Level"));
+    connect(copyAllAct, &QAction::triggered, this,
+            [this] { copySelected(true); });
     menu.exec(m_list->viewport()->mapToGlobal(pos));
 }
 
