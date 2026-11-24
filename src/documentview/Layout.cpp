@@ -643,6 +643,13 @@ DocumentView::setZoomAnchored(double factor, QPointF anchorScenePos) noexcept
         m_gscene->blockSignals(false);
         m_gview->setUpdatesEnabled(true);
 
+        // The new scene rect may have clamped the scroll values while their
+        // signals were blocked. The view only learns of a scroll through
+        // those signals, so it would keep drawing at the old offset (and the
+        // anchor restore below, setting the same value, would not fix it).
+        emit m_vscroll->valueChanged(m_vscroll->value());
+        emit m_hscroll->valueChanged(m_hscroll->value());
+
         restoreZoomAnchor(anchorPage, relX, relY, viewportRatio);
 
         m_scroll_page_update_timer->start();
