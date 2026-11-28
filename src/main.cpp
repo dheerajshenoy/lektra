@@ -23,7 +23,7 @@
     #include <unistd.h>
 #elif _WIN32
     #define WIN32_LEAN_AND_MEAN
-    #include <Windows.h>
+    #include <windows.h>
 #endif
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
