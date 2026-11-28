@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(lektra VERSION 0.8.1 LANGUAGES C CXX)
+project(lektra VERSION 0.8.2 LANGUAGES C CXX)
 
 include(GNUInstallDirs)
 
@@ -27,8 +27,10 @@ option(IS_APPIMAGE "Build as AppImage (Linux only)" OFF)
 # Build type default
 # ---------------------------------------------------------------------------
 
-if(WIN32 AND NOT (CMAKE_GENERATOR MATCHES "Visual Studio"))
-    message(FATAL_ERROR [[MSBuild is the only supported generator on Windows]])
+# Native Windows builds use MSVC through MSBuild. MinGW-w64 (cross-compiling
+# from Linux with a toolchain such as x86_64-w64-mingw32-cmake) is also allowed.
+if(WIN32 AND NOT MINGW AND NOT (CMAKE_GENERATOR MATCHES "Visual Studio"))
+    message(FATAL_ERROR [[MSBuild is the only supported generator for MSVC builds on Windows]])
 endif()
 
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
@@ -201,16 +203,32 @@ else()
     set(MUPDF_LIB_FILE "${MUPDF_INSTALL_DIR}/lib/libmupdf.a")
     set(MUPDF_LIB_THIRD_FILE "${MUPDF_INSTALL_DIR}/lib/libmupdf-third.a")
 
+    # MinGW cross build: hand MuPDF's Makefile the cross tools and tell it the
+    # target OS (it would otherwise detect the Linux host). -fPIC means nothing
+    # for Windows targets, so it is left out there.
+    set(_mupdf_make_args build=release shared=no
+        HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no USE_SYSTEM_LIBS=no)
+    if(MINGW)
+        # MuPDF builds inside its source tree: keep the Windows objects apart
+        # from a native Linux build's (build/release).
+        list(APPEND _mupdf_make_args OS=MINGW OUT=build/mingw-release
+            "CC=${CMAKE_C_COMPILER}" "CXX=${CMAKE_CXX_COMPILER}"
+            "AR=${CMAKE_AR}" "RANLIB=${CMAKE_RANLIB}"
+            # mingw predefines _M_AMD64, which makes MuPDF pick its SSE4.1
+            # deskew path without building it with -msse4.1. Use the C path.
+            "XCFLAGS=-DARCH_HAS_SSE=0")
+        set(_mupdf_lib_cflags "")
+    else()
+        set(_mupdf_lib_cflags LIB_CFLAGS=-fPIC)
+    endif()
+
     ExternalProject_Add(mupdf_external
         SOURCE_DIR "${MUPDF_SOURCE_DIR}"
         CONFIGURE_COMMAND ""
         BUILD_COMMAND
-        make -C <SOURCE_DIR> build=release shared=no
-        HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no USE_SYSTEM_LIBS=no
-        LIB_CFLAGS=-fPIC libs
+        make -C <SOURCE_DIR> ${_mupdf_make_args} ${_mupdf_lib_cflags} libs
         INSTALL_COMMAND
-        make -C <SOURCE_DIR> build=release shared=no
-        HAVE_TESSERACT=no HAVE_CURL=no HAVE_X11=no HAVE_GLUT=no HAVE_LIBCRYPTO=no USE_SYSTEM_LIBS=no
+        make -C <SOURCE_DIR> ${_mupdf_make_args}
         prefix="${MUPDF_INSTALL_DIR}" install-libs
         BUILD_BYPRODUCTS "${MUPDF_LIB_FILE}" "${MUPDF_LIB_THIRD_FILE}"
         UPDATE_COMMAND ""
@@ -338,13 +356,33 @@ exit /b %errorlevel%
                 "MACOSX_DEPLOYMENT_TARGET=${_luajit_macos_target}")
         endif()
 
+        set(_luajit_install_cmd make -C <SOURCE_DIR> ${_luajit_make_args}
+            "PREFIX=${LUAJIT_INSTALL_DIR}" install)
+
+        if (MINGW)
+            # Cross build: LuaJIT compiles its build tools (minilua, buildvm)
+            # with the host compiler and the library with the cross one.
+            # CROSS is the tool prefix, e.g. /usr/bin/x86_64-w64-mingw32-
+            string(REGEX REPLACE "gcc(\\.exe)?$" "" _luajit_cross "${CMAKE_C_COMPILER}")
+            set(_luajit_make_args
+                BUILDMODE=static
+                HOST_CC=gcc
+                "CROSS=${_luajit_cross}"
+                TARGET_SYS=Windows
+                "XCFLAGS=-DLUAJIT_ENABLE_LUA52COMPAT")
+            # `make install` expects a `luajit` binary (it is luajit.exe
+            # here), so link straight from the build tree instead.
+            set(LUAJIT_LIB_FILE    "${LUAJIT_BUILD_DIR}/src/libluajit.a")
+            set(LUAJIT_INCLUDE_DIR "${LUAJIT_BUILD_DIR}/src")
+            set(_luajit_install_cmd ${CMAKE_COMMAND} -E true)
+        endif()
+
         ExternalProject_Add(luajit_external
             SOURCE_DIR "${LUAJIT_BUILD_DIR}"
             DOWNLOAD_COMMAND ${_luajit_copy}
             CONFIGURE_COMMAND ""
             BUILD_COMMAND make -C <SOURCE_DIR> ${_luajit_make_args}
-            INSTALL_COMMAND make -C <SOURCE_DIR> ${_luajit_make_args}
-                "PREFIX=${LUAJIT_INSTALL_DIR}" install
+            INSTALL_COMMAND ${_luajit_install_cmd}
             BUILD_BYPRODUCTS "${LUAJIT_LIB_FILE}"
             UPDATE_COMMAND ""
         )
@@ -352,12 +390,13 @@ exit /b %errorlevel%
     message(STATUS "Lua support: enabled (bundled LuaJIT, static)")
 endif()
 
+# (Skipped for MinGW: pkg-config would find the Linux host libs.)
 # Optional: lets EPUB/FB2 documents use any installed font via fontconfig.
 find_package(PkgConfig QUIET)
-if (WITH_FONTCONFIG AND PkgConfig_FOUND)
+if (WITH_FONTCONFIG AND PkgConfig_FOUND AND NOT MINGW)
     pkg_check_modules(FONTCONFIG QUIET IMPORTED_TARGET fontconfig)
 endif()
-if (FONTCONFIG_FOUND)
+if (FONTCONFIG_FOUND AND NOT MINGW)
     message(STATUS "fontconfig support: enabled (EPUB font_family)")
 else()
     message(STATUS "fontconfig not used - EPUB font_family scans the system font folders")
@@ -365,10 +404,10 @@ endif()
 
 # Optional: RAR/7z comic books (cbr, cb7). The installed MuPDF is usually built
 # without libarchive, so Lektra unpacks these itself.
-if (WITH_LIBARCHIVE AND PkgConfig_FOUND)
+if (WITH_LIBARCHIVE AND PkgConfig_FOUND AND NOT MINGW)
     pkg_check_modules(LIBARCHIVE QUIET IMPORTED_TARGET libarchive)
 endif()
-if (LIBARCHIVE_FOUND)
+if (LIBARCHIVE_FOUND AND NOT MINGW)
     message(STATUS "libarchive support: enabled (cbr, cb7)")
 else()
     message(STATUS "libarchive not used - cbr/cb7 comic books unsupported")
@@ -627,12 +666,12 @@ if (WITH_PCH)
         "${CMAKE_CURRENT_SOURCE_DIR}/include/pch.hpp")
 endif()
 
-if (LIBARCHIVE_FOUND)
+if (LIBARCHIVE_FOUND AND NOT MINGW)
     target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::LIBARCHIVE)
     target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_LIBARCHIVE=1)
 endif()
 
-if (FONTCONFIG_FOUND)
+if (FONTCONFIG_FOUND AND NOT MINGW)
     target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::FONTCONFIG)
     target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_FONTCONFIG=1)
 endif()
@@ -648,8 +687,13 @@ else()
         "${MUPDF_INSTALL_DIR}/lib/libmupdf-third.a"
         z       # zlib
         m       # libm
-        dl      # libdl
     )
+    if(MINGW)
+        # No libdl on Windows; the crash handler uses DbgHelp there instead.
+        target_link_libraries(${PROJECT_NAME} PRIVATE dbghelp)
+    else()
+        target_link_libraries(${PROJECT_NAME} PRIVATE dl)
+    endif()
 endif()
 
 # ----------------------------------------------------------------------------
@@ -669,6 +713,13 @@ if (WITH_SYNCTEX)
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/synctex)
 
     target_link_libraries(${PROJECT_NAME} PRIVATE synctex)
+    # synctex_parser.c calls gzopen/gzread/...; link zlib after it (static link order).
+    find_package(ZLIB REQUIRED)
+    target_link_libraries(synctex PUBLIC ZLIB::ZLIB)
+    if(WIN32)
+        # synctex_parser_utils.c uses PathFindFileNameA / PathFindExtensionA.
+        target_link_libraries(synctex PUBLIC shlwapi)
+    endif()
     target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_SYNCTEX=1)
 endif()
 
@@ -978,6 +1029,54 @@ if(WIN32)
     endif()
 endif()
 
+# MinGW cross build (no windeployqt): copy the runtime DLLs and Qt plugins next
+# to lektra.exe so it runs under Wine / on Windows straight from the build dir.
+if(MINGW AND NOT WINDEPLOYQT_EXECUTABLE)
+    get_filename_component(_mingw_bin "${CMAKE_C_COMPILER}" DIRECTORY)
+    get_filename_component(_mingw_root "${_mingw_bin}/../x86_64-w64-mingw32" ABSOLUTE)
+    if(NOT EXISTS "${_mingw_root}/bin")
+        get_filename_component(_mingw_root "${CMAKE_FIND_ROOT_PATH}" ABSOLUTE)
+    endif()
+    set(_dll_dirs "${_mingw_root}/bin" "${_mingw_root}/lib/qt6/bin")
+
+    set(_plugin_root "${_mingw_root}/lib/qt6/plugins")
+    set(_plugin_dirs platforms styles imageformats iconengines tls networkinformation)
+
+    string(REGEX REPLACE "gcc(\\.exe)?$" "objdump" _mingw_objdump "${CMAKE_C_COMPILER}")
+    set(_deploy_script "${CMAKE_CURRENT_SOURCE_DIR}/cmake/MingwDeployDlls.cmake")
+    set(_deploy_search "${_mingw_root}/bin,${_mingw_root}/lib/qt6/bin")  # "," not ";" or "|": the shell would split or pipe on those
+
+    # 1) Qt plugins, 2) every DLL the exe and the plugins import (recursively).
+    foreach(_dir IN LISTS _plugin_dirs)
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${_plugin_root}/${_dir}"
+                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/${_dir}"
+            COMMENT "Copying Qt plugins: ${_dir}")
+    endforeach()
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            "-DEXE=$<TARGET_FILE:${PROJECT_NAME}>"
+            "-DDEST=$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+            "-DOBJDUMP=${_mingw_objdump}"
+            "-DSEARCH_DIRS=${_deploy_search}"
+            -P "${_deploy_script}"
+        COMMENT "Copying MinGW/Qt runtime DLLs next to ${PROJECT_NAME}.exe")
+
+    # Same thing for `cmake --install`.
+    foreach(_dir IN LISTS _plugin_dirs)
+        install(DIRECTORY "${_plugin_root}/${_dir}" DESTINATION bin COMPONENT Runtime)
+    endforeach()
+    install(CODE "
+        execute_process(COMMAND \"${CMAKE_COMMAND}\"
+            \"-DEXE=\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}.exe\"
+            \"-DDEST=\${CMAKE_INSTALL_PREFIX}/bin\"
+            \"-DOBJDUMP=${_mingw_objdump}\"
+            \"-DSEARCH_DIRS=${_deploy_search}\"
+            -P \"${_deploy_script}\")
+    " COMPONENT Runtime)
+endif()
+
 # Install Qt dependencies during cmake --install
 if(WIN32 AND WINDEPLOYQT_EXECUTABLE)
     install(CODE "
@@ -1001,4 +1100,35 @@ if (NOT WIN32)
     find_package(ZLIB REQUIRED)
     target_link_libraries(${PROJECT_NAME} PRIVATE ZLIB::ZLIB)
     target_include_directories(${PROJECT_NAME} PRIVATE ${ZLIB_INCLUDE_DIRS})
+endif()
+
+# ---------------------------------------------------------------------------
+# Windows installer (cpack -G NSIS, run in the build dir; needs makensis)
+# ---------------------------------------------------------------------------
+if(WIN32)
+    set(CPACK_PACKAGE_NAME "Lektra")
+    set(CPACK_PACKAGE_VENDOR "Lektra")
+    set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+    set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-win64")
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY "Lektra")
+    set(CPACK_GENERATOR "NSIS")
+
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+        set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+    endif()
+
+    set(CPACK_NSIS_MUI_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/lektra.ico")
+    set(CPACK_NSIS_MUI_UNIICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/lektra.ico")
+    set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\${PROJECT_NAME}.exe")
+    set(CPACK_NSIS_DISPLAY_NAME "Lektra")
+    set(CPACK_NSIS_MODIFY_PATH OFF)
+    set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+    set(CPACK_NSIS_EXECUTABLES_DIRECTORY "bin")
+    # Start Menu shortcut (and Desktop one, via the extra install command)
+    set(CPACK_PACKAGE_EXECUTABLES "${PROJECT_NAME}" "Lektra")
+    set(CPACK_NSIS_CREATE_ICONS_EXTRA
+        "CreateShortCut '$DESKTOP\\\\Lektra.lnk' '$INSTDIR\\\\bin\\\\${PROJECT_NAME}.exe'")
+    set(CPACK_NSIS_DELETE_ICONS_EXTRA "Delete '$DESKTOP\\\\Lektra.lnk'")
+
+    include(CPack)
 endif()

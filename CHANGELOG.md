@@ -1,5 +1,7 @@
 # LEKTRA CHANGELOG
 
+# 0.8.2
+
 # 0.8.1
 
 ### Breaking Changes
